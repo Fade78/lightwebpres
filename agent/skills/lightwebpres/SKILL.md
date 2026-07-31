@@ -1,5 +1,5 @@
 ---
-name: lightwebpres-format
+name: lightwebpres
 description: >
   Write or edit an article in the LightWebPres (LWP) extended Markdown
   format — the slide-deck article format used by the lightwebpres static
