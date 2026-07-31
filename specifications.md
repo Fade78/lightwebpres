@@ -1564,6 +1564,13 @@ slide (les premières lignes avant le premier paragraphe de contenu). Une fois
 que le parseur a rencontré une ligne de contenu (paragraphe, liste, titre), il
 cesse de chercher des métadonnées.
 
+Cette règle s'applique aussi aux titres `# `/`## ` : un `## Sous-titre` qui
+apparaît **après** le début du contenu (donc dans le corps de la fact-box, pas
+dans l'en-tête de la slide) est du texte de contenu — un titre Markdown normal
+dans le rendu de la fact-box — et non une nouvelle valeur pour le `h2` de la
+slide. Seul un `# `/`## ` rencontré avant tout contenu définit le titre de la
+slide.
+
 ### 22.3 Slide sans `tag:`
 
 Autorisé. Le tag est omis dans le HTML (pas de `<span class="slide-tag">`).

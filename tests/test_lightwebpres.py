@@ -1345,5 +1345,36 @@ class GeneratedHtmlValidation(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
 
 
+class HeadingInBodyIsContentNotRetitle(unittest.TestCase):
+    """§22.2: the field->free-text switch applies to # / ## lines exactly
+    like key: value fields — a heading appearing after body content has
+    already started is fact-box content (rendered as a real heading by
+    convert_markdown), not a silent overwrite of the slide's own h1/h2."""
+
+    def test_heading_after_body_content_does_not_overwrite_slide_h2(self):
+        md = (
+            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- slide -->\ntag: T\n## Real title\nfact-label: The fact\n\n'
+            'First paragraph of body text.\n\n'
+            '## This looks like a heading in the body\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # The slide's own title must survive untouched...
+            self.assertIn('<h2>Real title</h2>', html)
+            # ...and the in-body heading must render as fact-box content.
+            self.assertIn(
+                '<p class="fact-content">First paragraph of body text.</p>',
+                html,
+            )
+            self.assertIn('<h2>This looks like a heading in the body</h2>', html)
+            # Only one <h2> may be the slide title; the second is nested
+            # inside the fact-box, not a sibling slide title.
+            self.assertEqual(html.count('<h2>'), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

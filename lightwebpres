@@ -1069,9 +1069,9 @@ def parse_markdown_extended(md_text):
                     slide.h1 = value
                 elif key == 'h2':
                     slide.h2 = value
-            elif stripped.startswith('# ') and not stripped.startswith('## '):
+            elif stripped.startswith('# ') and not stripped.startswith('## ') and not in_content:
                 slide.h1 = stripped[2:].strip()
-            elif stripped.startswith('## '):
+            elif stripped.startswith('## ') and not in_content:
                 slide.h2 = stripped[3:].strip()
             else:
                 # This is content (the fact-box)

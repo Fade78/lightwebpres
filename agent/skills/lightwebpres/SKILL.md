@@ -95,11 +95,15 @@ article: apple-pie_article.md
 
 ## The meta block
 
-Recap information for the human/tooling; the two fields that actually
-drive rendering are `file` (output filename) and `h1` (used for the
-`<title>` tag). The rest (`series_title`, `series_desc`, `index_number`,
-`index_title`, `index_desc`) should match the corresponding
-`series.json` entry for this article — see below.
+Almost entirely a recap for the human/tooling, not read by the build
+engine — with one exception: `h1` is used for the `<title>` tag (falling
+back to the output filename if absent). Everything else, **including
+`file`**, is decorative: the actual output filename comes from
+`series.json`'s `file` entry (see below), not from the meta block. Keep
+`file` and the other fields (`series_title`, `series_desc`,
+`index_number`, `index_title`, `index_desc`) matching the `series.json`
+entry anyway — nothing enforces that they match, so a mismatch won't
+error, it'll just be confusing to the next person reading the file.
 
 ## Slide types
 
@@ -111,8 +115,9 @@ drive rendering are `file` (output filename) and `h1` (used for the
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
 `tag`, `summary`, `fact-label`, `source`, `highlight`/`highlight-caption`
-are all optional — omit the line entirely if you don't need it, don't
-leave it empty. `highlight` is a short standalone figure (a number, a
+are all optional — simplest to just omit the line if you don't need it
+(an empty value behaves the same as omitting it, but there's no reason
+to write it). `highlight` is a short standalone figure (a number, a
 stat, a quote) with an optional caption underneath; it renders above the
 fact-box, not instead of it.
 
@@ -139,9 +144,11 @@ entry in `series.json`'s `articles` array:
 ```
 
 `file` and `source` must be **bare filenames** — no `/`, no `..`. The
-array order is the navigation/index order. `index_title`/`index_desc`/
-`index_number` are optional per-entry overrides for the index card;
-without them it falls back to `series_title`/`series_desc`.
+array order is the navigation/index order. `index_title`/`index_desc` are
+optional per-entry overrides for the index card, falling back to
+`series_title`/`series_desc` when absent; `index_number` is independent
+(a label like "Article 1") and simply doesn't appear on the card at all
+if you leave it out — there's nothing for it to fall back to.
 
 ## Always verify before calling it done
 
@@ -163,10 +170,14 @@ as finished — don't guess at whether it would build.
 ## Common mistakes to avoid
 
 - Wrapping a field value across two lines expecting it to join — it
-  won't; the second line becomes free text (or worse, gets silently
-  dropped if it's on a `cover` slide, which is fatal).
+  won't; the second line becomes free text instead (a fatal build error
+  on a `cover` slide, since it has no fact-box for that text to go into
+  — at least you'll get a clear error, not silent data loss).
 - Writing `tag:`, `summary:`, etc. **after** the fact-box body has
   started — those lines are already free text at that point, not fields.
+  Same for a `#`/`##` heading appearing after body content has started:
+  it becomes a heading rendered *inside* the fact-box, not a rewrite of
+  the slide's own title.
 - A bare `---` inside body text, expecting a visual divider — it splits
   the slide instead.
 - Two `full-article` or two `series-nav` slides in one file.
