@@ -1236,11 +1236,26 @@ class H2FieldForm(unittest.TestCase):
             self.assertIn('<h2>Title via field</h2>', html)
 
 
-class FactLabelDefaultFallback(unittest.TestCase):
-    """§7.3/§12.3: fact-box content without an explicit fact-label: falls
-    back to the language pack's fact_label_default string."""
+class FactLabelOptional(unittest.TestCase):
+    """§4.3: free text after a standard slide's fields goes into the
+    fact-box when fact-label: is present, or a bare <p> paragraph
+    (no fact-box wrapper) when it's absent."""
 
-    def test_fact_label_falls_back_to_language_default(self):
+    def test_fact_label_present_produces_fact_box(self):
+        md = (
+            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- slide -->\ntag: T\n## Title\nfact-label: The takeaway\nContent with a fact-label.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="fact-box">', html)
+            self.assertIn('<div class="fact-label">The takeaway</div>', html)
+            self.assertIn('<p class="fact-content">Content with a fact-label.</p>', html)
+
+    def test_fact_label_absent_produces_bare_paragraph(self):
         md = (
             '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
             '<!-- slide -->\ntag: T\n## Title\nContent without a fact-label.\n'
@@ -1250,7 +1265,24 @@ class FactLabelDefaultFallback(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            self.assertIn('<div class="fact-label">The fact</div>', html)
+            self.assertNotIn('class="fact-box"', html)
+            self.assertNotIn('class="fact-label"', html)
+            self.assertNotIn('class="fact-content"', html)
+            self.assertIn('<p>Content without a fact-label.</p>', html)
+
+    def test_fact_label_absent_multi_paragraph(self):
+        md = (
+            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- slide -->\ntag: T\n## Title\nFirst paragraph.\n\nSecond paragraph.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('class="fact-box"', html)
+            self.assertIn('<p>First paragraph.</p>', html)
+            self.assertIn('<p>Second paragraph.</p>', html)
 
 
 class CheckNewMarker(unittest.TestCase):

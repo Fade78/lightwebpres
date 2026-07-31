@@ -539,7 +539,6 @@ un placeholder `{{str_CLÉ}}` (§9, §18).
 | `series_back_to_index`       | Texte du lien de retour à l'index (nav de série)     |
 | `series_untitled_fallback`   | Titre de secours si `series_meta.title` est absent   |
 | `full_article_tag`           | Étiquette de la fiche `full-article`                |
-| `fact_label_default`         | Libellé de secours si `fact-label` est absent        |
 | `source_label`               | Préfixe avant la valeur de `source`                  |
 | `copy_link`                  | Texte du bouton « copier le lien » d'une fiche       |
 | `copy_link_aria`             | `aria-label` du bouton « copier le lien »            |
@@ -908,11 +907,13 @@ render_standard(slide, slide_num, total_slides, language):
        html += '<span class="highlight-caption">{highlight_caption}</span>'
      html += '</div>'
   7. IF content:
-     fact_label = slide.fact_label OR language.strings.fact_label_default
-     html += '<div class="fact-box">'
-     html += '<div class="fact-label">{fact_label}</div>'
-     html += '<p class="fact-content">{content}</p>'
-     html += '</div>'
+     IF slide.fact_label:
+       html += '<div class="fact-box">'
+       html += '<div class="fact-label">{slide.fact_label}</div>'
+       html += '<p class="fact-content">{content}</p>'
+       html += '</div>'
+     ELSE:
+       html += '<p>{content}</p>'
   9. IF slide.source:
      html += '<p class="source">{language.strings.source_label} : {source}</p>'
   10. html += '</section>'

@@ -76,7 +76,6 @@ LANG_FR = r'''{
     "series_back_to_index": "Retour à l'index",
     "series_untitled_fallback": "Série d'articles",
     "full_article_tag": "Article complet",
-    "fact_label_default": "Le fait",
     "source_label": "Source",
     "copy_link": "Copier le lien",
     "copy_link_aria": "Copier le lien de cette fiche",
@@ -106,7 +105,6 @@ LANG_EN = r'''{
     "series_back_to_index": "Back to index",
     "series_untitled_fallback": "Article series",
     "full_article_tag": "Full article",
-    "fact_label_default": "The fact",
     "source_label": "Source",
     "copy_link": "Copy link",
     "copy_link_aria": "Copy this slide's link",
@@ -1230,21 +1228,25 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings):
         # Fact-box
         if slide.fact_content:
             content_html = convert_markdown(slide.fact_content, typo_engine)
-            label = slide.fact_label or strings.get('fact_label_default', 'The fact')
-            if typo_engine:
-                label = typo_engine.apply(label)
-            parts.append(f'  <div class="fact-box">')
-            parts.append(f'    <div class="fact-label">{label}</div>')
-            # If the converted content starts with <p>, insert it directly
-            # instead of wrapping it in an extra <p class="fact-content">
-            stripped_content = content_html.strip()
-            if stripped_content.startswith('<p>') or stripped_content.startswith('  <p>'):
-                # Replace <p> with <p class="fact-content"> throughout
-                content_html = content_html.replace('<p>', '<p class="fact-content">')
-                parts.append(content_html)
+            if slide.fact_label:
+                label = slide.fact_label
+                if typo_engine:
+                    label = typo_engine.apply(label)
+                parts.append(f'  <div class="fact-box">')
+                parts.append(f'    <div class="fact-label">{label}</div>')
+                # If the converted content starts with <p>, insert it directly
+                # instead of wrapping it in an extra <p class="fact-content">
+                stripped_content = content_html.strip()
+                if stripped_content.startswith('<p>') or stripped_content.startswith('  <p>'):
+                    # Replace <p> with <p class="fact-content"> throughout
+                    content_html = content_html.replace('<p>', '<p class="fact-content">')
+                    parts.append(content_html)
+                else:
+                    parts.append(f'    <p class="fact-content">{content_html}</p>')
+                parts.append(f'  </div>')
             else:
-                parts.append(f'    <p class="fact-content">{content_html}</p>')
-            parts.append(f'  </div>')
+                # No fact-label: free-form text, no box wrapper (spec 4.3)
+                parts.append(content_html)
 
         # Source
         if slide.source:

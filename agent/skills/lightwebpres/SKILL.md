@@ -32,7 +32,8 @@ up is the single most common way to lose content silently:
    etc.) — each one is **exactly one physical line**. No wrapping, no
    continuation. If a value needs a line break, that's not a field
    anymore.
-2. **Free Markdown text** — the fact-box body and the full-article file.
+2. **Free Markdown text** — a standard slide's trailing body (fact-box or
+   bare paragraphs, see "Slide types" below) and the full-article file.
    Ordinary CommonMark rules apply here: consecutive non-blank lines
    merge into one paragraph, a blank line starts a new paragraph.
 
@@ -110,7 +111,7 @@ error, it'll just be confusing to the next person reading the file.
 | Type | Fields | Cardinality |
 |---|---|---|
 | `cover` | `tag`, `h1` (or `# Title`), `summary` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- slide -->`) | `tag`, `h2` (or `## Title`), `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, then free Markdown text = the fact-box body | As many as you want |
+| standard (default, or explicit `<!-- slide -->`) | `tag`, `h2` (or `## Title`), `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
@@ -119,7 +120,14 @@ are all optional — simplest to just omit the line if you don't need it
 (an empty value behaves the same as omitting it, but there's no reason
 to write it). `highlight` is a short standalone figure (a number, a
 stat, a quote) with an optional caption underneath; it renders above the
-fact-box, not instead of it.
+free text, not instead of it.
+
+The free Markdown text on a standard slide has two possible renderings,
+picked automatically: with a `fact-label:` line, it's wrapped in a
+labeled fact-box (`<div class="fact-box">` / `<div class="fact-label">`);
+without one, it renders as plain paragraph(s) — no box, no label. Use
+`fact-label:` when you want the highlighted-callout look, omit it for
+ordinary body text.
 
 `series-nav` and `full-article` are **at most one each** per article —
 having two is a fatal build error, not "the second one wins."
