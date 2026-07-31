@@ -408,6 +408,64 @@ class MarkdownConversion(unittest.TestCase):
         html = self._build_article_html('Some text with a <br> line break.\n')
         self.assertIn('<br>', html)
 
+    def test_block_level_tag_at_line_start_is_raw_passthrough(self):
+        # A line starting with a block-level tag is untouched raw HTML,
+        # not wrapped in <p> and not merged with the next line.
+        html = self._build_article_html(
+            '<div class="callout">A block.</div>\nA separate paragraph.\n'
+        )
+        self.assertIn('<div class="callout">A block.</div>', html)
+        self.assertIn('<p>A separate paragraph.</p>', html)
+
+    def test_inline_tag_at_line_start_stays_ordinary_paragraph_text(self):
+        # A line starting with an *inline* tag (<strong>, <em>, <a>, <sup>...)
+        # is ordinary paragraph text, not raw-HTML passthrough: it still
+        # gets wrapped in <p> and still merges with the following line
+        # per normal paragraph-continuation rules (spec §6.1/§6.2).
+        html = self._build_article_html(
+            '<strong>Bold start</strong> of a sentence.\n'
+            'A second physical line, no blank line before it.\n'
+        )
+        self.assertIn(
+            '<p><strong>Bold start</strong> of a sentence. '
+            'A second physical line, no blank line before it.</p>',
+            html,
+        )
+
+    def test_inline_tag_paragraph_still_separated_by_blank_line(self):
+        html = self._build_article_html(
+            '<em>First</em> paragraph.\n\n<a href="https://example.org">Second</a> paragraph.\n'
+        )
+        self.assertIn('<p><em>First</em> paragraph.</p>', html)
+        self.assertIn(
+            '<p><a href="https://example.org">Second</a> paragraph.</p>',
+            html,
+        )
+
+    def test_multiline_raw_html_block_opened_by_an_inline_tag(self):
+        # A hand-written multi-line block wrapped in an *inline*-level tag
+        # (<a>, not <div>) -- e.g. a card linking to an image, one real
+        # use case being an <a class="comic-teaser"> wrapping an <img>
+        # and a <span> caption -- must stay untouched raw HTML on every
+        # line, including inner lines that would look like a self-
+        # contained inline usage (<span>...</span>) in isolation. Only
+        # the unclosed opening line decides raw-HTML mode; once inside,
+        # every line belongs to the block until the matching close.
+        html = self._build_article_html(
+            '<a href="https://example.org/x" class="teaser">\n'
+            '<img src="x.jpg" alt="x">\n'
+            '<span class="caption">Read more &rarr;</span>\n'
+            '</a>\n'
+        )
+        self.assertIn(
+            '<a href="https://example.org/x" class="teaser">\n'
+            '<img src="x.jpg" alt="x">\n'
+            '<span class="caption">Read more &rarr;</span>\n'
+            '</a>',
+            html,
+        )
+        self.assertNotIn('<p>', html)
+
 
 class MultiArticleSeries(unittest.TestCase):
     """§3.1/§20: with more than one article, series-nav and the index page
@@ -594,6 +652,44 @@ class TemplateOverride(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('/* CUSTOM-MARKER-JS */', html)
+
+    def test_index_extra_html_is_inserted_before_body_close(self):
+        """§9.3: templates/index_extra.html, if present, is inserted as-is
+        just before </body> on the index page only (not article pages)."""
+        md = (
+            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'templates').mkdir()
+            (root / 'templates' / 'index_extra.html').write_text(
+                '<div id="qr-share">CUSTOM-INDEX-EXTRA</div>\n'
+                '<script>console.log("extra");</script>',
+                encoding='utf-8',
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('CUSTOM-INDEX-EXTRA', index_html)
+            self.assertIn(
+                '<div id="qr-share">CUSTOM-INDEX-EXTRA</div>\n<script>console.log("extra");</script>\n</body>',
+                index_html,
+            )
+            article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('CUSTOM-INDEX-EXTRA', article_html)
+
+    def test_no_index_extra_html_leaves_index_unaffected(self):
+        md = (
+            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('</script>\n\n\n</body>', index_html)
 
 
 class CoverCardinalityFreedom(unittest.TestCase):
@@ -1145,6 +1241,9 @@ class SourceFieldRendering(unittest.TestCase):
     """§4.3: the source: field renders as a labeled source line."""
 
     def test_source_field_renders(self):
+        # English has no nbsp-before-colon typography rule, so the plain
+        # space is the correct, unambiguous assertion here; the French
+        # nbsp case is covered separately below.
         md = (
             '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
             '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
@@ -1152,10 +1251,27 @@ class SourceFieldRendering(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            result = run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('<p class="source">Source : Some Author, 2024.</p>', html)
+
+    def test_source_label_colon_gets_nbsp_typography(self):
+        """The 'Source :' prefix must go through typography like any other
+        text: a non-breaking space before the colon in French, not a
+        plain space — the label+value string must be built before
+        typo_engine.apply(), not after."""
+        md = (
+            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
+            'Fact content.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'fr')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<p class="source">Source : Some Author, 2024.</p>', html)
 
 
 class LanguageDirEnvVar(unittest.TestCase):

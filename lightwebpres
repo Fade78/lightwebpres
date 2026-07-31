@@ -625,6 +625,7 @@ TEMPLATE_INDEX = '''<!DOCTYPE html>
 {{js_index}}
 </script>
 
+{{index_extra}}
 </body>
 </html>'''
 
@@ -801,6 +802,60 @@ def is_table_separator(line):
     return bool(line) and bool(re.match(r'^\|?[\s\-:|]+\|?$', line)) and '-' in line
 
 
+# Void HTML elements: never contribute an unclosed "open" to raw-HTML
+# depth tracking (no closing tag is expected).
+_VOID_HTML_TAGS = frozenset({
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
+    'meta', 'param', 'source', 'track', 'wbr',
+})
+
+_HTML_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(/?)>')
+
+
+def _html_tag_depth_delta(line):
+    """Net change in open-raw-HTML-tag depth contributed by `line`: +1 per
+    unclosed opening tag, -1 per closing tag, 0 for void/self-closing
+    tags. Used to track a multi-line raw HTML block (e.g. a hand-written
+    <a href="..."> wrapping several lines of content, per spec §6.2)
+    through the line-by-line Markdown converter."""
+    delta = 0
+    for m in _HTML_TAG_RE.finditer(line):
+        closing, tag, self_closing = m.group(1), m.group(2).lower(), m.group(3)
+        if closing:
+            delta -= 1
+        elif self_closing or tag in _VOID_HTML_TAGS:
+            continue
+        else:
+            delta += 1
+    return delta
+
+
+# Inline-level HTML tags: a line starting with one of these AND fully
+# opened+closed within that same line is still ordinary paragraph text
+# (spec §6.2 allows inline HTML anywhere in free text, including at the
+# start of a sentence, e.g. "<strong>Word</strong> opens the sentence.").
+# An inline tag left unclosed on its opening line — e.g. a hand-written
+# <a href="..." class="card"> wrapping several lines of block content —
+# still starts raw HTML passthrough, same as any other tag.
+_INLINE_HTML_TAGS = frozenset({
+    'a', 'abbr', 'b', 'bdi', 'bdo', 'cite', 'code', 'data', 'dfn', 'em',
+    'i', 'kbd', 'mark', 'q', 's', 'samp', 'small', 'span', 'strong',
+    'sub', 'sup', 'time', 'u', 'var', 'wbr',
+})
+
+
+def _is_raw_html_line(line):
+    """True if `line` should be treated as the start of raw HTML
+    passthrough rather than ordinary paragraph text."""
+    m = re.match(r'^\s*</?([a-zA-Z][a-zA-Z0-9]*)', line)
+    if not m:
+        return False
+    tag = m.group(1).lower()
+    if tag in _INLINE_HTML_TAGS and _html_tag_depth_delta(line) == 0:
+        return False
+    return True
+
+
 def _is_paragraph_continuation(line, lines, idx, n):
     """True if `line` continues the paragraph in progress rather than
     starting a new block element (heading, list, table, raw HTML,
@@ -810,7 +865,7 @@ def _is_paragraph_continuation(line, lines, idx, n):
         return False
     if line.startswith('#'):
         return False
-    if re.match(r'^\s*</?[a-zA-Z]', line):
+    if _is_raw_html_line(line):
         return False
     if re.match(r'^\d+\.\s+', line):
         return False
@@ -828,6 +883,7 @@ def convert_markdown(md_text, typo_engine=None):
     lines = md_text.split('\n')
     out = []
     in_list = None
+    raw_html_depth = 0
     i = 0
     n = len(lines)
 
@@ -840,6 +896,15 @@ def convert_markdown(md_text, typo_engine=None):
     while i < n:
         raw = lines[i]
         line = raw.rstrip()
+
+        # Already inside a multi-line raw HTML block (opened by an
+        # earlier line whose tag wasn't closed yet): every line belongs
+        # to it verbatim until the depth count returns to 0.
+        if raw_html_depth > 0:
+            out.append(raw.rstrip())
+            raw_html_depth = max(0, raw_html_depth + _html_tag_depth_delta(line))
+            i += 1
+            continue
 
         if line.strip() == '' or line.strip() == '---':
             i += 1
@@ -884,10 +949,12 @@ def convert_markdown(md_text, typo_engine=None):
             out.append('  </table>')
             continue
 
-        # Raw HTML (line starting with a tag)
-        if re.match(r'^\s*</?[a-zA-Z]', line):
+        # Raw HTML (line starting with a block-level tag, or an inline
+        # tag left unclosed -- the opening of a multi-line block)
+        if _is_raw_html_line(line):
             close_list()
             out.append(raw.rstrip())
+            raw_html_depth = max(0, _html_tag_depth_delta(line))
             i += 1
             continue
 
@@ -1250,11 +1317,11 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings):
 
         # Source
         if slide.source:
-            source = slide.source
-            if typo_engine:
-                source = typo_engine.apply(source)
             source_label = strings.get('source_label', 'Source')
-            parts.append(f'  <p class="source">{source_label} : {source}</p>')
+            source_line = f'{source_label} : {slide.source}'
+            if typo_engine:
+                source_line = typo_engine.apply(source_line)
+            parts.append(f'  <p class="source">{source_line}</p>')
 
         parts.append('</section>')
         return '\n'.join(parts)
@@ -1291,7 +1358,7 @@ def build_series_nav(current_file, series_data, strings):
 # INDEX PAGE
 # ============================================================================
 
-def build_index(series_data, css, typo_engine, strings, lang='fr'):
+def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra=''):
     """Generates the index page."""
     meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
@@ -1344,6 +1411,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr'):
     html = html.replace('{{series_intro}}', intro)
     html = html.replace('{{cards}}', '\n'.join(cards))
     html = html.replace('{{js_index}}', apply_strings(TEMPLATE_INDEX_JS, strings))
+    html = html.replace('{{index_extra}}', index_extra)
     html = apply_strings(html, strings)
 
     validate_html(html, 'index.html')
@@ -1611,6 +1679,12 @@ def cmd_build(series_dir, args):
         nav_js = TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
 
+    # Load the optional index page extension (raw HTML+JS, inserted as-is
+    # right before </body> — the only extension point for the index page,
+    # since style.css/nav.js don't cover site-specific index features)
+    index_extra_file = templates_dir / 'index_extra.html'
+    index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
+
     # Create the output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1634,7 +1708,7 @@ def cmd_build(series_dir, args):
 
     # Build the index
     print('  index.html')
-    index_html = build_index(series_data, css, typo_engine, strings, lang)
+    index_html = build_index(series_data, css, typo_engine, strings, lang, index_extra)
     (output_dir / 'index.html').write_text(index_html, encoding='utf-8')
 
     # Generate the README (spec §8.3)
@@ -1764,7 +1838,10 @@ def cmd_install(target_dir, args):
 
     # Extract the templates (only the two build actually reads back —
     # see specifications.md §9: page/index structure is fixed, not an
-    # editable template; only style.css and nav.js are overridable)
+    # editable template; style.css and nav.js are overridable, and an
+    # optional templates/index_extra.html is inserted as-is into the
+    # index page if the author creates one — no default content, so
+    # nothing to extract here)
     (td / 'templates' / 'style.css').write_text(TEMPLATE_STYLE, encoding='utf-8')
     (td / 'templates' / 'nav.js').write_text(TEMPLATE_NAV_JS, encoding='utf-8')
 

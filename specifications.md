@@ -437,6 +437,16 @@ Le Markdown peut contenir du HTML inline directement (`<strong>`,
 `<br>`, `<a>`, `<sup>`, etc.). Ce HTML est préservé tel quel dans la
 conversion.
 
+Une ligne qui **commence** par une balise détermine son propre
+traitement : si la balise est de bloc (`<div>`, `<table>`, `<figure>`,
+`<section>`...), la ligne est passée telle quelle sans passer par la
+fusion de paragraphes (§6.1) — c'est un bloc HTML autonome. Si la balise
+est de type inline (`<strong>`, `<em>`, `<a>`, `<sup>`, `<span>`, `<code>`,
+etc.), la ligne reste un paragraphe Markdown ordinaire (fusion avec les
+lignes suivantes comprise) : une phrase qui commence par un mot en gras
+(`<strong>Mot</strong> commence la phrase.`) n'est pas traitée
+différemment d'une phrase qui commence par du texte normal.
+
 ### 6.3 Espacement et indentation
 
 Le convertisseur est insensible à l'indentation (tabs et espaces supprimés en
@@ -637,9 +647,11 @@ qui se personnalise :
   « Copier le lien », etc.) : via le fichier de langue, pas via du HTML —
   voir §7.
 - **L'apparence** (`style.css`) et le **comportement de navigation**
-  (`nav.js`) : les deux seuls fichiers du répertoire `templates/` que
+  (`nav.js`) : deux des trois fichiers du répertoire `templates/` que
   `build` relit réellement s'ils existent, en remplacement des versions
   intégrées à l'exécutable.
+- **Un point d'extension libre pour la page d'index** (`index_extra.html`),
+  le troisième fichier — voir §9.3.
 
 ### 9.1 CSS (`style.css`)
 
@@ -657,6 +669,17 @@ Le JavaScript de navigation gère :
 - Le bouton « Copier le lien » de chaque fiche
 
 Éditable de la même façon que `style.css`, via `templates/nav.js`.
+
+### 9.3 Extension de la page d'index (`index_extra.html`)
+
+La structure de la page d'index reste fixe, mais un site migré ou une
+fonctionnalité maison (bouton, modale, script tiers...) peut avoir besoin
+d'un point d'ancrage que `style.css`/`nav.js` ne couvrent pas (`nav.js` ne
+s'applique qu'aux pages d'article, pas à l'index). Si
+`templates/index_extra.html` existe, son contenu est inséré tel quel
+(HTML, CSS inline, `<script>`... — aucune transformation) juste avant
+`</body>` de la page d'index générée. Absent par défaut : `install` ne
+crée pas ce fichier, contrairement à `style.css`/`nav.js`.
 
 ---
 
@@ -1515,6 +1538,11 @@ direct (rétrocompatible avec un format de série déjà utilisé).
 | `version` | string | non | Version affichée (ex. `v0.13`) |
 | `intro` | string | non | Paragraphe d'introduction de l'index |
 
+Le template d'index enveloppe `intro` dans un unique `<p>` fixe
+(`<p>{{series_intro}}</p>`) : pour plusieurs paragraphes, insérer
+`</p>\n<p>` dans la valeur — HTML brut passthrough, cohérent avec le
+reste (§6.2).
+
 ---
 
 ## 21. Cas de validation informel (contenu privé, hors dépôt)
@@ -1633,6 +1661,19 @@ autorisées, dans n'importe quelle position (voir §4.4). `build` ne signale
 ni l'absence de `cover`, ni une position autre que la première — cette
 vérification, purement éditoriale et non bloquante, est du ressort de la
 commande `audit` (§11.5), pas du `build`.
+
+### 22.14 Bloc HTML brut multi-lignes ouvert par une balise inline
+
+Une ligne qui ouvre une balise inline (`<a>`, `<span>`...) sans la refermer
+sur cette même ligne — par exemple une carte cliquable faite main,
+`<a href="..." class="card">` suivie de plusieurs lignes (`<img>`,
+légende...) avant `</a>` — reste un bloc HTML brut multi-lignes : §6.2
+s'applique par profondeur de balise, pas ligne par ligne. Concrètement,
+toute ligne à l'intérieur d'un tel bloc encore ouvert est passée telle
+quelle, même si elle a l'air, prise isolément, d'un usage inline
+autonome (`<span class="caption">...</span>` sur sa propre ligne, par
+exemple) — la profondeur d'imbrication du bloc en cours prime sur
+l'apparence de chaque ligne individuelle.
 
 ---
 

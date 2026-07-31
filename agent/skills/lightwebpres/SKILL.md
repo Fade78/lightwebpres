@@ -141,6 +141,16 @@ Markdown: headings, `**bold**`/`*italic*`, `[links](url)`, footnotes
 as-is (so an author can drop in a hand-written `<figure>` or similar if
 the situation calls for it — nothing here gets escaped).
 
+Raw HTML at the start of a line is either an inline usage or a block,
+decided per line: `<strong>Word</strong> opens a sentence.` — an inline
+tag (`<a>`, `<strong>`, `<em>`, `<span>`, `<sup>`...) closed on that same
+line — is ordinary paragraph text, merges with the next line like
+anything else. Leave it unclosed (`<a href="..." class="card">` opening
+a multi-line card, closed by `</a>` several lines later) and every line
+in between is raw HTML verbatim until the matching close, even a line
+that would look like a self-contained inline usage on its own
+(`<span class="caption">...</span>` alone on its line, say).
+
 ## Adding an article to a series
 
 Every article that should appear in navigation/index needs a matching
