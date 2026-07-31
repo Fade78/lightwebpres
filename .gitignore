@@ -1,0 +1,19 @@
+# --- Contenu éditorial privé (vraie série en cours) ---
+# À ne jamais publier : articles réels, sources, images perso.
+# À terme, la validation s'appuiera sur un jeu de données factice/désensibilisé
+# (cf. specifications.md §21) plutôt que sur ce contenu réel.
+private/
+
+# --- Sortie de build (régénérée par le pipeline, jamais committée) ---
+public/
+**/public/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Éditeurs / OS ---
+.DS_Store
+*.swp
+*~

@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LightWebPres — sync with GitLab</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    color: #1a1a2e;
+    line-height: 1.6;
+  }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  .subtitle { color: #6b6b7d; margin-top: 0; margin-bottom: 24px; }
+  .privacy-note {
+    background: #f8f8f5;
+    border-left: 4px solid #FFFC00;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .privacy-note code { font-size: 13px; }
+  .warn-note {
+    background: #fff4f4;
+    border-left: 4px solid #ff4757;
+    padding: 12px 18px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    margin: 10px 0 16px;
+    display: none;
+  }
+  fieldset {
+    border: 2px solid #e8e8e0;
+    border-radius: 12px;
+    padding: 20px 24px 24px;
+    margin-bottom: 20px;
+  }
+  legend { font-weight: 700; padding: 0 8px; }
+  label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .checkbox-row label { margin-bottom: 0; font-weight: 400; }
+  select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    margin-bottom: 16px;
+  }
+  .steps { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  button {
+    background: #1a1a2e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { background: #ccc; cursor: default; }
+  #status { margin: 16px 0; font-size: 14px; font-weight: 600; }
+  #status.error { color: #ff4757; }
+  #status.ok { color: #3aa55c; }
+  #log {
+    background: #1a1a2e;
+    color: #f8f8f5;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    max-height: 320px;
+    overflow: auto;
+    white-space: pre-wrap;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>LightWebPres</h1>
+<p class="subtitle">Sync a series with a GitLab repository, build it, and push it back — all in this browser tab.</p>
+
+<div class="privacy-note">
+  Every request in this page goes straight from this browser tab to the
+  GitLab instance URL you enter below — nothing is relayed through a
+  third-party proxy. The build itself runs locally with
+  <a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>,
+  exactly like the plain <a href="./index.html">zip-based build page</a>.
+  <br><br>
+  This only works if the GitLab instance sends
+  <code>Access-Control-Allow-Origin</code> on its API responses — most
+  self-hosted GitLab instances don't, by default. If pulling fails
+  immediately with a network error, that's almost certainly it: your
+  GitLab admin needs to add CORS headers to the <code>/api/</code>
+  location of its reverse proxy. See specifications.md §24.2 for the
+  exact nginx snippet.
+</div>
+
+<fieldset>
+  <legend>Connection</legend>
+
+  <label for="baseUrl">GitLab instance URL</label>
+  <input type="text" id="baseUrl" placeholder="https://gitlab.example.org">
+
+  <label for="projectId">Project ID or path</label>
+  <input type="text" id="projectId" placeholder="namespace/project or numeric ID">
+
+  <label for="branch">Branch</label>
+  <input type="text" id="branch" placeholder="main" value="main">
+
+  <label for="token">Personal access token (needs read_api + write_repository scopes — see specifications.md §24.3)</label>
+  <input type="password" id="token" placeholder="glpat-...">
+
+  <div class="checkbox-row">
+    <input type="checkbox" id="rememberToken">
+    <label for="rememberToken">Remember this token on this device (persists after closing the tab)</label>
+  </div>
+  <div class="warn-note" id="rememberWarning">
+    The token will be stored in this browser's local storage, in clear
+    text, until you uncheck this box or clear it yourself. Anyone with
+    access to this device/profile can read it. Prefer leaving this
+    unchecked on a shared or public computer.
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>Sync</legend>
+
+  <label for="langSelect">Language</label>
+  <select id="langSelect">
+    <option value="fr" selected>fr — Français</option>
+    <option value="en">en — English</option>
+  </select>
+
+  <label for="commitMessage">Commit message (used when pushing)</label>
+  <input type="text" id="commitMessage" value="Update from LightWebPres git-sync">
+
+  <div class="steps">
+    <button id="pullBtn" disabled>Loading Pyodide…</button>
+    <button id="buildBtn" disabled>Build</button>
+    <button id="pushBtn" disabled>Push</button>
+  </div>
+</fieldset>
+
+<div id="status">Loading Pyodide…</div>
+<pre id="log"></pre>
+
+<script src="./vendor/pyodide/pyodide.js"></script>
+<script>
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+  const pullBtn = document.getElementById('pullBtn');
+  const buildBtn = document.getElementById('buildBtn');
+  const pushBtn = document.getElementById('pushBtn');
+  const baseUrlEl = document.getElementById('baseUrl');
+  const projectIdEl = document.getElementById('projectId');
+  const branchEl = document.getElementById('branch');
+  const tokenEl = document.getElementById('token');
+  const rememberEl = document.getElementById('rememberToken');
+  const rememberWarning = document.getElementById('rememberWarning');
+  const langSelect = document.getElementById('langSelect');
+  const commitMessageEl = document.getElementById('commitMessage');
+
+  const FIELDS = ['baseUrl', 'projectId', 'branch', 'token'];
+  const STORE_KEY = 'lwp_git_sync_connection';
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = cls || '';
+  }
+
+  function showLog(text) {
+    if (text) {
+      logEl.textContent = text;
+      logEl.style.display = 'block';
+    } else {
+      logEl.style.display = 'none';
+    }
+  }
+
+  // --- Connection field persistence -----------------------------------
+  // Always mirrored to sessionStorage (survives a reload of this tab).
+  // Only mirrored to localStorage (survives closing the tab) when the
+  // "remember" checkbox is checked; unchecking it clears localStorage.
+
+  function loadConnection() {
+    const raw = sessionStorage.getItem(STORE_KEY) || localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      for (const f of FIELDS) {
+        if (data[f] !== undefined) document.getElementById(f).value = data[f];
+      }
+      if (localStorage.getItem(STORE_KEY)) {
+        rememberEl.checked = true;
+        rememberWarning.style.display = 'block';
+      }
+    } catch (e) { /* ignore malformed stored data */ }
+  }
+
+  function saveConnection() {
+    const data = {};
+    for (const f of FIELDS) data[f] = document.getElementById(f).value;
+    const json = JSON.stringify(data);
+    sessionStorage.setItem(STORE_KEY, json);
+    if (rememberEl.checked) {
+      localStorage.setItem(STORE_KEY, json);
+    } else {
+      localStorage.removeItem(STORE_KEY);
+    }
+  }
+
+  FIELDS.forEach((f) => document.getElementById(f).addEventListener('input', saveConnection));
+  rememberEl.addEventListener('change', () => {
+    rememberWarning.style.display = rememberEl.checked ? 'block' : 'none';
+    saveConnection();
+  });
+
+  loadConnection();
+
+  // --- Pyodide setup -----------------------------------------------------
+
+  async function fetchText(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch ' + url + ': ' + res.status);
+    return await res.text();
+  }
+
+  let pyodideReady = null;
+  let seriesDir = null;
+
+  async function init() {
+    try {
+      const pyodide = await loadPyodide({ indexURL: './vendor/pyodide/' });
+      const lwpSource = await fetchText('../lightwebpres');
+      pyodide.runPython(lwpSource);
+      const gitSyncSource = await fetchText('./git_sync.py');
+      pyodide.runPython(gitSyncSource);
+      pyodideReady = pyodide;
+      setStatus('Ready.', 'ok');
+      pullBtn.disabled = false;
+      pullBtn.textContent = 'Pull';
+    } catch (err) {
+      setStatus('Failed to load Pyodide: ' + err, 'error');
+    }
+  }
+
+  function connectionValues() {
+    return {
+      baseUrl: baseUrlEl.value.trim(),
+      projectId: projectIdEl.value.trim(),
+      branch: branchEl.value.trim() || 'main',
+      token: tokenEl.value,
+    };
+  }
+
+  function isSafeBaseUrl(url) {
+    // The token is sent to this host on every request: refuse plaintext
+    // HTTP except to localhost/127.0.0.1 (needed for local testing),
+    // otherwise the token would be interceptable by anyone else on the
+    // network path.
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'https:') return true;
+      if (u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1')) return true;
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function requireConnection() {
+    const c = connectionValues();
+    if (!c.baseUrl || !c.projectId || !c.token) {
+      setStatus('Fill in the GitLab instance URL, project ID and token first.', 'error');
+      return null;
+    }
+    if (!isSafeBaseUrl(c.baseUrl)) {
+      setStatus('GitLab instance URL must be https:// (plain http:// is only allowed for localhost/127.0.0.1) — the token would otherwise travel in clear text.', 'error');
+      return null;
+    }
+    return c;
+  }
+
+  pullBtn.addEventListener('click', async () => {
+    if (!pyodideReady) return;
+    const c = requireConnection();
+    if (!c) return;
+
+    pullBtn.disabled = true;
+    buildBtn.disabled = true;
+    pushBtn.disabled = true;
+    seriesDir = null;
+    setStatus('Pulling ' + c.branch + ' from ' + c.baseUrl + '…');
+    showLog('');
+
+    try {
+      const pullFn = pyodideReady.globals.get('pull');
+      const resultProxy = await pullFn(c.baseUrl, c.token, c.projectId, c.branch);
+      const [dir, errorText] = resultProxy.toJs();
+      resultProxy.destroy();
+
+      if (errorText) {
+        setStatus('Pull failed: ' + errorText, 'error');
+        return;
+      }
+      seriesDir = dir;
+      // Test hook only (tests/git_sync_e2e.cjs): lets the E2E test remove a
+      // local file between build and push, to verify push() never turns
+      // that into a delete action against the remote (§24.4).
+      window.__lwp_pyodide = pyodideReady;
+      window.__lwp_series_dir = seriesDir;
+      setStatus('Pulled. Ready to build.', 'ok');
+      buildBtn.disabled = false;
+    } catch (err) {
+      setStatus('Pull failed: ' + err, 'error');
+    } finally {
+      pullBtn.disabled = false;
+    }
+  });
+
+  buildBtn.addEventListener('click', async () => {
+    if (!pyodideReady || !seriesDir) return;
+
+    buildBtn.disabled = true;
+    pushBtn.disabled = true;
+    setStatus('Building…');
+    showLog('');
+
+    try {
+      const buildFn = pyodideReady.globals.get('build');
+      const resultProxy = buildFn(seriesDir, langSelect.value);
+      const [ok, logText, errorText] = resultProxy.toJs();
+      resultProxy.destroy();
+
+      showLog(logText || '');
+
+      if (!ok) {
+        setStatus('Build failed: ' + errorText, 'error');
+        return;
+      }
+      setStatus('Build complete. Ready to push.', 'ok');
+      pushBtn.disabled = false;
+    } catch (err) {
+      setStatus('Build failed: ' + err, 'error');
+    } finally {
+      buildBtn.disabled = false;
+    }
+  });
+
+  pushBtn.addEventListener('click', async () => {
+    if (!pyodideReady || !seriesDir) return;
+    const c = requireConnection();
+    if (!c) return;
+
+    pushBtn.disabled = true;
+    setStatus('Pushing to ' + c.branch + '…');
+
+    try {
+      const pushFn = pyodideReady.globals.get('push');
+      const resultProxy = await pushFn(
+        c.baseUrl, c.token, c.projectId, c.branch, seriesDir,
+        commitMessageEl.value || 'Update from LightWebPres git-sync',
+      );
+      const [ok, summary] = resultProxy.toJs();
+      resultProxy.destroy();
+
+      setStatus(ok ? summary : ('Push failed: ' + summary), ok ? 'ok' : 'error');
+    } catch (err) {
+      setStatus('Push failed: ' + err, 'error');
+    } finally {
+      pushBtn.disabled = false;
+    }
+  });
+
+  init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2144 @@
+#!/usr/bin/env python3
+"""
+LightWebPres — framework for generating self-contained web pages.
+
+Single-file executable. Python 3 standard library only.
+Native UTF-8. Built-in French and English language packs (typography
+rules + interface strings).
+
+Usage:
+  lightwebpres install [directory] [--lang fr]
+  lightwebpres demo [directory] [--lang fr]
+  lightwebpres build [directory] [--lang fr] [--output public/]
+  lightwebpres check [directory] [--lang fr]
+  lightwebpres audit [directory] [--lang fr]
+  lightwebpres --help
+"""
+
+import sys
+import os
+import re
+import json
+import shutil
+import difflib
+from pathlib import Path
+from html import escape as html_escape
+from html.parser import HTMLParser
+
+# ============================================================================
+# EMBEDDED CONSTANTS AND TEMPLATES
+# ============================================================================
+
+VERSION = "0.1.0"
+
+# --- Language pack: fr.json ---
+# A language pack has two independent parts:
+#   - "rules": typography regex rules, applied to generated HTML (§7)
+#   - "strings": interface vocabulary used by the default templates (nav
+#     button tooltips, "copy link" button, series navigation labels...)
+LANG_FR = r'''{
+  "lang": "fr",
+  "name": "Français",
+  "rules": [
+    {
+      "name": "nbsp_before_double_punctuation",
+      "description": "Non-breaking space before ; : ! ? »",
+      "pattern": " ([!?;:»])",
+      "replacement": " $1",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_after_opening_quote",
+      "description": "Non-breaking space after «",
+      "pattern": "(«) ",
+      "replacement": "$1 ",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_before_percent",
+      "description": "Non-breaking space before %",
+      "pattern": " %",
+      "replacement": " %",
+      "flags": "g"
+    }
+  ],
+  "strings": {
+    "nav_prev": "Planche précédente",
+    "nav_home": "Retour à l'index (touche Home)",
+    "nav_next": "Planche suivante",
+    "nav_dot_fallback": "Fiche",
+    "index_nav_up": "Remonter",
+    "index_nav_home": "Haut de la page (touche Home)",
+    "index_nav_down": "Descendre",
+    "series_nav_title": "Cette série",
+    "series_read": "Lire l'article",
+    "series_current_status": "En cours de lecture",
+    "series_back_to_index": "Retour à l'index",
+    "series_untitled_fallback": "Série d'articles",
+    "full_article_tag": "Article complet",
+    "fact_label_default": "Le fait",
+    "source_label": "Source",
+    "copy_link": "Copier le lien",
+    "copy_link_aria": "Copier le lien de cette fiche",
+    "copy_link_done": "Lien copié !",
+    "copy_prompt": "Copie ce lien :"
+  }
+}'''
+
+# --- Language pack: en.json ---
+# English also serves as the built-in fallback for any --lang value that
+# has neither a built-in pack nor a language/{lang}.json override file.
+LANG_EN = r'''{
+  "lang": "en",
+  "name": "English",
+  "rules": [],
+  "strings": {
+    "nav_prev": "Previous slide",
+    "nav_home": "Back to index (Home key)",
+    "nav_next": "Next slide",
+    "nav_dot_fallback": "Slide",
+    "index_nav_up": "Scroll up",
+    "index_nav_home": "Top of page (Home key)",
+    "index_nav_down": "Scroll down",
+    "series_nav_title": "This series",
+    "series_read": "Read the article",
+    "series_current_status": "Currently reading",
+    "series_back_to_index": "Back to index",
+    "series_untitled_fallback": "Article series",
+    "full_article_tag": "Full article",
+    "fact_label_default": "The fact",
+    "source_label": "Source",
+    "copy_link": "Copy link",
+    "copy_link_aria": "Copy this slide's link",
+    "copy_link_done": "Link copied!",
+    "copy_prompt": "Copy this link:"
+  }
+}'''
+
+# --- Template: style.css ---
+TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
+:root {
+    --yellow: #FFFC00;
+    --dark: #1a1a2e;
+    --grey: #6b6b7d;
+    --light: #f8f8f5;
+    --accent: #ff4757;
+    --green: #3aa55c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    line-height: 1.6;
+  }
+  .slide {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 8vw;
+    border-bottom: 1px solid #e0e0d8;
+    position: relative;
+  }
+  .slide-num {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    font-size: 13px;
+    color: var(--grey);
+    letter-spacing: 1px;
+  }
+  .slide-tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: clamp(28px, 4.5vw, 52px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 20px;
+    max-width: 900px;
+  }
+  h2 {
+    font-size: clamp(24px, 3.5vw, 40px);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 18px;
+    max-width: 900px;
+  }
+  .summary {
+    font-size: clamp(16px, 2vw, 22px);
+    color: var(--dark);
+    max-width: 720px;
+    margin-bottom: 32px;
+    line-height: 1.55;
+  }
+  .fact-box {
+    background: white;
+    border-left: 4px solid var(--yellow);
+    padding: 24px 28px;
+    border-radius: 0 8px 8px 0;
+    max-width: 680px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  }
+  .fact-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--grey);
+    margin-bottom: 8px;
+  }
+  .fact-content {
+    font-size: clamp(15px, 1.6vw, 18px);
+    color: var(--dark);
+  }
+  .fact-content strong {
+    background: var(--yellow);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  .source {
+    font-size: 12px;
+    color: var(--grey);
+    margin-top: 16px;
+    max-width: 680px;
+  }
+  .slide-cover { background: var(--dark); color: white; }
+  .slide-cover h1 { color: white; }
+  .slide-cover .summary { color: #c8c8d0; }
+  .slide-cover .slide-tag { color: var(--yellow); }
+  .slide-cover .slide-num { color: #555560; }
+  .slide-accent { background: white; }
+  .comparison-table {
+    width: 100%;
+    max-width: 800px;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: clamp(13px, 1.4vw, 16px);
+  }
+  .comparison-table th, .comparison-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e8e8e0;
+  }
+  .comparison-table th {
+    background: #eeeee6;
+    color: var(--dark);
+    border-bottom: 2px solid var(--dark);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  .comparison-table .col-snap { background: #fffbe5; color: var(--dark); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .comparison-table .col-signal { background: #eef7ee; color: var(--dark); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .comparison-table .yes { color: var(--grey); font-weight: 500; }
+  .comparison-table .no { color: var(--green); font-weight: 700; }
+  .comparison-table .partial { color: var(--grey); font-weight: 500; }
+  .full-article {
+    background: white;
+    padding: 60px 8vw 80px 8vw;
+  }
+  .full-article h1 { font-size: 28px; margin-bottom: 8px; }
+  .full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
+  .full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+  .full-article p { font-size: 15px; margin-bottom: 14px; max-width: 800px; line-height: 1.7; }
+  .full-article ul, .full-article ol { font-size: 15px; margin-bottom: 14px; padding-left: 24px; max-width: 800px; }
+  .full-article table { width: 100%; max-width: 800px; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  .full-article table th, .full-article table td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
+  .full-article table th { background: #f5f5f0; font-weight: 700; }
+  .full-article strong { font-weight: 700; }
+  .full-article em { font-style: italic; }
+  .full-article .refs { font-size: 13px; color: var(--grey); }
+  .full-article .refs p { font-size: 13px; line-height: 1.5; margin-bottom: 6px; }
+  .series-list { max-width: 680px; }
+  .series-item {
+    display: block;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .series-current { background: #f0f0e8; border: 2px solid #ddd; opacity: 0.6; }
+  .series-link { background: white; border: 2px solid var(--yellow); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
+  .series-link:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .series-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .series-desc { font-size: 14px; color: var(--grey); margin-bottom: 8px; }
+  .series-status { font-size: 13px; font-weight: 600; }
+  .series-current .series-status { color: var(--grey); }
+  .series-link .series-status { color: var(--dark); }
+  .nav-buttons {
+    position: fixed;
+    bottom: 24px;
+    right: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 200;
+  }
+  .nav-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--dark);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.15s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn:hover { transform: scale(1.08); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+  .nav-btn:active { transform: scale(0.96); }
+  .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+  .nav-btn-home { font-size: 17px; background: rgba(255,255,255,0.75); }
+  .nav-dots {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 150;
+  }
+  .nav-dots a {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    display: block;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .nav-dots a:hover { background: #999; transform: scale(1.3); }
+  .nav-dots a.active { background: var(--yellow); transform: scale(1.3); }
+  @media (max-width: 600px) {
+    .slide { padding: 40px 24px; }
+    .nav-dots { display: none; }
+    .nav-buttons { bottom: 16px; right: 16px; }
+  }
+  .highlight { display: flex; flex-direction: column; align-items: center;
+    gap: 6px; margin: 18px 0 22px; text-align: center; max-width: 680px; }
+  .highlight-figure { font-size: clamp(2.1rem, 8vw, 3.4rem); font-weight: 800;
+    line-height: 1.05; color: var(--dark); letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .highlight-arrow { color: var(--accent); font-weight: 700; }
+  .highlight-caption { font-size: 0.9rem; color: var(--grey); max-width: 480px; }
+  .fiche-share { float: right; font-size: 12px; padding: 4px 10px;
+    border: 1px solid rgba(0,0,0,.18); border-radius: 14px;
+    background: transparent; color: var(--grey); cursor: pointer;
+    font-family: inherit; }
+  .fiche-share:hover { color: var(--dark); border-color: var(--dark); }
+  .comic-teaser { display: block; margin-top: 16px; text-decoration: none; }
+  .comic-teaser img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+  .comic-caption { display: block; margin-top: 8px; font-size: 14px; color: var(--grey); }
+  .article-card {
+    display: block;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    background: white;
+    border: 2px solid #e8e8e0;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .article-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    border-color: var(--yellow);
+  }
+  .article-number { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); margin-bottom: 6px; }
+  .article-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .article-desc { font-size: 15px; color: var(--grey); margin-bottom: 8px; }
+  .article-cta { font-size: 14px; font-weight: 600; color: var(--dark); }
+  .header { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 2px solid var(--yellow); }
+  .header h1 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
+  .header .subtitle { font-size: clamp(16px, 2vw, 20px); color: var(--grey); max-width: 700px; }
+  .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--grey); background: #eeeeea; padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
+  .intro { font-size: 17px; line-height: 1.7; max-width: 700px; margin-bottom: 48px; }
+  .intro p { margin-bottom: 16px; }
+'''
+
+# --- Template: nav.js ---
+# {{str_*}} placeholders are filled from the language pack's "strings" by
+# apply_strings() at build time.
+TEMPLATE_NAV_JS = r'''document.addEventListener('DOMContentLoaded', function() {
+(function(){
+  var slides   = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var current  = 0;
+  var isScrolling = false;
+  var btnPrev    = document.getElementById('navPrev');
+  var btnNext    = document.getElementById('navNext');
+  var btnHome    = document.getElementById('navHome');
+  var navDots    = document.querySelector('.nav-dots');
+
+  if (navDots) {
+    slides.forEach(function(s, i) {
+      var a = document.createElement('a');
+      a.href = '#' + (s.id || ('s'+(i+1)));
+      var tagEl = s.querySelector('.slide-tag');
+      var headEl = s.querySelector('h2, h1');
+      a.title = tagEl ? tagEl.textContent : (headEl ? headEl.textContent : ('{{str_nav_dot_fallback}} ' + (i+1)));
+      a.addEventListener('click', function(e){ e.preventDefault(); goTo(i); });
+      navDots.appendChild(a);
+    });
+  }
+  var dots = navDots ? Array.prototype.slice.call(navDots.querySelectorAll('a')) : [];
+
+  function goTo(idx) {
+    idx = Math.max(0, Math.min(slides.length - 1, idx));
+    if (idx === current && isScrolling) return;
+    current = idx;
+    isScrolling = true;
+    slides[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    updateUI();
+    setTimeout(function(){ isScrolling = false; }, 700);
+  }
+
+  function updateUI() {
+    btnPrev.classList.toggle('disabled', current === 0);
+    btnNext.classList.toggle('disabled', current === slides.length - 1);
+    dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
+  }
+
+  btnPrev.addEventListener('click', function(){ goTo(current - 1); });
+  btnNext.addEventListener('click', function(){ goTo(current + 1); });
+  if (btnHome) {
+    btnHome.addEventListener('click', function(){ window.location.href = 'index.html'; });
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      e.preventDefault(); goTo(current + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); goTo(current - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault(); window.location.href = 'index.html';
+    }
+  });
+
+  function detectCurrent() {
+    if (isScrolling) return;
+    var scrollY = window.scrollY || window.pageYOffset;
+    var winH    = window.innerHeight;
+    var best    = 0;
+    var bestDist = Infinity;
+    slides.forEach(function(s, i) {
+      var rect = s.getBoundingClientRect();
+      var center = rect.top + rect.height / 2;
+      var dist = Math.abs(center - winH / 2);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    });
+    if (best !== current) { current = best; updateUI(); }
+  }
+
+  var scrollTimer = null;
+  window.addEventListener('scroll', function() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(detectCurrent, 80);
+  }, { passive: true });
+
+  updateUI();
+})();
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('section.slide[id]').forEach(function (sec) {
+    var id = sec.id;
+    if (!/^s\d+$/.test(id) || id === 's1') return;
+    var b = document.createElement('button');
+    b.className = 'fiche-share';
+    b.type = 'button';
+    b.textContent = '{{str_copy_link}}';
+    b.setAttribute('aria-label', '{{str_copy_link_aria}}');
+    b.addEventListener('click', function () {
+      var url = location.origin + location.pathname + '#' + id;
+      var done = function () {
+        b.textContent = '{{str_copy_link_done}}';
+        setTimeout(function () { b.textContent = '{{str_copy_link}}'; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done, function () { prompt('{{str_copy_prompt}}', url); });
+      } else {
+        prompt('{{str_copy_prompt}}', url);
+      }
+    });
+    var h = sec.querySelector('h2');
+    if (h) { sec.insertBefore(b, h); } else { sec.insertBefore(b, sec.firstChild); }
+  });
+});
+'''
+
+# --- Template: index.js ---
+TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
+  var btnHome = document.getElementById('navHome');
+  var btnDown = document.getElementById('navDown');
+
+  function scrollByViewport(direction) {
+    window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
+  }
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateNavUI() {
+    var atTop = window.scrollY <= 4;
+    var atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 4);
+    if (btnUp) btnUp.classList.toggle('disabled', atTop);
+    if (btnDown) btnDown.classList.toggle('disabled', atBottom);
+  }
+
+  if (btnUp) btnUp.addEventListener('click', function () { scrollByViewport(-1); });
+  if (btnDown) btnDown.addEventListener('click', function () { scrollByViewport(1); });
+  if (btnHome) btnHome.addEventListener('click', function () { scrollToTop(); });
+
+  window.addEventListener('scroll', updateNavUI);
+  window.addEventListener('resize', updateNavUI);
+  updateNavUI();
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      e.preventDefault(); scrollByViewport(1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); scrollByViewport(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault(); scrollToTop();
+    }
+  });
+
+  var shareLink = document.getElementById('shareLink');
+  var qrModal = document.getElementById('qrModal');
+  if (shareLink && qrModal) {
+    shareLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      qrModal.classList.add('open');
+    });
+    qrModal.addEventListener('click', function () {
+      qrModal.classList.remove('open');
+    });
+  }
+
+  var copyLinkBtn = document.getElementById('copyLinkBtn');
+  if (copyLinkBtn) {
+    var siteUrl = 'index.html';
+    var originalLabel = copyLinkBtn.textContent;
+    copyLinkBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      function showCopied() {
+        copyLinkBtn.textContent = '✅ {{str_copy_link_done}}';
+        setTimeout(function () { copyLinkBtn.textContent = originalLabel; }, 1800);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(siteUrl).then(showCopied, function () {
+          window.prompt('{{str_copy_prompt}}', siteUrl);
+        });
+      } else {
+        window.prompt('{{str_copy_prompt}}', siteUrl);
+      }
+    });
+  }
+'''
+
+# --- Template: page.html ---
+TEMPLATE_PAGE = '''<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{title}}</title>
+<style>
+{{css}}
+</style>
+</head>
+<body>
+
+<nav class="nav-dots"></nav>
+
+<div class="nav-buttons">
+  <div class="nav-btn" id="navPrev" title="{{str_nav_prev}}">&#8593;</div>
+  <div class="nav-btn nav-btn-home" id="navHome" title="{{str_nav_home}}">&#127968;</div>
+  <div class="nav-btn" id="navNext" title="{{str_nav_next}}">&#8595;</div>
+</div>
+
+{{slides}}
+
+<script defer>
+{{js_nav}}
+</script>
+
+<script id="fiche-share-js">
+</script>
+</body>
+</html>'''
+
+# --- Template: index.html ---
+TEMPLATE_INDEX = '''<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{title}}</title>
+<style>
+{{css}}
+</style>
+</head>
+<body style="padding: 60px 8vw; max-width: 1200px; margin: 0 auto;">
+
+<div class="header">
+  <h1>{{series_title}}</h1>
+  <p class="subtitle">{{series_subtitle}}</p>
+  <span class="version-tag">{{series_version}}</span>
+</div>
+
+<div class="intro">
+  <p>{{series_intro}}</p>
+</div>
+
+{{cards}}
+
+<div class="nav-buttons">
+  <div class="nav-btn" id="navUp" title="{{str_index_nav_up}}">&#8593;</div>
+  <div class="nav-btn nav-btn-home" id="navHome" title="{{str_index_nav_home}}">&#127968;</div>
+  <div class="nav-btn" id="navDown" title="{{str_index_nav_down}}">&#8595;</div>
+</div>
+
+<script>
+{{js_index}}
+</script>
+
+</body>
+</html>'''
+
+# --- Template: series-nav (fragment) ---
+TEMPLATE_SERIES_NAV_ITEM_LINK = '''    <a href="{file}" class="series-item series-link">
+      <div class="series-title">{title}</div>
+      <div class="series-desc">{desc}</div>
+      <div class="series-status">&rarr; {read}</div>
+    </a>'''
+
+TEMPLATE_SERIES_NAV_ITEM_CURRENT = '''    <div class="series-item series-current">
+      <div class="series-title">{title}</div>
+      <div class="series-desc">{desc}</div>
+      <div class="series-status">&#9656; {status}</div>
+    </div>'''
+
+TEMPLATE_SERIES_NAV_BACK = '''    <a href="index.html" class="series-item series-link" style="text-align: center; margin-top: 24px;">
+      <div class="series-title">&larr; {back}</div>
+    </a>'''
+
+# --- Template: .gitlab-ci.yml ---
+TEMPLATE_GITLAB_CI = '''stages:
+  - build
+
+build:
+  stage: build
+  image: python:3.12-slim
+  script:
+    - python3 lightwebpres build .
+  artifacts:
+    paths:
+      - public/
+'''
+
+# ============================================================================
+# LANGUAGE (typography rules + interface strings)
+# ============================================================================
+
+class TypoEngine:
+    """Applies regex replacement rules to text."""
+
+    def __init__(self, rules_data):
+        self.rules = []
+        for i, rule in enumerate(rules_data.get('rules', []), 1):
+            if not isinstance(rule, dict) or 'pattern' not in rule or 'replacement' not in rule:
+                print(f'[ERROR] language rule {i}: must be an object with '
+                      f'"pattern" and "replacement".', file=sys.stderr)
+                sys.exit(1)
+            pattern = rule['pattern']
+            replacement = rule['replacement']
+            # Convert $1 -> \1 for Python re.sub
+            replacement = re.sub(r'\$(\d)', r'\\\1', replacement)
+            flags = 0
+            if 'g' in rule.get('flags', 'g'):
+                flags |= 0  # re.sub replaces everything by default
+            try:
+                compiled = re.compile(pattern, flags)
+            except re.error as e:
+                print(f'[ERROR] language rule {i}: invalid regex pattern '
+                      f'"{pattern}" ({e}).', file=sys.stderr)
+                sys.exit(1)
+            self.rules.append((compiled, replacement))
+
+    def apply(self, text):
+        """Applies the typography rules to `text`, skipping HTML tags.
+
+        The engine is called on already-assembled HTML (fact-box content,
+        full articles), so a naive whole-string substitution risks a future
+        rule corrupting tag syntax (spec §19.3). Splitting on tags and only
+        running rules on the text segments between them makes that
+        structurally impossible, not just accidentally safe.
+
+        The split pattern requires a tag name or `/` right after `<` (real
+        tags always have one) and forbids crossing another `<`/`>` inside
+        the match: a naive `<[^>]+>` would treat a stray "< 5" ... "> 10"
+        in ordinary prose as one giant fake tag spanning everything between
+        them, silently skipping typography on real text in between."""
+        segments = re.split(r'(</?[a-zA-Z][^<>]*>)', text)
+        for i, segment in enumerate(segments):
+            if segment.startswith('<') and segment.endswith('>'):
+                continue
+            for pattern, replacement in self.rules:
+                segment = pattern.sub(replacement, segment)
+            segments[i] = segment
+        return ''.join(segments)
+
+
+def load_language(lang_dir, lang='fr', language_file=None):
+    """Loads the language pack (typography rules + interface strings) for `lang`.
+
+    The built-in pack for `lang` is used as a base (English if `lang` is
+    neither 'fr' nor 'en'). An override file's "rules" replace the base
+    rules wholesale, but its "strings" are merged key by key on top of the
+    base strings — a partial override file only needs to define the keys
+    it wants to change. `language_file`, when given (--language-file,
+    spec §19.5 priority 1), is used as that override file instead of the
+    conventional `{lang_dir}/{lang}.json` — same merge semantics either way.
+    """
+    if lang == 'fr':
+        base = json.loads(LANG_FR)
+    else:
+        base = json.loads(LANG_EN)
+
+    lang_file = Path(language_file) if language_file else lang_dir / f'{lang}.json'
+    if lang_file.exists():
+        with open(lang_file, 'r', encoding='utf-8') as f:
+            try:
+                override = json.load(f)
+            except json.JSONDecodeError as e:
+                print(f'[ERROR] {lang_file}: invalid JSON ({e}).', file=sys.stderr)
+                sys.exit(1)
+        if not isinstance(override, dict):
+            print(f'[ERROR] {lang_file}: must be a JSON object.', file=sys.stderr)
+            sys.exit(1)
+        rules = override.get('rules', base.get('rules', []))
+        strings = override.get('strings', {})
+        if not isinstance(rules, list):
+            print(f'[ERROR] {lang_file}: "rules" must be a list.', file=sys.stderr)
+            sys.exit(1)
+        if not isinstance(strings, dict):
+            print(f'[ERROR] {lang_file}: "strings" must be an object.', file=sys.stderr)
+            sys.exit(1)
+        return {
+            'lang': override.get('lang', base.get('lang', lang)),
+            'name': override.get('name', base.get('name', lang)),
+            'rules': rules,
+            'strings': {**base.get('strings', {}), **strings},
+        }
+    elif language_file:
+        print(f'[ERROR] --language-file {language_file}: file not found.', file=sys.stderr)
+        sys.exit(1)
+
+    return base
+
+
+def apply_strings(text, strings):
+    """Replaces {{str_KEY}} placeholders in `text` with values from `strings`."""
+    for key, value in strings.items():
+        text = text.replace('{{str_' + key + '}}', value)
+    return text
+
+
+# ============================================================================
+# MARKDOWN TO HTML CONVERTER
+# ============================================================================
+
+def md_inline(text):
+    """Converts inline Markdown formatting to HTML."""
+    # Escape ampersands before inserting our own tags
+    text = text.replace('&', '&amp;')
+    # Bold before italic
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<em>\1</em>', text)
+    # Markdown links
+    text = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', r'<a href="\2" target="_blank" rel="noopener">\1</a>', text)
+    # Inline footnotes
+    text = re.sub(r'\[\^([\w]+)\]', r'<sup>[^\1]</sup>', text)
+    return text
+
+
+def parse_table_row(line):
+    """Splits a Markdown table row '| a | b | c |' into cells."""
+    line = line.strip()
+    if line.startswith('|'):
+        line = line[1:]
+    if line.endswith('|'):
+        line = line[:-1]
+    return [cell.strip() for cell in line.split('|')]
+
+
+def is_table_separator(line):
+    """True if the line is a table separator."""
+    line = line.strip()
+    return bool(line) and bool(re.match(r'^\|?[\s\-:|]+\|?$', line)) and '-' in line
+
+
+def _is_paragraph_continuation(line, lines, idx, n):
+    """True if `line` continues the paragraph in progress rather than
+    starting a new block element (heading, list, table, raw HTML,
+    footnote definition, blank/thematic break). Per spec §6.1, a bare
+    line break does not end a Markdown paragraph — only a blank line does."""
+    if line.strip() == '' or line.strip() == '---':
+        return False
+    if line.startswith('#'):
+        return False
+    if re.match(r'^\s*</?[a-zA-Z]', line):
+        return False
+    if re.match(r'^\d+\.\s+', line):
+        return False
+    if re.match(r'^-\s+', line):
+        return False
+    if re.match(r'^\[\^([\w]+)\]:\s*', line):
+        return False
+    if line.strip().startswith('|') and idx + 1 < n and is_table_separator(lines[idx + 1]):
+        return False
+    return True
+
+
+def convert_markdown(md_text, typo_engine=None):
+    """Converts the Markdown body to HTML."""
+    lines = md_text.split('\n')
+    out = []
+    in_list = None
+    i = 0
+    n = len(lines)
+
+    def close_list():
+        nonlocal in_list
+        if in_list:
+            out.append(f'  </{in_list}>')
+            in_list = None
+
+    while i < n:
+        raw = lines[i]
+        line = raw.rstrip()
+
+        if line.strip() == '' or line.strip() == '---':
+            i += 1
+            continue
+
+        if line.startswith('# ') and not line.startswith('## '):
+            out.append(f'  <h1>{md_inline(line[2:].strip())}</h1>')
+            i += 1
+            continue
+        if line.startswith('## '):
+            close_list()
+            out.append(f'  <h2>{md_inline(line[3:].strip())}</h2>')
+            i += 1
+            continue
+        if line.startswith('### '):
+            close_list()
+            out.append(f'  <h3>{md_inline(line[4:].strip())}</h3>')
+            i += 1
+            continue
+
+        # Table
+        if line.strip().startswith('|') and i + 1 < n and is_table_separator(lines[i + 1]):
+            close_list()
+            header_cells = parse_table_row(line)
+            out.append('  <table class="comparison-table">')
+            out.append('    <thead>')
+            out.append('      <tr>')
+            for cell in header_cells:
+                out.append(f'        <th>{md_inline(cell)}</th>')
+            out.append('      </tr>')
+            out.append('    </thead>')
+            out.append('    <tbody>')
+            i += 2
+            while i < n and lines[i].strip().startswith('|'):
+                row_cells = parse_table_row(lines[i])
+                out.append('      <tr>')
+                for cell in row_cells:
+                    out.append(f'        <td>{md_inline(cell)}</td>')
+                out.append('      </tr>')
+                i += 1
+            out.append('    </tbody>')
+            out.append('  </table>')
+            continue
+
+        # Raw HTML (line starting with a tag)
+        if re.match(r'^\s*</?[a-zA-Z]', line):
+            close_list()
+            out.append(raw.rstrip())
+            i += 1
+            continue
+
+        # Ordered lists
+        m_ol = re.match(r'^\d+\.\s+(.*)', line)
+        if m_ol:
+            if in_list != 'ol':
+                close_list()
+                out.append('  <ol>')
+                in_list = 'ol'
+            out.append(f'    <li>{md_inline(m_ol.group(1))}</li>')
+            i += 1
+            continue
+
+        # Unordered lists
+        m_ul = re.match(r'^-\s+(.*)', line)
+        if m_ul:
+            if in_list != 'ul':
+                close_list()
+                out.append('  <ul>')
+                in_list = 'ul'
+            out.append(f'    <li>{md_inline(m_ul.group(1))}</li>')
+            i += 1
+            continue
+
+        # Footnotes (definitions)
+        m_ref = re.match(r'^\[\^([\w]+)\]:\s*(.*)', line)
+        if m_ref:
+            close_list()
+            num, txt = m_ref.group(1), m_ref.group(2)
+            out.append(f'  <p><sup>[^{num}]</sup>: {md_inline(txt)}</p>')
+            i += 1
+            continue
+
+        # Regular paragraph: merge consecutive lines with no blank line
+        # between them into a single paragraph (spec §6.1) — a lone line
+        # break is not a paragraph break in Markdown.
+        close_list()
+        para_lines = [line]
+        i += 1
+        while i < n and _is_paragraph_continuation(lines[i].rstrip(), lines, i, n):
+            para_lines.append(lines[i].rstrip())
+            i += 1
+        out.append(f'  <p>{md_inline(" ".join(para_lines))}</p>')
+
+    close_list()
+    html = '\n'.join(out)
+
+    if typo_engine:
+        html = typo_engine.apply(html)
+
+    return html
+
+
+# ============================================================================
+# EXTENDED MARKDOWN PARSER
+# ============================================================================
+
+class Slide:
+    def __init__(self, slide_type='standard'):
+        self.slide_type = slide_type  # 'cover', 'standard', 'series-nav', 'full-article'
+        self.tag = None
+        self.h2 = None
+        self.h1 = None
+        self.summary = None
+        self.fact_label = None
+        self.fact_content = None
+        self.source = None
+        self.highlight = None
+        self.highlight_caption = None
+        self.article_file = None  # For full-article
+        self.raw_meta = {}  # Raw metadata
+
+
+def parse_metadata_block(text):
+    """Parses the <!-- meta --> ... --- block at the top of the file."""
+    meta = {}
+    lines = text.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        if line == '---':
+            break
+        if line.startswith('<!--') or line.endswith('-->'):
+            continue
+        if ':' in line:
+            key, _, value = line.partition(':')
+            meta[key.strip()] = value.strip()
+    return meta
+
+
+def parse_markdown_extended(md_text):
+    """Parses an extended Markdown file and returns (meta, slides, has_meta_block).
+
+    has_meta_block is False when no <!-- meta --> block was found at all
+    (as opposed to one that parsed to an empty dict) — callers that must
+    enforce §22.7 (a file must start with <!-- meta -->) need to tell the
+    two apart, callers that don't (like audit, which never blocks) can
+    just ignore it.
+    """
+    # Extract the meta block
+    meta = {}
+    has_meta_block = False
+    meta_match = re.search(r'<!--\s*meta\s*-->(.*?)(?:^|\n)---', md_text, re.DOTALL)
+    if meta_match:
+        has_meta_block = True
+        meta = parse_metadata_block(meta_match.group(1))
+        # Strip the meta block from the text
+        md_text = md_text[meta_match.end():]
+
+    # Split into slides on --- (alone on its own line, surrounded by blank lines)
+    # Uses a regex that captures the separators
+    parts = re.split(r'\n---\n', md_text)
+
+    slides = []
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        slide = None
+
+        # Detect the slide type
+        slide_type_match = re.search(r'<!--\s*slide:\s*(\S+)\s*-->', part)
+        if slide_type_match:
+            slide_type = slide_type_match.group(1)
+            slide = Slide(slide_type)
+        elif '<!-- slide -->' in part:
+            slide = Slide('standard')
+        else:
+            # With no marker, this is either orphan content or the first part
+            # Ignore it if empty, otherwise treat it as a standard slide
+            if part.strip():
+                slide = Slide('standard')
+            else:
+                continue
+
+        # For series-nav and full-article, read the directives
+        if slide.slide_type in ('series-nav', 'full-article'):
+            # Look for article: file.md
+            if slide.slide_type == 'full-article':
+                article_match = re.search(r'^article:\s*(.+)$', part, re.MULTILINE)
+                if article_match:
+                    slide.article_file = article_match.group(1).strip()
+            slides.append(slide)
+            continue
+
+        # For cover and standard, parse the fields
+        lines = part.split('\n')
+        content_lines = []
+        in_content = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            # Ignore slide markers
+            if stripped.startswith('<!-- slide'):
+                continue
+
+            # Detect key: value fields
+            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption|h1|h2):\s*(.*)', stripped)
+            if field_match and not in_content:
+                key = field_match.group(1)
+                value = field_match.group(2)
+                if key == 'tag':
+                    slide.tag = value
+                elif key == 'summary':
+                    slide.summary = value
+                elif key == 'fact-label':
+                    slide.fact_label = value
+                elif key == 'source':
+                    slide.source = value
+                elif key == 'highlight':
+                    slide.highlight = value
+                elif key == 'highlight-caption':
+                    slide.highlight_caption = value
+                elif key == 'h1':
+                    slide.h1 = value
+                elif key == 'h2':
+                    slide.h2 = value
+            elif stripped.startswith('# ') and not stripped.startswith('## '):
+                slide.h1 = stripped[2:].strip()
+            elif stripped.startswith('## '):
+                slide.h2 = stripped[3:].strip()
+            else:
+                # This is content (the fact-box)
+                if stripped:
+                    in_content = True
+                    content_lines.append(line)
+                elif in_content:
+                    content_lines.append('')
+
+        # Free-form content becomes the fact-box
+        if content_lines:
+            slide.fact_content = '\n'.join(content_lines).strip()
+
+        slides.append(slide)
+
+    return meta, slides, has_meta_block
+
+
+def _is_safe_relative_filename(value):
+    """True if `value` is a bare filename with no directory component —
+    rejects absolute paths and any `../` traversal. series.json and the
+    article: field are attacker-reachable (LLM-edited content, unattended
+    CI) and get joined into real filesystem paths (Path(dir) / value) with
+    no other containment check — Path('/x') / '/etc/passwd' silently
+    discards the left side and resolves to '/etc/passwd', so this check is
+    the only thing standing between that input and an arbitrary file
+    read/write."""
+    return bool(value) and value == Path(value).name
+
+
+def validate_slides(slides, filename, has_meta_block=True):
+    """Rejects the parser edge cases the spec (§22) says must be fatal,
+    instead of letting them silently corrupt or truncate the build:
+
+    - the file has no <!-- meta --> block at all (§22.7)
+    - the file has no slides at all (§22.10)
+    - a cover slide with content after its fields (it has no fact-box to
+      put that content in, so it would otherwise vanish silently, §22.12)
+    - a full-article slide missing its required article: field (otherwise
+      the raw {FULL_ARTICLE_PLACEHOLDER} leaks into the published HTML)
+    - more than one full-article slide (otherwise str.replace() on the
+      shared placeholder duplicates the first article over the rest and
+      silently drops the others, §22.8)
+    - more than one series-nav slide (§22.9)
+    """
+    if not has_meta_block:
+        print(f'[ERROR] {filename}: file must start with a <!-- meta --> block.',
+              file=sys.stderr)
+        sys.exit(1)
+
+    if not slides:
+        print(f'[ERROR] {filename}: file has no slides.', file=sys.stderr)
+        sys.exit(1)
+
+    full_article_positions = []
+    series_nav_positions = []
+
+    for i, slide in enumerate(slides, 1):
+        if slide.slide_type == 'cover' and slide.fact_content:
+            print(f'[ERROR] {filename}: slide {i} (cover) has content after its '
+                  f'fields, but a cover slide has no fact-box.', file=sys.stderr)
+            sys.exit(1)
+
+        if slide.slide_type == 'full-article':
+            full_article_positions.append(i)
+            if not slide.article_file:
+                print(f'[ERROR] {filename}: slide {i} is a full-article slide '
+                      f'without an article: field.', file=sys.stderr)
+                sys.exit(1)
+            if not _is_safe_relative_filename(slide.article_file):
+                print(f'[ERROR] {filename}: slide {i} has an unsafe article: '
+                      f'value "{slide.article_file}" (must be a plain filename, '
+                      f'no path separators, no "..").', file=sys.stderr)
+                sys.exit(1)
+
+        if slide.slide_type == 'series-nav':
+            series_nav_positions.append(i)
+
+    if len(full_article_positions) > 1:
+        print(f'[ERROR] {filename}: {len(full_article_positions)} full-article '
+              f'slides found (slides {full_article_positions}), only one is '
+              f'allowed per article.', file=sys.stderr)
+        sys.exit(1)
+
+    if len(series_nav_positions) > 1:
+        print(f'[ERROR] {filename}: {len(series_nav_positions)} series-nav '
+              f'slides found (slides {series_nav_positions}), only one is '
+              f'allowed per article.', file=sys.stderr)
+        sys.exit(1)
+
+
+# ============================================================================
+# SLIDE HTML RENDERING
+# ============================================================================
+
+def render_slide(slide, slide_num, total_slides, typo_engine, strings):
+    """Generates the HTML for a slide."""
+    num_str = f'{slide_num:02d} / {total_slides:02d}'
+
+    if slide.slide_type == 'cover':
+        tag = slide.tag or ''
+        h1 = slide.h1 or ''
+        summary = slide.summary or ''
+        if typo_engine:
+            tag = typo_engine.apply(tag)
+            h1 = typo_engine.apply(h1)
+            summary = typo_engine.apply(summary)
+
+        parts = [f'<section class="slide slide-cover" id="s{slide_num}">']
+        parts.append(f'  <span class="slide-num">{num_str}</span>')
+        if tag:
+            parts.append(f'  <span class="slide-tag">{tag}</span>')
+        parts.append(f'  <h1>{h1}</h1>')
+        if summary:
+            parts.append(f'  <p class="summary">{summary}</p>')
+        parts.append('</section>')
+        return '\n'.join(parts)
+
+    elif slide.slide_type == 'series-nav':
+        # Will be generated later by the navigation engine
+        title = strings.get('series_nav_title', 'This series')
+        return f'<section class="slide" id="s{slide_num}-series">\n  <h2>{title}</h2>\n  <div class="series-list">\n{{SERIES_NAV_PLACEHOLDER}}\n  </div>\n</section>'
+
+    elif slide.slide_type == 'full-article':
+        # Content will be injected later
+        tag_text = strings.get('full_article_tag', 'Full article')
+        return f'<section class="slide full-article" id="s{slide_num}">\n  <span class="slide-num">{num_str}</span>\n  <span class="slide-tag">{tag_text}</span>\n{{FULL_ARTICLE_PLACEHOLDER}}\n</section>'
+
+    else:  # standard
+        tag = slide.tag or ''
+        h2 = slide.h2 or ''
+        summary = slide.summary or ''
+        if typo_engine:
+            tag = typo_engine.apply(tag)
+            h2 = typo_engine.apply(h2)
+            summary = typo_engine.apply(summary)
+
+        parts = [f'<section class="slide" id="s{slide_num}">']
+        parts.append(f'  <span class="slide-num">{num_str}</span>')
+        if tag:
+            parts.append(f'  <span class="slide-tag">{tag}</span>')
+        if h2:
+            parts.append(f'  <h2>{h2}</h2>')
+        if summary:
+            parts.append(f'  <p class="summary">{summary}</p>')
+
+        # Highlight
+        if slide.highlight:
+            highlight = slide.highlight
+            caption = slide.highlight_caption or ''
+            if typo_engine:
+                highlight = typo_engine.apply(highlight)
+                caption = typo_engine.apply(caption)
+            parts.append(f'  <div class="highlight"><span class="highlight-figure">{highlight}</span><span class="highlight-caption">{caption}</span></div>')
+
+        # Fact-box
+        if slide.fact_content:
+            content_html = convert_markdown(slide.fact_content, typo_engine)
+            label = slide.fact_label or strings.get('fact_label_default', 'The fact')
+            if typo_engine:
+                label = typo_engine.apply(label)
+            parts.append(f'  <div class="fact-box">')
+            parts.append(f'    <div class="fact-label">{label}</div>')
+            # If the converted content starts with <p>, insert it directly
+            # instead of wrapping it in an extra <p class="fact-content">
+            stripped_content = content_html.strip()
+            if stripped_content.startswith('<p>') or stripped_content.startswith('  <p>'):
+                # Replace <p> with <p class="fact-content"> throughout
+                content_html = content_html.replace('<p>', '<p class="fact-content">')
+                parts.append(content_html)
+            else:
+                parts.append(f'    <p class="fact-content">{content_html}</p>')
+            parts.append(f'  </div>')
+
+        # Source
+        if slide.source:
+            source = slide.source
+            if typo_engine:
+                source = typo_engine.apply(source)
+            source_label = strings.get('source_label', 'Source')
+            parts.append(f'  <p class="source">{source_label} : {source}</p>')
+
+        parts.append('</section>')
+        return '\n'.join(parts)
+
+
+# ============================================================================
+# SERIES NAVIGATION
+# ============================================================================
+
+def build_series_nav(current_file, series_data, strings):
+    """Generates the navigation block HTML for the current article."""
+    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    read = strings.get('series_read', 'Read the article')
+    current_status = strings.get('series_current_status', 'Currently reading')
+    back = strings.get('series_back_to_index', 'Back to index')
+    parts = []
+    for entry in articles:
+        if entry['file'] == current_file:
+            parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
+                title=entry['series_title'],
+                desc=entry['series_desc'],
+                status=current_status))
+        else:
+            parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
+                file=html_escape(entry['file'], quote=True),
+                title=entry['series_title'],
+                desc=entry['series_desc'],
+                read=read))
+    parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back))
+    return '\n'.join(parts)
+
+
+# ============================================================================
+# INDEX PAGE
+# ============================================================================
+
+def build_index(series_data, css, typo_engine, strings, lang='fr'):
+    """Generates the index page."""
+    meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
+    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+
+    title = meta.get('title', strings.get('series_untitled_fallback', 'Article series'))
+    subtitle = meta.get('subtitle', '')
+    version = meta.get('version', '')
+    intro = meta.get('intro', '')
+
+    if typo_engine:
+        title = typo_engine.apply(title)
+        subtitle = typo_engine.apply(subtitle)
+        intro = typo_engine.apply(intro)
+
+    # <title> is RCDATA: unlike {{series_title}} (rendered inside the page
+    # body, where raw HTML is allowed by design, same as an article's h1 —
+    # spec §4.3), a value here containing a literal </title> would close
+    # the element early and let anything after it execute as real markup.
+    title_clean = re.sub(r'<[^>]+>', ' ', title).strip()
+
+    # Cards
+    read = strings.get('series_read', 'Read the article')
+    cards = []
+    for entry in articles:
+        number = entry.get('index_number', '')
+        card_title = entry.get('index_title', entry.get('series_title', ''))
+        card_desc = entry.get('index_desc', entry.get('series_desc', ''))
+        if typo_engine:
+            number = typo_engine.apply(number)
+            card_title = typo_engine.apply(card_title)
+            card_desc = typo_engine.apply(card_desc)
+        # href is an attribute context: entry['file'] is validated to be a
+        # plain filename (validate_series), but it's escaped here too as
+        # defense in depth against a future validation gap.
+        card = f'''<a href="{html_escape(entry['file'], quote=True)}" class="article-card">
+  <div class="article-number">{number}</div>
+  <div class="article-title">{card_title}</div>
+  <div class="article-desc">{card_desc}</div>
+  <div class="article-cta">→ {read}</div>
+</a>'''
+        cards.append(card)
+
+    html = TEMPLATE_INDEX
+    html = html.replace('{{lang}}', lang)
+    html = html.replace('{{title}}', title_clean)
+    html = html.replace('{{css}}', css)
+    html = html.replace('{{series_title}}', title)
+    html = html.replace('{{series_subtitle}}', subtitle)
+    html = html.replace('{{series_version}}', version)
+    html = html.replace('{{series_intro}}', intro)
+    html = html.replace('{{cards}}', '\n'.join(cards))
+    html = html.replace('{{js_index}}', apply_strings(TEMPLATE_INDEX_JS, strings))
+    html = apply_strings(html, strings)
+
+    validate_html(html, 'index.html')
+    return html
+
+
+def build_readme(series_data, sd, output_dir, strings):
+    """Generates README.md content: series title/subtitle/intro from
+    series_meta, then a numbered list of articles linking to their built
+    HTML file (spec §8.3)."""
+    meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
+    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+
+    title = meta.get('title', strings.get('series_untitled_fallback', 'Article series'))
+    subtitle = meta.get('subtitle', '')
+    intro = meta.get('intro', '')
+
+    lines = [f'# {title}']
+    if subtitle:
+        lines.append('')
+        lines.append(subtitle)
+    if intro:
+        lines.append('')
+        lines.append(intro)
+    lines.append('')
+    lines.append('## Articles')
+    lines.append('')
+    for i, entry in enumerate(articles, 1):
+        article_title = entry.get('series_title', entry.get('file', ''))
+        article_desc = entry.get('series_desc', '')
+        link = os.path.relpath(output_dir / entry['file'], start=sd)
+        if article_desc:
+            lines.append(f'{i}. [{article_title}]({link}) — {article_desc}')
+        else:
+            lines.append(f'{i}. [{article_title}]({link})')
+    lines.append('')
+
+    return '\n'.join(lines)
+
+
+# ============================================================================
+# HTML OUTPUT VALIDATION
+# ============================================================================
+
+# Elements that never take a closing tag in HTML5, with or without a
+# trailing "/>" — must not be pushed on the balance-checking stack below.
+VOID_ELEMENTS = {
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+    'link', 'meta', 'param', 'source', 'track', 'wbr',
+}
+
+
+class _HtmlBalanceChecker(HTMLParser):
+    """Tracks a stack of open tags to catch mismatched/unclosed tags in
+    generated HTML. <script>/<style> content is handled as raw text by
+    HTMLParser itself, so JS containing `<`/`>` (comparisons, etc.) is not
+    mistaken for markup."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.stack = []
+        self.errors = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in VOID_ELEMENTS:
+            self.stack.append(tag)
+
+    def handle_endtag(self, tag):
+        if tag in VOID_ELEMENTS:
+            return
+        if not self.stack:
+            self.errors.append(f'unexpected closing </{tag}> with no matching open tag')
+            return
+        if self.stack[-1] != tag:
+            self.errors.append(
+                f'</{tag}> does not match the currently open <{self.stack[-1]}>'
+            )
+            return
+        self.stack.pop()
+
+
+def validate_html(html_text, filename):
+    """Rejects generated HTML that isn't well-formed (mismatched or
+    unclosed tags) — a bug in a template or in convert_markdown() must
+    never silently ship a broken page. Structural check only: stdlib
+    html.parser has no notion of full HTML5 conformance, only tag
+    balance, but that is exactly the class of defect a rendering bug in
+    this codebase would produce."""
+    checker = _HtmlBalanceChecker()
+    checker.feed(html_text)
+    checker.close()
+    if checker.stack:
+        unclosed = ', '.join(f'<{t}>' for t in reversed(checker.stack))
+        checker.errors.append(f'unclosed tag(s) at end of document: {unclosed}')
+    if checker.errors:
+        print(f'[ERROR] {filename}: generated HTML is not well-formed:', file=sys.stderr)
+        for e in checker.errors:
+            print(f'  - {e}', file=sys.stderr)
+        sys.exit(1)
+
+
+# ============================================================================
+# BUILD ENGINE
+# ============================================================================
+
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr'):
+    """Builds an HTML page for an article."""
+    md_text = source_path.read_text(encoding='utf-8')
+    meta, slides, has_meta_block = parse_markdown_extended(md_text)
+    validate_slides(slides, source_path.name, has_meta_block)
+
+    total_slides = len(slides)
+    slide_htmls = []
+
+    for i, slide in enumerate(slides, 1):
+        html = render_slide(slide, i, total_slides, typo_engine, strings)
+        slide_htmls.append(html)
+
+    # Join the slides
+    slides_html = '\n\n'.join(slide_htmls)
+
+    # Inject the series navigation
+    series_nav_html = build_series_nav(current_file, series_data, strings)
+    slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
+
+    # Inject the full article
+    for i, slide in enumerate(slides):
+        if slide.slide_type == 'full-article' and slide.article_file:
+            article_path = articles_dir / slide.article_file
+            if article_path.exists():
+                article_md = article_path.read_text(encoding='utf-8')
+                article_html = convert_markdown(article_md, typo_engine)
+                placeholder = '{FULL_ARTICLE_PLACEHOLDER}'
+                slides_html = slides_html.replace(placeholder, article_html)
+            else:
+                print(f'  [ERROR] Article file not found: {slide.article_file}', file=sys.stderr)
+
+    # Page title
+    title = meta.get('h1', current_file)
+    # Strip HTML tags from the title
+    title_clean = re.sub(r'<[^>]+>', ' ', title).strip()
+    if typo_engine:
+        title_clean = typo_engine.apply(title_clean)
+
+    # Assemble the page
+    html = TEMPLATE_PAGE
+    html = html.replace('{{lang}}', lang)
+    html = html.replace('{{title}}', title_clean)
+    html = html.replace('{{css}}', css)
+    html = html.replace('{{slides}}', slides_html)
+    html = html.replace('{{js_nav}}', nav_js)
+    html = apply_strings(html, strings)
+
+    validate_html(html, current_file)
+    return html
+
+
+def copy_images(articles_dir, output_dir):
+    """Copies the img/ directory if it exists.
+
+    Merges into an existing img_dst (dirs_exist_ok) instead of wiping it
+    first: a mistyped --output pointing at an unrelated existing directory
+    must never delete a pre-existing img/ there."""
+    img_src = articles_dir / 'img'
+    img_dst = output_dir / 'img'
+    if img_src.exists() and img_src.is_dir():
+        shutil.copytree(img_src, img_dst, dirs_exist_ok=True)
+        print(f'  Images copied: {img_dst}')
+
+
+def load_series_data(series_dir):
+    """Loads series.json."""
+    series_file = series_dir / 'series.json'
+    if not series_file.exists():
+        print(f'[ERROR] series.json not found in {series_dir}', file=sys.stderr)
+        sys.exit(1)
+    with open(series_file, 'r', encoding='utf-8') as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError as e:
+            print(f'[ERROR] {series_file}: invalid JSON ({e}).', file=sys.stderr)
+            sys.exit(1)
+    articles = data.get('articles', data) if isinstance(data, dict) else data
+    if not isinstance(articles, list) or not all(isinstance(e, dict) for e in articles):
+        print(f'[ERROR] {series_file}: "articles" must be a list of objects.',
+              file=sys.stderr)
+        sys.exit(1)
+    return data
+
+
+def validate_series(articles):
+    """Rejects series.json structural errors (§20.3): required fields must be
+    present and non-empty on every entry, file must be unique, and file/source
+    must be plain filenames — otherwise one article's output silently
+    overwrites another's, the build crashes on a raw KeyError instead of a
+    clear message, or (file/source being joined into real filesystem paths
+    with no other containment check) a malicious or LLM-mangled entry reads
+    or writes an arbitrary file outside articles/public (Path(dir) / value
+    silently ignores `dir` when `value` is an absolute path)."""
+    required_fields = ('file', 'source', 'series_title', 'series_desc')
+    seen = {}
+    for i, entry in enumerate(articles, 1):
+        for field in required_fields:
+            if not entry.get(field):
+                print(f'[ERROR] series.json: entry {i} is missing required '
+                      f'field "{field}".', file=sys.stderr)
+                sys.exit(1)
+        for field in ('file', 'source'):
+            if not _is_safe_relative_filename(entry[field]):
+                print(f'[ERROR] series.json: entry {i} has an unsafe "{field}" '
+                      f'value "{entry[field]}" (must be a plain filename, no '
+                      f'path separators, no "..").', file=sys.stderr)
+                sys.exit(1)
+        f = entry.get('file')
+        if f in seen:
+            print(f'[ERROR] series.json: duplicate file "{f}" (articles {seen[f]} '
+                  f'and {i}).', file=sys.stderr)
+            sys.exit(1)
+        seen[f] = i
+
+
+def resolve_paths(series_dir, args):
+    """Resolves paths from environment variables and arguments."""
+    sd = Path(series_dir).resolve()
+
+    articles_dir = Path(os.environ.get('LWP_ARTICLES_DIR', sd / 'articles'))
+    templates_dir = Path(os.environ.get('LWP_TEMPLATES_DIR', sd / 'templates'))
+    lang_dir = Path(os.environ.get('LWP_LANGUAGE_DIR', sd / 'language'))
+    output_dir = Path(args.get('--output', os.environ.get('LWP_OUTPUT_DIR', sd / 'public')))
+    lang = args.get('--lang', os.environ.get('LWP_LANG', 'fr'))
+    language_file = args.get('--language-file')
+
+    return sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file
+
+
+def cmd_build(series_dir, args):
+    """build command."""
+    sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+
+    print(f'Build: {sd}')
+    print(f'  Articles: {articles_dir}')
+    print(f'  Output: {output_dir}')
+    print(f'  Lang: {lang}')
+
+    # Load the language pack (typography rules + interface strings)
+    language_pack = load_language(lang_dir, lang, language_file)
+    typo_engine = TypoEngine(language_pack)
+    strings = language_pack.get('strings', {})
+
+    # Load series.json
+    series_data = load_series_data(sd)
+
+    # Load the CSS
+    css_file = templates_dir / 'style.css'
+    if css_file.exists():
+        css = css_file.read_text(encoding='utf-8')
+    else:
+        css = TEMPLATE_STYLE
+
+    # Load the navigation JS
+    nav_js_file = templates_dir / 'nav.js'
+    if nav_js_file.exists():
+        nav_js = nav_js_file.read_text(encoding='utf-8')
+    else:
+        nav_js = TEMPLATE_NAV_JS
+    nav_js = apply_strings(nav_js, strings)
+
+    # Create the output directory
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build each article
+    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    validate_series(articles)
+    for entry in articles:
+        source_file = entry['source']
+        output_file = entry['file']
+        source_path = articles_dir / source_file
+
+        if not source_path.exists():
+            print(f'  [ERROR] Source not found: {source_path}', file=sys.stderr)
+            continue
+
+        print(f'  {output_file} ← {source_file}')
+        html = build_article(source_path, articles_dir, series_data, output_file, css, nav_js, typo_engine, strings, lang)
+
+        output_path = output_dir / output_file
+        output_path.write_text(html, encoding='utf-8')
+
+    # Build the index
+    print('  index.html')
+    index_html = build_index(series_data, css, typo_engine, strings, lang)
+    (output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+
+    # Generate the README (spec §8.3)
+    readme = build_readme(series_data, sd, output_dir, strings)
+    (sd / 'README.md').write_text(readme, encoding='utf-8')
+
+    # Copy the images
+    copy_images(articles_dir, output_dir)
+
+    print(f'Build complete: {len(articles)} articles + index -> {output_dir}')
+
+
+def cmd_check(series_dir, args):
+    """check command — compares the existing HTML with what the build would produce."""
+    sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+
+    language_pack = load_language(lang_dir, lang, language_file)
+    typo_engine = TypoEngine(language_pack)
+    strings = language_pack.get('strings', {})
+    series_data = load_series_data(sd)
+
+    css_file = templates_dir / 'style.css'
+    css = css_file.read_text(encoding='utf-8') if css_file.exists() else TEMPLATE_STYLE
+    nav_js_file = templates_dir / 'nav.js'
+    nav_js = nav_js_file.read_text(encoding='utf-8') if nav_js_file.exists() else TEMPLATE_NAV_JS
+    nav_js = apply_strings(nav_js, strings)
+
+    ok_count = 0
+    diff_count = 0
+    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    validate_series(articles)
+
+    for entry in articles:
+        source_path = articles_dir / entry['source']
+        if not source_path.exists():
+            print(f'[ERROR] {entry["file"]}: source not found: {source_path}', file=sys.stderr)
+            diff_count += 1
+            continue
+        generated = build_article(source_path, articles_dir, series_data, entry['file'], css, nav_js, typo_engine, strings, lang)
+        existing_path = output_dir / entry['file']
+        if not existing_path.exists():
+            print(f'[NEW] {entry["file"]} does not exist yet')
+            diff_count += 1
+            continue
+        existing = existing_path.read_text(encoding='utf-8')
+        if existing.strip() == generated.strip():
+            print(f'[OK] {entry["file"]}')
+            ok_count += 1
+        else:
+            print(f'[DRIFT] {entry["file"]}')
+            diff = list(difflib.unified_diff(
+                existing.strip().splitlines(), generated.strip().splitlines(),
+                lineterm='', n=1))
+            for line in diff[:20]:
+                print(' ', line)
+            diff_count += 1
+
+    print(f'{ok_count} file(s) OK, {diff_count} file(s) different.')
+    if diff_count == 0:
+        print('All articles are up to date.')
+    else:
+        sys.exit(1)
+
+
+# ============================================================================
+# AUDIT COMMAND
+# ============================================================================
+
+def cmd_audit(series_dir, args):
+    """audit command — flags editorial conventions that are not respected.
+
+    Unlike check (which compares the generated HTML with the existing one),
+    audit never compiles anything and never makes the command fail: page
+    layout (number and position of cover slides, see specifications.md
+    §22.13) remains entirely the author's responsibility. audit only prints
+    informational warnings.
+    """
+    sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+    series_data = load_series_data(sd)
+    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+
+    warnings = 0
+
+    for entry in articles:
+        source_path = articles_dir / entry['source']
+        if not source_path.exists():
+            print(f'[ERROR] {entry["file"]}: source not found ({source_path})', file=sys.stderr)
+            continue
+
+        md_text = source_path.read_text(encoding='utf-8')
+        meta, slides, has_meta_block = parse_markdown_extended(md_text)
+
+        has_cover = any(s.slide_type == 'cover' for s in slides)
+        if not has_cover:
+            print(f'[WARNING] {entry["file"]}: no cover slide')
+            warnings += 1
+        elif slides[0].slide_type != 'cover':
+            print(f'[WARNING] {entry["file"]}: the first slide is not a cover (found: {slides[0].slide_type})')
+            warnings += 1
+
+    if warnings == 0:
+        print('No warnings: all editorial conventions are respected.')
+    else:
+        print(f'{warnings} warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
+
+
+# ============================================================================
+# INSTALL COMMAND
+# ============================================================================
+
+def cmd_install(target_dir, args):
+    """install command — creates the directory structure."""
+    td = Path(target_dir).resolve()
+    lang = args.get('--lang', 'fr')
+    force = bool(args.get('--force'))
+
+    if td.exists() and any(td.iterdir()) and not force:
+        print(f'[ERROR] {td} is not empty. Use an empty or new directory, or pass --force.',
+              file=sys.stderr)
+        sys.exit(1)
+
+    # Create the directories
+    (td / 'articles').mkdir(parents=True, exist_ok=True)
+    (td / 'templates').mkdir(exist_ok=True)
+    (td / 'language').mkdir(exist_ok=True)
+    (td / 'public').mkdir(exist_ok=True)
+
+    # Extract the templates (only the two build actually reads back —
+    # see specifications.md §9: page/index structure is fixed, not an
+    # editable template; only style.css and nav.js are overridable)
+    (td / 'templates' / 'style.css').write_text(TEMPLATE_STYLE, encoding='utf-8')
+    (td / 'templates' / 'nav.js').write_text(TEMPLATE_NAV_JS, encoding='utf-8')
+
+    # Extract the language packs
+    (td / 'language' / 'fr.json').write_text(LANG_FR, encoding='utf-8')
+    (td / 'language' / 'en.json').write_text(LANG_EN, encoding='utf-8')
+
+    # Empty series.json
+    series_json = {
+        "series_meta": {
+            "title": "My article series",
+            "subtitle": "Series subtitle",
+            "version": "v0.1",
+            "intro": "Series introduction."
+        },
+        "articles": []
+    }
+    (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    # .gitlab-ci.yml
+    (td / '.gitlab-ci.yml').write_text(TEMPLATE_GITLAB_CI, encoding='utf-8')
+
+    # Copy the executable itself into the directory, for standalone use
+    # (the series directory shouldn't have to depend on lightwebpres being
+    # installed system-wide or found elsewhere on PATH).
+    exe_src = Path(__file__).resolve()
+    exe_dst = td / 'lightwebpres'
+    if exe_src.is_file() and exe_src != exe_dst:
+        shutil.copy2(exe_src, exe_dst)
+        exe_dst.chmod(exe_dst.stat().st_mode | 0o111)
+
+    print(f'Installed: {td}')
+    print(f'  articles/   — your .md files')
+    print(f'  templates/  — CSS and JS (editable)')
+    print(f'  language/   — typography rules + interface strings (fr, en)')
+    print(f'  public/     — generated HTML (build output)')
+    print(f'  series.json — article list')
+    print(f'  .gitlab-ci.yml — CI pipeline')
+    print(f'  lightwebpres — the executable itself, for standalone use')
+    print()
+    print('Next steps:')
+    print(f'  1. Create articles in {td}/articles/')
+    print(f'  2. Add entries to {td}/series.json')
+    print(f'  3. Run: lightwebpres build {td}')
+
+
+# ============================================================================
+# DEMO COMMAND
+# ============================================================================
+
+def cmd_demo(target_dir, args):
+    """demo command — creates example articles."""
+    td = Path(target_dir).resolve()
+    lang = args.get('--lang', 'fr')
+
+    # Check that install has been run
+    if not (td / 'templates' / 'style.css').exists():
+        print(f'[ERROR] {td} has not been installed. Run first: lightwebpres install {td}', file=sys.stderr)
+        sys.exit(1)
+
+    articles_dir = td / 'articles'
+
+    demo_filenames = ['first.md', 'first_article.md', 'middle.md', 'middle_article.md',
+                       'last.md', 'last_article.md']
+    existing = [f for f in demo_filenames if (articles_dir / f).exists()]
+    if existing:
+        print(f'[ERROR] {td}/articles already has demo file(s): {", ".join(existing)}. '
+              f'Remove them first, or run demo in an empty series.', file=sys.stderr)
+        sys.exit(1)
+
+    # Article 1: first
+    demo1 = '''<!-- meta -->
+file: first.html
+source: first.md
+h1: First article
+series_title: First article
+series_desc: The first demo article
+index_number: Article 1
+index_title: First article
+index_desc: Description of the first demo article
+---
+
+<!-- slide: cover -->
+tag: First
+# First article
+summary: This is the first demo article. It tests the "first" position in navigation.
+
+---
+
+<!-- slide -->
+tag: A fact
+## First fact
+summary: A short summary.
+fact-label: The fact
+source: Demo source.
+
+This is the **fact-box** content with some *bold* and *italic* text.
+
+---
+
+<!-- slide: series-nav -->
+
+---
+
+<!-- slide: full-article -->
+article: first_article.md
+'''
+
+    demo1_article = '''# First article — full article
+
+## Introduction
+
+This is the full article for the first demo article. It tests including an external Markdown file [^1].
+
+## I. A section
+
+A paragraph with some **bold** and *italic* text.
+
+- A list item
+- Another item
+
+## References
+
+[^1]: Demo source, 2025.
+'''
+
+    # Article 2: middle
+    demo2 = '''<!-- meta -->
+file: middle.html
+source: middle.md
+h1: Middle article
+series_title: Middle article
+series_desc: The second demo article
+index_number: Article 2
+index_title: Middle article
+index_desc: Description of the second demo article
+---
+
+<!-- slide: cover -->
+tag: Middle
+# Middle article
+summary: This article tests the "middle" position in navigation.
+
+---
+
+<!-- slide -->
+tag: Highlight
+## A slide with a highlight
+summary: This slide tests the highlight component.
+highlight: 42 %
+highlight-caption: the answer to life, the universe, and everything
+fact-label: The fact
+source: Douglas Adams, 1979.
+
+The answer is **42**. But the question remains unknown.
+
+---
+
+<!-- slide: series-nav -->
+
+---
+
+<!-- slide: full-article -->
+article: middle_article.md
+'''
+
+    demo2_article = '''# Middle article — full article
+
+## Introduction
+
+This is the full article for the second demo article [^1].
+
+| Column 1 | Column 2 |
+|---|---|
+| Cell A | Cell B |
+| Cell C | Cell D |
+
+## References
+
+[^1]: Demo source, 2025.
+'''
+
+    # Article 3: last
+    demo3 = '''<!-- meta -->
+file: last.html
+source: last.md
+h1: Last article
+series_title: Last article
+series_desc: The third demo article
+index_number: Article 3
+index_title: Last article
+index_desc: Description of the third demo article
+---
+
+<!-- slide: cover -->
+tag: Last
+# Last article
+summary: This article tests the "last" position in navigation.
+
+---
+
+<!-- slide -->
+tag: Inline HTML
+## Inline HTML test
+summary: This slide tests inline HTML directly in Markdown.
+fact-label: The fact
+source: Demo source.
+
+A regular paragraph followed by a link: <a href="https://example.com" target="_blank" rel="noopener">example</a>.
+
+---
+
+<!-- slide: series-nav -->
+
+---
+
+<!-- slide: full-article -->
+article: last_article.md
+'''
+
+    demo3_article = '''# Last article — full article
+
+## Introduction
+
+This is the full article for the third demo article [^1].
+
+## References
+
+[^1]: Demo source, 2025.
+'''
+
+    # Write the files
+    (articles_dir / 'first.md').write_text(demo1, encoding='utf-8')
+    (articles_dir / 'first_article.md').write_text(demo1_article, encoding='utf-8')
+    (articles_dir / 'middle.md').write_text(demo2, encoding='utf-8')
+    (articles_dir / 'middle_article.md').write_text(demo2_article, encoding='utf-8')
+    (articles_dir / 'last.md').write_text(demo3, encoding='utf-8')
+    (articles_dir / 'last_article.md').write_text(demo3_article, encoding='utf-8')
+
+    # Update series.json
+    series_json = {
+        "series_meta": {
+            "title": "Demo series",
+            "subtitle": "Three articles to test LightWebPres",
+            "version": "v0.1",
+            "intro": "This demo series contains three articles that test the first, middle, and last positions in navigation."
+        },
+        "articles": [
+            {"file": "first.html", "source": "first.md", "series_title": "First article", "series_desc": "The first demo article", "index_number": "Article 1", "index_title": "First article", "index_desc": "Description of the first demo article"},
+            {"file": "middle.html", "source": "middle.md", "series_title": "Middle article", "series_desc": "The second demo article", "index_number": "Article 2", "index_title": "Middle article", "index_desc": "Description of the second demo article"},
+            {"file": "last.html", "source": "last.md", "series_title": "Last article", "series_desc": "The third demo article", "index_number": "Article 3", "index_title": "Last article", "index_desc": "Description of the third demo article"}
+        ]
+    }
+    (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    print(f'Demo created: {td}')
+    print('  3 articles (first, middle, last) with full articles')
+
+    # Run the build
+    print()
+    print('Running the build...')
+    cmd_build(str(td), args)
+    print()
+    print('Demo site generated in public/. Open public/index.html in a browser.')
+
+
+# ============================================================================
+# CLI
+# ============================================================================
+
+def print_help():
+    print(f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
+
+COMMANDS
+  lightwebpres install [directory] [--lang fr]   Creates the directory structure
+  lightwebpres demo [directory] [--lang fr]      Creates a demo site
+  lightwebpres build [directory] [--lang fr]     Builds the site (self-contained HTML)
+  lightwebpres check [directory] [--lang fr]     Checks without building (diff)
+  lightwebpres audit [directory] [--lang fr]     Warns about editorial conventions (never blocking)
+  lightwebpres help | --help | -h                Shows this help
+
+OPTIONS
+  --lang fr|en           Language: typography rules + interface strings (default: fr)
+  --output public/       Output directory (default: public/)
+  --force                install: proceed even if the target directory is not empty
+  --language-file path   build/check: use this language pack file instead of
+                        language/<lang>.json (highest priority, spec §19.5)
+
+ENVIRONMENT VARIABLES
+  LWP_ARTICLES_DIR    Articles directory (default: $LWP_SERIES_DIR/articles)
+  LWP_TEMPLATES_DIR   Templates directory (default: $LWP_SERIES_DIR/templates)
+  LWP_OUTPUT_DIR      Output directory (default: $LWP_SERIES_DIR/public)
+  LWP_LANG            Language (default: fr)
+  LWP_SERIES_DIR      Series directory (default: .) — used when no
+                      [directory] argument is given
+  LWP_LANGUAGE_DIR    Language directory (default: $LWP_SERIES_DIR/language)
+
+SERIES DIRECTORY (created by install)
+  series.json          List of articles + series metadata
+  articles/*.md         One .md file per article (+ *_article.md for the full article)
+  articles/img/          Article images (copied to public/img/ on build)
+  templates/            style.css, nav.js (editable; page/index HTML structure
+                        is fixed, not a template — see language/ for vocabulary)
+  language/              fr.json, en.json — typography rules + interface
+                        strings (nav labels, "copy link" button...), editable;
+                        strings can be partially overridden (missing keys
+                        fall back to the built-in pack for that language)
+  public/               Generated HTML (build output — do not edit by hand)
+  README.md              Generated by build from series.json (article list)
+  lightwebpres            Copy of the executable itself, for standalone use
+
+ARTICLE FORMAT (.md)
+  <!-- meta --> ... ---         Metadata block at the top of the file
+  ---                           Separates slides, alone on its own line
+  <!-- slide: TYPE -->          Marks a slide's type (absent = standard)
+  key: value                    A slide field (one line = one value; no line
+                                breaks inside a value for now)
+
+SLIDE TYPES
+  cover         Cover slide (tag, h1 or # Title, summary)
+  standard      Regular slide (tag, h2 or ## Title, summary, highlight,
+                highlight-caption, fact-label, source, + free text = fact-box)
+  series-nav    Cross-article navigation block, generated from series.json
+  full-article  Includes an external .md file via the article: field
+                (required; only one full-article slide per article)
+
+FIELDS RECOGNIZED IN A SLIDE
+  tag, h2 (or ## Title), summary, fact-label, source, highlight, highlight-caption
+
+The framework is a single executable file, with no external dependency.
+Python 3 standard library only. Native UTF-8.
+Full reference: specifications.md.''')
+
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ('-h', '--help', 'help'):
+        print_help()
+        return
+
+    command = args[0]
+    rest = args[1:]
+
+    # Parse the options
+    opts = {}
+    positional = []
+    i = 0
+    while i < len(rest):
+        if rest[i].startswith('--'):
+            if i + 1 < len(rest) and not rest[i + 1].startswith('--'):
+                opts[rest[i]] = rest[i + 1]
+                i += 2
+            else:
+                opts[rest[i]] = True
+                i += 1
+        else:
+            positional.append(rest[i])
+            i += 1
+
+    target = positional[0] if positional else os.environ.get('LWP_SERIES_DIR', '.')
+
+    if command == 'install':
+        cmd_install(target, opts)
+    elif command == 'demo':
+        cmd_demo(target, opts)
+    elif command == 'build':
+        cmd_build(target, opts)
+    elif command == 'check':
+        cmd_check(target, opts)
+    elif command == 'audit':
+        cmd_audit(target, opts)
+    else:
+        print(f'Unknown command: {command}', file=sys.stderr)
+        print_help()
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

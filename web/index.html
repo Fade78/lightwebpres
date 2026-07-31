@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LightWebPres — build in your browser</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    color: #1a1a2e;
+    line-height: 1.6;
+  }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  .subtitle { color: #6b6b7d; margin-top: 0; margin-bottom: 24px; }
+  .privacy-note {
+    background: #f8f8f5;
+    border-left: 4px solid #FFFC00;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+  fieldset {
+    border: 2px solid #e8e8e0;
+    border-radius: 12px;
+    padding: 20px 24px 24px;
+    margin-bottom: 20px;
+  }
+  legend { font-weight: 700; padding: 0 8px; }
+  label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+  input[type="file"] { margin-bottom: 16px; }
+  select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    margin-bottom: 16px;
+  }
+  button {
+    background: #1a1a2e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { background: #ccc; cursor: default; }
+  #status { margin: 16px 0; font-size: 14px; font-weight: 600; }
+  #status.error { color: #ff4757; }
+  #status.ok { color: #3aa55c; }
+  #log {
+    background: #1a1a2e;
+    color: #f8f8f5;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    max-height: 320px;
+    overflow: auto;
+    white-space: pre-wrap;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>LightWebPres</h1>
+<p class="subtitle">Build a series in your browser — no install, no server.</p>
+
+<div class="privacy-note">
+  Everything runs locally, inside this browser tab. The zip you upload is
+  never sent anywhere — it is decompressed, built, and re-zipped entirely
+  on your machine, using a copy of Python compiled to run in the browser
+  (<a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>).
+  The only network request this page makes is to load itself.
+</div>
+
+<p class="subtitle">Want to skip the zip download/upload and sync straight
+with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a>.</p>
+
+<fieldset>
+  <legend>Build a series</legend>
+
+  <label for="zipInput">Series zip (must contain series.json at its root, or inside a single top-level folder)</label>
+  <input type="file" id="zipInput" accept=".zip">
+
+  <label for="langSelect">Language</label>
+  <select id="langSelect">
+    <option value="fr" selected>fr — Français</option>
+    <option value="en">en — English</option>
+  </select>
+
+  <div>
+    <button id="buildBtn" disabled>Loading Pyodide…</button>
+  </div>
+</fieldset>
+
+<div id="status">Loading Pyodide…</div>
+<pre id="log"></pre>
+
+<script src="./vendor/pyodide/pyodide.js"></script>
+<script>
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+  const buildBtn = document.getElementById('buildBtn');
+  const zipInput = document.getElementById('zipInput');
+  const langSelect = document.getElementById('langSelect');
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = cls || '';
+  }
+
+  function showLog(text) {
+    if (text) {
+      logEl.textContent = text;
+      logEl.style.display = 'block';
+    } else {
+      logEl.style.display = 'none';
+    }
+  }
+
+  async function fetchText(url) {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error('Failed to fetch ' + url + ': ' + res.status);
+    }
+    return await res.text();
+  }
+
+  let pyodideReady = null;
+
+  async function init() {
+    try {
+      const pyodide = await loadPyodide({ indexURL: './vendor/pyodide/' });
+      const lwpSource = await fetchText('../lightwebpres');
+      pyodide.runPython(lwpSource);
+      const appSource = await fetchText('./app.py');
+      pyodide.runPython(appSource);
+      pyodideReady = pyodide;
+      setStatus('Ready.', 'ok');
+      buildBtn.disabled = false;
+      buildBtn.textContent = 'Build';
+    } catch (err) {
+      setStatus('Failed to load Pyodide: ' + err, 'error');
+    }
+  }
+
+  buildBtn.addEventListener('click', async () => {
+    if (!pyodideReady) return;
+    const file = zipInput.files[0];
+    if (!file) {
+      setStatus('Choose a .zip file first.', 'error');
+      return;
+    }
+
+    buildBtn.disabled = true;
+    buildBtn.textContent = 'Building…';
+    setStatus('Building…');
+    showLog('');
+
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const buildFn = pyodideReady.globals.get('build_from_zip_bytes');
+      const resultProxy = buildFn(buf, langSelect.value);
+      const [zipBytes, logText, errorText] = resultProxy.toJs();
+      resultProxy.destroy();
+
+      showLog(logText || '');
+
+      if (errorText) {
+        setStatus('Build failed: ' + errorText, 'error');
+        return;
+      }
+
+      setStatus('Build complete — downloading public.zip', 'ok');
+      const blob = new Blob([zipBytes], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'public.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setStatus('Build failed: ' + err, 'error');
+    } finally {
+      buildBtn.disabled = false;
+      buildBtn.textContent = 'Build';
+    }
+  });
+
+  init();
+</script>
+
+</body>
+</html>
