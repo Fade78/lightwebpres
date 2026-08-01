@@ -1784,9 +1784,45 @@ frappe, en particulier sur un chemin de fichier. Le tout plutôt que de
 laisser Pyodide échouer avec une erreur de navigateur brute et peu
 compréhensible (`ReferenceError: loadPyodide is not defined` si le script
 lui-même est intercepté avant exécution, ou une `TypeError` de fetch selon
-l'endroit exact où le blocage
-intervient — le point de blocage précis varie, la cause est toujours la
-même). Testé par `tests/test_web.py::FileProtocolGuard`.
+l'endroit exact où le blocage intervient — le point de blocage précis
+varie, la cause est toujours la même). Testé par
+`tests/test_web.py::FileProtocolGuard`.
+
+### 23.7 Auto-hébergement sur un vrai serveur web : type MIME de `.mjs`
+
+Un `python3 -m http.server` local (le module `mimetypes` de la stdlib
+Python connaît `.mjs`) sert ces pages sans souci, mais un serveur web
+« générique » (Apache, nginx, la plupart des configurations par défaut)
+peut ne pas savoir associer `.mjs` à un type MIME JavaScript — cette
+extension est plus récente que leurs tables par défaut, spécifique aux
+modules ES. Résultat, `pyodide.asm.mjs` est servi en
+`application/octet-stream` (ou similaire), et le navigateur refuse de le
+charger comme module (`import()` dynamique impose une vérification stricte
+du type MIME, contrairement à un `<script src>` classique) : erreur
+`TypeError: [...] loading dynamically imported module:
+.../pyodide.asm.mjs`, sans lien avec `file://` cette fois — la page peut
+très bien être servie en `https://`.
+
+À vérifier : `curl -sI https://exemple/chemin/vers/pyodide.asm.mjs | grep
+-i content-type` doit renvoyer `text/javascript` ou
+`application/javascript`, jamais `application/octet-stream` ni
+`text/plain`. Si ce n'est pas le cas, ajouter l'association manuellement
+côté serveur — pour nginx (bloc `http` ou `server`) :
+
+```nginx
+types {
+  text/javascript mjs;
+}
+```
+
+Pour Apache (`.htaccess` ou config du site) :
+
+```apache
+AddType text/javascript .mjs
+```
+
+Comme pour le CORS de l'API GitLab (§24.2), c'est un réglage côté serveur,
+hors du périmètre de ce que la page peut corriger elle-même.
 
 ---
 
