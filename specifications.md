@@ -544,7 +544,7 @@ risque ; il n'y a pas de garde-fou automatique côté moteur.
 ### 7.3 Chaînes d'interface (strings)
 
 Le bloc `strings` fournit le vocabulaire fixe utilisé par les templates par
-défaut — infobulles de navigation, bouton « copier le lien », libellés de la
+défaut — infobulles de navigation, bouton de partage, libellés de la
 navigation de série, etc. Chaque valeur est injectée dans les templates via
 un placeholder `{{str_CLÉ}}` (§9, §18).
 
@@ -564,10 +564,17 @@ un placeholder `{{str_CLÉ}}` (§9, §18).
 | `series_untitled_fallback`   | Titre de secours si `series_meta.title` est absent   |
 | `full_article_tag`           | Étiquette de la fiche `full-article`                |
 | `source_label`               | Préfixe avant la valeur de `source`                  |
-| `copy_link`                  | Texte du bouton « copier le lien » d'une fiche       |
-| `copy_link_aria`             | `aria-label` du bouton « copier le lien »            |
-| `copy_link_done`             | Texte affiché après la copie                         |
+| `copy_link`                  | Libellé de la ligne « copier le lien » de la matrice de partage |
+| `copy_link_done`             | Retour visuel transitoire après une copie            |
 | `copy_prompt`                | Texte du repli `prompt()` (navigateurs sans presse-papiers) |
+| `share_button`               | Infobulle du bouton de partage (page article)        |
+| `share_button_aria`          | `aria-label` du bouton de partage                    |
+| `share_action_qr`            | Libellé de la ligne « afficher le QR code » de la matrice de partage |
+| `share_scope_series`         | En-tête de colonne « Série » de la matrice de partage |
+| `share_scope_article`        | En-tête de colonne « Article » de la matrice de partage |
+| `share_scope_fiche`          | En-tête de colonne « Fiche » de la matrice de partage |
+| `qr_modal_title`             | Titre de la fenêtre modale affichant le QR code      |
+| `qr_modal_close`             | Texte du bouton de fermeture de la fenêtre modale QR |
 
 ### 7.4 Override et repli
 
@@ -658,7 +665,7 @@ navigation de série) est **fixe** — ce n'est pas un template éditable. Ce
 qui se personnalise :
 
 - Le **vocabulaire et les libellés** de l'interface (boutons de navigation,
-  « Copier le lien », etc.) : via le fichier de langue, pas via du HTML —
+  matrice de partage, etc.) : via le fichier de langue, pas via du HTML —
   voir §7.
 - **L'apparence** (`style.css`) et le **comportement de navigation**
   (`nav.js`) : deux des trois fichiers du répertoire `templates/` que
@@ -680,9 +687,42 @@ Le JavaScript de navigation gère :
 - Les boutons prev/next/home
 - Les nav-dots (points de navigation)
 - La détection de la slide courante au scroll
-- Le bouton « Copier le lien » de chaque fiche
+- Le bouton de partage et sa matrice (§9.2.1)
 
-Éditable de la même façon que `style.css`, via `templates/nav.js`.
+Éditable de la même façon que `style.css`, via `templates/nav.js` — un
+override remplace `nav.js` **en bloc**, y compris le bouton de partage : il
+n'y a pas de mécanisme pour ne remplacer qu'une partie du comportement de
+navigation.
+
+#### 9.2.1 Bouton de partage
+
+Un bouton unique (icône) dans le cluster `.nav-buttons`, à côté de
+prev/home/next — **page d'article uniquement**, absent de l'index (« Série »
+y suffit à elle seule, et il n'y a ni article ni fiche courants à partager
+depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
+6 boutons : 2 actions (copier le lien / afficher le QR code) × 3 portées
+(série, article, fiche) :
+
+|                        | Série | Article | Fiche |
+|------------------------|-------|---------|-------|
+| **Copier le lien**     | lien vers `index.html` | lien vers la page courante | lien vers la fiche courante (`#sN`) |
+| **Afficher le QR code**| idem  | idem    | idem  |
+
+- « Fiche » désigne la slide actuellement affichée (même détection que les
+  nav-dots, §9.2). Elle n'a de sens que pour une slide standard ou
+  `full-article` munie d'un ancrage propre (`id="sN"`) — pas pour la
+  slide `cover` (qui se confond avec l'article lui-même) ni pour la slide
+  `series-nav` (dont l'ancrage `sN-series` n'identifie pas un point de
+  lecture précis). Sur ces deux cas, la colonne « Fiche » est grisée et
+  désactivée, pas masquée : la matrice garde sa forme, seule l'action est
+  indisponible.
+- « Copier le lien » utilise le presse-papiers (`navigator.clipboard`),
+  avec repli sur `prompt()` si l'API est indisponible.
+- « Afficher le QR code » ouvre une fenêtre modale avec le QR code en SVG
+  vectoriel, généré **entièrement côté client** par un encodeur JS
+  embarqué dans `nav.js` — pas d'appel à un service tiers de génération
+  d'image, cohérent avec la contrainte d'autonomie du §13.4 (aucune
+  dépendance réseau au runtime).
 
 ### 9.3 Extension de la page d'index (`index_extra.html`)
 
@@ -1261,6 +1301,15 @@ les templates. Le remplacement est fait par `str.replace()` en Python.
   <div class="nav-btn" id="navPrev" title="{{str_nav_prev}}">&#8593;</div>
   <div class="nav-btn nav-btn-home" id="navHome" title="{{str_nav_home}}">&#127968;</div>
   <div class="nav-btn" id="navNext" title="{{str_nav_next}}">&#8595;</div>
+  <div class="nav-btn" id="navShare" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}">&#128228;</div>
+</div>
+
+<div class="share-popover" id="sharePopover">
+  <!-- matrice 2×3 : copier le lien / afficher le QR code × série / article / fiche, §9.2.1 -->
+</div>
+
+<div class="share-qr-modal" id="shareQrModal">
+  <!-- QR code SVG généré côté client, §9.2.1 -->
 </div>
 
 {{slides}}
@@ -1281,12 +1330,12 @@ Placeholders :
 | `{{title}}` | Métadonnées `h1` du `.md` (sans balises HTML) | Titre de la page |
 | `{{css}}` | `templates/style.css` | Le CSS inline |
 | `{{slides}}` | Généré par le build | Toutes les `<section class="slide">` |
-| `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, copier le lien) |
+| `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, bouton de partage, encodeur QR) |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Chaîne d'interface (voir §7.3), remplacée dans `page.html` **et** dans `js_nav` une fois celui-ci chargé |
 
-Il n'y a pas de fichier `share.js` séparé : le bouton « copier le lien » fait
-partie de `nav.js`, ses propres textes sont des placeholders `{{str_*}}`
-comme le reste.
+Il n'y a pas de fichier `share.js` séparé : le bouton de partage, sa matrice
+et l'encodeur QR font partie de `nav.js`, leurs propres textes sont des
+placeholders `{{str_*}}` comme le reste.
 
 ### 18.2 Template `index.html`
 
@@ -1328,7 +1377,7 @@ Placeholders supplémentaires :
 | `{{header}}` | Métadonnées de `series.json` | En-tête avec titre, sous-titre, version |
 | `{{intro}}` | Texte d'introduction (dans `series.json` ou un fichier) | Paragraphe d'intro de l'index |
 | `{{cards}}` | Généré depuis `series.json` | Les cartes d'articles |
-| `{{js_index}}` | Généré, intégré à l'exécutable | Le JS spécifique à l'index (scroll, copier le lien) — pas overridable (§9) |
+| `{{js_index}}` | Généré, intégré à l'exécutable | Le JS spécifique à l'index (scroll) — pas overridable (§9). Pas de bouton de partage sur l'index (§9.2.1) |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Infobulles `index_nav_up`/`index_nav_home`/`index_nav_down`, voir §7.3 |
 
 ### 18.3 Template `series-nav.html`
