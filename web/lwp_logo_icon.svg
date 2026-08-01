@@ -1,0 +1,11 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <g transform="rotate(-15 120 195)">
+    <rect x="55" y="35" width="130" height="160" rx="18" fill="#1a1a2e" opacity="0.45"/>
+  </g>
+  <g transform="rotate(-3 120 195)">
+    <rect x="55" y="35" width="130" height="160" rx="18" fill="#1a1a2e" opacity="0.7"/>
+  </g>
+  <g transform="rotate(12 120 195)">
+    <rect x="55" y="35" width="130" height="160" rx="18" fill="#1a1a2e"/>
+  </g>
+</svg>
