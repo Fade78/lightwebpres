@@ -260,6 +260,34 @@
     return await res.text();
   }
 
+  // The lightwebpres executable can live in one of two places relative to
+  // this page, tried in order:
+  //   1. ./lightwebpres  — copied alongside web/'s contents (the layout
+  //      that lets a site serve web/ itself as its own URL root, with no
+  //      extra path segment for an unrelated parent directory).
+  //   2. ../lightwebpres — the repo's own layout, one level above web/,
+  //      for a deployment that's just a duplicate of the repository as-is.
+  // Not duplicated by default (§23.1: lightwebpres stays the single
+  // source of truth) — this only reads whichever copy the deployer put
+  // in one of these two conventional spots, it doesn't create one.
+  async function fetchLightwebpresSource() {
+    const candidates = ['./lightwebpres', '../lightwebpres'];
+    const errors = [];
+    for (const url of candidates) {
+      try {
+        return await fetchText(url);
+      } catch (err) {
+        errors.push(url + ': ' + err);
+      }
+    }
+    throw new Error(
+      'Could not load the "lightwebpres" executable from either of its two '
+      + 'conventional locations relative to this page: ' + candidates.join(' or ')
+      + '. Put a copy of the executable in one of those two spots. '
+      + errors.join(' | '),
+    );
+  }
+
   // This page cannot work opened as a bare file:// page: browsers block
   // Pyodide's own fetch()/import() under that origin, AND the page needs
   // its sibling files (web/vendor/, web/git_sync.py, and the lightwebpres
@@ -296,8 +324,8 @@
       'This page was opened as a local file, which cannot work: browsers block '
       + "Pyodide's own asset loading under the file:// origin, and this page also "
       + 'needs its sibling files (web/vendor/, web/' + needsFile + ', and the '
-      + 'lightwebpres executable one level up) — not just this HTML file by itself. '
-      + 'Run this from a terminal:';
+      + 'lightwebpres executable, either alongside this page or one level up) — '
+      + 'not just this HTML file by itself. Run this from a terminal:';
     statusEl.appendChild(intro);
 
     const row = document.createElement('div');
@@ -337,19 +365,7 @@
     }
     try {
       const pyodide = await loadPyodide({ indexURL: './vendor/pyodide/' });
-      let lwpSource;
-      try {
-        lwpSource = await fetchText('../lightwebpres');
-      } catch (fetchErr) {
-        throw new Error(
-          'Could not load the "lightwebpres" executable from ../lightwebpres '
-          + "(one directory above this page's own folder). This page must be "
-          + 'deployed as part of the full repository with its directory '
-          + 'structure intact — not just the contents of web/ copied on their '
-          + 'own — so that a sibling "lightwebpres" file sits next to the web/ '
-          + 'folder this page lives in. Original error: ' + fetchErr,
-        );
-      }
+      const lwpSource = await fetchLightwebpresSource();
       pyodide.runPython(lwpSource);
       const gitSyncSource = await fetchText('./git_sync.py');
       pyodide.runPython(gitSyncSource);

@@ -24,7 +24,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WEB_E2E_SCRIPT = Path(__file__).resolve().parent / 'web_e2e.cjs'
 FILE_PROTOCOL_GUARD_SCRIPT = Path(__file__).resolve().parent / 'file_protocol_guard_e2e.cjs'
-MISSING_LWP_SCRIPT = Path(__file__).resolve().parent / 'missing_lwp_e2e.cjs'
+LWP_LOOKUP_SCRIPT = Path(__file__).resolve().parent / 'lightwebpres_lookup_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -166,18 +166,22 @@ class FileProtocolGuard(unittest.TestCase):
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class MissingSiblingExecutableGuard(unittest.TestCase):
-    """§23.4: both pages fetch ../lightwebpres — the executable one level
-    above web/. If only web/'s contents get deployed (a real mistake: the
-    repo's directory structure lost, e.g. copying web/'s files into a
-    flat target folder) that fetch 404s. The page must explain the real
-    cause (wrong deployment layout) instead of showing a bare
+    """§23.4/§23.8: both pages look for the lightwebpres executable in two
+    conventional spots relative to themselves, in order: ./lightwebpres
+    (alongside web/'s own contents, so a site can serve web/ itself as its
+    URL root with no extra path segment) and ../lightwebpres (the repo's
+    own layout, for a deployment that's just a duplicate of the repo
+    as-is). If neither exists — a real mistake, e.g. copying web/'s files
+    into a flat target folder without the executable at all — both fetches
+    404. The page must explain the real cause instead of showing a bare
     "Failed to fetch ../lightwebpres: 404"."""
 
     @classmethod
     def setUpClass(cls):
-        # Serve ONLY web/ as the HTTP root, so ../lightwebpres genuinely
-        # isn't reachable within the served tree — reproducing exactly
-        # what happens when just web/'s contents are deployed.
+        # Serve ONLY web/ as the HTTP root, so neither ./lightwebpres nor
+        # ../lightwebpres is reachable within the served tree —
+        # reproducing exactly what happens when web/'s contents are
+        # deployed without the executable anywhere nearby.
         web_dir = str(REPO_ROOT / 'web')
         cls.httpd = HTTPServer(('127.0.0.1', 0), lambda *a: _QuietHandler(*a, directory=web_dir))
         cls.port = cls.httpd.server_address[1]
@@ -192,8 +196,8 @@ class MissingSiblingExecutableGuard(unittest.TestCase):
     def _check(self, html_filename):
         url = 'http://127.0.0.1:%d/%s' % (self.port, html_filename)
         result = subprocess.run(
-            ['node', str(MISSING_LWP_SCRIPT), url,
-             'deployed as part of the full repository'],
+            ['node', str(LWP_LOOKUP_SCRIPT), url,
+             'either of its two conventional locations'],
             capture_output=True, text=True,
             env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=30,
@@ -204,6 +208,54 @@ class MissingSiblingExecutableGuard(unittest.TestCase):
         self._check('index.html')
 
     def test_git_sync_html_explains_missing_lightwebpres(self):
+        self._check('git-sync.html')
+
+
+class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
+    """§23.8: when lightwebpres is copied alongside web/'s own contents
+    (the "flat" layout, so a site can serve web/ itself as its own URL
+    root — no unrelated parent directory needed just to hold the
+    executable) — with NO copy one level up either — the page must still
+    reach Ready., proving ./lightwebpres is genuinely tried and used, not
+    just documented."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmpdir = tempfile.TemporaryDirectory()
+        flat_dir = Path(cls.tmpdir.name)
+        for item in (REPO_ROOT / 'web').iterdir():
+            dest = flat_dir / item.name
+            if item.is_dir():
+                shutil.copytree(item, dest)
+            else:
+                shutil.copy2(item, dest)
+        shutil.copy2(REPO_ROOT / 'lightwebpres', flat_dir / 'lightwebpres')
+
+        cls.httpd = HTTPServer(('127.0.0.1', 0), lambda *a: _QuietHandler(*a, directory=str(flat_dir)))
+        cls.port = cls.httpd.server_address[1]
+        cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.thread.join(timeout=5)
+        cls.tmpdir.cleanup()
+
+    def _check(self, html_filename):
+        url = 'http://127.0.0.1:%d/%s' % (self.port, html_filename)
+        result = subprocess.run(
+            ['node', str(LWP_LOOKUP_SCRIPT), url, 'Ready.'],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_index_html_reaches_ready(self):
+        self._check('index.html')
+
+    def test_git_sync_html_reaches_ready(self):
         self._check('git-sync.html')
 
 

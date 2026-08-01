@@ -19,9 +19,17 @@ async function main() {
 
   const consoleErrors = [];
   page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text());
+    if (msg.type() === 'error') consoleErrors.push({ text: msg.text(), url: msg.location().url });
   });
-  page.on('pageerror', (err) => consoleErrors.push(String(err)));
+  page.on('pageerror', (err) => consoleErrors.push({ text: String(err), url: '' }));
+
+  // fetchLightwebpresSource() tries ./lightwebpres before ../lightwebpres
+  // (§23.8): a 404 on ./lightwebpres is expected, not a bug, whenever the
+  // repo's own layout (lightwebpres one level above web/) is what's
+  // actually being served — exactly this test's setup. The browser still
+  // logs it to the console regardless of the page's own try/catch, so
+  // filter that one specific, expected entry out before judging the run.
+  const isExpectedLightwebpresProbe404 = (e) => e.url.endsWith('/lightwebpres') && /404/.test(e.text);
 
   try {
     await page.goto(baseUrl + '/web/index.html');
@@ -45,8 +53,9 @@ async function main() {
       throw new Error('Unexpected status after build: ' + status);
     }
 
-    if (consoleErrors.length) {
-      console.error('Browser console errors:\n' + consoleErrors.join('\n'));
+    const unexpectedErrors = consoleErrors.filter((e) => !isExpectedLightwebpresProbe404(e));
+    if (unexpectedErrors.length) {
+      console.error('Browser console errors:\n' + unexpectedErrors.map((e) => e.text).join('\n'));
       process.exit(1);
     }
 
@@ -54,8 +63,9 @@ async function main() {
     process.exit(0);
   } catch (err) {
     console.error('E2E failure: ' + err);
-    if (consoleErrors.length) {
-      console.error('Browser console errors:\n' + consoleErrors.join('\n'));
+    const unexpectedErrors = consoleErrors.filter((e) => !isExpectedLightwebpresProbe404(e));
+    if (unexpectedErrors.length) {
+      console.error('Browser console errors:\n' + unexpectedErrors.map((e) => e.text).join('\n'));
     }
     try {
       console.error('Final status: ' + (await page.textContent('#status')));

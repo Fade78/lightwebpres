@@ -133,16 +133,26 @@ a malformed structural override.
 Both load the exact same `lightwebpres` executable, unmodified, running
 inside [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly) —
 one build engine, three front-ends. Both need to be **served over
-http(s)** from the repo root, not opened directly as a `file://` page —
-browsers block Pyodide's asset loading under that origin, and the pages
-also fetch `../lightwebpres` and their own `vendor/`/`app.py`/`git_sync.py`,
-so serving `web/` alone isn't enough either:
-`python3 -m http.server 8000 --directory /path/to/lightwebpres` (the
-folder containing both `lightwebpres` and `web/`), then open
-`http://localhost:8000/web/index.html` (see specifications.md §23.6 — if
-you open a page as `file://` anyway, it computes this exact command from
-where you actually put the files and shows it with a one-click Copy
-button, instead of a raw browser error).
+http(s)**, not opened directly as a `file://` page — browsers block
+Pyodide's asset loading under that origin (see specifications.md §23.6 —
+if you open a page as `file://` anyway, it shows the exact fix command,
+with a one-click Copy button, computed from where you actually put the
+files).
+
+They also need their own `vendor/`/`app.py`/`git_sync.py`, plus a copy of
+`lightwebpres` itself — never duplicated by default, since it stays the
+single source of truth — found in one of two conventional spots relative
+to the page, tried in that order: **`./lightwebpres`** (dropped alongside
+`web/`'s own contents — the layout for a real site that serves `web/` as
+its own URL root, no extra path segment needed) or **`../lightwebpres`**
+(the repo's own layout, one level up, for a deployment that's just a
+straight copy of the repo). Local testing from the repo, both covered by
+one command: `python3 -m http.server 8000 --directory /path/to/lightwebpres`
+(the folder containing both `lightwebpres` and `web/`), then open
+`http://localhost:8000/web/index.html`. Self-hosting on a real web server
+(Apache/nginx) can also hit a `.mjs` MIME type issue — see
+specifications.md §23.7 for the fix (`web/.htaccess` handles it
+automatically on Apache where allowed).
 
 - **`web/index.html`** — upload a zip of your series, get back a zip of
   `public/`. Nothing ever leaves the browser tab; Pyodide runs vendored

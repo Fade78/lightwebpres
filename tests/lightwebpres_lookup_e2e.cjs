@@ -1,10 +1,12 @@
-// Playwright driver for the "sibling lightwebpres executable missing"
-// diagnostic in web/index.html and web/git-sync.html. Invoked by
-// test_web.py — not a standalone entry point. Points at a page served
-// with ONLY web/ as the HTTP root (no ../lightwebpres reachable), which
-// reproduces the real-world mistake of deploying just web/'s contents
-// without the rest of the repository, and checks the page explains it
-// clearly instead of showing a bare "Failed to fetch ../lightwebpres: 404".
+// Playwright driver for the lightwebpres-executable lookup in
+// web/index.html and web/git-sync.html (fetchLightwebpresSource: tries
+// ./lightwebpres, then ../lightwebpres). Invoked by test_web.py — not a
+// standalone entry point. Used for two scenarios:
+//   - neither location has the executable: the page must explain the
+//     real cause instead of a bare "Failed to fetch ../lightwebpres: 404"
+//     (MissingSiblingExecutableGuard)
+//   - only ./lightwebpres has it (the "flat" deployment layout): the
+//     page must still reach Ready. (FlatDeploymentFindsCurrentDirExecutable)
 //
 // argv: <pageUrl> <expectedStatusSubstring>
 
@@ -13,7 +15,7 @@ const { chromium } = require('playwright');
 async function main() {
   const [pageUrl, expectedSubstring] = process.argv.slice(2);
   if (!pageUrl || !expectedSubstring) {
-    console.error('usage: missing_lwp_e2e.cjs <pageUrl> <expectedStatusSubstring>');
+    console.error('usage: lightwebpres_lookup_e2e.cjs <pageUrl> <expectedStatusSubstring>');
     process.exit(2);
   }
 
@@ -24,14 +26,10 @@ async function main() {
   try {
     await page.goto(pageUrl);
     await page.waitForFunction(
-      () => document.getElementById('status').textContent.includes('Failed'),
-      { timeout: 15000 },
+      (expected) => document.getElementById('status').textContent.includes(expected),
+      expectedSubstring,
+      { timeout: 20000 },
     );
-
-    const status = await page.textContent('#status');
-    if (!status.includes(expectedSubstring)) {
-      throw new Error('Status did not contain expected explanation.\nGot: ' + status);
-    }
 
     console.log('OK');
     process.exit(0);
