@@ -2044,8 +2044,15 @@ class TypoEngine:
                 sys.exit(1)
             self.rules.append((name, compiled, replacement))
 
+    # Elements whose text content must never receive a typography
+    # substitution (spec §6.3/§19.3): a code sample or a cited command is
+    # shown exactly as written, so a rule silently inserting a
+    # non-breaking space into it would corrupt the example.
+    _NO_TYPO_TAGS = frozenset({'code', 'pre'})
+
     def apply(self, text, disabled=None):
-        """Applies the typography rules to `text`, skipping HTML tags.
+        """Applies the typography rules to `text`, skipping HTML tags and
+        the text content of <code>/<pre> elements.
 
         `disabled`, if given, is an iterable of rule names (the `name`
         field of a language-pack rule, spec §19.2) to skip for this call —
@@ -2066,8 +2073,17 @@ class TypoEngine:
         them, silently skipping typography on real text in between."""
         disabled = disabled or ()
         segments = re.split(r'(</?[a-zA-Z][^<>]*>)', text)
+        skip_depth = 0
         for i, segment in enumerate(segments):
             if segment.startswith('<') and segment.endswith('>'):
+                m = re.match(r'</?([a-zA-Z][a-zA-Z0-9]*)', segment)
+                if m and m.group(1).lower() in self._NO_TYPO_TAGS:
+                    if segment.startswith('</'):
+                        skip_depth = max(0, skip_depth - 1)
+                    else:
+                        skip_depth += 1
+                continue
+            if skip_depth > 0:
                 continue
             for name, pattern, replacement in self.rules:
                 if name in disabled:
@@ -2146,6 +2162,26 @@ def apply_strings(text, strings):
 
 def md_inline(text):
     """Converts inline Markdown formatting to HTML."""
+    # Inline code spans (§6.3) come first, before any other substitution
+    # below, for two reasons: their content must never be reinterpreted
+    # as further Markdown (`` `**not bold**` `` stays literal), and —
+    # unlike the rest of this function, which never touches < or > so
+    # hand-written raw HTML can pass through (§6.2) — code content IS
+    # HTML-escaped, since it's meant to be shown exactly as written even
+    # if it looks like a tag. Matched spans are pulled out into \x00N\x00
+    # placeholders and restored at the very end, once nothing else in
+    # this function can touch them. `\`` (escaped backtick) never opens
+    # or closes a span; a stray one left over after matching is just a
+    # literal backtick, restored in the final cleanup pass.
+    code_spans = []
+
+    def _code_span(m):
+        content = html_escape(m.group(1), quote=False)
+        code_spans.append(f'<code>{content}</code>')
+        return f'\x00{len(code_spans) - 1}\x00'
+
+    text = re.sub(r'(?<!\\)`([^`]+?)(?<!\\)`', _code_span, text)
+
     # Escape ampersands before inserting our own tags
     text = text.replace('&', '&amp;')
     # Bold before italic
@@ -2155,6 +2191,17 @@ def md_inline(text):
     text = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', r'<a href="\2" target="_blank" rel="noopener">\1</a>', text)
     # Inline footnotes
     text = re.sub(r'\[\^([\w]+)\]', r'<sup>[^\1]</sup>', text)
+    # A backslash-escaped backtick that never became part of a span
+    # (either unpaired, or both delimiters were escaped) is just a
+    # literal backtick. Likewise \> (only meaningful at the very start of
+    # a line, where it stops the block-level loop above from opening a
+    # blockquote — see §6.3) renders as a plain >, wherever it appears.
+    text = text.replace('\\`', '`')
+    text = text.replace('\\>', '>')
+
+    for idx, html in enumerate(code_spans):
+        text = text.replace(f'\x00{idx}\x00', html)
+
     return text
 
 
@@ -2182,6 +2229,14 @@ _VOID_HTML_TAGS = frozenset({
 })
 
 _HTML_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(/?)>')
+
+# A fenced code block delimiter (§6.3): three backticks alone, optionally
+# followed immediately (no space) by a language hint on the opening line.
+# Whether a given ``` line opens or closes a block is decided by parser
+# state (in_code_block), not by this regex — a closing line is always
+# just "```" with nothing after it, which this pattern also matches
+# (empty language group).
+_CODE_FENCE_RE = re.compile(r'^```(\S*)$')
 
 
 def _html_tag_depth_delta(line):
@@ -2247,6 +2302,10 @@ def _is_paragraph_continuation(line, lines, idx, n):
         return False
     if line.strip().startswith('|') and idx + 1 < n and is_table_separator(lines[idx + 1]):
         return False
+    if line.startswith('>'):
+        return False
+    if _CODE_FENCE_RE.match(line):
+        return False
     return True
 
 
@@ -2256,6 +2315,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
     out = []
     in_list = None
     raw_html_depth = 0
+    in_code_block = False
     i = 0
     n = len(lines)
 
@@ -2278,6 +2338,22 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
             i += 1
             continue
 
+        # Already inside a fenced code block (§6.3): every line is
+        # reproduced verbatim (HTML-escaped, never interpreted as
+        # Markdown — not even a blank line or "---") until the closing
+        # ``` is found. An opening emitted here with no matching close by
+        # end of file is caught as an unclosed <pre>/<code> tag by the
+        # generic HTML balance check before the page is written (§13) —
+        # no special end-of-file handling needed here.
+        if in_code_block:
+            if line == '```':
+                out.append('  </code></pre>')
+                in_code_block = False
+            else:
+                out.append(html_escape(raw, quote=False))
+            i += 1
+            continue
+
         if line.strip() == '' or line.strip() == '---':
             i += 1
             continue
@@ -2295,6 +2371,33 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
             close_list()
             out.append(f'  <h3>{md_inline(strip_ws(line[4:]))}</h3>')
             i += 1
+            continue
+
+        # Fenced code block, opening (§6.3). An optional language hint
+        # right after the backticks, no space, becomes an informational
+        # class="language-xxx" — no syntax highlighting is applied.
+        m_fence = _CODE_FENCE_RE.match(line)
+        if m_fence:
+            close_list()
+            lang = m_fence.group(1)
+            lang_class = f' class="language-{html_escape(lang, quote=True)}"' if lang else ''
+            out.append(f'  <pre><code{lang_class}>')
+            in_code_block = True
+            i += 1
+            continue
+
+        # Blockquote (§6.3): consecutive >-prefixed lines merge into one
+        # paragraph, the same way ordinary paragraph lines do (§6.1) — a
+        # single quote of a single paragraph, not multi-paragraph or
+        # nested (§15).
+        if line.startswith('>'):
+            close_list()
+            quote_lines = [strip_ws(line[1:])]
+            i += 1
+            while i < n and rstrip_ws(lines[i]).startswith('>'):
+                quote_lines.append(strip_ws(rstrip_ws(lines[i])[1:]))
+                i += 1
+            out.append(f'  <blockquote><p>{md_inline(" ".join(quote_lines))}</p></blockquote>')
             continue
 
         # Table

@@ -496,7 +496,77 @@ lignes suivantes comprise) : une phrase qui commence par un mot en gras
 (`<strong>Mot</strong> commence la phrase.`) n'est pas traitée
 différemment d'une phrase qui commence par du texte normal.
 
-### 6.3 Espacement et indentation
+### 6.3 Citations et code
+
+| Markdown                 | HTML                                                |
+|---------------------------|------------------------------------------------------|
+| `> texte`                 | `<blockquote><p>texte</p></blockquote>`               |
+| `` `code` ``               | `<code>code</code>`                                   |
+| ` ``` ` ... ` ``` `          | `<pre><code>...</code></pre>`                         |
+| ` ```lang ` ... ` ``` `      | `<pre><code class="language-lang">...</code></pre>`   |
+
+**Citation (`>`).** Une ligne commençant par `>` en tout début de ligne
+(sans indentation tolérée, comme le reste de ce convertisseur) ouvre une
+citation ; les lignes `>` consécutives suivantes fusionnent dans le même
+paragraphe, exactement comme la fusion de paragraphes ordinaire (§6.1).
+Une ligne qui n'est pas préfixée par `>` (y compris une ligne vide) ferme
+la citation. Une seule citation d'un seul paragraphe à la fois : les
+citations multi-paragraphes ou imbriquées ne sont volontairement pas
+supportées (§15) — un besoin réel les justifierait, mais rien ne l'a
+motivé jusqu'ici.
+
+**Code inline (`` ` ``).** Une paire de backticks délimite un span de
+code sur la même ligne. Contrairement au reste du convertisseur — qui ne
+touche jamais `<`/`>`, précisément pour laisser passer le HTML brut
+(§6.2) —, le contenu entre deux backticks EST échappé (`<`, `>`, `&`) :
+c'est le seul endroit du moteur où du texte devient toujours visible tel
+quel, jamais interprété comme du HTML, y compris si l'auteur y écrit
+littéralement une balise. Le contenu d'un span de code n'est jamais
+retraité par les autres règles inline (gras, italique, lien) : `` `**pas
+en gras**` `` reste littéral.
+
+**Bloc de code (` ``` `).** Une ligne composée uniquement de trois
+backticks ouvre un bloc de code ; une ligne identique le referme. Un nom
+de langage optionnel peut suivre directement les trois backticks
+d'ouverture, sans espace (` ```python `), et devient
+`class="language-python"` sur la balise `<code>` — purement informatif,
+aucune coloration syntaxique n'est appliquée par le moteur. Entre les
+deux délimiteurs, chaque ligne est reproduite verbatim (échappée, jamais
+interprétée comme Markdown) — y compris une ligne vide ou une ligne de
+tirets qui, ailleurs, aurait un sens structurel. Un bloc ouvert sans être
+refermé avant la fin du fichier produit une balise non refermée dans le
+HTML généré, détectée comme n'importe quelle autre erreur de structure
+par la vérification de balisage qui précède l'écriture de chaque page
+(§13) — le build échoue au lieu de publier une page tronquée.
+
+**Protection contre la typographie automatique.** Le contenu d'un span
+ou d'un bloc de code ne doit jamais voir son espacement altéré par les
+règles de typographie automatique (§7) — une espace insécable insérée
+silencieusement dans une commande ou une URL citée en exemple casserait
+l'exemple. Le moteur de typographie (`TypoEngine`, §19.3), qui protège
+déjà la syntaxe des balises HTML elle-même en scindant le texte sur les
+balises, étend cette protection au *contenu* de `<code>`/`<pre>` : les
+segments de texte compris entre une balise ouvrante et sa fermante parmi
+ces deux noms ne reçoivent aucune règle, quelle que soit leur imbrication.
+Une citation (`<blockquote>`), à l'inverse, reste du texte ordinaire et
+continue de recevoir la typographie automatique normalement — c'est une
+vraie citation en prose, pas un extrait technique à préserver au
+caractère près.
+
+**Échappement.** Un `\` immédiatement avant un `>` en tout début de
+ligne, ou avant une ligne de trois backticks isolée, rend ce délimiteur
+littéral (le backslash est retiré, le caractère qui suit s'affiche tel
+quel) plutôt que d'ouvrir une citation ou un bloc de code — c'est le
+seul mécanisme d'échappement que ce convertisseur reconnaît, ciblé
+précisément sur ces deux nouveaux délimiteurs, pas un échappement
+générique façon CommonMark pour toute la ponctuation. Un backtick isolé
+ailleurs dans le texte, précédé d'un `\`, s'affiche de la même façon
+sans ouvrir de span de code. Un `>` ou un backtick qui n'est de toute
+façon pas en position de déclencher l'une de ces deux constructions (un
+`>` au milieu d'une phrase, par exemple) n'a jamais eu besoin d'être
+échappé et continue de s'afficher tel quel sans backslash.
+
+### 6.4 Espacement et indentation
 
 Le convertisseur est insensible à l'indentation (tabs et espaces supprimés en
 début de ligne). Une ligne vide sépare deux paragraphes ; des lignes de texte
@@ -1445,13 +1515,20 @@ git add . && git commit && git push
 ## 15. Limites (volontairement non couvertes)
 
 - **Live reload** : pas de serveur de développement (le build est un script)
-- **Theming multiple** : un seul thème (le CSS par défaut, éditable)
 - **Présentation orale** : pas de mode présentateur, pas de fullscreen
 - **Multi-langue dans une même page** : une langue par build
 - **Images inline** : les images restent en chemin relatif
 - **Recherche full-text** : pas de moteur de recherche
 - **Commentaires** : pas de système de commentaires
 - **Analytics** : pas de tracking
+- **Citations imbriquées ou multi-paragraphes** (§6.3) : une seule
+  citation, un seul paragraphe à la fois
+- **Coloration syntaxique des blocs de code** (§6.3) : le nom de langage
+  après ` ``` ` ne fait que poser une classe `language-xxx`, purement
+  informative
+- **Échappement générique façon CommonMark** (§6.3) : le `\` ne rend
+  littéral que `>` en début de ligne et les backticks, pas toute la
+  ponctuation ASCII
 
 ---
 
@@ -1810,6 +1887,11 @@ contenu réel embarqué dans l'exécutable.
   reste) avant d'appliquer les regex, et ne les applique que sur les
   segments de texte — structurellement, pas par accident de rédaction des
   règles actuelles.
+- Les règles ne s'appliquent pas non plus au **contenu** de `<code>`/
+  `<pre>` (§6.3) : le moteur suit la profondeur d'imbrication de ces deux
+  balises et saute tout segment de texte compris à l'intérieur, pour
+  qu'un exemple de code ou une commande citée ne voie jamais son
+  espacement modifié silencieusement.
 - L'application est **idempotente** : appliquer les règles deux fois ne change
   rien (les insécables déjà présentes ne sont pas doublées).
 - Les chaînes d'interface (`strings`), elles, ne passent pas par ce moteur de

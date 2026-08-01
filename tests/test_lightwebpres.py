@@ -467,6 +467,100 @@ class MarkdownConversion(unittest.TestCase):
         )
         self.assertNotIn('<p>', html)
 
+    def test_blockquote_single_line(self):
+        html = self._build_article_html('> A single-line quote.\n')
+        self.assertIn('<blockquote><p>A single-line quote.</p></blockquote>', html)
+
+    def test_blockquote_merges_consecutive_lines(self):
+        html = self._build_article_html('> First line of the quote.\n> Second line, same quote.\n')
+        self.assertIn(
+            '<blockquote><p>First line of the quote. Second line, same quote.</p></blockquote>',
+            html,
+        )
+
+    def test_blockquote_ends_at_blank_line(self):
+        html = self._build_article_html('> The quote.\n\nOrdinary paragraph after.\n')
+        self.assertIn('<blockquote><p>The quote.</p></blockquote>', html)
+        self.assertIn('<p>Ordinary paragraph after.</p>', html)
+
+    def test_blockquote_supports_inline_formatting(self):
+        html = self._build_article_html('> A quote with **bold** and a [link](https://example.org).\n')
+        self.assertIn('<strong>bold</strong>', html)
+        self.assertIn('<a href="https://example.org"', html)
+        self.assertIn('<blockquote>', html)
+
+    def test_inline_code_span(self):
+        html = self._build_article_html('Run `make build` to compile.\n')
+        self.assertIn('<code>make build</code>', html)
+
+    def test_inline_code_escapes_angle_brackets_and_ampersand(self):
+        html = self._build_article_html('Example: `<div class="a & b">`.\n')
+        self.assertIn('<code>&lt;div class="a &amp; b"&gt;</code>', html)
+
+    def test_inline_code_content_not_reprocessed_as_markdown(self):
+        html = self._build_article_html('Literally `**not bold**` here.\n')
+        self.assertIn('<code>**not bold**</code>', html)
+        self.assertNotIn('<strong>not bold</strong>', html)
+
+    def test_fenced_code_block_basic(self):
+        html = self._build_article_html('```\nplain code\n```\n')
+        self.assertIn('<pre><code>\nplain code\n  </code></pre>', html)
+
+    def test_fenced_code_block_with_language_class(self):
+        html = self._build_article_html('```python\nprint("hi")\n```\n')
+        self.assertIn('<pre><code class="language-python">', html)
+        self.assertIn('print("hi")', html)
+
+    def test_fenced_code_block_escapes_html(self):
+        html = self._build_article_html('```\n<script>alert(1)</script>\n```\n')
+        self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', html)
+        self.assertNotIn('<script>alert(1)</script>', html)
+
+    def test_fenced_code_block_preserves_blank_lines_and_dashes(self):
+        html = self._build_article_html('```\nline one\n\n---\nline two\n```\n')
+        self.assertIn('line one\n\n---\nline two', html)
+
+    def test_unterminated_fenced_code_block_is_a_fatal_error(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'art.md').write_text('```\nnever closed\n', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('not well-formed', result.stderr)
+
+    def test_escaped_gt_at_line_start_is_literal_not_a_blockquote(self):
+        html = self._build_article_html('\\> Not a quote, just text starting with a >.\n')
+        self.assertNotIn('<blockquote>', html)
+        self.assertIn('<p>> Not a quote, just text starting with a >.</p>', html)
+
+    def test_escaped_backtick_is_literal_not_a_code_span(self):
+        html = self._build_article_html('A literal \\` backtick, no code span.\n')
+        self.assertNotIn('<code>', html)
+        self.assertIn('A literal ` backtick, no code span.', html)
+
+    def test_escaped_fence_is_literal_not_a_code_block(self):
+        html = self._build_article_html('\\```\nJust text, not a code block.\n')
+        self.assertNotIn('<pre>', html)
+        self.assertIn('```', html)
+
+    def test_code_content_is_protected_from_typography(self):
+        # §6.3/§19.3: a non-breaking space silently inserted before a
+        # literal % inside a code sample would corrupt the example.
+        html = self._build_article_html('Inline `50 %` and:\n\n```\ncurl "x?limit=50 %"\n```\n')
+        self.assertIn('<code>50 %</code>', html)
+        self.assertIn('curl "x?limit=50 %"', html)
+        self.assertNotIn('50\u00a0%', html)
+
+    def test_blockquote_still_receives_typography(self):
+        # Unlike code, a blockquote is ordinary prose and keeps the
+        # normal non-breaking-space treatment (§6.3).
+        html = self._build_article_html('> Le taux atteint 80 % des cas.\n')
+        self.assertIn('80\u00a0%', html)
+
 
 class MultiArticleSeries(unittest.TestCase):
     """§3.1/§20: with more than one article, series-nav and the index page
@@ -2315,6 +2409,26 @@ class FactLabelOptional(unittest.TestCase):
             self.assertNotIn('class="fact-box"', html)
             self.assertIn('<p>First paragraph.</p>', html)
             self.assertIn('<p>Second paragraph.</p>', html)
+
+
+class FactBoxBlockquoteAndCode(unittest.TestCase):
+    """§6.3: fact-box free text shares convert_markdown() with the
+    full-article body, so blockquotes and code must work there too, not
+    just in a full-article file."""
+
+    def test_fact_box_supports_blockquote_and_inline_code(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: Source\n'
+            '> A quoted sentence.\n\nRun `lightwebpres build`.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<blockquote><p>A quoted sentence.</p></blockquote>', html)
+            self.assertIn('<code>lightwebpres build</code>', html)
 
 
 class CheckNewMarker(unittest.TestCase):
