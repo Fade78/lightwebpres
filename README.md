@@ -102,6 +102,7 @@ all generated automatically.
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking editorial warnings (e.g. "no cover slide") — never fails the build |
 | `refresh-templates [dir]` | Updates the built-in CSS/JS in `templates/` after an executable upgrade, keeping local customizations |
+| `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
 ## Slide types
@@ -146,13 +147,29 @@ if present, replacing the built-in defaults — the page/index HTML
 structure itself is fixed, not a template, so a build can't be broken by
 a malformed structural override.
 
-There is currently one built-in color theme. [`themes-gallery.html`](themes-gallery.html)
-(open it directly in a browser) is a candidate list — nine named palettes
-(Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo Night, Monokai,
-Everforest, Rosé Pine) mapped onto the six CSS custom properties the
-default theme uses, previewed against real slide content. None of them
-are wired into `install`/`refresh-templates` yet — it's a reference for
-picking one, not a feature.
+Nine named color themes ship pre-configured — Nord, Dracula, Solarized,
+Gruvbox, Catppuccin, Tokyo Night, Monokai, Everforest, Rosé Pine — pick
+one at scaffold time:
+
+```bash
+./lightwebpres install my-series --theme nord
+```
+
+`--theme` substitutes the six CSS custom properties (`--yellow --dark
+--grey --light --accent --green`) the default stylesheet exposes; nothing
+else in the CSS changes, and the substitution survives an executable
+upgrade — `refresh-templates` reapplies the same theme to the refreshed
+built-in CSS instead of silently reverting to the default.
+
+![Preview of the nine built-in color themes](themes-gallery.png)
+
+That's [`themes-gallery.html`](themes-gallery.html) in this repo,
+rendered — open it directly in a browser for the live, interactive
+version (each card previews the theme against real slide content: tag,
+title, summary, a highlighted figure, a fact-box, a table). It's
+generated straight from the tool's own `THEMES` data with
+`./lightwebpres themes-gallery`, so it can never drift from what
+`install --theme` actually applies.
 
 ## Two browser-based tools
 
@@ -214,7 +231,8 @@ for both browser tools.
 ```
 lightwebpres          # the executable — the only thing you need to run this
 specifications.md     # full reference specification (French)
-themes-gallery.html   # candidate color themes for templates/style.css (reference only)
+themes-gallery.html   # preview of the nine built-in color themes (generated, see below)
+themes-gallery.png    # a rendered snapshot of the above, for this README
 web/                  # the two browser-based build tools
 tests/                # regression suite
 ```
