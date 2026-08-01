@@ -1,5 +1,5 @@
 """GitLab sync glue for LightWebPres (browser), loaded into Pyodide after
-lightwebpres itself (see git-sync.html), which defines cmd_build() as a
+lightwebpres itself (see index.html), which defines cmd_build() as a
 global in this same Python namespace.
 
 Talks to a GitLab instance's REST API v4 directly from the browser via
@@ -9,7 +9,7 @@ proxied through a third party: every request goes straight from this tab
 to the GitLab instance the user configured. If that instance does not send
 Access-Control-Allow-Origin on its API responses, every call here fails —
 that is a server-side setting to fix, not something this page can work
-around (see git-sync.html's setup note).
+around (see index.html's GitLab tab setup note).
 
 Three independent steps, each callable on its own from the page:
   - pull(): downloads the repository archive for a branch and extracts it
@@ -20,7 +20,7 @@ Three independent steps, each callable on its own from the page:
     create/update actions for changed or new files in one commit (chunked
     if large). Never deletes: a file that disappeared locally but still
     exists remotely is left untouched — deletions go through GitLab
-    directly, not through this page (specifications.md §24.4).
+    directly, not through this page (specifications.md §23.12).
 """
 
 import base64
@@ -34,7 +34,7 @@ from urllib.parse import quote, urlencode
 
 from pyodide.http import pyfetch
 
-WORK_DIR = Path('/lwp_git_work')
+GIT_WORK_DIR = Path('/lwp_git_work')
 
 PUSH_CHUNK_SIZE = 100
 
@@ -73,7 +73,7 @@ async def _request(base_url, token, method, path, params=None, body=None, want_j
     return await resp.bytes()
 
 
-def _find_series_dir(root):
+def _find_series_dir_in_archive(root):
     """Same acceptance rule as app.py's build flow: series.json at the
     zip root, or inside a single top-level folder — which is exactly the
     shape GitLab's archive.zip produces (it wraps everything in a
@@ -94,9 +94,9 @@ async def pull(base_url, token, project_id, branch):
 
     Returns (series_dir_str_or_None, error_text_or_None).
     """
-    if WORK_DIR.exists():
-        shutil.rmtree(WORK_DIR)
-    WORK_DIR.mkdir(parents=True)
+    if GIT_WORK_DIR.exists():
+        shutil.rmtree(GIT_WORK_DIR)
+    GIT_WORK_DIR.mkdir(parents=True)
 
     try:
         pid = quote(str(project_id), safe='')
@@ -105,8 +105,8 @@ async def pull(base_url, token, project_id, branch):
             params={'sha': branch}, want_json=False,
         )
         with zipfile.ZipFile(io.BytesIO(bytes(archive))) as zf:
-            zf.extractall(WORK_DIR)
-        series_dir = _find_series_dir(WORK_DIR)
+            zf.extractall(GIT_WORK_DIR)
+        series_dir = _find_series_dir_in_archive(GIT_WORK_DIR)
         return str(series_dir), None
     except Exception as e:
         return None, f'{type(e).__name__}: {e}'
@@ -135,7 +135,7 @@ async def _remote_paths(base_url, token, project_id, branch):
     """Full set of file paths that currently exist in the remote tree, so
     push() can tell create from update. Existence only — no content is
     fetched, so an update is issued even when the content already matches
-    (a same-content commit, harmless but not skipped; see §24.4)."""
+    (a same-content commit, harmless but not skipped; see §23.12)."""
     pid = quote(str(project_id), safe='')
     paths = set()
     page = 1

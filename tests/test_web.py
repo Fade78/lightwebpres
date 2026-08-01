@@ -131,14 +131,14 @@ class WebBuild(unittest.TestCase):
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class FileProtocolGuard(unittest.TestCase):
-    """§23.6: opening index.html or git-sync.html as a local file:// page
-    (the natural thing to do with a self-contained static page) can never
-    actually load Pyodide — browsers block its module/asset fetches under
-    the file:// origin. init() must detect this up front and show a clear,
+    """§23.6: opening index.html as a local file:// page (the natural
+    thing to do with a self-contained static page) can never actually
+    load Pyodide — browsers block its module/asset fetches under the
+    file:// origin. init() must detect this up front and show a clear,
     actionable, one-click-copyable command instead of letting Pyodide fail
     with a raw, confusing browser error."""
 
-    def _check(self, html_filename):
+    def test_index_html_shows_guard_when_opened_as_local_file(self):
         # The expected command pins down the exact, complete, copyable
         # command — naming the real repo root computed from the file's own
         # path, not a vague "serve this directory" that would silently
@@ -147,7 +147,7 @@ class FileProtocolGuard(unittest.TestCase):
         # the sibling files this page needs. The driver script also clicks
         # the Copy button and reads the clipboard back, so this exercises
         # copyability end to end, not just that the text is present.
-        file_url = 'file://' + str(REPO_ROOT / 'web' / html_filename)
+        file_url = 'file://' + str(REPO_ROOT / 'web' / 'index.html')
         expected = 'python3 -m http.server 8000 --directory "%s"' % REPO_ROOT
         result = subprocess.run(
             ['node', str(FILE_PROTOCOL_GUARD_SCRIPT), file_url, expected],
@@ -157,17 +157,11 @@ class FileProtocolGuard(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_index_html_shows_guard_when_opened_as_local_file(self):
-        self._check('index.html')
-
-    def test_git_sync_html_shows_guard_when_opened_as_local_file(self):
-        self._check('git-sync.html')
-
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class MissingSiblingExecutableGuard(unittest.TestCase):
-    """§23.4/§23.8: both pages look for the lightwebpres executable in two
-    conventional spots relative to themselves, in order: ./lightwebpres
+    """§23.4/§23.8: the page looks for the lightwebpres executable in two
+    conventional spots relative to itself, in order: ./lightwebpres
     (alongside web/'s own contents, so a site can serve web/ itself as its
     URL root with no extra path segment) and ../lightwebpres (the repo's
     own layout, for a deployment that's just a duplicate of the repo
@@ -193,8 +187,8 @@ class MissingSiblingExecutableGuard(unittest.TestCase):
         cls.httpd.shutdown()
         cls.thread.join(timeout=5)
 
-    def _check(self, html_filename):
-        url = 'http://127.0.0.1:%d/%s' % (self.port, html_filename)
+    def test_index_html_explains_missing_lightwebpres(self):
+        url = 'http://127.0.0.1:%d/index.html' % self.port
         result = subprocess.run(
             ['node', str(LWP_LOOKUP_SCRIPT), url,
              'either of its two conventional locations'],
@@ -204,12 +198,6 @@ class MissingSiblingExecutableGuard(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_index_html_explains_missing_lightwebpres(self):
-        self._check('index.html')
-
-    def test_git_sync_html_explains_missing_lightwebpres(self):
-        self._check('git-sync.html')
-
 
 class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
     """§23.8: when lightwebpres is copied alongside web/'s own contents
@@ -217,7 +205,9 @@ class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
     root — no unrelated parent directory needed just to hold the
     executable) — with NO copy one level up either — the page must still
     reach Ready., proving ./lightwebpres is genuinely tried and used, not
-    just documented."""
+    just documented. index.html loads both tabs' glue scripts up front, so
+    reaching Ready. here also proves app.py and git_sync.py coexist in the
+    shared Pyodide namespace without colliding (§23.1)."""
 
     @classmethod
     def setUpClass(cls):
@@ -242,8 +232,8 @@ class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
         cls.thread.join(timeout=5)
         cls.tmpdir.cleanup()
 
-    def _check(self, html_filename):
-        url = 'http://127.0.0.1:%d/%s' % (self.port, html_filename)
+    def test_index_html_reaches_ready(self):
+        url = 'http://127.0.0.1:%d/index.html' % self.port
         result = subprocess.run(
             ['node', str(LWP_LOOKUP_SCRIPT), url, 'Ready.'],
             capture_output=True, text=True,
@@ -251,12 +241,6 @@ class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
             timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_index_html_reaches_ready(self):
-        self._check('index.html')
-
-    def test_git_sync_html_reaches_ready(self):
-        self._check('git-sync.html')
 
 
 if __name__ == '__main__':

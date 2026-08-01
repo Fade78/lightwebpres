@@ -2247,22 +2247,36 @@ littéral, a besoin d'un `` \` ``.
 
 ## 23. Version navigateur (`web/`)
 
-En plus de l'exécutable console, une page statique permet de construire une
-série **entièrement dans le navigateur**, sans rien installer : on dépose un
-zip de la série, on récupère un zip de `public/`. Un serveur HTTP minimal
-reste nécessaire pour ouvrir la page elle-même — voir §23.6.
+En plus de l'exécutable console, une seule page statique, `web/index.html`,
+permet de construire une série **entièrement dans le navigateur**, sans
+rien installer, sous deux onglets qui couvrent chacun un flux complet :
+« Upload a zip » (dépose un zip de la série, récupère un zip de `public/`)
+et « Sync with GitLab » (pull → build → push directement contre un dépôt,
+§23.9). Un serveur HTTP minimal reste nécessaire pour ouvrir la page
+elle-même — voir §23.6.
 
 ### 23.1 Principe
 
 `web/index.html` charge [Pyodide](https://pyodide.org) (CPython compilé en
-WebAssembly), y exécute le fichier `lightwebpres` **tel quel** — aucune
-duplication de logique, `lightwebpres` reste l'unique source de vérité,
-il n'en existe donc pas de copie versionnée dans `web/` — puis un petit
-script de colle (`web/app.py`) qui dézippe le zip envoyé, appelle
-`cmd_build()`, et rezippe `public/` pour le téléchargement. `lightwebpres`
-est cherché à deux emplacements conventionnels relatifs à la page,
-`./lightwebpres` puis `../lightwebpres` (§23.8) — c'est à qui déploie d'en
-placer une copie dans l'un des deux.
+WebAssembly) une seule fois, au chargement de la page, quel que soit
+l'onglet actif, et y exécute le fichier `lightwebpres` **tel quel** —
+aucune duplication de logique, `lightwebpres` reste l'unique source de
+vérité, il n'en existe donc pas de copie versionnée dans `web/` — puis les
+deux scripts de colle des deux onglets, `web/app.py` (dézippe un zip
+envoyé, appelle `cmd_build()`, rezippe `public/`) et `web/git_sync.py`
+(§23.9), chargés tous les deux dès le départ pour que passer d'un onglet à
+l'autre soit instantané, sans rechargement. `lightwebpres` est cherché à
+deux emplacements conventionnels relatifs à la page, `./lightwebpres` puis
+`../lightwebpres` (§23.8) — c'est à qui déploie d'en placer une copie dans
+l'un des deux.
+
+Les deux scripts de colle partagent le même espace de noms Python (celui
+où `cmd_build()` a été défini) : leurs seuls noms de niveau module qui se
+ressemblaient — le répertoire de travail temporaire, la fonction qui
+localise `series.json` dans une arborescence extraite — sont préfixés
+distinctement (`ZIP_WORK_DIR`/`_find_series_dir_in_zip` pour `app.py`,
+`GIT_WORK_DIR`/`_find_series_dir_in_archive` pour `git_sync.py`) pour ne
+jamais s'écraser l'un l'autre une fois chargés ensemble.
 
 ### 23.2 Confidentialité
 
@@ -2289,8 +2303,9 @@ porte sur l'exécutable console.
 
 ```
 web/
-├── index.html              # La page : upload, sélection de langue, build, download
-├── app.py                  # Colle Python : zip → cmd_build() → zip
+├── index.html              # La page : les deux onglets (zip et GitLab)
+├── app.py                  # Colle Python de l'onglet zip : zip → cmd_build() → zip
+├── git_sync.py              # Colle Python de l'onglet GitLab : API GitLab v4 <-> cmd_build() (§23.9)
 ├── .htaccess                # Types MIME Apache pour vendor/pyodide/ (§23.7)
 └── vendor/
     ├── NOTICE.md            # Provenance, licence, procédure de mise à jour
@@ -2300,12 +2315,14 @@ web/
 ### 23.5 Test
 
 `tests/test_web.py` fait tourner un vrai navigateur (Chromium headless via
-Playwright) contre la page servie localement, envoie un zip de test, et
-vérifie le zip téléchargé — un test de bout en bout du livrable réel, pas
-une simulation. Il nécessite Node.js et le paquet `playwright` ; il est
-ignoré proprement (skip) si l'un des deux est absent, plutôt que de faire
-échouer toute la suite — c'est une dépendance propre à ce test, pas à
-l'exécutable.
+Playwright) contre la page servie localement, envoie un zip de test sur
+l'onglet « Upload a zip », et vérifie le zip téléchargé — un test de bout
+en bout du livrable réel, pas une simulation. `tests/test_git_sync.py`
+fait de même sur l'onglet « Sync with GitLab » (§23.9), face à un **mock**
+des trois endpoints GitLab utilisés (§23.13). Les deux nécessitent Node.js
+et le paquet `playwright` ; ils sont ignorés proprement (skip) si l'un des
+deux est absent, plutôt que de faire échouer toute la suite — c'est une
+dépendance propre à ces tests, pas à l'exécutable.
 
 ### 23.6 Ne fonctionne pas ouvert directement (`file://`)
 
@@ -2322,8 +2339,9 @@ Deux pièges à éviter dans la commande à donner à l'utilisateur, tous deux
 la rendraient incomplète ou fausse :
 
 - **Servir le bon répertoire, explicitement.** La page dépend de fichiers
-  frères — `web/vendor/pyodide/`, `web/app.py` ou `web/git_sync.py`, et
-  l'exécutable `lightwebpres` un niveau au-dessus de `web/` (le
+  frères — `web/vendor/pyodide/`, `web/app.py` et `web/git_sync.py`
+  (chargés tous les deux, quel que soit l'onglet ouvert), et l'exécutable
+  `lightwebpres` un niveau au-dessus de `web/` (le
   `fetchText('../lightwebpres')` du script). Un `python3 -m http.server`
   lancé sans argument sert le répertoire courant du terminal — souvent le
   mauvais (un dossier de téléchargements quelconque) — et le lancer
@@ -2335,11 +2353,11 @@ la rendraient incomplète ou fausse :
   fichiers frères, aucune commande de serveur ne suffit — le rappeler
   évite de faire croire qu'un serveur à lui seul résout tout.
 
-`index.html` et `git-sync.html` détectent le cas `file://` dès le début de
-`init()` (`location.protocol === 'file:'`) et affichent un message d'erreur
-qui calcule la commande exacte à partir du chemin réel du fichier ouvert
-(`location.pathname`, dont `/web/{index,git-sync}.html` est retranché pour
-obtenir la racine du dépôt) — `python3 -m http.server 8000 --directory
+`web/index.html` détecte le cas `file://` dès le début de `init()`
+(`location.protocol === 'file:'`) et affiche un message d'erreur qui
+calcule la commande exacte à partir du chemin réel du fichier ouvert
+(`location.pathname`, dont `/web/index.html` est retranché pour obtenir
+la racine du dépôt) — `python3 -m http.server 8000 --directory
 "<racine calculée>"` — affichée dans un bloc `<code>` dédié avec son propre
 bouton « Copy » (presse-papier via `navigator.clipboard`, repli sur
 `prompt()` si l'API est indisponible) : une commande qu'il faut retaper à
@@ -2395,16 +2413,15 @@ types {
 }
 ```
 
-Comme pour le CORS de l'API GitLab (§24.2), le cas nginx (et Apache sans
+Comme pour le CORS de l'API GitLab (§23.10), le cas nginx (et Apache sans
 `.htaccess` autorisé) reste un réglage côté serveur, hors du périmètre de
 ce que la page peut corriger elle-même.
 
 ### 23.8 Où chercher l'exécutable `lightwebpres`
 
-Les deux pages ont besoin du fichier `lightwebpres` (§23.1 : jamais
-dupliqué dans `web/`, `lightwebpres` reste l'unique source de vérité) et
-le cherchent à deux emplacements conventionnels relatifs à elles-mêmes,
-dans cet ordre :
+La page a besoin du fichier `lightwebpres` (§23.1 : jamais dupliqué dans
+`web/`, `lightwebpres` reste l'unique source de vérité) et le cherche à
+deux emplacements conventionnels relatifs à elle-même, dans cet ordre :
 
 1. `./lightwebpres` — à côté du contenu de `web/`. C'est le cas d'un site
    qui sert `web/` lui-même comme racine de son propre chemin d'URL, sans
@@ -2427,19 +2444,17 @@ seul, sans copie au niveau parent, doit suffire).
 
 ---
 
-## 24. Synchronisation git depuis le navigateur (`web/git-sync.html`)
+### 23.9 Onglet GitLab : synchronisation depuis le navigateur
 
-Un troisième livrable, indépendant des deux premiers (l'exécutable console
-et `web/index.html`) : une page qui remplace le couple zip-à-envoyer /
-zip-à-télécharger de `web/index.html` par un cycle **pull → build → push**
-directement contre un dépôt GitLab, toujours entièrement dans l'onglet du
-navigateur.
+Le second onglet de `web/index.html` : au lieu du couple zip-à-envoyer /
+zip-à-télécharger de l'onglet « Upload a zip », un cycle
+**pull → build → push** directement contre un dépôt GitLab, toujours
+entièrement dans l'onglet du navigateur.
 
-### 24.1 Principe
-
-`web/git-sync.html` charge Pyodide et `lightwebpres` exactement comme
-`web/index.html` (même mécanisme, §23.1), puis un script de colle dédié
-(`web/git_sync.py`) qui parle à l'API REST v4 d'une instance GitLab via
+Pyodide et `lightwebpres` sont déjà chargés au moment où cet onglet devient
+actif (même bootstrap partagé, §23.1) ; ce qui lui est propre est
+`web/git_sync.py`, chargé en même temps, qui parle à l'API REST v4 d'une
+instance GitLab via
 `pyodide.http.pyfetch` — un simple habillage de la fonction `fetch()` du
 navigateur : les mêmes règles CORS s'appliquent, aucune requête ne transite
 par un tiers. Trois actions indépendantes, déclenchées par trois boutons :
@@ -2447,11 +2462,13 @@ par un tiers. Trois actions indépendantes, déclenchées par trois boutons :
 1. **Pull** — télécharge l'archive du dépôt pour une branche
    (`GET /projects/:id/repository/archive.zip?sha=branche`) et l'extrait.
    GitLab enveloppe systématiquement le contenu dans un répertoire
-   `{projet}-{ref}-{sha}/` : c'est exactement la forme déjà acceptée par
-   `_find_series_dir()` (zip à racine unique, voir `web/app.py`), donc
-   aucune adaptation n'a été nécessaire de ce côté.
+   `{projet}-{ref}-{sha}/` : c'est la même forme (zip à racine unique)
+   qu'accepte déjà `_find_series_dir_in_zip()` côté `web/app.py`, mais avec
+   sa propre fonction, `_find_series_dir_in_archive()` — même règle
+   d'acceptation, nom distinct pour ne pas entrer en collision une fois les
+   deux scripts chargés ensemble (§23.1).
 2. **Build** — appelle `cmd_build()` telle quelle sur le répertoire extrait,
-   comme `web/index.html`.
+   comme l'onglet « Upload a zip ».
 3. **Push** — compare le contenu local (sources **et** `public/` généré à
    l'étape précédente) à l'arborescence distante
    (`GET /projects/:id/repository/tree?recursive=true`), et pousse un seul
@@ -2461,7 +2478,7 @@ par un tiers. Trois actions indépendantes, déclenchées par trois boutons :
    le nombre de fichiers dépasse 100 (pas de limite documentée côté GitLab,
    mais on reste prudent).
 
-### 24.2 CORS : condition nécessaire, hors du périmètre de cette page
+### 23.10 CORS : condition nécessaire, hors du périmètre de cette page
 
 Une instance GitLab auto-hébergée standard (Omnibus) **n'envoie pas**
 `Access-Control-Allow-Origin` sur les réponses de son API par défaut : sans
@@ -2481,7 +2498,7 @@ location /api/ {
 }
 ```
 
-### 24.3 Jeton d'accès personnel
+### 23.11 Jeton d'accès personnel
 
 Scopes nécessaires : **`read_api` + `write_repository`**, pas `api`. Le pull
 (`repository/archive.zip`, `repository/tree`) relève de la « Repositories
@@ -2505,7 +2522,7 @@ défaut, le duplique en plus dans `localStorage` (survit à la fermeture de
 l'onglet, en clair sur le disque, jusqu'à décocher la case ou vider le
 stockage) — un avertissement s'affiche tant que la case est cochée.
 
-### 24.4 Ce que push ne fait jamais : supprimer
+### 23.12 Ce que push ne fait jamais : supprimer
 
 `push` ne pousse que des actions `create` et `update` : un fichier présent
 dans le dépôt distant mais absent du répertoire local (article supprimé,
@@ -2518,23 +2535,14 @@ chemin est vérifiée, pas le contenu), donc pousser sans changement réel
 produit tout de même un commit (vide en diff, mais bien réel) plutôt que de
 ne rien faire.
 
-### 24.5 Fichiers
+### 23.13 Test de l'onglet GitLab
 
-```
-web/
-├── git-sync.html            # La page : connexion, pull, build, push
-└── git_sync.py               # Colle Python : API GitLab v4 <-> cmd_build()
-```
-
-### 24.6 Test
-
-`tests/test_git_sync.py` fait tourner un vrai navigateur (Chromium headless
-via Playwright, même mécanisme que §23.5) contre la page servie localement,
-mais face à un **mock** des trois endpoints GitLab utilisés (pas de vrai
-serveur GitLab dans la boucle de test) — servi sur un port distinct pour
-que le navigateur traverse réellement une frontière d'origine et exerce
-pour de vrai les en-têtes CORS dont cette page dépend (§24.2). Le test
-vérifie le cycle complet pull → build → push, que `create`/`update` sont
-correctement choisis par fichier, et que le contenu poussé pour
-`public/a.html` est bien le HTML **construit** (pas la source) — pas une
-simulation du résultat.
+`tests/test_git_sync.py` (§23.5) fait tourner un vrai navigateur face à un
+**mock** des trois endpoints GitLab utilisés (pas de vrai serveur GitLab
+dans la boucle de test) — servi sur un port distinct pour que le
+navigateur traverse réellement une frontière d'origine et exerce pour de
+vrai les en-têtes CORS dont cet onglet dépend (§23.10). Le test vérifie le
+cycle complet pull → build → push, que `create`/`update` sont correctement
+choisis par fichier, et que le contenu poussé pour `public/a.html` est
+bien le HTML **construit** (pas la source) — pas une simulation du
+résultat.

@@ -1,5 +1,5 @@
-// Playwright driver for the file:// early-exit guard in web/index.html and
-// web/git-sync.html. Invoked by test_web.py — not a standalone entry point.
+// Playwright driver for the file:// early-exit guard in web/index.html.
+// Invoked by test_web.py — not a standalone entry point.
 // Opens the given page via a file:// URL (exactly how a user who downloads
 // and double-clicks the page would open it) and checks that init() bails
 // out early with a clear, actionable, copyable command instead of Pyodide

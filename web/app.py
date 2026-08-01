@@ -15,10 +15,10 @@ import shutil
 import zipfile
 from pathlib import Path
 
-WORK_DIR = Path('/lwp_web_work')
+ZIP_WORK_DIR = Path('/lwp_web_work')
 
 
-def _find_series_dir(root):
+def _find_series_dir_in_zip(root):
     """Locates the series directory inside the extracted zip.
 
     Accepts either a zip whose root already contains series.json, or a zip
@@ -47,15 +47,15 @@ def build_from_zip_bytes(data, lang='fr'):
     """
     log = io.StringIO()
 
-    if WORK_DIR.exists():
-        shutil.rmtree(WORK_DIR)
-    WORK_DIR.mkdir()
+    if ZIP_WORK_DIR.exists():
+        shutil.rmtree(ZIP_WORK_DIR)
+    ZIP_WORK_DIR.mkdir()
 
     try:
         with zipfile.ZipFile(io.BytesIO(bytes(data))) as zf:
-            zf.extractall(WORK_DIR)
+            zf.extractall(ZIP_WORK_DIR)
 
-        series_dir = _find_series_dir(WORK_DIR)
+        series_dir = _find_series_dir_in_zip(ZIP_WORK_DIR)
         output_dir = series_dir / 'public'
 
         with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
@@ -77,4 +77,4 @@ def build_from_zip_bytes(data, lang='fr'):
     except Exception as e:
         return None, log.getvalue(), '%s: %s' % (type(e).__name__, e)
     finally:
-        shutil.rmtree(WORK_DIR, ignore_errors=True)
+        shutil.rmtree(ZIP_WORK_DIR, ignore_errors=True)

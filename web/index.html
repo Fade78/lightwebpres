@@ -18,14 +18,46 @@
   .brand svg { width: 34px; height: 34px; flex: none; }
   h1 { font-size: 28px; margin-bottom: 4px; }
   .subtitle { color: #6b6b7d; margin-top: 0; margin-bottom: 24px; }
-  .privacy-note {
+  details.info {
     background: #f8f8f5;
     border-left: 4px solid #FFFC00;
-    padding: 14px 18px;
     border-radius: 0 8px 8px 0;
     font-size: 14px;
-    margin-bottom: 28px;
+    margin-bottom: 20px;
+    padding: 10px 18px;
   }
+  details.info summary {
+    cursor: pointer;
+    font-weight: 600;
+    list-style: none;
+  }
+  details.info summary::-webkit-details-marker { display: none; }
+  details.info summary::before { content: 'ⓘ '; }
+  details.info[open] summary { margin-bottom: 8px; }
+  details.info code { font-size: 13px; }
+  .warn-note {
+    background: #fff4f4;
+    border-left: 4px solid #ff4757;
+    padding: 12px 18px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    margin: 10px 0 16px;
+    display: none;
+  }
+  .tablist { display: flex; gap: 4px; border-bottom: 2px solid #e8e8e0; margin-bottom: 20px; }
+  .tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6b6b7d;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 4px;
+    margin-bottom: -2px;
+  }
+  .tab[aria-selected="true"] { color: #1a1a2e; border-bottom-color: #FFFC00; }
+  .tabpanel[hidden] { display: none; }
   fieldset {
     border: 2px solid #e8e8e0;
     border-radius: 12px;
@@ -35,12 +67,24 @@
   legend { font-weight: 700; padding: 0 8px; }
   label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; }
   input[type="file"] { margin-bottom: 16px; }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .checkbox-row label { margin-bottom: 0; font-weight: 400; }
   select {
     padding: 6px 10px;
     border-radius: 6px;
     border: 1px solid #ddd;
     margin-bottom: 16px;
   }
+  .steps { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
   button {
     background: #1a1a2e;
     color: white;
@@ -109,33 +153,108 @@
 </div>
 <p class="subtitle">Build a series in your browser — no install, no server.</p>
 
-<div class="privacy-note">
-  Everything runs locally, inside this browser tab. The zip you upload is
-  never sent anywhere — it is decompressed, built, and re-zipped entirely
-  on your machine, using a copy of Python compiled to run in the browser
-  (<a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>).
-  The only network request this page makes is to load itself.
+<div class="tablist" role="tablist">
+  <button class="tab" role="tab" id="tabZip" aria-controls="panelZip" aria-selected="true" type="button">Upload a zip</button>
+  <button class="tab" role="tab" id="tabGit" aria-controls="panelGit" aria-selected="false" type="button">Sync with GitLab</button>
 </div>
 
-<p class="subtitle">Want to skip the zip download/upload and sync straight
-with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a>.</p>
+<section class="tabpanel" id="panelZip" role="tabpanel" aria-labelledby="tabZip">
 
-<fieldset>
-  <legend>Build a series</legend>
+  <details class="info">
+    <summary>How this works</summary>
+    Everything runs locally, inside this browser tab. The zip you upload is
+    never sent anywhere — it is decompressed, built, and re-zipped entirely
+    on your machine, using a copy of Python compiled to run in the browser
+    (<a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>,
+    vendored in this page, not loaded from a CDN). The only network request
+    this page makes is to load itself.
+  </details>
 
-  <label for="zipInput">Series zip (must contain series.json at its root, or inside a single top-level folder)</label>
-  <input type="file" id="zipInput" accept=".zip">
+  <fieldset>
+    <legend>Build a series</legend>
 
-  <label for="langSelect">Language</label>
-  <select id="langSelect">
-    <option value="fr" selected>fr — Français</option>
-    <option value="en">en — English</option>
-  </select>
+    <label for="zipInput">Series zip (must contain series.json at its root, or inside a single top-level folder)</label>
+    <input type="file" id="zipInput" accept=".zip">
 
-  <div>
-    <button id="buildBtn" disabled>Loading Pyodide…</button>
-  </div>
-</fieldset>
+    <label for="zipLangSelect">Language</label>
+    <select id="zipLangSelect">
+      <option value="fr" selected>fr — Français</option>
+      <option value="en">en — English</option>
+    </select>
+
+    <div>
+      <button id="zipBuildBtn" disabled>Loading Pyodide…</button>
+    </div>
+  </fieldset>
+
+</section>
+
+<section class="tabpanel" id="panelGit" role="tabpanel" aria-labelledby="tabGit" hidden>
+
+  <details class="info">
+    <summary>How this works</summary>
+    Every request in this tab goes straight from your browser to the
+    GitLab instance URL you enter below — nothing is relayed through a
+    third-party proxy. The build itself runs locally with
+    <a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>,
+    exactly like the "Upload a zip" tab.
+    <br><br>
+    This only works if the GitLab instance sends
+    <code>Access-Control-Allow-Origin</code> on its API responses — most
+    self-hosted GitLab instances don't, by default. If pulling fails
+    immediately with a network error, that's almost certainly it: your
+    GitLab admin needs to add CORS headers to the <code>/api/</code>
+    location of its reverse proxy. See specifications.md §23.10 for the
+    exact nginx snippet.
+  </details>
+
+  <fieldset>
+    <legend>Connection</legend>
+
+    <label for="baseUrl">GitLab instance URL</label>
+    <input type="text" id="baseUrl" placeholder="https://gitlab.example.org">
+
+    <label for="projectId">Project ID or path</label>
+    <input type="text" id="projectId" placeholder="namespace/project or numeric ID">
+
+    <label for="branch">Branch</label>
+    <input type="text" id="branch" placeholder="main" value="main">
+
+    <label for="token">Personal access token (needs read_api + write_repository scopes — see specifications.md §23.11)</label>
+    <input type="password" id="token" placeholder="glpat-...">
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="rememberToken">
+      <label for="rememberToken">Remember this token on this device (persists after closing the tab)</label>
+    </div>
+    <div class="warn-note" id="rememberWarning">
+      The token will be stored in this browser's local storage, in clear
+      text, until you uncheck this box or clear it yourself. Anyone with
+      access to this device/profile can read it. Prefer leaving this
+      unchecked on a shared or public computer.
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Sync</legend>
+
+    <label for="gitLangSelect">Language</label>
+    <select id="gitLangSelect">
+      <option value="fr" selected>fr — Français</option>
+      <option value="en">en — English</option>
+    </select>
+
+    <label for="commitMessage">Commit message (used when pushing)</label>
+    <input type="text" id="commitMessage" value="Update from LightWebPres git-sync">
+
+    <div class="steps">
+      <button id="pullBtn" disabled>Loading Pyodide…</button>
+      <button id="gitBuildBtn" disabled>Build</button>
+      <button id="pushBtn" disabled>Push</button>
+    </div>
+  </fieldset>
+
+</section>
 
 <div id="status">Loading Pyodide…</div>
 <pre id="log"></pre>
@@ -144,9 +263,27 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
 <script>
   const statusEl = document.getElementById('status');
   const logEl = document.getElementById('log');
-  const buildBtn = document.getElementById('buildBtn');
+
+  const tabZip = document.getElementById('tabZip');
+  const tabGit = document.getElementById('tabGit');
+  const panelZip = document.getElementById('panelZip');
+  const panelGit = document.getElementById('panelGit');
+
   const zipInput = document.getElementById('zipInput');
-  const langSelect = document.getElementById('langSelect');
+  const zipLangSelect = document.getElementById('zipLangSelect');
+  const zipBuildBtn = document.getElementById('zipBuildBtn');
+
+  const pullBtn = document.getElementById('pullBtn');
+  const gitBuildBtn = document.getElementById('gitBuildBtn');
+  const pushBtn = document.getElementById('pushBtn');
+  const baseUrlEl = document.getElementById('baseUrl');
+  const projectIdEl = document.getElementById('projectId');
+  const branchEl = document.getElementById('branch');
+  const tokenEl = document.getElementById('token');
+  const rememberEl = document.getElementById('rememberToken');
+  const rememberWarning = document.getElementById('rememberWarning');
+  const gitLangSelect = document.getElementById('gitLangSelect');
+  const commitMessageEl = document.getElementById('commitMessage');
 
   function setStatus(text, cls) {
     statusEl.textContent = text;
@@ -162,11 +299,71 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
     }
   }
 
+  // --- Tabs -------------------------------------------------------------
+  // Plain hidden-attribute toggling + ARIA, no framework. The shared
+  // status/log are left alone across a switch — mid-workflow progress
+  // (e.g. "Pulled. Ready to build." on the GitLab tab) shouldn't vanish
+  // just because the other tab was glanced at.
+
+  function selectTab(tab) {
+    const zip = tab === 'zip';
+    tabZip.setAttribute('aria-selected', String(zip));
+    tabGit.setAttribute('aria-selected', String(!zip));
+    panelZip.hidden = !zip;
+    panelGit.hidden = zip;
+  }
+
+  tabZip.addEventListener('click', () => selectTab('zip'));
+  tabGit.addEventListener('click', () => selectTab('git'));
+
+  // --- GitLab connection field persistence -------------------------------
+  // Always mirrored to sessionStorage (survives a reload of this tab).
+  // Only mirrored to localStorage (survives closing the tab) when the
+  // "remember" checkbox is checked; unchecking it clears localStorage.
+
+  const FIELDS = ['baseUrl', 'projectId', 'branch', 'token'];
+  const STORE_KEY = 'lwp_git_sync_connection';
+
+  function loadConnection() {
+    const raw = sessionStorage.getItem(STORE_KEY) || localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      for (const f of FIELDS) {
+        if (data[f] !== undefined) document.getElementById(f).value = data[f];
+      }
+      if (localStorage.getItem(STORE_KEY)) {
+        rememberEl.checked = true;
+        rememberWarning.style.display = 'block';
+      }
+    } catch (e) { /* ignore malformed stored data */ }
+  }
+
+  function saveConnection() {
+    const data = {};
+    for (const f of FIELDS) data[f] = document.getElementById(f).value;
+    const json = JSON.stringify(data);
+    sessionStorage.setItem(STORE_KEY, json);
+    if (rememberEl.checked) {
+      localStorage.setItem(STORE_KEY, json);
+    } else {
+      localStorage.removeItem(STORE_KEY);
+    }
+  }
+
+  FIELDS.forEach((f) => document.getElementById(f).addEventListener('input', saveConnection));
+  rememberEl.addEventListener('change', () => {
+    rememberWarning.style.display = rememberEl.checked ? 'block' : 'none';
+    saveConnection();
+  });
+
+  loadConnection();
+
+  // --- Pyodide setup -----------------------------------------------------
+
   async function fetchText(url) {
     const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error('Failed to fetch ' + url + ': ' + res.status);
-    }
+    if (!res.ok) throw new Error('Failed to fetch ' + url + ': ' + res.status);
     return await res.text();
   }
 
@@ -200,18 +397,18 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
 
   // This page cannot work opened as a bare file:// page: browsers block
   // Pyodide's own fetch()/import() under that origin, AND the page needs
-  // its sibling files (web/vendor/, web/app.py, and the lightwebpres
-  // executable one level up) — not just this one HTML file. Compute the
-  // exact directory to serve from the file's own path, so the suggested
-  // command is something the user can actually run as-is, not a stand-in
-  // that silently assumes the wrong current directory (e.g. a Downloads
-  // folder full of unrelated files).
-  function fileProtocolGuardCommand(filename) {
+  // its sibling files (web/vendor/, web/app.py, web/git_sync.py, and the
+  // lightwebpres executable one level up) — not just this one HTML file.
+  // Compute the exact directory to serve from the file's own path, so the
+  // suggested command is something the user can actually run as-is, not a
+  // stand-in that silently assumes the wrong current directory (e.g. a
+  // Downloads folder full of unrelated files).
+  function fileProtocolGuardCommand() {
     let repoRootHint = '<the folder that contains both "lightwebpres" and "web/">';
     try {
       let p = decodeURIComponent(location.pathname);
       if (/^\/[a-zA-Z]:\//.test(p)) p = p.slice(1); // Windows: /C:/Users/... -> C:/Users/...
-      const stripped = p.replace(new RegExp('/web/' + filename + '$'), '');
+      const stripped = p.replace(/\/web\/index\.html$/, '');
       if (stripped !== p) repoRootHint = stripped;
     } catch (e) { /* fall back to the placeholder above */ }
     return 'python3 -m http.server 8000 --directory "' + repoRootHint + '"';
@@ -222,10 +419,9 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
   // in one click instead of having to select it precisely out of a
   // paragraph (error messages that require re-typing a command by hand
   // are a common source of typo'd paths).
-  function showFileProtocolGuard(filename) {
-    const cmd = fileProtocolGuardCommand(filename);
-    const openUrl = 'http://localhost:8000/web/' + filename;
-    const needsFile = filename === 'index.html' ? 'app.py' : 'git_sync.py';
+  function showFileProtocolGuard() {
+    const cmd = fileProtocolGuardCommand();
+    const openUrl = 'http://localhost:8000/web/index.html';
 
     statusEl.className = 'error';
     statusEl.textContent = '';
@@ -233,7 +429,7 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
     intro.textContent =
       'This page was opened as a local file, which cannot work: browsers block '
       + "Pyodide's own asset loading under the file:// origin, and this page also "
-      + 'needs its sibling files (web/vendor/, web/' + needsFile + ', and the '
+      + 'needs its sibling files (web/vendor/, web/app.py, web/git_sync.py, and the '
       + 'lightwebpres executable, either alongside this page or one level up) — '
       + 'not just this HTML file by itself. Run this from a terminal:';
     statusEl.appendChild(intro);
@@ -266,28 +462,41 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
   }
 
   let pyodideReady = null;
+  let seriesDir = null;
 
   async function init() {
     if (location.protocol === 'file:') {
-      showFileProtocolGuard('index.html');
+      showFileProtocolGuard();
       return;
     }
     try {
       const pyodide = await loadPyodide({ indexURL: './vendor/pyodide/' });
       const lwpSource = await fetchLightwebpresSource();
       pyodide.runPython(lwpSource);
+      // Both tabs' glue scripts are loaded up front, into the same
+      // namespace as lightwebpres (which defines cmd_build(), shared by
+      // both), so switching tabs never needs a reload. Each script's own
+      // module-level names (work directory, series-dir finder) are
+      // prefixed distinctly precisely so this is safe (specifications.md
+      // §23.1).
       const appSource = await fetchText('./app.py');
       pyodide.runPython(appSource);
+      const gitSyncSource = await fetchText('./git_sync.py');
+      pyodide.runPython(gitSyncSource);
       pyodideReady = pyodide;
       setStatus('Ready.', 'ok');
-      buildBtn.disabled = false;
-      buildBtn.textContent = 'Build';
+      zipBuildBtn.disabled = false;
+      zipBuildBtn.textContent = 'Build';
+      pullBtn.disabled = false;
+      pullBtn.textContent = 'Pull';
     } catch (err) {
       setStatus('Failed to load Pyodide: ' + err, 'error');
     }
   }
 
-  buildBtn.addEventListener('click', async () => {
+  // --- Zip tab -------------------------------------------------------
+
+  zipBuildBtn.addEventListener('click', async () => {
     if (!pyodideReady) return;
     const file = zipInput.files[0];
     if (!file) {
@@ -295,15 +504,15 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
       return;
     }
 
-    buildBtn.disabled = true;
-    buildBtn.textContent = 'Building…';
+    zipBuildBtn.disabled = true;
+    zipBuildBtn.textContent = 'Building…';
     setStatus('Building…');
     showLog('');
 
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
       const buildFn = pyodideReady.globals.get('build_from_zip_bytes');
-      const resultProxy = buildFn(buf, langSelect.value);
+      const resultProxy = buildFn(buf, zipLangSelect.value);
       const [zipBytes, logText, errorText] = resultProxy.toJs();
       resultProxy.destroy();
 
@@ -327,8 +536,138 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
     } catch (err) {
       setStatus('Build failed: ' + err, 'error');
     } finally {
-      buildBtn.disabled = false;
-      buildBtn.textContent = 'Build';
+      zipBuildBtn.disabled = false;
+      zipBuildBtn.textContent = 'Build';
+    }
+  });
+
+  // --- GitLab tab ------------------------------------------------------
+
+  function connectionValues() {
+    return {
+      baseUrl: baseUrlEl.value.trim(),
+      projectId: projectIdEl.value.trim(),
+      branch: branchEl.value.trim() || 'main',
+      token: tokenEl.value,
+    };
+  }
+
+  function isSafeBaseUrl(url) {
+    // The token is sent to this host on every request: refuse plaintext
+    // HTTP except to localhost/127.0.0.1 (needed for local testing),
+    // otherwise the token would be interceptable by anyone else on the
+    // network path.
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'https:') return true;
+      if (u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1')) return true;
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function requireConnection() {
+    const c = connectionValues();
+    if (!c.baseUrl || !c.projectId || !c.token) {
+      setStatus('Fill in the GitLab instance URL, project ID and token first.', 'error');
+      return null;
+    }
+    if (!isSafeBaseUrl(c.baseUrl)) {
+      setStatus('GitLab instance URL must be https:// (plain http:// is only allowed for localhost/127.0.0.1) — the token would otherwise travel in clear text.', 'error');
+      return null;
+    }
+    return c;
+  }
+
+  pullBtn.addEventListener('click', async () => {
+    if (!pyodideReady) return;
+    const c = requireConnection();
+    if (!c) return;
+
+    pullBtn.disabled = true;
+    gitBuildBtn.disabled = true;
+    pushBtn.disabled = true;
+    seriesDir = null;
+    setStatus('Pulling ' + c.branch + ' from ' + c.baseUrl + '…');
+    showLog('');
+
+    try {
+      const pullFn = pyodideReady.globals.get('pull');
+      const resultProxy = await pullFn(c.baseUrl, c.token, c.projectId, c.branch);
+      const [dir, errorText] = resultProxy.toJs();
+      resultProxy.destroy();
+
+      if (errorText) {
+        setStatus('Pull failed: ' + errorText, 'error');
+        return;
+      }
+      seriesDir = dir;
+      // Test hook only (tests/git_sync_e2e.cjs): lets the E2E test remove a
+      // local file between build and push, to verify push() never turns
+      // that into a delete action against the remote (§23.12).
+      window.__lwp_pyodide = pyodideReady;
+      window.__lwp_series_dir = seriesDir;
+      setStatus('Pulled. Ready to build.', 'ok');
+      gitBuildBtn.disabled = false;
+    } catch (err) {
+      setStatus('Pull failed: ' + err, 'error');
+    } finally {
+      pullBtn.disabled = false;
+    }
+  });
+
+  gitBuildBtn.addEventListener('click', async () => {
+    if (!pyodideReady || !seriesDir) return;
+
+    gitBuildBtn.disabled = true;
+    pushBtn.disabled = true;
+    setStatus('Building…');
+    showLog('');
+
+    try {
+      const buildFn = pyodideReady.globals.get('build');
+      const resultProxy = buildFn(seriesDir, gitLangSelect.value);
+      const [ok, logText, errorText] = resultProxy.toJs();
+      resultProxy.destroy();
+
+      showLog(logText || '');
+
+      if (!ok) {
+        setStatus('Build failed: ' + errorText, 'error');
+        return;
+      }
+      setStatus('Build complete. Ready to push.', 'ok');
+      pushBtn.disabled = false;
+    } catch (err) {
+      setStatus('Build failed: ' + err, 'error');
+    } finally {
+      gitBuildBtn.disabled = false;
+    }
+  });
+
+  pushBtn.addEventListener('click', async () => {
+    if (!pyodideReady || !seriesDir) return;
+    const c = requireConnection();
+    if (!c) return;
+
+    pushBtn.disabled = true;
+    setStatus('Pushing to ' + c.branch + '…');
+
+    try {
+      const pushFn = pyodideReady.globals.get('push');
+      const resultProxy = await pushFn(
+        c.baseUrl, c.token, c.projectId, c.branch, seriesDir,
+        commitMessageEl.value || 'Update from LightWebPres git-sync',
+      );
+      const [ok, summary] = resultProxy.toJs();
+      resultProxy.destroy();
+
+      setStatus(ok ? summary : ('Push failed: ' + summary), ok ? 'ok' : 'error');
+    } catch (err) {
+      setStatus('Push failed: ' + err, 'error');
+    } finally {
+      pushBtn.disabled = false;
     }
   });
 

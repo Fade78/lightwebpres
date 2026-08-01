@@ -1,7 +1,7 @@
 // Playwright driver for the lightwebpres-executable lookup in
-// web/index.html and web/git-sync.html (fetchLightwebpresSource: tries
-// ./lightwebpres, then ../lightwebpres). Invoked by test_web.py — not a
-// standalone entry point. Used for two scenarios:
+// web/index.html (fetchLightwebpresSource: tries ./lightwebpres, then
+// ../lightwebpres). Invoked by test_web.py — not a standalone entry
+// point. Used for two scenarios:
 //   - neither location has the executable: the page must explain the
 //     real cause instead of a bare "Failed to fetch ../lightwebpres: 404"
 //     (MissingSiblingExecutableGuard)

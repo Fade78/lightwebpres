@@ -41,10 +41,10 @@ async function main() {
     );
 
     await page.setInputFiles('#zipInput', zipPath);
-    await page.selectOption('#langSelect', lang);
+    await page.selectOption('#zipLangSelect', lang);
 
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
-    await page.click('#buildBtn');
+    await page.click('#zipBuildBtn');
     const download = await downloadPromise;
     await download.saveAs(downloadOutPath);
 

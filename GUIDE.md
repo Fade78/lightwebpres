@@ -185,18 +185,19 @@ customized it.
 
 ## 8. Beyond the CLI
 
-Two browser-based tools, in `web/`, run the exact same engine as the
-CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly), so
-the output is identical either way:
+`web/index.html`, one page with two tabs, runs the exact same engine as
+the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly),
+so the output is identical either way:
 
-- **`web/index.html`** — upload a zip of your series, get back a zip of
+- **Upload a zip** — drop a zip of your series, get back a zip of
   `public/`. Nothing leaves the browser tab.
-- **`web/git-sync.html`** — pull a series straight from a GitLab
-  repository, build it, and push the result back as a single commit.
+- **Sync with GitLab** — pull a series straight from a GitLab repository,
+  build it, and push the result back as a single commit.
 
-Both need to be **served over http(s)**, not opened as a `file://` page —
-browsers block Pyodide's asset loading under that origin. For local
-testing:
+Both tabs share one Pyodide load at page start, so switching between them
+is instant. The page needs to be **served over http(s)**, not opened as a
+`file://` page — browsers block Pyodide's asset loading under that
+origin. For local testing:
 
 ```bash
 python3 -m http.server 8000 --directory /path/to/lightwebpres
@@ -217,7 +218,7 @@ it merges (see section 6).
   an article by hand, or point an agent at it to do the same.
 - **`specifications.md`** — the complete, authoritative reference:
   exact algorithms, every parser edge case, the full `series.json` and
-  language-file schemas, the browser tools' internals. Consult it for
+  language-file schemas, the browser-based tool's internals. Consult it for
   anything this guide or the skill doesn't cover.
 - **`lightwebpres --help`** — the terse, always-current version of all
   of the above: every command, every flag, every environment variable.

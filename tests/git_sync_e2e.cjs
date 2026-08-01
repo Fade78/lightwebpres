@@ -1,9 +1,10 @@
-// Playwright driver for web/git-sync.html. Invoked by test_git_sync.py —
-// not a standalone entry point. Loads the page in headless Chromium,
-// fills in connection fields pointing at a local mock GitLab API, and
-// drives Pull -> Build -> Push. The mock server (run by the Python test,
-// on a different port so the browser genuinely crosses origins) records
-// what it received; this script only reports whether the UI flow itself
+// Playwright driver for the "Sync with GitLab" tab of web/index.html.
+// Invoked by test_git_sync.py — not a standalone entry point. Loads the
+// page in headless Chromium, switches to the GitLab tab, fills in
+// connection fields pointing at a local mock GitLab API, and drives
+// Pull -> Build -> Push. The mock server (run by the Python test, on a
+// different port so the browser genuinely crosses origins) records what
+// it received; this script only reports whether the UI flow itself
 // succeeded.
 //
 // argv: <pageBaseUrl> <gitlabBaseUrl> <projectId> <branch> <token> [deleteFileBeforePush]
@@ -49,8 +50,9 @@ async function main() {
   }
 
   try {
-    await page.goto(pageBaseUrl + '/web/git-sync.html');
+    await page.goto(pageBaseUrl + '/web/index.html');
     await waitForStatus('Ready.', 60000);
+    await page.click('#tabGit');
 
     await page.fill('#baseUrl', gitlabBaseUrl);
     await page.fill('#projectId', projectId);
@@ -60,7 +62,7 @@ async function main() {
     await page.click('#pullBtn');
     await waitForStatus('Ready to build', 30000);
 
-    await page.click('#buildBtn');
+    await page.click('#gitBuildBtn');
     await waitForStatus('Ready to push', 30000);
 
     if (deleteFileBeforePush) {

@@ -1,5 +1,6 @@
-"""End-to-end test for web/git-sync.html (pull/build/push against a GitLab
-instance's REST API v4, from inside the browser).
+"""End-to-end test for the "Sync with GitLab" tab of web/index.html
+(pull/build/push against a GitLab instance's REST API v4, from inside the
+browser).
 
 Real browser, real Pyodide — same philosophy as test_web.py. There is no
 real GitLab server here: a minimal mock of the three API v4 endpoints this

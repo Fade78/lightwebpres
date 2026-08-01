@@ -42,8 +42,8 @@ one `.html` file, opens straight from disk or any static host.
 - **Share in one click, at whatever scope you need.** Copyable link or QR
   code, for the whole series, the current article, or the exact slide
   being read — generated entirely client-side.
-- **Comes with companion web pages, not just a CLI.** Two browser-based
-  tools, nothing to install: one builds a zip you drop in, the other
+- **Comes with a companion web page, not just a CLI.** One browser-based
+  tool, nothing to install: one tab builds a zip you drop in, the other
   pulls, builds, and pushes straight to a GitLab repository — both
   running the exact same engine as the command line, entirely inside the
   tab.
@@ -188,39 +188,42 @@ generated straight from the tool's own `THEMES` data with
 `./lightwebpres themes-gallery`, so it can never drift from what
 `install --theme` actually applies.
 
-## Two browser-based tools
+## One browser-based tool, two tabs
 
-Both load the exact same `lightwebpres` executable, unmodified, running
-inside [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly) —
-one build engine, three front-ends. Both need to be **served over
-http(s)**, not opened directly as a `file://` page — browsers block
-Pyodide's asset loading under that origin (see specifications.md §23.6 —
-if you open a page as `file://` anyway, it shows the exact fix command,
-with a one-click Copy button, computed from where you actually put the
-files).
+`web/index.html` loads the exact same `lightwebpres` executable,
+unmodified, running inside [Pyodide](https://pyodide.org) (CPython
+compiled to WebAssembly) — one build engine, driven from a terminal or a
+tab. It needs to be **served over http(s)**, not opened directly as a
+`file://` page — browsers block Pyodide's asset loading under that origin
+(see specifications.md §23.6 — if you open it as `file://` anyway, it
+shows the exact fix command, with a one-click Copy button, computed from
+where you actually put the files).
 
-They also need their own `vendor/`/`app.py`/`git_sync.py`, plus a copy of
+It also needs its own `vendor/`/`app.py`/`git_sync.py`, plus a copy of
 `lightwebpres` itself — never duplicated by default, since it stays the
 single source of truth — found in one of two conventional spots relative
 to the page, tried in that order: **`./lightwebpres`** (dropped alongside
 `web/`'s own contents — the layout for a real site that serves `web/` as
 its own URL root, no extra path segment needed) or **`../lightwebpres`**
 (the repo's own layout, one level up, for a deployment that's just a
-straight copy of the repo). Local testing from the repo, both covered by
-one command: `python3 -m http.server 8000 --directory /path/to/lightwebpres`
-(the folder containing both `lightwebpres` and `web/`), then open
+straight copy of the repo). Local testing from the repo: `python3 -m
+http.server 8000 --directory /path/to/lightwebpres` (the folder
+containing both `lightwebpres` and `web/`), then open
 `http://localhost:8000/web/index.html`. Self-hosting on a real web server
 (Apache/nginx) can also hit a `.mjs` MIME type issue — see
 specifications.md §23.7 for the fix (`web/.htaccess` handles it
 automatically on Apache where allowed).
 
-- **`web/index.html`** — upload a zip of your series, get back a zip of
+- **Upload a zip** — drop a zip of your series, get back a zip of
   `public/`. Nothing ever leaves the browser tab; Pyodide runs vendored
   locally, not from a CDN.
-- **`web/git-sync.html`** — pull a series straight from a GitLab
-  repository, build it, push the result back as a single commit. Talks
-  directly to the GitLab instance you configure (no third-party proxy in
-  the request path); never deletes a file on push, only creates/updates.
+- **Sync with GitLab** — pull a series straight from a GitLab repository,
+  build it, push the result back as a single commit. Talks directly to
+  the GitLab instance you configure (no third-party proxy in the request
+  path); never deletes a file on push, only creates/updates.
+
+Both tabs share one Pyodide/`lightwebpres` load at page start, so
+switching between them is instant — no separate page, no reload.
 
 ## Safety
 
@@ -241,7 +244,7 @@ python3 tests/run_tests.py
 
 100+ black-box tests exercising the CLI as a subprocess, plus real headless-
 Chromium end-to-end tests (via Playwright, skipped cleanly if unavailable)
-for both browser tools.
+for both tabs of the browser-based tool.
 
 ## Project layout
 
@@ -250,7 +253,7 @@ lightwebpres          # the executable — the only thing you need to run this
 specifications.md     # full reference specification (French)
 themes-gallery.html   # preview of the nine built-in color themes (generated, see below)
 themes-gallery.png    # a rendered snapshot of the above, for this README
-web/                  # the two browser-based build tools
+web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
 tests/                # regression suite
 ```
 
@@ -300,4 +303,4 @@ py lightwebpres install my-series
 Some systems only have `python` on `PATH`, not `python3` (common on
 Windows, occasionally macOS). Use `python` instead of `python3` in any
 command above that invokes it explicitly — e.g. `python -m http.server`
-when serving the [browser tools](#two-browser-based-tools).
+when serving the [browser-based tool](#one-browser-based-tool-two-tabs).
