@@ -1301,7 +1301,7 @@ les templates. Le remplacement est fait par `str.replace()` en Python.
   <div class="nav-btn" id="navPrev" title="{{str_nav_prev}}">&#8593;</div>
   <div class="nav-btn nav-btn-home" id="navHome" title="{{str_nav_home}}">&#127968;</div>
   <div class="nav-btn" id="navNext" title="{{str_nav_next}}">&#8595;</div>
-  <div class="nav-btn" id="navShare" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}">&#128228;</div>
+  <div class="nav-btn" id="navShare" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
 </div>
 
 <div class="share-popover" id="sharePopover">
