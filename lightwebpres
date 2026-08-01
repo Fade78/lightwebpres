@@ -271,6 +271,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .series-current { background: #f0f0e8; border: 2px solid #ddd; opacity: 0.6; }
   .series-link { background: white; border: 2px solid var(--yellow); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .series-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
   .series-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
   .series-desc { font-size: 14px; color: var(--grey); margin-bottom: 8px; }
   .series-status { font-size: 13px; font-weight: 600; }
@@ -631,12 +632,14 @@ TEMPLATE_INDEX = '''<!DOCTYPE html>
 
 # --- Template: series-nav (fragment) ---
 TEMPLATE_SERIES_NAV_ITEM_LINK = '''    <a href="{file}" class="series-item series-link">
+      <div class="series-label">{label}</div>
       <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
       <div class="series-status">&rarr; {read}</div>
     </a>'''
 
 TEMPLATE_SERIES_NAV_ITEM_CURRENT = '''    <div class="series-item series-current">
+      <div class="series-label">{label}</div>
       <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
       <div class="series-status">&#9656; {status}</div>
@@ -1339,14 +1342,19 @@ def build_series_nav(current_file, series_data, strings):
     back = strings.get('series_back_to_index', 'Back to index')
     parts = []
     for entry in articles:
+        # card_label is already resolved by resolve_display_fields()
+        # (series.json > article meta > no further fallback, §20.3.1).
+        label = entry.get('card_label', '')
         if entry['file'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
+                label=label,
                 title=entry['series_title'],
                 desc=entry['series_desc'],
                 status=current_status))
         else:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
                 file=html_escape(entry['file'], quote=True),
+                label=label,
                 title=entry['series_title'],
                 desc=entry['series_desc'],
                 read=read))

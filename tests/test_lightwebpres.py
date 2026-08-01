@@ -988,6 +988,47 @@ class DisplayFieldOverrides(unittest.TestCase):
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('<div class="article-number"></div>', html)
 
+    def _build_with_series_nav(self, tmp, meta_extra, series_entry_extra):
+        # Unlike _build() above, this article includes a series-nav slide
+        # so the "Cette série" block actually renders on its own page.
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\n' + meta_extra + '\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        entry = {'file': 'a.html', 'source': 'a.md'}
+        entry.update(series_entry_extra)
+        (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+        return root
+
+    def test_card_label_from_meta_appears_in_series_nav(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_with_series_nav(
+                tmp,
+                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
+                {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="series-label">Meta label</div>', html)
+
+    def test_series_json_card_label_override_appears_in_series_nav(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_with_series_nav(
+                tmp,
+                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
+                {'card_label': 'Override label'},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="series-label">Override label</div>', html)
+            self.assertNotIn('Meta label', html)
+
 
 class ImageCopySafety(unittest.TestCase):
     """§P2: copy_images must merge into an existing public/img/, never wipe

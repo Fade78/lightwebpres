@@ -126,8 +126,8 @@ contient, pour chaque article, deux catégories de champs bien distinctes
   le bloc meta de l'article lui-même (§20.3.1) : `series_title`/`series_desc`
   (titre et description courts, navigation et index), `card_title`/`card_desc`
   (spécifiques à la carte d'index, si différents des précédents),
-  `card_label` (étiquette libre sur la carte d'index — texte, pas un
-  numéro).
+  `card_label` (étiquette libre sur la carte d'index et dans le bloc
+  « Cette série » — texte, pas un numéro).
 
 Le contenu d'une fiche `cover` (tag, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
@@ -1345,7 +1345,7 @@ Placeholders supplémentaires :
 | Placeholder | Source | Description |
 |-------------|--------|-------------|
 | `{{slide_id}}` | Calculé (ex. `s9-series`) | ID de la slide de navigation |
-| `{{nav_items}}` | Généré depuis `series.json` | Les items de navigation (liens + courant), chacun utilisant `series_read`/`series_current_status`/`series_back_to_index` (§7.3) |
+| `{{nav_items}}` | Généré depuis `series.json` | Les items de navigation (liens + courant), chacun affichant `card_label`/`series_title`/`series_desc` résolus (§20.3.1) et utilisant `series_read`/`series_current_status`/`series_back_to_index` (§7.3) |
 | `{{str_series_nav_title}}` | `language/{lang}.json` → `strings` | Titre du bloc (« Cette série » / « This series ») |
 
 ### 18.4 Règles de remplacement
@@ -1517,7 +1517,7 @@ article restent lus depuis son propre bloc meta.
 | `series_desc` | string | non | nav, index | Description courte ; surcharge celle du bloc meta (valeur finale obligatoire, §20.3.1) |
 | `card_title` | string | non | index | Titre de la carte d'index si différent de `series_title` ; surcharge celui du bloc meta (§20.3.1) |
 | `card_desc` | string | non | index | Description de la carte d'index si différente de `series_desc` ; surcharge celle du bloc meta (§20.3.1) |
-| `card_label` | string | non | index | Étiquette libre sur la carte d'index — texte, pas un numéro ; surcharge celle du bloc meta (§20.3.1) |
+| `card_label` | string | non | index, nav | Étiquette libre sur la carte d'index et dans le bloc « Cette série » — texte, pas un numéro ; surcharge celle du bloc meta (§20.3.1) |
 
 ### 20.3 Règles de validation
 

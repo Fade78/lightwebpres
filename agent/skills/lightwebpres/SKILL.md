@@ -166,10 +166,11 @@ structural fields:
 the only fields ever required directly in `series.json`. The array order
 is the navigation/index order.
 
-`series_title`/`series_desc` (navigation + index fallback) and
-`card_title`/`card_desc`/`card_label` (index-card specifics) are read
-from the article's own meta block by default (see above) — add one to
-the `series.json` entry only to override it for this article, e.g.:
+`series_title`/`series_desc` (navigation + index fallback), `card_title`/
+`card_desc` (index-card specifics), and `card_label` (index card **and**
+the "This series" nav block on every article's own page) are read from
+the article's own meta block by default (see above) — add one to the
+`series.json` entry only to override it for this article, e.g.:
 
 ```json
 {"file": "apple-pie.html", "source": "apple-pie.md",
