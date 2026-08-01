@@ -36,7 +36,8 @@ L'exécutable contient en interne :
 3. Les règles typographiques par défaut (`fr` et `en`) — écrites en string
    Python, extraites par la commande `install`
 4. Le générateur de démo (crée des articles d'exemple)
-5. Le CLI (`install`, `demo`, `build`, `check`, `--help`)
+5. Le CLI (`install`, `demo`, `build`, `check`, `audit`, `refresh-templates`,
+   `--help`)
 
 ### 2.2 Le répertoire de série
 
@@ -95,8 +96,8 @@ Les options en ligne de commande **override** les variables d'environnement.
 ```bash
 lightwebpres install [répertoire] [--lang fr] [--force]
 lightwebpres demo [répertoire] [--lang fr]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json]
-lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography]
+lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography]
 lightwebpres audit [répertoire] [--lang fr]
 lightwebpres refresh-templates [répertoire]
 lightwebpres --help
@@ -379,6 +380,36 @@ puis les fiches `standard`, puis `series-nav`, puis `full-article` en
 dernier — c'est une convention d'usage recommandée, pas une règle imposée
 par le moteur.
 
+### 4.5 Désactiver la typographie automatique pour un article
+
+Le moteur de typographie (§7/§19) **modifie le contenu généré** : il insère
+des espaces insécables aux endroits qu'il reconnaît (voir §7.5 pour la
+liste). C'est un comportement par défaut, pas neutre, donc réversible —
+trois champs du bloc `<!-- lwp:meta -->` de l'article (aucun effet ailleurs,
+y compris dans `series.json`, §20.2) permettent de le retirer, en tout ou
+en partie, pour cet article et sa propre page uniquement :
+
+| Champ | Effet quand la valeur est `off` |
+|-------|----------------------------------|
+| `typo-units: off` | Désactive uniquement les règles nombre/unité et opérateur/nombre (`nbsp_before_unit`, `nbsp_after_operator`, §7.5) |
+| `typo-thousands: off` | Désactive uniquement la règle de séparateur de milliers (`nbsp_thousands_separator`, §7.5) |
+| `typo: off` | Désactive **toutes** les règles pour cet article — y compris les trois règles historiques (guillemets, ponctuation haute, %), pas seulement les deux ci-dessus |
+
+Seule la valeur `off` (insensible à la casse) désactive une règle ; toute
+autre valeur, ou l'absence du champ, la laisse active (comportement par
+défaut, inchangé). `typo: off` équivaut, pour cet article seul, à lancer
+tout le build avec `--no-typography` (§11.3/§19.6) : aucune règle ne
+s'exécute sur sa page, pas seulement celles nommées explicitement — une
+future règle ajoutée au moteur serait donc, elle aussi, couverte sans
+modification de cette section.
+
+Portée : ces trois champs n'affectent que la page de **cet** article
+(titre, fiches, article complet inclus). Les fragments de cet article
+réutilisés ailleurs — sa carte et sa description dans l'index, son entrée
+dans le bloc « Cette série » d'un autre article — restent soumis aux règles
+normales, puisqu'ils sont générés par `build_index`/`build_series_nav`, pas
+par le rendu de la page de l'article lui-même.
+
 ---
 
 ## 5. Inclusions
@@ -592,6 +623,71 @@ pack par défaut. Le comportement diffère entre les deux blocs :
 - Si `--lang` désigne une langue sans pack intégré (ni `fr` ni `en`) et sans
   fichier `language/{lang}.json`, le pack **anglais** intégré est utilisé
   comme base.
+
+### 7.5 Règles insécables par défaut (`fr`)
+
+Le pack `fr` intégré contient sept règles, appliquées dans cet ordre
+(§19.3). Les quatre premières existaient déjà ; les trois dernières
+insèrent une espace insécable entre un nombre et ce qui le complète —
+un cas que les précédentes ne couvraient pas, car aucune d'elles ne
+regarde ce qui suit un nombre :
+
+| `name` | Avant | Après |
+|--------|-------|-------|
+| `nbsp_before_double_punctuation` | `Vraiment ?` | `Vraiment ?` |
+| `nbsp_after_opening_quote` | `« bonjour »` | `« bonjour »` |
+| `nbsp_before_percent` | `50 %` | `50 %` |
+| `nbsp_thousands_separator` | `170 000 vues` | `170 000 vues` |
+| `nbsp_before_unit` | `170 millions`, `20 dollars`, `5 $` | `170 millions`, `20 dollars`, `5 $` |
+| `nbsp_after_operator` | `≈ 5`, `× 4` | `≈ 5`, `× 4` |
+
+`nbsp_thousands_separator` ne fait qu'**upgrader une espace déjà présente**
+entre deux groupes de 3 chiffres consécutifs — elle ne regroupe jamais un
+nombre écrit sans espaces (`170000` reste `170000`) : décider si et comment
+regrouper un nombre reste un choix éditorial de l'auteur, pas une
+transformation automatique du moteur. Un nombre à 4 chiffres collé
+(`2024`, une année typique) n'est jamais concerné, faute d'espace à
+upgrader.
+
+`nbsp_before_unit` couvre volontairement une liste courte et précise
+(`million(s)`, `milliard(s)`, `dollar(s)`, `$`) plutôt qu'un mot quelconque
+suivant un nombre : un mot ordinaire comme « likes » dans « 68 likes »
+n'est pas une unité typographique reconnue — l'ajouter à la liste
+casserait la distinction avec un nombre suivi d'un nom commun ordinaire
+(« 5 personnes »). Cette liste, comme les quatre autres règles, reste
+éditable dans `language/fr.json` (§7.4, §19.2) pour qui veut l'étendre.
+
+Ces règles ne font **jamais** que remplacer une espace normale (U+0020)
+déjà présente par une espace insécable (U+00A0) : elles n'insèrent ni
+espace ni regroupement de chiffres qui n'existait pas dans la source, et
+une espace insécable déjà présente dans la source traverse tout le
+pipeline sans modification (§4.5, §7.6).
+
+Aucune de ces sept règles n'existe dans le pack `en` intégré (`"rules": []`,
+§7.4) : ce sont des conventions typographiques françaises, sans équivalent
+anglais codifié de la même façon.
+
+### 7.6 Préservation d'une espace insécable déjà présente dans la source
+
+Toute espace insécable (U+00A0) déjà tapée par l'auteur dans le Markdown
+source — au milieu d'une valeur ou à son extrémité — doit atteindre le
+HTML généré strictement inchangée, que la typographie automatique soit
+active ou non (§4.5, §11.3). C'est une propriété structurelle du moteur,
+pas seulement l'absence de règle qui la supprimerait :
+
+- Les sept règles de §7.5 ne remplacent jamais que des espaces normales
+  (U+0020) — leur `pattern` ne reconnaît jamais U+00A0, donc une espace
+  insécable déjà présente ne peut pas correspondre à un `pattern` et n'est
+  jamais retouchée, y compris en cas d'application répétée (§19.3).
+- Le découpage du Markdown (bloc meta, champs de fiche, contenu libre
+  d'une fact-box, article complet inclus) ne doit rogner que les
+  espaces/retours à la ligne ordinaires laissés par le découpage
+  ligne-par-ligne du fichier — jamais U+00A0, qu'un `str.strip()`/
+  `str.rstrip()` Python nu confondrait pourtant avec de l'espace
+  ordinaire (`'\xa0'.isspace()` vaut `True`). Le moteur utilise pour cela
+  un jeu de caractères de trim explicite (espace, tabulation, retours à la
+  ligne) partout où une valeur d'auteur est extraite, jamais un trim par
+  défaut.
 
 ---
 
@@ -876,7 +972,7 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography]
 ```
 
 Construit le site :
@@ -890,7 +986,11 @@ Construit le site :
       - Si `standard` : génère la slide avec les champs et le contenu
       - Si `series-nav` : génère la navigation depuis `series.json`
       - Si `full-article` : lit le fichier `.md` inclus, le convertit
-   d. Applique les règles typographiques (protégées des balises HTML, §7.2)
+   d. Applique les règles typographiques (protégées des balises HTML,
+      §7.2), sauf avec `--no-typography` (aucune règle ne s'exécute pour
+      aucun article de ce build, §4.5/§19.6) ou pour un article dont le
+      bloc meta porte `typo: off` (même effet, mais pour cet article
+      seul, §4.5)
    e. Assemble le HTML avec la structure de page fixe (§9), le CSS et le JS
    f. Écrit le fichier HTML dans `public/`
 3. Génère la page d'index (`public/index.html`)
@@ -908,12 +1008,17 @@ Construit le site :
 ### 11.4 `check`
 
 ```bash
-lightwebpres check [répertoire] [--lang fr]
+lightwebpres check [répertoire] [--lang fr] [--no-typography]
 ```
 
 Vérifie sans modifier :
 
-1. Lance le build en mémoire (sans écrire les fichiers)
+1. Lance le build en mémoire (sans écrire les fichiers) ; `--no-typography`
+   a le même effet que sur `build` (§11.3), sur ce build en mémoire —
+   utile pour vérifier un `public/` déjà généré sans typographie, pas pour
+   ignorer une vraie différence de typographie sur un `public/` généré
+   normalement (`check` comparerait alors deux HTML volontairement
+   différents et signalerait un `[DRIFT]` correct, pas un faux positif)
 2. Compare le HTML généré avec le HTML existant dans `public/`
 3. Pour chaque fichier différent, affiche `[DRIFT] fichier` suivi d'un diff ;
    pour chaque fichier absent de `public/`, affiche `[NEW] fichier` ; pour
@@ -1501,21 +1606,42 @@ vocabulaire fixe des templates par défaut (`strings`).
       "name": "nbsp_before_double_punctuation",
       "description": "Espace insécable avant : ; ! ? et »",
       "pattern": " ([!?;:»])",
-      "replacement": " $1",
+      "replacement": " $1",
       "flags": "g"
     },
     {
       "name": "nbsp_after_opening_quote",
       "description": "Espace insécable après «",
       "pattern": "(«) ",
-      "replacement": "$1 ",
+      "replacement": "$1 ",
       "flags": "g"
     },
     {
       "name": "nbsp_before_percent",
       "description": "Espace insécable avant %",
       "pattern": " %",
-      "replacement": " %",
+      "replacement": " %",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_thousands_separator",
+      "description": "Espace insécable entre groupes de 3 chiffres d'un nombre déjà séparé par des espaces (§7.5)",
+      "pattern": "(?<=\\d) (?=\\d{3}(?!\\d))",
+      "replacement": " ",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_before_unit",
+      "description": "Espace insécable entre un nombre et million(s)/milliard(s)/dollar(s)/$ (§7.5)",
+      "pattern": "(?<=\\d) (?=(?:millions?|milliards?|dollars?)\\b|\\$)",
+      "replacement": " ",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_after_operator",
+      "description": "Espace insécable entre × ou ≈ et le nombre qui suit (§7.5)",
+      "pattern": "(?<=[×≈]) (?=\\d)",
+      "replacement": " ",
       "flags": "g"
     }
   ],
@@ -1525,6 +1651,10 @@ vocabulaire fixe des templates par défaut (`strings`).
   }
 }
 ```
+
+Les sept règles ci-dessus sont exactement celles du pack `fr` intégré (§7.5) —
+contrairement à l'exemple de §7.1 (illustratif), celui-ci reflète le
+contenu réel embarqué dans l'exécutable.
 
 ### 19.2 Champs
 
@@ -1593,6 +1723,19 @@ Au moment du build, le moteur charge le pack de langue depuis :
 4. Le pack intégré à l'exécutable pour `$LWP_LANG` (`fr` ou `en`), ou le pack
    anglais intégré si `$LWP_LANG` ne correspond à aucun pack connu (repli
    ultime, §7.1)
+
+### 19.6 Désactivation complète (`--no-typography`)
+
+`--no-typography`, sur `build` et `check` (§11.3/§11.4), saute entièrement
+le chargement d'un moteur de règles pour ce lancement — aucune règle,
+qu'elle vienne du pack intégré ou d'un override (§7.4/§19.5), ne s'exécute
+sur aucun article ni sur l'index, pour toute la durée de ce build. C'est
+la portée la plus large des trois mécanismes de désactivation (§4.5) :
+`typo-units`/`typo-thousands` ne visent qu'une paire de règles nommées,
+`typo: off` vise déjà toutes les règles mais pour un seul article, `--no-
+typography` les vise toutes pour tout le build — y compris toute règle qui
+serait ajoutée plus tard, puisque le mécanisme ne construit simplement pas
+de moteur du tout plutôt que d'énumérer des noms de règles à exclure.
 
 ---
 

@@ -15,6 +15,7 @@ Run with: python3 tests/run_tests.py
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -619,6 +620,177 @@ class RemainingTypographyRules(unittest.TestCase):
             self.assertIn('50\xa0%', html)
 
 
+class NbspUnitsAndThousands(unittest.TestCase):
+    """§7.5: the three newer French rules — thousands grouping, number
+    before a unit word/$, and ×/≈ before a number — each only upgrade an
+    existing ASCII space next to a digit, never insert new spacing."""
+
+    def _build_summary(self, summary):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            f'<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: {summary}\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            m = re.search(r'<p class="summary">(.*?)</p>', html)
+            self.assertIsNotNone(m)
+            return m.group(1)
+
+    def test_thousands_separator_upgrades_existing_spaces(self):
+        out = self._build_summary('170 000 000 vues.')
+        self.assertIn('170\xa0000\xa0000', out)
+
+    def test_thousands_separator_does_not_group_unspaced_number(self):
+        out = self._build_summary('170000 vues.')
+        self.assertIn('170000', out)
+        self.assertNotIn('\xa0', out)
+
+    def test_thousands_separator_leaves_4_digit_year_alone(self):
+        out = self._build_summary('En 1998 ou en 2024.')
+        self.assertNotIn('\xa0', out)
+
+    def test_number_before_unit_words_and_dollar_sign(self):
+        out = self._build_summary('170 millions, 20 dollars, 5 $.')
+        self.assertIn('170\xa0millions', out)
+        self.assertIn('20\xa0dollars', out)
+        self.assertIn('5\xa0$', out)
+
+    def test_informal_word_after_number_is_not_a_recognized_unit(self):
+        out = self._build_summary('68 likes seulement.')
+        self.assertIn('68 likes', out)
+        self.assertNotIn('\xa0', out)
+
+    def test_operator_before_number(self):
+        out = self._build_summary('Environ ≈ 5 et × 4 la dose.')
+        self.assertIn('≈\xa05', out)
+        self.assertIn('×\xa04', out)
+
+
+class NbspPreservedFromSource(unittest.TestCase):
+    """§7.6: a non-breaking space already present in the author's source
+    must reach the generated HTML unchanged — str.strip()/str.rstrip()
+    treat U+00A0 as whitespace and would otherwise eat one sitting at the
+    edge of a field value."""
+
+    def test_trailing_nbsp_in_summary_survives(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Valeur qui finit par une insécable\xa0\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            run('build', str(root), '--output', str(root / 'public'))
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            m = re.search(r'<p class="summary">(.*?)</p>', html)
+            self.assertTrue(m.group(1).endswith('\xa0'))
+
+    def test_trailing_nbsp_in_fact_content_survives(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Titre\nfact-label: Le saviez-vous\n\n'
+            'Une ligne qui finit par une insécable\xa0\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            run('build', str(root), '--output', str(root / 'public'))
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            m = re.search(r'<p class="fact-content">(.*?)</p>', html)
+            self.assertTrue(m.group(1).endswith('\xa0'))
+
+
+class TypographyDisableSwitches(unittest.TestCase):
+    """§4.5/§19.6: typo-units/typo-thousands/typo meta fields and
+    --no-typography each turn off part or all of the typography engine,
+    scoped exactly as documented — per-rule, per-article, or global."""
+
+    def _two_article_series(self, tmp, meta_extra_b=''):
+        root = Path(tmp)
+        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        summary = 'Environ ≈ 5 $ pour 170 000 000 vues, × 4 la dose, 170 millions de gens, 20 dollars.'
+        md_a = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+            f'<!-- lwp:slide:cover -->\ntag: T\n# Titre A\nsummary: {summary}\n'
+        )
+        md_b = (
+            '<!-- lwp:meta -->\nfile: b.html\nh1: B\nseries_title: B\nseries_desc: B\n'
+            f'{meta_extra_b}---\n\n'
+            f'<!-- lwp:slide:cover -->\ntag: T\n# Titre B\nsummary: {summary}\n'
+        )
+        (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
+        (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+        entries = [
+            {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'},
+            {'file': 'b.html', 'source': 'b.md', 'series_title': 'B', 'series_desc': 'B'},
+        ]
+        (root / 'series.json').write_text(json.dumps({'articles': entries}), encoding='utf-8')
+        return root
+
+    def _summary_of(self, root, output, filename):
+        html = (root / output / filename).read_text(encoding='utf-8')
+        m = re.search(r'<p class="summary">(.*?)</p>', html)
+        return m.group(1)
+
+    def test_typo_units_off_disables_only_units_for_that_article(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._two_article_series(tmp, meta_extra_b='typo-units: off\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            a = self._summary_of(root, 'public', 'a.html')
+            b = self._summary_of(root, 'public', 'b.html')
+            self.assertIn('170\xa0millions', a)
+            self.assertIn('170 millions', b)
+            # Thousands separator is untouched by typo-units: off.
+            self.assertIn('170\xa0000\xa0000', b)
+
+    def test_typo_thousands_off_disables_only_thousands_for_that_article(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._two_article_series(tmp, meta_extra_b='typo-thousands: off\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            a = self._summary_of(root, 'public', 'a.html')
+            b = self._summary_of(root, 'public', 'b.html')
+            self.assertIn('170\xa0000\xa0000', a)
+            self.assertIn('170 000 000', b)
+            # Units rule is untouched by typo-thousands: off.
+            self.assertIn('170\xa0millions', b)
+
+    def test_typo_off_disables_every_rule_for_that_article_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._two_article_series(tmp, meta_extra_b='typo: off\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            a = self._summary_of(root, 'public', 'a.html')
+            b = self._summary_of(root, 'public', 'b.html')
+            self.assertIn('\xa0', a)
+            self.assertNotIn('\xa0', b)
+            self.assertIn(
+                'Environ ≈ 5 $ pour 170 000 000 vues, × 4 la dose, 170 millions de gens, 20 dollars.',
+                b,
+            )
+
+    def test_no_typography_flag_disables_every_rule_for_whole_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._two_article_series(tmp)
+            result = run('build', str(root), '--output', str(root / 'public'), '--no-typography')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            a = self._summary_of(root, 'public', 'a.html')
+            b = self._summary_of(root, 'public', 'b.html')
+            self.assertNotIn('\xa0', a)
+            self.assertNotIn('\xa0', b)
+
+    def test_no_typography_flag_works_on_check_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._two_article_series(tmp)
+            result = run('check', str(root), '--no-typography')
+            # Nothing built yet under this flag's semantics, so everything
+            # is [NEW] — the point is the flag is accepted and check runs.
+            self.assertIn(result.returncode, (0, 1))
+            self.assertNotIn('Traceback', result.stderr)
+
+
 class TemplateOverride(unittest.TestCase):
     """§12/§18: a templates/style.css or templates/nav.js placed by the
     author must be used instead of the built-in default."""
@@ -1142,6 +1314,18 @@ class DemoOverwriteProtection(unittest.TestCase):
             second = run('demo', str(root))
             self.assertNotEqual(second.returncode, 0)
             self.assertIn('already has demo file', second.stderr)
+
+
+class HelpDocumentsTypographyControls(unittest.TestCase):
+    """The typography engine alters generated content (§4.5/§7.5/§19.6),
+    so --help must document its rules and every way to turn it off —
+    not just specifications.md."""
+
+    def test_help_mentions_meta_opt_outs_and_no_typography_flag(self):
+        result = run('--help')
+        self.assertEqual(result.returncode, 0)
+        for needle in ('typo-units', 'typo-thousands', '--no-typography'):
+            self.assertIn(needle, result.stdout)
 
 
 class TypographyTagProtection(unittest.TestCase):

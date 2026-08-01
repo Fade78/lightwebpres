@@ -97,6 +97,7 @@ all generated automatically.
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md` |
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking editorial warnings (e.g. "no cover slide") — never fails the build |
+| `refresh-templates [dir]` | Updates the built-in CSS/JS in `templates/` after an executable upgrade, keeping local customizations |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
 ## Slide types
@@ -120,6 +121,19 @@ series navigation labels). `--lang fr|en` picks one; a
 `language/{lang}.json` file lets you override just the keys you care
 about, falling back to the built-in pack for the rest. English is the
 ultimate fallback for any language without a pack.
+
+The French pack automatically upgrades an existing space to a
+non-breaking one before `; : ! ?`, after `«`, before `%`, between
+thousands-grouped digits (`170 000`, only if the source already spaces it
+out), between a number and `million(s)`/`milliard(s)`/`dollar(s)`/`$`, and
+after `×`/`≈` before a number — it never inserts spacing or digit
+grouping that wasn't already there, and a non-breaking space already in
+your source always passes through unchanged. This alters generated
+content, so it's controllable at three levels: per-article meta fields
+`typo-units: off` / `typo-thousands: off` (just those rules) or `typo:
+off` (every rule, that article's page only), and the CLI flag
+`--no-typography` on `build`/`check` (every rule, the whole run). See
+`--help` or specifications.md §4.5/§7.5/§19.6 for the full list.
 
 ## Templates
 
