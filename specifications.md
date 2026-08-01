@@ -1689,8 +1689,9 @@ l'apparence de chaque ligne individuelle.
 ## 23. Version navigateur (`web/`)
 
 En plus de l'exécutable console, une page statique permet de construire une
-série **entièrement dans le navigateur**, sans rien installer et sans
-serveur : on dépose un zip de la série, on récupère un zip de `public/`.
+série **entièrement dans le navigateur**, sans rien installer : on dépose un
+zip de la série, on récupère un zip de `public/`. Un serveur HTTP minimal
+reste nécessaire pour ouvrir la page elle-même — voir §23.6.
 
 ### 23.1 Principe
 
@@ -1741,6 +1742,27 @@ une simulation. Il nécessite Node.js et le paquet `playwright` ; il est
 ignoré proprement (skip) si l'un des deux est absent, plutôt que de faire
 échouer toute la suite — c'est une dépendance propre à ce test, pas à
 l'exécutable.
+
+### 23.6 Ne fonctionne pas ouvert directement (`file://`)
+
+Le geste le plus naturel avec une page HTML autonome — la télécharger puis
+l'ouvrir en double-cliquant dessus — ne fonctionne **pas** : les navigateurs
+(Chromium en particulier) bloquent, sous l'origine `file://`, à la fois le
+`fetch()` des ressources de Pyodide (`pyodide-lock.json`, le `.wasm`, le zip
+de la stdlib) et l'`import()` dynamique de `pyodide.asm.mjs`, par politique
+CORS (origine `null`). Ce n'est pas contournable côté page : il faut un
+serveur HTTP, même minimal et local (`python3 -m http.server` dans `web/`,
+ou n'importe quel serveur statique), puis ouvrir la page via une url
+`http://` ou `https://`.
+
+`index.html` et `git-sync.html` détectent ce cas dès le début de `init()`
+(`location.protocol === 'file:'`) et affichent un message d'erreur explicite
+avec la marche à suivre, plutôt que de laisser Pyodide échouer avec une
+erreur de navigateur brute et peu compréhensible (`ReferenceError:
+loadPyodide is not defined` si le script lui-même est intercepté avant
+exécution, ou une `TypeError` de fetch selon l'endroit exact où le blocage
+intervient — le point de blocage précis varie, la cause est toujours la
+même). Testé par `tests/test_web.py::FileProtocolGuard`.
 
 ---
 

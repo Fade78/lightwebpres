@@ -134,6 +134,16 @@ with a GitLab repository instead? See <a href="./git-sync.html">git-sync.html</a
   let pyodideReady = null;
 
   async function init() {
+    if (location.protocol === 'file:') {
+      setStatus(
+        'This page was opened as a local file — Pyodide cannot load (browsers block '
+        + 'its module and asset fetches under the file:// origin). Serve this directory '
+        + 'over http instead, e.g.: python3 -m http.server 8000 — then open '
+        + 'http://localhost:8000/index.html.',
+        'error',
+      );
+      return;
+    }
     try {
       const pyodide = await loadPyodide({ indexURL: './vendor/pyodide/' });
       const lwpSource = await fetchText('../lightwebpres');

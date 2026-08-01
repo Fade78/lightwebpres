@@ -132,7 +132,10 @@ a malformed structural override.
 
 Both load the exact same `lightwebpres` executable, unmodified, running
 inside [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly) —
-one build engine, three front-ends.
+one build engine, three front-ends. Both need to be **served over
+http(s)** — opening the file directly (`file://`) doesn't work, browsers
+block Pyodide's asset loading under that origin; `python3 -m http.server`
+in `web/` is enough (see specifications.md §23.6).
 
 - **`web/index.html`** — upload a zip of your series, get back a zip of
   `public/`. Nothing ever leaves the browser tab; Pyodide runs vendored

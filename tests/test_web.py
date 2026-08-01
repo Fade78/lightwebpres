@@ -23,6 +23,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WEB_E2E_SCRIPT = Path(__file__).resolve().parent / 'web_e2e.cjs'
+FILE_PROTOCOL_GUARD_SCRIPT = Path(__file__).resolve().parent / 'file_protocol_guard_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -125,6 +126,33 @@ class WebBuild(unittest.TestCase):
         html = self._build('en')
         self.assertIn('Built entirely in the browser.', html)
         self.assertIn('Previous slide', html)
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
+class FileProtocolGuard(unittest.TestCase):
+    """§23.6: opening index.html or git-sync.html as a local file:// page
+    (the natural thing to do with a self-contained static page) can never
+    actually load Pyodide — browsers block its module/asset fetches under
+    the file:// origin. init() must detect this up front and show a clear,
+    actionable status message instead of letting Pyodide fail with a raw,
+    confusing browser error."""
+
+    def _check(self, html_filename):
+        file_url = 'file://' + str(REPO_ROOT / 'web' / html_filename)
+        result = subprocess.run(
+            ['node', str(FILE_PROTOCOL_GUARD_SCRIPT), file_url,
+             'Serve this directory over http instead'],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_index_html_shows_guard_when_opened_as_local_file(self):
+        self._check('index.html')
+
+    def test_git_sync_html_shows_guard_when_opened_as_local_file(self):
+        self._check('git-sync.html')
 
 
 if __name__ == '__main__':
