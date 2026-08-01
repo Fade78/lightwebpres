@@ -1102,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }, { passive: true });
 
   // --- Share button: popover with a copy-link / QR-code matrix, scoped to
-  // the series index, this article, or the current fiche (slide). §9.2.1.
+  // the series index, this article, or the current slide. §9.2.1.
   function currentSlideId() {
     var s = slides[current];
     if (!s || !/^s\d+$/.test(s.id) || s.id === 's1') return null;
