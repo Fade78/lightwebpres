@@ -140,8 +140,9 @@ so serving `web/` alone isn't enough either:
 `python3 -m http.server 8000 --directory /path/to/lightwebpres` (the
 folder containing both `lightwebpres` and `web/`), then open
 `http://localhost:8000/web/index.html` (see specifications.md §23.6 — if
-you open a page as `file://` anyway, it now shows this exact command
-computed from where you actually put the files).
+you open a page as `file://` anyway, it computes this exact command from
+where you actually put the files and shows it with a one-click Copy
+button, instead of a raw browser error).
 
 - **`web/index.html`** — upload a zip of your series, get back a zip of
   `public/`. Nothing ever leaves the browser tab; Pyodide runs vendored

@@ -134,16 +134,18 @@ class FileProtocolGuard(unittest.TestCase):
     (the natural thing to do with a self-contained static page) can never
     actually load Pyodide — browsers block its module/asset fetches under
     the file:// origin. init() must detect this up front and show a clear,
-    actionable status message instead of letting Pyodide fail with a raw,
-    confusing browser error."""
+    actionable, one-click-copyable command instead of letting Pyodide fail
+    with a raw, confusing browser error."""
 
     def _check(self, html_filename):
-        # The expected substring pins down the exact, complete command —
-        # naming the real repo root computed from the file's own path, not
-        # a vague "serve this directory" that would silently serve whatever
-        # directory happens to be the shell's cwd (e.g. a cluttered
-        # Downloads folder) instead of the one that actually has the
-        # sibling files this page needs.
+        # The expected command pins down the exact, complete, copyable
+        # command — naming the real repo root computed from the file's own
+        # path, not a vague "serve this directory" that would silently
+        # serve whatever directory happens to be the shell's cwd (e.g. a
+        # cluttered Downloads folder) instead of the one that actually has
+        # the sibling files this page needs. The driver script also clicks
+        # the Copy button and reads the clipboard back, so this exercises
+        # copyability end to end, not just that the text is present.
         file_url = 'file://' + str(REPO_ROOT / 'web' / html_filename)
         expected = 'python3 -m http.server 8000 --directory "%s"' % REPO_ROOT
         result = subprocess.run(

@@ -1776,10 +1776,15 @@ la rendraient incomplète ou fausse :
 qui calcule la commande exacte à partir du chemin réel du fichier ouvert
 (`location.pathname`, dont `/web/{index,git-sync}.html` est retranché pour
 obtenir la racine du dépôt) — `python3 -m http.server 8000 --directory
-"<racine calculée>"` — plutôt que de laisser Pyodide échouer avec une
-erreur de navigateur brute et peu compréhensible (`ReferenceError:
-loadPyodide is not defined` si le script lui-même est intercepté avant
-exécution, ou une `TypeError` de fetch selon l'endroit exact où le blocage
+"<racine calculée>"` — affichée dans un bloc `<code>` dédié avec son propre
+bouton « Copy » (presse-papier via `navigator.clipboard`, repli sur
+`prompt()` si l'API est indisponible) : une commande qu'il faut retaper à
+la main depuis un message d'erreur est une source connue de fautes de
+frappe, en particulier sur un chemin de fichier. Le tout plutôt que de
+laisser Pyodide échouer avec une erreur de navigateur brute et peu
+compréhensible (`ReferenceError: loadPyodide is not defined` si le script
+lui-même est intercepté avant exécution, ou une `TypeError` de fetch selon
+l'endroit exact où le blocage
 intervient — le point de blocage précis varie, la cause est toujours la
 même). Testé par `tests/test_web.py::FileProtocolGuard`.
 

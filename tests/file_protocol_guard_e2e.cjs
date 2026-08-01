@@ -2,11 +2,13 @@
 // web/git-sync.html. Invoked by test_web.py — not a standalone entry point.
 // Opens the given page via a file:// URL (exactly how a user who downloads
 // and double-clicks the page would open it) and checks that init() bails
-// out early with a clear, actionable status message instead of Pyodide
+// out early with a clear, actionable, copyable command instead of Pyodide
 // failing with a raw, confusing browser error (blocked module/asset
 // fetches under the file:// origin — see specifications.md §23.6).
+// Also clicks the guard's Copy button and reads the clipboard back, to
+// verify the command is actually copyable, not just displayed as text.
 //
-// argv: <fileUrl> <expectedStatusSubstring>
+// argv: <fileUrl> <expectedCommand>  (exact command text, not a substring)
 
 const { chromium } = require('playwright');
 
@@ -19,7 +21,9 @@ async function main() {
 
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const page = await context.newPage();
 
   const consoleErrors = [];
   page.on('console', (msg) => {
@@ -37,6 +41,22 @@ async function main() {
     const status = await page.textContent('#status');
     if (!status.includes(expectedSubstring)) {
       throw new Error('Status did not contain expected guard message.\nGot: ' + status);
+    }
+
+    // The command must be in its own <code> element (exactly what the
+    // Copy button copies) and match the full expected command exactly,
+    // not just appear as a substring somewhere in the surrounding prose.
+    const codeText = await page.textContent('.guard-cmd-row code');
+    if (codeText !== expectedSubstring) {
+      throw new Error('<code> block did not match expected command exactly.\nGot: ' + codeText);
+    }
+
+    // The whole point of a copy button is that it actually copies: click
+    // it and read the clipboard back.
+    await page.click('.guard-cmd-row button');
+    const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+    if (clipboardText !== expectedSubstring) {
+      throw new Error('Clipboard did not contain the expected command after clicking Copy.\nGot: ' + clipboardText);
     }
 
     // The whole point of the early exit is to never reach Pyodide's own
