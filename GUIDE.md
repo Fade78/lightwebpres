@@ -37,10 +37,12 @@ open my-series/public/index.html
 `install` scaffolds a working project — `articles/` (empty, for your
 `.md` files), `templates/` (default CSS/JS, editable), `language/`
 (French and English packs — typography rules + interface strings), an
-empty `series.json`, a `.gitlab-ci.yml` for automated builds, and a copy
-of the `lightwebpres` executable itself, so the project directory is
-self-sufficient. `--lang fr|en` picks the default language (French unless
-told otherwise); `--force` lets you install into a non-empty directory.
+empty `series.json`, and a copy of the `lightwebpres` executable itself,
+so the project directory is self-sufficient. `--lang fr|en` picks the
+default language (French unless
+told otherwise); `--force` lets you install into a non-empty directory;
+`--gitlab-ci` also writes a `.gitlab-ci.yml` (opt-in — `install` never
+assumes a GitLab deployment on its own, see section 7).
 
 `demo` only works after `install` and refuses to overwrite existing
 files — it drops three example articles (first, middle, last position in
@@ -204,10 +206,10 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
 ```
 
-For unattended builds, `install` also writes a `.gitlab-ci.yml` that runs
-`lightwebpres build .` on every push and publishes `public/` as an
-artifact — add a `check` step before it if you want drift caught before
-it merges (see section 6).
+For unattended builds, `install --gitlab-ci` also writes a `.gitlab-ci.yml`
+that runs `lightwebpres build .` on every push and publishes `public/` as
+an artifact — opt-in, not written by a plain `install` — add a `check`
+step before it if you want drift caught before it merges (see section 6).
 
 ## 9. Going further
 

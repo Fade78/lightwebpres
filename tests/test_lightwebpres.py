@@ -2503,12 +2503,21 @@ class SeriesJsonEmptyStringRejected(unittest.TestCase):
 
 
 class InstallGitlabCi(unittest.TestCase):
-    """§11.1(6): install creates a base .gitlab-ci.yml."""
+    """§11.1(6)/§10: .gitlab-ci.yml is opt-in via --gitlab-ci, never
+    written by a plain install — install must never presuppose a GitLab
+    deployment on its own."""
 
-    def test_install_creates_gitlab_ci_yml(self):
+    def test_install_without_flag_does_not_create_gitlab_ci_yml(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             result = run('install', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / '.gitlab-ci.yml').exists())
+
+    def test_install_with_flag_creates_gitlab_ci_yml(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run('install', str(root), '--gitlab-ci')
             self.assertEqual(result.returncode, 0, result.stderr)
             ci = (root / '.gitlab-ci.yml').read_text(encoding='utf-8')
             self.assertIn('lightwebpres build', ci)

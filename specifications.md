@@ -71,7 +71,7 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │       └── ...
 ├── README.md                      # Généré par build depuis series.json (§8.3)
 ├── lightwebpres                   # Copie de l'exécutable (installée par install, §11.1)
-└── .gitlab-ci.yml                 # Pipeline CI
+└── .gitlab-ci.yml                 # Pipeline CI (optionnel — install --gitlab-ci, §11.1)
 ```
 
 ### 2.3 Variables d'environnement
@@ -1057,7 +1057,10 @@ Avant de reconstruire la partie intégrée du fichier (§9.4),
 
 ## 10. Pipeline GitLab CI
 
-Le `.gitlab-ci.yml` créé par `install` :
+Optionnel — `install` ne l'écrit que si `--gitlab-ci` est passé (§11.1) :
+`install` seul ne présuppose jamais un déploiement GitLab, pour ne pas
+rendre un projet dépendant de GitLab simplement parce qu'il a été
+scaffoldé. Le `.gitlab-ci.yml` que `--gitlab-ci` crée :
 
 ```yaml
 stages:
@@ -1090,7 +1093,7 @@ un `public/` non reconstruit avant de merge — pas fait par défaut par
 ### 11.1 `install`
 
 ```bash
-lightwebpres install [répertoire] [--lang fr] [--theme nom]
+lightwebpres install [répertoire] [--lang fr] [--theme nom] [--gitlab-ci]
 ```
 
 Crée la structure de travail dans `[répertoire]` :
@@ -1108,7 +1111,9 @@ Crée la structure de travail dans `[répertoire]` :
    - `language/fr.json`
    - `language/en.json`
 5. Crée un `series.json` vide (tableau vide `[]`)
-6. Crée un `.gitlab-ci.yml` de base
+6. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
+   passé** — `install` seul ne présuppose jamais un déploiement GitLab
+   (§10) ; par défaut, aucun fichier de CI n'est créé
 7. Copie l'exécutable `lightwebpres` dans le répertoire (pour autonomie)
 
 Si le répertoire existe déjà et contient déjà des fichiers, `install` refuse
@@ -1500,7 +1505,7 @@ git add . && git commit && git push
 ### 14.4 Parcours de pipeline CI
 
 ```bash
-# Le .gitlab-ci.yml (créé par install) fait :
+# Le .gitlab-ci.yml (créé par install --gitlab-ci, opt-in — §10/§11.1) fait :
 #   python3 lightwebpres build .
 #   artifacts: public/
 #

@@ -112,7 +112,7 @@ all generated automatically.
 
 | Command | What it does |
 |---|---|
-| `install [dir]` | Scaffolds a series directory (`articles/`, `templates/`, `language/`, `series.json`, `.gitlab-ci.yml`, a copy of the executable) |
+| `install [dir]` | Scaffolds a series directory (`articles/`, `templates/`, `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed) |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md` |
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |

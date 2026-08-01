@@ -7,7 +7,7 @@ Native UTF-8. Built-in French and English language packs (typography
 rules + interface strings).
 
 Usage:
-  lightwebpres install [directory] [--lang fr] [--force] [--theme name]
+  lightwebpres install [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr]
   lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography]
   lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography]
@@ -3379,6 +3379,7 @@ def cmd_install(target_dir, args):
     lang = args.get('--lang', 'fr')
     force = bool(args.get('--force'))
     theme_key = args.get('--theme')
+    gitlab_ci = bool(args.get('--gitlab-ci'))
 
     if td.exists() and any(td.iterdir()) and not force:
         print(f'[ERROR] {td} is not empty. Use an empty or new directory, or pass --force.',
@@ -3422,8 +3423,11 @@ def cmd_install(target_dir, args):
     }
     (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')
 
-    # .gitlab-ci.yml
-    (td / '.gitlab-ci.yml').write_text(TEMPLATE_GITLAB_CI, encoding='utf-8')
+    # .gitlab-ci.yml — opt-in only (--gitlab-ci): install never assumes a
+    # GitLab deployment, so a project doesn't end up depending on GitLab
+    # just from having been scaffolded (see specifications.md §11.1).
+    if gitlab_ci:
+        (td / '.gitlab-ci.yml').write_text(TEMPLATE_GITLAB_CI, encoding='utf-8')
 
     # Copy the executable itself into the directory, for standalone use
     # (the series directory shouldn't have to depend on lightwebpres being
@@ -3444,8 +3448,12 @@ def cmd_install(target_dir, args):
     print(f'  language/   — typography rules + interface strings (fr, en)')
     print(f'  public/     — generated HTML (build output)')
     print(f'  series.json — article list')
-    print(f'  .gitlab-ci.yml — CI pipeline')
+    if gitlab_ci:
+        print(f'  .gitlab-ci.yml — CI pipeline')
     print(f'  lightwebpres — the executable itself, for standalone use')
+    if not gitlab_ci:
+        print()
+        print('No .gitlab-ci.yml (opt-in only — pass --gitlab-ci to install one).')
     print()
     print('Next steps:')
     print(f'  1. Create articles in {td}/articles/')
@@ -3807,6 +3815,8 @@ OPTIONS
   --force                install: proceed even if the target directory is not empty
   --theme name           install: replace the default theme's colors with a named
                         palette (see THEMES below); unknown name is a fatal error
+  --gitlab-ci             install: also write a .gitlab-ci.yml pipeline (opt-in —
+                        install never assumes a GitLab deployment on its own)
   --language-file path   build/check: use this language pack file instead of
                         language/<lang>.json (highest priority, spec §19.5)
   --no-typography        build/check: disables ALL typography rules (non-breaking
