@@ -244,7 +244,14 @@ as finished — don't guess at whether it would build.
 
 ## Deeper reference
 
-If `specifications.md` is present alongside this project, it's the
-complete, authoritative specification (sections 4 and 6 for the format
-itself, section 22 for every parser edge case) — consult it for anything
-this skill doesn't cover.
+This skill covers only the LWP article format — writing and editing
+`.md` files. It's deliberately kept narrow to stay light on context; it
+does not cover installing, choosing a theme, building, verifying with
+`check`/`audit`, refreshing templates, or deploying. For all of that, if
+`GUIDE.md` is present alongside this project, read it — it's the full
+walkthrough, in the order it's actually needed.
+
+For the article format itself, if `specifications.md` is present
+alongside this project, it's the complete, authoritative specification
+(sections 4 and 6 for the format itself, section 22 for every parser
+edge case) — consult it for anything this skill doesn't cover.
