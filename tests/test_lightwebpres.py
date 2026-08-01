@@ -497,8 +497,8 @@ class MultiArticleSeries(unittest.TestCase):
             },
             'articles': [
                 {'file': 'a.html', 'source': 'a.md', 'series_title': 'Article A',
-                 'series_desc': 'Desc A', 'index_number': 'Article 1',
-                 'index_title': 'Custom index title A', 'index_desc': 'Custom index desc A'},
+                 'series_desc': 'Desc A', 'card_label': 'Article 1',
+                 'card_title': 'Custom card title A', 'card_desc': 'Custom card desc A'},
                 {'file': 'b.html', 'source': 'b.md', 'series_title': 'Article B',
                  'series_desc': 'Desc B'},
             ],
@@ -525,9 +525,9 @@ class MultiArticleSeries(unittest.TestCase):
             self.assertIn('The series subtitle', index_html)
             self.assertIn('v0.1', index_html)
             self.assertIn('An intro paragraph.', index_html)
-            # Article A has explicit index_title/index_desc/index_number overrides.
-            self.assertIn('Custom index title A', index_html)
-            self.assertIn('Custom index desc A', index_html)
+            # Article A has explicit card_title/card_desc/card_label overrides.
+            self.assertIn('Custom card title A', index_html)
+            self.assertIn('Custom card desc A', index_html)
             self.assertIn('Article 1', index_html)
             # Article B has no override: falls back to series_title/series_desc.
             self.assertIn('Article B', index_html)
@@ -733,8 +733,12 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
 
 class SeriesJsonRequiredFields(unittest.TestCase):
-    """§20.3: file/source/series_title/series_desc are required on every
-    entry; a missing source file is a warning, not a fatal error."""
+    """§20.3: file/source are the only fields required directly in
+    series.json; a missing source file is a warning, not a fatal error.
+    series_title/series_desc requiredness is covered by
+    DisplayFieldOverrides (§20.3.1) — they're no longer required to be
+    typed into series.json specifically, only to resolve to a non-empty
+    value somewhere (series.json or the article's own meta block)."""
 
     def _series_missing_field(self, tmp, field):
         root = Path(tmp)
@@ -758,18 +762,6 @@ class SeriesJsonRequiredFields(unittest.TestCase):
     def test_missing_source_field_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series_missing_field(tmp, 'source')
-            result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-
-    def test_missing_series_title_field_is_fatal(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._series_missing_field(tmp, 'series_title')
-            result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-
-    def test_missing_series_desc_field_is_fatal(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._series_missing_field(tmp, 'series_desc')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
@@ -858,6 +850,143 @@ class SeriesJsonExtensionValidation(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'public' / 'a.html').exists())
+
+
+class DisplayFieldOverrides(unittest.TestCase):
+    """§20.3.1: series_title/series_desc/card_title/card_desc/card_label
+    resolve as series.json entry > article's own meta block field of the
+    same name > per-field fallback (card_title/card_desc fall back to the
+    resolved series_title/series_desc; card_label has none). series_title/
+    series_desc must still end up non-empty somewhere, but no longer have
+    to be typed into series.json when the article's meta block already
+    carries them."""
+
+    def _build(self, tmp, meta_extra, series_entry_extra):
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\n' + meta_extra + '\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
+        )
+        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        entry = {'file': 'a.html', 'source': 'a.md'}
+        entry.update(series_entry_extra)
+        (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+        return root
+
+    def test_series_title_desc_absent_from_series_json_use_meta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp, 'series_title: Meta title\nseries_desc: Meta desc', {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Meta title', html)
+            self.assertIn('Meta desc', html)
+
+    def test_series_json_series_title_desc_override_meta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp, 'series_title: Meta title\nseries_desc: Meta desc',
+                {'series_title': 'Override title', 'series_desc': 'Override desc'},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Override title', html)
+            self.assertIn('Override desc', html)
+            self.assertNotIn('Meta title', html)
+            self.assertNotIn('Meta desc', html)
+
+    def test_series_title_missing_from_both_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'series_desc: Meta desc', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('series_title', result.stderr)
+
+    def test_series_desc_missing_from_both_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'series_title: Meta title', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('series_desc', result.stderr)
+
+    def test_card_title_desc_from_meta_used_on_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp,
+                'series_title: S title\nseries_desc: S desc\n'
+                'card_title: Card title\ncard_desc: Card desc',
+                {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Card title', html)
+            self.assertIn('Card desc', html)
+
+    def test_series_json_card_title_desc_override_meta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp,
+                'series_title: S title\nseries_desc: S desc\n'
+                'card_title: Meta card title\ncard_desc: Meta card desc',
+                {'card_title': 'Override card title', 'card_desc': 'Override card desc'},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Override card title', html)
+            self.assertIn('Override card desc', html)
+            self.assertNotIn('Meta card title', html)
+
+    def test_card_title_desc_absent_everywhere_falls_back_to_series_title_desc(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp, 'series_title: S title\nseries_desc: S desc', {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="article-title">S title</div>', html)
+            self.assertIn('<div class="article-desc">S desc</div>', html)
+
+    def test_card_label_from_meta_used_on_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp,
+                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
+                {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="article-number">Meta label</div>', html)
+
+    def test_series_json_card_label_overrides_meta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp,
+                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
+                {'card_label': 'Override label'},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="article-number">Override label</div>', html)
+            self.assertNotIn('Meta label', html)
+
+    def test_card_label_absent_everywhere_is_not_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp, 'series_title: S title\nseries_desc: S desc', {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="article-number"></div>', html)
 
 
 class ImageCopySafety(unittest.TestCase):
@@ -1492,15 +1621,51 @@ class CheckNewMarker(unittest.TestCase):
 
 
 class SeriesJsonEmptyStringRejected(unittest.TestCase):
-    """§20.3: required fields must be present AND non-empty — an empty
-    string, not just an absent key, must also be rejected."""
+    """§20.3/§20.3.1: an empty string, not just an absent key, must be
+    treated the same as "no value" everywhere requiredness is checked.
+    For file/source (never overridable, always required directly in
+    series.json) that means fatal outright. For series_title/series_desc
+    (overridable, §20.3.1) an empty string in series.json is correctly
+    treated the same as an absent key: "no override", falls back to the
+    article's own meta block — only genuinely missing everywhere is
+    fatal."""
 
-    def test_empty_string_series_title_is_fatal(self):
+    def test_empty_string_file_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
                 '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
+            )
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            entry = {'file': '', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+            (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_empty_string_series_title_falls_back_to_meta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            md = (
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: Meta title\nseries_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
+            )
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': '', 'series_desc': 'A'}
+            (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Meta title', html)
+
+    def test_empty_string_series_title_is_fatal_when_meta_also_absent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            md = (
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')

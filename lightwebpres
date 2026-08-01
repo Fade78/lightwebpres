@@ -1383,18 +1383,21 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     read = strings.get('series_read', 'Read the article')
     cards = []
     for entry in articles:
-        number = entry.get('index_number', '')
-        card_title = entry.get('index_title', entry.get('series_title', ''))
-        card_desc = entry.get('index_desc', entry.get('series_desc', ''))
+        # card_title/card_desc/card_label are already fully resolved by
+        # resolve_display_fields() (series.json > article meta > fallback,
+        # §20.3.1) — no fallback logic needed here.
+        label = entry.get('card_label', '')
+        card_title = entry.get('card_title', '')
+        card_desc = entry.get('card_desc', '')
         if typo_engine:
-            number = typo_engine.apply(number)
+            label = typo_engine.apply(label)
             card_title = typo_engine.apply(card_title)
             card_desc = typo_engine.apply(card_desc)
         # href is an attribute context: entry['file'] is validated to be a
         # plain filename (validate_series), but it's escaped here too as
         # defense in depth against a future validation gap.
         card = f'''<a href="{html_escape(entry['file'], quote=True)}" class="article-card">
-  <div class="article-number">{number}</div>
+  <div class="article-number">{label}</div>
   <div class="article-title">{card_title}</div>
   <div class="article-desc">{card_desc}</div>
   <div class="article-cta">→ {read}</div>
@@ -1603,7 +1606,7 @@ def load_series_data(series_dir):
 
 
 def validate_series(articles):
-    """Rejects series.json structural errors (§20.3): required fields must be
+    """Rejects series.json structural errors (§20.3): file/source must be
     present and non-empty on every entry, file must be unique, file/source
     must be plain filenames — otherwise one article's output silently
     overwrites another's, the build crashes on a raw KeyError instead of a
@@ -1613,8 +1616,14 @@ def validate_series(articles):
     silently ignores `dir` when `value` is an absolute path) — and source
     must end in .md, file in .html or .htm (case-insensitive), otherwise
     the build silently writes HTML content to a wrongly-extensioned output
-    file with no warning."""
-    required_fields = ('file', 'source', 'series_title', 'series_desc')
+    file with no warning.
+
+    series_title/series_desc/card_title/card_desc/card_label are NOT
+    checked here — per §20.3.1 they're optional overrides of the same
+    field in the article's own meta block, and validating series_title/
+    series_desc requires reading that meta block first, which this
+    function (series.json-only) can't do; see resolve_display_fields()."""
+    required_fields = ('file', 'source')
     seen = {}
     for i, entry in enumerate(articles, 1):
         for field in required_fields:
@@ -1642,6 +1651,51 @@ def validate_series(articles):
                   f'and {i}).', file=sys.stderr)
             sys.exit(1)
         seen[f] = i
+
+
+_DISPLAY_OVERRIDE_FIELDS = ('series_title', 'series_desc', 'card_title', 'card_desc', 'card_label')
+
+
+def resolve_display_fields(articles, articles_dir):
+    """Resolves series_title/series_desc/card_title/card_desc/card_label
+    for every entry, per §20.3.1: a value already in the series.json entry
+    wins; otherwise the same-named field from the article's own meta block
+    is used; card_title/card_desc additionally fall back to the resolved
+    series_title/series_desc if still absent. Mutates each entry in place
+    so downstream renderers (build_series_nav, build_index, build_readme)
+    can read the fields directly, with the override/fallback already
+    applied — none of them need to know this mechanism exists.
+
+    Must run once, after validate_series and before any of those renderers
+    — build_series_nav in particular renders every OTHER article's
+    series_title/series_desc on the page being built, not just the current
+    one, so every entry needs to be resolved up front, not lazily.
+
+    A source file that doesn't exist can't be read for its meta block; that
+    case is already a non-fatal warning elsewhere (source not found), so it
+    is not double-reported here — series_title/series_desc simply aren't
+    required to resolve for an entry whose article will never be built."""
+    for entry in articles:
+        source_path = articles_dir / entry['source']
+        meta = {}
+        if source_path.exists():
+            meta, _, _ = parse_markdown_extended(source_path.read_text(encoding='utf-8'))
+
+        for field in _DISPLAY_OVERRIDE_FIELDS:
+            if not entry.get(field) and meta.get(field):
+                entry[field] = meta[field]
+
+        if source_path.exists():
+            for field in ('series_title', 'series_desc'):
+                if not entry.get(field):
+                    print(f'[ERROR] {entry["file"]}: "{field}" is missing from both '
+                          f'series.json and the article\'s meta block.', file=sys.stderr)
+                    sys.exit(1)
+
+        if not entry.get('card_title'):
+            entry['card_title'] = entry.get('series_title', '')
+        if not entry.get('card_desc'):
+            entry['card_desc'] = entry.get('series_desc', '')
 
 
 def resolve_paths(series_dir, args):
@@ -1702,6 +1756,7 @@ def cmd_build(series_dir, args):
     # Build each article
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
+    resolve_display_fields(articles, articles_dir)
     for entry in articles:
         source_file = entry['source']
         output_file = entry['file']
@@ -1751,6 +1806,7 @@ def cmd_check(series_dir, args):
     diff_count = 0
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
+    resolve_display_fields(articles, articles_dir)
 
     for entry in articles:
         source_path = articles_dir / entry['source']
@@ -1930,9 +1986,9 @@ source: first.md
 h1: First article
 series_title: First article
 series_desc: The first demo article
-index_number: Article 1
-index_title: First article
-index_desc: Description of the first demo article
+card_label: Article 1
+card_title: First article
+card_desc: Description of the first demo article
 ---
 
 <!-- lwp:slide:cover -->
@@ -1986,9 +2042,9 @@ source: middle.md
 h1: Middle article
 series_title: Middle article
 series_desc: The second demo article
-index_number: Article 2
-index_title: Middle article
-index_desc: Description of the second demo article
+card_label: Article 2
+card_title: Middle article
+card_desc: Description of the second demo article
 ---
 
 <!-- lwp:slide:cover -->
@@ -2042,9 +2098,9 @@ source: last.md
 h1: Last article
 series_title: Last article
 series_desc: The third demo article
-index_number: Article 3
-index_title: Last article
-index_desc: Description of the third demo article
+card_label: Article 3
+card_title: Last article
+card_desc: Description of the third demo article
 ---
 
 <!-- lwp:slide:cover -->
@@ -2101,9 +2157,9 @@ This is the full article for the third demo article [^1].
             "intro": "This demo series contains three articles that test the first, middle, and last positions in navigation."
         },
         "articles": [
-            {"file": "first.html", "source": "first.md", "series_title": "First article", "series_desc": "The first demo article", "index_number": "Article 1", "index_title": "First article", "index_desc": "Description of the first demo article"},
-            {"file": "middle.html", "source": "middle.md", "series_title": "Middle article", "series_desc": "The second demo article", "index_number": "Article 2", "index_title": "Middle article", "index_desc": "Description of the second demo article"},
-            {"file": "last.html", "source": "last.md", "series_title": "Last article", "series_desc": "The third demo article", "index_number": "Article 3", "index_title": "Last article", "index_desc": "Description of the third demo article"}
+            {"file": "first.html", "source": "first.md"},
+            {"file": "middle.html", "source": "middle.md", "card_label": "Article 2 (overridden from series.json)"},
+            {"file": "last.html", "source": "last.md"}
         ]
     }
     (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')

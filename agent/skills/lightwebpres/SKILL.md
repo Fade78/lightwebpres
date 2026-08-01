@@ -96,15 +96,16 @@ article: apple-pie_article.md
 
 ## The meta block
 
-Almost entirely a recap for the human/tooling, not read by the build
-engine — with one exception: `h1` is used for the `<title>` tag (falling
-back to the output filename if absent). Everything else, **including
-`file`**, is decorative: the actual output filename comes from
-`series.json`'s `file` entry (see below), not from the meta block. Keep
-`file` and the other fields (`series_title`, `series_desc`,
-`index_number`, `index_title`, `index_desc`) matching the `series.json`
-entry anyway — nothing enforces that they match, so a mismatch won't
-error, it'll just be confusing to the next person reading the file.
+`h1` is used for the `<title>` tag (falling back to the output filename if
+absent). `file` is decorative: the actual output filename comes from
+`series.json`'s `file` entry (see below), not from the meta block — keep
+them matching anyway, nothing enforces that they do. Everything else here
+— `series_title`, `series_desc`, `card_title`, `card_desc`, `card_label` —
+**is read by the build engine as this article's default** for its
+`series.json` entry: put the real value here, in the article itself.
+`series.json` only needs to repeat one of these fields when you want to
+override it for this particular article without touching the file — not
+as a rule for every entry.
 
 ## Slide types
 
@@ -154,19 +155,34 @@ that would look like a self-contained inline usage on its own
 ## Adding an article to a series
 
 Every article that should appear in navigation/index needs a matching
-entry in `series.json`'s `articles` array:
+entry in `series.json`'s `articles` array — at minimum, just the two
+structural fields:
+
+```json
+{"file": "apple-pie.html", "source": "apple-pie.md"}
+```
+
+`file` and `source` must be **bare filenames** — no `/`, no `..` — and are
+the only fields ever required directly in `series.json`. The array order
+is the navigation/index order.
+
+`series_title`/`series_desc` (navigation + index fallback) and
+`card_title`/`card_desc`/`card_label` (index-card specifics) are read
+from the article's own meta block by default (see above) — add one to
+the `series.json` entry only to override it for this article, e.g.:
 
 ```json
 {"file": "apple-pie.html", "source": "apple-pie.md",
- "series_title": "The apple pie", "series_desc": "Pastry, baking, and plating"}
+ "card_label": "Article 3 (corrected)"}
 ```
 
-`file` and `source` must be **bare filenames** — no `/`, no `..`. The
-array order is the navigation/index order. `index_title`/`index_desc` are
-optional per-entry overrides for the index card, falling back to
-`series_title`/`series_desc` when absent; `index_number` is independent
-(a label like "Article 1") and simply doesn't appear on the card at all
-if you leave it out — there's nothing for it to fall back to.
+`series_title`/`series_desc` must resolve to a non-empty value from
+*somewhere* — series.json or the meta block — a fatal build error
+otherwise. `card_title`/`card_desc` fall back to the resolved
+`series_title`/`series_desc` if neither is set anywhere; `card_label` (a
+free label like "Article 1" — not a number, despite reading like an
+ordinal) simply doesn't appear on the card if it's absent everywhere,
+no error.
 
 ## Always verify before calling it done
 
