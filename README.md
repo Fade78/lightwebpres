@@ -6,9 +6,9 @@ series navigation, an index page, and a generated README — deployable to
 any static host.
 
 ```bash
-python3 lightwebpres install my-series
-python3 lightwebpres demo my-series
-python3 lightwebpres build my-series
+./lightwebpres install my-series
+./lightwebpres demo my-series
+./lightwebpres build my-series
 # -> my-series/public/index.html
 ```
 
@@ -36,8 +36,8 @@ one `.html` file, opens straight from disk or any static host.
 ## Quickstart
 
 ```bash
-python3 lightwebpres install my-series --lang en   # scaffold a series directory
-python3 lightwebpres demo my-series                # generate + build 3 example articles
+./lightwebpres install my-series --lang en   # scaffold a series directory
+./lightwebpres demo my-series                # generate + build 3 example articles
 open my-series/public/index.html
 ```
 
@@ -179,7 +179,7 @@ automatically on Apache where allowed).
 python3 tests/run_tests.py
 ```
 
-87 black-box tests exercising the CLI as a subprocess, plus real headless-
+100+ black-box tests exercising the CLI as a subprocess, plus real headless-
 Chromium end-to-end tests (via Playwright, skipped cleanly if unavailable)
 for both browser tools.
 
@@ -202,3 +202,40 @@ placeholder reference, and more.
 
 Not yet set. `web/vendor/pyodide/` is vendored third-party code (Mozilla
 Public License 2.0) — see `web/vendor/NOTICE.md`.
+
+## Troubleshooting
+
+**`./lightwebpres: Permission denied`** (Linux/macOS)
+The executable bit didn't survive however you got the file (some zip
+tools, some transfer methods). Fix it once:
+
+```bash
+chmod +x lightwebpres
+```
+
+**`./lightwebpres: command not found`** (Linux/macOS)
+`lightwebpres` isn't installed system-wide, so it needs either the `./`
+prefix when run from the directory it's in, or its full/relative path.
+Running it by bare name only works if that directory is on your `PATH`.
+
+**Windows**
+Windows doesn't understand the `#!/usr/bin/env python3` line at the top
+of the file, so `lightwebpres` (or `.\lightwebpres`) won't launch on its
+own. Run it through Python explicitly instead:
+
+```powershell
+python lightwebpres install my-series
+```
+
+If that's not found, try the `py` launcher (bundled with most Windows
+Python installs):
+
+```powershell
+py lightwebpres install my-series
+```
+
+**`python3: command not found`**
+Some systems only have `python` on `PATH`, not `python3` (common on
+Windows, occasionally macOS). Use `python` instead of `python3` in any
+command above that invokes it explicitly — e.g. `python -m http.server`
+when serving the [browser tools](#two-browser-based-tools).
