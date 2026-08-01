@@ -785,6 +785,31 @@ Le CSS par défaut expose six variables CSS (`--yellow --dark --grey
 --theme <nom>` en substitue les valeurs par une palette prédéfinie au
 moment de la création du site — voir §9.5.
 
+Trois variables supplémentaires pilotent, indépendamment les unes des
+autres, le rendu visuel du gras Markdown (`**texte**` → `<strong>`)
+**à l'intérieur d'une fact-box** (`.fact-content strong`) — le marquage
+sémantique ne change pas, seule sa présentation par défaut devient
+paramétrable :
+
+- `--fact-strong-weight` (`bold` par défaut) — la graisse : `bold` ou
+  `normal`.
+- `--fact-strong-style` (`normal` par défaut) — l'italique : `normal` ou
+  `italic`. Combinable librement avec la graisse (gras, italique,
+  gras+italique, ou ni l'un ni l'autre).
+- `--fact-strong-highlight` (`var(--yellow)` par défaut) — le fond
+  coloré façon `<mark>` (à ne pas confondre avec un `overline`, un axe
+  visuel différent) : n'importe quelle couleur CSS, ou `transparent`
+  pour le désactiver entièrement. Référencer une des six variables
+  ci-dessus (`var(--accent)`, `var(--green)`...) plutôt qu'une couleur
+  en dur permet à une surcharge ultérieure de cette variable de continuer
+  à s'appliquer.
+
+Ces trois variables se personnalisent exactement comme les six
+premières : une surcharge dans `templates/style.css`, après le marqueur
+de personnalisation (§9.4). Elles sont aussi intégrées à `THEMES`
+(§9.5) — chaque thème prédéfini choisit ses propres valeurs plutôt que
+de se limiter aux couleurs, voir §9.5.
+
 ### 9.2 JS (`nav.js`)
 
 Le JavaScript de navigation gère :
@@ -892,12 +917,21 @@ réécriture inutile.
 ### 9.5 Thèmes de couleurs prédéfinis
 
 Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
-(« slug ») à une palette complète : les six variables de §9.1
-(`--yellow --dark --grey --light --accent --green`), plus des métadonnées
-purement éditoriales (étiquette affichable, source, remarque) qui ne
-servent qu'à `themes-gallery` (§11.8) — jamais à `install --theme`.
-Neuf entrées aujourd'hui : `nord`, `dracula`, `solarized`, `gruvbox`,
-`catppuccin`, `tokyo-night`, `monokai`, `everforest`, `rose-pine`.
+(« slug ») à une palette complète : les six couleurs de §9.1 (`--yellow
+--dark --grey --light --accent --green`), plus les trois propriétés de
+rendu du gras en fact-box (`fact_weight`/`fact_style`/`fact_highlight`,
+§9.1) — un thème n'est donc pas qu'une recoloration, il peut aussi
+choisir un traitement typographique différent (ex. italique sans fond
+coloré plutôt que gras surligné) — et des métadonnées purement
+éditoriales (étiquette affichable, source, remarque) qui ne servent qu'à
+`themes-gallery` (§11.8) — jamais à `install --theme`. `fact_highlight`
+vaut le nom d'un des six rôles de couleur ci-dessus (résolu en
+`var(--rôle)`) ou `None` pour aucun fond ; les trois propriétés sont
+toujours explicites dans chaque entrée, y compris quand la valeur
+choisie est celle par défaut du moteur (`bold`/`normal`/`yellow`) — un
+choix délibéré consigné, pas un oubli. Neuf entrées aujourd'hui : `nord`,
+`dracula`, `solarized`, `gruvbox`, `catppuccin`, `tokyo-night`,
+`monokai`, `everforest`, `rose-pine`.
 
 `THEMES` est la **seule** source de vérité pour ces couleurs : la
 palette appliquée par `install --theme` et celle affichée par
@@ -908,8 +942,9 @@ un fichier généré depuis cette table (§11.8).
 
 #### 9.5.1 Appliquer un thème à l'installation (`install --theme`)
 
-`install [répertoire] --theme <slug>` (§11.1) substitue les six variables
-du fichier `templates/style.css` généré par celles du thème choisi — rien
+`install [répertoire] --theme <slug>` (§11.1) substitue les neuf
+variables (six couleurs + les trois propriétés de gras en fact-box) du
+fichier `templates/style.css` généré par celles du thème choisi — rien
 d'autre dans le CSS par défaut n'est modifié. Le fichier obtenu se termine
 toujours par le marqueur de personnalisation (§9.4), donc
 `refresh-templates` continue de fonctionner normalement dessus ensuite.
@@ -935,8 +970,8 @@ Avant de reconstruire la partie intégrée du fichier (§9.4),
 `refresh-templates` cherche le marqueur de thème (§9.5.1) dans l'ancien
 `templates/style.css` :
 
-- Marqueur présent et slug toujours connu de `THEMES` : les six couleurs
-  de ce thème sont réappliquées au CSS par défaut à jour avant écriture —
+- Marqueur présent et slug toujours connu de `THEMES` : les neuf
+  variables de ce thème sont réappliquées au CSS par défaut à jour avant écriture —
   une mise à jour de l'exécutable ne fait donc jamais revenir
   silencieusement un site à la palette par défaut. Le marqueur de thème
   est réécrit à l'identique, pour survivre aux rafraîchissements suivants
@@ -995,7 +1030,7 @@ Crée la structure de travail dans `[répertoire]` :
    `public/`
 3. Extrait les templates par défaut depuis l'exécutable (§9) :
    - `templates/style.css` — avec les couleurs du thème par défaut, sauf
-     si `--theme <nom>` est fourni, auquel cas les six variables de ce
+     si `--theme <nom>` est fourni, auquel cas les neuf variables de ce
      thème sont substituées (§9.5.1) ; `<nom>` inconnu de `THEMES` est une
      erreur fatale, qui liste les noms valides
    - `templates/nav.js`

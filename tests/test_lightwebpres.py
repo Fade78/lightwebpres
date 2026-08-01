@@ -1269,6 +1269,89 @@ class Themes(unittest.TestCase):
             self.assertIn('--yellow: #D79921;', index_html)
 
 
+class FactStrongEmphasis(unittest.TestCase):
+    """§9.1/§9.5: --fact-strong-weight/--fact-strong-style/--fact-strong-
+    highlight independently control a fact-box's Markdown **bold**
+    rendering (weight, italic, and mark-style background), decoupled
+    from each other and from the semantic <strong> markup itself."""
+
+    def test_default_install_has_the_three_properties_matching_prior_look(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertIn('--fact-strong-weight: bold;', style)
+            self.assertIn('--fact-strong-style: normal;', style)
+            self.assertIn('--fact-strong-highlight: var(--yellow);', style)
+
+    def test_themes_set_distinct_fact_strong_treatments(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'solarized').returncode, 0)
+            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertIn('--fact-strong-weight: bold;', style)
+            self.assertIn('--fact-strong-style: italic;', style)
+            self.assertIn('--fact-strong-highlight: transparent;', style)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
+            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertIn('--fact-strong-highlight: var(--green);', style)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'catppuccin').returncode, 0)
+            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertIn('--fact-strong-weight: normal;', style)
+            self.assertIn('--fact-strong-style: italic;', style)
+
+    def test_refresh_templates_reapplies_fact_strong_properties_for_a_theme(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'solarized').returncode, 0)
+            style_path = root / 'templates' / 'style.css'
+            stale = style_path.read_text(encoding='utf-8').replace(
+                '--fact-strong-style: italic;', '--fact-strong-style: italic; /* STALE */', 1,
+            )
+            style_path.write_text(stale, encoding='utf-8')
+
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            refreshed = style_path.read_text(encoding='utf-8')
+            self.assertNotIn('STALE', refreshed)
+            self.assertIn('--fact-strong-style: italic;', refreshed)
+            self.assertIn('--fact-strong-highlight: transparent;', refreshed)
+
+    def test_user_can_keep_highlight_and_drop_bold_via_override(self):
+        """The exact motivating use case: highlight kept, bold dropped,
+        without hand-writing a full replacement rule."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            style_path = root / 'templates' / 'style.css'
+            custom = (style_path.read_text(encoding='utf-8') + '\n'
+                      ':root { --fact-strong-weight: normal; }\n')
+            style_path.write_text(custom, encoding='utf-8')
+
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            refreshed = style_path.read_text(encoding='utf-8')
+            self.assertIn(':root { --fact-strong-weight: normal; }', refreshed)
+            self.assertIn('--fact-strong-highlight: var(--yellow);', refreshed)
+
+    def test_themes_gallery_shows_a_bolded_word_styled_per_theme(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            out = root / 'gallery.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+            self.assertIn('<strong>', html)
+            self.assertIn('--fact-strong-weight:normal;--fact-strong-style:italic;'
+                           '--fact-strong-highlight:transparent;', html)
+
+
 class CoverCardinalityFreedom(unittest.TestCase):
     """§4.4/§22.13: build must never block on the number or position of
     cover slides — that's audit's job, purely editorial."""

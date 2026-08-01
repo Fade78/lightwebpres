@@ -152,11 +152,19 @@ LANG_EN = r'''{
 }'''
 
 # Candidate color themes for the default template's six --yellow/--dark/
-# --grey/--light/--accent/--green custom properties (§9.1). This is the
-# single source of truth for both `install --theme <name>` (applies one at
-# scaffold time, see apply_theme()) and `themes-gallery` (renders every
-# entry here into themes-gallery.html, see TEMPLATE_THEME_CARD) — the two
-# can never drift apart, because neither hardcodes a color independently.
+# --grey/--light/--accent/--green custom properties (§9.1), plus how each
+# theme renders **bold** text inside a fact-box (§9.1's --fact-strong-*
+# properties): fact_weight ('bold'|'normal'), fact_style ('normal'|
+# 'italic'), and fact_highlight (one of this same theme's own color roles
+# above, used as the highlight background, or None for no highlight at
+# all). Every theme sets all three explicitly, even where the value
+# matches the engine's own un-themed default (bold/normal/yellow) —
+# that's a deliberate choice recorded for that theme, not an omission.
+# This is the single source of truth for both `install --theme <name>`
+# (applies one at scaffold time, see apply_theme()) and `themes-gallery`
+# (renders every entry here into themes-gallery.html, see
+# TEMPLATE_THEMES_GALLERY_CARD) — the two can never drift apart, because
+# neither hardcodes a color or a fact-box treatment independently.
 # Hex values verified against each palette's own official source; `note`
 # is editorial commentary written for this specific use (a light-mode-only
 # page), not a claim about the palette in general.
@@ -165,6 +173,7 @@ THEMES = {
         'label': 'Nord', 'source': 'nordtheme.com',
         'yellow': '#EBCB8B', 'dark': '#2E3440', 'grey': '#4C566A',
         'light': '#ECEFF4', 'accent': '#BF616A', 'green': '#A3BE8C',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
         'note': 'Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.',
         'note_good': False,
     },
@@ -172,6 +181,7 @@ THEMES = {
         'label': 'Dracula', 'source': 'draculatheme.com',
         'yellow': '#F1FA8C', 'dark': '#282A36', 'grey': '#6272A4',
         'light': '#F8F8F2', 'accent': '#FF5555', 'green': '#50FA7B',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'green',
         'note': 'Palette pensée pour un fond sombre — <code>--light</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.',
         'note_good': False,
     },
@@ -179,6 +189,7 @@ THEMES = {
         'label': 'Solarized Light', 'source': 'ethanschoonover.com',
         'yellow': '#B58900', 'dark': '#002B36', 'grey': '#93A1A1',
         'light': '#FDF6E3', 'accent': '#DC322F', 'green': '#859900',
+        'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': None,
         'note': "Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.",
         'note_good': False,
     },
@@ -186,6 +197,7 @@ THEMES = {
         'label': 'Gruvbox Light', 'source': 'github.com/morhetz',
         'yellow': '#D79921', 'dark': '#282828', 'grey': '#928374',
         'light': '#FBF1C7', 'accent': '#CC241D', 'green': '#98971A',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
         'note': 'Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.',
         'note_good': True,
     },
@@ -193,6 +205,7 @@ THEMES = {
         'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin',
         'yellow': '#DF8E1D', 'dark': '#4C4F69', 'grey': '#6C6F85',
         'light': '#EFF1F5', 'accent': '#D20F39', 'green': '#40A02B',
+        'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'yellow',
         'note': "La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--dark</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).",
         'note_good': False,
     },
@@ -200,6 +213,7 @@ THEMES = {
         'label': 'Tokyo Night', 'source': 'github.com/folke',
         'yellow': '#E0AF68', 'dark': '#1A1B26', 'grey': '#565F89',
         'light': '#E1E2E7', 'accent': '#F7768E', 'green': '#9ECE6A',
+        'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
         'note': 'Tokyo Night est nocturne par nature — <code>--light</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.',
         'note_good': False,
     },
@@ -207,6 +221,7 @@ THEMES = {
         'label': 'Monokai', 'source': 'classique, Sublime Text',
         'yellow': '#E6DB74', 'dark': '#272822', 'grey': '#75715E',
         'light': '#F8F8F2', 'accent': '#F92672', 'green': '#A6E22E',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
         'note': 'Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--light</code> reprend le texte-sur-noir, comme Dracula.',
         'note_good': False,
     },
@@ -214,6 +229,7 @@ THEMES = {
         'label': 'Everforest', 'source': 'github.com/sainnhe',
         'yellow': '#DFA000', 'dark': '#2D353B', 'grey': '#859289',
         'light': '#FDF6E3', 'accent': '#F85552', 'green': '#A7C080',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'green',
         'note': 'Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--green</code>. Assemblage clair+sombre officiels.',
         'note_good': True,
     },
@@ -221,6 +237,7 @@ THEMES = {
         'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com',
         'yellow': '#EA9D34', 'dark': '#464261', 'grey': '#797593',
         'light': '#FAF4ED', 'accent': '#B4637A', 'green': '#6D8F89',
+        'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
         'note': 'La plus douce du lot — <code>--dark</code> est un prune assourdi, pas un noir franc, et <code>--green</code> (« leaf ») penche vers le sarcelle.',
         'note_good': False,
     },
@@ -243,17 +260,36 @@ TEMPLATE_STYLE_CUSTOM_MARKER = '/* === Personnalisations locales : refresh-templ
 TEMPLATE_STYLE_THEME_MARKER_RE = re.compile(r'^/\* lightwebpres-theme: (\S+) \*/$', re.MULTILINE)
 
 
+def theme_fact_properties(theme):
+    """Resolves a THEMES entry's fact-box strong-emphasis properties
+    (§9.1's --fact-strong-weight/--fact-strong-style/--fact-strong-
+    highlight) to concrete CSS values: fact_weight/fact_style pass
+    through as-is, and fact_highlight — a role name from this same
+    theme's own colors, or None — becomes a var(--role) reference (so a
+    later manual override of that role's own color is still picked up)
+    or the literal 'transparent' for no highlight. Missing keys default
+    to bold/normal/yellow, matching the engine's own un-themed look, so
+    a THEMES entry that doesn't set these three explicitly still renders
+    exactly as before this feature existed."""
+    weight = theme.get('fact_weight', 'bold')
+    style = theme.get('fact_style', 'normal')
+    highlight_role = theme.get('fact_highlight', 'yellow')
+    highlight = f'var(--{highlight_role})' if highlight_role else 'transparent'
+    return weight, style, highlight
+
+
 def apply_theme(css_text, theme_key):
     """Rewrites the six --yellow/--dark/--grey/--light/--accent/--green
-    declarations in `css_text`'s :root block to THEMES[theme_key]'s
-    colors (§9.5.1), and records theme_key in the marker above right
-    after the file's header line.
+    declarations, plus the three --fact-strong-* declarations (§9.1), in
+    `css_text`'s :root block to THEMES[theme_key]'s values (§9.5.1), and
+    records theme_key in the marker above right after the file's header
+    line.
 
     Only the FIRST occurrence of each declaration is touched (count=1) —
     the built-in :root block always comes before a personalization
     section (§9.4) in the file, by construction, so this can never reach
     into custom CSS the author appended after the marker, even if it
-    happens to redeclare one of these six names.
+    happens to redeclare one of these names.
 
     Assumes theme_key is a valid THEMES key; callers validate first so
     the error message can name the invalid input directly (§9.5.1)."""
@@ -261,6 +297,16 @@ def apply_theme(css_text, theme_key):
     for var in ('yellow', 'dark', 'grey', 'light', 'accent', 'green'):
         pattern = r'(--%s:\s*)#[0-9A-Fa-f]{3,8}(\s*;)' % var
         css_text = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), css_text, count=1)
+
+    fact_weight, fact_style, fact_highlight = theme_fact_properties(theme)
+    for var, value in (
+        ('fact-strong-weight', fact_weight),
+        ('fact-strong-style', fact_style),
+        ('fact-strong-highlight', fact_highlight),
+    ):
+        pattern = r'(--%s:\s*)[^;]+(;)' % re.escape(var)
+        css_text = re.sub(pattern, lambda m, value=value: m.group(1) + value + m.group(2), css_text, count=1)
+
     css_text = TEMPLATE_STYLE_THEME_MARKER_RE.sub('', css_text, count=1)
     header_end = css_text.index('\n') + 1
     css_text = css_text[:header_end] + f'/* lightwebpres-theme: {theme_key} */\n' + css_text[header_end:]
@@ -287,6 +333,9 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     --light: #f8f8f5;
     --accent: #ff4757;
     --green: #3aa55c;
+    --fact-strong-weight: bold;
+    --fact-strong-style: normal;
+    --fact-strong-highlight: var(--yellow);
     --content-max: min(84vw, 1100px);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -365,7 +414,9 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     color: var(--dark);
   }
   .fact-content strong {
-    background: var(--yellow);
+    font-weight: var(--fact-strong-weight);
+    font-style: var(--fact-strong-style);
+    background: var(--fact-strong-highlight);
     padding: 1px 4px;
     border-radius: 2px;
   }
@@ -1756,6 +1807,13 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     color: var(--dark);
     line-height: 1.4;
   }
+  .preview-factcontent strong {
+    font-weight: var(--fact-strong-weight);
+    font-style: var(--fact-strong-style);
+    background: var(--fact-strong-highlight);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
   .preview-table {
     margin-top: 12px;
     display: flex;
@@ -1883,7 +1941,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
         <h2>{label}</h2>
         <p class="theme-source">{source}</p>
       </header>
-      <div class="preview" style="--yellow:{yellow};--dark:{dark};--grey:{grey};--light:{light};--accent:{accent};--green:{green};">
+      <div class="preview" style="--yellow:{yellow};--dark:{dark};--grey:{grey};--light:{light};--accent:{accent};--green:{green};--fact-strong-weight:{fact_weight};--fact-strong-style:{fact_style};--fact-strong-highlight:{fact_highlight};">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1898,7 +1956,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -3376,6 +3434,7 @@ def cmd_themes_gallery(output_path, args):
 
     cards = []
     for slug, theme in THEMES.items():
+        fact_weight, fact_style, fact_highlight = theme_fact_properties(theme)
         cards.append(TEMPLATE_THEMES_GALLERY_CARD.format(
             label=theme['label'],
             source=theme['source'],
@@ -3385,6 +3444,9 @@ def cmd_themes_gallery(output_path, args):
             light=theme['light'],
             accent=theme['accent'],
             green=theme['green'],
+            fact_weight=fact_weight,
+            fact_style=fact_style,
+            fact_highlight=fact_highlight,
             note=theme['note'],
             note_good_class=' theme-note--good' if theme.get('note_good') else '',
             slug=slug,

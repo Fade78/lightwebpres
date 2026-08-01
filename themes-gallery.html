@@ -245,6 +245,13 @@
     color: var(--dark);
     line-height: 1.4;
   }
+  .preview-factcontent strong {
+    font-weight: var(--fact-strong-weight);
+    font-style: var(--fact-strong-style);
+    background: var(--fact-strong-highlight);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
   .preview-table {
     margin-top: 12px;
     display: flex;
@@ -370,7 +377,7 @@
         <h2>Nord</h2>
         <p class="theme-source">nordtheme.com</p>
       </header>
-      <div class="preview" style="--yellow:#EBCB8B;--dark:#2E3440;--grey:#4C566A;--light:#ECEFF4;--accent:#BF616A;--green:#A3BE8C;">
+      <div class="preview" style="--yellow:#EBCB8B;--dark:#2E3440;--grey:#4C566A;--light:#ECEFF4;--accent:#BF616A;--green:#A3BE8C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -385,7 +392,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -410,7 +417,7 @@
         <h2>Dracula</h2>
         <p class="theme-source">draculatheme.com</p>
       </header>
-      <div class="preview" style="--yellow:#F1FA8C;--dark:#282A36;--grey:#6272A4;--light:#F8F8F2;--accent:#FF5555;--green:#50FA7B;">
+      <div class="preview" style="--yellow:#F1FA8C;--dark:#282A36;--grey:#6272A4;--light:#F8F8F2;--accent:#FF5555;--green:#50FA7B;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--green);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -425,7 +432,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -450,7 +457,7 @@
         <h2>Solarized Light</h2>
         <p class="theme-source">ethanschoonover.com</p>
       </header>
-      <div class="preview" style="--yellow:#B58900;--dark:#002B36;--grey:#93A1A1;--light:#FDF6E3;--accent:#DC322F;--green:#859900;">
+      <div class="preview" style="--yellow:#B58900;--dark:#002B36;--grey:#93A1A1;--light:#FDF6E3;--accent:#DC322F;--green:#859900;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:transparent;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -465,7 +472,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -490,7 +497,7 @@
         <h2>Gruvbox Light</h2>
         <p class="theme-source">github.com/morhetz</p>
       </header>
-      <div class="preview" style="--yellow:#D79921;--dark:#282828;--grey:#928374;--light:#FBF1C7;--accent:#CC241D;--green:#98971A;">
+      <div class="preview" style="--yellow:#D79921;--dark:#282828;--grey:#928374;--light:#FBF1C7;--accent:#CC241D;--green:#98971A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -505,7 +512,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -530,7 +537,7 @@
         <h2>Catppuccin Latte</h2>
         <p class="theme-source">github.com/catppuccin</p>
       </header>
-      <div class="preview" style="--yellow:#DF8E1D;--dark:#4C4F69;--grey:#6C6F85;--light:#EFF1F5;--accent:#D20F39;--green:#40A02B;">
+      <div class="preview" style="--yellow:#DF8E1D;--dark:#4C4F69;--grey:#6C6F85;--light:#EFF1F5;--accent:#D20F39;--green:#40A02B;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:var(--yellow);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -545,7 +552,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -570,7 +577,7 @@
         <h2>Tokyo Night</h2>
         <p class="theme-source">github.com/folke</p>
       </header>
-      <div class="preview" style="--yellow:#E0AF68;--dark:#1A1B26;--grey:#565F89;--light:#E1E2E7;--accent:#F7768E;--green:#9ECE6A;">
+      <div class="preview" style="--yellow:#E0AF68;--dark:#1A1B26;--grey:#565F89;--light:#E1E2E7;--accent:#F7768E;--green:#9ECE6A;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:var(--accent);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -585,7 +592,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -610,7 +617,7 @@
         <h2>Monokai</h2>
         <p class="theme-source">classique, Sublime Text</p>
       </header>
-      <div class="preview" style="--yellow:#E6DB74;--dark:#272822;--grey:#75715E;--light:#F8F8F2;--accent:#F92672;--green:#A6E22E;">
+      <div class="preview" style="--yellow:#E6DB74;--dark:#272822;--grey:#75715E;--light:#F8F8F2;--accent:#F92672;--green:#A6E22E;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -625,7 +632,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -650,7 +657,7 @@
         <h2>Everforest</h2>
         <p class="theme-source">github.com/sainnhe</p>
       </header>
-      <div class="preview" style="--yellow:#DFA000;--dark:#2D353B;--grey:#859289;--light:#FDF6E3;--accent:#F85552;--green:#A7C080;">
+      <div class="preview" style="--yellow:#DFA000;--dark:#2D353B;--grey:#859289;--light:#FDF6E3;--accent:#F85552;--green:#A7C080;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--green);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -665,7 +672,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -690,7 +697,7 @@
         <h2>Rosé Pine Dawn</h2>
         <p class="theme-source">rosepinetheme.com</p>
       </header>
-      <div class="preview" style="--yellow:#EA9D34;--dark:#464261;--grey:#797593;--light:#FAF4ED;--accent:#B4637A;--green:#6D8F89;">
+      <div class="preview" style="--yellow:#EA9D34;--dark:#464261;--grey:#797593;--light:#FAF4ED;--accent:#B4637A;--green:#6D8F89;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:transparent;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -705,7 +712,7 @@
           </div>
           <div class="preview-factbox">
             <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
