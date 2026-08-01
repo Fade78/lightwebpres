@@ -71,7 +71,8 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │       └── ...
 ├── README.md                      # Généré par build depuis series.json (§8.3)
 ├── lightwebpres                   # Copie de l'exécutable (installée par install, §11.1)
-└── .gitlab-ci.yml                 # Pipeline CI (optionnel — install --gitlab-ci, §11.1)
+├── .gitlab-ci.yml                 # Pipeline CI (optionnel — install --gitlab-ci, §11.1)
+└── .lwp-cache/nav.json            # Empreinte de navigation pour build --only (§11.3.1)
 ```
 
 ### 2.3 Variables d'environnement
@@ -1184,6 +1185,54 @@ Construit le site :
    ne peut donc jamais faire disparaître du contenu qui n'a pas été mis là
    par `build` lui-même. Un résidu (image ou page orpheline) reste possible
    après suppression d'un article ; à nettoyer à la main si besoin.
+6. Écrit l'empreinte de navigation (§11.3.1) dans `.lwp-cache/nav.json`
+   (ou le chemin donné par `--nav-cache`)
+
+### 11.3.1 `build --only` : reconstruction d'un seul article
+
+```bash
+lightwebpres build [répertoire] --only fichier.html [--nav-cache chemin]
+```
+
+Reconstruit un seul article au lieu de toute la série — pensé pour un
+usage d'édition répétée (typiquement un aperçu live pendant qu'on
+travaille un seul article, voir la spec `lightwebpres-gui` §8.2), là où
+reconstruire toute la série à chaque pause de frappe serait disproportionné
+sur une série à beaucoup d'articles.
+
+**Le piège que ça doit éviter** : `build_index()` et `build_series_nav()`
+utilisent tous les deux les champs résolus par `resolve_display_fields()`
+(`series_title`, `series_desc`, `card_title`, `card_desc`, `card_label`,
+§20.3.1) — et `build_series_nav()` est intégré dans la page de **chaque**
+article, pas seulement dans `index.html`. Changer le titre de l'article A
+peut donc rendre obsolètes les pages déjà construites de B, C, D..., pas
+seulement l'index. Reconstruire uniquement le fichier demandé sans
+vérifier ça produirait un site avec une navigation périmée.
+
+**Le mécanisme de sécurité** : à chaque `build` (complet ou avec `--only`),
+une empreinte est calculée pour chaque article — un hash SHA-256 des 5
+champs ci-dessus concaténés, jamais leur contenu en clair (fichier de
+cache petit et de taille constante, indépendant de la longueur des
+résumés) — et écrite dans `.lwp-cache/nav.json` (racine du répertoire de
+série, à côté de `articles/`/`templates/`/`public/`, jamais dans l'un de
+ces deux derniers pour les garder tels quels — un artefact de build de
+plus, comme `public/`, mais pas mélangé avec lui). `--nav-cache chemin`
+change cet emplacement.
+
+Au lancement de `build --only fichier`, l'empreinte est recalculée pour
+**tous** les articles (rien de coûteux : ne fait que reparser les blocs
+meta, jamais convertir un corps entier) et comparée à celle du cache :
+
+- **Identique pour tous les articles** (y compris ceux autres que
+  `fichier` — un article ajouté/retiré, ou les champs d'un autre article
+  changés entre-temps, sont détectés de la même façon) → reconstruction
+  du seul fichier demandé, plus `index.html`/`README.md`/images (bon
+  marché, refaits systématiquement) — l'étape évitée est la seule
+  vraiment coûteuse : reconvertir le corps Markdown de chaque *autre*
+  article.
+- **Cache absent, illisible, ou différent** → bascule silencieuse sur un
+  `build` complet, jamais une erreur ni une page obsolète silencieuse ;
+  un message `[INFO]` explique pourquoi.
 
 ### 11.4 `check`
 

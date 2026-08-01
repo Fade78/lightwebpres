@@ -629,6 +629,153 @@ class MultiArticleSeries(unittest.TestCase):
             self.assertIn('Desc B', index_html)
 
 
+class IncrementalBuildOnly(unittest.TestCase):
+    """§11.3.1: `build --only <file>` rebuilds a single article instead of
+    the whole series, but only when nothing that affects index.html/
+    series-nav changed since the last build — checked via a fingerprint
+    cache (--nav-cache, default .lwp-cache/nav.json)."""
+
+    def _build_series(self, tmp):
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        md_a = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A\n'
+            'series_desc: Desc A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        md_b = (
+            '<!-- lwp:meta -->\nfile: b.html\nh1: Article B\nseries_title: Article B\n'
+            'series_desc: Desc B\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
+        (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+        series = {
+            'series_meta': {'title': 'The series', 'subtitle': '', 'intro': ''},
+            'articles': [
+                {'file': 'a.html', 'source': 'a.md', 'series_title': 'Article A', 'series_desc': 'Desc A'},
+                {'file': 'b.html', 'source': 'b.md', 'series_title': 'Article B', 'series_desc': 'Desc B'},
+            ],
+        }
+        (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+        return root
+
+    def test_only_without_prior_cache_falls_back_to_full_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('no usable cache found', result.stdout)
+            self.assertIn('Build complete:', result.stdout)
+            self.assertTrue((root / 'public' / 'b.html').exists())
+            self.assertTrue((root / '.lwp-cache' / 'nav.json').exists())
+
+    def test_only_with_unchanged_nav_fields_rebuilds_just_that_article(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            run('build', str(root), '--output', str(root / 'public'))
+            b_before = (root / 'public' / 'b.html').read_text(encoding='utf-8')
+
+            # Change article A's body only — not series_title/series_desc,
+            # which are the only fields the safety check watches.
+            md_a2 = (
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A\n'
+                'series_desc: Desc A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: A brand-new summary.\n\n'
+                '---\n\n<!-- lwp:slide:series-nav -->\n'
+            )
+            (root / 'articles' / 'a.md').write_text(md_a2, encoding='utf-8')
+
+            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+            self.assertIn('A brand-new summary.', (root / 'public' / 'a.html').read_text(encoding='utf-8'))
+            # b.html was never touched by the incremental path.
+            self.assertEqual(b_before, (root / 'public' / 'b.html').read_text(encoding='utf-8'))
+
+    def test_only_with_changed_nav_field_falls_back_and_fixes_other_pages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            run('build', str(root), '--output', str(root / 'public'))
+
+            # Change article A's series_title — this DOES feed the
+            # series-nav block embedded in b.html, so skipping b.html
+            # would leave a stale title there.
+            md_a2 = (
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A Renamed\n'
+                'series_desc: Desc A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
+                '<!-- lwp:slide:series-nav -->\n'
+            )
+            (root / 'articles' / 'a.md').write_text(md_a2, encoding='utf-8')
+            series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            series['articles'][0]['series_title'] = 'Article A Renamed'
+            (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+
+            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('nav/index-affecting metadata changed', result.stdout)
+            self.assertIn('Build complete:', result.stdout)
+            html_b = (root / 'public' / 'b.html').read_text(encoding='utf-8')
+            self.assertIn('Article A Renamed', html_b)
+
+    def test_only_detects_a_newly_added_article_even_if_unrelated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            run('build', str(root), '--output', str(root / 'public'))
+
+            md_c = (
+                '<!-- lwp:meta -->\nfile: c.html\nh1: Article C\nseries_title: Article C\n'
+                'series_desc: Desc C\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Article C\nsummary: Summary C.\n\n---\n\n'
+            )
+            (root / 'articles' / 'c.md').write_text(md_c, encoding='utf-8')
+            series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            series['articles'].append({'file': 'c.html', 'source': 'c.md',
+                                        'series_title': 'Article C', 'series_desc': 'Desc C'})
+            (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+
+            # Ask to rebuild only b.html, unrelated to the new article C —
+            # the fingerprint mismatch (new key) must still be caught.
+            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'b.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('nav/index-affecting metadata changed', result.stdout)
+            self.assertTrue((root / 'public' / 'c.html').exists())
+
+    def test_only_unknown_file_is_a_fatal_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--only', 'nope.html')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('matches no article', result.stderr)
+
+    def test_nav_cache_flag_overrides_default_location(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            custom_cache = root / 'elsewhere' / 'cache.json'
+            run('build', str(root), '--output', str(root / 'public'), '--nav-cache', str(custom_cache))
+            self.assertTrue(custom_cache.exists())
+            self.assertFalse((root / '.lwp-cache' / 'nav.json').exists())
+
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--only', 'a.html', '--nav-cache', str(custom_cache))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+
+    def test_nav_cache_content_is_small_fingerprints_not_raw_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            run('build', str(root), '--output', str(root / 'public'))
+            cache = json.loads((root / '.lwp-cache' / 'nav.json').read_text(encoding='utf-8'))
+            self.assertEqual(set(cache.keys()), {'a.html', 'b.html'})
+            for fingerprint in cache.values():
+                self.assertRegex(fingerprint, r'^[0-9a-f]{64}$')
+                self.assertNotIn('Article', fingerprint)
+
+
 class DemoCommand(unittest.TestCase):
     """§11.2: `demo` must produce a series that builds cleanly."""
 

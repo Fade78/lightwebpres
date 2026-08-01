@@ -114,7 +114,7 @@ all generated automatically.
 |---|---|
 | `install [dir]` | Scaffolds a series directory (`articles/`, `templates/`, `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed) |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
-| `build [dir]` | Builds `public/` from `series.json` + `articles/*.md` |
+| `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1) |
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking editorial warnings (e.g. "no cover slide") — never fails the build |
 | `refresh-templates [dir]` | Updates the built-in CSS/JS in `templates/` after an executable upgrade, keeping local customizations |

@@ -9,7 +9,7 @@ rules + interface strings).
 Usage:
   lightwebpres install [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr]
-  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path]
   lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres refresh-templates [directory]
@@ -23,6 +23,7 @@ import re
 import json
 import shutil
 import difflib
+import hashlib
 from pathlib import Path
 from types import SimpleNamespace
 from html import escape as html_escape
@@ -32,7 +33,7 @@ from html.parser import HTMLParser
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.2.2"
+VERSION = "0.3.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -3184,6 +3185,55 @@ def resolve_display_fields(articles, articles_dir):
             entry['card_desc'] = entry.get('series_desc', '')
 
 
+# ============================================================================
+# NAV/INDEX FINGERPRINT CACHE (for `build --only`, see specifications.md §11.3.1)
+# ============================================================================
+#
+# build_index() and build_series_nav() both render _DISPLAY_OVERRIDE_FIELDS
+# for every article, not just the one being built — build_series_nav's
+# output is inlined into every OTHER article's own page too, so changing
+# one article's title can make every already-built page stale, not just
+# index.html. `--only <file>` skips the expensive step (re-converting
+# every other article's full Markdown body) but only when none of that
+# shared, cross-page data has actually changed since the last build.
+
+def _entry_fingerprint(entry):
+    """A single hash of the fields that affect index.html/series-nav for
+    this entry — content itself isn't kept, so the cache file stays small
+    regardless of how long a summary is."""
+    parts = [entry.get(field, '') for field in _DISPLAY_OVERRIDE_FIELDS]
+    return hashlib.sha256('\x00'.join(parts).encode('utf-8')).hexdigest()
+
+
+def compute_nav_fingerprint(articles):
+    """One fingerprint per article, keyed by `file` — comparing the full
+    dict (not just the entry for the one being built) also catches an
+    article added/removed, or a DIFFERENT article's meta/series.json entry
+    having changed since the last build, not only the one named by
+    --only."""
+    return {entry['file']: _entry_fingerprint(entry) for entry in articles}
+
+
+def default_nav_cache_path(series_dir):
+    return Path(series_dir) / '.lwp-cache' / 'nav.json'
+
+
+def load_nav_cache(path):
+    """None means "no usable cache" (missing, unreadable, or corrupt) —
+    the caller's job is to treat that as "not safe to skip anything",
+    never to guess."""
+    try:
+        return json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return None
+
+
+def save_nav_cache(path, fingerprint):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(fingerprint, indent=2, sort_keys=True), encoding='utf-8')
+
+
 def resolve_paths(series_dir, args):
     """Resolves paths from environment variables and arguments."""
     sd = Path(series_dir).resolve()
@@ -3239,9 +3289,59 @@ def load_build_context(series_dir, args):
     )
 
 
+def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint):
+    """The fast path for `build --only`: the caller has already confirmed
+    nav/index-affecting metadata is unchanged since the last build, so
+    only the named article's own page needs re-converting — index.html,
+    README.md, and images are cheap regardless of series size, so they're
+    always redone rather than also trying to skip them."""
+    entry = next((e for e in ctx.articles if only_file in (e['file'], e['source'])), None)
+    if entry is None:
+        print(f'[ERROR] --only {only_file!r} matches no article (by file or source).', file=sys.stderr)
+        sys.exit(1)
+
+    source_path = ctx.articles_dir / entry['source']
+    if not source_path.exists():
+        print(f'[ERROR] Source not found: {source_path}', file=sys.stderr)
+        sys.exit(1)
+
+    print(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
+    ctx.output_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f'  {entry["file"]} ← {entry["source"]}')
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['file'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+    (ctx.output_dir / entry['file']).write_text(html, encoding='utf-8')
+
+    index_extra_file = ctx.templates_dir / 'index_extra.html'
+    index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
+    print('  index.html')
+    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra)
+    (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+
+    readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
+    (ctx.sd / 'README.md').write_text(readme, encoding='utf-8')
+
+    copy_images(ctx.articles_dir, ctx.output_dir)
+
+    save_nav_cache(nav_cache_path, fresh_fingerprint)
+    print(f'Incremental build complete: {entry["file"]} + index -> {ctx.output_dir}')
+
+
 def cmd_build(series_dir, args):
     """build command."""
     ctx = load_build_context(series_dir, args)
+
+    nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
+    fresh_fingerprint = compute_nav_fingerprint(ctx.articles)
+
+    only_file = args.get('--only')
+    if only_file:
+        cached_fingerprint = load_nav_cache(nav_cache_path)
+        if cached_fingerprint == fresh_fingerprint:
+            _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint)
+            return
+        reason = 'no usable cache found' if cached_fingerprint is None else 'nav/index-affecting metadata changed since the last build'
+        print(f'[INFO] --only requested but not safe ({reason}) — doing a full build instead.')
 
     print(f'Build: {ctx.sd}')
     print(f'  Articles: {ctx.articles_dir}')
@@ -3284,6 +3384,8 @@ def cmd_build(series_dir, args):
 
     # Copy the images
     copy_images(ctx.articles_dir, ctx.output_dir)
+
+    save_nav_cache(nav_cache_path, fresh_fingerprint)
 
     print(f'Build complete: {len(ctx.articles)} articles + index -> {ctx.output_dir}')
 
@@ -3822,6 +3924,15 @@ OPTIONS
   --no-typography        build/check: disables ALL typography rules (non-breaking
                         spaces included) for this run — no rule runs anywhere,
                         not just the ones below (see TYPOGRAPHY section)
+  --only file             build: rebuild just this one article (by file or source
+                        name) instead of the whole series, IF nothing that
+                        affects index.html/series-nav changed since the last
+                        build (checked via --nav-cache) — silently falls back
+                        to a full build otherwise, never a stale page
+                        (spec §11.3.1)
+  --nav-cache path        build --only: where the nav/index fingerprint used for
+                        that safety check is read from and written to
+                        (default: .lwp-cache/nav.json in the series directory)
 
 THEMES (install --theme, see specifications.md §9.5)
   {theme_names}
@@ -3852,6 +3963,8 @@ SERIES DIRECTORY (created by install)
   public/               Generated HTML (build output — do not edit by hand)
   README.md              Generated by build from series.json (article list)
   lightwebpres            Copy of the executable itself, for standalone use
+  .lwp-cache/nav.json     Written by build, read by build --only (spec §11.3.1) —
+                        derived state, safe to delete, never edited by hand
 
 ARTICLE FORMAT (.md)
   <!-- lwp:meta --> ... ---     Metadata block at the top of the file
