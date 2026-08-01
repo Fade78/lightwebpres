@@ -37,7 +37,7 @@ L'exécutable contient en interne :
    Python, extraites par la commande `install`
 4. Le générateur de démo (crée des articles d'exemple)
 5. Le CLI (`install`, `demo`, `build`, `check`, `audit`, `refresh-templates`,
-   `--help`)
+   `themes-gallery`, `--help`)
 
 ### 2.2 Le répertoire de série
 
@@ -94,12 +94,13 @@ série.
 Les options en ligne de commande **override** les variables d'environnement.
 
 ```bash
-lightwebpres install [répertoire] [--lang fr] [--force]
+lightwebpres install [répertoire] [--lang fr] [--force] [--theme nom]
 lightwebpres demo [répertoire] [--lang fr]
 lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography]
 lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography]
 lightwebpres audit [répertoire] [--lang fr]
 lightwebpres refresh-templates [répertoire]
+lightwebpres themes-gallery [chemin]
 lightwebpres --help
 ```
 
@@ -109,6 +110,7 @@ lightwebpres --help
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
 - `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide
 - `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
+- `--theme` : `install` seulement — remplace les six couleurs du thème par défaut par celles d'une palette prédéfinie (§9.5)
 
 ---
 
@@ -778,11 +780,10 @@ Le CSS par défaut est le look actuel de la série. Il est éditable par
 l'utilisateur ; `build` le relit depuis `templates/style.css` s'il existe,
 sinon utilise la version intégrée à l'exécutable.
 
-Il n'existe aujourd'hui qu'un seul thème de couleurs intégré (six variables
-CSS dans `TEMPLATE_STYLE` : `--yellow --dark --grey --light --accent
---green`). `themes-gallery.html`, à la racine du dépôt, documente neuf
-palettes candidates pour le remplacer — une base de choix, pas encore un
-mécanisme : aucune n'est câblée dans `install` ni `refresh-templates`.
+Le CSS par défaut expose six variables CSS (`--yellow --dark --grey
+--light --accent --green`) qui pilotent son apparence. `install
+--theme <nom>` en substitue les valeurs par une palette prédéfinie au
+moment de la création du site — voir §9.5.
 
 ### 9.2 JS (`nav.js`)
 
@@ -888,6 +889,65 @@ Dans les deux cas, un fichier déjà identique à la version intégrée à
 l'exécutable est laissé tel quel (rapporté « already up to date »), sans
 réécriture inutile.
 
+### 9.5 Thèmes de couleurs prédéfinis
+
+Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
+(« slug ») à une palette complète : les six variables de §9.1
+(`--yellow --dark --grey --light --accent --green`), plus des métadonnées
+purement éditoriales (étiquette affichable, source, remarque) qui ne
+servent qu'à `themes-gallery` (§11.8) — jamais à `install --theme`.
+Neuf entrées aujourd'hui : `nord`, `dracula`, `solarized`, `gruvbox`,
+`catppuccin`, `tokyo-night`, `monokai`, `everforest`, `rose-pine`.
+
+`THEMES` est la **seule** source de vérité pour ces couleurs : la
+palette appliquée par `install --theme` et celle affichée par
+`themes-gallery` viennent de la même donnée, elles ne peuvent pas diverger
+l'une de l'autre par construction — contrairement au premier jet de
+`themes-gallery.html` (une page écrite à la main), désormais remplacé par
+un fichier généré depuis cette table (§11.8).
+
+#### 9.5.1 Appliquer un thème à l'installation (`install --theme`)
+
+`install [répertoire] --theme <slug>` (§11.1) substitue les six variables
+du fichier `templates/style.css` généré par celles du thème choisi — rien
+d'autre dans le CSS par défaut n'est modifié. Le fichier obtenu se termine
+toujours par le marqueur de personnalisation (§9.4), donc
+`refresh-templates` continue de fonctionner normalement dessus ensuite.
+
+Le slug appliqué est enregistré dans un second marqueur, dédié, en tout
+début de fichier (juste après le commentaire d'en-tête) :
+
+```css
+/* lightwebpres-theme: nord */
+```
+
+Absent du CSS par défaut (aucun `--theme` fourni) ; toujours présent dès
+qu'un thème a été appliqué — c'est ce qui permet à `refresh-templates`
+(§9.5.2) de savoir quel thème réappliquer après une mise à jour de
+l'exécutable, sans avoir à comparer des couleurs pour le deviner.
+
+Un slug inconnu est une erreur fatale (code de sortie non nul), qui
+liste les slugs valides.
+
+#### 9.5.2 Interaction avec `refresh-templates`
+
+Avant de reconstruire la partie intégrée du fichier (§9.4),
+`refresh-templates` cherche le marqueur de thème (§9.5.1) dans l'ancien
+`templates/style.css` :
+
+- Marqueur présent et slug toujours connu de `THEMES` : les six couleurs
+  de ce thème sont réappliquées au CSS par défaut à jour avant écriture —
+  une mise à jour de l'exécutable ne fait donc jamais revenir
+  silencieusement un site à la palette par défaut. Le marqueur de thème
+  est réécrit à l'identique, pour survivre aux rafraîchissements suivants
+  aussi.
+- Marqueur présent mais slug disparu d'une version ultérieure de
+  `THEMES` : repli sur le thème par défaut pour la partie intégrée,
+  avec un avertissement (pas une erreur fatale — un nettoyage de
+  catalogue de thèmes ne doit pas bloquer un build).
+- Marqueur absent : comportement inchangé, thème par défaut (cas déjà
+  couvert par §9.4).
+
 ---
 
 ## 10. Pipeline GitLab CI
@@ -925,7 +985,7 @@ un `public/` non reconstruit avant de merge — pas fait par défaut par
 ### 11.1 `install`
 
 ```bash
-lightwebpres install [répertoire] [--lang fr]
+lightwebpres install [répertoire] [--lang fr] [--theme nom]
 ```
 
 Crée la structure de travail dans `[répertoire]` :
@@ -934,7 +994,10 @@ Crée la structure de travail dans `[répertoire]` :
 2. Crée les sous-répertoires : `articles/`, `templates/`, `language/`,
    `public/`
 3. Extrait les templates par défaut depuis l'exécutable (§9) :
-   - `templates/style.css`
+   - `templates/style.css` — avec les couleurs du thème par défaut, sauf
+     si `--theme <nom>` est fourni, auquel cas les six variables de ce
+     thème sont substituées (§9.5.1) ; `<nom>` inconnu de `THEMES` est une
+     erreur fatale, qui liste les noms valides
    - `templates/nav.js`
 4. Extrait les packs de langue par défaut depuis l'exécutable :
    - `language/fr.json`
@@ -1063,7 +1126,9 @@ lightwebpres refresh-templates [répertoire]
 Met à jour la partie intégrée à l'exécutable de `templates/style.css` et
 `templates/nav.js` sans écraser une personnalisation locale — voir §9.4
 pour le mécanisme exact (marqueur pour `style.css`, sauvegarde
-`nav.js.bak` pour `nav.js`).
+`nav.js.bak` pour `nav.js`). Si `style.css` porte le marqueur de thème de
+§9.5.1, le thème identifié est réappliqué à la partie intégrée à jour
+plutôt que de revenir au thème par défaut — voir §9.5.2 pour le détail.
 
 1. Erreur fatale si `templates/` n'existe pas (`install` pas encore fait)
 2. Pour chaque fichier présent, affiche s'il a été rafraîchi ou était déjà
@@ -1077,7 +1142,30 @@ Ne relance pas `build` automatiquement : les fichiers HTML déjà générés
 dans `public/` restent inchangés tant que `build` n'est pas relancé à la
 main.
 
-### 11.7 `--help`
+### 11.7 `themes-gallery`
+
+```bash
+lightwebpres themes-gallery [chemin]
+```
+
+Génère une page HTML autonome (aucune dépendance) documentant chaque
+entrée de `THEMES` (§9.5) — un aperçu de son rendu sur un fragment de
+fiche réel, ses six valeurs, et sa remarque éditoriale. Ne modifie aucun
+`series.json` ni `templates/` : cette commande documente, elle n'installe
+rien.
+
+`chemin`, s'il est omis, vaut `themes-gallery.html` dans le répertoire
+courant — c'est ainsi que le fichier à la racine du dépôt lightwebpres
+lui-même est produit, et il n'a plus vocation à être modifié à la main
+(§9.5) : toute correction sur un thème (couleur, remarque) se fait dans
+`THEMES`, puis `themes-gallery` régénère le fichier.
+
+Le texte d'exemple de chaque aperçu (« Chapitre 1 », « La température
+change tout », etc.) est fixe, en français, non localisé par `--lang` —
+c'est un choix éditorial pour cette page de référence, pas une limite du
+moteur de fiches lui-même.
+
+### 11.8 `--help`
 
 Affiche l'aide avec la liste des commandes et options.
 
@@ -1441,7 +1529,7 @@ tranchés — à spécifier avant implémentation.
   séparés par langue, `fr` et `en` intégrés par défaut, `en` en repli ultime ✓
 - **Édition par LLM** : format Markdown lisible et modifiable ✓
 - **Exécutable unique** : un seul fichier Python, pas de dépendance externe ✓
-- **Install / Demo / Build / Check / Audit / Refresh-templates** : commandes séparées ✓
+- **Install / Demo / Build / Check / Audit / Refresh-templates / Themes-gallery** : commandes séparées ✓
 - **Variables d'environnement** : `LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, etc. ✓
 - **Override** : `style.css`/`nav.js` et le fichier de langue sont éditables
   (§9, §7) ; la structure HTML des pages ne l'est pas ✓ (délibérément, §9)

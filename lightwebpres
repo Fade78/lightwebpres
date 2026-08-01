@@ -7,12 +7,13 @@ Native UTF-8. Built-in French and English language packs (typography
 rules + interface strings).
 
 Usage:
-  lightwebpres install [directory] [--lang fr] [--force]
+  lightwebpres install [directory] [--lang fr] [--force] [--theme name]
   lightwebpres demo [directory] [--lang fr]
   lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography]
   lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres refresh-templates [directory]
+  lightwebpres themes-gallery [path]
   lightwebpres --help
 """
 
@@ -150,6 +151,82 @@ LANG_EN = r'''{
   }
 }'''
 
+# Candidate color themes for the default template's six --yellow/--dark/
+# --grey/--light/--accent/--green custom properties (§9.1). This is the
+# single source of truth for both `install --theme <name>` (applies one at
+# scaffold time, see apply_theme()) and `themes-gallery` (renders every
+# entry here into themes-gallery.html, see TEMPLATE_THEME_CARD) — the two
+# can never drift apart, because neither hardcodes a color independently.
+# Hex values verified against each palette's own official source; `note`
+# is editorial commentary written for this specific use (a light-mode-only
+# page), not a claim about the palette in general.
+THEMES = {
+    'nord': {
+        'label': 'Nord', 'source': 'nordtheme.com',
+        'yellow': '#EBCB8B', 'dark': '#2E3440', 'grey': '#4C566A',
+        'light': '#ECEFF4', 'accent': '#BF616A', 'green': '#A3BE8C',
+        'note': 'Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.',
+        'note_good': False,
+    },
+    'dracula': {
+        'label': 'Dracula', 'source': 'draculatheme.com',
+        'yellow': '#F1FA8C', 'dark': '#282A36', 'grey': '#6272A4',
+        'light': '#F8F8F2', 'accent': '#FF5555', 'green': '#50FA7B',
+        'note': 'Palette pensée pour un fond sombre — <code>--light</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.',
+        'note_good': False,
+    },
+    'solarized': {
+        'label': 'Solarized Light', 'source': 'ethanschoonover.com',
+        'yellow': '#B58900', 'dark': '#002B36', 'grey': '#93A1A1',
+        'light': '#FDF6E3', 'accent': '#DC322F', 'green': '#859900',
+        'note': "Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.",
+        'note_good': False,
+    },
+    'gruvbox': {
+        'label': 'Gruvbox Light', 'source': 'github.com/morhetz',
+        'yellow': '#D79921', 'dark': '#282828', 'grey': '#928374',
+        'light': '#FBF1C7', 'accent': '#CC241D', 'green': '#98971A',
+        'note': 'Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.',
+        'note_good': True,
+    },
+    'catppuccin': {
+        'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin',
+        'yellow': '#DF8E1D', 'dark': '#4C4F69', 'grey': '#6C6F85',
+        'light': '#EFF1F5', 'accent': '#D20F39', 'green': '#40A02B',
+        'note': "La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--dark</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).",
+        'note_good': False,
+    },
+    'tokyo-night': {
+        'label': 'Tokyo Night', 'source': 'github.com/folke',
+        'yellow': '#E0AF68', 'dark': '#1A1B26', 'grey': '#565F89',
+        'light': '#E1E2E7', 'accent': '#F7768E', 'green': '#9ECE6A',
+        'note': 'Tokyo Night est nocturne par nature — <code>--light</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.',
+        'note_good': False,
+    },
+    'monokai': {
+        'label': 'Monokai', 'source': 'classique, Sublime Text',
+        'yellow': '#E6DB74', 'dark': '#272822', 'grey': '#75715E',
+        'light': '#F8F8F2', 'accent': '#F92672', 'green': '#A6E22E',
+        'note': 'Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--light</code> reprend le texte-sur-noir, comme Dracula.',
+        'note_good': False,
+    },
+    'everforest': {
+        'label': 'Everforest', 'source': 'github.com/sainnhe',
+        'yellow': '#DFA000', 'dark': '#2D353B', 'grey': '#859289',
+        'light': '#FDF6E3', 'accent': '#F85552', 'green': '#A7C080',
+        'note': 'Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--green</code>. Assemblage clair+sombre officiels.',
+        'note_good': True,
+    },
+    'rose-pine': {
+        'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com',
+        'yellow': '#EA9D34', 'dark': '#464261', 'grey': '#797593',
+        'light': '#FAF4ED', 'accent': '#B4637A', 'green': '#6D8F89',
+        'note': 'La plus douce du lot — <code>--dark</code> est un prune assourdi, pas un noir franc, et <code>--green</code> (« leaf ») penche vers le sarcelle.',
+        'note_good': False,
+    },
+}
+
+
 # Marks where the built-in portion of templates/style.css ends and a site's
 # own customizations begin. `install` writes it at the end of the file with
 # nothing after it; `refresh-templates` (§11.6) uses it to update the
@@ -157,6 +234,49 @@ LANG_EN = r'''{
 # it verbatim, instead of guessing the boundary from a CSS selector that may
 # legitimately also appear in the built-in CSS (see specifications.md §9.4).
 TEMPLATE_STYLE_CUSTOM_MARKER = '/* === Personnalisations locales : refresh-templates conserve tout ce qui suit cette ligne === */'
+
+# Records which THEMES entry (§9.5) a templates/style.css was generated
+# with, right after the file's header line — absent for the default
+# theme. refresh-templates (§9.5.2) reads it back to reapply the same
+# theme instead of silently reverting to the default when it regenerates
+# the built-in portion of the file.
+TEMPLATE_STYLE_THEME_MARKER_RE = re.compile(r'^/\* lightwebpres-theme: (\S+) \*/$', re.MULTILINE)
+
+
+def apply_theme(css_text, theme_key):
+    """Rewrites the six --yellow/--dark/--grey/--light/--accent/--green
+    declarations in `css_text`'s :root block to THEMES[theme_key]'s
+    colors (§9.5.1), and records theme_key in the marker above right
+    after the file's header line.
+
+    Only the FIRST occurrence of each declaration is touched (count=1) —
+    the built-in :root block always comes before a personalization
+    section (§9.4) in the file, by construction, so this can never reach
+    into custom CSS the author appended after the marker, even if it
+    happens to redeclare one of these six names.
+
+    Assumes theme_key is a valid THEMES key; callers validate first so
+    the error message can name the invalid input directly (§9.5.1)."""
+    theme = THEMES[theme_key]
+    for var in ('yellow', 'dark', 'grey', 'light', 'accent', 'green'):
+        pattern = r'(--%s:\s*)#[0-9A-Fa-f]{3,8}(\s*;)' % var
+        css_text = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), css_text, count=1)
+    css_text = TEMPLATE_STYLE_THEME_MARKER_RE.sub('', css_text, count=1)
+    header_end = css_text.index('\n') + 1
+    css_text = css_text[:header_end] + f'/* lightwebpres-theme: {theme_key} */\n' + css_text[header_end:]
+    return css_text
+
+
+def detect_theme(css_text):
+    """Returns the theme slug apply_theme() recorded in `css_text` (only
+    looking at the built-in portion, before the personalization marker
+    of §9.4, so a coincidentally similar comment in an author's own CSS
+    can never be mistaken for it), or None — default theme, or a file
+    that predates this feature."""
+    builtin_part = css_text.split(TEMPLATE_STYLE_CUSTOM_MARKER, 1)[0]
+    m = TEMPLATE_STYLE_THEME_MARKER_RE.search(builtin_part)
+    return m.group(1) if m else None
+
 
 # --- Template: style.css ---
 TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
@@ -1381,6 +1501,439 @@ build:
   artifacts:
     paths:
       - public/
+'''
+
+# --- Template: themes-gallery.html (generated by `themes-gallery`, §11.7) ---
+# Built purely from THEMES (§9.5) by cmd_themes_gallery() — HEAD + one CARD
+# per entry + FOOT. The mock-up text (tag, title, summary...) is fixed
+# French, not localized by --lang: it documents THEMES itself, an
+# editorial choice for this one reference page, not a limitation of the
+# slide-rendering engine (specifications.md §11.7).
+TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palettes de couleurs — lightwebpres</title>
+</head>
+<body>
+
+<style>
+  :root {
+    --paper: #F6F4EF;
+    --ink: #1C1E24;
+    --muted: #6B6558;
+    --rule: #E4E0D6;
+    --card-bg: #FFFFFF;
+    --card-border: #E7E2D5;
+    --structural: #3E4C7A;
+    --structural-soft: #EEF0F8;
+    --chip-good-bg: #E9F1E7;
+    --chip-good-fg: #3E6B47;
+    --chip-warn-bg: #FBEFE3;
+    --chip-warn-fg: #8A5A2A;
+  }
+  :root[data-theme="dark"] {
+    --paper: #17181D;
+    --ink: #ECE8DE;
+    --muted: #948C7B;
+    --rule: #2C2E35;
+    --card-bg: #1E2026;
+    --card-border: #2E3038;
+    --structural: #92A2E0;
+    --structural-soft: #232A44;
+    --chip-good-bg: #1E3226;
+    --chip-good-fg: #8FCB9B;
+    --chip-warn-bg: #3A2C1C;
+    --chip-warn-fg: #E3B27E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17181D;
+      --ink: #ECE8DE;
+      --muted: #948C7B;
+      --rule: #2C2E35;
+      --card-bg: #1E2026;
+      --card-border: #2E3038;
+      --structural: #92A2E0;
+      --structural-soft: #232A44;
+      --chip-good-bg: #1E3226;
+      --chip-good-fg: #8FCB9B;
+      --chip-warn-bg: #3A2C1C;
+      --chip-warn-fg: #E3B27E;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  a { color: var(--structural); }
+  ::selection { background: var(--structural-soft); }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+  }
+
+  .masthead {
+    max-width: 780px;
+    margin-bottom: 48px;
+  }
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--structural);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(30px, 4vw, 42px);
+    line-height: 1.12;
+    margin: 0 0 16px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .dek {
+    font-size: 16px;
+    color: var(--muted);
+    margin: 0 0 8px;
+    max-width: 62ch;
+  }
+  .dek code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    background: var(--structural-soft);
+    color: var(--structural);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+  }
+
+  .grid {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 30px 26px;
+  }
+
+  .theme-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .theme-head {
+    padding: 18px 18px 4px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .theme-head h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-weight: 600;
+    font-size: 19px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .theme-source {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40%;
+  }
+
+  /* --- live mock-up of the real lightwebpres UI, driven entirely by --- */
+  /* --- the six custom properties set inline per card                --- */
+  .preview {
+    margin: 14px 18px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+  }
+  .preview-cover {
+    background: var(--dark);
+    padding: 16px 15px 15px;
+  }
+  .preview-tag {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--dark);
+    background: var(--yellow);
+    padding: 3px 7px;
+    border-radius: 3px;
+  }
+  .preview-cover-title {
+    margin-top: 9px;
+    font-size: 14.5px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: #fff;
+  }
+  .preview-body {
+    background: var(--light);
+    padding: 15px;
+  }
+  .preview-tag--muted {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+  .preview-h2 {
+    margin-top: 5px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--dark);
+    line-height: 1.25;
+  }
+  .preview-summary {
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--grey);
+    line-height: 1.5;
+  }
+  .preview-highlight {
+    margin-top: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .preview-figure {
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--dark);
+    font-variant-numeric: tabular-nums;
+  }
+  .preview-arrow {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .preview-caption {
+    font-size: 10.5px;
+    color: var(--grey);
+  }
+  .preview-factbox {
+    margin-top: 12px;
+    background: #fff;
+    border-left: 4px solid var(--yellow);
+    padding: 9px 11px;
+    border-radius: 0 6px 6px 0;
+  }
+  .preview-factlabel {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+  .preview-factcontent {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--dark);
+    line-height: 1.4;
+  }
+  .preview-table {
+    margin-top: 12px;
+    display: flex;
+    gap: 7px;
+  }
+  .preview-cell {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 4px;
+  }
+  .preview-cell--neutral {
+    color: var(--grey);
+    background: rgba(0, 0, 0, 0.05);
+  }
+  .preview-cell--green {
+    color: var(--green);
+    background: color-mix(in srgb, var(--green) 16%, transparent);
+  }
+
+  /* --- swatch strip + metadata (artifact chrome, not the mock-up) --- */
+  .swatches {
+    margin: 14px 18px 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 10px;
+  }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .swatch-chip {
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    flex: none;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+  .swatch-text {
+    min-width: 0;
+    line-height: 1.15;
+  }
+  .swatch-role {
+    font-size: 9px;
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .swatch-hex {
+    font-size: 10.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .theme-note {
+    margin: 14px 18px 18px;
+    font-size: 11.5px;
+    color: var(--chip-warn-fg);
+    background: var(--chip-warn-bg);
+    padding: 8px 11px;
+    border-radius: 8px;
+    line-height: 1.45;
+  }
+  .theme-note--good {
+    color: var(--chip-good-fg);
+    background: var(--chip-good-bg);
+  }
+
+  .install-hint {
+    margin: 0 18px 18px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .install-hint code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.95em;
+    background: var(--structural-soft);
+    color: var(--structural);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 70ch;
+  }
+  footer code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (max-width: 480px) {
+    .wrap { padding: 40px 18px 72px; }
+    .swatches { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow">lightwebpres &middot; th&egrave;mes de couleurs</p>
+    <h1>Neuf palettes nomm&eacute;es, pr&ecirc;tes &agrave; l'emploi</h1>
+    <p class="dek">
+      Chaque carte applique une palette r&eacute;elle aux six variables que lightwebpres lit dans
+      <code>templates/style.css</code> &mdash; <code>--yellow --dark --grey --light --accent --green</code>
+      &mdash; sur un vrai fragment de fiche (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;,
+      fact-box, tableau). Cette page est g&eacute;n&eacute;r&eacute;e depuis la table
+      <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; voir
+      specifications.md &sect;9.5.
+    </p>
+  </div>
+
+  <div class="grid">
+'''
+
+TEMPLATE_THEMES_GALLERY_CARD = '''
+    <article class="theme-card">
+      <header class="theme-head">
+        <h2>{label}</h2>
+        <p class="theme-source">{source}</p>
+      </header>
+      <div class="preview" style="--yellow:{yellow};--dark:{dark};--grey:{grey};--light:{light};--accent:{accent};--green:{green};">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:{yellow}"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">{yellow}</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{dark}"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">{dark}</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{grey}"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">{grey}</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{light}"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">{light}</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{accent}"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">{accent}</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{green}"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">{green}</div></span></li>
+      </ul>
+      <p class="theme-note{note_good_class}">{note}</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme {slug}</code></p>
+    </article>
+'''
+
+TEMPLATE_THEMES_GALLERY_FOOT = '''
+  </div>
+
+  <footer>
+    Codes v&eacute;rifi&eacute;s depuis les d&eacute;p&ocirc;ts/fichiers officiels de chaque
+    palette. G&eacute;n&eacute;r&eacute; par <code>lightwebpres themes-gallery</code> depuis la
+    table <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; une correction sur
+    un th&egrave;me se fait dans cette table, puis se r&eacute;percute ici et dans
+    <code>install --theme</code> &agrave; la prochaine r&eacute;g&eacute;n&eacute;ration.
+  </footer>
+
+</div>
+
+</body>
+</html>
 '''
 
 # ============================================================================
@@ -2664,9 +3217,15 @@ def cmd_install(target_dir, args):
     td = Path(target_dir).resolve()
     lang = args.get('--lang', 'fr')
     force = bool(args.get('--force'))
+    theme_key = args.get('--theme')
 
     if td.exists() and any(td.iterdir()) and not force:
         print(f'[ERROR] {td} is not empty. Use an empty or new directory, or pass --force.',
+              file=sys.stderr)
+        sys.exit(1)
+
+    if theme_key is not None and theme_key not in THEMES:
+        print(f'[ERROR] Unknown theme: {theme_key!r}. Valid themes: {", ".join(sorted(THEMES))}',
               file=sys.stderr)
         sys.exit(1)
 
@@ -2682,7 +3241,8 @@ def cmd_install(target_dir, args):
     # optional templates/index_extra.html is inserted as-is into the
     # index page if the author creates one — no default content, so
     # nothing to extract here)
-    (td / 'templates' / 'style.css').write_text(TEMPLATE_STYLE, encoding='utf-8')
+    style_css = apply_theme(TEMPLATE_STYLE, theme_key) if theme_key else TEMPLATE_STYLE
+    (td / 'templates' / 'style.css').write_text(style_css, encoding='utf-8')
     (td / 'templates' / 'nav.js').write_text(TEMPLATE_NAV_JS, encoding='utf-8')
 
     # Extract the language packs
@@ -2714,6 +3274,8 @@ def cmd_install(target_dir, args):
         exe_dst.chmod(exe_dst.stat().st_mode | 0o111)
 
     print(f'Installed: {td}')
+    if theme_key:
+        print(f'  theme: {THEMES[theme_key]["label"]}')
     print(f'  articles/   — your .md files')
     print(f'  templates/  — CSS and JS (editable; put custom CSS after the')
     print(f'              "Personnalisations locales" marker at the end of')
@@ -2749,7 +3311,14 @@ def cmd_refresh_templates(target_dir, args):
     style_path = templates_dir / 'style.css'
     if style_path.exists():
         old = style_path.read_text(encoding='utf-8')
-        if old == TEMPLATE_STYLE:
+        detected_theme = detect_theme(old)
+        if detected_theme is not None and detected_theme not in THEMES:
+            print(f'[WARN] templates/style.css was built with theme {detected_theme!r}, '
+                  f'which no longer exists. Falling back to the default theme for the '
+                  f'built-in part.', file=sys.stderr)
+            detected_theme = None
+        new_builtin = apply_theme(TEMPLATE_STYLE, detected_theme) if detected_theme else TEMPLATE_STYLE
+        if old == new_builtin:
             up_to_date.append('templates/style.css')
         else:
             marker_pos = old.rfind(TEMPLATE_STYLE_CUSTOM_MARKER)
@@ -2762,7 +3331,7 @@ def cmd_refresh_templates(target_dir, args):
                 print(f'  {TEMPLATE_STYLE_CUSTOM_MARKER}', file=sys.stderr)
             else:
                 custom_tail = old[marker_pos + len(TEMPLATE_STYLE_CUSTOM_MARKER):]
-                style_path.write_text(TEMPLATE_STYLE + custom_tail, encoding='utf-8')
+                style_path.write_text(new_builtin + custom_tail, encoding='utf-8')
                 refreshed.append('templates/style.css')
 
     nav_path = templates_dir / 'nav.js'
@@ -2793,6 +3362,37 @@ def cmd_refresh_templates(target_dir, args):
 
     if skipped:
         sys.exit(1)
+
+
+# ============================================================================
+# THEMES-GALLERY COMMAND
+# ============================================================================
+
+def cmd_themes_gallery(output_path, args):
+    """themes-gallery command — generates a self-contained HTML page
+    documenting every THEMES entry (§9.5), built purely from that data so
+    it can never drift from what `install --theme` actually applies."""
+    out = Path(output_path).resolve()
+
+    cards = []
+    for slug, theme in THEMES.items():
+        cards.append(TEMPLATE_THEMES_GALLERY_CARD.format(
+            label=theme['label'],
+            source=theme['source'],
+            yellow=theme['yellow'],
+            dark=theme['dark'],
+            grey=theme['grey'],
+            light=theme['light'],
+            accent=theme['accent'],
+            green=theme['green'],
+            note=theme['note'],
+            note_good_class=' theme-note--good' if theme.get('note_good') else '',
+            slug=slug,
+        ))
+
+    html = TEMPLATE_THEMES_GALLERY_HEAD + ''.join(cards) + TEMPLATE_THEMES_GALLERY_FOOT
+    out.write_text(html, encoding='utf-8')
+    print(f'Generated: {out}')
 
 
 # ============================================================================
@@ -3020,6 +3620,7 @@ This is the full article for the third demo article [^1].
 # ============================================================================
 
 def print_help():
+    theme_names = ', '.join(sorted(THEMES))
     print(f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
 
 COMMANDS
@@ -3030,17 +3631,29 @@ COMMANDS
   lightwebpres audit [directory] [--lang fr]     Warns about editorial conventions (never blocking)
   lightwebpres refresh-templates [directory]     Updates the built-in CSS/JS in templates/,
                                                   keeping local customizations (see §9.4)
+  lightwebpres themes-gallery [path]             Generates a self-contained HTML page
+                                                  documenting every built-in color theme
+                                                  (default path: themes-gallery.html, see §11.7)
   lightwebpres help | --help | -h                Shows this help
 
 OPTIONS
   --lang fr|en           Language: typography rules + interface strings (default: fr)
   --output public/       Output directory (default: public/)
   --force                install: proceed even if the target directory is not empty
+  --theme name           install: replace the default theme's colors with a named
+                        palette (see THEMES below); unknown name is a fatal error
   --language-file path   build/check: use this language pack file instead of
                         language/<lang>.json (highest priority, spec §19.5)
   --no-typography        build/check: disables ALL typography rules (non-breaking
                         spaces included) for this run — no rule runs anywhere,
                         not just the ones below (see TYPOGRAPHY section)
+
+THEMES (install --theme, see specifications.md §9.5)
+  {theme_names}
+  Preview every theme (rendered against real slide content) with:
+    lightwebpres themes-gallery
+  refresh-templates automatically reapplies a chosen theme to the up-to-date
+  built-in CSS, so upgrading the executable never silently reverts it.
 
 ENVIRONMENT VARIABLES
   LWP_ARTICLES_DIR    Articles directory (default: $LWP_SERIES_DIR/articles)
@@ -3150,6 +3763,11 @@ def main():
         cmd_audit(target, opts)
     elif command == 'refresh-templates':
         cmd_refresh_templates(target, opts)
+    elif command == 'themes-gallery':
+        # Not a series-directory command: no LWP_SERIES_DIR fallback here,
+        # just an output file path defaulting to themes-gallery.html in cwd.
+        output_path = positional[0] if positional else 'themes-gallery.html'
+        cmd_themes_gallery(output_path, opts)
     else:
         print(f'Unknown command: {command}', file=sys.stderr)
         print_help()

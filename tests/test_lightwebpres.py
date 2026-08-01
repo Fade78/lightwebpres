@@ -1148,6 +1148,127 @@ class RefreshTemplates(unittest.TestCase):
             self.assertIn('OLD-CUSTOM-NAV', backup.read_text(encoding='utf-8'))
 
 
+class Themes(unittest.TestCase):
+    """§9.5/§11.1/§11.6/§11.7: install --theme substitutes the six palette
+    variables from THEMES, records which theme was applied in a marker
+    refresh-templates can read back, and themes-gallery documents every
+    entry purely from that same table."""
+
+    THEME_MARKER_RE = re.compile(r'^/\* lightwebpres-theme: (\S+) \*/$', re.MULTILINE)
+
+    def test_install_without_theme_uses_default_and_no_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertIn('--yellow: #FFFC00;', style)
+            self.assertIsNone(self.THEME_MARKER_RE.search(style))
+
+    def test_install_with_valid_theme_substitutes_colors_and_records_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run('install', str(root), '--theme', 'nord')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Nord', result.stdout)
+            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertIn('--yellow: #EBCB8B;', style)
+            self.assertIn('--dark: #2E3440;', style)
+            self.assertNotIn('#FFFC00', style)
+            m = self.THEME_MARKER_RE.search(style)
+            self.assertIsNotNone(m)
+            self.assertEqual(m.group(1), 'nord')
+
+    def test_install_with_valid_theme_keeps_the_personalization_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
+            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertIn(RefreshTemplates.MARKER, style)
+
+    def test_install_with_unknown_theme_is_a_fatal_error_listing_valid_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run('install', str(root), '--theme', 'not-a-real-theme')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('not-a-real-theme', result.stderr)
+            self.assertIn('nord', result.stderr)
+            self.assertFalse((root / 'templates').exists())
+
+    def test_refresh_templates_reapplies_known_theme_after_upgrade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
+            style_path = root / 'templates' / 'style.css'
+            stale = style_path.read_text(encoding='utf-8').replace(
+                '--yellow: #F1FA8C;', '--yellow: #F1FA8C;\n  /* STALE-BUILTIN-RULE */', 1,
+            )
+            style_path.write_text(stale, encoding='utf-8')
+
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            refreshed = style_path.read_text(encoding='utf-8')
+            self.assertNotIn('STALE-BUILTIN-RULE', refreshed)
+            self.assertIn('--yellow: #F1FA8C;', refreshed)
+            self.assertIn('--dark: #282A36;', refreshed)
+            m = self.THEME_MARKER_RE.search(refreshed)
+            self.assertIsNotNone(m)
+            self.assertEqual(m.group(1), 'dracula')
+
+    def test_refresh_templates_falls_back_to_default_with_warning_for_unknown_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            style_path = root / 'templates' / 'style.css'
+            edited = style_path.read_text(encoding='utf-8').replace(
+                '/* lightwebpres-theme: nord */', '/* lightwebpres-theme: retired-theme */', 1,
+            )
+            style_path.write_text(edited, encoding='utf-8')
+
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('retired-theme', result.stderr)
+
+            refreshed = style_path.read_text(encoding='utf-8')
+            self.assertIn('--yellow: #FFFC00;', refreshed)
+            self.assertIsNone(self.THEME_MARKER_RE.search(refreshed))
+
+    def test_themes_gallery_default_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run('themes-gallery', cwd=str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            gallery = root / 'themes-gallery.html'
+            self.assertTrue(gallery.exists())
+
+    def test_themes_gallery_explicit_path_documents_every_theme(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            out = root / 'gallery.html'
+            result = run('themes-gallery', str(out))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = out.read_text(encoding='utf-8')
+            for label in ('Nord', 'Dracula', 'Solarized Light', 'Gruvbox Light',
+                          'Catppuccin Latte', 'Tokyo Night', 'Monokai', 'Everforest',
+                          'Rosé Pine Dawn'):
+                self.assertIn(f'<h2>{label}</h2>', html)
+            self.assertIn('--yellow:#EBCB8B', html)
+            self.assertIn('lightwebpres install my-series --theme nord', html)
+            open_tags = html.count('<article class="theme-card">')
+            close_tags = html.count('</article>')
+            self.assertEqual(open_tags, 9)
+            self.assertEqual(open_tags, close_tags)
+
+    def test_themed_build_actually_uses_the_substituted_colors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'gruvbox').returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('--yellow: #D79921;', index_html)
+
+
 class CoverCardinalityFreedom(unittest.TestCase):
     """§4.4/§22.13: build must never block on the number or position of
     cover slides — that's audit's job, purely editorial."""

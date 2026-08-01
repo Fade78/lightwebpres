@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Palettes candidates — lightwebpres</title>
+<title>Palettes de couleurs — lightwebpres</title>
 </head>
 <body>
 
@@ -107,35 +107,8 @@
     border-radius: 4px;
   }
 
-  .legend {
-    margin-top: 32px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1px;
-    background: var(--rule);
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .legend-item {
-    background: var(--card-bg);
-    padding: 16px 18px;
-  }
-  .legend-label {
-    font-size: 10.5px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 8px;
-  }
-  .legend-names {
-    font-size: 13.5px;
-    margin: 0;
-  }
-  .legend-names strong { font-weight: 600; }
-
   .grid {
-    margin-top: 56px;
+    margin-top: 40px;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
     gap: 30px 26px;
@@ -342,8 +315,19 @@
     color: var(--chip-good-fg);
     background: var(--chip-good-bg);
   }
-  .theme-card:not(:has(.theme-note)) .swatches {
-    margin-bottom: 18px;
+
+  .install-hint {
+    margin: 0 18px 18px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .install-hint code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.95em;
+    background: var(--structural-soft);
+    color: var(--structural);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
   }
 
   footer {
@@ -353,6 +337,9 @@
     font-size: 12.5px;
     color: var(--muted);
     max-width: 70ch;
+  }
+  footer code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
   @media (max-width: 480px) {
@@ -364,57 +351,41 @@
 <div class="wrap">
 
   <div class="masthead">
-    <p class="eyebrow">lightwebpres · propositions de thèmes</p>
-    <h1>Neuf palettes nommées, prêtes à remplacer le jaune vif par défaut</h1>
+    <p class="eyebrow">lightwebpres &middot; th&egrave;mes de couleurs</p>
+    <h1>Neuf palettes nomm&eacute;es, pr&ecirc;tes &agrave; l'emploi</h1>
     <p class="dek">
-      Chaque carte applique une palette réelle aux six variables que lightwebpres lit déjà dans
-      <code>templates/style.css</code> — <code>--yellow --dark --grey --light --accent --green</code> —
-      sur un vrai fragment de fiche (tag, titre, résumé, chiffre-clé, fact-box, tableau). Aucune n'est
-      encore intégrée : c'est une base de choix, pas un rendu final. Les variantes « Dark » de
-      Solarized et Gruvbox ont été retirées : sur ce site en light-mode uniquement, elles rendaient
-      quasiment à l'identique de leur variante « Light ».
+      Chaque carte applique une palette r&eacute;elle aux six variables que lightwebpres lit dans
+      <code>templates/style.css</code> &mdash; <code>--yellow --dark --grey --light --accent --green</code>
+      &mdash; sur un vrai fragment de fiche (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;,
+      fact-box, tableau). Cette page est g&eacute;n&eacute;r&eacute;e depuis la table
+      <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; voir
+      specifications.md &sect;9.5.
     </p>
-    <div class="legend">
-      <div class="legend-item">
-        <p class="legend-label">Jaune le plus vif</p>
-        <p class="legend-names"><strong>Dracula</strong>, Monokai</p>
-      </div>
-      <div class="legend-item">
-        <p class="legend-label">Jaune le plus sourd</p>
-        <p class="legend-names"><strong>Nord</strong>, Solarized</p>
-      </div>
-      <div class="legend-item">
-        <p class="legend-label">Vert le plus net</p>
-        <p class="legend-names"><strong>Dracula</strong>, Catppuccin Latte, Monokai</p>
-      </div>
-      <div class="legend-item">
-        <p class="legend-label">Fond clair emprunté</p>
-        <p class="legend-names"><strong>Dracula</strong>, Tokyo Night, Monokai</p>
-      </div>
-    </div>
   </div>
 
   <div class="grid">
 
-    <!-- Nord -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Nord</h2><p class="theme-source">nordtheme.com</p></header>
+      <header class="theme-head">
+        <h2>Nord</h2>
+        <p class="theme-source">nordtheme.com</p>
+      </header>
       <div class="preview" style="--yellow:#EBCB8B;--dark:#2E3440;--grey:#4C566A;--light:#ECEFF4;--accent:#BF616A;--green:#A3BE8C;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -431,27 +402,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#A3BE8C"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#A3BE8C</div></span></li>
       </ul>
       <p class="theme-note">Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme nord</code></p>
     </article>
 
-    <!-- Dracula -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Dracula</h2><p class="theme-source">draculatheme.com</p></header>
+      <header class="theme-head">
+        <h2>Dracula</h2>
+        <p class="theme-source">draculatheme.com</p>
+      </header>
       <div class="preview" style="--yellow:#F1FA8C;--dark:#282A36;--grey:#6272A4;--light:#F8F8F2;--accent:#FF5555;--green:#50FA7B;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -468,27 +442,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#50FA7B"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#50FA7B</div></span></li>
       </ul>
       <p class="theme-note">Palette pensée pour un fond sombre — <code>--light</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme dracula</code></p>
     </article>
 
-    <!-- Solarized Light -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Solarized Light</h2><p class="theme-source">ethanschoonover.com</p></header>
+      <header class="theme-head">
+        <h2>Solarized Light</h2>
+        <p class="theme-source">ethanschoonover.com</p>
+      </header>
       <div class="preview" style="--yellow:#B58900;--dark:#002B36;--grey:#93A1A1;--light:#FDF6E3;--accent:#DC322F;--green:#859900;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -505,27 +482,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#859900"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#859900</div></span></li>
       </ul>
       <p class="theme-note">Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme solarized</code></p>
     </article>
 
-    <!-- Gruvbox Light -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Gruvbox Light</h2><p class="theme-source">github.com/morhetz</p></header>
+      <header class="theme-head">
+        <h2>Gruvbox Light</h2>
+        <p class="theme-source">github.com/morhetz</p>
+      </header>
       <div class="preview" style="--yellow:#D79921;--dark:#282828;--grey:#928374;--light:#FBF1C7;--accent:#CC241D;--green:#98971A;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -542,27 +522,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#98971A"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#98971A</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme gruvbox</code></p>
     </article>
 
-    <!-- Catppuccin Latte -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Catppuccin Latte</h2><p class="theme-source">github.com/catppuccin</p></header>
+      <header class="theme-head">
+        <h2>Catppuccin Latte</h2>
+        <p class="theme-source">github.com/catppuccin</p>
+      </header>
       <div class="preview" style="--yellow:#DF8E1D;--dark:#4C4F69;--grey:#6C6F85;--light:#EFF1F5;--accent:#D20F39;--green:#40A02B;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -579,27 +562,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#40A02B"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#40A02B</div></span></li>
       </ul>
       <p class="theme-note">La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--dark</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme catppuccin</code></p>
     </article>
 
-    <!-- Tokyo Night -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Tokyo Night</h2><p class="theme-source">github.com/folke</p></header>
+      <header class="theme-head">
+        <h2>Tokyo Night</h2>
+        <p class="theme-source">github.com/folke</p>
+      </header>
       <div class="preview" style="--yellow:#E0AF68;--dark:#1A1B26;--grey:#565F89;--light:#E1E2E7;--accent:#F7768E;--green:#9ECE6A;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -616,27 +602,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#9ECE6A"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#9ECE6A</div></span></li>
       </ul>
       <p class="theme-note">Tokyo Night est nocturne par nature — <code>--light</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme tokyo-night</code></p>
     </article>
 
-    <!-- Monokai -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Monokai</h2><p class="theme-source">classique, Sublime Text</p></header>
+      <header class="theme-head">
+        <h2>Monokai</h2>
+        <p class="theme-source">classique, Sublime Text</p>
+      </header>
       <div class="preview" style="--yellow:#E6DB74;--dark:#272822;--grey:#75715E;--light:#F8F8F2;--accent:#F92672;--green:#A6E22E;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -653,27 +642,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#A6E22E"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#A6E22E</div></span></li>
       </ul>
       <p class="theme-note">Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--light</code> reprend le texte-sur-noir, comme Dracula.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme monokai</code></p>
     </article>
 
-    <!-- Everforest -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Everforest</h2><p class="theme-source">github.com/sainnhe</p></header>
+      <header class="theme-head">
+        <h2>Everforest</h2>
+        <p class="theme-source">github.com/sainnhe</p>
+      </header>
       <div class="preview" style="--yellow:#DFA000;--dark:#2D353B;--grey:#859289;--light:#FDF6E3;--accent:#F85552;--green:#A7C080;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -690,27 +682,30 @@
         <li class="swatch"><span class="swatch-chip" style="background:#A7C080"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#A7C080</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--green</code>. Assemblage clair+sombre officiels.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme everforest</code></p>
     </article>
 
-    <!-- Rosé Pine Dawn -->
     <article class="theme-card">
-      <header class="theme-head"><h2>Rosé Pine Dawn</h2><p class="theme-source">rosepinetheme.com</p></header>
+      <header class="theme-head">
+        <h2>Rosé Pine Dawn</h2>
+        <p class="theme-source">rosepinetheme.com</p>
+      </header>
       <div class="preview" style="--yellow:#EA9D34;--dark:#464261;--grey:#797593;--light:#FAF4ED;--accent:#B4637A;--green:#6D8F89;">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
         </div>
         <div class="preview-body">
           <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La température change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-h2">La temp&eacute;rature change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
-            <span class="preview-caption">température recommandée</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
-            <div class="preview-factlabel">Le repère</div>
-            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+            <div class="preview-factlabel">Le rep&egrave;re</div>
+            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner change tout.</div>
           </div>
           <div class="preview-table">
             <span class="preview-cell preview-cell--neutral">Four statique</span>
@@ -727,15 +722,17 @@
         <li class="swatch"><span class="swatch-chip" style="background:#6D8F89"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#6D8F89</div></span></li>
       </ul>
       <p class="theme-note">La plus douce du lot — <code>--dark</code> est un prune assourdi, pas un noir franc, et <code>--green</code> (« leaf ») penche vers le sarcelle.</p>
+      <p class="install-hint"><code>lightwebpres install my-series --theme rose-pine</code></p>
     </article>
 
   </div>
 
   <footer>
-    Codes vérifiés depuis les dépôts/fichiers officiels de chaque palette. Cette page documente des
-    candidats, pas un mécanisme intégré : aucun de ces jeux de couleurs n'existe encore comme option
-    de <code>lightwebpres install</code> ou <code>refresh-templates</code> — voir specifications.md
-    pour l'état actuel du mécanisme de template unique.
+    Codes v&eacute;rifi&eacute;s depuis les d&eacute;p&ocirc;ts/fichiers officiels de chaque
+    palette. G&eacute;n&eacute;r&eacute; par <code>lightwebpres themes-gallery</code> depuis la
+    table <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; une correction sur
+    un th&egrave;me se fait dans cette table, puis se r&eacute;percute ici et dans
+    <code>install --theme</code> &agrave; la prochaine r&eacute;g&eacute;n&eacute;ration.
   </footer>
 
 </div>
