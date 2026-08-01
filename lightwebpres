@@ -488,7 +488,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   }
   .series-current { background: #f0f0e8; border: 2px solid #ddd; opacity: 0.6; }
   .series-link { background: white; border: 2px solid var(--yellow); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
-  .series-link:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .series-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
   .series-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
   .series-desc { font-size: 14px; color: var(--grey); margin-bottom: 8px; }
@@ -1200,6 +1201,12 @@ document.addEventListener('DOMContentLoaded', function() {
   var slides   = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
   var current  = 0;
   var isScrolling = false;
+  // Index into the CURRENT slide's keyboard-reachable links (series-nav
+  // cards + the "back to index" link, in document order) — -1 means none
+  // focused yet. Reset on every slide change (goTo). Only ever non-empty
+  // on the series-nav slide; every other slide behaves exactly as if
+  // this never existed.
+  var focusedCard = -1;
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var btnHome    = document.getElementById('navHome');
@@ -1222,10 +1229,80 @@ document.addEventListener('DOMContentLoaded', function() {
     idx = Math.max(0, Math.min(slides.length - 1, idx));
     if (idx === current && isScrolling) return;
     current = idx;
+    focusedCard = -1;
     isScrolling = true;
     slides[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
     updateUI();
     setTimeout(function(){ isScrolling = false; }, 700);
+  }
+
+  // The series-nav slide's cards, in document order (includes the "back
+  // to index" link, itself an .series-link — it's a legitimate stop in
+  // the same keyboard journey). Empty on every other slide.
+  function slideCards(idx) {
+    return Array.prototype.slice.call(slides[idx].querySelectorAll('.series-list a.series-link'));
+  }
+
+  // .slide only sets min-height: 100vh (specifications.md §9), so a
+  // slide's real height only exceeds the viewport when its own content
+  // demands it — a long full-article slide being the common case, but
+  // this only ever looks at actual layout, never a slide type or
+  // position, so it works for whichever slide ends up being the tall one.
+  function overflowsViewport(slide) {
+    return slide.getBoundingClientRect().height > window.innerHeight + 1;
+  }
+  function atSlideTop(slide) {
+    return slide.getBoundingClientRect().top >= -1;
+  }
+  function atSlideBottom(slide) {
+    return slide.getBoundingClientRect().bottom <= window.innerHeight + 1;
+  }
+  function scrollWithinSlide(direction) {
+    window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
+  }
+
+  // The natural keyboard journey (in this order, each one only kicking in
+  // once the previous is exhausted): slide to slide, then — on the
+  // series-nav slide specifically — card to card (focus() already
+  // scrolls a card into view on its own, which doubles as "scroll a
+  // series-nav slide taller than the viewport"), then, for any other
+  // slide taller than the viewport (typically the closing full-article),
+  // scroll it down in increments before moving on. Enter needs no extra
+  // handling: once a card has real focus, the browser's own default
+  // "Enter activates the focused link" already does the jump.
+  function stepForward() {
+    var cards = slideCards(current);
+    if (cards.length && focusedCard < cards.length - 1) {
+      focusedCard++;
+      cards[focusedCard].focus();
+      return;
+    }
+    if (focusedCard >= 0 && cards.length) { cards[focusedCard].blur(); }
+    var slide = slides[current];
+    if (overflowsViewport(slide) && !atSlideBottom(slide)) {
+      scrollWithinSlide(1);
+      return;
+    }
+    goTo(current + 1);
+  }
+
+  function stepBackward() {
+    var cards = slideCards(current);
+    if (focusedCard > 0) {
+      focusedCard--;
+      cards[focusedCard].focus();
+      return;
+    }
+    if (focusedCard === 0) {
+      focusedCard = -1;
+      cards[0].blur();
+    }
+    var slide = slides[current];
+    if (overflowsViewport(slide) && !atSlideTop(slide)) {
+      scrollWithinSlide(-1);
+      return;
+    }
+    goTo(current - 1);
   }
 
   function updateUI() {
@@ -1244,9 +1321,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-      e.preventDefault(); goTo(current + 1);
+      e.preventDefault(); stepForward();
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault(); goTo(current - 1);
+      e.preventDefault(); stepBackward();
     } else if (e.key === 'Home') {
       e.preventDefault(); window.location.href = 'index.html';
     }
@@ -1254,17 +1331,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function detectCurrent() {
     if (isScrolling) return;
-    var scrollY = window.scrollY || window.pageYOffset;
-    var winH    = window.innerHeight;
-    var best    = 0;
-    var bestDist = Infinity;
+    var winH = window.innerHeight;
+    var mid  = winH / 2;
+    var best = current;
+    // Which slide's own [top, bottom] span contains the viewport's
+    // vertical midpoint — not "nearest center", which breaks as soon as
+    // one slide is much taller than the rest (a long full-article, the
+    // very case arrow-key scrolling now has to handle): its center can
+    // sit far below the visible viewport even while its top edge is what
+    // the user is actually looking at, so distance-to-center would keep
+    // picking a short neighboring slide instead.
     slides.forEach(function(s, i) {
       var rect = s.getBoundingClientRect();
-      var center = rect.top + rect.height / 2;
-      var dist = Math.abs(center - winH / 2);
-      if (dist < bestDist) { bestDist = dist; best = i; }
+      if (rect.top <= mid && rect.bottom >= mid) best = i;
     });
-    if (best !== current) { current = best; updateUI(); }
+    if (best !== current) { current = best; focusedCard = -1; updateUI(); }
   }
 
   var scrollTimer = null;

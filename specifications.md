@@ -889,6 +889,9 @@ Le JavaScript de navigation gère :
 - Les nav-dots (points de navigation)
 - La détection de la slide courante au scroll
 - Le bouton de partage et sa matrice (§9.2.1)
+- Le parcours clavier complet (flèches Haut/Bas) : fiche par fiche, puis
+  carte par carte sur la fiche series-nav, puis défilement par
+  incréments sur une fiche plus grande que l'écran (§9.2.2)
 
 Éditable de la même façon que `style.css`, via `templates/nav.js` — un
 override remplace `nav.js` **en bloc**, y compris le bouton de partage : il
@@ -924,6 +927,53 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
   embarqué dans `nav.js` — pas d'appel à un service tiers de génération
   d'image, cohérent avec la contrainte d'autonomie du §13.4 (aucune
   dépendance réseau au runtime).
+
+#### 9.2.2 Parcours clavier (flèches Haut/Bas)
+
+Un appui sur une flèche avance ou recule dans un parcours naturel à
+trois niveaux, chacun ne s'activant qu'une fois le niveau précédent
+épuisé — jamais tous en même temps :
+
+1. **Fiche par fiche** (comportement de base, déjà existant) —
+   `goTo(current ± 1)`, avec un défilement `smooth`.
+2. **Carte par carte sur la fiche series-nav** — les cartes (`.series-
+   list a.series-link`, y compris le lien « retour à l'index ») reçoivent
+   le focus clavier une par une, dans l'ordre du document ; un appui sur
+   Entrée sur une carte focalisée saute vers l'article correspondant
+   (comportement natif du navigateur sur un `<a>` focalisé, aucun code
+   dédié nécessaire). Volontairement différent de Tab : Tab fonctionne
+   partout et peut faire sortir la sélection de la page, alors que les
+   flèches restent dans ce parcours à trois niveaux.
+3. **Défilement par incréments sur une fiche plus grande que l'écran** —
+   une fiche ne dépasse la hauteur de la fenêtre que par son propre
+   contenu (`.slide` ne fixe qu'un `min-height: 100vh`, jamais une
+   hauteur figée) ; le cas courant est un `full-article` (article
+   complet inclus) suffisamment long, typiquement en fin de série, mais
+   la détection ne dépend que de la hauteur réelle mesurée, jamais du
+   type ou de la position de la fiche.
+
+Ordre exact d'un appui sur Bas : s'il reste une carte non visitée sur la
+fiche courante, focus sur la carte suivante ; sinon, si la fiche dépasse
+l'écran et n'est pas encore défilée jusqu'en bas, défiler d'un incrément
+(90 % de la hauteur de fenêtre) ; sinon, passer à la fiche suivante. Bas
+est le miroir exact de Haut. Ce même mécanisme sert aussi de garde-fou
+pour la détection de fiche courante au scroll (`detectCurrent`, utilisée
+pour les nav-dots au scroll à la molette) : elle ne peut plus se fier à
+« quelle fiche a son centre le plus proche du centre de l'écran » dès
+qu'une fiche est nettement plus grande que les autres (son centre reste
+alors loin de l'écran même quand on est en train de la lire) — elle
+retient plutôt la fiche dont l'intervalle `[haut, bas]` contient le
+milieu vertical de la fenêtre, correct quelle que soit la hauteur d'une
+fiche.
+
+Testé Playwright (`tests/keyboard_nav_e2e.cjs` /
+`tests/test_keyboard_nav.py`) : défilement incrémental réel d'une fiche
+`full-article` surchargée avant l'avancée à la fiche suivante, parcours
+avant et arrière carte par carte sur une fiche series-nav (ordre exact
+des cartes, la fiche courante ne change pas pendant le parcours des
+cartes), épuisement des cartes sur la dernière fiche (reste en place,
+focus nettoyé), et saut réel vers l'article via Entrée sur une carte
+focalisée.
 
 ### 9.3 Extension de la page d'index (`index_extra.html`)
 
