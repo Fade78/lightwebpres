@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="web/lwp_banner.svg" alt="LightWebPres — Markdown in, publish-ready pages out" width="100%">
+</p>
+
 # LightWebPres
 
 A single-file, dependency-free Python tool that turns an extended Markdown
