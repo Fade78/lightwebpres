@@ -108,6 +108,7 @@ lightwebpres --help
 - `--output` : le répertoire de sortie (défaut : `public/`, ou `$LWP_OUTPUT_DIR`)
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
 - `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide
+- `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 
 ---
 
@@ -626,8 +627,8 @@ pack par défaut. Le comportement diffère entre les deux blocs :
 
 ### 7.5 Règles insécables par défaut (`fr`)
 
-Le pack `fr` intégré contient sept règles, appliquées dans cet ordre
-(§19.3). Les quatre premières existaient déjà ; les trois dernières
+Le pack `fr` intégré contient six règles, appliquées dans cet ordre
+(§19.3). Les trois premières existaient déjà ; les trois dernières
 insèrent une espace insécable entre un nombre et ce qui le complète —
 un cas que les précédentes ne couvraient pas, car aucune d'elles ne
 regarde ce qui suit un nombre :
@@ -654,7 +655,7 @@ upgrader.
 suivant un nombre : un mot ordinaire comme « likes » dans « 68 likes »
 n'est pas une unité typographique reconnue — l'ajouter à la liste
 casserait la distinction avec un nombre suivi d'un nom commun ordinaire
-(« 5 personnes »). Cette liste, comme les quatre autres règles, reste
+(« 5 personnes »). Cette liste, comme les cinq autres règles, reste
 éditable dans `language/fr.json` (§7.4, §19.2) pour qui veut l'étendre.
 
 Ces règles ne font **jamais** que remplacer une espace normale (U+0020)
@@ -663,7 +664,7 @@ espace ni regroupement de chiffres qui n'existait pas dans la source, et
 une espace insécable déjà présente dans la source traverse tout le
 pipeline sans modification (§4.5, §7.6).
 
-Aucune de ces sept règles n'existe dans le pack `en` intégré (`"rules": []`,
+Aucune de ces six règles n'existe dans le pack `en` intégré (`"rules": []`,
 §7.4) : ce sont des conventions typographiques françaises, sans équivalent
 anglais codifié de la même façon.
 
@@ -675,7 +676,7 @@ HTML généré strictement inchangée, que la typographie automatique soit
 active ou non (§4.5, §11.3). C'est une propriété structurelle du moteur,
 pas seulement l'absence de règle qui la supprimerait :
 
-- Les sept règles de §7.5 ne remplacent jamais que des espaces normales
+- Les six règles de §7.5 ne remplacent jamais que des espaces normales
   (U+0020) — leur `pattern` ne reconnaît jamais U+00A0, donc une espace
   insécable déjà présente ne peut pas correspondre à un `pattern` et n'est
   jamais retouchée, y compris en cas d'application répétée (§19.3).
@@ -1434,7 +1435,7 @@ tranchés — à spécifier avant implémentation.
   séparés par langue, `fr` et `en` intégrés par défaut, `en` en repli ultime ✓
 - **Édition par LLM** : format Markdown lisible et modifiable ✓
 - **Exécutable unique** : un seul fichier Python, pas de dépendance externe ✓
-- **Install / Demo / Build / Check / Audit** : commandes séparées ✓
+- **Install / Demo / Build / Check / Audit / Refresh-templates** : commandes séparées ✓
 - **Variables d'environnement** : `LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, etc. ✓
 - **Override** : `style.css`/`nav.js` et le fichier de langue sont éditables
   (§9, §7) ; la structure HTML des pages ne l'est pas ✓ (délibérément, §9)
@@ -1652,7 +1653,7 @@ vocabulaire fixe des templates par défaut (`strings`).
 }
 ```
 
-Les sept règles ci-dessus sont exactement celles du pack `fr` intégré (§7.5) —
+Les six règles ci-dessus sont exactement celles du pack `fr` intégré (§7.5) —
 contrairement à l'exemple de §7.1 (illustratif), celui-ci reflète le
 contenu réel embarqué dans l'exécutable.
 

@@ -3108,14 +3108,17 @@ TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specific
   digit grouping that wasn't there, and a non-breaking space already in
   the source is always left exactly as written.
 
-  Two article-level <!-- lwp:meta --> fields turn part of this off, per
-  article, for its own page only:
-    typo-units: off        disables the number/unit and ×|≈/number rules
-    typo-thousands: off    disables the thousands-grouping rule
+  Three article-level <!-- lwp:meta --> fields turn part or all of this
+  off, per article, for its own page only:
+    typo-units: off       disables the number/unit and ×|≈/number rules
+    typo-thousands: off   disables the thousands-grouping rule
+    typo: off             disables every rule for this article, not just
+                          the two above (same effect as --no-typography,
+                          scoped to one article)
   Any other value, or the field's absence, leaves the rule on (default).
 
   --no-typography (build/check) disables the whole engine for that run —
-  every rule, on every article, not just the two above — for when you
+  every rule, on every article, not just the fields above — for when you
   need the generated HTML to match the Markdown source's spacing exactly.
 
 The framework is a single executable file, with no external dependency.
