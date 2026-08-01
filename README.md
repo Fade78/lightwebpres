@@ -190,7 +190,10 @@ generated straight from the tool's own `THEMES` data with
 
 ## One browser-based tool, two tabs
 
-`web/index.html` loads the exact same `lightwebpres` executable,
+For anyone who'd rather not touch a terminal: `web/index.html` is the
+same tool as a page in a tab — pick a series (upload a zip, or connect a
+GitLab repository), the page builds it, you get the result back, nothing
+to install. It loads the exact same `lightwebpres` executable,
 unmodified, running inside [Pyodide](https://pyodide.org) (CPython
 compiled to WebAssembly) — one build engine, driven from a terminal or a
 tab. It needs to be **served over http(s)**, not opened directly as a
