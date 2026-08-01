@@ -1,0 +1,52 @@
+<svg viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#241f3d"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFC00" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFC00"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="300" fill="url(#bg)"/>
+
+  <!-- document markdown, à gauche -->
+  <g transform="translate(90,55)">
+    <path d="M0,14 Q0,0 14,0 L145,0 L180,35 L180,186 Q180,200 166,200 L14,200 Q0,200 0,186 Z" fill="#f8f8f5"/>
+    <path d="M145,0 L180,35 L157,35 Q145,35 145,23 Z" fill="#dedee6"/>
+    <rect x="26" y="70" width="90" height="14" rx="7" fill="#1a1a2e" opacity="0.75"/>
+    <rect x="26" y="98" width="128" height="10" rx="5" fill="#9a9aab"/>
+    <rect x="26" y="120" width="128" height="10" rx="5" fill="#9a9aab"/>
+    <rect x="26" y="142" width="94" height="10" rx="5" fill="#9a9aab"/>
+  </g>
+
+  <!-- flèche de transformation -->
+  <g>
+    <circle cx="345" cy="150" r="7" fill="#FFFC00" opacity="0.4"/>
+    <circle cx="375" cy="150" r="7" fill="#FFFC00" opacity="0.65"/>
+    <circle cx="405" cy="150" r="7" fill="#FFFC00" opacity="0.9"/>
+    <path d="M430,110 L520,110 L520,80 L610,150 L520,220 L520,190 L430,190 Z" fill="url(#arrow)"/>
+  </g>
+
+  <!-- éventail de cartes (identité de l'outil), à droite -->
+  <g transform="translate(720,10) scale(1.15)">
+    <g transform="rotate(-15 120 195)">
+      <rect x="55" y="35" width="130" height="160" rx="18" fill="#3a3a5a"/>
+    </g>
+    <g transform="rotate(-3 120 195)">
+      <rect x="55" y="35" width="130" height="160" rx="18" fill="#f8f8f5" opacity="0.92"/>
+    </g>
+    <g transform="rotate(12 120 195)">
+      <rect x="55" y="35" width="130" height="160" rx="18" fill="#FFFC00"/>
+      <rect x="55" y="63" width="130" height="132" rx="18" fill="#f8f8f5"/>
+    </g>
+  </g>
+
+  <!-- badge « prêt à publier », coin haut droit -->
+  <g transform="translate(1108,42)">
+    <circle cx="0" cy="0" r="26" fill="#3ecf6e"/>
+    <path d="M-11,0 L-3,9 L13,-9" stroke="#f8f8f5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+</svg>
