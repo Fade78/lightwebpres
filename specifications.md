@@ -1728,6 +1728,7 @@ porte sur l'exécutable console.
 web/
 ├── index.html              # La page : upload, sélection de langue, build, download
 ├── app.py                  # Colle Python : zip → cmd_build() → zip
+├── .htaccess                # Types MIME Apache pour vendor/pyodide/ (§23.7)
 └── vendor/
     ├── NOTICE.md            # Provenance, licence, procédure de mise à jour
     └── pyodide/              # Runtime Pyodide vendoré (MPL-2.0)
@@ -1806,8 +1807,24 @@ très bien être servie en `https://`.
 À vérifier : `curl -sI https://exemple/chemin/vers/pyodide.asm.mjs | grep
 -i content-type` doit renvoyer `text/javascript` ou
 `application/javascript`, jamais `application/octet-stream` ni
-`text/plain`. Si ce n'est pas le cas, ajouter l'association manuellement
-côté serveur — pour nginx (bloc `http` ou `server`) :
+`text/plain`.
+
+**Apache** : `web/.htaccess` (versionné, déployé avec le reste du dossier)
+corrige déjà ça automatiquement — `AddType text/javascript .mjs` — à
+condition que l'hébergement autorise les surcharges par `.htaccess`
+(`AllowOverride FileInfo` ou `All`), ce qui est le cas par défaut sur la
+plupart des hébergements mutualisés (c'est justement le scénario que
+`.htaccess` cible : un déploiement sans accès à la config Apache
+principale). Si `AllowOverride None` est forcé pour le répertoire, il faut
+ajouter la même ligne dans la config du site :
+
+```apache
+AddType text/javascript .mjs
+```
+
+**nginx** ignore silencieusement les fichiers `.htaccess` (aucun
+équivalent par répertoire) : aucun correctif possible depuis le dépôt,
+seule la config du site permet de le corriger (bloc `http` ou `server`) :
 
 ```nginx
 types {
@@ -1815,14 +1832,9 @@ types {
 }
 ```
 
-Pour Apache (`.htaccess` ou config du site) :
-
-```apache
-AddType text/javascript .mjs
-```
-
-Comme pour le CORS de l'API GitLab (§24.2), c'est un réglage côté serveur,
-hors du périmètre de ce que la page peut corriger elle-même.
+Comme pour le CORS de l'API GitLab (§24.2), le cas nginx (et Apache sans
+`.htaccess` autorisé) reste un réglage côté serveur, hors du périmètre de
+ce que la page peut corriger elle-même.
 
 ---
 

@@ -1,0 +1,11 @@
+# Apache MIME types for the Pyodide runtime vendored under vendor/pyodide/
+# (see specifications.md §23.7). Pyodide dynamic-imports pyodide.asm.mjs
+# as an ES module, which browsers strictly validate the Content-Type of;
+# many Apache defaults predate the .mjs extension and serve it as
+# application/octet-stream, which the browser then refuses to load. This
+# file fixes it automatically on deploy for the common case of shared
+# hosting with AllowOverride enabled — no server config access needed.
+# Has no effect on nginx (which never reads .htaccess) — see
+# specifications.md §23.7 for the nginx equivalent.
+AddType text/javascript .mjs
+AddType application/wasm .wasm
