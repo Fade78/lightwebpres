@@ -152,6 +152,26 @@ in between is raw HTML verbatim until the matching close, even a line
 that would look like a self-contained inline usage on its own
 (`<span class="caption">...</span>` alone on its line, say).
 
+## Typography: automatic non-breaking spaces (French only)
+
+Under `--lang fr` (the default), `build` silently upgrades certain plain
+spaces already present in the text to non-breaking ones: before
+`; : ! ?`, after an opening `«`, before `%`, between groups of 3 digits
+in a number you've already spaced out (`170 000`), between a number and
+`million(s)`/`milliard(s)`/`dollar(s)`/`$`, and after `×`/`≈` before a
+number. Nothing to do on your end — write ordinary spaces, the build
+handles the rest. It never *inserts* spacing or digit grouping that
+wasn't already there (don't add a space just to trigger the rule), and a
+non-breaking space you type yourself always passes through unchanged.
+`--lang en` has no typography rules at all — this is French-only.
+
+This alters generated content, so it can be turned off per article, in
+that article's meta block: `typo-units: off` (numbers/units and `×`/`≈`
+rules only), `typo-thousands: off` (thousands-grouping rule only), or
+`typo: off` (every rule, this article only). Leave these out unless
+specifically asked to disable something — the default is what most
+articles want.
+
 ## Adding an article to a series
 
 Every article that should appear in navigation/index needs a matching
