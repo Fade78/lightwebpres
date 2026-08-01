@@ -142,6 +142,14 @@ if present, replacing the built-in defaults — the page/index HTML
 structure itself is fixed, not a template, so a build can't be broken by
 a malformed structural override.
 
+There is currently one built-in color theme. [`themes-gallery.html`](themes-gallery.html)
+(open it directly in a browser) is a candidate list — nine named palettes
+(Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo Night, Monokai,
+Everforest, Rosé Pine) mapped onto the six CSS custom properties the
+default theme uses, previewed against real slide content. None of them
+are wired into `install`/`refresh-templates` yet — it's a reference for
+picking one, not a feature.
+
 ## Two browser-based tools
 
 Both load the exact same `lightwebpres` executable, unmodified, running
@@ -202,6 +210,7 @@ for both browser tools.
 ```
 lightwebpres          # the executable — the only thing you need to run this
 specifications.md     # full reference specification (French)
+themes-gallery.html   # candidate color themes for templates/style.css (reference only)
 web/                  # the two browser-based build tools
 tests/                # regression suite
 ```

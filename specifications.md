@@ -778,6 +778,12 @@ Le CSS par défaut est le look actuel de la série. Il est éditable par
 l'utilisateur ; `build` le relit depuis `templates/style.css` s'il existe,
 sinon utilise la version intégrée à l'exécutable.
 
+Il n'existe aujourd'hui qu'un seul thème de couleurs intégré (six variables
+CSS dans `TEMPLATE_STYLE` : `--yellow --dark --grey --light --accent
+--green`). `themes-gallery.html`, à la racine du dépôt, documente neuf
+palettes candidates pour le remplacer — une base de choix, pas encore un
+mécanisme : aucune n'est câblée dans `install` ni `refresh-templates`.
+
 ### 9.2 JS (`nav.js`)
 
 Le JavaScript de navigation gère :

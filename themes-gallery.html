@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palettes candidates — lightwebpres</title>
+</head>
+<body>
+
+<style>
+  :root {
+    --paper: #F6F4EF;
+    --ink: #1C1E24;
+    --muted: #6B6558;
+    --rule: #E4E0D6;
+    --card-bg: #FFFFFF;
+    --card-border: #E7E2D5;
+    --structural: #3E4C7A;
+    --structural-soft: #EEF0F8;
+    --chip-good-bg: #E9F1E7;
+    --chip-good-fg: #3E6B47;
+    --chip-warn-bg: #FBEFE3;
+    --chip-warn-fg: #8A5A2A;
+  }
+  :root[data-theme="dark"] {
+    --paper: #17181D;
+    --ink: #ECE8DE;
+    --muted: #948C7B;
+    --rule: #2C2E35;
+    --card-bg: #1E2026;
+    --card-border: #2E3038;
+    --structural: #92A2E0;
+    --structural-soft: #232A44;
+    --chip-good-bg: #1E3226;
+    --chip-good-fg: #8FCB9B;
+    --chip-warn-bg: #3A2C1C;
+    --chip-warn-fg: #E3B27E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17181D;
+      --ink: #ECE8DE;
+      --muted: #948C7B;
+      --rule: #2C2E35;
+      --card-bg: #1E2026;
+      --card-border: #2E3038;
+      --structural: #92A2E0;
+      --structural-soft: #232A44;
+      --chip-good-bg: #1E3226;
+      --chip-good-fg: #8FCB9B;
+      --chip-warn-bg: #3A2C1C;
+      --chip-warn-fg: #E3B27E;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  a { color: var(--structural); }
+  ::selection { background: var(--structural-soft); }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+  }
+
+  .masthead {
+    max-width: 780px;
+    margin-bottom: 48px;
+  }
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--structural);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(30px, 4vw, 42px);
+    line-height: 1.12;
+    margin: 0 0 16px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .dek {
+    font-size: 16px;
+    color: var(--muted);
+    margin: 0 0 8px;
+    max-width: 62ch;
+  }
+  .dek code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    background: var(--structural-soft);
+    color: var(--structural);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+  }
+
+  .legend {
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .legend-item {
+    background: var(--card-bg);
+    padding: 16px 18px;
+  }
+  .legend-label {
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+  .legend-names {
+    font-size: 13.5px;
+    margin: 0;
+  }
+  .legend-names strong { font-weight: 600; }
+
+  .grid {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 30px 26px;
+  }
+
+  .theme-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .theme-head {
+    padding: 18px 18px 4px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .theme-head h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-weight: 600;
+    font-size: 19px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .theme-source {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40%;
+  }
+
+  /* --- live mock-up of the real lightwebpres UI, driven entirely by --- */
+  /* --- the six custom properties set inline per card                --- */
+  .preview {
+    margin: 14px 18px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+  }
+  .preview-cover {
+    background: var(--dark);
+    padding: 16px 15px 15px;
+  }
+  .preview-tag {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--dark);
+    background: var(--yellow);
+    padding: 3px 7px;
+    border-radius: 3px;
+  }
+  .preview-cover-title {
+    margin-top: 9px;
+    font-size: 14.5px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: #fff;
+  }
+  .preview-body {
+    background: var(--light);
+    padding: 15px;
+  }
+  .preview-tag--muted {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+  .preview-h2 {
+    margin-top: 5px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--dark);
+    line-height: 1.25;
+  }
+  .preview-summary {
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--grey);
+    line-height: 1.5;
+  }
+  .preview-highlight {
+    margin-top: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .preview-figure {
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--dark);
+    font-variant-numeric: tabular-nums;
+  }
+  .preview-arrow {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .preview-caption {
+    font-size: 10.5px;
+    color: var(--grey);
+  }
+  .preview-factbox {
+    margin-top: 12px;
+    background: #fff;
+    border-left: 4px solid var(--yellow);
+    padding: 9px 11px;
+    border-radius: 0 6px 6px 0;
+  }
+  .preview-factlabel {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--grey);
+  }
+  .preview-factcontent {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--dark);
+    line-height: 1.4;
+  }
+  .preview-table {
+    margin-top: 12px;
+    display: flex;
+    gap: 7px;
+  }
+  .preview-cell {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 4px;
+  }
+  .preview-cell--neutral {
+    color: var(--grey);
+    background: rgba(0, 0, 0, 0.05);
+  }
+  .preview-cell--green {
+    color: var(--green);
+    background: color-mix(in srgb, var(--green) 16%, transparent);
+  }
+
+  /* --- swatch strip + metadata (artifact chrome, not the mock-up) --- */
+  .swatches {
+    margin: 14px 18px 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 10px;
+  }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .swatch-chip {
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    flex: none;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+  .swatch-text {
+    min-width: 0;
+    line-height: 1.15;
+  }
+  .swatch-role {
+    font-size: 9px;
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .swatch-hex {
+    font-size: 10.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .theme-note {
+    margin: 14px 18px 18px;
+    font-size: 11.5px;
+    color: var(--chip-warn-fg);
+    background: var(--chip-warn-bg);
+    padding: 8px 11px;
+    border-radius: 8px;
+    line-height: 1.45;
+  }
+  .theme-note--good {
+    color: var(--chip-good-fg);
+    background: var(--chip-good-bg);
+  }
+  .theme-card:not(:has(.theme-note)) .swatches {
+    margin-bottom: 18px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 70ch;
+  }
+
+  @media (max-width: 480px) {
+    .wrap { padding: 40px 18px 72px; }
+    .swatches { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow">lightwebpres · propositions de thèmes</p>
+    <h1>Neuf palettes nommées, prêtes à remplacer le jaune vif par défaut</h1>
+    <p class="dek">
+      Chaque carte applique une palette réelle aux six variables que lightwebpres lit déjà dans
+      <code>templates/style.css</code> — <code>--yellow --dark --grey --light --accent --green</code> —
+      sur un vrai fragment de fiche (tag, titre, résumé, chiffre-clé, fact-box, tableau). Aucune n'est
+      encore intégrée : c'est une base de choix, pas un rendu final. Les variantes « Dark » de
+      Solarized et Gruvbox ont été retirées : sur ce site en light-mode uniquement, elles rendaient
+      quasiment à l'identique de leur variante « Light ».
+    </p>
+    <div class="legend">
+      <div class="legend-item">
+        <p class="legend-label">Jaune le plus vif</p>
+        <p class="legend-names"><strong>Dracula</strong>, Monokai</p>
+      </div>
+      <div class="legend-item">
+        <p class="legend-label">Jaune le plus sourd</p>
+        <p class="legend-names"><strong>Nord</strong>, Solarized</p>
+      </div>
+      <div class="legend-item">
+        <p class="legend-label">Vert le plus net</p>
+        <p class="legend-names"><strong>Dracula</strong>, Catppuccin Latte, Monokai</p>
+      </div>
+      <div class="legend-item">
+        <p class="legend-label">Fond clair emprunté</p>
+        <p class="legend-names"><strong>Dracula</strong>, Tokyo Night, Monokai</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Nord -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Nord</h2><p class="theme-source">nordtheme.com</p></header>
+      <div class="preview" style="--yellow:#EBCB8B;--dark:#2E3440;--grey:#4C566A;--light:#ECEFF4;--accent:#BF616A;--green:#A3BE8C;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#EBCB8B"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#EBCB8B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#2E3440"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#2E3440</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#4C566A"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#4C566A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#ECEFF4"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#ECEFF4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#BF616A"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#BF616A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A3BE8C"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#A3BE8C</div></span></li>
+      </ul>
+      <p class="theme-note">Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.</p>
+    </article>
+
+    <!-- Dracula -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Dracula</h2><p class="theme-source">draculatheme.com</p></header>
+      <div class="preview" style="--yellow:#F1FA8C;--dark:#282A36;--grey:#6272A4;--light:#F8F8F2;--accent:#FF5555;--green:#50FA7B;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#F1FA8C"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#F1FA8C</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#282A36"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#282A36</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6272A4"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#6272A4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F8F8F2"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#F8F8F2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FF5555"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#FF5555</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#50FA7B"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#50FA7B</div></span></li>
+      </ul>
+      <p class="theme-note">Palette pensée pour un fond sombre — <code>--light</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.</p>
+    </article>
+
+    <!-- Solarized Light -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Solarized Light</h2><p class="theme-source">ethanschoonover.com</p></header>
+      <div class="preview" style="--yellow:#B58900;--dark:#002B36;--grey:#93A1A1;--light:#FDF6E3;--accent:#DC322F;--green:#859900;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#B58900"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#B58900</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#002B36"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#002B36</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#93A1A1"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#93A1A1</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FDF6E3"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#FDF6E3</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#DC322F"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#DC322F</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#859900"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#859900</div></span></li>
+      </ul>
+      <p class="theme-note">Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.</p>
+    </article>
+
+    <!-- Gruvbox Light -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Gruvbox Light</h2><p class="theme-source">github.com/morhetz</p></header>
+      <div class="preview" style="--yellow:#D79921;--dark:#282828;--grey:#928374;--light:#FBF1C7;--accent:#CC241D;--green:#98971A;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#D79921"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#D79921</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#282828"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#282828</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#928374"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#928374</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FBF1C7"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#FBF1C7</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#CC241D"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#CC241D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#98971A"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#98971A</div></span></li>
+      </ul>
+      <p class="theme-note theme-note--good">Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.</p>
+    </article>
+
+    <!-- Catppuccin Latte -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Catppuccin Latte</h2><p class="theme-source">github.com/catppuccin</p></header>
+      <div class="preview" style="--yellow:#DF8E1D;--dark:#4C4F69;--grey:#6C6F85;--light:#EFF1F5;--accent:#D20F39;--green:#40A02B;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#DF8E1D"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#DF8E1D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#4C4F69"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#4C4F69</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6C6F85"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#6C6F85</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#EFF1F5"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#EFF1F5</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D20F39"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#D20F39</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#40A02B"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#40A02B</div></span></li>
+      </ul>
+      <p class="theme-note">La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--dark</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).</p>
+    </article>
+
+    <!-- Tokyo Night -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Tokyo Night</h2><p class="theme-source">github.com/folke</p></header>
+      <div class="preview" style="--yellow:#E0AF68;--dark:#1A1B26;--grey:#565F89;--light:#E1E2E7;--accent:#F7768E;--green:#9ECE6A;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#E0AF68"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#E0AF68</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#1A1B26"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#1A1B26</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#565F89"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#565F89</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E1E2E7"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#E1E2E7</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F7768E"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#F7768E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#9ECE6A"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#9ECE6A</div></span></li>
+      </ul>
+      <p class="theme-note">Tokyo Night est nocturne par nature — <code>--light</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.</p>
+    </article>
+
+    <!-- Monokai -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Monokai</h2><p class="theme-source">classique, Sublime Text</p></header>
+      <div class="preview" style="--yellow:#E6DB74;--dark:#272822;--grey:#75715E;--light:#F8F8F2;--accent:#F92672;--green:#A6E22E;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#E6DB74"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#E6DB74</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#272822"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#272822</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#75715E"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#75715E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F8F8F2"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#F8F8F2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F92672"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#F92672</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A6E22E"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#A6E22E</div></span></li>
+      </ul>
+      <p class="theme-note">Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--light</code> reprend le texte-sur-noir, comme Dracula.</p>
+    </article>
+
+    <!-- Everforest -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Everforest</h2><p class="theme-source">github.com/sainnhe</p></header>
+      <div class="preview" style="--yellow:#DFA000;--dark:#2D353B;--grey:#859289;--light:#FDF6E3;--accent:#F85552;--green:#A7C080;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#DFA000"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#DFA000</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#2D353B"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#2D353B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#859289"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#859289</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FDF6E3"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#FDF6E3</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F85552"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#F85552</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A7C080"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#A7C080</div></span></li>
+      </ul>
+      <p class="theme-note theme-note--good">Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--green</code>. Assemblage clair+sombre officiels.</p>
+    </article>
+
+    <!-- Rosé Pine Dawn -->
+    <article class="theme-card">
+      <header class="theme-head"><h2>Rosé Pine Dawn</h2><p class="theme-source">rosepinetheme.com</p></header>
+      <div class="preview" style="--yellow:#EA9D34;--dark:#464261;--grey:#797593;--light:#FAF4ED;--accent:#B4637A;--green:#6D8F89;">
+        <div class="preview-cover">
+          <span class="preview-tag">Chapitre 1</span>
+          <div class="preview-cover-title">Le sucre n'est pas qu'une question de goût</div>
+        </div>
+        <div class="preview-body">
+          <span class="preview-tag--muted">Cuisson</span>
+          <div class="preview-h2">La température change tout</div>
+          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt.</p>
+          <div class="preview-highlight">
+            <span class="preview-figure">180 °C</span><span class="preview-arrow">→</span>
+            <span class="preview-caption">température recommandée</span>
+          </div>
+          <div class="preview-factbox">
+            <div class="preview-factlabel">Le repère</div>
+            <div class="preview-factcontent">Préchauffer avant d'enfourner change tout.</div>
+          </div>
+          <div class="preview-table">
+            <span class="preview-cell preview-cell--neutral">Four statique</span>
+            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
+          </div>
+        </div>
+      </div>
+      <ul class="swatches">
+        <li class="swatch"><span class="swatch-chip" style="background:#EA9D34"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">#EA9D34</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#464261"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">#464261</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#797593"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">#797593</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FAF4ED"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">#FAF4ED</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B4637A"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">#B4637A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6D8F89"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">#6D8F89</div></span></li>
+      </ul>
+      <p class="theme-note">La plus douce du lot — <code>--dark</code> est un prune assourdi, pas un noir franc, et <code>--green</code> (« leaf ») penche vers le sarcelle.</p>
+    </article>
+
+  </div>
+
+  <footer>
+    Codes vérifiés depuis les dépôts/fichiers officiels de chaque palette. Cette page documente des
+    candidats, pas un mécanisme intégré : aucun de ces jeux de couleurs n'existe encore comme option
+    de <code>lightwebpres install</code> ou <code>refresh-templates</code> — voir specifications.md
+    pour l'état actuel du mécanisme de template unique.
+  </footer>
+
+</div>
+
+</body>
+</html>
