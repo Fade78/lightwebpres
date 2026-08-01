@@ -671,34 +671,195 @@ class NbspUnitsAndThousands(unittest.TestCase):
 
 class NbspPreservedFromSource(unittest.TestCase):
     """§7.6: a non-breaking space already present in the author's source
-    must reach the generated HTML unchanged — str.strip()/str.rstrip()
-    treat U+00A0 as whitespace and would otherwise eat one sitting at the
-    edge of a field value."""
+    must reach the generated HTML unchanged, whether it sits at the
+    START or the END of a field value, at every location the parser
+    recognizes a value — str.strip()/str.rstrip() (and the \\s* in a
+    field regex, which matches U+00A0 exactly like they do) would
+    otherwise eat one sitting at the edge."""
 
-    def test_trailing_nbsp_in_summary_survives(self):
+    NBSP = '\xa0'
+
+    def _wrap(self, s):
+        return f'{self.NBSP}{s}{self.NBSP}'
+
+    def _both_ends(self, value):
+        self.assertTrue(value.startswith(self.NBSP), repr(value))
+        self.assertTrue(value.endswith(self.NBSP), repr(value))
+
+    def _build(self, tmp, article_md, extra_articles=None, series_meta=None, second_entry=None):
+        root = scaffold(tmp, article_md, series_extra={'card_label': self._wrap('Carte')})
+        if extra_articles:
+            for name, content in extra_articles.items():
+                (root / 'articles' / name).write_text(content, encoding='utf-8')
+        if series_meta or second_entry:
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            if series_meta:
+                data = {'series_meta': series_meta, 'articles': data if isinstance(data, list) else data['articles']}
+            if second_entry:
+                articles = data if isinstance(data, list) else data['articles']
+                articles.append(second_entry)
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return root
+
+    def test_cover_slide_tag_h1_summary(self):
+        w = self._wrap
         md = (
             '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Valeur qui finit par une insécable\xa0\n'
+            f'<!-- lwp:slide:cover -->\ntag: {w("Tag")}\n# {w("Titre")}\nsummary: {w("Résumé")}\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md)
-            run('build', str(root), '--output', str(root / 'public'))
+            root = self._build(tmp, md)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            m = re.search(r'<p class="summary">(.*?)</p>', html)
-            self.assertTrue(m.group(1).endswith('\xa0'))
+            self._both_ends(re.search(r'<span class="slide-tag">(.*?)</span>', html).group(1))
+            self._both_ends(re.search(r'<h1>(.*?)</h1>', html).group(1))
+            self._both_ends(re.search(r'<p class="summary">(.*?)</p>', html).group(1))
 
-    def test_trailing_nbsp_in_fact_content_survives(self):
+    def test_standard_slide_all_fields(self):
+        w = self._wrap
         md = (
             '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- lwp:slide -->\ntag: T\n## Titre\nfact-label: Le saviez-vous\n\n'
-            'Une ligne qui finit par une insécable\xa0\n'
+            '<!-- lwp:slide -->\n'
+            f'tag: {w("Tag")}\n'
+            f'## {w("Titre")}\n'
+            f'summary: {w("Résumé")}\n'
+            f'fact-label: {w("Label")}\n'
+            f'highlight: {w("42")}\n'
+            f'highlight-caption: {w("Légende")}\n'
+            f'source: {w("Réf")}\n\n'
+            f'{w("Corps de la fiche")}\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md)
-            run('build', str(root), '--output', str(root / 'public'))
+            root = self._build(tmp, md)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            m = re.search(r'<p class="fact-content">(.*?)</p>', html)
-            self.assertTrue(m.group(1).endswith('\xa0'))
+            self._both_ends(re.search(r'<span class="slide-tag">(.*?)</span>', html).group(1))
+            self._both_ends(re.search(r'<h2>(.*?)</h2>', html).group(1))
+            self._both_ends(re.search(r'<p class="summary">(.*?)</p>', html).group(1))
+            self._both_ends(re.search(r'<div class="fact-label">(.*?)</div>', html).group(1))
+            self._both_ends(re.search(r'<span class="highlight-figure">(.*?)</span>', html).group(1))
+            self._both_ends(re.search(r'<span class="highlight-caption">(.*?)</span>', html).group(1))
+            # source is rendered as "Source : {value}" (§4.3), so only
+            # the value's own edges are checked, via substring containment.
+            self.assertIn(w('Réf'), re.search(r'<p class="source">(.*?)</p>', html).group(1))
+            self._both_ends(re.search(r'<p class="fact-content">(.*?)</p>', html).group(1))
+
+    def test_leading_nbsp_in_field_value_is_not_swallowed_by_regex(self):
+        """Regression: the field regex used `key:\\s*(.*)`, and \\s
+        matches U+00A0 exactly like str.strip() does — a leading nbsp
+        right after the colon was silently dropped even after strip_ws()
+        started protecting the rest of the pipeline."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            f'<!-- lwp:slide -->\ntag: T\n## Titre\nsummary:{self.NBSP}Résumé\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, md)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            summary = re.search(r'<p class="summary">(.*?)</p>', html).group(1)
+            self.assertTrue(summary.startswith(self.NBSP), repr(summary))
+
+    def test_page_title_survives(self):
+        md = (
+            f'<!-- lwp:meta -->\nfile: a.html\nh1: {self._wrap("Titre de page")}\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, md)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self._both_ends(re.search(r'<title>(.*?)</title>', html).group(1))
+
+    def test_meta_block_value_survives(self):
+        """series.json's own series_desc (set by scaffold()) always wins
+        over the meta block's (§20.3.1), so this builds series.json by
+        hand, without a series_desc entry, to actually exercise the
+        meta-block fallback path."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\n'
+            f'series_desc: {self._wrap("Description")}\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir(parents=True, exist_ok=True)
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A'}
+            (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self._both_ends(re.search(r'<div class="article-desc">(.*?)</div>', index_html).group(1))
+
+    def test_full_article_headings_paragraph_table_and_footnote(self):
+        w = self._wrap
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: a_article.md\n'
+        )
+        article_md = (
+            f'# {w("Titre article")}\n\n'
+            f'## {w("Sous-titre")}\n\n'
+            f'### {w("Sous-sous-titre")}\n\n'
+            f'{w("Un paragraphe")}\n\n'
+            '| A | B |\n| --- | --- |\n'
+            f'| {w("Cellule")} | Autre |\n\n'
+            f'Un appel de note[^1].\n\n'
+            f'[^1]: {w("Corps de la note")}\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, md, extra_articles={'a_article.md': article_md})
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # Two <h1>s exist on the page (the cover slide's, and the
+            # full-article's own) — scope the search past the opening tag
+            # of the full-article <section> so <h1> below matches the
+            # right one, not the cover's. (The bare string 'full-article'
+            # appears earlier still, inside the <style> block's own
+            # ".full-article" selector.)
+            article_html = html[html.index('<section class="slide full-article"'):]
+            self._both_ends(re.search(r'<h1>(.*?)</h1>', article_html).group(1))
+            self._both_ends(re.search(r'<h2>(.*?)</h2>', article_html).group(1))
+            self._both_ends(re.search(r'<h3>(.*?)</h3>', article_html).group(1))
+            self._both_ends(re.search(r'<p>(.*?)</p>', article_html).group(1))
+            self._both_ends(re.search(r'<td>(.*?)</td>', article_html).group(1))
+
+    def test_leading_nbsp_in_footnote_definition_is_not_swallowed_by_regex(self):
+        """Regression: the footnote-definition regex used `\\]:\\s*(.*)`,
+        same \\s-matches-U+00A0 issue as the slide-field regex."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: a_article.md\n'
+        )
+        article_md = f'Un appel[^1].\n\n[^1]:{self.NBSP}Corps de la note.\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, md, extra_articles={'a_article.md': article_md})
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            m = re.search(r'<sup>\[\^1\]</sup>: (.*?)</p>', html)
+            self.assertIsNotNone(m, html)
+            self.assertTrue(m.group(1).startswith(self.NBSP), repr(m.group(1)))
+
+    def test_index_series_meta_and_card_fields_survive(self):
+        w = self._wrap
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n'
+            f'card_title: {w("Carte titre")}\ncard_desc: {w("Carte desc")}\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(
+                tmp, md,
+                series_meta={'title': w('Titre série'), 'subtitle': w('Sous-titre série'), 'intro': w('Intro série')},
+            )
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self._both_ends(re.search(r'<h1>(.*?)</h1>', index_html).group(1))
+            self._both_ends(re.search(r'class="subtitle">(.*?)</p>', index_html).group(1))
+            self._both_ends(re.search(r'class="intro">\s*<p>(.*?)</p>', index_html, re.DOTALL).group(1))
+            self._both_ends(re.search(r'<div class="article-number">(.*?)</div>', index_html).group(1))
+            self._both_ends(re.search(r'<div class="article-title">(.*?)</div>', index_html).group(1))
+            self._both_ends(re.search(r'<div class="article-desc">(.*?)</div>', index_html).group(1))
 
 
 class TypographyDisableSwitches(unittest.TestCase):
@@ -770,6 +931,53 @@ class TypographyDisableSwitches(unittest.TestCase):
                 'Environ ≈ 5 $ pour 170 000 000 vues, × 4 la dose, 170 millions de gens, 20 dollars.',
                 b,
             )
+
+    def test_typo_off_also_disables_the_page_title(self):
+        """title_clean (<title>...</title>) goes through article_typo_engine
+        + disabled_rules like every other field in build_article — not a
+        separate, easy-to-forget code path."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir(parents=True, exist_ok=True)
+            md = (
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Titre à 50 % fini\nseries_title: A\n'
+                'series_desc: A\ntypo: off\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
+            )
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+            (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            title = re.search(r'<title>(.*?)</title>', html).group(1)
+            self.assertEqual(title, 'Titre à 50 % fini')
+            self.assertNotIn('\xa0', title)
+
+    def test_no_typography_flag_disables_index_page_typography_too(self):
+        """--no-typography passes typo_engine=None into build_index() as
+        well as build_article() — the index's own title/subtitle/intro
+        and article cards are not a separate, easy-to-forget code path."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir(parents=True, exist_ok=True)
+            md = (
+                '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
+            )
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+            series = {
+                'series_meta': {'title': 'Titre à 50 % fini', 'subtitle': '', 'intro': ''},
+                'articles': [entry],
+            }
+            (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'), '--no-typography')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            title = re.search(r'<h1>(.*?)</h1>', index_html).group(1)
+            self.assertEqual(title, 'Titre à 50 % fini')
+            self.assertNotIn('\xa0', title)
 
     def test_no_typography_flag_disables_every_rule_for_whole_build(self):
         with tempfile.TemporaryDirectory() as tmp:

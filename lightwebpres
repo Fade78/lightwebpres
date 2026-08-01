@@ -7,11 +7,12 @@ Native UTF-8. Built-in French and English language packs (typography
 rules + interface strings).
 
 Usage:
-  lightwebpres install [directory] [--lang fr]
+  lightwebpres install [directory] [--lang fr] [--force]
   lightwebpres demo [directory] [--lang fr]
-  lightwebpres build [directory] [--lang fr] [--output public/]
-  lightwebpres check [directory] [--lang fr]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography]
+  lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography]
   lightwebpres audit [directory] [--lang fr]
+  lightwebpres refresh-templates [directory]
   lightwebpres --help
 """
 
@@ -22,6 +23,7 @@ import json
 import shutil
 import difflib
 from pathlib import Path
+from types import SimpleNamespace
 from html import escape as html_escape
 from html.parser import HTMLParser
 
@@ -1464,6 +1466,14 @@ class TypoEngine:
         return ''.join(segments)
 
 
+def apply_typo(typo_engine, text, disabled=None):
+    """`typo_engine.apply(text, disabled)` if there's an engine, `text`
+    unchanged otherwise (--no-typography / typo: off pass None, §4.5/
+    §19.6) — the `if typo_engine:` guard every call site needs, in one
+    place instead of copied at each of them."""
+    return typo_engine.apply(text, disabled) if typo_engine else text
+
+
 def load_language(lang_dir, lang='fr', language_file=None):
     """Loads the language pack (typography rules + interface strings) for `lang`.
 
@@ -1732,7 +1742,10 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
             continue
 
         # Footnotes (definitions)
-        m_ref = re.match(r'^\[\^([\w]+)\]:\s*(.*)', line)
+        # [ \t]*, not \s* — \s matches U+00A0 like str.strip() does, which
+        # would swallow a non-breaking space right after the ':' instead
+        # of preserving it as the footnote body's first character (§7.6).
+        m_ref = re.match(r'^\[\^([\w]+)\]:[ \t]*(.*)', line)
         if m_ref:
             close_list()
             num, txt = m_ref.group(1), m_ref.group(2)
@@ -1753,9 +1766,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
 
     close_list()
     html = '\n'.join(out)
-
-    if typo_engine:
-        html = typo_engine.apply(html, disabled)
+    html = apply_typo(typo_engine, html, disabled)
 
     return html
 
@@ -1865,7 +1876,11 @@ def parse_markdown_extended(md_text):
                 continue
 
             # Detect key: value fields
-            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption|h1|h2):\s*(.*)', stripped)
+            # [ \t]*, not \s* — \s matches U+00A0 like str.strip() does,
+            # which would swallow a non-breaking space right after the
+            # ':' instead of preserving it as the value's first character
+            # (§7.6).
+            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption|h1|h2):[ \t]*(.*)', stripped)
             if field_match and not in_content:
                 key = field_match.group(1)
                 value = field_match.group(2)
@@ -1988,13 +2003,9 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
     num_str = f'{slide_num:02d} / {total_slides:02d}'
 
     if slide.slide_type == 'cover':
-        tag = slide.tag or ''
-        h1 = slide.h1 or ''
-        summary = slide.summary or ''
-        if typo_engine:
-            tag = typo_engine.apply(tag, disabled)
-            h1 = typo_engine.apply(h1, disabled)
-            summary = typo_engine.apply(summary, disabled)
+        tag = apply_typo(typo_engine, slide.tag or '', disabled)
+        h1 = apply_typo(typo_engine, slide.h1 or '', disabled)
+        summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
         parts = [f'<section class="slide slide-cover" id="s{slide_num}">']
         parts.append(f'  <span class="slide-num">{num_str}</span>')
@@ -2017,13 +2028,9 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
         return f'<section class="slide full-article" id="s{slide_num}">\n  <span class="slide-num">{num_str}</span>\n  <span class="slide-tag">{tag_text}</span>\n{{FULL_ARTICLE_PLACEHOLDER}}\n</section>'
 
     else:  # standard
-        tag = slide.tag or ''
-        h2 = slide.h2 or ''
-        summary = slide.summary or ''
-        if typo_engine:
-            tag = typo_engine.apply(tag, disabled)
-            h2 = typo_engine.apply(h2, disabled)
-            summary = typo_engine.apply(summary, disabled)
+        tag = apply_typo(typo_engine, slide.tag or '', disabled)
+        h2 = apply_typo(typo_engine, slide.h2 or '', disabled)
+        summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
         parts = [f'<section class="slide" id="s{slide_num}">']
         parts.append(f'  <span class="slide-num">{num_str}</span>')
@@ -2036,20 +2043,15 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
 
         # Highlight
         if slide.highlight:
-            highlight = slide.highlight
-            caption = slide.highlight_caption or ''
-            if typo_engine:
-                highlight = typo_engine.apply(highlight, disabled)
-                caption = typo_engine.apply(caption, disabled)
+            highlight = apply_typo(typo_engine, slide.highlight, disabled)
+            caption = apply_typo(typo_engine, slide.highlight_caption or '', disabled)
             parts.append(f'  <div class="highlight"><span class="highlight-figure">{highlight}</span><span class="highlight-caption">{caption}</span></div>')
 
         # Fact-box
         if slide.fact_content:
             content_html = convert_markdown(slide.fact_content, typo_engine, disabled)
             if slide.fact_label:
-                label = slide.fact_label
-                if typo_engine:
-                    label = typo_engine.apply(label, disabled)
+                label = apply_typo(typo_engine, slide.fact_label, disabled)
                 parts.append(f'  <div class="fact-box">')
                 parts.append(f'    <div class="fact-label">{label}</div>')
                 # If the converted content starts with <p>, insert it directly
@@ -2069,9 +2071,7 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
         # Source
         if slide.source:
             source_label = strings.get('source_label', 'Source')
-            source_line = f'{source_label} : {slide.source}'
-            if typo_engine:
-                source_line = typo_engine.apply(source_line, disabled)
+            source_line = apply_typo(typo_engine, f'{source_label} : {slide.source}', disabled)
             parts.append(f'  <p class="source">{source_line}</p>')
 
         parts.append('</section>')
@@ -2119,15 +2119,10 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
 
-    title = meta.get('title', strings.get('series_untitled_fallback', 'Article series'))
-    subtitle = meta.get('subtitle', '')
+    title = apply_typo(typo_engine, meta.get('title', strings.get('series_untitled_fallback', 'Article series')))
+    subtitle = apply_typo(typo_engine, meta.get('subtitle', ''))
     version = meta.get('version', '')
-    intro = meta.get('intro', '')
-
-    if typo_engine:
-        title = typo_engine.apply(title)
-        subtitle = typo_engine.apply(subtitle)
-        intro = typo_engine.apply(intro)
+    intro = apply_typo(typo_engine, meta.get('intro', ''))
 
     # <title> is RCDATA: unlike {{series_title}} (rendered inside the page
     # body, where raw HTML is allowed by design, same as an article's h1 —
@@ -2142,13 +2137,9 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         # card_title/card_desc/card_label are already fully resolved by
         # resolve_display_fields() (series.json > article meta > fallback,
         # §20.3.1) — no fallback logic needed here.
-        label = entry.get('card_label', '')
-        card_title = entry.get('card_title', '')
-        card_desc = entry.get('card_desc', '')
-        if typo_engine:
-            label = typo_engine.apply(label)
-            card_title = typo_engine.apply(card_title)
-            card_desc = typo_engine.apply(card_desc)
+        label = apply_typo(typo_engine, entry.get('card_label', ''))
+        card_title = apply_typo(typo_engine, entry.get('card_title', ''))
+        card_desc = apply_typo(typo_engine, entry.get('card_desc', ''))
         # href is an attribute context: entry['file'] is validated to be a
         # plain filename (validate_series), but it's escaped here too as
         # defense in depth against a future validation gap.
@@ -2338,8 +2329,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     title = meta.get('h1', current_file)
     # Strip HTML tags from the title
     title_clean = strip_ws(re.sub(r'<[^>]+>', ' ', title))
-    if article_typo_engine:
-        title_clean = article_typo_engine.apply(title_clean, disabled_rules)
+    title_clean = apply_typo(article_typo_engine, title_clean, disabled_rules)
 
     # Assemble the page
     html = TEMPLATE_PAGE
@@ -2494,95 +2484,26 @@ def resolve_paths(series_dir, args):
     return sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file
 
 
-def cmd_build(series_dir, args):
-    """build command."""
-    sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+def load_build_context(series_dir, args):
+    """Shared setup for build and check (§11.3/§11.4): resolves paths,
+    loads the language pack/typo engine, the CSS/nav.js (built-in or
+    overridden, §9.1/§9.2), and series.json (validated, display fields
+    resolved). The two commands used to duplicate this ~20-line block,
+    which meant a new build-time option (--no-typography) had to be
+    added to both by hand — centralizing it here means the next one
+    only needs to land once.
 
-    print(f'Build: {sd}')
-    print(f'  Articles: {articles_dir}')
-    print(f'  Output: {output_dir}')
-    print(f'  Lang: {lang}')
-
-    # Load the language pack (typography rules + interface strings).
-    # --no-typography (§4.5/§19.6) skips the engine entirely: every call
-    # site already guards on `if typo_engine:`, so None here means no rule
-    # anywhere ever touches the text — the strongest guarantee that a
-    # source's existing spacing (including any non-breaking space already
-    # in it) reaches the output completely unchanged, not just that the
-    # new rules stay quiet.
-    language_pack = load_language(lang_dir, lang, language_file)
-    typo_engine = None if args.get('--no-typography') else TypoEngine(language_pack)
-    strings = language_pack.get('strings', {})
-
-    # Load series.json
-    series_data = load_series_data(sd)
-
-    # Load the CSS
-    css_file = templates_dir / 'style.css'
-    if css_file.exists():
-        css = css_file.read_text(encoding='utf-8')
-    else:
-        css = TEMPLATE_STYLE
-
-    # Load the navigation JS
-    nav_js_file = templates_dir / 'nav.js'
-    if nav_js_file.exists():
-        nav_js = nav_js_file.read_text(encoding='utf-8')
-    else:
-        nav_js = TEMPLATE_NAV_JS
-    nav_js = apply_strings(nav_js, strings)
-
-    # Load the optional index page extension (raw HTML+JS, inserted as-is
-    # right before </body> — the only extension point for the index page,
-    # since style.css/nav.js don't cover site-specific index features)
-    index_extra_file = templates_dir / 'index_extra.html'
-    index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
-
-    # Create the output directory
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Build each article
-    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
-    validate_series(articles)
-    resolve_display_fields(articles, articles_dir)
-    for entry in articles:
-        source_file = entry['source']
-        output_file = entry['file']
-        source_path = articles_dir / source_file
-
-        if not source_path.exists():
-            print(f'  [ERROR] Source not found: {source_path}', file=sys.stderr)
-            continue
-
-        print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, articles_dir, series_data, output_file, css, nav_js, typo_engine, strings, lang)
-
-        output_path = output_dir / output_file
-        output_path.write_text(html, encoding='utf-8')
-
-    # Build the index
-    print('  index.html')
-    index_html = build_index(series_data, css, typo_engine, strings, lang, index_extra)
-    (output_dir / 'index.html').write_text(index_html, encoding='utf-8')
-
-    # Generate the README (spec §8.3)
-    readme = build_readme(series_data, sd, output_dir, strings)
-    (sd / 'README.md').write_text(readme, encoding='utf-8')
-
-    # Copy the images
-    copy_images(articles_dir, output_dir)
-
-    print(f'Build complete: {len(articles)} articles + index -> {output_dir}')
-
-
-def cmd_check(series_dir, args):
-    """check command — compares the existing HTML with what the build would produce."""
+    --no-typography (§4.5/§19.6) skips the engine entirely: every
+    typo_engine use already goes through apply_typo(), so None here
+    means no rule anywhere ever touches the text — the strongest
+    guarantee that a source's existing spacing (including any
+    non-breaking space already in it) reaches the output completely
+    unchanged, not just that the new rules stay quiet."""
     sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
 
     language_pack = load_language(lang_dir, lang, language_file)
     typo_engine = None if args.get('--no-typography') else TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
-    series_data = load_series_data(sd)
 
     css_file = templates_dir / 'style.css'
     css = css_file.read_text(encoding='utf-8') if css_file.exists() else TEMPLATE_STYLE
@@ -2590,20 +2511,84 @@ def cmd_check(series_dir, args):
     nav_js = nav_js_file.read_text(encoding='utf-8') if nav_js_file.exists() else TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
 
-    ok_count = 0
-    diff_count = 0
+    series_data = load_series_data(sd)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
     resolve_display_fields(articles, articles_dir)
 
-    for entry in articles:
-        source_path = articles_dir / entry['source']
+    return SimpleNamespace(
+        sd=sd, articles_dir=articles_dir, templates_dir=templates_dir,
+        lang_dir=lang_dir, output_dir=output_dir, lang=lang,
+        language_file=language_file, typo_engine=typo_engine,
+        strings=strings, css=css, nav_js=nav_js, series_data=series_data,
+        articles=articles,
+    )
+
+
+def cmd_build(series_dir, args):
+    """build command."""
+    ctx = load_build_context(series_dir, args)
+
+    print(f'Build: {ctx.sd}')
+    print(f'  Articles: {ctx.articles_dir}')
+    print(f'  Output: {ctx.output_dir}')
+    print(f'  Lang: {ctx.lang}')
+
+    # Load the optional index page extension (raw HTML+JS, inserted as-is
+    # right before </body> — the only extension point for the index page,
+    # since style.css/nav.js don't cover site-specific index features)
+    index_extra_file = ctx.templates_dir / 'index_extra.html'
+    index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
+
+    # Create the output directory
+    ctx.output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build each article
+    for entry in ctx.articles:
+        source_file = entry['source']
+        output_file = entry['file']
+        source_path = ctx.articles_dir / source_file
+
+        if not source_path.exists():
+            print(f'  [ERROR] Source not found: {source_path}', file=sys.stderr)
+            continue
+
+        print(f'  {output_file} ← {source_file}')
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+
+        output_path = ctx.output_dir / output_file
+        output_path.write_text(html, encoding='utf-8')
+
+    # Build the index
+    print('  index.html')
+    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra)
+    (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+
+    # Generate the README (spec §8.3)
+    readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
+    (ctx.sd / 'README.md').write_text(readme, encoding='utf-8')
+
+    # Copy the images
+    copy_images(ctx.articles_dir, ctx.output_dir)
+
+    print(f'Build complete: {len(ctx.articles)} articles + index -> {ctx.output_dir}')
+
+
+def cmd_check(series_dir, args):
+    """check command — compares the existing HTML with what the build would produce."""
+    ctx = load_build_context(series_dir, args)
+
+    ok_count = 0
+    diff_count = 0
+
+    for entry in ctx.articles:
+        source_path = ctx.articles_dir / entry['source']
         if not source_path.exists():
             print(f'[ERROR] {entry["file"]}: source not found: {source_path}', file=sys.stderr)
             diff_count += 1
             continue
-        generated = build_article(source_path, articles_dir, series_data, entry['file'], css, nav_js, typo_engine, strings, lang)
-        existing_path = output_dir / entry['file']
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['file'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+        existing_path = ctx.output_dir / entry['file']
         if not existing_path.exists():
             print(f'[NEW] {entry["file"]} does not exist yet')
             diff_count += 1
