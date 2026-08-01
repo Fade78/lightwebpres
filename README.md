@@ -20,22 +20,33 @@ No `pip install`, no build step beyond the tool itself, no JavaScript
 framework in the output. Every generated page is inline CSS + inline JS,
 one `.html` file, opens straight from disk or any static host.
 
-## Why
+## Features
 
 - **Zero dependencies.** Python 3 standard library only — one file,
   `lightwebpres`, works anywhere Python 3 runs. `install` even copies
   itself into your series directory so the whole thing is self-contained.
 - **Readable by humans and LLMs alike.** The format is plain Markdown with
-  a small, explicit metadata convention (`key: value` lines, `<!-- lwp:slide:TYPE -->` markers) — designed so an LLM can generate or edit a complete
-  article in one pass, and a CI pipeline can build it unattended.
+  a small, explicit metadata convention (`key: value` lines,
+  `<!-- lwp:slide:TYPE -->` markers) — designed so a person can write it
+  directly, or an LLM can generate or edit a complete article in one pass.
 - **Fails loudly, never silently.** Malformed input (a missing required
   field, a duplicate slide, an unsafe file path, broken HTML from a
   rendering bug) stops the build with a clear error instead of publishing
   something broken.
+- **Works by hand or in a pipeline.** Edit Markdown and run the CLI
+  yourself, or wire `build`/`check` into CI — `check`'s non-zero exit on
+  drift makes it a usable merge gate. Same engine, same output, either
+  way.
 - **Three ways to build**, all sharing the exact same core engine:
   the CLI, a fully local browser build (upload a zip, download a zip —
   nothing leaves the tab), and a browser build that pulls/pushes straight
   to a GitLab repository.
+- **Companion web tools, no server required.** `web/index.html` and
+  `web/git-sync.html` bring that same engine to a browser tab — for
+  teammates who'd rather not touch a terminal.
+- **Agent friendly.** Markdown in, scripted generation via the CLI, and a
+  packaged skill for agent workflows — lightwebpres was built to be
+  driven by an agent as naturally as by a person.
 
 ## Quickstart
 
