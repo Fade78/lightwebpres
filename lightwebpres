@@ -605,7 +605,12 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .share-qr-modal.open { display: flex; }
   .share-qr-modal-content {
     background: white; border-radius: 12px; padding: 24px;
-    max-width: 320px; width: 100%; text-align: center;
+    /* 400px, not 320: longer URLs bump the QR to a higher version (more
+       modules), and a small on-screen code is the most likely reason a
+       phone's native camera fails to focus/detect it even though the
+       code itself decodes fine (dedicated scanner apps tolerate this
+       better) — give it more room to stay legible. */
+    max-width: 400px; width: 100%; text-align: center;
     box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   }
   .share-qr-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
