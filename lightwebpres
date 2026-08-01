@@ -1030,7 +1030,7 @@ class Slide:
 
 
 def parse_metadata_block(text):
-    """Parses the <!-- meta --> ... --- block at the top of the file."""
+    """Parses the <!-- lwp:meta --> ... --- block at the top of the file."""
     meta = {}
     lines = text.strip().split('\n')
     for line in lines:
@@ -1048,16 +1048,16 @@ def parse_metadata_block(text):
 def parse_markdown_extended(md_text):
     """Parses an extended Markdown file and returns (meta, slides, has_meta_block).
 
-    has_meta_block is False when no <!-- meta --> block was found at all
-    (as opposed to one that parsed to an empty dict) — callers that must
-    enforce §22.7 (a file must start with <!-- meta -->) need to tell the
-    two apart, callers that don't (like audit, which never blocks) can
-    just ignore it.
+    has_meta_block is False when no <!-- lwp:meta --> block was found at
+    all (as opposed to one that parsed to an empty dict) — callers that
+    must enforce §22.7 (a file must start with <!-- lwp:meta -->) need to
+    tell the two apart, callers that don't (like audit, which never
+    blocks) can just ignore it.
     """
     # Extract the meta block
     meta = {}
     has_meta_block = False
-    meta_match = re.search(r'<!--\s*meta\s*-->(.*?)(?:^|\n)---', md_text, re.DOTALL)
+    meta_match = re.search(r'<!--\s*lwp:meta\s*-->(.*?)(?:^|\n)---', md_text, re.DOTALL)
     if meta_match:
         has_meta_block = True
         meta = parse_metadata_block(meta_match.group(1))
@@ -1077,11 +1077,11 @@ def parse_markdown_extended(md_text):
         slide = None
 
         # Detect the slide type
-        slide_type_match = re.search(r'<!--\s*slide:\s*(\S+)\s*-->', part)
+        slide_type_match = re.search(r'<!--\s*lwp:slide:\s*(\S+)\s*-->', part)
         if slide_type_match:
             slide_type = slide_type_match.group(1)
             slide = Slide(slide_type)
-        elif '<!-- slide -->' in part:
+        elif '<!-- lwp:slide -->' in part:
             slide = Slide('standard')
         else:
             # With no marker, this is either orphan content or the first part
@@ -1110,7 +1110,7 @@ def parse_markdown_extended(md_text):
             stripped = line.strip()
 
             # Ignore slide markers
-            if stripped.startswith('<!-- slide'):
+            if stripped.startswith('<!-- lwp:slide'):
                 continue
 
             # Detect key: value fields
@@ -1171,7 +1171,7 @@ def validate_slides(slides, filename, has_meta_block=True):
     """Rejects the parser edge cases the spec (§22) says must be fatal,
     instead of letting them silently corrupt or truncate the build:
 
-    - the file has no <!-- meta --> block at all (§22.7)
+    - the file has no <!-- lwp:meta --> block at all (§22.7)
     - the file has no slides at all (§22.10)
     - a cover slide with content after its fields (it has no fact-box to
       put that content in, so it would otherwise vanish silently, §22.12)
@@ -1183,7 +1183,7 @@ def validate_slides(slides, filename, has_meta_block=True):
     - more than one series-nav slide (§22.9)
     """
     if not has_meta_block:
-        print(f'[ERROR] {filename}: file must start with a <!-- meta --> block.',
+        print(f'[ERROR] {filename}: file must start with a <!-- lwp:meta --> block.',
               file=sys.stderr)
         sys.exit(1)
 
@@ -1913,7 +1913,7 @@ def cmd_demo(target_dir, args):
         sys.exit(1)
 
     # Article 1: first
-    demo1 = '''<!-- meta -->
+    demo1 = '''<!-- lwp:meta -->
 file: first.html
 source: first.md
 h1: First article
@@ -1924,14 +1924,14 @@ index_title: First article
 index_desc: Description of the first demo article
 ---
 
-<!-- slide: cover -->
+<!-- lwp:slide:cover -->
 tag: First
 # First article
 summary: This is the first demo article. It tests the "first" position in navigation.
 
 ---
 
-<!-- slide -->
+<!-- lwp:slide -->
 tag: A fact
 ## First fact
 summary: A short summary.
@@ -1942,11 +1942,11 @@ This is the **fact-box** content with some *bold* and *italic* text.
 
 ---
 
-<!-- slide: series-nav -->
+<!-- lwp:slide:series-nav -->
 
 ---
 
-<!-- slide: full-article -->
+<!-- lwp:slide:full-article -->
 article: first_article.md
 '''
 
@@ -1969,7 +1969,7 @@ A paragraph with some **bold** and *italic* text.
 '''
 
     # Article 2: middle
-    demo2 = '''<!-- meta -->
+    demo2 = '''<!-- lwp:meta -->
 file: middle.html
 source: middle.md
 h1: Middle article
@@ -1980,14 +1980,14 @@ index_title: Middle article
 index_desc: Description of the second demo article
 ---
 
-<!-- slide: cover -->
+<!-- lwp:slide:cover -->
 tag: Middle
 # Middle article
 summary: This article tests the "middle" position in navigation.
 
 ---
 
-<!-- slide -->
+<!-- lwp:slide -->
 tag: Highlight
 ## A slide with a highlight
 summary: This slide tests the highlight component.
@@ -2000,11 +2000,11 @@ The answer is **42**. But the question remains unknown.
 
 ---
 
-<!-- slide: series-nav -->
+<!-- lwp:slide:series-nav -->
 
 ---
 
-<!-- slide: full-article -->
+<!-- lwp:slide:full-article -->
 article: middle_article.md
 '''
 
@@ -2025,7 +2025,7 @@ This is the full article for the second demo article [^1].
 '''
 
     # Article 3: last
-    demo3 = '''<!-- meta -->
+    demo3 = '''<!-- lwp:meta -->
 file: last.html
 source: last.md
 h1: Last article
@@ -2036,14 +2036,14 @@ index_title: Last article
 index_desc: Description of the third demo article
 ---
 
-<!-- slide: cover -->
+<!-- lwp:slide:cover -->
 tag: Last
 # Last article
 summary: This article tests the "last" position in navigation.
 
 ---
 
-<!-- slide -->
+<!-- lwp:slide -->
 tag: Inline HTML
 ## Inline HTML test
 summary: This slide tests inline HTML directly in Markdown.
@@ -2054,11 +2054,11 @@ A regular paragraph followed by a link: <a href="https://example.com" target="_b
 
 ---
 
-<!-- slide: series-nav -->
+<!-- lwp:slide:series-nav -->
 
 ---
 
-<!-- slide: full-article -->
+<!-- lwp:slide:full-article -->
 article: last_article.md
 '''
 
@@ -2154,9 +2154,9 @@ SERIES DIRECTORY (created by install)
   lightwebpres            Copy of the executable itself, for standalone use
 
 ARTICLE FORMAT (.md)
-  <!-- meta --> ... ---         Metadata block at the top of the file
+  <!-- lwp:meta --> ... ---     Metadata block at the top of the file
   ---                           Separates slides, alone on its own line
-  <!-- slide: TYPE -->          Marks a slide's type (absent = standard)
+  <!-- lwp:slide:TYPE -->       Marks a slide's type (absent = standard)
   key: value                    A slide field (one line = one value; no line
                                 breaks inside a value for now)
 

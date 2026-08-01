@@ -36,11 +36,11 @@ PROJECT_ID = '42'
 BRANCH = 'main'
 
 ARTICLE_MD = (
-    '<!-- meta -->\nfile: a.html\nh1: Git sync test\nseries_title: A\n'
+    '<!-- lwp:meta -->\nfile: a.html\nh1: Git sync test\nseries_title: A\n'
     'series_desc: A\n---\n\n'
-    '<!-- slide: cover -->\ntag: T\n# Git sync test\n'
+    '<!-- lwp:slide:cover -->\ntag: T\n# Git sync test\n'
     'summary: Built by pulling from a mock GitLab repository.\n\n---\n\n'
-    '<!-- slide -->\ntag: Fact\n## A highlighted fact\n'
+    '<!-- lwp:slide -->\ntag: Fact\n## A highlighted fact\n'
     'highlight: 100 %\nhighlight-caption: pulled, built and pushed in one browser tab\n'
 )
 

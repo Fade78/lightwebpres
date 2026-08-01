@@ -61,11 +61,11 @@ def _make_test_zip(zip_path):
             }],
         }), encoding='utf-8')
         (root / 'articles' / 'a.md').write_text(
-            '<!-- meta -->\nfile: a.html\nh1: Web test\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Web test\n'
             'series_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Web build test\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Web build test\n'
             'summary: Built entirely in the browser.\n\n---\n\n'
-            '<!-- slide: full-article -->\narticle: a_article.md\n',
+            '<!-- lwp:slide:full-article -->\narticle: a_article.md\n',
             encoding='utf-8',
         )
         (root / 'articles' / 'a_article.md').write_text(

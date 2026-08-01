@@ -22,8 +22,7 @@ one `.html` file, opens straight from disk or any static host.
   `lightwebpres`, works anywhere Python 3 runs. `install` even copies
   itself into your series directory so the whole thing is self-contained.
 - **Readable by humans and LLMs alike.** The format is plain Markdown with
-  a small, explicit metadata convention (`key: value` lines, `<!-- slide:
-  TYPE -->` markers) — designed so an LLM can generate or edit a complete
+  a small, explicit metadata convention (`key: value` lines, `<!-- lwp:slide:TYPE -->` markers) — designed so an LLM can generate or edit a complete
   article in one pass, and a CI pipeline can build it unattended.
 - **Fails loudly, never silently.** Malformed input (a missing required
   field, a duplicate slide, an unsafe file path, broken HTML from a
@@ -51,21 +50,21 @@ Each article is one Markdown file: a metadata block, then a sequence of
 "slides" separated by `---`.
 
 ```markdown
-<!-- meta -->
+<!-- lwp:meta -->
 file: apple-pie.html
 h1: The apple pie<br>What shortcrust pastry actually changes
 series_title: The apple pie
 series_desc: Pastry, baking, and plating
 ---
 
-<!-- slide: cover -->
+<!-- lwp:slide:cover -->
 tag: Recipe
 # The apple pie
 summary: Nine things that make or break a homemade apple pie, from pastry to bake.
 
 ---
 
-<!-- slide -->
+<!-- lwp:slide -->
 tag: Baking
 ## Temperature changes everything
 summary: An oven that's too hot cooks the surface before the center is ready.
@@ -79,7 +78,7 @@ most common mistake in a homemade pie.
 
 ---
 
-<!-- slide: full-article -->
+<!-- lwp:slide:full-article -->
 article: apple-pie_article.md
 ```
 

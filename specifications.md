@@ -142,7 +142,7 @@ Le fichier de série est la **source de vérité** pour :
 Chaque article est décrit par un fichier Markdown étendu (ex. `snapchat.md`).
 Ce fichier contient :
 
-1. **Un bloc de métadonnées** en haut (`<!-- meta -->` ... `---`) qui reprend
+1. **Un bloc de métadonnées** en haut (`<!-- lwp:meta -->` ... `---`) qui reprend
    et complète les informations du fichier de série pour cet article.
 2. **Une suite de fiches** (slides) séparées par `---`.
 3. **Une fiche spéciale `series-nav`** qui déclenche la génération de la
@@ -246,10 +246,19 @@ le **texte Markdown standard** (le contenu libre, régi par la section 6).
 La structure LWP n'est reconnue que sous ces formes précises :
 
 1. **`---`** (seul sur une ligne, entouré de lignes vides) sépare les fiches
-2. **`<!-- meta -->`** marque le début du bloc de métadonnées (avant le premier
+2. **`<!-- lwp:meta -->`** marque le début du bloc de métadonnées (avant le premier
    `---`)
-3. **`<!-- slide: TYPE -->`** marque le type d'une fiche (défaut : standard)
+3. **`<!-- lwp:slide:TYPE -->`** marque le type d'une fiche (défaut : standard)
 4. **`clé: valeur`** (en tête de bloc meta ou de fiche) définit un champ
+
+Les commentaires HTML portent le préfixe `lwp:` (et non un mot générique
+comme `meta`) délibérément : un commentaire HTML est déjà invisible pour
+n'importe quel outil qui se contente d'afficher le Markdown tel quel, mais
+un préfixe namespacé permet en plus à un autre outil qui, lui, *lirait* ces
+commentaires (générateur de statique concurrent, script de post-traitement)
+de reconnaître sans ambiguïté qu'ils appartiennent à LWP et de les ignorer
+explicitement, plutôt que de risquer une collision avec sa propre
+convention `<!-- meta -->` ou `<!-- slide -->`.
 
 Chaque élément LWP — instruction ou champ — tient sur **une seule ligne
 physique**, quelle que soit sa longueur : il n'y a pas de valeur étalée sur
@@ -275,7 +284,7 @@ traité comme du texte Markdown.
 ### 4.2 Exemple complet
 
 ```markdown
-<!-- meta -->
+<!-- lwp:meta -->
 file: tarte-aux-pommes.html
 h1: La tarte aux pommes<br>Ce que la pâte brisée change vraiment
 series_title: La tarte aux pommes
@@ -285,14 +294,14 @@ index_title: La tarte aux pommes
 index_desc: Température de cuisson, temps de repos de la pâte, et astuces de dressage
 ---
 
-<!-- slide: cover -->
+<!-- lwp:slide:cover -->
 tag: Recette
 # La tarte aux pommes
 summary: Neuf repères pour réussir une tarte aux pommes maison, de la pâte brisée à la cuisson, en passant par le choix des pommes et le dressage.
 
 ---
 
-<!-- slide -->
+<!-- lwp:slide -->
 tag: Cuisson
 ## La température change tout
 summary: Un four trop chaud cuit la surface avant que le centre ne soit prêt : c'est le piège le plus courant de la tarte maison.
@@ -307,11 +316,11 @@ Le temps de cuisson varie ensuite selon l'**épaisseur** des pommes et la hauteu
 
 ---
 
-<!-- slide: series-nav -->
+<!-- lwp:slide:series-nav -->
 
 ---
 
-<!-- slide: full-article -->
+<!-- lwp:slide:full-article -->
 article: tarte-aux-pommes_article.md
 ```
 
@@ -344,10 +353,10 @@ ligne physique (§4.1).
 
 | Marqueur                     | Type        | Description                           | Nombre par article | Position |
 |------------------------------|-------------|----------------------------------------|---------------------|----------|
-| `<!-- slide: cover -->`      | cover       | Slide de couverture (fond sombre)     | 0 à N (libre)       | libre    |
-| `<!-- slide -->`             | standard    | Fiche standard (défaut)                | 0 à N (libre)       | libre    |
-| `<!-- slide: series-nav -->` | series-nav  | Navigation de série (calculée)        | 0 ou 1              | libre    |
-| `<!-- slide: full-article -->`| full-article | Article complet (include `.md`)     | 0 ou 1              | libre    |
+| `<!-- lwp:slide:cover -->`      | cover       | Slide de couverture (fond sombre)     | 0 à N (libre)       | libre    |
+| `<!-- lwp:slide -->`             | standard    | Fiche standard (défaut)                | 0 à N (libre)       | libre    |
+| `<!-- lwp:slide:series-nav -->` | series-nav  | Navigation de série (calculée)        | 0 ou 1              | libre    |
+| `<!-- lwp:slide:full-article -->`| full-article | Article complet (include `.md`)     | 0 ou 1              | libre    |
 
 `cover` est un **style de mise en page**, pas un marqueur structurel unique :
 un article long peut tout à fait avoir plusieurs fiches `cover` pour marquer
@@ -373,7 +382,7 @@ par le moteur.
 Dans une fiche `full-article` :
 
 ```
-<!-- slide: full-article -->
+<!-- lwp:slide:full-article -->
 article: snapchat_article.md
 ```
 
@@ -903,9 +912,9 @@ build(répertoire):
 ```
 parse_markdown(text):
   1. Split sur /^---$/m (lignes contenant uniquement ---)
-  2. Le premier segment est le bloc meta (si il commence par <!-- meta -->)
+  2. Le premier segment est le bloc meta (si il commence par <!-- lwp:meta -->)
   3. Pour chaque segment suivant :
-     a. Chercher <!-- slide: TYPE --> (défaut: standard)
+     a. Chercher <!-- lwp:slide:TYPE --> (défaut: standard)
      b. Extraire les champs clé: valeur (lignes en début de segment)
      c. Le reste est le contenu Markdown
   4. Retourner (meta, slides)
@@ -978,7 +987,7 @@ Le format Markdown étendu est conçu pour être lisible et modifiable par un
 LLM :
 - Les métadonnées sont des lignes `clé: valeur` simples
 - Les séparateurs `---` sont visibles
-- Les marqueurs `<!-- slide: TYPE -->` sont explicites
+- Les marqueurs `<!-- lwp:slide:TYPE -->` sont explicites
 - Le contenu est du Markdown standard
 - Un LLM peut générer un fichier `.md` complet en une seule passe
 
@@ -1608,11 +1617,11 @@ Autorisé. Le tag est omis dans le HTML (pas de `<span class="slide-tag">`).
 
 Autorisé. Le summary est omis dans le HTML.
 
-### 22.5 Fichier `.md` sans `<!-- slide: full-article -->`
+### 22.5 Fichier `.md` sans `<!-- lwp:slide:full-article -->`
 
 Autorisé. La page ne contient que des fiches, sans article de fond.
 
-### 22.6 Fichier `.md` avec `<!-- slide: full-article -->` mais sans `article:`
+### 22.6 Fichier `.md` avec `<!-- lwp:slide:full-article -->` mais sans `article:`
 
 Erreur fatale. Le build s'arrête avec un message indiquant le fichier et le
 numéro de slide. Même chose si `article:` est présent mais n'est pas un
@@ -1620,15 +1629,15 @@ simple nom de fichier (séparateur de chemin ou `..` détecté) — même risque
 de lecture de fichier arbitraire que pour `file`/`source` dans `series.json`
 (§20.3).
 
-### 22.7 `---` au tout début du fichier (avant `<!-- meta -->`)
+### 22.7 `---` au tout début du fichier (avant `<!-- lwp:meta -->`)
 
-Erreur fatale. Le fichier doit commencer par `<!-- meta -->`.
+Erreur fatale. Le fichier doit commencer par `<!-- lwp:meta -->`.
 
-### 22.8 Plusieurs `<!-- slide: full-article -->` dans le même fichier
+### 22.8 Plusieurs `<!-- lwp:slide:full-article -->` dans le même fichier
 
 Erreur fatale. Un article ne peut inclure qu'un seul article de fond.
 
-### 22.9 Plusieurs `<!-- slide: series-nav -->` dans le même fichier
+### 22.9 Plusieurs `<!-- lwp:slide:series-nav -->` dans le même fichier
 
 Erreur fatale. Un article ne peut contenir qu'une seule navigation de série.
 

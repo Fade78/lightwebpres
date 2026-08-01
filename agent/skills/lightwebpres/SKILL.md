@@ -47,21 +47,21 @@ and never expect a field to wrap.
 ## Anatomy of a file
 
 ```markdown
-<!-- meta -->
+<!-- lwp:meta -->
 file: apple-pie.html
 h1: The apple pie<br>What shortcrust pastry actually changes
 series_title: The apple pie
 series_desc: Pastry, baking, and plating
 ---
 
-<!-- slide: cover -->
+<!-- lwp:slide:cover -->
 tag: Recipe
 # The apple pie
 summary: Nine things that make or break a homemade apple pie.
 
 ---
 
-<!-- slide -->
+<!-- lwp:slide -->
 tag: Baking
 ## Temperature changes everything
 summary: An oven that's too hot cooks the surface before the center is ready.
@@ -76,22 +76,22 @@ a blank line, stays a second paragraph.
 
 ---
 
-<!-- slide: series-nav -->
+<!-- lwp:slide:series-nav -->
 
 ---
 
-<!-- slide: full-article -->
+<!-- lwp:slide:full-article -->
 article: apple-pie_article.md
 ```
 
-- The file **must** start with `<!-- meta -->`, immediately followed by
+- The file **must** start with `<!-- lwp:meta -->`, immediately followed by
   `key: value` lines, then a bare `---` line closing the block. Nothing
   else is allowed before it.
 - `---` alone on its own line separates slides everywhere in the file —
   including inside a fact-box's free text, where it still means "new
   slide," not "horizontal rule." Use inline `<hr>` if you actually want a
   rule inside body text.
-- `<!-- slide: TYPE -->` opens a slide; omit `TYPE` (just `<!-- slide -->`)
+- `<!-- lwp:slide:TYPE -->` opens a slide; omit `TYPE` (just `<!-- lwp:slide -->`)
   for a standard slide.
 
 ## The meta block
@@ -111,7 +111,7 @@ error, it'll just be confusing to the next person reading the file.
 | Type | Fields | Cardinality |
 |---|---|---|
 | `cover` | `tag`, `h1` (or `# Title`), `summary` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- slide -->`) | `tag`, `h2` (or `## Title`), `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, then free Markdown text | As many as you want |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `h2` (or `## Title`), `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 

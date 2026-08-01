@@ -50,8 +50,8 @@ class BuildGoldenPath(unittest.TestCase):
 
     def test_build_smoke(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -62,8 +62,8 @@ class BuildGoldenPath(unittest.TestCase):
 
     def test_check_reports_no_drift_after_build(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -83,8 +83,8 @@ class BuildGoldenPath(unittest.TestCase):
         # This one intentionally uses French content: it tests the French
         # typography engine's own rule (nbsp before "?").
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Titre\nsummary: Une question ?\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Une question ?\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -100,8 +100,8 @@ class ParagraphHandling(unittest.TestCase):
 
     def test_two_real_paragraphs_in_factbox_stay_separate(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'First paragraph.\n\nSecond paragraph, clearly distinct.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -115,8 +115,8 @@ class ParagraphHandling(unittest.TestCase):
         # Standard Markdown rule (spec §6.1): consecutive lines with no
         # blank line between them merge into a single paragraph.
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'A sentence broken\nby mistake across two physical lines.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -135,8 +135,8 @@ class FatalErrorCases(unittest.TestCase):
 
     def test_full_article_missing_article_field_is_fatal(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nContent.\n\n---\n\n<!-- slide: full-article -->\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n\n---\n\n<!-- lwp:slide:full-article -->\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -145,9 +145,9 @@ class FatalErrorCases(unittest.TestCase):
 
     def test_duplicate_full_article_slides_is_fatal(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: full-article -->\narticle: art1.md\n\n---\n\n'
-            '<!-- slide: full-article -->\narticle: art2.md\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art1.md\n\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art2.md\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -158,8 +158,8 @@ class FatalErrorCases(unittest.TestCase):
 
     def test_duplicate_series_nav_slides_is_fatal(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: series-nav -->\n\n---\n\n<!-- slide: series-nav -->\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n\n---\n\n<!-- lwp:slide:series-nav -->\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -167,14 +167,14 @@ class FatalErrorCases(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
 
     def test_md_must_start_with_meta_block(self):
-        md = '---\n\n<!-- slide: cover -->\ntag: T\n# Title\n'
+        md = '---\n\n<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
     def test_empty_md_file_is_fatal(self):
-        md = '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n'
+        md = '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n'
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -184,8 +184,8 @@ class FatalErrorCases(unittest.TestCase):
         # Spec §22.12: a cover slide has no fact-box, so unexpected
         # content after its fields must be rejected, not silently dropped.
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
             'This text should never appear nor be silently ignored.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -198,8 +198,8 @@ class FatalErrorCases(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-                '<!-- slide: cover -->\ntag: T\n# Title\n'
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
             )
             (root / 'articles' / 'a1.md').write_text(md, encoding='utf-8')
             (root / 'articles' / 'a2.md').write_text(md, encoding='utf-8')
@@ -218,8 +218,8 @@ class LanguageStrings(unittest.TestCase):
 
     def _series(self, tmp):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         return scaffold(tmp, md)
 
@@ -280,8 +280,8 @@ class AuditCommand(unittest.TestCase):
 
     def test_audit_clean_series_no_warnings(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -291,8 +291,8 @@ class AuditCommand(unittest.TestCase):
 
     def test_audit_warns_when_no_cover(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nContent.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -302,9 +302,9 @@ class AuditCommand(unittest.TestCase):
 
     def test_audit_warns_when_cover_not_first(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nContent.\n\n---\n\n'
-            '<!-- slide: cover -->\ntag: T2\n# Cover title\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T2\n# Cover title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -319,8 +319,8 @@ class HighlightField(unittest.TestCase):
 
     def test_highlight_renders_figure_and_caption(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nhighlight: 42 %\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nhighlight: 42 %\n'
             'highlight-caption: the answer\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -336,8 +336,8 @@ class HighlightField(unittest.TestCase):
 
     def test_standard_slide_without_highlight_omits_block(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nsummary: No highlight here.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nsummary: No highlight here.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -352,8 +352,8 @@ class MarkdownConversion(unittest.TestCase):
 
     def _build_article_html(self, article_body):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: full-article -->\narticle: art.md\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art.md\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -475,16 +475,16 @@ class MultiArticleSeries(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md_a = (
-            '<!-- meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A\n'
             'series_desc: Desc A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
-            '<!-- slide: series-nav -->\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
         )
         md_b = (
-            '<!-- meta -->\nfile: b.html\nh1: Article B\nseries_title: Article B\n'
+            '<!-- lwp:meta -->\nfile: b.html\nh1: Article B\nseries_title: Article B\n'
             'series_desc: Desc B\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
-            '<!-- slide: series-nav -->\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
         )
         (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
         (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
@@ -579,8 +579,8 @@ class CheckDrift(unittest.TestCase):
 
     def test_check_reports_drift_after_source_change(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Original summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Original summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -598,8 +598,8 @@ class RemainingTypographyRules(unittest.TestCase):
 
     def test_typography_nbsp_after_opening_quote(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Titre\nsummary: « Une citation.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: « Une citation.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -609,8 +609,8 @@ class RemainingTypographyRules(unittest.TestCase):
 
     def test_typography_nbsp_before_percent(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nhighlight: 50 %\nhighlight-caption: half\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nhighlight: 50 %\nhighlight-caption: half\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -625,8 +625,8 @@ class TemplateOverride(unittest.TestCase):
 
     def test_custom_style_css_is_used(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -640,8 +640,8 @@ class TemplateOverride(unittest.TestCase):
 
     def test_custom_nav_js_is_used(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -657,8 +657,8 @@ class TemplateOverride(unittest.TestCase):
         """§9.3: templates/index_extra.html, if present, is inserted as-is
         just before </body> on the index page only (not article pages)."""
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -681,8 +681,8 @@ class TemplateOverride(unittest.TestCase):
 
     def test_no_index_extra_html_leaves_index_unaffected(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -698,8 +698,8 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
     def test_build_succeeds_with_no_cover(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nContent.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -708,9 +708,9 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
     def test_build_succeeds_with_multiple_covers(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T1\n# First cover\nsummary: S1.\n\n---\n\n'
-            '<!-- slide: cover -->\ntag: T2\n# Second cover\nsummary: S2.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T1\n# First cover\nsummary: S1.\n\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T2\n# Second cover\nsummary: S2.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -722,9 +722,9 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
     def test_build_succeeds_with_cover_not_first(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nContent.\n\n---\n\n'
-            '<!-- slide: cover -->\ntag: T2\n# Cover title\nsummary: S.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T2\n# Cover title\nsummary: S.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -740,8 +740,8 @@ class SeriesJsonRequiredFields(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
@@ -793,8 +793,8 @@ class ImageCopySafety(unittest.TestCase):
 
     def test_existing_unrelated_file_in_output_img_survives_build(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -831,8 +831,8 @@ class TypographyTagProtection(unittest.TestCase):
 
     def test_custom_rule_does_not_corrupt_link_tag_attribute(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'See [the source](https://example.org/page).\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -858,8 +858,8 @@ class SeriesDirEnvVar(unittest.TestCase):
 
     def test_series_dir_env_var_used_when_no_positional_arg(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as series_tmp, tempfile.TemporaryDirectory() as cwd_tmp:
             root = scaffold(series_tmp, md)
@@ -878,8 +878,8 @@ class LanguageFileOption(unittest.TestCase):
 
     def test_language_file_option_takes_priority(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -904,8 +904,8 @@ class LanguageFileOption(unittest.TestCase):
 
     def test_language_file_option_missing_file_is_fatal(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -921,8 +921,8 @@ class CheckSummaryLine(unittest.TestCase):
 
     def test_summary_line_reflects_ok_and_drift_counts(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Original.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Original.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -960,8 +960,8 @@ class ReadmeGeneration(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             md_a = (
-                '<!-- meta -->\nfile: a.html\nh1: A\nseries_title: Article A\n'
-                'series_desc: Desc A\n---\n\n<!-- slide: cover -->\ntag: T\n# A\n'
+                '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: Article A\n'
+                'series_desc: Desc A\n---\n\n<!-- lwp:slide:cover -->\ntag: T\n# A\n'
             )
             (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
             series = {
@@ -990,8 +990,8 @@ class PathTraversalSafety(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
@@ -1015,8 +1015,8 @@ class PathTraversalSafety(unittest.TestCase):
 
     def test_traversal_article_field_is_rejected(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: full-article -->\narticle: ../../../etc/passwd\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: ../../../etc/passwd\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1039,8 +1039,8 @@ class IndexTitleXssProtection(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# A\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# A\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
         series = {
@@ -1079,8 +1079,8 @@ class HrefAttributeEscaping(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- meta -->\nfile: a".html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
-                '<!-- slide: cover -->\ntag: T\n# A\n'
+                '<!-- lwp:meta -->\nfile: a".html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# A\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
             series = {'articles': [
@@ -1120,8 +1120,8 @@ class MalformedInputHandling(unittest.TestCase):
 
     def test_invalid_json_language_file_is_a_clean_error(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1134,8 +1134,8 @@ class MalformedInputHandling(unittest.TestCase):
 
     def test_rules_not_a_list_is_a_clean_error(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1150,8 +1150,8 @@ class MalformedInputHandling(unittest.TestCase):
 
     def test_invalid_regex_pattern_in_language_rule_is_a_clean_error(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1177,8 +1177,8 @@ class ParserFieldTextSwitch(unittest.TestCase):
         # rather than becoming literal content — this is a hard rule, not
         # a bug, but the split must actually happen as documented.
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'Before the break.\n\n---\n\nAfter the break.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1192,8 +1192,8 @@ class ParserFieldTextSwitch(unittest.TestCase):
 
     def test_field_like_line_inside_free_text_is_not_reparsed_as_a_field(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'A first paragraph starts free text.\n\n'
             'tag: this looks like a field but is not one.\n'
         )
@@ -1212,8 +1212,8 @@ class OptionalFieldOmission(unittest.TestCase):
 
     def test_slide_without_tag_omits_tag_span(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\n## Title without a tag\nsummary: Summary here.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\n## Title without a tag\nsummary: Summary here.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1225,8 +1225,8 @@ class OptionalFieldOmission(unittest.TestCase):
 
     def test_cover_without_summary_builds_successfully(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Cover without summary\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Cover without summary\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1245,8 +1245,8 @@ class SourceFieldRendering(unittest.TestCase):
         # space is the correct, unambiguous assertion here; the French
         # nbsp case is covered separately below.
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
             'Fact content.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1262,8 +1262,8 @@ class SourceFieldRendering(unittest.TestCase):
         plain space — the label+value string must be built before
         typo_engine.apply(), not after."""
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
             'Fact content.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1280,8 +1280,8 @@ class LanguageDirEnvVar(unittest.TestCase):
 
     def test_language_dir_env_var_is_used(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as lang_tmp:
             root = scaffold(tmp, md)
@@ -1309,8 +1309,8 @@ class ArticlesArrayOrder(unittest.TestCase):
         entries = []
         for name in order:
             md = (
-                f'<!-- meta -->\nfile: {name}.html\nh1: {name}\nseries_title: {name}\n'
-                f'series_desc: D\n---\n\n<!-- slide: cover -->\ntag: T\n# {name}\n'
+                f'<!-- lwp:meta -->\nfile: {name}.html\nh1: {name}\nseries_title: {name}\n'
+                f'series_desc: D\n---\n\n<!-- lwp:slide:cover -->\ntag: T\n# {name}\n'
             )
             (root / 'articles' / f'{name}.md').write_text(md, encoding='utf-8')
             entries.append({'file': f'{name}.html', 'source': f'{name}.md',
@@ -1341,8 +1341,8 @@ class H2FieldForm(unittest.TestCase):
 
     def test_h2_field_form_renders_like_markdown_heading(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\nh2: Title via field\nsummary: Summary.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\nh2: Title via field\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1359,8 +1359,8 @@ class FactLabelOptional(unittest.TestCase):
 
     def test_fact_label_present_produces_fact_box(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The takeaway\nContent with a fact-label.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The takeaway\nContent with a fact-label.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1373,8 +1373,8 @@ class FactLabelOptional(unittest.TestCase):
 
     def test_fact_label_absent_produces_bare_paragraph(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nContent without a fact-label.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nContent without a fact-label.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1388,8 +1388,8 @@ class FactLabelOptional(unittest.TestCase):
 
     def test_fact_label_absent_multi_paragraph(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nFirst paragraph.\n\nSecond paragraph.\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nFirst paragraph.\n\nSecond paragraph.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1407,8 +1407,8 @@ class CheckNewMarker(unittest.TestCase):
 
     def test_check_reports_new_for_unbuilt_article(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide: cover -->\ntag: T\n# Title\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -1426,8 +1426,8 @@ class SeriesJsonEmptyStringRejected(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-                '<!-- slide: cover -->\ntag: T\n# Title\n'
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'file': 'a.html', 'source': 'a.md', 'series_title': '', 'series_desc': 'A'}
@@ -1456,8 +1456,8 @@ class GeneratedHtmlValidation(unittest.TestCase):
 
     def test_unclosed_div_in_raw_html_is_fatal(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             '<div>This div is never closed.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1468,8 +1468,8 @@ class GeneratedHtmlValidation(unittest.TestCase):
 
     def test_mismatched_closing_tag_is_fatal(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             '<div><span>Mismatched.</div></span>\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1482,8 +1482,8 @@ class GeneratedHtmlValidation(unittest.TestCase):
         # br/hr/img (no closing tag expected) and a <script> tag containing
         # comparison operators (< / >) must NOT be mistaken for broken markup.
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Title\nfact-label: The fact\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'A line<br>with a break, then <hr> and '
             '<script>if (1 < 2 && 3 > 2) { void 0; }</script> inline.\n'
         )
@@ -1501,8 +1501,8 @@ class HeadingInBodyIsContentNotRetitle(unittest.TestCase):
 
     def test_heading_after_body_content_does_not_overwrite_slide_h2(self):
         md = (
-            '<!-- meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
-            '<!-- slide -->\ntag: T\n## Real title\nfact-label: The fact\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Real title\nfact-label: The fact\n\n'
             'First paragraph of body text.\n\n'
             '## This looks like a heading in the body\n'
         )
