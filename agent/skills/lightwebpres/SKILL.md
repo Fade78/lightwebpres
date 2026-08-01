@@ -1,18 +1,23 @@
 ---
 name: lightwebpres
 description: >
-  Write or edit an article in the LightWebPres (LWP) extended Markdown
-  format — the slide-deck article format used by the lightwebpres static
-  site generator (meta block, cover/standard/series-nav/full-article
-  slides, highlight figures, fact-boxes, series.json). Use this skill
-  whenever the user asks to write, draft, edit, or add an article for a
-  LightWebPres series, mentions "LWP format", "slide deck article",
-  "highlight field", "fact-box", or asks to add an entry to a
-  lightwebpres series.json — even if they just say "write an article for
-  my site" while already working inside a lightwebpres project (a
-  `series.json` and a `lightwebpres` executable in the directory tree are
-  a strong signal this skill applies). Do NOT use this for generic
-  Markdown or blog-post writing unrelated to lightwebpres.
+  Reference for the exact LightWebPres (LWP) Markdown syntax the
+  lightwebpres static site generator parses: the <!-- lwp:meta --> block,
+  the four slide types (cover, standard, series-nav, full-article) and
+  their fields (tag, h1/h2, summary, highlight/highlight-caption,
+  fact-label, source), the one-way field/free-text parsing switch,
+  series.json wiring, and the automatic non-breaking-space typography
+  rules with their per-article opt-outs (typo, typo-units,
+  typo-thousands). Format mechanics only, not editorial writing — it
+  doesn't help decide what an article should say, only how to encode it
+  so lightwebpres builds it correctly. Use whenever someone writes,
+  edits, or debugs a lightwebpres .md article or series.json entry, or
+  mentions "LWP format", "slide deck article", "highlight field",
+  "fact-box", "series-nav", "full-article", or non-breaking
+  spaces/typography for a lightwebpres article — even without naming the
+  skill, if a `series.json` and a `lightwebpres` executable sit in the
+  project tree. Do NOT use for generic Markdown/blog-post writing or for
+  deciding an article's content or angle.
 ---
 
 # Writing LightWebPres (LWP) articles
