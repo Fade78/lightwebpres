@@ -1,23 +1,21 @@
 ---
 name: lightwebpres
 description: >
-  Reference for the exact LightWebPres (LWP) Markdown syntax the
-  lightwebpres static site generator parses: the <!-- lwp:meta --> block,
-  the four slide types (cover, standard, series-nav, full-article) and
-  their fields (tag, h1/h2, summary, highlight/highlight-caption,
-  fact-label, source), the one-way field/free-text parsing switch,
-  series.json wiring, and the automatic non-breaking-space typography
-  rules with their per-article opt-outs (typo, typo-units,
-  typo-thousands). Format mechanics only, not editorial writing — it
-  doesn't help decide what an article should say, only how to encode it
-  so lightwebpres builds it correctly. Use whenever someone writes,
-  edits, or debugs a lightwebpres .md article or series.json entry, or
-  mentions "LWP format", "slide deck article", "highlight field",
-  "fact-box", "series-nav", "full-article", or non-breaking
-  spaces/typography for a lightwebpres article — even without naming the
-  skill, if a `series.json` and a `lightwebpres` executable sit in the
-  project tree. Do NOT use for generic Markdown/blog-post writing or for
-  deciding an article's content or angle.
+  Reference for the exact LightWebPres (LWP) Markdown syntax lightwebpres
+  parses: the lwp:meta comment block, the four slide types (cover,
+  standard, series-nav, full-article) and their fields (tag, h1/h2,
+  summary, highlight, fact-label, source), the one-way field/free-text
+  parsing switch, series.json wiring, and automatic non-breaking-space
+  typography with its opt-outs (typo, typo-units, typo-thousands).
+  Format mechanics only, not editorial writing — it doesn't decide what
+  an article says, only how to encode it correctly. Use whenever someone
+  writes, edits, or debugs a lightwebpres .md article or series.json
+  entry, or mentions "LWP format", "slide deck article", "highlight
+  field", "fact-box", "series-nav", "full-article", or
+  typography/non-breaking spaces for a lightwebpres article — even
+  without naming the skill, if series.json and a lightwebpres executable
+  are present. Do NOT use for generic Markdown/blog-post writing or
+  deciding an article's content.
 ---
 
 # Writing LightWebPres (LWP) articles
