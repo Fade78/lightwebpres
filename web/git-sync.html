@@ -237,18 +237,37 @@
     return await res.text();
   }
 
+  // This page cannot work opened as a bare file:// page: browsers block
+  // Pyodide's own fetch()/import() under that origin, AND the page needs
+  // its sibling files (web/vendor/, web/git_sync.py, and the lightwebpres
+  // executable one level up) — not just this one HTML file. Compute the
+  // exact directory to serve from the file's own path, so the suggested
+  // command is something the user can actually run as-is, not a stand-in
+  // that silently assumes the wrong current directory (e.g. a Downloads
+  // folder full of unrelated files).
+  function fileProtocolGuardMessage(filename) {
+    let repoRootHint = '<the folder that contains both "lightwebpres" and "web/">';
+    try {
+      let p = decodeURIComponent(location.pathname);
+      if (/^\/[a-zA-Z]:\//.test(p)) p = p.slice(1); // Windows: /C:/Users/... -> C:/Users/...
+      const stripped = p.replace(new RegExp('/web/' + filename + '$'), '');
+      if (stripped !== p) repoRootHint = stripped;
+    } catch (e) { /* fall back to the placeholder above */ }
+
+    return 'This page was opened as a local file, which cannot work: browsers block '
+      + "Pyodide's own asset loading under the file:// origin, and this page also "
+      + 'needs its sibling files (web/vendor/, web/' + (filename === 'index.html' ? 'app.py' : 'git_sync.py')
+      + ', and the lightwebpres executable one level up) -- not just this HTML file '
+      + 'by itself. From a terminal: python3 -m http.server 8000 --directory "'
+      + repoRootHint + '" -- then open http://localhost:8000/web/' + filename + '.';
+  }
+
   let pyodideReady = null;
   let seriesDir = null;
 
   async function init() {
     if (location.protocol === 'file:') {
-      setStatus(
-        'This page was opened as a local file — Pyodide cannot load (browsers block '
-        + 'its module and asset fetches under the file:// origin). Serve this directory '
-        + 'over http instead, e.g.: python3 -m http.server 8000 — then open '
-        + 'http://localhost:8000/git-sync.html.',
-        'error',
-      );
+      setStatus(fileProtocolGuardMessage('git-sync.html'), 'error');
       return;
     }
     try {

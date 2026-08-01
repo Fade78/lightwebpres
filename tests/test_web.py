@@ -138,10 +138,16 @@ class FileProtocolGuard(unittest.TestCase):
     confusing browser error."""
 
     def _check(self, html_filename):
+        # The expected substring pins down the exact, complete command —
+        # naming the real repo root computed from the file's own path, not
+        # a vague "serve this directory" that would silently serve whatever
+        # directory happens to be the shell's cwd (e.g. a cluttered
+        # Downloads folder) instead of the one that actually has the
+        # sibling files this page needs.
         file_url = 'file://' + str(REPO_ROOT / 'web' / html_filename)
+        expected = 'python3 -m http.server 8000 --directory "%s"' % REPO_ROOT
         result = subprocess.run(
-            ['node', str(FILE_PROTOCOL_GUARD_SCRIPT), file_url,
-             'Serve this directory over http instead'],
+            ['node', str(FILE_PROTOCOL_GUARD_SCRIPT), file_url, expected],
             capture_output=True, text=True,
             env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=30,

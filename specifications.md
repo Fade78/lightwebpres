@@ -1751,13 +1751,32 @@ l'ouvrir en double-cliquant dessus — ne fonctionne **pas** : les navigateurs
 `fetch()` des ressources de Pyodide (`pyodide-lock.json`, le `.wasm`, le zip
 de la stdlib) et l'`import()` dynamique de `pyodide.asm.mjs`, par politique
 CORS (origine `null`). Ce n'est pas contournable côté page : il faut un
-serveur HTTP, même minimal et local (`python3 -m http.server` dans `web/`,
-ou n'importe quel serveur statique), puis ouvrir la page via une url
+serveur HTTP, même minimal et local, puis ouvrir la page via une url
 `http://` ou `https://`.
 
-`index.html` et `git-sync.html` détectent ce cas dès le début de `init()`
-(`location.protocol === 'file:'`) et affichent un message d'erreur explicite
-avec la marche à suivre, plutôt que de laisser Pyodide échouer avec une
+Deux pièges à éviter dans la commande à donner à l'utilisateur, tous deux
+la rendraient incomplète ou fausse :
+
+- **Servir le bon répertoire, explicitement.** La page dépend de fichiers
+  frères — `web/vendor/pyodide/`, `web/app.py` ou `web/git_sync.py`, et
+  l'exécutable `lightwebpres` un niveau au-dessus de `web/` (le
+  `fetchText('../lightwebpres')` du script). Un `python3 -m http.server`
+  lancé sans argument sert le répertoire courant du terminal — souvent le
+  mauvais (un dossier de téléchargements quelconque) — et le lancer
+  *depuis* `web/` casse `../lightwebpres`, hors du répertoire servi. Il faut
+  servir la racine du dépôt (le dossier qui contient à la fois
+  `lightwebpres` et `web/`), explicitement, avec `--directory`, plutôt que
+  de compter sur le répertoire courant.
+- **Ne jamais présenter le fichier seul comme suffisant.** Sans ses
+  fichiers frères, aucune commande de serveur ne suffit — le rappeler
+  évite de faire croire qu'un serveur à lui seul résout tout.
+
+`index.html` et `git-sync.html` détectent le cas `file://` dès le début de
+`init()` (`location.protocol === 'file:'`) et affichent un message d'erreur
+qui calcule la commande exacte à partir du chemin réel du fichier ouvert
+(`location.pathname`, dont `/web/{index,git-sync}.html` est retranché pour
+obtenir la racine du dépôt) — `python3 -m http.server 8000 --directory
+"<racine calculée>"` — plutôt que de laisser Pyodide échouer avec une
 erreur de navigateur brute et peu compréhensible (`ReferenceError:
 loadPyodide is not defined` si le script lui-même est intercepté avant
 exécution, ou une `TypeError` de fetch selon l'endroit exact où le blocage

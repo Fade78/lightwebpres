@@ -133,9 +133,15 @@ a malformed structural override.
 Both load the exact same `lightwebpres` executable, unmodified, running
 inside [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly) —
 one build engine, three front-ends. Both need to be **served over
-http(s)** — opening the file directly (`file://`) doesn't work, browsers
-block Pyodide's asset loading under that origin; `python3 -m http.server`
-in `web/` is enough (see specifications.md §23.6).
+http(s)** from the repo root, not opened directly as a `file://` page —
+browsers block Pyodide's asset loading under that origin, and the pages
+also fetch `../lightwebpres` and their own `vendor/`/`app.py`/`git_sync.py`,
+so serving `web/` alone isn't enough either:
+`python3 -m http.server 8000 --directory /path/to/lightwebpres` (the
+folder containing both `lightwebpres` and `web/`), then open
+`http://localhost:8000/web/index.html` (see specifications.md §23.6 — if
+you open a page as `file://` anyway, it now shows this exact command
+computed from where you actually put the files).
 
 - **`web/index.html`** — upload a zip of your series, get back a zip of
   `public/`. Nothing ever leaves the browser tab; Pyodide runs vendored
