@@ -502,7 +502,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
   }
   .highlight { display: flex; flex-direction: column; align-items: center;
-    gap: 6px; margin: 18px 0 22px; text-align: center; max-width: 680px; }
+    gap: 6px; margin: 18px 0 22px; text-align: center; max-width: var(--content-max); }
   .highlight-figure { font-size: clamp(2.1rem, 8vw, 3.4rem); font-weight: 800;
     line-height: 1.05; color: var(--dark); letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
