@@ -692,6 +692,82 @@ class TemplateOverride(unittest.TestCase):
             self.assertIn('</script>\n\n\n</body>', index_html)
 
 
+class RefreshTemplates(unittest.TestCase):
+    """§9.4/§11.6: refresh-templates updates the built-in portion of
+    templates/style.css and templates/nav.js after an executable upgrade,
+    without discarding local customizations."""
+
+    MARKER = '/* === Personnalisations locales : refresh-templates conserve tout ce qui suit cette ligne === */'
+
+    def test_requires_install_first(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run('refresh-templates', str(root))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('install', result.stderr.lower())
+
+    def test_reports_up_to_date_when_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            before_style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+            before_nav = (root / 'templates' / 'nav.js').read_text(encoding='utf-8')
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('up to date', result.stdout.lower())
+            self.assertEqual((root / 'templates' / 'style.css').read_text(encoding='utf-8'), before_style)
+            self.assertEqual((root / 'templates' / 'nav.js').read_text(encoding='utf-8'), before_nav)
+
+    def test_style_css_refreshes_builtin_part_and_keeps_customization_after_marker(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            style_path = root / 'templates' / 'style.css'
+            stale = style_path.read_text(encoding='utf-8').replace(
+                ':root {', '/* STALE-BUILTIN-RULE */\n:root {', 1,
+            )
+            stale += '\n  .my-custom { color: red; }\n'
+            style_path.write_text(stale, encoding='utf-8')
+
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            refreshed = style_path.read_text(encoding='utf-8')
+            self.assertNotIn('STALE-BUILTIN-RULE', refreshed)
+            self.assertIn('.my-custom { color: red; }', refreshed)
+            self.assertIn(self.MARKER, refreshed)
+
+    def test_style_css_without_marker_is_skipped_not_guessed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            style_path = root / 'templates' / 'style.css'
+            legacy = '/* old scaffold, predates the marker */\n.old-custom { color: blue; }\n'
+            style_path.write_text(legacy, encoding='utf-8')
+
+            result = run('refresh-templates', str(root))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(self.MARKER, result.stderr)
+            self.assertEqual(style_path.read_text(encoding='utf-8'), legacy)
+
+    def test_nav_js_is_replaced_and_previous_version_backed_up(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            nav_path = root / 'templates' / 'nav.js'
+            old_nav = nav_path.read_text(encoding='utf-8') + '\n// OLD-CUSTOM-NAV\n'
+            nav_path.write_text(old_nav, encoding='utf-8')
+
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            refreshed = nav_path.read_text(encoding='utf-8')
+            self.assertNotIn('OLD-CUSTOM-NAV', refreshed)
+            backup = root / 'templates' / 'nav.js.bak'
+            self.assertTrue(backup.exists())
+            self.assertIn('OLD-CUSTOM-NAV', backup.read_text(encoding='utf-8'))
+
+
 class CoverCardinalityFreedom(unittest.TestCase):
     """§4.4/§22.13: build must never block on the number or position of
     cover slides — that's audit's job, purely editorial."""

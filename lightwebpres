@@ -127,6 +127,14 @@ LANG_EN = r'''{
   }
 }'''
 
+# Marks where the built-in portion of templates/style.css ends and a site's
+# own customizations begin. `install` writes it at the end of the file with
+# nothing after it; `refresh-templates` (§11.6) uses it to update the
+# built-in rules above the marker while preserving anything appended below
+# it verbatim, instead of guessing the boundary from a CSS selector that may
+# legitimately also appear in the built-in CSS (see specifications.md §9.4).
+TEMPLATE_STYLE_CUSTOM_MARKER = '/* === Personnalisations locales : refresh-templates conserve tout ce qui suit cette ligne === */'
+
 # --- Template: style.css ---
 TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
 :root {
@@ -442,7 +450,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--grey); background: #eeeeea; padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
   .intro { font-size: 17px; line-height: 1.7; max-width: 700px; margin-bottom: 48px; }
   .intro p { margin-bottom: 16px; }
-'''
+''' + '\n  ' + TEMPLATE_STYLE_CUSTOM_MARKER + '\n'
 
 # --- Template: nav.js ---
 # {{str_*}} placeholders are filled from the language pack's "strings" by
@@ -2639,7 +2647,9 @@ def cmd_install(target_dir, args):
 
     print(f'Installed: {td}')
     print(f'  articles/   — your .md files')
-    print(f'  templates/  — CSS and JS (editable)')
+    print(f'  templates/  — CSS and JS (editable; put custom CSS after the')
+    print(f'              "Personnalisations locales" marker at the end of')
+    print(f'              style.css so refresh-templates can update the rest)')
     print(f'  language/   — typography rules + interface strings (fr, en)')
     print(f'  public/     — generated HTML (build output)')
     print(f'  series.json — article list')
@@ -2650,6 +2660,71 @@ def cmd_install(target_dir, args):
     print(f'  1. Create articles in {td}/articles/')
     print(f'  2. Add entries to {td}/series.json')
     print(f'  3. Run: lightwebpres build {td}')
+
+
+def cmd_refresh_templates(target_dir, args):
+    """refresh-templates command — after an executable upgrade, updates the
+    built-in portion of templates/style.css and templates/nav.js (which
+    otherwise stay frozen at whatever install/refresh-templates last wrote,
+    per the override mechanism of §9) without discarding local edits."""
+    td = Path(target_dir).resolve()
+    templates_dir = td / 'templates'
+
+    if not templates_dir.is_dir():
+        print(f'[ERROR] {templates_dir} not found. Run install first.', file=sys.stderr)
+        sys.exit(1)
+
+    refreshed = []
+    up_to_date = []
+    skipped = []
+
+    style_path = templates_dir / 'style.css'
+    if style_path.exists():
+        old = style_path.read_text(encoding='utf-8')
+        if old == TEMPLATE_STYLE:
+            up_to_date.append('templates/style.css')
+        else:
+            marker_pos = old.rfind(TEMPLATE_STYLE_CUSTOM_MARKER)
+            if marker_pos == -1:
+                skipped.append('templates/style.css')
+                print(f'[SKIP] templates/style.css: no marker found, cannot tell your '
+                      f'customizations apart from the built-in CSS safely. Add this exact '
+                      f'line right before your own rules, then run refresh-templates again:',
+                      file=sys.stderr)
+                print(f'  {TEMPLATE_STYLE_CUSTOM_MARKER}', file=sys.stderr)
+            else:
+                custom_tail = old[marker_pos + len(TEMPLATE_STYLE_CUSTOM_MARKER):]
+                style_path.write_text(TEMPLATE_STYLE + custom_tail, encoding='utf-8')
+                refreshed.append('templates/style.css')
+
+    nav_path = templates_dir / 'nav.js'
+    if nav_path.exists():
+        old_nav = nav_path.read_text(encoding='utf-8')
+        if old_nav == TEMPLATE_NAV_JS:
+            up_to_date.append('templates/nav.js')
+        else:
+            backup_path = templates_dir / 'nav.js.bak'
+            backup_path.write_text(old_nav, encoding='utf-8')
+            nav_path.write_text(TEMPLATE_NAV_JS, encoding='utf-8')
+            refreshed.append('templates/nav.js (previous version saved as templates/nav.js.bak)')
+
+    if not style_path.exists() and not nav_path.exists():
+        print('Nothing to refresh: no templates/style.css or templates/nav.js in this directory.')
+        return
+
+    if refreshed:
+        print('Refreshed:')
+        for item in refreshed:
+            print(f'  {item}')
+    if up_to_date:
+        print('Already up to date:')
+        for item in up_to_date:
+            print(f'  {item}')
+    print()
+    print('Run build again to apply the refreshed templates.')
+
+    if skipped:
+        sys.exit(1)
 
 
 # ============================================================================
@@ -2885,6 +2960,8 @@ COMMANDS
   lightwebpres build [directory] [--lang fr]     Builds the site (self-contained HTML)
   lightwebpres check [directory] [--lang fr]     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr]     Warns about editorial conventions (never blocking)
+  lightwebpres refresh-templates [directory]     Updates the built-in CSS/JS in templates/,
+                                                  keeping local customizations (see §9.4)
   lightwebpres help | --help | -h                Shows this help
 
 OPTIONS
@@ -2977,6 +3054,8 @@ def main():
         cmd_check(target, opts)
     elif command == 'audit':
         cmd_audit(target, opts)
+    elif command == 'refresh-templates':
+        cmd_refresh_templates(target, opts)
     else:
         print(f'Unknown command: {command}', file=sys.stderr)
         print_help()

@@ -98,6 +98,7 @@ lightwebpres demo [répertoire] [--lang fr]
 lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json]
 lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json]
 lightwebpres audit [répertoire] [--lang fr]
+lightwebpres refresh-templates [répertoire]
 lightwebpres --help
 ```
 
@@ -735,6 +736,55 @@ s'applique qu'aux pages d'article, pas à l'index). Si
 `</body>` de la page d'index générée. Absent par défaut : `install` ne
 crée pas ce fichier, contrairement à `style.css`/`nav.js`.
 
+### 9.4 Mettre à jour `style.css`/`nav.js` après une mise à jour de l'exécutable
+
+Un override (§9.1/§9.2) remplace le fichier **en bloc** : une fois
+`templates/style.css` ou `templates/nav.js` créé (par `install`, ou copié à
+la main), `build` ne lit plus jamais la version intégrée à l'exécutable
+pour ce fichier — y compris après une mise à jour de l'exécutable qui
+change le CSS/JS par défaut. Un site déjà installé reste donc figé sur
+l'ancien rendu tant que ces fichiers ne sont pas rafraîchis à la main, même
+si l'exécutable a évolué.
+
+`refresh-templates` (§11.6) automatise ce rafraîchissement sans écraser une
+personnalisation locale :
+
+- **`style.css`** : le fichier installé par défaut se termine par un
+  commentaire marqueur (`/* === Personnalisations locales : ... === */`).
+  Tout ce que l'auteur ajoute **après** cette ligne est sa personnalisation ;
+  tout ce qui précède est la partie intégrée à l'exécutable.
+  `refresh-templates` retrouve ce marqueur (dernière occurrence dans le
+  fichier, pour rester robuste même si le marqueur apparaissait par erreur
+  plusieurs fois), reconstruit le fichier comme `CSS intégré à jour +
+  marqueur + tout ce qui suivait le marqueur dans l'ancien fichier`, et
+  laisse cette partie personnalisée totalement intacte.
+
+  Le marqueur délimite la coupure par une ligne dédiée plutôt que par le
+  nom d'une règle CSS reconnaissable (ex. deviner où commence le
+  personnalisé en cherchant la première occurrence d'un sélecteur qu'on
+  sait avoir été ajouté par l'auteur) : un sélecteur ajouté par l'auteur à
+  une version de l'outil peut légitimement être repris tel quel dans le CSS
+  par défaut d'une version ultérieure, ce qui rendrait cette
+  reconnaissance ambiguë.
+
+  Si le marqueur est absent (fichier antérieur à cette fonctionnalité, ou
+  marqueur supprimé par erreur), `refresh-templates` ne devine pas où
+  couper : il laisse le fichier inchangé, signale l'absence du marqueur
+  (code de sortie non nul) et indique la ligne exacte à ajouter à la main
+  avant la personnalisation existante, pour que le prochain passage puisse
+  s'appuyer dessus.
+
+- **`nav.js`** : pas de mécanisme de coupure équivalent (le JS n'est pas
+  conçu pour être personnalisé par ajout en fin de fichier).
+  `refresh-templates` sauvegarde l'ancien fichier en
+  `templates/nav.js.bak` puis le remplace intégralement par la version
+  intégrée à l'exécutable — à charge pour l'auteur de reporter à la main
+  une éventuelle personnalisation depuis la sauvegarde.
+
+Dans les deux cas, un fichier déjà identique à la version intégrée à
+l'exécutable est laissé tel quel (rapporté « already up to date »), sans
+réécriture inutile.
+
 ---
 
 ## 10. Pipeline GitLab CI
@@ -892,7 +942,30 @@ compare le HTML généré à l'existant, §11.4) :
 Le nombre et la position des fiches `cover` restent libres (§4.4, §22.13) :
 `audit` ne fait qu'informer, la décision reste à l'auteur.
 
-### 11.6 `--help`
+### 11.6 `refresh-templates`
+
+```bash
+lightwebpres refresh-templates [répertoire]
+```
+
+Met à jour la partie intégrée à l'exécutable de `templates/style.css` et
+`templates/nav.js` sans écraser une personnalisation locale — voir §9.4
+pour le mécanisme exact (marqueur pour `style.css`, sauvegarde
+`nav.js.bak` pour `nav.js`).
+
+1. Erreur fatale si `templates/` n'existe pas (`install` pas encore fait)
+2. Pour chaque fichier présent, affiche s'il a été rafraîchi ou était déjà
+   à jour
+3. Pour `style.css` sans marqueur trouvé, affiche `[SKIP]` avec la ligne à
+   ajouter à la main, et laisse le fichier inchangé
+4. Code de sortie non nul si au moins un fichier a été « skipped » faute de
+   marqueur ; 0 sinon
+
+Ne relance pas `build` automatiquement : les fichiers HTML déjà générés
+dans `public/` restent inchangés tant que `build` n'est pas relancé à la
+main.
+
+### 11.7 `--help`
 
 Affiche l'aide avec la liste des commandes et options.
 
