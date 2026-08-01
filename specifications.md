@@ -1523,6 +1523,18 @@ Au moment du build, le moteur charge le pack de langue depuis :
   jointe telle quelle au répertoire attendu (`Path(dir) / valeur` ignore
   silencieusement `dir` quand `valeur` est un chemin absolu) et permettrait
   une lecture ou une écriture de fichier arbitraire hors de `articles/`/`public/`.
+- `source` doit se terminer par `.md` (insensible à la casse) et `file` par
+  `.html` ou `.htm` (insensible à la casse) — erreur fatale sinon, avec le
+  même traitement que le contrôle de sécurité ci-dessus : sans ça, une
+  valeur comme `"file": "a.md"` construit sans avertissement un
+  `public/a.md` contenant du HTML rendu, une extension de sortie
+  incohérente qu'aucun choix éditorial ne justifie. `.htm` est accepté au
+  même titre que `.html` : extension standard, toujours utile sur les
+  systèmes de fichiers limités à trois lettres (FAT 8.3 et dérivés,
+  certains hébergements ou environnements embarqués) ; la restreindre à
+  `.html` seul briserait cet usage sans apport de sécurité, le risque visé
+  (extension de sortie incohérente) étant identique pour toute extension
+  qui n'est ni l'une ni l'autre.
 - `source` doit pointer vers un fichier qui existe dans `articles/` — sinon
   cette entrée est ignorée (avertissement, pas d'arrêt du build).
 - Si `index_title` est absent, `series_title` est utilisé pour l'index.

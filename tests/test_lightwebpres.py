@@ -786,6 +786,80 @@ class SeriesJsonRequiredFields(unittest.TestCase):
             self.assertFalse((root / 'public' / 'a.html').exists())
 
 
+class SeriesJsonExtensionValidation(unittest.TestCase):
+    """§20.3: file/source must carry the right extension — otherwise the
+    build silently writes rendered HTML to a file named e.g. a.md, or
+    reads a non-Markdown file as if it were the article source. Fatal,
+    same severity as the existing safe-filename check, checked
+    case-insensitively."""
+
+    def _series_with(self, tmp, file_value, source_value):
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        (root / 'articles' / 'a.md').write_text(
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n',
+            encoding='utf-8',
+        )
+        series = {'articles': [
+            {'file': file_value, 'source': source_value, 'series_title': 'A', 'series_desc': 'A'},
+        ]}
+        (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+        return root
+
+    def test_file_without_html_extension_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with(tmp, 'a.md', 'a.md')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('.html or .htm', result.stderr)
+
+    def test_source_without_md_extension_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with(tmp, 'a.html', 'a.txt')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('.md', result.stderr)
+
+    def test_htm_extension_is_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with(tmp, 'a.htm', 'a.md')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.htm').exists())
+
+    def test_file_extension_check_is_case_insensitive(self):
+        # Only the extension check itself is under test here — an uppercase
+        # "file" value with the real, correctly-cased source must pass
+        # validation and actually build (not just avoid the fatal error).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with(tmp, 'a.HTML', 'a.md')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.HTML').exists())
+
+    def test_source_extension_check_is_case_insensitive(self):
+        # Source lookup on disk is itself case-sensitive on most
+        # filesystems, so the article file is written with a matching
+        # uppercase .MD extension here — this isolates the extension
+        # *validation* being case-insensitive from that unrelated concern.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'articles' / 'a.MD').write_text(
+                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n',
+                encoding='utf-8',
+            )
+            series = {'articles': [
+                {'file': 'a.html', 'source': 'a.MD', 'series_title': 'A', 'series_desc': 'A'},
+            ]}
+            (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.html').exists())
+
+
 class ImageCopySafety(unittest.TestCase):
     """§P2: copy_images must merge into an existing public/img/, never wipe
     it — a mistyped --output pointing at an unrelated directory must not

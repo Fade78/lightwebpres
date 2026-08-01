@@ -1604,13 +1604,16 @@ def load_series_data(series_dir):
 
 def validate_series(articles):
     """Rejects series.json structural errors (§20.3): required fields must be
-    present and non-empty on every entry, file must be unique, and file/source
+    present and non-empty on every entry, file must be unique, file/source
     must be plain filenames — otherwise one article's output silently
     overwrites another's, the build crashes on a raw KeyError instead of a
     clear message, or (file/source being joined into real filesystem paths
     with no other containment check) a malicious or LLM-mangled entry reads
     or writes an arbitrary file outside articles/public (Path(dir) / value
-    silently ignores `dir` when `value` is an absolute path)."""
+    silently ignores `dir` when `value` is an absolute path) — and source
+    must end in .md, file in .html or .htm (case-insensitive), otherwise
+    the build silently writes HTML content to a wrongly-extensioned output
+    file with no warning."""
     required_fields = ('file', 'source', 'series_title', 'series_desc')
     seen = {}
     for i, entry in enumerate(articles, 1):
@@ -1625,6 +1628,14 @@ def validate_series(articles):
                       f'value "{entry[field]}" (must be a plain filename, no '
                       f'path separators, no "..").', file=sys.stderr)
                 sys.exit(1)
+        if not entry['source'].lower().endswith('.md'):
+            print(f'[ERROR] series.json: entry {i} has a "source" value '
+                  f'"{entry["source"]}" that does not end in .md.', file=sys.stderr)
+            sys.exit(1)
+        if not entry['file'].lower().endswith(('.html', '.htm')):
+            print(f'[ERROR] series.json: entry {i} has a "file" value '
+                  f'"{entry["file"]}" that does not end in .html or .htm.', file=sys.stderr)
+            sys.exit(1)
         f = entry.get('file')
         if f in seen:
             print(f'[ERROR] series.json: duplicate file "{f}" (articles {seen[f]} '
