@@ -116,34 +116,39 @@ Le système gère trois niveaux d'objets :
 ### 3.1 Niveau série (le site)
 
 La série est l'ensemble des articles. Elle est décrite par `series.json` qui
-contient, pour chaque article :
+contient, pour chaque article, deux catégories de champs bien distinctes
+(détail complet en §20) :
 
-- `file` : nom du fichier HTML de sortie (ex. `snapchat.html`)
-- `source` : nom du fichier Markdown source (ex. `snapchat.md`)
-- `series_title` : titre court pour la navigation
-- `series_desc` : description courte pour la navigation
-- `index_number` : numéro ou label pour l'index (ex. « Article 1 : La plateforme »)
-- `index_title` : titre pour la carte d'index
-- `index_desc` : description pour la carte d'index
+- **Structurels — toujours dans `series.json`**, aucune autre source
+  possible : `file` (nom du fichier HTML de sortie, ex. `snapchat.html`) et
+  `source` (nom du fichier Markdown source, ex. `snapchat.md`).
+- **D'affichage — surcharge optionnelle** d'une valeur par défaut lue dans
+  le bloc meta de l'article lui-même (§20.3.1) : `series_title`/`series_desc`
+  (titre et description courts, navigation et index), `card_title`/`card_desc`
+  (spécifiques à la carte d'index, si différents des précédents),
+  `card_label` (étiquette libre sur la carte d'index — texte, pas un
+  numéro).
 
 Le contenu d'une fiche `cover` (tag, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
-que les métadonnées de navigation et d'index ci-dessus, jamais de contenu de
-page.
+jamais de contenu de page, seulement les champs structurels et les
+surcharges d'affichage ci-dessus.
 
-Le fichier de série est la **source de vérité** pour :
-- L'ordre des articles
-- La page d'index (page calculée)
-- Le bloc de navigation « Cette série » inclus dans chaque article
-- Le README (page calculée)
+Le fichier de série est la **source de vérité** pour l'ordre des articles,
+la page d'index (page calculée), le bloc de navigation « Cette série »
+inclus dans chaque article, et le README (page calculée) — mais pour les
+champs d'affichage listés ci-dessus, c'est le bloc meta de chaque article
+qui fait foi par défaut ; `series.json` ne sert qu'à corriger un cas
+particulier sans toucher au fichier de l'article (§20.3.1).
 
 ### 3.2 Niveau article (la page)
 
 Chaque article est décrit par un fichier Markdown étendu (ex. `snapchat.md`).
 Ce fichier contient :
 
-1. **Un bloc de métadonnées** en haut (`<!-- lwp:meta -->` ... `---`) qui reprend
-   et complète les informations du fichier de série pour cet article.
+1. **Un bloc de métadonnées** en haut (`<!-- lwp:meta -->` ... `---`) qui porte
+   les valeurs d'affichage par défaut de cet article — `series.json` ne les
+   répète que pour en surcharger une (§20.3.1).
 2. **Une suite de fiches** (slides) séparées par `---`.
 3. **Une fiche spéciale `series-nav`** qui déclenche la génération de la
    navigation inter-articles (calculée depuis le fichier de série).
@@ -289,9 +294,9 @@ file: tarte-aux-pommes.html
 h1: La tarte aux pommes<br>Ce que la pâte brisée change vraiment
 series_title: La tarte aux pommes
 series_desc: Pâte brisée, cuisson et dressage
-index_number: Article 1 : Les classiques
-index_title: La tarte aux pommes
-index_desc: Température de cuisson, temps de repos de la pâte, et astuces de dressage
+card_label: Article 1 : Les classiques
+card_title: La tarte aux pommes
+card_desc: Température de cuisson, temps de repos de la pâte, et astuces de dressage
 ---
 
 <!-- lwp:slide:cover -->
@@ -640,9 +645,9 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 1. Le titre de la série (`series_meta.title`, ou « Article series » si absent)
 2. Le sous-titre et l'intro (`series_meta.subtitle`, `series_meta.intro`),
    s'ils sont présents
-3. Une liste numérotée des articles (`series_title` — `series_desc`),
-   chacun lié vers son fichier HTML construit (chemin relatif depuis le
-   répertoire de série jusqu'à `--output`)
+3. Une liste numérotée des articles (`series_title` — `series_desc`,
+   résolus comme en §20.3.1), chacun lié vers son fichier HTML construit
+   (chemin relatif depuis le répertoire de série jusqu'à `--output`)
 
 ---
 
@@ -1484,28 +1489,35 @@ Au moment du build, le moteur charge le pack de langue depuis :
   "articles": [
     {
       "file": "tarte-aux-pommes.html",
-      "source": "tarte-aux-pommes.md",
-      "series_title": "La tarte aux pommes",
-      "series_desc": "Pâte brisée, cuisson et dressage",
-      "index_number": "Article 1 : Les classiques",
-      "index_title": "La tarte aux pommes",
-      "index_desc": "Température de cuisson, temps de repos de la pâte, et astuces de dressage"
+      "source": "tarte-aux-pommes.md"
+    },
+    {
+      "file": "creme-patissiere.html",
+      "source": "creme-patissiere.md",
+      "card_label": "Article 2 : Les classiques (corrigé)"
     }
   ]
 }
 ```
 
+Le premier article n'a que les deux champs structurels : `series_title`,
+`series_desc`, `card_title`, `card_desc`, `card_label` sont lus depuis le
+bloc meta de `tarte-aux-pommes.md` (§20.3.1). Le second illustre une
+surcharge : `card_label` prend le pas sur celui du bloc meta de
+`creme-patissiere.md` sans y toucher — les autres champs d'affichage de cet
+article restent lus depuis son propre bloc meta.
+
 ### 20.2 Champs des articles
 
-| Champ | Type | Obligatoire | Utilisé par | Description |
+| Champ | Type | Obligatoire dans `series.json` | Utilisé par | Description |
 |-------|------|-------------|------------|-------------|
 | `file` | string | oui | build, index, nav | Nom du fichier HTML de sortie |
 | `source` | string | oui | build | Nom du fichier `.md` source dans `articles/` |
-| `series_title` | string | oui | nav, index | Titre court dans la navigation et l'index |
-| `series_desc` | string | oui | nav, index | Description courte dans la navigation et l'index |
-| `index_number` | string | non | index | Numéro ou label dans la carte d'index |
-| `index_title` | string | non | index | Titre dans la carte d'index (si différent de `series_title`) |
-| `index_desc` | string | non | index | Description dans la carte d'index (si différente de `series_desc`) |
+| `series_title` | string | non | nav, index | Titre court ; surcharge celui du bloc meta de l'article (valeur finale obligatoire, §20.3.1) |
+| `series_desc` | string | non | nav, index | Description courte ; surcharge celle du bloc meta (valeur finale obligatoire, §20.3.1) |
+| `card_title` | string | non | index | Titre de la carte d'index si différent de `series_title` ; surcharge celui du bloc meta (§20.3.1) |
+| `card_desc` | string | non | index | Description de la carte d'index si différente de `series_desc` ; surcharge celle du bloc meta (§20.3.1) |
+| `card_label` | string | non | index | Étiquette libre sur la carte d'index — texte, pas un numéro ; surcharge celle du bloc meta (§20.3.1) |
 
 ### 20.3 Règles de validation
 
@@ -1513,9 +1525,11 @@ Au moment du build, le moteur charge le pack de langue depuis :
   des articles dans la navigation et l'index.
 - `file` doit être unique dans le tableau (pas de doublons) — erreur fatale
   sinon.
-- Les champs obligatoires (`file`, `source`, `series_title`, `series_desc`)
-  doivent être présents et non vides sur chaque entrée — erreur fatale sinon,
-  avec le champ et l'index de l'entrée en cause.
+- `file` et `source` sont **obligatoires** et doivent être non vides sur
+  chaque entrée — erreur fatale sinon, avec le champ et l'index de l'entrée
+  en cause. Aucun autre champ n'est obligatoire *dans `series.json`* —
+  `series_title`/`series_desc`/`card_title`/`card_desc`/`card_label` se
+  résolvent selon §20.3.1.
 - `file` et `source` doivent être de simples noms de fichier, sans séparateur
   de chemin ni `..` — erreur fatale sinon. `series.json` est une donnée
   éditable par un LLM ou une CI non surveillée (§13.5) ; sans cette
@@ -1537,9 +1551,36 @@ Au moment du build, le moteur charge le pack de langue depuis :
   qui n'est ni l'une ni l'autre.
 - `source` doit pointer vers un fichier qui existe dans `articles/` — sinon
   cette entrée est ignorée (avertissement, pas d'arrêt du build).
-- Si `index_title` est absent, `series_title` est utilisé pour l'index.
-- Si `index_desc` est absent, `series_desc` est utilisé pour l'index.
-- Si `index_number` est absent, aucun numéro n'est affiché dans la carte.
+
+#### 20.3.1 Résolution des champs d'affichage (surcharge)
+
+`series_title`, `series_desc`, `card_title`, `card_desc`, `card_label` ne
+sont jamais requis dans `series.json` lui-même : leur valeur par défaut est
+lue dans le bloc meta de l'article correspondant (même nom de champ — ex.
+`card_title:` dans le `.md`, §4.2), et `series.json` ne sert qu'à la
+corriger pour un article donné, sans toucher au fichier source. Ordre de
+résolution, pour chaque champ, du plus prioritaire au moins prioritaire :
+
+1. **`series.json`**, l'entrée de l'article dans `articles[]`, si le champ y
+   est présent et non vide.
+2. **Le bloc meta de l'article**, le champ de même nom, si présent et non
+   vide.
+3. **Repli**, selon le champ, si absent des deux niveaux précédents :
+   - `series_title` / `series_desc` : **la valeur finale doit être non
+     vide** — erreur fatale sinon (même sévérité que les champs
+     structurels), avec le fichier et le champ en cause. Contrairement à
+     `file`/`source`, cette erreur ne peut être détectée qu'après lecture
+     du bloc meta de l'article, pas seulement de `series.json` : c'est le
+     seul contrôle de cette section qui dépend du contenu de l'article.
+   - `card_title` : reprend la valeur déjà résolue de `series_title`
+     (comportement inchangé).
+   - `card_desc` : reprend celle de `series_desc`, pareillement.
+   - `card_label` : aucune étiquette n'est affichée sur la carte — ce n'est
+     pas une erreur, c'est un champ purement décoratif sans repli plus loin.
+
+`file` et `source` ne suivent **pas** ce mécanisme : champs structurels,
+toujours requis directement dans `series.json` (§20.3) — voir §3.1 pour la
+distinction.
 
 ### 20.4 Métadonnées de la série (`series_meta`)
 
