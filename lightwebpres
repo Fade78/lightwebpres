@@ -32,7 +32,7 @@ from html.parser import HTMLParser
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
