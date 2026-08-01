@@ -141,9 +141,21 @@ having two is a fatal build error, not "the second one wins."
 Referenced by `article:`, it's a separate `.md` file (by convention
 `{name}_article.md`) with **no LWP structure at all** — just standard
 Markdown: headings, `**bold**`/`*italic*`, `[links](url)`, footnotes
-(`[^1]` + `[^1]: definition`), lists, tables, and raw HTML passed through
-as-is (so an author can drop in a hand-written `<figure>` or similar if
-the situation calls for it — nothing here gets escaped).
+(`[^1]` + `[^1]: definition`), lists, tables, blockquotes (`> text`),
+inline code (`` `code` ``), fenced code blocks (` ```lang ` ... ` ``` `,
+the language optional and purely informational — no syntax
+highlighting), and raw HTML passed through as-is (so an author can drop
+in a hand-written `<figure>` or similar if the situation calls for it).
+
+Code is the one exception to "nothing gets escaped": text inside
+`` `...` `` or a ` ``` ` block is HTML-escaped and shown exactly as
+written, even if it looks like a tag — the opposite of how raw HTML
+elsewhere in this file passes through untouched. A `>` at the very start
+of a line or a backtick that isn't meant to open a blockquote/code span
+can be written literally by prefixing it with `\` (`` \> ``, `` \` ``) —
+the only escaping this format supports, and only needed in that
+position; a `>` anywhere else never triggers a blockquote and needs no
+escaping.
 
 Raw HTML at the start of a line is either an inline usage or a block,
 decided per line: `<strong>Word</strong> opens a sentence.` — an inline
@@ -241,6 +253,11 @@ as finished — don't guess at whether it would build.
 - Two `full-article` or two `series-nav` slides in one file.
 - `file`/`source` values with a path (`articles/x.md` instead of `x.md`)
   or anything that isn't a plain filename.
+- Opening a ` ``` ` code fence without a matching closing ` ``` ` —
+  every line after it, including the rest of the file, is swallowed as
+  code content instead of being parsed. A fatal build error catches
+  this (an unclosed tag), not silent data loss, but it's easy to trigger
+  by mistake when editing a code block's contents.
 
 ## Deeper reference
 

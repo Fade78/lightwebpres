@@ -132,7 +132,8 @@ all generated automatically.
   `series.json` (at most one per article).
 - **`full-article`** — includes a separate long-form Markdown file,
   converted with full support for headings, bold/italic, links,
-  footnotes, lists, tables, and inline raw HTML (at most one per article).
+  footnotes, lists, tables, blockquotes, inline/fenced code, and inline
+  raw HTML (at most one per article).
 
 ## Language & typography
 

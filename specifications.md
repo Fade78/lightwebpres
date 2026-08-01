@@ -1649,13 +1649,15 @@ tranchés — à spécifier avant implémentation.
 ### 17.6 Ce qui n'est PAS couvert (volontairement)
 
 - **Live reload** : pas de serveur de développement ✓ (documenté)
-- **Theming multiple** : un seul thème ✓ (documenté)
 - **Présentation orale** : pas de mode présentateur ✓ (documenté)
 - **Multi-langue dans une même page** : une langue par build ✓ (documenté)
 - **Images inline** : les images restent en chemin relatif ✓ (documenté)
 - **Recherche full-text** : pas de moteur de recherche ✓ (documenté)
 - **Commentaires** : pas de système de commentaires ✓ (documenté)
 - **Analytics** : pas de tracking ✓ (documenté)
+- **Citations imbriquées ou multi-paragraphes** ✓ (documenté, §6.3/§15)
+- **Coloration syntaxique des blocs de code** ✓ (documenté, §6.3/§15)
+- **Échappement générique façon CommonMark** ✓ (documenté, §6.3/§15)
 
 ---
 
@@ -2213,6 +2215,33 @@ quelle, même si elle a l'air, prise isolément, d'un usage inline
 autonome (`<span class="caption">...</span>` sur sa propre ligne, par
 exemple) — la profondeur d'imbrication du bloc en cours prime sur
 l'apparence de chaque ligne individuelle.
+
+### 22.15 Bloc de code ouvert sans être refermé
+
+Une ligne ` ``` ` sans ` ``` ` fermante avant la fin du fichier : tout ce
+qui suit, y compris le reste du fichier, est absorbé comme contenu de
+code au lieu d'être interprété (§6.3) — pas de détection anticipée de
+fin de fichier dans le convertisseur lui-même. La balise `<pre><code>`
+ouverte sans fermeture correspondante est détectée comme n'importe quelle
+autre balise non refermée par la vérification de balisage qui précède
+l'écriture de la page (§13), qui fait échouer le build — le même filet
+de sécurité générique, pas un cas spécial.
+
+### 22.16 `>` qui n'est pas en tout début de ligne
+
+`>` n'a de sens de citation qu'en toute première position d'une ligne
+(§6.3). Ailleurs dans une phrase — « la valeur est > 10 », par exemple —
+il n'a jamais été un déclencheur et s'affiche tel quel, sans qu'aucun
+échappement ne soit nécessaire.
+
+### 22.17 Backtick isolé (sans backtick fermant sur la même ligne)
+
+Un seul backtick sur une ligne, sans second backtick pour former une
+paire, ne déclenche pas de span de code (§6.3) : la regex de
+correspondance exige les deux délimiteurs sur la même ligne logique.
+Le backtick s'affiche tel quel, sans échappement nécessaire — seul un
+backtick qui *formerait* effectivement une paire, mais qu'on veut
+littéral, a besoin d'un `` \` ``.
 
 ---
 
