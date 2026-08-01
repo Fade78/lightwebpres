@@ -1836,6 +1836,25 @@ Comme pour le CORS de l'API GitLab (§24.2), le cas nginx (et Apache sans
 `.htaccess` autorisé) reste un réglage côté serveur, hors du périmètre de
 ce que la page peut corriger elle-même.
 
+### 23.8 Auto-hébergement : déployer `web/` seul ne suffit pas
+
+Les deux pages vont chercher `../lightwebpres` — l'exécutable, un niveau
+au-dessus de `web/` — plutôt que d'en garder une copie dupliquée dans
+`web/` (§23.1 : `lightwebpres` reste l'unique source de vérité). Ça
+suppose que le dossier `web/` est déployé **tel qu'il est dans le dépôt**,
+comme sous-dossier d'un dossier qui contient aussi `lightwebpres` — pas
+juste le contenu de `web/` copié seul vers une racine de site plate. Dans
+ce dernier cas, `../lightwebpres` ne pointe vers rien côté serveur : la
+page échoue avec un 404 sur cette requête précise, distinct des cas
+`file://` (§23.6) et MIME (§23.7) puisque tout le reste (Pyodide compris)
+a déjà chargé avec succès à ce stade.
+
+`init()` distingue cet échec spécifique — l'échec du `fetch('../lightwebpres')`
+— du reste et explique la cause probable (mauvaise structure de
+déploiement) plutôt que de laisser remonter le message brut `Failed to
+fetch ../lightwebpres: 404`. Testé par
+`tests/test_web.py::MissingSiblingExecutableGuard`.
+
 ---
 
 ## 24. Synchronisation git depuis le navigateur (`web/git-sync.html`)

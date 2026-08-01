@@ -337,7 +337,19 @@
     }
     try {
       const pyodide = await loadPyodide({ indexURL: './vendor/pyodide/' });
-      const lwpSource = await fetchText('../lightwebpres');
+      let lwpSource;
+      try {
+        lwpSource = await fetchText('../lightwebpres');
+      } catch (fetchErr) {
+        throw new Error(
+          'Could not load the "lightwebpres" executable from ../lightwebpres '
+          + "(one directory above this page's own folder). This page must be "
+          + 'deployed as part of the full repository with its directory '
+          + 'structure intact — not just the contents of web/ copied on their '
+          + 'own — so that a sibling "lightwebpres" file sits next to the web/ '
+          + 'folder this page lives in. Original error: ' + fetchErr,
+        );
+      }
       pyodide.runPython(lwpSource);
       const gitSyncSource = await fetchText('./git_sync.py');
       pyodide.runPython(gitSyncSource);

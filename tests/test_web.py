@@ -24,6 +24,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WEB_E2E_SCRIPT = Path(__file__).resolve().parent / 'web_e2e.cjs'
 FILE_PROTOCOL_GUARD_SCRIPT = Path(__file__).resolve().parent / 'file_protocol_guard_e2e.cjs'
+MISSING_LWP_SCRIPT = Path(__file__).resolve().parent / 'missing_lwp_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -160,6 +161,49 @@ class FileProtocolGuard(unittest.TestCase):
         self._check('index.html')
 
     def test_git_sync_html_shows_guard_when_opened_as_local_file(self):
+        self._check('git-sync.html')
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
+class MissingSiblingExecutableGuard(unittest.TestCase):
+    """§23.4: both pages fetch ../lightwebpres — the executable one level
+    above web/. If only web/'s contents get deployed (a real mistake: the
+    repo's directory structure lost, e.g. copying web/'s files into a
+    flat target folder) that fetch 404s. The page must explain the real
+    cause (wrong deployment layout) instead of showing a bare
+    "Failed to fetch ../lightwebpres: 404"."""
+
+    @classmethod
+    def setUpClass(cls):
+        # Serve ONLY web/ as the HTTP root, so ../lightwebpres genuinely
+        # isn't reachable within the served tree — reproducing exactly
+        # what happens when just web/'s contents are deployed.
+        web_dir = str(REPO_ROOT / 'web')
+        cls.httpd = HTTPServer(('127.0.0.1', 0), lambda *a: _QuietHandler(*a, directory=web_dir))
+        cls.port = cls.httpd.server_address[1]
+        cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.thread.join(timeout=5)
+
+    def _check(self, html_filename):
+        url = 'http://127.0.0.1:%d/%s' % (self.port, html_filename)
+        result = subprocess.run(
+            ['node', str(MISSING_LWP_SCRIPT), url,
+             'deployed as part of the full repository'],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_index_html_explains_missing_lightwebpres(self):
+        self._check('index.html')
+
+    def test_git_sync_html_explains_missing_lightwebpres(self):
         self._check('git-sync.html')
 
 
