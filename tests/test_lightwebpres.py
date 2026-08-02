@@ -1894,6 +1894,26 @@ class SeriesJsonRequiredFields(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((root / 'public' / 'a.html').exists())
 
+    def test_missing_series_meta_falls_back_to_untitled_string(self):
+        """§20.5: series_meta (and title within it) is optional — despite
+        the schema table once (wrongly) marking title required, the code
+        has always read it with a fallback string, never a fatal error."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, (
+                '<!-- lwp:meta -->\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+            ))
+            # A plain-array series.json (no series_meta key at all, §20.4's
+            # backward-compatible format) — the strictest case for "series_meta
+            # is optional", since there isn't even an empty {} to fall back on.
+            (root / 'series.json').write_text(json.dumps([
+                {'file': 'a.html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
+            ]), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Article series', index_html)
+
 
 class SeriesJsonExtensionValidation(unittest.TestCase):
     """§20.3: file/source must carry the right extension — otherwise the

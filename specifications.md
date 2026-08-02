@@ -2313,7 +2313,7 @@ direct (rétrocompatible avec un format de série déjà utilisé).
 
 | Champ | Type | Obligatoire | Description |
 |-------|------|-------------|-------------|
-| `title` | string | oui | Titre de la série sur la page d'index |
+| `title` | string | non | Titre de la série sur la page d'index ; replié sur `strings.series_untitled_fallback` (« Article series » / « Série d'articles », §7.3) si absent — jamais une erreur, `series_meta` lui-même étant optionnel |
 | `subtitle` | string | non | Sous-titre sur la page d'index |
 | `version` | string | non | Version affichée (ex. `v0.13`) |
 | `intro` | string | non | Paragraphe d'introduction de l'index |
