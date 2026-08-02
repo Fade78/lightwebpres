@@ -1292,9 +1292,9 @@ lightwebpres build [répertoire] --build-stamp
 
 Option, désactivée par défaut. Ajoute sur **chaque** page générée
 (chaque article et `index.html`) un marqueur discret, fixé au coin
-supérieur gauche de la page (`.build-stamp`, visible en permanence quel
-que soit le défilement — contrairement à `.slide-num`, qui est par fiche
-et défile avec elle) :
+supérieur gauche de la page (visible en permanence quel que soit le
+défilement — contrairement à `.slide-num`, qui est par fiche et défile
+avec elle) :
 
 ```
 Compiled at YYYY-MM-DD HH:MM:SS with lightwebpres vX.Y.Z.
@@ -1320,8 +1320,30 @@ la valeur du drapeau `--build-stamp` n'atteint son propre appel à
 série construite avec `--build-stamp` reste donc normalement
 « checkable », sans dérive systématique due au seul horodatage. Cette
 suppression ne touche que le seul élément que `lightwebpres` génère
-lui-même (`<div class="build-stamp">...</div>`), jamais un contenu
-d'auteur.
+lui-même (`<div class="build-stamp" style="...">...</div>`), jamais un
+contenu d'auteur.
+
+**Style entièrement en ligne, jamais dans `style.css`** — bug réel trouvé
+en testant à la main juste après la première version : une série avec
+son propre `templates/style.css` (personnalisé, ou simplement scaffoldé
+avant l'existence de cette option) n'a aucun moyen de récupérer une
+nouvelle règle intégrée sans passer par `refresh-templates` (§9.4). La
+première version du marqueur dépendait d'une règle `.build-stamp` dans
+la feuille de style partagée — absente de ce genre de série, la `<div>`
+se retrouvait sans style du tout : un bloc pleine largeur, texte de
+couleur par défaut, poussant la première fiche vers le bas au lieu de se
+superposer discrètement dans le coin (repéré visuellement, capture
+d'écran à l'appui, avant d'être corrigé). Le style (`position:fixed`,
+couleur, taille, `pointer-events: none`) est maintenant entièrement
+porté par l'attribut `style=""` de la `<div>` elle-même, jamais
+dépendant d'une règle externe — y compris la couleur grise, qui utilise
+une valeur hexadécimale fixe plutôt que `var(--grey)` (même risque : une
+propriété personnalisée définie dans le `style.css` intégré peut, elle
+aussi, être absente d'un `style.css` ancien ou personnalisé). Testé
+(`tests/test_lightwebpres.py`, `BuildStamp.
+test_stays_discreet_with_a_custom_style_css_lacking_the_rule`) : un
+`templates/style.css` sur mesure sans aucune règle liée au marqueur, et
+le marqueur reste correctement positionné.
 
 ### 11.4 `check`
 

@@ -1397,7 +1397,12 @@ class BuildStamp(unittest.TestCase):
     that's different on every single run by design."""
 
     STAMP_RE = re.compile(
-        r'<div class="build-stamp">Compiled at (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) '
+        # style="..." is inline (deliberately not dependent on a
+        # .build-stamp rule in style.css, which a series with its own
+        # templates/style.css might not have) — [^>]* between the class
+        # and the closing > tolerates that without hardcoding its exact
+        # value here.
+        r'<div class="build-stamp"[^>]*>Compiled at (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) '
         r'with lightwebpres v([\d.]+)\.</div>'
     )
 
@@ -1487,6 +1492,35 @@ class BuildStamp(unittest.TestCase):
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIsNotNone(self.STAMP_RE.search(article_html))
             self.assertIsNotNone(self.STAMP_RE.search(index_html))
+
+    def test_stays_discreet_with_a_custom_style_css_lacking_the_rule(self):
+        """Regression: the marker's positioning/color used to live only
+        in a `.build-stamp` CSS rule inside the built-in stylesheet — a
+        series with its own templates/style.css (customized, or just
+        scaffolded before this option existed) has no such rule and no
+        way to pick one up short of refresh-templates (§9.4), so the
+        marker rendered as a plain full-width block-flow line pushing the
+        first slide down, not the intended small fixed corner overlay.
+        The fix carries its own styling inline; assert that's still true
+        so this can't silently regress back to depending on style.css."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._md())
+            (root / 'templates').mkdir()
+            # No .build-stamp anywhere in this custom stylesheet — the
+            # exact shape of the series that triggered the original bug.
+            (root / 'templates' / 'style.css').write_text(
+                '/* a custom stylesheet with no build-stamp rule at all */\n'
+                'body { background: white; }\n',
+                encoding='utf-8',
+            )
+            result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            match = self.STAMP_RE.search(article_html)
+            self.assertIsNotNone(match, article_html)
+            style_attr = re.search(r'<div class="build-stamp" style="([^"]*)"', article_html)
+            self.assertIsNotNone(style_attr, article_html)
+            self.assertIn('position:fixed', style_attr.group(1))
 
 
 class Themes(unittest.TestCase):

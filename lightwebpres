@@ -497,23 +497,6 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .series-status { font-size: 13px; font-weight: 600; }
   .series-current .series-status { color: var(--grey); }
   .series-link .series-status { color: var(--dark); }
-  /* Opt-in (--build-stamp, §11.3.2): a discreet build-freshness marker,
-     fixed to the page's top-left corner — the mirror image of
-     .slide-num (top-right, but per-slide/scrolls away) since this one
-     needs to stay visible no matter where you've scrolled to actually
-     answer "did I just rebuild this". pointer-events: none so it never
-     sits between a click and whatever's under it. */
-  .build-stamp {
-    position: fixed;
-    top: 16px;
-    left: 20px;
-    font-size: 11px;
-    color: var(--grey);
-    letter-spacing: 0.3px;
-    opacity: 0.75;
-    z-index: 50;
-    pointer-events: none;
-  }
   .nav-buttons {
     position: fixed;
     bottom: 24px;
@@ -3359,13 +3342,16 @@ def resolve_paths(series_dir, args):
 # Matches build_stamp_html()'s own output exactly (a single, entirely
 # self-generated element) — used by cmd_check to ignore the marker when
 # comparing against disk, see its own comment for why that's necessary.
-# Deliberately does NOT also swallow a surrounding newline: the div sits
-# on its own template line (`{{build_stamp}}` alone between two literal
-# newlines), so removing just the div reproduces exactly what an
-# unstamped build already produces at that spot (an empty line, not a
-# missing one) — chewing an extra \n here would under-count against that
-# baseline and cause every check to report a spurious drift.
-_BUILD_STAMP_RE = re.compile(r'<div class="build-stamp">.*?</div>')
+# [^>]* rather than a literal attribute string: the div carries its own
+# inline style (see build_stamp_html), so matching only on the class
+# hook keeps this working regardless of attribute order. Deliberately
+# does NOT also swallow a surrounding newline: the div sits on its own
+# template line (`{{build_stamp}}` alone between two literal newlines),
+# so removing just the div reproduces exactly what an unstamped build
+# already produces at that spot (an empty line, not a missing one) —
+# chewing an extra \n here would under-count against that baseline and
+# cause every check to report a spurious drift.
+_BUILD_STAMP_RE = re.compile(r'<div[^>]*class="build-stamp"[^>]*>.*?</div>')
 
 
 def build_stamp_html(version):
@@ -3374,9 +3360,24 @@ def build_stamp_html(version):
     browser tab or an old deploy that LOOKS current at a glance. Never
     on by default: it makes every build non-reproducible byte-for-byte
     (a fresh timestamp every run), which most workflows (including
-    `check`, see cmd_check) explicitly don't want."""
+    `check`, see cmd_check) explicitly don't want.
+
+    Styled entirely inline, not via a `.build-stamp` rule in style.css:
+    a series with its own templates/style.css (customized, or simply
+    scaffolded before this option existed) has no way to pick up a new
+    built-in rule short of refresh-templates (§9.4) — the marker would
+    render as a plain, undiscreet block-flow line (full width, default
+    dark text, pushing the first slide down) instead of the intended
+    small fixed corner overlay. Inline style has no such dependency."""
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    return f'<div class="build-stamp">Compiled at {now} with lightwebpres v{version}.</div>'
+    style = (
+        # Literal hex, not var(--grey): the same staleness risk applies to
+        # a series' own custom property definitions, not just its rules.
+        'position:fixed;top:16px;left:20px;font-size:11px;color:#6b6b7d;'
+        'letter-spacing:0.3px;opacity:0.75;z-index:50;pointer-events:none;'
+        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;'
+    )
+    return f'<div class="build-stamp" style="{style}">Compiled at {now} with lightwebpres v{version}.</div>'
 
 
 def strip_build_stamp(html):
