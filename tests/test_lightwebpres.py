@@ -39,7 +39,7 @@ def scaffold(tmp, article_md, series_extra=None, source_name='a.md', file_name='
     root = Path(tmp)
     (root / 'articles').mkdir(parents=True, exist_ok=True)
     (root / 'articles' / source_name).write_text(article_md, encoding='utf-8')
-    entry = {'file': file_name, 'source': source_name, 'series_title': 'A', 'series_desc': 'A'}
+    entry = {'file': file_name, 'source': source_name, 'nav_title': 'A', 'nav_desc': 'A'}
     if series_extra:
         entry.update(series_extra)
     (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
@@ -51,7 +51,7 @@ class BuildGoldenPath(unittest.TestCase):
 
     def test_build_smoke(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -63,7 +63,7 @@ class BuildGoldenPath(unittest.TestCase):
 
     def test_check_reports_no_drift_after_build(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -84,7 +84,7 @@ class BuildGoldenPath(unittest.TestCase):
         # This one intentionally uses French content: it tests the French
         # typography engine's own rule (nbsp before "?").
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Une question ?\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -101,7 +101,7 @@ class ParagraphHandling(unittest.TestCase):
 
     def test_two_real_paragraphs_in_factbox_stay_separate(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'First paragraph.\n\nSecond paragraph, clearly distinct.\n'
         )
@@ -116,7 +116,7 @@ class ParagraphHandling(unittest.TestCase):
         # Standard Markdown rule (spec §6.1): consecutive lines with no
         # blank line between them merge into a single paragraph.
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'A sentence broken\nby mistake across two physical lines.\n'
         )
@@ -136,7 +136,7 @@ class FatalErrorCases(unittest.TestCase):
 
     def test_full_article_missing_article_field_is_fatal(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n\n---\n\n<!-- lwp:slide:full-article -->\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,7 +146,7 @@ class FatalErrorCases(unittest.TestCase):
 
     def test_duplicate_full_article_slides_is_fatal(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: art1.md\n\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: art2.md\n'
         )
@@ -159,7 +159,7 @@ class FatalErrorCases(unittest.TestCase):
 
     def test_duplicate_series_nav_slides_is_fatal(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n\n---\n\n<!-- lwp:slide:series-nav -->\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -175,7 +175,7 @@ class FatalErrorCases(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
 
     def test_empty_md_file_is_fatal(self):
-        md = '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n'
+        md = '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n'
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -185,7 +185,7 @@ class FatalErrorCases(unittest.TestCase):
         # Spec §22.12: a cover slide has no fact-box, so unexpected
         # content after its fields must be rejected, not silently dropped.
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
             'This text should never appear nor be silently ignored.\n'
         )
@@ -199,14 +199,14 @@ class FatalErrorCases(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
             )
             (root / 'articles' / 'a1.md').write_text(md, encoding='utf-8')
             (root / 'articles' / 'a2.md').write_text(md, encoding='utf-8')
             series = {'articles': [
-                {'file': 'a.html', 'source': 'a1.md', 'series_title': 'A1', 'series_desc': 'A1'},
-                {'file': 'a.html', 'source': 'a2.md', 'series_title': 'A2', 'series_desc': 'A2'},
+                {'file': 'a.html', 'source': 'a1.md', 'nav_title': 'A1', 'nav_desc': 'A1'},
+                {'file': 'a.html', 'source': 'a2.md', 'nav_title': 'A2', 'nav_desc': 'A2'},
             ]}
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -219,7 +219,7 @@ class LanguageStrings(unittest.TestCase):
 
     def _series(self, tmp):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         return scaffold(tmp, md)
@@ -281,7 +281,7 @@ class AuditCommand(unittest.TestCase):
 
     def test_audit_clean_series_no_warnings(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -292,7 +292,7 @@ class AuditCommand(unittest.TestCase):
 
     def test_audit_warns_when_no_cover(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -303,7 +303,7 @@ class AuditCommand(unittest.TestCase):
 
     def test_audit_warns_when_cover_not_first(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T2\n# Cover title\n'
         )
@@ -320,7 +320,7 @@ class HighlightField(unittest.TestCase):
 
     def test_highlight_renders_figure_and_caption(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nhighlight: 42 %\n'
             'highlight-caption: the answer\n'
         )
@@ -337,7 +337,7 @@ class HighlightField(unittest.TestCase):
 
     def test_standard_slide_without_highlight_omits_block(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nsummary: No highlight here.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -353,7 +353,7 @@ class MarkdownConversion(unittest.TestCase):
 
     def _build_article_html(self, article_body):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: art.md\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -522,7 +522,7 @@ class MarkdownConversion(unittest.TestCase):
 
     def test_unterminated_fenced_code_block_is_a_fatal_error(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: art.md\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -570,14 +570,14 @@ class MultiArticleSeries(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md_a = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A\n'
-            'series_desc: Desc A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Article A\nnav_title: Article A\n'
+            'nav_desc: Desc A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n'
         )
         md_b = (
-            '<!-- lwp:meta -->\nfile: b.html\nh1: Article B\nseries_title: Article B\n'
-            'series_desc: Desc B\n---\n\n'
+            '<!-- lwp:meta -->\nfile: b.html\npage_title: Article B\nnav_title: Article B\n'
+            'nav_desc: Desc B\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n'
         )
@@ -591,11 +591,11 @@ class MultiArticleSeries(unittest.TestCase):
                 'intro': 'An intro paragraph.',
             },
             'articles': [
-                {'file': 'a.html', 'source': 'a.md', 'series_title': 'Article A',
-                 'series_desc': 'Desc A', 'card_label': 'Article 1',
+                {'file': 'a.html', 'source': 'a.md', 'nav_title': 'Article A',
+                 'nav_desc': 'Desc A', 'card_label': 'Article 1',
                  'card_title': 'Custom card title A', 'card_desc': 'Custom card desc A'},
-                {'file': 'b.html', 'source': 'b.md', 'series_title': 'Article B',
-                 'series_desc': 'Desc B'},
+                {'file': 'b.html', 'source': 'b.md', 'nav_title': 'Article B',
+                 'nav_desc': 'Desc B'},
             ],
         }
         (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
@@ -624,9 +624,19 @@ class MultiArticleSeries(unittest.TestCase):
             self.assertIn('Custom card title A', index_html)
             self.assertIn('Custom card desc A', index_html)
             self.assertIn('Article 1', index_html)
-            # Article B has no override: falls back to series_title/series_desc.
+            # Article B has no card_title/card_desc override: those fall
+            # back to page_title and the cover slide's own summary — NOT
+            # to nav_desc ("Desc B"), which is a separate field for the
+            # in-article navigation card, not the index card.
             self.assertIn('Article B', index_html)
-            self.assertIn('Desc B', index_html)
+            self.assertIn('Summary B.', index_html)
+            self.assertNotIn('Desc B', index_html)
+            # ...while "Desc B" (nav_desc) is exactly what DOES show up in
+            # the OTHER article's own page, in the cross-navigation card —
+            # proving the two fields are genuinely independent, not just
+            # differently named.
+            html_a = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Desc B', html_a)
 
 
 class IncrementalBuildOnly(unittest.TestCase):
@@ -639,14 +649,14 @@ class IncrementalBuildOnly(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md_a = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A\n'
-            'series_desc: Desc A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Article A\nnav_title: Article A\n'
+            'nav_desc: Desc A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n'
         )
         md_b = (
-            '<!-- lwp:meta -->\nfile: b.html\nh1: Article B\nseries_title: Article B\n'
-            'series_desc: Desc B\n---\n\n'
+            '<!-- lwp:meta -->\nfile: b.html\npage_title: Article B\nnav_title: Article B\n'
+            'nav_desc: Desc B\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n'
         )
@@ -655,8 +665,8 @@ class IncrementalBuildOnly(unittest.TestCase):
         series = {
             'series_meta': {'title': 'The series', 'subtitle': '', 'intro': ''},
             'articles': [
-                {'file': 'a.html', 'source': 'a.md', 'series_title': 'Article A', 'series_desc': 'Desc A'},
-                {'file': 'b.html', 'source': 'b.md', 'series_title': 'Article B', 'series_desc': 'Desc B'},
+                {'file': 'a.html', 'source': 'a.md', 'nav_title': 'Article A', 'nav_desc': 'Desc A'},
+                {'file': 'b.html', 'source': 'b.md', 'nav_title': 'Article B', 'nav_desc': 'Desc B'},
             ],
         }
         (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
@@ -678,12 +688,17 @@ class IncrementalBuildOnly(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             b_before = (root / 'public' / 'b.html').read_text(encoding='utf-8')
 
-            # Change article A's body only — not series_title/series_desc,
-            # which are the only fields the safety check watches.
+            # Add a brand-new standard slide to article A's body — none of
+            # page_title/card_title/card_desc/card_label/nav_title/
+            # nav_desc (the fields the safety check watches, §11.3.1) are
+            # touched: the cover's own h1/summary — which page_title/
+            # card_desc can fall back to, §20.3.1 — stay exactly as they
+            # were.
             md_a2 = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A\n'
-                'series_desc: Desc A\n---\n\n'
-                '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: A brand-new summary.\n\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Article A\nnav_title: Article A\n'
+                'nav_desc: Desc A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
+                '<!-- lwp:slide -->\ntag: New\n## A brand-new slide\nsummary: New body content.\n\n'
                 '---\n\n<!-- lwp:slide:series-nav -->\n'
             )
             (root / 'articles' / 'a.md').write_text(md_a2, encoding='utf-8')
@@ -691,7 +706,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Incremental build', result.stdout)
-            self.assertIn('A brand-new summary.', (root / 'public' / 'a.html').read_text(encoding='utf-8'))
+            self.assertIn('A brand-new slide', (root / 'public' / 'a.html').read_text(encoding='utf-8'))
             # b.html was never touched by the incremental path.
             self.assertEqual(b_before, (root / 'public' / 'b.html').read_text(encoding='utf-8'))
 
@@ -700,18 +715,18 @@ class IncrementalBuildOnly(unittest.TestCase):
             root = self._build_series(tmp)
             run('build', str(root), '--output', str(root / 'public'))
 
-            # Change article A's series_title — this DOES feed the
+            # Change article A's nav_title — this DOES feed the
             # series-nav block embedded in b.html, so skipping b.html
             # would leave a stale title there.
             md_a2 = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Article A\nseries_title: Article A Renamed\n'
-                'series_desc: Desc A\n---\n\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Article A\nnav_title: Article A Renamed\n'
+                'nav_desc: Desc A\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
                 '<!-- lwp:slide:series-nav -->\n'
             )
             (root / 'articles' / 'a.md').write_text(md_a2, encoding='utf-8')
             series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
-            series['articles'][0]['series_title'] = 'Article A Renamed'
+            series['articles'][0]['nav_title'] = 'Article A Renamed'
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
 
             result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
@@ -727,14 +742,14 @@ class IncrementalBuildOnly(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
 
             md_c = (
-                '<!-- lwp:meta -->\nfile: c.html\nh1: Article C\nseries_title: Article C\n'
-                'series_desc: Desc C\n---\n\n'
+                '<!-- lwp:meta -->\nfile: c.html\npage_title: Article C\nnav_title: Article C\n'
+                'nav_desc: Desc C\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Article C\nsummary: Summary C.\n\n---\n\n'
             )
             (root / 'articles' / 'c.md').write_text(md_c, encoding='utf-8')
             series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             series['articles'].append({'file': 'c.html', 'source': 'c.md',
-                                        'series_title': 'Article C', 'series_desc': 'Desc C'})
+                                        'nav_title': 'Article C', 'nav_desc': 'Desc C'})
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
 
             # Ask to rebuild only b.html, unrelated to the new article C —
@@ -821,7 +836,7 @@ class CheckDrift(unittest.TestCase):
 
     def test_check_reports_drift_after_source_change(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Original summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -840,7 +855,7 @@ class RemainingTypographyRules(unittest.TestCase):
 
     def test_typography_nbsp_after_opening_quote(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: « Une citation.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -851,7 +866,7 @@ class RemainingTypographyRules(unittest.TestCase):
 
     def test_typography_nbsp_before_percent(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nhighlight: 50 %\nhighlight-caption: half\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -868,7 +883,7 @@ class NbspUnitsAndThousands(unittest.TestCase):
 
     def _build_summary(self, summary):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             f'<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: {summary}\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -947,7 +962,7 @@ class NbspPreservedFromSource(unittest.TestCase):
     def test_cover_slide_tag_h1_summary(self):
         w = self._wrap
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             f'<!-- lwp:slide:cover -->\ntag: {w("Tag")}\n# {w("Titre")}\nsummary: {w("Résumé")}\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -960,7 +975,7 @@ class NbspPreservedFromSource(unittest.TestCase):
     def test_standard_slide_all_fields(self):
         w = self._wrap
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\n'
             f'tag: {w("Tag")}\n'
             f'## {w("Titre")}\n'
@@ -991,7 +1006,7 @@ class NbspPreservedFromSource(unittest.TestCase):
         right after the colon was silently dropped even after strip_ws()
         started protecting the rest of the pipeline."""
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             f'<!-- lwp:slide -->\ntag: T\n## Titre\nsummary:{self.NBSP}Résumé\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1002,7 +1017,7 @@ class NbspPreservedFromSource(unittest.TestCase):
 
     def test_page_title_survives(self):
         md = (
-            f'<!-- lwp:meta -->\nfile: a.html\nh1: {self._wrap("Titre de page")}\nseries_title: A\nseries_desc: A\n---\n\n'
+            f'<!-- lwp:meta -->\nfile: a.html\npage_title: {self._wrap("Titre de page")}\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1011,20 +1026,20 @@ class NbspPreservedFromSource(unittest.TestCase):
             self._both_ends(re.search(r'<title>(.*?)</title>', html).group(1))
 
     def test_meta_block_value_survives(self):
-        """series.json's own series_desc (set by scaffold()) always wins
-        over the meta block's (§20.3.1), so this builds series.json by
-        hand, without a series_desc entry, to actually exercise the
-        meta-block fallback path."""
+        """card_desc (rendered as <div class="article-desc"> on the
+        index) falls back to the cover slide's own summary when neither
+        series.json nor the article's meta block set card_desc directly
+        (§20.3.1) — this exercises that fallback path and checks the
+        nbsp in the cover's summary survives through it."""
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\n'
-            f'series_desc: {self._wrap("Description")}\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\n---\n\n'
+            f'<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: {self._wrap("Description")}\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'articles').mkdir(parents=True, exist_ok=True)
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A'}
+            entry = {'file': 'a.html', 'source': 'a.md'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -1034,7 +1049,7 @@ class NbspPreservedFromSource(unittest.TestCase):
     def test_full_article_headings_paragraph_table_and_footnote(self):
         w = self._wrap
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n\n'
             '---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: a_article.md\n'
@@ -1069,7 +1084,7 @@ class NbspPreservedFromSource(unittest.TestCase):
         """Regression: the footnote-definition regex used `\\]:\\s*(.*)`,
         same \\s-matches-U+00A0 issue as the slide-field regex."""
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n\n'
             '---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: a_article.md\n'
@@ -1085,7 +1100,7 @@ class NbspPreservedFromSource(unittest.TestCase):
     def test_index_series_meta_and_card_fields_survive(self):
         w = self._wrap
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n'
             f'card_title: {w("Carte titre")}\ncard_desc: {w("Carte desc")}\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
         )
@@ -1113,19 +1128,19 @@ class TypographyDisableSwitches(unittest.TestCase):
         (root / 'articles').mkdir(parents=True, exist_ok=True)
         summary = 'Environ ≈ 5 $ pour 170 000 000 vues, × 4 la dose, 170 millions de gens, 20 dollars.'
         md_a = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
             f'<!-- lwp:slide:cover -->\ntag: T\n# Titre A\nsummary: {summary}\n'
         )
         md_b = (
-            '<!-- lwp:meta -->\nfile: b.html\nh1: B\nseries_title: B\nseries_desc: B\n'
+            '<!-- lwp:meta -->\nfile: b.html\npage_title: B\nnav_title: B\nnav_desc: B\n'
             f'{meta_extra_b}---\n\n'
             f'<!-- lwp:slide:cover -->\ntag: T\n# Titre B\nsummary: {summary}\n'
         )
         (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
         (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
         entries = [
-            {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'},
-            {'file': 'b.html', 'source': 'b.md', 'series_title': 'B', 'series_desc': 'B'},
+            {'file': 'a.html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
+            {'file': 'b.html', 'source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B'},
         ]
         (root / 'series.json').write_text(json.dumps({'articles': entries}), encoding='utf-8')
         return root
@@ -1181,12 +1196,12 @@ class TypographyDisableSwitches(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir(parents=True, exist_ok=True)
             md = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Titre à 50 % fini\nseries_title: A\n'
-                'series_desc: A\ntypo: off\n---\n\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Titre à 50 % fini\nnav_title: A\n'
+                'nav_desc: A\ntypo: off\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+            entry = {'file': 'a.html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -1203,11 +1218,11 @@ class TypographyDisableSwitches(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir(parents=True, exist_ok=True)
             md = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Titre\nsummary: Résumé.\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+            entry = {'file': 'a.html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
             series = {
                 'series_meta': {'title': 'Titre à 50 % fini', 'subtitle': '', 'intro': ''},
                 'articles': [entry],
@@ -1246,7 +1261,7 @@ class TemplateOverride(unittest.TestCase):
 
     def test_custom_style_css_is_used(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1261,7 +1276,7 @@ class TemplateOverride(unittest.TestCase):
 
     def test_custom_nav_js_is_used(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1278,7 +1293,7 @@ class TemplateOverride(unittest.TestCase):
         """§9.3: templates/index_extra.html, if present, is inserted as-is
         just before </body> on the index page only (not article pages)."""
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1302,7 +1317,7 @@ class TemplateOverride(unittest.TestCase):
 
     def test_no_index_extra_html_leaves_index_unaffected(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1408,7 +1423,7 @@ class BuildStamp(unittest.TestCase):
 
     def _md(self):
         return (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
 
@@ -1470,12 +1485,12 @@ class BuildStamp(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md_a)
             (root / 'articles' / 'b.md').write_text(
-                '<!-- lwp:meta -->\nfile: b.html\nh1: B\nseries_title: B\nseries_desc: B\n---\n\n'
+                '<!-- lwp:meta -->\nfile: b.html\npage_title: B\nnav_title: B\nnav_desc: B\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# B\nsummary: Summary.\n',
                 encoding='utf-8',
             )
             series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
-            series['articles'].append({'file': 'b.html', 'source': 'b.md', 'series_title': 'B', 'series_desc': 'B'})
+            series['articles'].append({'file': 'b.html', 'source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B'})
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
 
             first = run('build', str(root), '--output', str(root / 'public'), '--nav-cache', str(root / 'nav.json'))
@@ -1775,7 +1790,7 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
     def test_build_succeeds_with_no_cover(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -1785,7 +1800,7 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
     def test_build_succeeds_with_multiple_covers(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T1\n# First cover\nsummary: S1.\n\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T2\n# Second cover\nsummary: S2.\n'
         )
@@ -1799,7 +1814,7 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
     def test_build_succeeds_with_cover_not_first(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T2\n# Cover title\nsummary: S.\n'
         )
@@ -1810,31 +1825,34 @@ class CoverCardinalityFreedom(unittest.TestCase):
 
 
 class SeriesJsonRequiredFields(unittest.TestCase):
-    """§20.3: file/source are the only fields required directly in
-    series.json; a missing source file is a warning, not a fatal error.
-    series_title/series_desc requiredness is covered by
+    """§20.3: `source` is the only field required directly in
+    series.json — `file` is optional (derives from `source` if absent
+    everywhere, §20.3.1); a missing source file is a warning, not a
+    fatal error. nav_title/nav_desc requiredness is covered by
     DisplayFieldOverrides (§20.3.1) — they're no longer required to be
     typed into series.json specifically, only to resolve to a non-empty
-    value somewhere (series.json or the article's own meta block)."""
+    value somewhere (series.json, the article's own meta block, or a
+    content-derived fallback)."""
 
     def _series_missing_field(self, tmp, field):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-        entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+        entry = {'file': 'a.html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
         del entry[field]
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
         return root
 
-    def test_missing_file_field_is_fatal(self):
+    def test_missing_file_field_derives_from_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series_missing_field(tmp, 'file')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.html').exists())
 
     def test_missing_source_field_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1847,7 +1865,7 @@ class SeriesJsonRequiredFields(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             series = {'articles': [
-                {'file': 'a.html', 'source': 'missing.md', 'series_title': 'A', 'series_desc': 'A'},
+                {'file': 'a.html', 'source': 'missing.md', 'nav_title': 'A', 'nav_desc': 'A'},
             ]}
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -1866,12 +1884,12 @@ class SeriesJsonExtensionValidation(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         (root / 'articles' / 'a.md').write_text(
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\n',
             encoding='utf-8',
         )
         series = {'articles': [
-            {'file': file_value, 'source': source_value, 'series_title': 'A', 'series_desc': 'A'},
+            {'file': file_value, 'source': source_value, 'nav_title': 'A', 'nav_desc': 'A'},
         ]}
         (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
         return root
@@ -1916,12 +1934,12 @@ class SeriesJsonExtensionValidation(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             (root / 'articles' / 'a.MD').write_text(
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Title\n',
                 encoding='utf-8',
             )
             series = {'articles': [
-                {'file': 'a.html', 'source': 'a.MD', 'series_title': 'A', 'series_desc': 'A'},
+                {'file': 'a.html', 'source': 'a.MD', 'nav_title': 'A', 'nav_desc': 'A'},
             ]}
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -1930,72 +1948,98 @@ class SeriesJsonExtensionValidation(unittest.TestCase):
 
 
 class DisplayFieldOverrides(unittest.TestCase):
-    """§20.3.1: series_title/series_desc/card_title/card_desc/card_label
-    resolve as series.json entry > article's own meta block field of the
-    same name > per-field fallback (card_title/card_desc fall back to the
-    resolved series_title/series_desc; card_label has none). series_title/
-    series_desc must still end up non-empty somewhere, but no longer have
-    to be typed into series.json when the article's meta block already
-    carries them."""
+    """§20.3.1: file/page_title/card_title/card_desc/card_label/nav_title/
+    nav_desc all resolve as series.json entry > article's own meta block
+    field of the same name > a content-derived fallback, most specific to
+    least specific:
 
-    def _build(self, tmp, meta_extra, series_entry_extra):
+      file        : derived from `source` (.md -> .html)
+      page_title  : the cover slide's own h1 -> the resolved `file`
+      card_title  : page_title (resolved)
+      card_desc   : the cover slide's own summary
+      card_label  : '' (nothing to extrapolate)
+      nav_title   : card_title (resolved)
+      nav_desc    : card_desc (resolved)
+
+    Nothing in this chain is fatal if absent everywhere — every field
+    always resolves to SOMETHING, down to the article's own file name in
+    the worst case. `source` is the only field series.json still requires."""
+
+    def _build(self, tmp, meta_extra, series_entry_extra, cover_extra=''):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\n' + meta_extra + '\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
+            '<!-- lwp:meta -->\n' + meta_extra + '\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Cover H1\n' + cover_extra + '\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-        entry = {'file': 'a.html', 'source': 'a.md'}
+        entry = {'source': 'a.md'}
         entry.update(series_entry_extra)
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
         return root
 
-    def test_series_title_desc_absent_from_series_json_use_meta(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._build(
-                tmp, 'series_title: Meta title\nseries_desc: Meta desc', {},
-            )
-            result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertEqual(result.returncode, 0, result.stderr)
-            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('Meta title', html)
-            self.assertIn('Meta desc', html)
+    # --- file --------------------------------------------------------
 
-    def test_series_json_series_title_desc_override_meta(self):
+    def test_file_absent_everywhere_derives_from_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'page_title: Test', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.html').exists())
+
+    def test_file_from_meta_used_when_series_json_omits_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'file: renamed.html\npage_title: Test', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'renamed.html').exists())
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+    def test_series_json_file_overrides_meta(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(
-                tmp, 'series_title: Meta title\nseries_desc: Meta desc',
-                {'series_title': 'Override title', 'series_desc': 'Override desc'},
+                tmp, 'file: from-meta.html\npage_title: Test',
+                {'file': 'from-series-json.html'},
             )
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
-            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('Override title', html)
-            self.assertIn('Override desc', html)
+            self.assertTrue((root / 'public' / 'from-series-json.html').exists())
+            self.assertFalse((root / 'public' / 'from-meta.html').exists())
+
+    # --- page_title ----------------------------------------------------
+
+    def test_page_title_from_meta_used_on_own_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'page_title: Meta title', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<title>Meta title</title>', html)
+
+    def test_series_json_page_title_overrides_meta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'page_title: Meta title', {'page_title': 'Override title'})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<title>Override title</title>', html)
             self.assertNotIn('Meta title', html)
-            self.assertNotIn('Meta desc', html)
 
-    def test_series_title_missing_from_both_is_fatal(self):
+    def test_page_title_absent_everywhere_falls_back_to_cover_h1(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._build(tmp, 'series_desc: Meta desc', {})
+            root = self._build(tmp, '', {})
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('series_title', result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<title>Cover H1</title>', html)
 
-    def test_series_desc_missing_from_both_is_fatal(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._build(tmp, 'series_title: Meta title', {})
-            result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn('series_desc', result.stderr)
+    # --- card_title / card_desc -----------------------------------------
 
     def test_card_title_desc_from_meta_used_on_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(
                 tmp,
-                'series_title: S title\nseries_desc: S desc\n'
-                'card_title: Card title\ncard_desc: Card desc',
+                'page_title: Page title\ncard_title: Card title\ncard_desc: Card desc',
                 {},
             )
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -2008,8 +2052,7 @@ class DisplayFieldOverrides(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(
                 tmp,
-                'series_title: S title\nseries_desc: S desc\n'
-                'card_title: Meta card title\ncard_desc: Meta card desc',
+                'page_title: Page title\ncard_title: Meta card title\ncard_desc: Meta card desc',
                 {'card_title': 'Override card title', 'card_desc': 'Override card desc'},
             )
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -2019,23 +2062,39 @@ class DisplayFieldOverrides(unittest.TestCase):
             self.assertIn('Override card desc', html)
             self.assertNotIn('Meta card title', html)
 
-    def test_card_title_desc_absent_everywhere_falls_back_to_series_title_desc(self):
+    def test_card_title_absent_everywhere_falls_back_to_page_title(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'page_title: Page title', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="article-title">Page title</div>', html)
+
+    def test_card_desc_absent_everywhere_falls_back_to_cover_summary(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(
-                tmp, 'series_title: S title\nseries_desc: S desc', {},
+                tmp, 'page_title: Page title', {},
+                cover_extra='summary: Cover summary text.',
             )
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('<div class="article-title">S title</div>', html)
-            self.assertIn('<div class="article-desc">S desc</div>', html)
+            self.assertIn('<div class="article-desc">Cover summary text.</div>', html)
+
+    def test_card_desc_absent_everywhere_and_no_cover_summary_is_not_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build(tmp, 'page_title: Page title', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="article-desc"></div>', html)
+
+    # --- card_label ------------------------------------------------------
 
     def test_card_label_from_meta_used_on_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(
-                tmp,
-                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
-                {},
+                tmp, 'page_title: Page title\ncard_label: Meta label', {},
             )
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -2045,8 +2104,7 @@ class DisplayFieldOverrides(unittest.TestCase):
     def test_series_json_card_label_overrides_meta(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(
-                tmp,
-                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
+                tmp, 'page_title: Page title\ncard_label: Meta label',
                 {'card_label': 'Override label'},
             )
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -2057,35 +2115,83 @@ class DisplayFieldOverrides(unittest.TestCase):
 
     def test_card_label_absent_everywhere_is_not_an_error(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._build(
-                tmp, 'series_title: S title\nseries_desc: S desc', {},
-            )
+            root = self._build(tmp, 'page_title: Page title', {})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('<div class="article-number"></div>', html)
 
-    def _build_with_series_nav(self, tmp, meta_extra, series_entry_extra):
+    # --- nav_title / nav_desc, and card_label reused in series-nav -----
+
+    def _build_with_series_nav(self, tmp, meta_extra, series_entry_extra, cover_extra=''):
         # Unlike _build() above, this article includes a series-nav slide
         # so the "Cette série" block actually renders on its own page.
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\n' + meta_extra + '\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Title\n\n---\n\n'
+            '<!-- lwp:meta -->\n' + meta_extra + '\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Cover H1\n' + cover_extra + '\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-        entry = {'file': 'a.html', 'source': 'a.md'}
+        entry = {'source': 'a.md'}
         entry.update(series_entry_extra)
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
         return root
+
+    def test_nav_title_desc_from_meta_used_in_series_nav(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_with_series_nav(
+                tmp,
+                'page_title: Page title\nnav_title: Nav title\nnav_desc: Nav desc',
+                {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Nav title', html)
+            self.assertIn('Nav desc', html)
+
+    def test_series_json_nav_title_desc_override_meta(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_with_series_nav(
+                tmp,
+                'page_title: Page title\nnav_title: Meta nav title\nnav_desc: Meta nav desc',
+                {'nav_title': 'Override nav title', 'nav_desc': 'Override nav desc'},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Override nav title', html)
+            self.assertIn('Override nav desc', html)
+            self.assertNotIn('Meta nav title', html)
+
+    def test_nav_title_desc_absent_everywhere_falls_back_to_card_title_desc(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_with_series_nav(
+                tmp,
+                'page_title: Page title\ncard_title: Card title\ncard_desc: Card desc',
+                {},
+            )
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Card title', html)
+            self.assertIn('Card desc', html)
+
+    def test_nav_title_desc_absent_everywhere_falls_back_all_the_way_to_page_title(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_with_series_nav(tmp, 'page_title: Page title', {})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Page title', html)
 
     def test_card_label_from_meta_appears_in_series_nav(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_with_series_nav(
                 tmp,
-                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
+                'page_title: Page title\ncard_label: Meta label',
                 {},
             )
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -2097,7 +2203,7 @@ class DisplayFieldOverrides(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_with_series_nav(
                 tmp,
-                'series_title: S title\nseries_desc: S desc\ncard_label: Meta label',
+                'page_title: Page title\ncard_label: Meta label',
                 {'card_label': 'Override label'},
             )
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -2114,7 +2220,7 @@ class ImageCopySafety(unittest.TestCase):
 
     def test_existing_unrelated_file_in_output_img_survives_build(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2164,7 +2270,7 @@ class TypographyTagProtection(unittest.TestCase):
 
     def test_custom_rule_does_not_corrupt_link_tag_attribute(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'See [the source](https://example.org/page).\n'
         )
@@ -2191,7 +2297,7 @@ class SeriesDirEnvVar(unittest.TestCase):
 
     def test_series_dir_env_var_used_when_no_positional_arg(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as series_tmp, tempfile.TemporaryDirectory() as cwd_tmp:
@@ -2211,7 +2317,7 @@ class LanguageFileOption(unittest.TestCase):
 
     def test_language_file_option_takes_priority(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2237,7 +2343,7 @@ class LanguageFileOption(unittest.TestCase):
 
     def test_language_file_option_missing_file_is_fatal(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2254,7 +2360,7 @@ class CheckSummaryLine(unittest.TestCase):
 
     def test_summary_line_reflects_ok_and_drift_counts(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Original.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2293,14 +2399,14 @@ class ReadmeGeneration(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             md_a = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: Article A\n'
-                'series_desc: Desc A\n---\n\n<!-- lwp:slide:cover -->\ntag: T\n# A\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: A\nnav_title: Article A\n'
+                'nav_desc: Desc A\n---\n\n<!-- lwp:slide:cover -->\ntag: T\n# A\n'
             )
             (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
             series = {
                 'series_meta': {'title': 'My Series', 'subtitle': 'A subtitle'},
                 'articles': [
-                    {'file': 'a.html', 'source': 'a.md', 'series_title': 'Article A', 'series_desc': 'Desc A'},
+                    {'file': 'a.html', 'source': 'a.md', 'nav_title': 'Article A', 'nav_desc': 'Desc A'},
                 ],
             }
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
@@ -2323,11 +2429,11 @@ class PathTraversalSafety(unittest.TestCase):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-        entry = {'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+        entry = {'file': 'a.html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
         entry[field] = value
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
         return root
@@ -2348,7 +2454,7 @@ class PathTraversalSafety(unittest.TestCase):
 
     def test_traversal_article_field_is_rejected(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: ../../../etc/passwd\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2368,37 +2474,37 @@ class IndexTitleXssProtection(unittest.TestCase):
     belt and suspenders, tested as the end-to-end outcome that matters:
     the build must never silently ship this."""
 
-    def _build_with_series_title(self, tmp, malicious_title):
+    def _build_with_nav_title(self, tmp, malicious_title):
         root = Path(tmp)
         (root / 'articles').mkdir()
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# A\n'
         )
         (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
         series = {
             'series_meta': {'title': malicious_title},
-            'articles': [{'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}],
+            'articles': [{'file': 'a.html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}],
         }
         (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
         return run('build', str(root), '--output', str(root / 'public'))
 
     def test_stray_closing_title_tag_is_never_silently_published(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = self._build_with_series_title(tmp, 'x</title><script>alert(1)</script>')
+            result = self._build_with_nav_title(tmp, 'x</title><script>alert(1)</script>')
             # validate_html() catches the resulting page-wide imbalance
             # (the same raw payload also lands, by design, in the visible
             # h1) and refuses to write anything rather than publish it.
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('not well-formed', result.stderr)
 
-    def test_well_formed_series_title_with_angle_brackets_still_builds(self):
+    def test_well_formed_nav_title_with_angle_brackets_still_builds(self):
         # Sanity/non-regression companion: legitimate, self-contained
         # markup in series_meta.title (matching the documented h1 <br>
         # allowance) must still build fine — validate_html() only rejects
         # genuine imbalance, not the mere presence of tags.
         with tempfile.TemporaryDirectory() as tmp:
-            result = self._build_with_series_title(tmp, 'My series<br>a subtitle-ish line')
+            result = self._build_with_nav_title(tmp, 'My series<br>a subtitle-ish line')
             self.assertEqual(result.returncode, 0, result.stderr)
 
 
@@ -2412,12 +2518,12 @@ class HrefAttributeEscaping(unittest.TestCase):
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- lwp:meta -->\nfile: a".html\nh1: A\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:meta -->\nfile: a".html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# A\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
             series = {'articles': [
-                {'file': 'a".html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'},
+                {'file': 'a".html', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
             ]}
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -2453,7 +2559,7 @@ class MalformedInputHandling(unittest.TestCase):
 
     def test_invalid_json_language_file_is_a_clean_error(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2467,7 +2573,7 @@ class MalformedInputHandling(unittest.TestCase):
 
     def test_rules_not_a_list_is_a_clean_error(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2483,7 +2589,7 @@ class MalformedInputHandling(unittest.TestCase):
 
     def test_invalid_regex_pattern_in_language_rule_is_a_clean_error(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2510,7 +2616,7 @@ class ParserFieldTextSwitch(unittest.TestCase):
         # rather than becoming literal content — this is a hard rule, not
         # a bug, but the split must actually happen as documented.
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'Before the break.\n\n---\n\nAfter the break.\n'
         )
@@ -2525,7 +2631,7 @@ class ParserFieldTextSwitch(unittest.TestCase):
 
     def test_field_like_line_inside_free_text_is_not_reparsed_as_a_field(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'A first paragraph starts free text.\n\n'
             'tag: this looks like a field but is not one.\n'
@@ -2545,7 +2651,7 @@ class OptionalFieldOmission(unittest.TestCase):
 
     def test_slide_without_tag_omits_tag_span(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\n## Title without a tag\nsummary: Summary here.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2558,7 +2664,7 @@ class OptionalFieldOmission(unittest.TestCase):
 
     def test_cover_without_summary_builds_successfully(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Cover without summary\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2578,7 +2684,7 @@ class SourceFieldRendering(unittest.TestCase):
         # space is the correct, unambiguous assertion here; the French
         # nbsp case is covered separately below.
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
             'Fact content.\n'
         )
@@ -2595,7 +2701,7 @@ class SourceFieldRendering(unittest.TestCase):
         plain space — the label+value string must be built before
         typo_engine.apply(), not after."""
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\nsource: Some Author, 2024.\n'
             'Fact content.\n'
         )
@@ -2613,7 +2719,7 @@ class LanguageDirEnvVar(unittest.TestCase):
 
     def test_language_dir_env_var_is_used(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as lang_tmp:
@@ -2642,12 +2748,12 @@ class ArticlesArrayOrder(unittest.TestCase):
         entries = []
         for name in order:
             md = (
-                f'<!-- lwp:meta -->\nfile: {name}.html\nh1: {name}\nseries_title: {name}\n'
-                f'series_desc: D\n---\n\n<!-- lwp:slide:cover -->\ntag: T\n# {name}\n'
+                f'<!-- lwp:meta -->\nfile: {name}.html\npage_title: {name}\nnav_title: {name}\n'
+                f'nav_desc: D\n---\n\n<!-- lwp:slide:cover -->\ntag: T\n# {name}\n'
             )
             (root / 'articles' / f'{name}.md').write_text(md, encoding='utf-8')
             entries.append({'file': f'{name}.html', 'source': f'{name}.md',
-                             'series_title': name, 'series_desc': 'D'})
+                             'nav_title': name, 'nav_desc': 'D'})
         (root / 'series.json').write_text(json.dumps({'articles': entries}), encoding='utf-8')
         return root
 
@@ -2674,7 +2780,7 @@ class H2FieldForm(unittest.TestCase):
 
     def test_h2_field_form_renders_like_markdown_heading(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\nh2: Title via field\nsummary: Summary.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2692,7 +2798,7 @@ class FactLabelOptional(unittest.TestCase):
 
     def test_fact_label_present_produces_fact_box(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The takeaway\nContent with a fact-label.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2706,7 +2812,7 @@ class FactLabelOptional(unittest.TestCase):
 
     def test_fact_label_absent_produces_bare_paragraph(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nContent without a fact-label.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2721,7 +2827,7 @@ class FactLabelOptional(unittest.TestCase):
 
     def test_fact_label_absent_multi_paragraph(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nFirst paragraph.\n\nSecond paragraph.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2741,7 +2847,7 @@ class FactBoxBlockquoteAndCode(unittest.TestCase):
 
     def test_fact_box_supports_blockquote_and_inline_code(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: Source\n'
             '> A quoted sentence.\n\nRun `lightwebpres build`.\n'
         )
@@ -2760,7 +2866,7 @@ class CheckNewMarker(unittest.TestCase):
 
     def test_check_reports_new_for_unbuilt_article(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -2773,56 +2879,66 @@ class CheckNewMarker(unittest.TestCase):
 class SeriesJsonEmptyStringRejected(unittest.TestCase):
     """§20.3/§20.3.1: an empty string, not just an absent key, must be
     treated the same as "no value" everywhere requiredness is checked.
-    For file/source (never overridable, always required directly in
-    series.json) that means fatal outright. For series_title/series_desc
-    (overridable, §20.3.1) an empty string in series.json is correctly
-    treated the same as an absent key: "no override", falls back to the
-    article's own meta block — only genuinely missing everywhere is
-    fatal."""
+    For `source` (never overridable, always required directly in
+    series.json) that means fatal outright — same for `file` if it's
+    explicitly given as an empty string rather than simply omitted. For
+    nav_title/nav_desc/card_title/card_desc/card_label/page_title
+    (all overridable, §20.3.1) an empty string in series.json is
+    correctly treated the same as an absent key: "no override", falls
+    back down the resolution chain — nothing in that chain is ever fatal,
+    it always bottoms out at a content-derived value."""
 
     def test_empty_string_file_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-            entry = {'file': '', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}
+            entry = {'file': '', 'source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
-    def test_empty_string_series_title_falls_back_to_meta(self):
+    def test_empty_string_nav_title_falls_back_to_meta(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: Meta title\nseries_desc: A\n---\n\n'
-                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: Meta title\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n\n---\n\n'
+                '<!-- lwp:slide:series-nav -->\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': '', 'series_desc': 'A'}
+            entry = {'file': 'a.html', 'source': 'a.md', 'nav_title': '', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
-            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            # nav_title only ever renders in the series-nav card, on the
+            # article's OWN page (a.html) — never on index.html.
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('Meta title', html)
 
-    def test_empty_string_series_title_is_fatal_when_meta_also_absent(self):
+    def test_empty_string_nav_title_falls_back_through_card_title_when_meta_also_absent(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'articles').mkdir()
             md = (
-                '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_desc: A\n---\n\n'
-                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
+                '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n\n---\n\n'
+                '<!-- lwp:slide:series-nav -->\n'
             )
             (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
-            entry = {'file': 'a.html', 'source': 'a.md', 'series_title': '', 'series_desc': 'A'}
+            entry = {'file': 'a.html', 'source': 'a.md', 'nav_title': '', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # nav_title falls through to card_title, which falls through
+            # to page_title ("Test") — nothing here is fatal anymore.
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Test', html)
 
 
 class InstallGitlabCi(unittest.TestCase):
@@ -2854,7 +2970,7 @@ class GeneratedHtmlValidation(unittest.TestCase):
 
     def test_unclosed_div_in_raw_html_is_fatal(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             '<div>This div is never closed.\n'
         )
@@ -2866,7 +2982,7 @@ class GeneratedHtmlValidation(unittest.TestCase):
 
     def test_mismatched_closing_tag_is_fatal(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             '<div><span>Mismatched.</div></span>\n'
         )
@@ -2880,7 +2996,7 @@ class GeneratedHtmlValidation(unittest.TestCase):
         # br/hr/img (no closing tag expected) and a <script> tag containing
         # comparison operators (< / >) must NOT be mistaken for broken markup.
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n'
             'A line<br>with a break, then <hr> and '
             '<script>if (1 < 2 && 3 > 2) { void 0; }</script> inline.\n'
@@ -2899,7 +3015,7 @@ class HeadingInBodyIsContentNotRetitle(unittest.TestCase):
 
     def test_heading_after_body_content_does_not_overwrite_slide_h2(self):
         md = (
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Real title\nfact-label: The fact\n\n'
             'First paragraph of body text.\n\n'
             '## This looks like a heading in the body\n'

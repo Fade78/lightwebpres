@@ -37,8 +37,8 @@ PROJECT_ID = '42'
 BRANCH = 'main'
 
 ARTICLE_MD = (
-    '<!-- lwp:meta -->\nfile: a.html\nh1: Git sync test\nseries_title: A\n'
-    'series_desc: A\n---\n\n'
+    '<!-- lwp:meta -->\npage_title: Git sync test\nnav_title: A\n'
+    'nav_desc: A\n---\n\n'
     '<!-- lwp:slide:cover -->\ntag: T\n# Git sync test\n'
     'summary: Built by pulling from a mock GitLab repository.\n\n---\n\n'
     '<!-- lwp:slide -->\ntag: Fact\n## A highlighted fact\n'
@@ -79,7 +79,7 @@ def _make_archive_zip():
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         prefix = 'series-main-abc1234/'
         zf.writestr(prefix + 'series.json', json.dumps({
-            'articles': [{'file': 'a.html', 'source': 'a.md', 'series_title': 'A', 'series_desc': 'A'}],
+            'articles': [{'source': 'a.md'}],
         }))
         zf.writestr(prefix + 'articles/a.md', ARTICLE_MD)
         zf.writestr(prefix + 'articles/old.md', '# An old, unrelated file\n')

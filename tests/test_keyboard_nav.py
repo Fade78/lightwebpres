@@ -88,7 +88,7 @@ class KeyboardNav(unittest.TestCase):
         tall_root = parent / 'tall_series'
         (tall_root / 'articles').mkdir(parents=True)
         (tall_root / 'series.json').write_text(json.dumps({
-            'articles': [{'file': 'tall.html', 'source': 'tall.md', 'series_title': 'Tall', 'series_desc': 'Tall'}],
+            'articles': [{'file': 'tall.html', 'source': 'tall.md', 'nav_title': 'Tall', 'nav_desc': 'Tall'}],
         }), encoding='utf-8')
         # Long enough to push the slide's rendered height well past any
         # realistic viewport (~700px in the e2e script).
@@ -100,8 +100,8 @@ class KeyboardNav(unittest.TestCase):
         )
         (tall_root / 'articles' / 'tall_article.md').write_text(long_body, encoding='utf-8')
         (tall_root / 'articles' / 'tall.md').write_text(
-            '<!-- lwp:meta -->\nfile: tall.html\nh1: Tall test\n'
-            'series_title: Tall\nseries_desc: Tall\n---\n\n'
+            '<!-- lwp:meta -->\nfile: tall.html\npage_title: Tall test\n'
+            'nav_title: Tall\nnav_desc: Tall\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Tall test\n'
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: tall_article.md\n\n---\n\n'
@@ -118,14 +118,14 @@ class KeyboardNav(unittest.TestCase):
         (nav_root / 'articles').mkdir(parents=True)
         (nav_root / 'series.json').write_text(json.dumps({
             'articles': [
-                {'file': 'nav.html', 'source': 'nav.md', 'series_title': 'Nav', 'series_desc': 'Nav'},
-                {'file': 'b.html', 'source': 'b.md', 'series_title': 'B', 'series_desc': 'B'},
-                {'file': 'c.html', 'source': 'c.md', 'series_title': 'C', 'series_desc': 'C'},
+                {'file': 'nav.html', 'source': 'nav.md', 'nav_title': 'Nav', 'nav_desc': 'Nav'},
+                {'file': 'b.html', 'source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B'},
+                {'file': 'c.html', 'source': 'c.md', 'nav_title': 'C', 'nav_desc': 'C'},
             ],
         }), encoding='utf-8')
         (nav_root / 'articles' / 'nav.md').write_text(
-            '<!-- lwp:meta -->\nfile: nav.html\nh1: Nav test\n'
-            'series_title: Nav\nseries_desc: Nav\n---\n\n'
+            '<!-- lwp:meta -->\nfile: nav.html\npage_title: Nav test\n'
+            'nav_title: Nav\nnav_desc: Nav\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Nav test\n'
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide -->\ntag: T2\n## Standard slide\n'
@@ -135,8 +135,8 @@ class KeyboardNav(unittest.TestCase):
         )
         for letter in ('b', 'c'):
             (nav_root / 'articles' / ('%s.md' % letter)).write_text(
-                '<!-- lwp:meta -->\nfile: %s.html\nh1: Article %s\n'
-                'series_title: %s\nseries_desc: %s\n---\n\n'
+                '<!-- lwp:meta -->\nfile: %s.html\npage_title: Article %s\n'
+                'nav_title: %s\nnav_desc: %s\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Article %s\n'
                 'summary: Cover slide.\n' % (letter, letter.upper(), letter.upper(), letter.upper(), letter.upper()),
                 encoding='utf-8',
@@ -158,14 +158,14 @@ class KeyboardNav(unittest.TestCase):
         (held_root / 'articles').mkdir(parents=True)
         (held_root / 'series.json').write_text(json.dumps({
             'articles': [
-                {'file': 'held.html', 'source': 'held.md', 'series_title': 'Held', 'series_desc': 'Held'},
-                {'file': 'hb.html', 'source': 'hb.md', 'series_title': 'HB', 'series_desc': 'HB'},
-                {'file': 'hc.html', 'source': 'hc.md', 'series_title': 'HC', 'series_desc': 'HC'},
+                {'file': 'held.html', 'source': 'held.md', 'nav_title': 'Held', 'nav_desc': 'Held'},
+                {'file': 'hb.html', 'source': 'hb.md', 'nav_title': 'HB', 'nav_desc': 'HB'},
+                {'file': 'hc.html', 'source': 'hc.md', 'nav_title': 'HC', 'nav_desc': 'HC'},
             ],
         }), encoding='utf-8')
         (held_root / 'articles' / 'held.md').write_text(
-            '<!-- lwp:meta -->\nfile: held.html\nh1: Held test\n'
-            'series_title: Held\nseries_desc: Held\n---\n\n'
+            '<!-- lwp:meta -->\nfile: held.html\npage_title: Held test\n'
+            'nav_title: Held\nnav_desc: Held\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Held test\n'
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide -->\ntag: T2\n## Standard slide\n'
@@ -177,8 +177,8 @@ class KeyboardNav(unittest.TestCase):
         )
         for letter in ('hb', 'hc'):
             (held_root / 'articles' / ('%s.md' % letter)).write_text(
-                '<!-- lwp:meta -->\nfile: %s.html\nh1: Article %s\n'
-                'series_title: %s\nseries_desc: %s\n---\n\n'
+                '<!-- lwp:meta -->\nfile: %s.html\npage_title: Article %s\n'
+                'nav_title: %s\nnav_desc: %s\n---\n\n'
                 '<!-- lwp:slide:cover -->\ntag: T\n# Article %s\n'
                 'summary: Cover slide.\n' % (letter, letter.upper(), letter.upper(), letter.upper(), letter.upper()),
                 encoding='utf-8',

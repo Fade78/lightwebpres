@@ -51,10 +51,9 @@ and never expect a field to wrap.
 
 ```markdown
 <!-- lwp:meta -->
-file: apple-pie.html
-h1: The apple pie<br>What shortcrust pastry actually changes
-series_title: The apple pie
-series_desc: Pastry, baking, and plating
+page_title: The apple pie<br>What shortcrust pastry actually changes
+nav_title: The apple pie
+nav_desc: Pastry, baking, and plating
 ---
 
 <!-- lwp:slide:cover -->
@@ -99,16 +98,33 @@ article: apple-pie_article.md
 
 ## The meta block
 
-`h1` is used for the `<title>` tag (falling back to the output filename if
-absent). `file` is decorative: the actual output filename comes from
-`series.json`'s `file` entry (see below), not from the meta block — keep
-them matching anyway, nothing enforces that they do. Everything else here
-— `series_title`, `series_desc`, `card_title`, `card_desc`, `card_label` —
-**is read by the build engine as this article's default** for its
-`series.json` entry: put the real value here, in the article itself.
-`series.json` only needs to repeat one of these fields when you want to
-override it for this particular article without touching the file — not
-as a rule for every entry.
+Every field here is optional and falls back to something derived from
+the article's own content, so a minimal article needs none of them at
+all. `series.json`'s `articles` entry for this file only needs to repeat
+a field when you want it to win over what's set here (or over the
+content-derived fallback) — not as a rule for every entry. The full
+chain, cheapest to most specific:
+
+- `file` (output HTML filename) — `series.json` entry > this meta
+  block's `file:` > `source` with `.md` swapped for `.html`.
+- `page_title` (the `<title>` tag) — `series.json` > `page_title:` here >
+  the cover slide's own `# Heading` > the resolved `file`.
+- `card_title`/`card_desc` (this article's card on the **index page**) —
+  `series.json` > `card_title:`/`card_desc:` here > resolved
+  `page_title` (for the title) / the cover slide's own `summary:` (for
+  the description).
+- `card_label` (short label on the index card **and** the "This series"
+  nav block on every article's own page) — `series.json` >
+  `card_label:` here > empty (no error if it never resolves to anything).
+- `nav_title`/`nav_desc` (this article's card when it appears in the
+  cross-article navigation embedded in a **different** article's page)
+  — `series.json` > `nav_title:`/`nav_desc:` here > resolved
+  `card_title`/`card_desc`.
+
+Nothing in this chain is fatal — every field always resolves to
+*something*, `card_label` included (it just ends up empty). See
+`specifications.md` §20.3.1 for the authoritative version of this
+cascade.
 
 ## Slide types
 
@@ -190,35 +206,32 @@ articles want.
 ## Adding an article to a series
 
 Every article that should appear in navigation/index needs a matching
-entry in `series.json`'s `articles` array — at minimum, just the two
-structural fields:
+entry in `series.json`'s `articles` array — at minimum, just one
+structural field:
 
 ```json
-{"file": "apple-pie.html", "source": "apple-pie.md"}
+{"source": "apple-pie.md"}
 ```
 
-`file` and `source` must be **bare filenames** — no `/`, no `..` — and are
-the only fields ever required directly in `series.json`. The array order
-is the navigation/index order.
+`source` must be a **bare filename** — no `/`, no `..` — and is the only
+field ever required directly in `series.json`. The array order is the
+navigation/index order. `file`, if you give one, must be a bare filename
+too; leave it out and it's derived from `source` (see "The meta block"
+above for the full cascade).
 
-`series_title`/`series_desc` (navigation + index fallback), `card_title`/
-`card_desc` (index-card specifics), and `card_label` (index card **and**
-the "This series" nav block on every article's own page) are read from
-the article's own meta block by default (see above) — add one to the
-`series.json` entry only to override it for this article, e.g.:
+Every other field — `file`, `page_title`, `card_title`/`card_desc`,
+`card_label`, `nav_title`/`nav_desc` — is read from the article's own
+meta block and content by default; add one to the `series.json` entry
+only to override it for this particular article without touching the
+file, e.g.:
 
 ```json
-{"file": "apple-pie.html", "source": "apple-pie.md",
- "card_label": "Article 3 (corrected)"}
+{"source": "apple-pie.md", "card_label": "Article 3 (corrected)"}
 ```
 
-`series_title`/`series_desc` must resolve to a non-empty value from
-*somewhere* — series.json or the meta block — a fatal build error
-otherwise. `card_title`/`card_desc` fall back to the resolved
-`series_title`/`series_desc` if neither is set anywhere; `card_label` (a
-free label like "Article 1" — not a number, despite reading like an
-ordinal) simply doesn't appear on the card if it's absent everywhere,
-no error.
+Nothing here is ever a fatal build error — every field resolves to
+*something* down the cascade, `card_label` included (it just ends up
+empty if it's absent everywhere).
 
 ## Always verify before calling it done
 

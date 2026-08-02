@@ -92,10 +92,9 @@ Each article is one `.md` file: a metadata block, then a sequence of
 
 ```markdown
 <!-- lwp:meta -->
-file: apple-pie.html
-h1: The apple pie
-series_title: The apple pie
-series_desc: Pastry, baking, and plating
+page_title: The apple pie
+nav_title: The apple pie
+nav_desc: Pastry, baking, and plating
 ---
 
 <!-- lwp:slide:cover -->
@@ -133,18 +132,20 @@ Register every article that should appear in navigation in
     "intro": "Series introduction."
   },
   "articles": [
-    {"file": "apple-pie.html", "source": "apple-pie.md"}
+    {"source": "apple-pie.md"}
   ]
 }
 ```
 
-`file` and `source` — bare filenames only, no paths — are the only
-fields ever required directly here. The array order is the navigation
-and index order. Everything else about how an article's title,
-description, and card text are resolved (from the article's own meta
-block by default, overridable per entry here) is covered in `SKILL.md`,
-since it's really about the article format, not about `series.json`
-itself.
+`source` — a bare filename, no path — is the only field ever required
+directly here. Each article is self-described: `file` (the output HTML
+name), `page_title`, `card_title`/`card_desc`/`card_label`, and
+`nav_title`/`nav_desc` all default to values derived from the article's
+own meta block and cover slide, and any of them can be overridden per
+entry here when you want `series.json` to have the final say. The array
+order is the navigation and index order. The full fallback chain for
+each field is covered in `SKILL.md`, since it's really about the article
+format, not about `series.json` itself.
 
 ## 6. Verifying before you ship
 

@@ -125,15 +125,17 @@ La série est l'ensemble des articles. Elle est décrite par `series.json` qui
 contient, pour chaque article, deux catégories de champs bien distinctes
 (détail complet en §20) :
 
-- **Structurels — toujours dans `series.json`**, aucune autre source
-  possible : `file` (nom du fichier HTML de sortie, ex. `snapchat.html`) et
-  `source` (nom du fichier Markdown source, ex. `snapchat.md`).
+- **Structurel — toujours dans `series.json`**, aucune autre source
+  possible : `source` (nom du fichier Markdown source, ex. `snapchat.md`).
+  C'est le seul champ qu'une entrée `articles[]` doit réellement porter —
+  un article est auto-décrit (§20.3.1).
 - **D'affichage — surcharge optionnelle** d'une valeur par défaut lue dans
-  le bloc meta de l'article lui-même (§20.3.1) : `series_title`/`series_desc`
-  (titre et description courts, navigation et index), `card_title`/`card_desc`
-  (spécifiques à la carte d'index, si différents des précédents),
-  `card_label` (étiquette libre sur la carte d'index et dans le bloc
-  « Cette série » — texte, pas un numéro).
+  le bloc meta de l'article lui-même, ou à défaut extrapolée de son contenu
+  (§20.3.1) : `file` (nom du fichier HTML de sortie, déduit de `source` si
+  absent), `page_title` (titre de la page HTML de l'article), `card_title`/
+  `card_desc`/`card_label` (carte de la page d'index), `nav_title`/
+  `nav_desc` (carte de navigation affichée dans la page d'un *autre*
+  article).
 
 Le contenu d'une fiche `cover` (tag, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
@@ -296,10 +298,9 @@ traité comme du texte Markdown.
 
 ```markdown
 <!-- lwp:meta -->
-file: tarte-aux-pommes.html
-h1: La tarte aux pommes<br>Ce que la pâte brisée change vraiment
-series_title: La tarte aux pommes
-series_desc: Pâte brisée, cuisson et dressage
+page_title: La tarte aux pommes<br>Ce que la pâte brisée change vraiment
+nav_title: La tarte aux pommes
+nav_desc: Pâte brisée, cuisson et dressage
 card_label: Article 1 : Les classiques
 card_title: La tarte aux pommes
 card_desc: Température de cuisson, temps de repos de la pâte, et astuces de dressage
@@ -823,7 +824,7 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 1. Le titre de la série (`series_meta.title`, ou « Article series » si absent)
 2. Le sous-titre et l'intro (`series_meta.subtitle`, `series_meta.intro`),
    s'ils sont présents
-3. Une liste numérotée des articles (`series_title` — `series_desc`,
+3. Une liste numérotée des articles (`nav_title` — `nav_desc`,
    résolus comme en §20.3.1), chacun lié vers son fichier HTML construit
    (chemin relatif depuis le répertoire de série jusqu'à `--output`)
 
@@ -1275,12 +1276,12 @@ reconstruire toute la série à chaque pause de frappe serait disproportionné
 sur une série à beaucoup d'articles.
 
 **Le piège que ça doit éviter** : `build_index()` et `build_series_nav()`
-utilisent tous les deux les champs résolus par `resolve_display_fields()`
-(`series_title`, `series_desc`, `card_title`, `card_desc`, `card_label`,
-§20.3.1) — et `build_series_nav()` est intégré dans la page de **chaque**
-article, pas seulement dans `index.html`. Changer le titre de l'article A
-peut donc rendre obsolètes les pages déjà construites de B, C, D..., pas
-seulement l'index. Reconstruire uniquement le fichier demandé sans
+utilisent tous les deux les champs résolus par `resolve_article_fields()`
+(`file`, `page_title`, `card_title`, `card_desc`, `card_label`, `nav_title`,
+`nav_desc`, §20.3.1) — et `build_series_nav()` est intégré dans la page de
+**chaque** article, pas seulement dans `index.html`. Changer le titre de
+l'article A peut donc rendre obsolètes les pages déjà construites de B, C,
+D..., pas seulement l'index. Reconstruire uniquement le fichier demandé sans
 vérifier ça produirait un site avec une navigation périmée.
 
 **Le mécanisme de sécurité** : à chaque `build` (complet ou avec `--only`),
@@ -1646,7 +1647,7 @@ etc.) ne sont pas comptés comme devant être fermés ; le contenu de
 lui-même, donc du JS contenant `<`/`>` (comparaisons, etc.) n'est jamais
 pris pour une balise.
 
-Effet de bord utile : un `series_meta.title`/`h1` contenant un fragment
+Effet de bord utile : un `series_meta.title`/`page_title` contenant un fragment
 qui casserait la structure de la page (par exemple un `</title>` orphelin
 copié tel quel dans le corps visible, où le HTML brut est autorisé par
 conception comme pour `<br>`) fait désormais échouer le build au lieu
@@ -1926,7 +1927,7 @@ Placeholders :
 | Placeholder | Source | Description |
 |-------------|--------|-------------|
 | `{{lang}}` | `LWP_LANG` ou `--lang` | Langue de la page (ex. `fr`) |
-| `{{title}}` | Métadonnées `h1` du `.md` (sans balises HTML) | Titre de la page |
+| `{{title}}` | `page_title` résolu (§20.3.1, sans balises HTML) | Titre de la page |
 | `{{css}}` | `templates/style.css` | Le CSS inline |
 | `{{slides}}` | Généré par le build | Toutes les `<section class="slide">` |
 | `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, bouton de partage, encodeur QR) |
@@ -1993,7 +1994,7 @@ Placeholders supplémentaires :
 | Placeholder | Source | Description |
 |-------------|--------|-------------|
 | `{{slide_id}}` | Calculé (ex. `s9-series`) | ID de la slide de navigation |
-| `{{nav_items}}` | Généré depuis `series.json` | Les items de navigation (liens + courant), chacun affichant `card_label`/`series_title`/`series_desc` résolus (§20.3.1) et utilisant `series_read`/`series_current_status`/`series_back_to_index` (§7.3) |
+| `{{nav_items}}` | Généré depuis `series.json` | Les items de navigation (liens + courant), chacun affichant `card_label`/`nav_title`/`nav_desc` résolus (§20.3.1) et utilisant `series_read`/`series_current_status`/`series_back_to_index` (§7.3) |
 | `{{str_series_nav_title}}` | `language/{lang}.json` → `strings` | Titre du bloc (« Cette série » / « This series ») |
 
 ### 18.4 Règles de remplacement
@@ -2179,11 +2180,9 @@ de moteur du tout plutôt que d'énumérer des noms de règles à exclure.
   },
   "articles": [
     {
-      "file": "tarte-aux-pommes.html",
       "source": "tarte-aux-pommes.md"
     },
     {
-      "file": "creme-patissiere.html",
       "source": "creme-patissiere.md",
       "card_label": "Article 2 : Les classiques (corrigé)"
     }
@@ -2191,87 +2190,110 @@ de moteur du tout plutôt que d'énumérer des noms de règles à exclure.
 }
 ```
 
-Le premier article n'a que les deux champs structurels : `series_title`,
-`series_desc`, `card_title`, `card_desc`, `card_label` sont lus depuis le
-bloc meta de `tarte-aux-pommes.md` (§20.3.1). Le second illustre une
-surcharge : `card_label` prend le pas sur celui du bloc meta de
-`creme-patissiere.md` sans y toucher — les autres champs d'affichage de cet
-article restent lus depuis son propre bloc meta.
+Un article est **auto-décrit** : à part `source`, aucun champ n'est requis
+dans `series.json` — un article se suffit à lui-même. Le premier
+article ci-dessus n'a que ce seul champ structurel : `file` se déduit de
+`tarte-aux-pommes.md` (→ `tarte-aux-pommes.html`), et `page_title`/
+`nav_title`/`nav_desc`/`card_title`/`card_desc`/`card_label` sont lus
+depuis le bloc meta de `tarte-aux-pommes.md`, ou à défaut extrapolés de son
+contenu (cover, §20.3.1). Le second illustre une surcharge : `card_label`
+prend le pas sur celui du bloc meta de `creme-patissiere.md` sans y
+toucher — les autres champs d'affichage de cet article restent lus depuis
+son propre bloc meta ou son propre contenu.
 
 ### 20.2 Champs des articles
 
 | Champ | Type | Obligatoire dans `series.json` | Utilisé par | Description |
 |-------|------|-------------|------------|-------------|
-| `file` | string | oui | build, index, nav | Nom du fichier HTML de sortie |
 | `source` | string | oui | build | Nom du fichier `.md` source dans `articles/` |
-| `series_title` | string | non | nav, index | Titre court ; surcharge celui du bloc meta de l'article (valeur finale obligatoire, §20.3.1) |
-| `series_desc` | string | non | nav, index | Description courte ; surcharge celle du bloc meta (valeur finale obligatoire, §20.3.1) |
-| `card_title` | string | non | index | Titre de la carte d'index si différent de `series_title` ; surcharge celui du bloc meta (§20.3.1) |
-| `card_desc` | string | non | index | Description de la carte d'index si différente de `series_desc` ; surcharge celle du bloc meta (§20.3.1) |
+| `file` | string | non | build, index, nav | Nom du fichier HTML de sortie ; déduit de `source` si absent (§20.3.1) |
+| `page_title` | string | non | balise `<title>` de la page de l'article | Titre de la page HTML de l'article ; surcharge celui du bloc meta (§20.3.1) |
+| `card_title` | string | non | index | Titre de la carte d'index ; surcharge celui du bloc meta (§20.3.1) |
+| `card_desc` | string | non | index | Description de la carte d'index ; surcharge celle du bloc meta (§20.3.1) |
 | `card_label` | string | non | index, nav | Étiquette libre sur la carte d'index et dans le bloc « Cette série » — texte, pas un numéro ; surcharge celle du bloc meta (§20.3.1) |
+| `nav_title` | string | non | nav (carte de navigation intra-article) | Titre affiché quand cet article apparaît dans la navigation d'un autre article ; surcharge celui du bloc meta (§20.3.1) |
+| `nav_desc` | string | non | nav | Description affichée dans ce même contexte ; surcharge celle du bloc meta (§20.3.1) |
 
 ### 20.3 Règles de validation
 
 - Le tableau `articles` est **ordonné** : l'ordre des entrées définit l'ordre
   des articles dans la navigation et l'index.
-- `file` doit être unique dans le tableau (pas de doublons) — erreur fatale
-  sinon.
-- `file` et `source` sont **obligatoires** et doivent être non vides sur
-  chaque entrée — erreur fatale sinon, avec le champ et l'index de l'entrée
-  en cause. Aucun autre champ n'est obligatoire *dans `series.json`* —
-  `series_title`/`series_desc`/`card_title`/`card_desc`/`card_label` se
-  résolvent selon §20.3.1.
-- `file` et `source` doivent être de simples noms de fichier, sans séparateur
-  de chemin ni `..` — erreur fatale sinon. `series.json` est une donnée
-  éditable par un LLM ou une CI non surveillée (§13.5) ; sans cette
-  validation, une valeur comme `/etc/passwd` ou `../../.ssh/id_rsa` serait
-  jointe telle quelle au répertoire attendu (`Path(dir) / valeur` ignore
-  silencieusement `dir` quand `valeur` est un chemin absolu) et permettrait
-  une lecture ou une écriture de fichier arbitraire hors de `articles/`/`public/`.
-- `source` doit se terminer par `.md` (insensible à la casse) et `file` par
-  `.html` ou `.htm` (insensible à la casse) — erreur fatale sinon, avec le
-  même traitement que le contrôle de sécurité ci-dessus : sans ça, une
-  valeur comme `"file": "a.md"` construit sans avertissement un
-  `public/a.md` contenant du HTML rendu, une extension de sortie
-  incohérente qu'aucun choix éditorial ne justifie. `.htm` est accepté au
-  même titre que `.html` : extension standard, toujours utile sur les
-  systèmes de fichiers limités à trois lettres (FAT 8.3 et dérivés,
-  certains hébergements ou environnements embarqués) ; la restreindre à
-  `.html` seul briserait cet usage sans apport de sécurité, le risque visé
-  (extension de sortie incohérente) étant identique pour toute extension
-  qui n'est ni l'une ni l'autre.
+- `file` (une fois résolu, §20.3.1) doit être unique dans le tableau (pas de
+  doublons) — erreur fatale sinon.
+- `source` est **obligatoire** et doit être non vide sur chaque entrée —
+  erreur fatale sinon, avec l'index de l'entrée en cause. `file` ne l'est
+  **pas** : absent, il se déduit de `source` (§20.3.1). Aucun autre champ
+  n'est obligatoire *dans `series.json`* — `page_title`/`card_title`/
+  `card_desc`/`card_label`/`nav_title`/`nav_desc` se résolvent selon
+  §20.3.1.
+- `source` doit être un simple nom de fichier, sans séparateur de chemin ni
+  `..` — erreur fatale sinon. Même règle pour `file` quand il est donné
+  explicitement (dans `series.json` ou le bloc meta de l'article) —
+  `series.json` est une donnée éditable par un LLM ou une CI non surveillée
+  (§13.5) ; sans cette validation, une valeur comme `/etc/passwd` ou
+  `../../.ssh/id_rsa` serait jointe telle quelle au répertoire attendu
+  (`Path(dir) / valeur` ignore silencieusement `dir` quand `valeur` est un
+  chemin absolu) et permettrait une lecture ou une écriture de fichier
+  arbitraire hors de `articles/`/`public/`.
+- `source` doit se terminer par `.md` (insensible à la casse) et `file`
+  (une fois résolu, qu'il soit explicite ou déduit) par `.html` ou `.htm`
+  (insensible à la casse) — erreur fatale sinon, avec le même traitement
+  que le contrôle de sécurité ci-dessus : sans ça, une valeur comme
+  `"file": "a.md"` construit sans avertissement un `public/a.md` contenant
+  du HTML rendu, une extension de sortie incohérente qu'aucun choix
+  éditorial ne justifie. `.htm` est accepté au même titre que `.html` :
+  extension standard, toujours utile sur les systèmes de fichiers limités à
+  trois lettres (FAT 8.3 et dérivés, certains hébergements ou
+  environnements embarqués) ; la restreindre à `.html` seul briserait cet
+  usage sans apport de sécurité, le risque visé (extension de sortie
+  incohérente) étant identique pour toute extension qui n'est ni l'une ni
+  l'autre.
 - `source` doit pointer vers un fichier qui existe dans `articles/` — sinon
   cette entrée est ignorée (avertissement, pas d'arrêt du build).
 
-#### 20.3.1 Résolution des champs d'affichage (surcharge)
+#### 20.3.1 Résolution des champs (surcharge et déduction de contenu)
 
-`series_title`, `series_desc`, `card_title`, `card_desc`, `card_label` ne
-sont jamais requis dans `series.json` lui-même : leur valeur par défaut est
-lue dans le bloc meta de l'article correspondant (même nom de champ — ex.
-`card_title:` dans le `.md`, §4.2), et `series.json` ne sert qu'à la
-corriger pour un article donné, sans toucher au fichier source. Ordre de
-résolution, pour chaque champ, du plus prioritaire au moins prioritaire :
+`file`, `page_title`, `card_title`, `card_desc`, `card_label`, `nav_title`
+et `nav_desc` ne sont jamais requis dans `series.json` lui-même : chacun a
+une valeur par défaut, lue dans le bloc meta de l'article correspondant
+(même nom de champ — ex. `card_title:` dans le `.md`, §4.2), et
+`series.json` ne sert qu'à la corriger pour un article donné, sans toucher
+au fichier source. Quand le bloc meta ne le précise pas non plus, chaque
+champ retombe sur une valeur **extrapolée du contenu déjà écrit** par
+l'auteur, plutôt que d'exiger une saisie redondante :
+
+```
+file        : series.json  >  meta (file:)         >  source, .md → .html
+page_title  : series.json  >  meta (page_title:)    >  h1 de la fiche cover  >  file (résolu)
+card_title  : series.json  >  meta (card_title:)    >  page_title (résolu)
+card_desc   : series.json  >  meta (card_desc:)      >  summary de la fiche cover
+card_label  : series.json  >  meta (card_label:)     >  '' (rien à en extrapoler)
+nav_title   : series.json  >  meta (nav_title:)      >  card_title (résolu)
+nav_desc    : series.json  >  meta (nav_desc:)       >  card_desc (résolu)
+```
+
+Ordre de résolution, pour chaque champ, du plus prioritaire au moins
+prioritaire :
 
 1. **`series.json`**, l'entrée de l'article dans `articles[]`, si le champ y
    est présent et non vide.
 2. **Le bloc meta de l'article**, le champ de même nom, si présent et non
    vide.
-3. **Repli**, selon le champ, si absent des deux niveaux précédents :
-   - `series_title` / `series_desc` : **la valeur finale doit être non
-     vide** — erreur fatale sinon (même sévérité que les champs
-     structurels), avec le fichier et le champ en cause. Contrairement à
-     `file`/`source`, cette erreur ne peut être détectée qu'après lecture
-     du bloc meta de l'article, pas seulement de `series.json` : c'est le
-     seul contrôle de cette section qui dépend du contenu de l'article.
-   - `card_title` : reprend la valeur déjà résolue de `series_title`
-     (comportement inchangé).
-   - `card_desc` : reprend celle de `series_desc`, pareillement.
-   - `card_label` : aucune étiquette n'est affichée sur la carte — ce n'est
-     pas une erreur, c'est un champ purement décoratif sans repli plus loin.
+3. **Repli**, selon le tableau ci-dessus, si absent des deux niveaux
+   précédents. Rien dans cette chaîne n'est une erreur fatale : chaque
+   champ finit toujours par se résoudre à quelque chose, au pire le nom de
+   fichier lui-même — `card_label` est le seul sans repli de contenu (rien
+   d'évident à en extrapoler), et reste alors simplement vide, sans que ce
+   soit considéré comme une erreur.
 
-`file` et `source` ne suivent **pas** ce mécanisme : champs structurels,
-toujours requis directement dans `series.json` (§20.3) — voir §3.1 pour la
-distinction.
+Cette chaîne à deux étages (nav_title → card_title → page_title → contenu
+de la fiche cover) reflète deux contextes d'affichage réellement distincts,
+pas une redondance : `card_title`/`card_desc` pilotent la carte de la page
+d'index, `nav_title`/`nav_desc` pilotent la carte de navigation affichée
+**dans la page d'un autre article** — un lecteur peut donc voir un texte
+différent selon qu'il découvre l'article depuis l'index ou depuis la
+navigation d'un article voisin, sans avoir à ressaisir la même information
+deux fois si la distinction n'est pas utile pour un article donné.
 
 ### 20.4 Métadonnées de la série (`series_meta`)
 

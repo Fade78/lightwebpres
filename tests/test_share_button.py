@@ -59,14 +59,11 @@ class ShareButton(unittest.TestCase):
         root = Path(cls.tmpdir.name)
         (root / 'articles').mkdir()
         (root / 'series.json').write_text(json.dumps({
-            'articles': [{
-                'file': 'a.html', 'source': 'a.md',
-                'series_title': 'A', 'series_desc': 'A',
-            }],
+            'articles': [{'source': 'a.md'}],
         }), encoding='utf-8')
         (root / 'articles' / 'a.md').write_text(
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Share button test\n'
-            'series_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\npage_title: Share button test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Share button test\n'
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide -->\ntag: T2\n## Second slide\n'

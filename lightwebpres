@@ -34,7 +34,7 @@ from html.parser import HTMLParser
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.4.1"
+VERSION = "0.5.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -2915,21 +2915,22 @@ def build_series_nav(current_file, series_data, strings):
     back = strings.get('series_back_to_index', 'Back to index')
     parts = []
     for entry in articles:
-        # card_label is already resolved by resolve_display_fields()
-        # (series.json > article meta > no further fallback, §20.3.1).
+        # card_label/nav_title/nav_desc are already resolved by
+        # resolve_article_fields() (series.json > article meta > fallback
+        # chain, §20.3.1).
         label = entry.get('card_label', '')
         if entry['file'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
                 label=label,
-                title=entry['series_title'],
-                desc=entry['series_desc'],
+                title=entry['nav_title'],
+                desc=entry['nav_desc'],
                 status=current_status))
         else:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
                 file=html_escape(entry['file'], quote=True),
                 label=label,
-                title=entry['series_title'],
-                desc=entry['series_desc'],
+                title=entry['nav_title'],
+                desc=entry['nav_desc'],
                 read=read))
     parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back))
     return '\n'.join(parts)
@@ -2960,7 +2961,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     cards = []
     for entry in articles:
         # card_title/card_desc/card_label are already fully resolved by
-        # resolve_display_fields() (series.json > article meta > fallback,
+        # resolve_article_fields() (series.json > article meta > fallback,
         # §20.3.1) — no fallback logic needed here.
         label = apply_typo(typo_engine, entry.get('card_label', ''))
         card_title = apply_typo(typo_engine, entry.get('card_title', ''))
@@ -3016,8 +3017,8 @@ def build_readme(series_data, sd, output_dir, strings):
     lines.append('## Articles')
     lines.append('')
     for i, entry in enumerate(articles, 1):
-        article_title = entry.get('series_title', entry.get('file', ''))
-        article_desc = entry.get('series_desc', '')
+        article_title = entry.get('nav_title', entry.get('file', ''))
+        article_desc = entry.get('nav_desc', '')
         link = os.path.relpath(output_dir / entry['file'], start=sd)
         if article_desc:
             lines.append(f'{i}. [{article_title}]({link}) — {article_desc}')
@@ -3151,8 +3152,13 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             else:
                 print(f'  [ERROR] Article file not found: {slide.article_file}', file=sys.stderr)
 
-    # Page title
-    title = meta.get('h1', current_file)
+    # Page title — the already-resolved page_title (series.json > article
+    # meta > cover slide's own h1 > file, see resolve_article_fields()),
+    # not a fresh re-read of the meta block here: series.json's own
+    # override would never reach this function otherwise.
+    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    own_entry = next((e for e in articles if e.get('file') == current_file), None)
+    title = own_entry['page_title'] if own_entry else meta.get('page_title', current_file)
     # Strip HTML tags from the title
     title_clean = strip_ws(re.sub(r'<[^>]+>', ' ', title))
     title_clean = apply_typo(article_typo_engine, title_clean, disabled_rules)
@@ -3205,96 +3211,134 @@ def load_series_data(series_dir):
 
 
 def validate_series(articles):
-    """Rejects series.json structural errors (§20.3): file/source must be
-    present and non-empty on every entry, file must be unique, file/source
-    must be plain filenames — otherwise one article's output silently
-    overwrites another's, the build crashes on a raw KeyError instead of a
-    clear message, or (file/source being joined into real filesystem paths
-    with no other containment check) a malicious or LLM-mangled entry reads
-    or writes an arbitrary file outside articles/public (Path(dir) / value
-    silently ignores `dir` when `value` is an absolute path) — and source
-    must end in .md, file in .html or .htm (case-insensitive), otherwise
-    the build silently writes HTML content to a wrongly-extensioned output
-    file with no warning.
+    """Rejects series.json structural errors (§20.3): `source` must be
+    present, non-empty, a plain filename (no path separators, no "..") and
+    end in .md on every entry — otherwise the build crashes on a raw
+    KeyError instead of a clear message, or (source being joined into a
+    real filesystem path with no other containment check) a malicious or
+    LLM-mangled entry reads an arbitrary file outside articles/ (Path(dir)
+    / value silently ignores `dir` when `value` is an absolute path).
 
-    series_title/series_desc/card_title/card_desc/card_label are NOT
-    checked here — per §20.3.1 they're optional overrides of the same
-    field in the article's own meta block, and validating series_title/
-    series_desc requires reading that meta block first, which this
-    function (series.json-only) can't do; see resolve_display_fields()."""
-    required_fields = ('file', 'source')
-    seen = {}
+    `file` is NOT required here (§20.3.1) — it resolves later, once
+    resolve_article_fields() has had a chance to read the article's own
+    meta block or derive it from `source`. An EXPLICIT `file` already in
+    series.json still gets the same safety/extension check right here,
+    since that doesn't depend on reading anything else; uniqueness of the
+    final, resolved `file` across every entry is checked at the end of
+    resolve_article_fields() instead, once every entry actually has one.
+
+    page_title/card_title/card_desc/card_label/nav_title/nav_desc are NOT
+    checked here either — per §20.3.1 they're optional overrides of the
+    same field in the article's own meta block, and validating them
+    requires reading that meta block first, which this function
+    (series.json-only) can't do; see resolve_article_fields()."""
     for i, entry in enumerate(articles, 1):
-        for field in required_fields:
-            if not entry.get(field):
-                print(f'[ERROR] series.json: entry {i} is missing required '
-                      f'field "{field}".', file=sys.stderr)
-                sys.exit(1)
-        for field in ('file', 'source'):
-            if not _is_safe_relative_filename(entry[field]):
-                print(f'[ERROR] series.json: entry {i} has an unsafe "{field}" '
-                      f'value "{entry[field]}" (must be a plain filename, no '
-                      f'path separators, no "..").', file=sys.stderr)
-                sys.exit(1)
+        if not entry.get('source'):
+            print(f'[ERROR] series.json: entry {i} is missing required '
+                  f'field "source".', file=sys.stderr)
+            sys.exit(1)
+        if not _is_safe_relative_filename(entry['source']):
+            print(f'[ERROR] series.json: entry {i} has an unsafe "source" '
+                  f'value "{entry["source"]}" (must be a plain filename, no '
+                  f'path separators, no "..").', file=sys.stderr)
+            sys.exit(1)
         if not entry['source'].lower().endswith('.md'):
             print(f'[ERROR] series.json: entry {i} has a "source" value '
                   f'"{entry["source"]}" that does not end in .md.', file=sys.stderr)
             sys.exit(1)
-        if not entry['file'].lower().endswith(('.html', '.htm')):
-            print(f'[ERROR] series.json: entry {i} has a "file" value '
-                  f'"{entry["file"]}" that does not end in .html or .htm.', file=sys.stderr)
-            sys.exit(1)
-        f = entry.get('file')
+        if entry.get('file') is not None:
+            if not _is_safe_relative_filename(entry['file']):
+                print(f'[ERROR] series.json: entry {i} has an unsafe "file" '
+                      f'value "{entry["file"]}" (must be a plain filename, no '
+                      f'path separators, no "..").', file=sys.stderr)
+                sys.exit(1)
+            if not entry['file'].lower().endswith(('.html', '.htm')):
+                print(f'[ERROR] series.json: entry {i} has a "file" value '
+                      f'"{entry["file"]}" that does not end in .html or .htm.', file=sys.stderr)
+                sys.exit(1)
+
+
+_DISPLAY_OVERRIDE_FIELDS = ('page_title', 'card_title', 'card_desc', 'card_label', 'nav_title', 'nav_desc')
+
+
+def _find_cover_slide(slides):
+    """First cover slide, if any — the natural, already-authored source
+    for a couple of the fallbacks below (its own h1/summary), since a
+    well-formed article almost always has one even if it never sets any
+    of the more specific display fields."""
+    return next((s for s in slides if s.slide_type == 'cover'), None)
+
+
+def resolve_article_fields(articles, articles_dir):
+    """Resolves `file` and the display fields (page_title, card_title,
+    card_desc, card_label, nav_title, nav_desc) for every entry, per
+    §20.3.1. Mutates each entry in place so downstream renderers
+    (build_article, build_series_nav, build_index, build_readme) can read
+    the fields directly, with every override/fallback already applied —
+    none of them need to know this mechanism exists.
+
+    Must run once, after validate_series and before any of those
+    renderers — build_series_nav in particular renders every OTHER
+    article's nav_title/nav_desc on the page being built, not just the
+    current one, so every entry needs to be resolved up front, not
+    lazily.
+
+    Resolution order, per field, most specific wins:
+
+      file        : series.json > article meta (`file:`) > derived from
+                    `source` (.md -> .html)
+      page_title  : series.json > article meta > the cover slide's own h1
+                    > the resolved `file`
+      card_title  : series.json > article meta > page_title (resolved)
+      card_desc   : series.json > article meta > the cover slide's summary
+      card_label  : series.json > article meta > '' (nothing sensible to
+                    extrapolate a short label from)
+      nav_title   : series.json > article meta > card_title (resolved)
+      nav_desc    : series.json > article meta > card_desc (resolved)
+
+    A source file that doesn't exist can't be read for its meta block or
+    slides; that case is already a non-fatal warning elsewhere (source not
+    found), so every field here just falls through to its
+    filesystem-independent default (derived `file`, or '') instead of
+    erroring a second time."""
+    for entry in articles:
+        source_path = articles_dir / entry['source']
+        meta, slides = {}, []
+        if source_path.exists():
+            meta, slides, _ = parse_markdown_extended(source_path.read_text(encoding='utf-8'))
+        cover = _find_cover_slide(slides)
+
+        if not entry.get('file'):
+            entry['file'] = meta.get('file') or re.sub(r'\.md$', '.html', entry['source'], flags=re.IGNORECASE)
+            if not _is_safe_relative_filename(entry['file']) or not entry['file'].lower().endswith(('.html', '.htm')):
+                print(f'[ERROR] {entry["source"]}: resolved "file" value '
+                      f'"{entry["file"]}" is not a safe .html/.htm filename '
+                      f'(from the article\'s own meta block).', file=sys.stderr)
+                sys.exit(1)
+
+        if not entry.get('page_title'):
+            entry['page_title'] = meta.get('page_title') or (cover.h1 if cover and cover.h1 else '') or entry['file']
+
+        if not entry.get('card_title'):
+            entry['card_title'] = meta.get('card_title') or entry['page_title']
+        if not entry.get('card_desc'):
+            entry['card_desc'] = meta.get('card_desc') or (cover.summary if cover and cover.summary else '')
+        if not entry.get('card_label'):
+            entry['card_label'] = meta.get('card_label', '')
+
+        if not entry.get('nav_title'):
+            entry['nav_title'] = meta.get('nav_title') or entry['card_title']
+        if not entry.get('nav_desc'):
+            entry['nav_desc'] = meta.get('nav_desc') or entry['card_desc']
+
+    seen = {}
+    for i, entry in enumerate(articles, 1):
+        f = entry['file']
         if f in seen:
             print(f'[ERROR] series.json: duplicate file "{f}" (articles {seen[f]} '
                   f'and {i}).', file=sys.stderr)
             sys.exit(1)
         seen[f] = i
-
-
-_DISPLAY_OVERRIDE_FIELDS = ('series_title', 'series_desc', 'card_title', 'card_desc', 'card_label')
-
-
-def resolve_display_fields(articles, articles_dir):
-    """Resolves series_title/series_desc/card_title/card_desc/card_label
-    for every entry, per §20.3.1: a value already in the series.json entry
-    wins; otherwise the same-named field from the article's own meta block
-    is used; card_title/card_desc additionally fall back to the resolved
-    series_title/series_desc if still absent. Mutates each entry in place
-    so downstream renderers (build_series_nav, build_index, build_readme)
-    can read the fields directly, with the override/fallback already
-    applied — none of them need to know this mechanism exists.
-
-    Must run once, after validate_series and before any of those renderers
-    — build_series_nav in particular renders every OTHER article's
-    series_title/series_desc on the page being built, not just the current
-    one, so every entry needs to be resolved up front, not lazily.
-
-    A source file that doesn't exist can't be read for its meta block; that
-    case is already a non-fatal warning elsewhere (source not found), so it
-    is not double-reported here — series_title/series_desc simply aren't
-    required to resolve for an entry whose article will never be built."""
-    for entry in articles:
-        source_path = articles_dir / entry['source']
-        meta = {}
-        if source_path.exists():
-            meta, _, _ = parse_markdown_extended(source_path.read_text(encoding='utf-8'))
-
-        for field in _DISPLAY_OVERRIDE_FIELDS:
-            if not entry.get(field) and meta.get(field):
-                entry[field] = meta[field]
-
-        if source_path.exists():
-            for field in ('series_title', 'series_desc'):
-                if not entry.get(field):
-                    print(f'[ERROR] {entry["file"]}: "{field}" is missing from both '
-                          f'series.json and the article\'s meta block.', file=sys.stderr)
-                    sys.exit(1)
-
-        if not entry.get('card_title'):
-            entry['card_title'] = entry.get('series_title', '')
-        if not entry.get('card_desc'):
-            entry['card_desc'] = entry.get('series_desc', '')
 
 
 # ============================================================================
@@ -3455,7 +3499,7 @@ def load_build_context(series_dir, args):
     series_data = load_series_data(sd)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
-    resolve_display_fields(articles, articles_dir)
+    resolve_article_fields(articles, articles_dir)
 
     return SimpleNamespace(
         sd=sd, articles_dir=articles_dir, templates_dir=templates_dir,
@@ -3890,16 +3934,19 @@ def cmd_demo(target_dir, args):
               f'Remove them first, or run demo in an empty series.', file=sys.stderr)
         sys.exit(1)
 
-    # Article 1: first
+    # Article 1: first — every display field set explicitly, as a
+    # reference showing every one of them (§20.2/§20.3.1). Neither `file`
+    # nor `source` belong in this block: `source` is always this file
+    # itself (nothing to say), and `file` — like every field below — has
+    # a sensible default (derived from `source`) so it's left out here on
+    # purpose too, demonstrated instead via series.json (see below).
     demo1 = '''<!-- lwp:meta -->
-file: first.html
-source: first.md
-h1: First article
-series_title: First article
-series_desc: The first demo article
+page_title: First article
+nav_title: First article (nav)
+nav_desc: The first demo article, as shown in another article's navigation
 card_label: Article 1
-card_title: First article
-card_desc: Description of the first demo article
+card_title: First article (card)
+card_desc: The first demo article, as shown on the index page
 ---
 
 <!-- lwp:slide:cover -->
@@ -3946,16 +3993,15 @@ A paragraph with some **bold** and *italic* text.
 [^1]: Demo source, 2025.
 '''
 
-    # Article 2: middle
+    # Article 2: middle — only page_title and card_label set; card_title/
+    # card_desc and nav_title/nav_desc are left to cascade from page_title
+    # and the cover slide's own summary (§20.3.1). series.json below
+    # overrides THIS card_label with a different value, to demonstrate
+    # series.json winning over an already-present meta value, not just an
+    # absent one.
     demo2 = '''<!-- lwp:meta -->
-file: middle.html
-source: middle.md
-h1: Middle article
-series_title: Middle article
-series_desc: The second demo article
+page_title: Middle article
 card_label: Article 2
-card_title: Middle article
-card_desc: Description of the second demo article
 ---
 
 <!-- lwp:slide:cover -->
@@ -4002,16 +4048,12 @@ This is the full article for the second demo article [^1].
 [^1]: Demo source, 2025.
 '''
 
-    # Article 3: last
+    # Article 3: last — an EMPTY meta block on purpose: every display
+    # field (page_title, card_title/card_desc, nav_title/nav_desc) is left
+    # to cascade all the way down to the cover slide's own h1/summary
+    # below (§20.3.1). card_label has no such fallback and stays blank —
+    # an honest, expected outcome, not an error.
     demo3 = '''<!-- lwp:meta -->
-file: last.html
-source: last.md
-h1: Last article
-series_title: Last article
-series_desc: The third demo article
-card_label: Article 3
-card_title: Last article
-card_desc: Description of the third demo article
 ---
 
 <!-- lwp:slide:cover -->
@@ -4068,9 +4110,9 @@ This is the full article for the third demo article [^1].
             "intro": "This demo series contains three articles that test the first, middle, and last positions in navigation."
         },
         "articles": [
-            {"file": "first.html", "source": "first.md"},
-            {"file": "middle.html", "source": "middle.md", "card_label": "Article 2 (overridden from series.json)"},
-            {"file": "last.html", "source": "last.md"}
+            {"source": "first.md"},
+            {"source": "middle.md", "card_label": "Article 2 (overridden from series.json)"},
+            {"source": "last.md"}
         ]
     }
     (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')

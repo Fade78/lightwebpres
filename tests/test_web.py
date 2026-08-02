@@ -57,14 +57,11 @@ def _make_test_zip(zip_path):
         root = Path(tmp)
         (root / 'articles').mkdir()
         (root / 'series.json').write_text(json.dumps({
-            'articles': [{
-                'file': 'a.html', 'source': 'a.md',
-                'series_title': 'A', 'series_desc': 'A',
-            }],
+            'articles': [{'source': 'a.md'}],
         }), encoding='utf-8')
         (root / 'articles' / 'a.md').write_text(
-            '<!-- lwp:meta -->\nfile: a.html\nh1: Web test\n'
-            'series_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:meta -->\npage_title: Web test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Web build test\n'
             'summary: Built entirely in the browser.\n\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: a_article.md\n',

@@ -61,20 +61,24 @@ one `.html` file, opens straight from disk or any static host.
 open my-series/public/index.html
 ```
 
-Then write your own `.md` files in `my-series/articles/`, list them in
-`my-series/series.json`, and run `build` again.
+Then write your own `.md` files in `my-series/articles/`, add a `{"source":
+"apple-pie.md"}` entry per article to `my-series/series.json` (that's the
+only field it needs — see below), and run `build` again.
 
 ## The format
 
 Each article is one Markdown file: a metadata block, then a sequence of
-"slides" separated by `---`.
+"slides" separated by `---`. An article is self-describing — its own
+`page_title`/`card_title`/`card_desc`/`nav_title`/`nav_desc` all fall back
+to sensible content-derived defaults if left out, and `series.json` only
+needs `source` per article (see specifications.md §20.3.1); every field
+below can be omitted or overridden from `series.json` instead.
 
 ```markdown
 <!-- lwp:meta -->
-file: apple-pie.html
-h1: The apple pie<br>What shortcrust pastry actually changes
-series_title: The apple pie
-series_desc: Pastry, baking, and plating
+page_title: The apple pie<br>What shortcrust pastry actually changes
+nav_title: The apple pie
+nav_desc: Pastry, baking, and plating
 ---
 
 <!-- lwp:slide:cover -->
