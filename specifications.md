@@ -1284,6 +1284,45 @@ meta, jamais convertir un corps entier) et comparée à celle du cache :
   `build` complet, jamais une erreur ni une page obsolète silencieuse ;
   un message `[INFO]` explique pourquoi.
 
+### 11.3.2 `build --build-stamp` : marqueur de fraîcheur
+
+```bash
+lightwebpres build [répertoire] --build-stamp
+```
+
+Option, désactivée par défaut. Ajoute sur **chaque** page générée
+(chaque article et `index.html`) un marqueur discret, fixé au coin
+supérieur gauche de la page (`.build-stamp`, visible en permanence quel
+que soit le défilement — contrairement à `.slide-num`, qui est par fiche
+et défile avec elle) :
+
+```
+Compiled at YYYY-MM-DD HH:MM:SS with lightwebpres vX.Y.Z.
+```
+
+Le besoin réel : savoir d'un coup d'œil si un onglet resté ouvert, ou un
+déploiement, correspond bien au dernier `build` — pas juste s'y fier de
+mémoire. L'horodatage est calculé une seule fois par exécution de
+`build` (pas une fois par fichier) : toutes les pages d'un même build
+affichent exactement le même horodatage, cohérent avec « à quel moment
+ce build a eu lieu », pas « à quelle microseconde ce fichier précis a
+été écrit ».
+
+**Jamais activé par défaut** : un horodatage vivant rend le build
+non-reproductible à l'octet près d'une exécution à l'autre, une propriété
+que `check` (§11.4) présuppose justement pour son diff exact.
+
+**`check` ignore le marqueur, dans les deux sens** : le HTML généré en
+mémoire par `check` pour comparaison n'inclut jamais de marqueur (jamais
+la valeur du drapeau `--build-stamp` n'atteint son propre appel à
+`build_article`), et le marqueur trouvé sur le fichier existant dans
+`public/` est retiré avant comparaison (`strip_build_stamp()`) — une
+série construite avec `--build-stamp` reste donc normalement
+« checkable », sans dérive systématique due au seul horodatage. Cette
+suppression ne touche que le seul élément que `lightwebpres` génère
+lui-même (`<div class="build-stamp">...</div>`), jamais un contenu
+d'auteur.
+
 ### 11.4 `check`
 
 ```bash

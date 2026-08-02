@@ -1389,6 +1389,106 @@ class RefreshTemplates(unittest.TestCase):
             self.assertIn('OLD-CUSTOM-NAV', backup.read_text(encoding='utf-8'))
 
 
+class BuildStamp(unittest.TestCase):
+    """§11.3.2: --build-stamp is opt-in (off by default) and, when
+    passed, embeds a "Compiled at <date/time> with lightwebpres
+    v<version>" marker on every generated page — but is invisible to
+    `check`, which must keep comparing real content, not a timestamp
+    that's different on every single run by design."""
+
+    STAMP_RE = re.compile(
+        r'<div class="build-stamp">Compiled at (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) '
+        r'with lightwebpres v([\d.]+)\.</div>'
+    )
+
+    def _md(self):
+        return (
+            '<!-- lwp:meta -->\nfile: a.html\nh1: Test\nseries_title: A\nseries_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+        )
+
+    def test_absent_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._md())
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            # Not a plain "build-stamp" substring check: the .build-stamp
+            # CSS rule itself is always in the stylesheet, flag or not —
+            # only the actual <div> element is conditional.
+            self.assertIsNone(self.STAMP_RE.search(article_html), article_html)
+            self.assertIsNone(self.STAMP_RE.search(index_html), index_html)
+
+    def test_present_on_every_page_with_flag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._md())
+            result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+
+            article_match = self.STAMP_RE.search(article_html)
+            index_match = self.STAMP_RE.search(index_html)
+            self.assertIsNotNone(article_match, article_html)
+            self.assertIsNotNone(index_match, index_html)
+
+            # Same build run -> same timestamp everywhere, not a fresh
+            # one per file (which would just be noise: the point is "when
+            # did THIS build happen", one answer for the whole run).
+            self.assertEqual(article_match.group(1), index_match.group(1))
+
+            version = run('help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
+            self.assertEqual(article_match.group(2), version)
+
+    def test_check_ignores_the_stamp_no_false_drift(self):
+        """A series built with --build-stamp must still `check` clean —
+        the marker's live timestamp is deliberately excluded from check's
+        own comparison (cmd_check strips it from the on-disk copy first),
+        or every check on a stamped series would report permanent,
+        meaningless drift purely because time moved on since the build."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._md())
+            build_result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp')
+            self.assertEqual(build_result.returncode, 0, build_result.stderr)
+
+            check_result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertEqual(check_result.returncode, 0, check_result.stdout + check_result.stderr)
+            self.assertIn('[OK] a.html', check_result.stdout)
+            self.assertNotIn('[DRIFT]', check_result.stdout)
+
+    def test_build_only_also_stamps(self):
+        """The --only fast path (§11.3.1) writes real output too — it
+        must not silently skip the stamp just because it takes a
+        different code path than a full build."""
+        md_a = self._md()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md_a)
+            (root / 'articles' / 'b.md').write_text(
+                '<!-- lwp:meta -->\nfile: b.html\nh1: B\nseries_title: B\nseries_desc: B\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# B\nsummary: Summary.\n',
+                encoding='utf-8',
+            )
+            series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            series['articles'].append({'file': 'b.html', 'source': 'b.md', 'series_title': 'B', 'series_desc': 'B'})
+            (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+
+            first = run('build', str(root), '--output', str(root / 'public'), '--nav-cache', str(root / 'nav.json'))
+            self.assertEqual(first.returncode, 0, first.stderr)
+
+            only = run(
+                'build', str(root), '--output', str(root / 'public'),
+                '--nav-cache', str(root / 'nav.json'), '--only', 'a.html', '--build-stamp',
+            )
+            self.assertEqual(only.returncode, 0, only.stderr)
+            self.assertIn('Incremental build', only.stdout)
+
+            article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIsNotNone(self.STAMP_RE.search(article_html))
+            self.assertIsNotNone(self.STAMP_RE.search(index_html))
+
+
 class Themes(unittest.TestCase):
     """§9.5/§11.1/§11.6/§11.7: install --theme substitutes the six palette
     variables from THEMES, records which theme was applied in a marker

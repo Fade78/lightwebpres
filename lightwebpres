@@ -24,6 +24,7 @@ import json
 import shutil
 import difflib
 import hashlib
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from html import escape as html_escape
@@ -496,6 +497,23 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .series-status { font-size: 13px; font-weight: 600; }
   .series-current .series-status { color: var(--grey); }
   .series-link .series-status { color: var(--dark); }
+  /* Opt-in (--build-stamp, §11.3.2): a discreet build-freshness marker,
+     fixed to the page's top-left corner — the mirror image of
+     .slide-num (top-right, but per-slide/scrolls away) since this one
+     needs to stay visible no matter where you've scrolled to actually
+     answer "did I just rebuild this". pointer-events: none so it never
+     sits between a click and whatever's under it. */
+  .build-stamp {
+    position: fixed;
+    top: 16px;
+    left: 20px;
+    font-size: 11px;
+    color: var(--grey);
+    letter-spacing: 0.3px;
+    opacity: 0.75;
+    z-index: 50;
+    pointer-events: none;
+  }
   .nav-buttons {
     position: fixed;
     bottom: 24px;
@@ -1524,6 +1542,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 </head>
 <body>
 
+{{build_stamp}}
 <nav class="nav-dots"></nav>
 
 <div class="nav-buttons">
@@ -1582,6 +1601,7 @@ TEMPLATE_INDEX = '''<!DOCTYPE html>
 </head>
 <body style="padding: 60px 8vw; max-width: 1200px; margin: 0 auto;">
 
+{{build_stamp}}
 <div class="header">
   <h1>{{series_title}}</h1>
   <p class="subtitle">{{series_subtitle}}</p>
@@ -2915,7 +2935,7 @@ def build_series_nav(current_file, series_data, strings):
 # INDEX PAGE
 # ============================================================================
 
-def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra=''):
+def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='', build_stamp=''):
     """Generates the index page."""
     meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
@@ -2963,6 +2983,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     html = html.replace('{{cards}}', '\n'.join(cards))
     html = html.replace('{{js_index}}', apply_strings(TEMPLATE_INDEX_JS, strings))
     html = html.replace('{{index_extra}}', index_extra)
+    html = html.replace('{{build_stamp}}', build_stamp)
     html = apply_strings(html, strings)
 
     validate_html(html, 'index.html')
@@ -3089,7 +3110,7 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr'):
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp=''):
     """Builds an HTML page for an article."""
     md_text = source_path.read_text(encoding='utf-8')
     meta, slides, has_meta_block = parse_markdown_extended(md_text)
@@ -3139,6 +3160,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     html = html.replace('{{css}}', css)
     html = html.replace('{{slides}}', slides_html)
     html = html.replace('{{js_nav}}', nav_js)
+    html = html.replace('{{build_stamp}}', build_stamp)
     html = apply_strings(html, strings)
 
     validate_html(html, current_file)
@@ -3334,6 +3356,33 @@ def resolve_paths(series_dir, args):
     return sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file
 
 
+# Matches build_stamp_html()'s own output exactly (a single, entirely
+# self-generated element) — used by cmd_check to ignore the marker when
+# comparing against disk, see its own comment for why that's necessary.
+# Deliberately does NOT also swallow a surrounding newline: the div sits
+# on its own template line (`{{build_stamp}}` alone between two literal
+# newlines), so removing just the div reproduces exactly what an
+# unstamped build already produces at that spot (an empty line, not a
+# missing one) — chewing an extra \n here would under-count against that
+# baseline and cause every check to report a spurious drift.
+_BUILD_STAMP_RE = re.compile(r'<div class="build-stamp">.*?</div>')
+
+
+def build_stamp_html(version):
+    """--build-stamp (§11.3.2): a discreet, opt-in "did I actually just
+    rebuild this" marker — the real-world need it addresses is a stale
+    browser tab or an old deploy that LOOKS current at a glance. Never
+    on by default: it makes every build non-reproducible byte-for-byte
+    (a fresh timestamp every run), which most workflows (including
+    `check`, see cmd_check) explicitly don't want."""
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return f'<div class="build-stamp">Compiled at {now} with lightwebpres v{version}.</div>'
+
+
+def strip_build_stamp(html):
+    return _BUILD_STAMP_RE.sub('', html)
+
+
 def load_build_context(series_dir, args):
     """Shared setup for build and check (§11.3/§11.4): resolves paths,
     loads the language pack/typo engine, the CSS/nav.js (built-in or
@@ -3375,7 +3424,7 @@ def load_build_context(series_dir, args):
     )
 
 
-def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint):
+def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
     """The fast path for `build --only`: the caller has already confirmed
     nav/index-affecting metadata is unchanged since the last build, so
     only the named article's own page needs re-converting — index.html,
@@ -3395,13 +3444,13 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint):
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f'  {entry["file"]} ← {entry["source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['file'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['file'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp)
     (ctx.output_dir / entry['file']).write_text(html, encoding='utf-8')
 
     index_extra_file = ctx.templates_dir / 'index_extra.html'
     index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
     print('  index.html')
-    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra)
+    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
     (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
 
     readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
@@ -3416,6 +3465,11 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint):
 def cmd_build(series_dir, args):
     """build command."""
     ctx = load_build_context(series_dir, args)
+    # Opt-in, off by default (§11.3.2): embedding a live timestamp makes
+    # every build non-reproducible byte-for-byte, which most workflows
+    # (starting with `check`, see cmd_check) explicitly rely on NOT
+    # happening.
+    build_stamp = build_stamp_html(VERSION) if args.get('--build-stamp') else ''
 
     nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
     fresh_fingerprint = compute_nav_fingerprint(ctx.articles)
@@ -3424,7 +3478,7 @@ def cmd_build(series_dir, args):
     if only_file:
         cached_fingerprint = load_nav_cache(nav_cache_path)
         if cached_fingerprint == fresh_fingerprint:
-            _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint)
+            _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp)
             return
         reason = 'no usable cache found' if cached_fingerprint is None else 'nav/index-affecting metadata changed since the last build'
         print(f'[INFO] --only requested but not safe ({reason}) — doing a full build instead.')
@@ -3454,14 +3508,14 @@ def cmd_build(series_dir, args):
             continue
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp)
 
         output_path = ctx.output_dir / output_file
         output_path.write_text(html, encoding='utf-8')
 
     # Build the index
     print('  index.html')
-    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra)
+    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
     (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
 
     # Generate the README (spec §8.3)
@@ -3489,13 +3543,19 @@ def cmd_check(series_dir, args):
             print(f'[ERROR] {entry["file"]}: source not found: {source_path}', file=sys.stderr)
             diff_count += 1
             continue
+        # Never generated here, on either side of the comparison: a build
+        # stamp's timestamp is different on every single run by design, so
+        # comparing it against anything (including itself, moments later)
+        # would always drift — check's job is real content drift, not
+        # "time has passed". strip_build_stamp() on the disk copy is what
+        # keeps a series built with --build-stamp still checkable.
         generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['file'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
         existing_path = ctx.output_dir / entry['file']
         if not existing_path.exists():
             print(f'[NEW] {entry["file"]} does not exist yet')
             diff_count += 1
             continue
-        existing = existing_path.read_text(encoding='utf-8')
+        existing = strip_build_stamp(existing_path.read_text(encoding='utf-8'))
         if existing.strip() == generated.strip():
             print(f'[OK] {entry["file"]}')
             ok_count += 1
@@ -4019,6 +4079,11 @@ OPTIONS
   --nav-cache path        build --only: where the nav/index fingerprint used for
                         that safety check is read from and written to
                         (default: .lwp-cache/nav.json in the series directory)
+  --build-stamp           build: stamps every generated page with a discreet
+                        "Compiled at <date/time> with lightwebpres v<version>"
+                        marker (top-left corner) — a live timestamp, so off by
+                        default; ignored by check's comparison either way
+                        (spec §11.3.2)
 
 THEMES (install --theme, see specifications.md §9.5)
   {theme_names}
