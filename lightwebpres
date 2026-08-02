@@ -3685,6 +3685,12 @@ def cmd_audit(series_dir, args):
     sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    # entry['file'] below needs the resolution §20.3.1 describes (derived
+    # from `source` when series.json omits it, the common case since
+    # v0.5.0) — without this, an entry that legitimately has no explicit
+    # `file` crashes audit with a raw KeyError instead of a warning.
+    validate_series(articles)
+    resolve_article_fields(articles, articles_dir)
 
     warnings = 0
 

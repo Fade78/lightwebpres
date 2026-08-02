@@ -1276,23 +1276,28 @@ reconstruire toute la série à chaque pause de frappe serait disproportionné
 sur une série à beaucoup d'articles.
 
 **Le piège que ça doit éviter** : `build_index()` et `build_series_nav()`
-utilisent tous les deux les champs résolus par `resolve_article_fields()`
-(`file`, `page_title`, `card_title`, `card_desc`, `card_label`, `nav_title`,
-`nav_desc`, §20.3.1) — et `build_series_nav()` est intégré dans la page de
-**chaque** article, pas seulement dans `index.html`. Changer le titre de
-l'article A peut donc rendre obsolètes les pages déjà construites de B, C,
-D..., pas seulement l'index. Reconstruire uniquement le fichier demandé sans
-vérifier ça produirait un site avec une navigation périmée.
+utilisent tous les deux les champs d'affichage résolus par
+`resolve_article_fields()` (`page_title`, `card_title`, `card_desc`,
+`card_label`, `nav_title`, `nav_desc`, §20.3.1) — et `build_series_nav()`
+est intégré dans la page de **chaque** article, pas seulement dans
+`index.html`. Changer le titre de l'article A peut donc rendre obsolètes
+les pages déjà construites de B, C, D..., pas seulement l'index.
+Reconstruire uniquement le fichier demandé sans vérifier ça produirait un
+site avec une navigation périmée.
 
 **Le mécanisme de sécurité** : à chaque `build` (complet ou avec `--only`),
-une empreinte est calculée pour chaque article — un hash SHA-256 des 5
+une empreinte est calculée pour chaque article — un hash SHA-256 des 6
 champs ci-dessus concaténés, jamais leur contenu en clair (fichier de
 cache petit et de taille constante, indépendant de la longueur des
 résumés) — et écrite dans `.lwp-cache/nav.json` (racine du répertoire de
 série, à côté de `articles/`/`templates/`/`public/`, jamais dans l'un de
 ces deux derniers pour les garder tels quels — un artefact de build de
 plus, comme `public/`, mais pas mélangé avec lui). `--nav-cache chemin`
-change cet emplacement.
+change cet emplacement. `file` n'entre pas dans ce hash : il sert de *clé*
+à l'empreinte (une empreinte par `file`), donc un `file` qui change — via
+une nouvelle valeur explicite ou une redéduction depuis `source`/le bloc
+meta — change la clé elle-même et est détecté par construction, sans avoir
+besoin d'entrer aussi dans le hash.
 
 Au lancement de `build --only fichier`, l'empreinte est recalculée pour
 **tous** les articles (rien de coûteux : ne fait que reparser les blocs

@@ -313,6 +313,28 @@ class AuditCommand(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('is not a cover', result.stdout)
 
+    def test_audit_does_not_crash_when_series_json_omits_file(self):
+        """§20.3.1: series.json needs only `source` — audit must resolve
+        `file` (resolve_article_fields()) before reading entry['file'],
+        not assume it's always explicitly present like pre-v0.5.0. Uses a
+        cover-less article so the warning path (the one that actually
+        reads entry['file']) is exercised, not just the "no warnings" one
+        where it's never dereferenced."""
+        md = (
+            '<!-- lwp:meta -->\npage_title: Test\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nContent.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir(parents=True)
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(
+                json.dumps({'articles': [{'source': 'a.md'}]}), encoding='utf-8')
+            result = run('audit', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('a.html', result.stdout)
+            self.assertIn('no cover slide', result.stdout)
+
 
 class HighlightField(unittest.TestCase):
     """§4.3: the highlight/highlight-caption fields (renamed from the former
