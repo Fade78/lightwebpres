@@ -2936,8 +2936,14 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
 # SERIES NAVIGATION
 # ============================================================================
 
-def build_series_nav(current_file, series_data, strings):
-    """Generates the navigation block HTML for the current article."""
+def build_series_nav(current_file, series_data, strings, typo_engine):
+    """Generates the navigation block HTML for the current article.
+
+    typo_engine here is always the *build's* engine, never the hosting
+    article's own article_typo_engine: a `typo: off` on article X only
+    scopes to X's own page content (§4.5) — X's fragments reused
+    elsewhere, including every entry rendered here (even X's own), follow
+    the normal build-wide rules, exactly like build_index()'s cards."""
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     read = strings.get('series_read', 'Read the article')
     current_status = strings.get('series_current_status', 'Currently reading')
@@ -2947,19 +2953,21 @@ def build_series_nav(current_file, series_data, strings):
         # card_label/nav_title/nav_desc are already resolved by
         # resolve_article_fields() (series.json > article meta > fallback
         # chain, §20.3.1).
-        label = entry.get('card_label', '')
+        label = apply_typo(typo_engine, entry.get('card_label', ''))
+        title = apply_typo(typo_engine, entry['nav_title'])
+        desc = apply_typo(typo_engine, entry['nav_desc'])
         if entry['file'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
                 label=label,
-                title=entry['nav_title'],
-                desc=entry['nav_desc'],
+                title=title,
+                desc=desc,
                 status=current_status))
         else:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
                 file=html_escape(entry['file'], quote=True),
                 label=label,
-                title=entry['nav_title'],
-                desc=entry['nav_desc'],
+                title=title,
+                desc=desc,
                 read=read))
     parts.append(TEMPLATE_SERIES_NAV_BACK.format(back=back))
     return '\n'.join(parts)
@@ -3166,8 +3174,10 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # Join the slides
     slides_html = '\n\n'.join(slide_htmls)
 
-    # Inject the series navigation
-    series_nav_html = build_series_nav(current_file, series_data, strings)
+    # Inject the series navigation — the build-wide typo_engine, not
+    # article_typo_engine: this block's entries aren't "this article's
+    # own page content" even when it's this article's own entry (§4.5).
+    series_nav_html = build_series_nav(current_file, series_data, strings, typo_engine)
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
 
     # Inject the full article

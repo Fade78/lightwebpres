@@ -662,6 +662,72 @@ class MultiArticleSeries(unittest.TestCase):
             self.assertIn('Desc B', html_a)
 
 
+class SeriesNavTypography(unittest.TestCase):
+    """Regression: build_series_nav() used to render card_label/nav_title/
+    nav_desc with no typography applied at all — a plain space instead of
+    a non-breaking one before ':'/'!'/'?', while the exact same fields on
+    build_index()'s cards were correctly processed. Confirmed independently
+    by a user after the v0.5.0 card_/nav_ split touched this exact
+    function and didn't fix it."""
+
+    def _build_series(self, tmp, article_a_extra_meta=''):
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        md_a = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Article A\nnav_title: Article A\n'
+            f'nav_desc: Desc A\n{article_a_extra_meta}---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        md_b = (
+            '<!-- lwp:meta -->\nfile: b.html\npage_title: Article B\n'
+            'nav_title: Question ? Titre\nnav_desc: Alerte !\ncard_label: Numéro :\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
+        (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+        # The nbsp is typed with a plain space here on purpose — series.json
+        # values go through the exact same build_series_nav() typography
+        # path as the meta-block ones, so a plain " ?"/" !"/" :" here must
+        # also come out as "\xa0?"/"\xa0!"/"\xa0:" once built.
+        series = {'articles': [
+            {'file': 'a.html', 'source': 'a.md', 'nav_title': 'Article A', 'nav_desc': 'Desc A'},
+            {'file': 'b.html', 'source': 'b.md'},
+        ]}
+        (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+        return root
+
+    def test_nav_title_desc_and_card_label_get_nbsp_typography(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # Article B's nav_title/nav_desc/card_label, as they appear in
+            # the series-nav block embedded on article A's own page.
+            html_a = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Question\xa0? Titre', html_a)
+            self.assertIn('Alerte\xa0!', html_a)
+            self.assertIn('Numéro\xa0:', html_a)
+            self.assertNotIn('Question ? Titre', html_a)
+            self.assertNotIn('Alerte !', html_a)
+            self.assertNotIn('Numéro :', html_a)
+
+    def test_series_nav_typography_uses_build_wide_engine_not_hosting_articles_typo_off(self):
+        """§4.5: typo: off on the HOSTING article (A) must not silently
+        also turn off typography for the OTHER articles' entries shown in
+        A's own series-nav block — those aren't "A's own page content",
+        same rule as build_index()'s cards."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp, article_a_extra_meta='typo: off\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html_a = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Question\xa0? Titre', html_a)
+            self.assertIn('Alerte\xa0!', html_a)
+            self.assertIn('Numéro\xa0:', html_a)
+
+
 class IncrementalBuildOnly(unittest.TestCase):
     """§11.3.1: `build --only <file>` rebuilds a single article instead of
     the whole series, but only when nothing that affects index.html/
