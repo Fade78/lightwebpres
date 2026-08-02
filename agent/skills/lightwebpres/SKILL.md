@@ -3,7 +3,7 @@ name: lightwebpres
 description: >
   Reference for the exact LightWebPres (LWP) Markdown syntax lightwebpres
   parses: the lwp:meta comment block, the four slide types (cover,
-  standard, series-nav, full-article) and their fields (tag, h1/h2,
+  standard, series-nav, full-article) and their fields (tag, slide_title,
   summary, highlight, fact-label, source), the one-way field/free-text
   parsing switch, series.json wiring, and automatic non-breaking-space
   typography with its opt-outs (typo, typo-units, typo-thousands).

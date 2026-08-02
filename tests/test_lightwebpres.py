@@ -2306,6 +2306,21 @@ class HelpDocumentsTypographyControls(unittest.TestCase):
             self.assertIn(needle, result.stdout)
 
 
+class HelpDoesNotDocumentRemovedH1H2FieldSyntax(unittest.TestCase):
+    """GLOSSARY.md: h1:/h2: as an explicit slide field was removed — #/##
+    is the only way to set a slide's own heading (slide_title). --help
+    used to say "h1 or # Title" / "h2 or ## Title", still implying the
+    removed field form was valid."""
+
+    def test_help_does_not_mention_h1_or_h2_field_form(self):
+        result = run('--help')
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn('h1 or', result.stdout)
+        self.assertNotIn('h2 (or', result.stdout)
+        self.assertIn('# Title', result.stdout)
+        self.assertIn('## Title', result.stdout)
+
+
 class TypographyTagProtection(unittest.TestCase):
     """§P2/§19.3: typography rules must never be able to corrupt HTML tag
     syntax in already-assembled HTML (fact-box content, full articles),

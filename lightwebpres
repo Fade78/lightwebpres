@@ -2980,9 +2980,10 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     intro = apply_typo(typo_engine, meta.get('intro', ''))
 
     # <title> is RCDATA: unlike {{series_title}} (rendered inside the page
-    # body, where raw HTML is allowed by design, same as an article's h1 —
-    # spec §4.3), a value here containing a literal </title> would close
-    # the element early and let anything after it execute as real markup.
+    # body, where raw HTML is allowed by design, same as a slide's own
+    # slide_title — spec §4.3), a value here containing a literal
+    # </title> would close the element early and let anything after it
+    # execute as real markup.
     title_clean = strip_ws(re.sub(r'<[^>]+>', ' ', title))
 
     # Cards
@@ -3182,9 +3183,10 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                 print(f'  [ERROR] Article file not found: {slide.article_file}', file=sys.stderr)
 
     # Page title — the already-resolved page_title (series.json > article
-    # meta > cover slide's own h1 > file, see resolve_article_fields()),
-    # not a fresh re-read of the meta block here: series.json's own
-    # override would never reach this function otherwise.
+    # meta > cover slide's own slide_title > file, see
+    # resolve_article_fields()), not a fresh re-read of the meta block
+    # here: series.json's own override would never reach this function
+    # otherwise.
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     own_entry = next((e for e in articles if e.get('file') == current_file), None)
     title = own_entry['page_title'] if own_entry else meta.get('page_title', current_file)
@@ -3292,9 +3294,9 @@ _DISPLAY_OVERRIDE_FIELDS = ('page_title', 'card_title', 'card_desc', 'card_label
 
 def _find_cover_slide(slides):
     """First cover slide, if any — the natural, already-authored source
-    for a couple of the fallbacks below (its own h1/summary), since a
-    well-formed article almost always has one even if it never sets any
-    of the more specific display fields."""
+    for a couple of the fallbacks below (its own slide_title/summary),
+    since a well-formed article almost always has one even if it never
+    sets any of the more specific display fields."""
     return next((s for s in slides if s.slide_type == 'cover'), None)
 
 
@@ -3316,8 +3318,8 @@ def resolve_article_fields(articles, articles_dir):
 
       file        : series.json > article meta (`file:`) > derived from
                     `source` (.md -> .html)
-      page_title  : series.json > article meta > the cover slide's own h1
-                    > the resolved `file`
+      page_title  : series.json > article meta > the cover slide's own
+                    slide_title > the resolved `file`
       card_title  : series.json > article meta > page_title (resolved)
       card_desc   : series.json > article meta > the cover slide's summary
       card_label  : series.json > article meta > '' (nothing sensible to
@@ -4085,9 +4087,10 @@ This is the full article for the second demo article [^1].
 
     # Article 3: last — an EMPTY meta block on purpose: every display
     # field (page_title, card_title/card_desc, nav_title/nav_desc) is left
-    # to cascade all the way down to the cover slide's own h1/summary
-    # below (§20.3.1). card_label has no such fallback and stays blank —
-    # an honest, expected outcome, not an error.
+    # to cascade all the way down to the cover slide's own
+    # slide_title/summary below (§20.3.1). card_label has no such
+    # fallback and stays blank — an honest, expected outcome, not an
+    # error.
     demo3 = '''<!-- lwp:meta -->
 ---
 
@@ -4257,15 +4260,15 @@ ARTICLE FORMAT (.md)
                                 breaks inside a value for now)
 
 SLIDE TYPES
-  cover         Cover slide (tag, h1 or # Title, summary)
-  standard      Regular slide (tag, h2 or ## Title, summary, highlight,
+  cover         Cover slide (tag, # Title, summary)
+  standard      Regular slide (tag, ## Title, summary, highlight,
                 highlight-caption, fact-label, source, + free text = fact-box)
   series-nav    Cross-article navigation block, generated from series.json
   full-article  Includes an external .md file via the article: field
                 (required; only one full-article slide per article)
 
 FIELDS RECOGNIZED IN A SLIDE
-  tag, h2 (or ## Title), summary, fact-label, source, highlight, highlight-caption
+  tag, ## Title, summary, fact-label, source, highlight, highlight-caption
 
 TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specifications.md §7/§19
   The built-in French pack (language/fr.json) inserts a non-breaking space

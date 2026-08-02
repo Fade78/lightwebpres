@@ -186,9 +186,10 @@ fiches sont :
 </section>
 ```
 
-Générée à partir des champs `tag:` et `# Titre` (h1) de la fiche `cover`
-elle-même, et de son `summary:` — ces champs vivent uniquement dans le
-`.md`, jamais dans `series.json` (§3.1). Le numéro de slide est calculé
+Générée à partir des champs `tag:` et `# Titre` (`slide_title`, rendu
+`<h1>` — GLOSSARY.md) de la fiche `cover` elle-même, et de son `summary:`
+— ces champs vivent uniquement dans le `.md`, jamais dans `series.json`
+(§3.1). Le numéro de slide est calculé
 automatiquement (`01 / NN` où NN est le nombre total de slides).
 
 #### 3.3.2 Fiche standard
@@ -2277,7 +2278,7 @@ l'auteur, plutôt que d'exiger une saisie redondante :
 
 ```
 file        : series.json  >  meta (file:)         >  source, .md → .html
-page_title  : series.json  >  meta (page_title:)    >  h1 de la fiche cover  >  file (résolu)
+page_title  : series.json  >  meta (page_title:)    >  slide_title de la fiche cover  >  file (résolu)
 card_title  : series.json  >  meta (card_title:)    >  page_title (résolu)
 card_desc   : series.json  >  meta (card_desc:)      >  summary de la fiche cover
 card_label  : series.json  >  meta (card_label:)     >  '' (rien à en extrapoler)
@@ -2381,11 +2382,11 @@ slide (les premières lignes avant le premier paragraphe de contenu). Une fois
 que le parseur a rencontré une ligne de contenu (paragraphe, liste, titre), il
 cesse de chercher des métadonnées.
 
-Cette règle s'applique aussi aux titres `# `/`## ` : un `## Sous-titre` qui
-apparaît **après** le début du contenu (donc dans le corps de la fact-box, pas
-dans l'en-tête de la slide) est du texte de contenu — un titre Markdown normal
-dans le rendu de la fact-box — et non une nouvelle valeur pour le titre de la
-slide.
+Cette règle s'applique aussi aux titres `# `/`## ` (`slide_title`,
+GLOSSARY.md) : un `## Sous-titre` qui apparaît **après** le début du
+contenu (donc dans le corps de la fact-box, pas dans l'en-tête de la
+slide) est du texte de contenu — un titre Markdown normal dans le rendu
+de la fact-box — et non une nouvelle valeur pour le titre de la slide.
 
 Deux précisions sur ce qui compte comme « avant tout contenu », toutes deux
 là pour permettre à un fact-box de **commencer directement** par un titre
@@ -2454,11 +2455,11 @@ elle-même un champ reconnu bascule immédiatement en texte libre.
 
 ### 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover`
 
-Erreur fatale. Une fiche `cover` n'a pas de fact-box : `tag`, `h1` (ou `#
-Titre`) et `summary` sont ses seuls champs. Si du texte suit ces champs sans
-être lui-même un champ reconnu, le build s'arrête avec un message indiquant
-le fichier et le numéro de fiche, plutôt que d'ignorer silencieusement ce
-texte.
+Erreur fatale. Une fiche `cover` n'a pas de fact-box : `tag`, `slide_title`
+(écrit `# Titre`) et `summary` sont ses seuls champs. Si du texte suit ces
+champs sans être lui-même un champ reconnu, le build s'arrête avec un
+message indiquant le fichier et le numéro de fiche, plutôt que d'ignorer
+silencieusement ce texte.
 
 ### 22.13 Nombre et position des fiches `cover`
 
