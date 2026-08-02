@@ -966,14 +966,38 @@ retient plutôt la fiche dont l'intervalle `[haut, bas]` contient le
 milieu vertical de la fenêtre, correct quelle que soit la hauteur d'une
 fiche.
 
+**Cooldown de 150 ms entre deux pas (`STEP_COOLDOWN_MS`)** — bug réel
+trouvé après coup (retour utilisateur : « ça continue d'aller vers le
+bas, mais ça ne passe pas par la sélection des cartes ») : maintenir une
+flèche enfoncée déclenche l'auto-répétition native du clavier, qui tire
+des `keydown` bien plus vite (souvent 20-30 ms d'écart) que ce qu'un
+humain peut percevoir. Sans limite, chaque répétition rappelait
+`stepForward()`/`stepBackward()` immédiatement — `current` étant déjà mis
+à jour de façon synchrone par l'appel précédent, la suite s'enchaînait
+directement à travers toutes les cartes et jusqu'à la fiche suivante en
+une fraction de seconde, avant qu'aucun état intermédiaire (une carte
+focalisée) n'ait pu être vu, encore moins choisi. Corrigé par
+`runStepped()`, une garde à part de `isScrolling` (qui ne protège que
+l'animation de défilement de `goTo()` elle-même) : traite un pas, puis
+ignore tout nouvel appel pendant 150 ms — invisible pour un appui isolé
+(qui ne se répète jamais dans cette fenêtre), perceptible seulement
+maintenue enfoncée, où le rythme redevient un pas à la fois au lieu de la
+vitesse brute de répétition du système. Testé (`tests/keyboard_nav_e2e.cjs`,
+quatrième scénario) : rafale de pressions à ~30 ms d'écart sur une série
+dédiée dont la fiche series-nav n'est *pas* la dernière fiche (nécessaire
+pour que « a foncé jusqu'au bout » et « le cooldown n'a laissé avancer
+que partiellement » produisent des états finaux différents et donc
+observables) — vérifié que le test échoue bien sans le cooldown avant
+d'être validé avec.
+
 Testé Playwright (`tests/keyboard_nav_e2e.cjs` /
 `tests/test_keyboard_nav.py`) : défilement incrémental réel d'une fiche
 `full-article` surchargée avant l'avancée à la fiche suivante, parcours
 avant et arrière carte par carte sur une fiche series-nav (ordre exact
 des cartes, la fiche courante ne change pas pendant le parcours des
 cartes), épuisement des cartes sur la dernière fiche (reste en place,
-focus nettoyé), et saut réel vers l'article via Entrée sur une carte
-focalisée.
+focus nettoyé), saut réel vers l'article via Entrée sur une carte
+focalisée, et non-régression du cooldown sous rafale de pressions.
 
 ### 9.3 Extension de la page d'index (`index_extra.html`)
 
@@ -1284,20 +1308,23 @@ meta, jamais convertir un corps entier) et comparée à celle du cache :
   `build` complet, jamais une erreur ni une page obsolète silencieuse ;
   un message `[INFO]` explique pourquoi.
 
-### 11.3.2 `build --build-stamp` : marqueur de fraîcheur
+### 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur
 
 ```bash
 lightwebpres build [répertoire] --build-stamp
+lightwebpres build [répertoire] --build-stamp-minimal
 ```
 
-Option, désactivée par défaut. Ajoute sur **chaque** page générée
-(chaque article et `index.html`) un marqueur discret, fixé au coin
-supérieur gauche de la page (visible en permanence quel que soit le
-défilement — contrairement à `.slide-num`, qui est par fiche et défile
-avec elle) :
+Deux options, toutes deux désactivées par défaut. Ajoutent sur **chaque**
+page générée (chaque article et `index.html`) un marqueur discret, placé
+dans l'en-tête même de la page — visible uniquement en haut de défilement,
+comme n'importe quel autre contenu d'en-tête, jamais superposé au reste
+de la page pendant la lecture (contrairement à un premier essai fixé au
+viewport, corrigé après retour explicite : voir plus bas) :
 
 ```
-Compiled at YYYY-MM-DD HH:MM:SS with lightwebpres vX.Y.Z.
+Compiled at YYYY-MM-DD HH:MM:SS with lightwebpres vX.Y.Z.   ← --build-stamp
+Compiled with lightwebpres.                                  ← --build-stamp-minimal
 ```
 
 Le besoin réel : savoir d'un coup d'œil si un onglet resté ouvert, ou un
@@ -1308,20 +1335,30 @@ affichent exactement le même horodatage, cohérent avec « à quel moment
 ce build a eu lieu », pas « à quelle microseconde ce fichier précis a
 été écrit ».
 
+**`--build-stamp-minimal`** : la date/heure de compilation est une
+donnée qui peut ou non être sensible à publier (elle peut révéler quand
+un document a été préparé) — cette variante l'omet entièrement, avec le
+numéro de version aussi (pas une divulgation partielle). Si les deux
+options sont passées ensemble, `--build-stamp-minimal` l'emporte
+toujours : un choix de confidentialité explicite ne doit jamais être
+silencieusement écrasé par l'option la plus riche.
+
 **Jamais activé par défaut** : un horodatage vivant rend le build
 non-reproductible à l'octet près d'une exécution à l'autre, une propriété
 que `check` (§11.4) présuppose justement pour son diff exact.
 
-**`check` ignore le marqueur, dans les deux sens** : le HTML généré en
-mémoire par `check` pour comparaison n'inclut jamais de marqueur (jamais
-la valeur du drapeau `--build-stamp` n'atteint son propre appel à
-`build_article`), et le marqueur trouvé sur le fichier existant dans
-`public/` est retiré avant comparaison (`strip_build_stamp()`) — une
-série construite avec `--build-stamp` reste donc normalement
-« checkable », sans dérive systématique due au seul horodatage. Cette
-suppression ne touche que le seul élément que `lightwebpres` génère
-lui-même (`<div class="build-stamp" style="...">...</div>`), jamais un
-contenu d'auteur.
+**`check` ignore le marqueur, dans les deux sens, pour les deux
+variantes** : le HTML généré en mémoire par `check` pour comparaison
+n'inclut jamais de marqueur (ni la valeur de `--build-stamp` ni celle de
+`--build-stamp-minimal` n'atteint son propre appel à `build_article`), et
+le marqueur trouvé sur le fichier existant dans `public/` est retiré
+avant comparaison (`strip_build_stamp()`, qui repère la `<div>` par sa
+classe, indépendamment du texte qu'elle contient) — une série construite
+avec l'une ou l'autre option reste donc normalement « checkable », sans
+dérive systématique due au seul horodatage. Cette suppression ne touche
+que le seul élément que `lightwebpres` génère lui-même
+(`<div class="build-stamp" style="...">...</div>`), jamais un contenu
+d'auteur.
 
 **Style entièrement en ligne, jamais dans `style.css`** — bug réel trouvé
 en testant à la main juste après la première version : une série avec
@@ -1333,17 +1370,27 @@ la feuille de style partagée — absente de ce genre de série, la `<div>`
 se retrouvait sans style du tout : un bloc pleine largeur, texte de
 couleur par défaut, poussant la première fiche vers le bas au lieu de se
 superposer discrètement dans le coin (repéré visuellement, capture
-d'écran à l'appui, avant d'être corrigé). Le style (`position:fixed`,
-couleur, taille, `pointer-events: none`) est maintenant entièrement
-porté par l'attribut `style=""` de la `<div>` elle-même, jamais
-dépendant d'une règle externe — y compris la couleur grise, qui utilise
-une valeur hexadécimale fixe plutôt que `var(--grey)` (même risque : une
-propriété personnalisée définie dans le `style.css` intégré peut, elle
-aussi, être absente d'un `style.css` ancien ou personnalisé). Testé
+d'écran à l'appui, avant d'être corrigé). Le style (couleur, taille,
+`pointer-events: none`, positionnement) est maintenant entièrement porté
+par l'attribut `style=""` de la `<div>` elle-même, jamais dépendant d'une
+règle externe — y compris la couleur grise, qui utilise une valeur
+hexadécimale fixe plutôt que `var(--grey)` (même risque : une propriété
+personnalisée définie dans le `style.css` intégré peut, elle aussi, être
+absente d'un `style.css` ancien ou personnalisé).
+
+**`position: absolute`, pas `fixed`** — deuxième itération, retour
+explicite après la première version livrée : le marqueur doit apparaître
+dans l'en-tête de la page, pas rester épinglé à la fenêtre du navigateur
+pendant tout le défilement. Sans ancêtre positionné, `absolute` se
+calcule par rapport au bloc englobant initial (ancré en haut du document,
+pas de la fenêtre) : le marqueur défile normalement avec le reste du
+contenu, exactement comme `fixed` l'aurait empêché de faire. Testé
 (`tests/test_lightwebpres.py`, `BuildStamp.
 test_stays_discreet_with_a_custom_style_css_lacking_the_rule`) : un
 `templates/style.css` sur mesure sans aucune règle liée au marqueur, et
-le marqueur reste correctement positionné.
+le marqueur reste correctement positionné ; `test_minimal_variant_*` et
+`test_minimal_wins_if_both_flags_passed` couvrent `--build-stamp-minimal`
+et sa priorité.
 
 ### 11.4 `check`
 

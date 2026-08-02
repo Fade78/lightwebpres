@@ -29,10 +29,22 @@ async function activeElementInfo(page) {
   }));
 }
 
+// nav.js throttles ArrowDown/ArrowUp processing to one step per 150ms
+// (STEP_COOLDOWN_MS) — otherwise holding the key down fires native
+// auto-repeat keydown events fast enough to blow straight through every
+// intermediate card-focus state before a human (or a script pressing
+// keys back-to-back with no delay) could ever land on one. 200ms here,
+// comfortably over that threshold, so each press in this script is
+// guaranteed to actually register as its own step.
+async function press(page, key) {
+  await page.keyboard.press(key);
+  await page.waitForTimeout(200);
+}
+
 async function main() {
-  const [tallArticleUrl, navArticleUrl] = process.argv.slice(2);
-  if (!tallArticleUrl || !navArticleUrl) {
-    console.error('usage: keyboard_nav_e2e.cjs <tallArticleUrl> <navArticleUrl>');
+  const [tallArticleUrl, navArticleUrl, heldArticleUrl] = process.argv.slice(2);
+  if (!tallArticleUrl || !navArticleUrl || !heldArticleUrl) {
+    console.error('usage: keyboard_nav_e2e.cjs <tallArticleUrl> <navArticleUrl> <heldArticleUrl>');
     process.exit(2);
   }
 
@@ -57,13 +69,13 @@ async function main() {
     await page.goto(tallArticleUrl);
     await page.waitForSelector('.nav-dots a');
 
-    await page.keyboard.press('ArrowDown'); // cover (0) -> full-article (1)
-    await page.waitForTimeout(800);
+    await press(page, 'ArrowDown'); // cover (0) -> full-article (1)
+    await page.waitForTimeout(600);
     let idx = await activeDotIndex(page);
     if (idx !== 1) fail('expected slide 1 (the tall full-article) after one ArrowDown, got ' + idx);
 
     const scrollYAfterArrival = await page.evaluate(() => window.scrollY);
-    await page.keyboard.press('ArrowDown'); // must scroll WITHIN slide 1, not advance
+    await press(page, 'ArrowDown'); // must scroll WITHIN slide 1, not advance
     await page.waitForTimeout(600);
     const scrollYAfterOnePress = await page.evaluate(() => window.scrollY);
     idx = await activeDotIndex(page);
@@ -79,8 +91,8 @@ async function main() {
     // regression that never advances fails loudly instead of hanging).
     let reachedSlide2 = false;
     for (let i = 0; i < 40 && !reachedSlide2; i++) {
-      await page.keyboard.press('ArrowDown');
-      await page.waitForTimeout(400);
+      await press(page, 'ArrowDown');
+      await page.waitForTimeout(300);
       idx = await activeDotIndex(page);
       if (idx === 2) reachedSlide2 = true;
     }
@@ -98,10 +110,10 @@ async function main() {
     await page.goto(navArticleUrl);
     await page.waitForSelector('.nav-dots a');
 
-    await page.keyboard.press('ArrowDown'); // cover (0) -> standard (1)
-    await page.waitForTimeout(800);
-    await page.keyboard.press('ArrowDown'); // standard (1) -> series-nav (2)
-    await page.waitForTimeout(800);
+    await press(page, 'ArrowDown'); // cover (0) -> standard (1)
+    await page.waitForTimeout(600);
+    await press(page, 'ArrowDown'); // standard (1) -> series-nav (2)
+    await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
     if (idx !== 2) fail('expected the series-nav slide (2) after two ArrowDown presses, got ' + idx);
 
@@ -110,7 +122,7 @@ async function main() {
 
     const forwardHrefs = [];
     for (let i = 0; i < 3; i++) {
-      await page.keyboard.press('ArrowDown');
+      await press(page, 'ArrowDown');
       active = await activeElementInfo(page);
       if (active.tag !== 'A') fail('ArrowDown #' + (i + 1) + ' on the series-nav slide should focus a card link, focused a ' + active.tag + ' instead');
       forwardHrefs.push(active.href);
@@ -126,7 +138,7 @@ async function main() {
     // LAST slide — one more ArrowDown must stay put (nothing to advance
     // to) and clear focus off the last card, not error out or leave a
     // stale focused link behind.
-    await page.keyboard.press('ArrowDown');
+    await press(page, 'ArrowDown');
     idx = await activeDotIndex(page);
     if (idx !== 2) fail('ArrowDown past the last series-nav card on the last slide should stay on slide 2, moved to ' + idx);
     active = await activeElementInfo(page);
@@ -136,8 +148,8 @@ async function main() {
     // No card was left "mid-walk" (focusedCard was just reset above) —
     // ArrowUp from here has nothing to step back through and should
     // leave the slide backward directly, same as any ordinary slide.
-    await page.keyboard.press('ArrowUp');
-    await page.waitForTimeout(800);
+    await press(page, 'ArrowUp');
+    await page.waitForTimeout(600);
     idx = await activeDotIndex(page);
     if (idx !== 1) fail('ArrowUp with no card mid-walk should leave the series-nav slide backward to slide 1, got ' + idx);
     console.log('series-nav ArrowUp-with-nothing-to-step-back-through OK: left the slide backward');
@@ -152,21 +164,21 @@ async function main() {
     await page.goto(navArticleUrl);
     await page.waitForSelector('.nav-dots a');
 
-    await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(800);
-    await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(800);
-    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown'); // walk forward to the last card (index.html)
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    await press(page, 'ArrowDown');
+    await page.waitForTimeout(600);
+    for (let i = 0; i < 3; i++) await press(page, 'ArrowDown'); // walk forward to the last card (index.html)
     active = await activeElementInfo(page);
     if (active.href !== 'index.html') fail('setup for the backward-walk test did not land on the last card (index.html), got ' + active.href);
 
-    await page.keyboard.press('ArrowUp');
+    await press(page, 'ArrowUp');
     active = await activeElementInfo(page);
     if (active.href !== 'c.html') fail('first ArrowUp from the last card should step back to c.html, got ' + active.href);
     idx = await activeDotIndex(page);
     if (idx !== 2) fail('stepping backward through series-nav cards must not itself change the active slide (moved to ' + idx + ')');
 
-    await page.keyboard.press('ArrowUp');
+    await press(page, 'ArrowUp');
     active = await activeElementInfo(page);
     if (active.href !== 'b.html') fail('second ArrowUp should step back to b.html, got ' + active.href);
     console.log('series-nav card-by-card ArrowUp OK: index.html -> c.html -> b.html');
@@ -177,6 +189,37 @@ async function main() {
     await page.keyboard.press('Enter');
     await page.waitForURL('**/b.html', { timeout: 5000 });
     console.log('Enter-on-focused-card jump OK: navigated to ' + page.url());
+    await page.close();
+
+    // --- 4. Regression: holding an arrow key down (native auto-repeat
+    // fires keydown much faster than a human can perceive, ~20-30ms
+    // apart) must not race straight through the card-focus states — the
+    // exact bug a real user hit before nav.js's step cooldown existed.
+    // Uses the 'held' fixture, not 'nav': its series-nav slide has a
+    // real slide AFTER it (index 3), so "raced all the way through" and
+    // "the cooldown only let it get partway" land on genuinely different
+    // final states — with 'nav' (series-nav as the very last slide),
+    // both converge on the identical "slide 2, nothing focused" once
+    // everything settles, making the regression unobservable after the
+    // fact. Reaching slide 3 takes 6 real steps (cover->standard->nav,
+    // then 3 cards, then exhaust->next); ~240ms of raw event firing
+    // against a 150ms cooldown can only register 1-2 of those. No
+    // explicit waits between presses: deliberately as fast as Playwright
+    // can fire them. --------------------------------------------------
+    page = await context.newPage();
+    page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+    page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
+    await page.goto(heldArticleUrl);
+    await page.waitForSelector('.nav-dots a');
+
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press('ArrowDown');
+      await page.waitForTimeout(30);
+    }
+    await page.waitForTimeout(400);
+    idx = await activeDotIndex(page);
+    if (idx >= 3) fail('holding ArrowDown down raced all the way past the series-nav slide\'s cards to slide ' + idx + ' — the step cooldown is not throttling fast repeated presses');
+    else console.log('held-key-down regression OK: rapid repeated ArrowDown did not skip past the series-nav cards (slide ' + idx + ')');
     await page.close();
 
     if (consoleErrors.length) {

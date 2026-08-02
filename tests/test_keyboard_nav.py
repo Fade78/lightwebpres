@@ -143,6 +143,48 @@ class KeyboardNav(unittest.TestCase):
             )
         _build(nav_root, served / 'nav')
 
+        # --- 'held' series: same shape as 'nav', but with ANOTHER slide
+        # after series-nav — needed only for the held-key regression
+        # test. With series-nav as the very last slide (as in 'nav'),
+        # racing all the way through its cards and exhausting them
+        # converges on the exact same final state (no card focused, dot
+        # still on the series-nav slide, since exhausting on the last
+        # slide clamps in place) as never having started at all — the
+        # two cases become indistinguishable after the fact. An extra
+        # slide afterward means "raced all the way through" lands
+        # somewhere genuinely different from "the cooldown only let it
+        # get partway", so the regression is actually observable. ------
+        held_root = parent / 'held_series'
+        (held_root / 'articles').mkdir(parents=True)
+        (held_root / 'series.json').write_text(json.dumps({
+            'articles': [
+                {'file': 'held.html', 'source': 'held.md', 'series_title': 'Held', 'series_desc': 'Held'},
+                {'file': 'hb.html', 'source': 'hb.md', 'series_title': 'HB', 'series_desc': 'HB'},
+                {'file': 'hc.html', 'source': 'hc.md', 'series_title': 'HC', 'series_desc': 'HC'},
+            ],
+        }), encoding='utf-8')
+        (held_root / 'articles' / 'held.md').write_text(
+            '<!-- lwp:meta -->\nfile: held.html\nh1: Held test\n'
+            'series_title: Held\nseries_desc: Held\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Held test\n'
+            'summary: Cover slide.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T2\n## Standard slide\n'
+            'summary: One ordinary slide before the series-nav slide.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T3\n## Trailing slide\n'
+            'summary: Only reached by racing all the way through the series-nav cards.\n',
+            encoding='utf-8',
+        )
+        for letter in ('hb', 'hc'):
+            (held_root / 'articles' / ('%s.md' % letter)).write_text(
+                '<!-- lwp:meta -->\nfile: %s.html\nh1: Article %s\n'
+                'series_title: %s\nseries_desc: %s\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Article %s\n'
+                'summary: Cover slide.\n' % (letter, letter.upper(), letter.upper(), letter.upper(), letter.upper()),
+                encoding='utf-8',
+            )
+        _build(held_root, served / 'held')
+
         cls.httpd = HTTPServer(('127.0.0.1', 0), lambda *a: _QuietHandler(*a, directory=str(served)))
         cls.port = cls.httpd.server_address[1]
         cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
@@ -157,7 +199,7 @@ class KeyboardNav(unittest.TestCase):
     def test_tall_slide_scroll_and_series_nav_card_stepping(self):
         base = 'http://127.0.0.1:%d' % self.port
         result = subprocess.run(
-            ['node', str(KEYBOARD_NAV_SCRIPT), base + '/tall/tall.html', base + '/nav/nav.html'],
+            ['node', str(KEYBOARD_NAV_SCRIPT), base + '/tall/tall.html', base + '/nav/nav.html', base + '/held/held.html'],
             capture_output=True, text=True,
             env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=60,

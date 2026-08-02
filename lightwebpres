@@ -1207,6 +1207,20 @@ document.addEventListener('DOMContentLoaded', function() {
   var slides   = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
   var current  = 0;
   var isScrolling = false;
+  // Separate from isScrolling (which only guards goTo()'s own scroll
+  // animation, and only against re-targeting the SAME slide): holding
+  // an arrow key down fires native auto-repeat keydown events much
+  // faster than isScrolling's lock ever blocks — every repeat calls
+  // stepForward()/stepBackward() again with `current` already updated
+  // from the previous call, so it just keeps advancing (card to card,
+  // then straight past the whole series-nav slide) far faster than a
+  // human can perceive any of the individual steps. This cooldown
+  // throttles processing to one step per STEP_COOLDOWN_MS regardless of
+  // how fast the events actually arrive — invisible to a single
+  // deliberate press (which never repeats within the window), only
+  // felt as a controlled pace while a key is held.
+  var stepCooldownActive = false;
+  var STEP_COOLDOWN_MS = 150;
   // Index into the CURRENT slide's keyboard-reachable links (series-nav
   // cards + the "back to index" link, in document order) — -1 means none
   // focused yet. Reset on every slide change (goTo). Only ever non-empty
@@ -1324,12 +1338,19 @@ document.addEventListener('DOMContentLoaded', function() {
     btnHome.addEventListener('click', function(){ window.location.href = 'index.html'; });
   }
 
+  function runStepped(fn) {
+    if (stepCooldownActive) return;
+    stepCooldownActive = true;
+    fn();
+    setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
+  }
+
   document.addEventListener('keydown', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-      e.preventDefault(); stepForward();
+      e.preventDefault(); runStepped(stepForward);
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault(); stepBackward();
+      e.preventDefault(); runStepped(stepBackward);
     } else if (e.key === 'Home') {
       e.preventDefault(); window.location.href = 'index.html';
     }
@@ -3354,13 +3375,29 @@ def resolve_paths(series_dir, args):
 _BUILD_STAMP_RE = re.compile(r'<div[^>]*class="build-stamp"[^>]*>.*?</div>')
 
 
-def build_stamp_html(version):
-    """--build-stamp (§11.3.2): a discreet, opt-in "did I actually just
-    rebuild this" marker — the real-world need it addresses is a stale
-    browser tab or an old deploy that LOOKS current at a glance. Never
-    on by default: it makes every build non-reproducible byte-for-byte
-    (a fresh timestamp every run), which most workflows (including
-    `check`, see cmd_check) explicitly don't want.
+def build_stamp_html(version, minimal=False):
+    """--build-stamp / --build-stamp-minimal (§11.3.2): a discreet, opt-in
+    "did I actually just rebuild this" marker in the page's own header —
+    the real-world need it addresses is a stale browser tab or an old
+    deploy that LOOKS current at a glance. Never on by default: it makes
+    every build non-reproducible byte-for-byte (a fresh timestamp every
+    run), which most workflows (including `check`, see cmd_check)
+    explicitly don't want.
+
+    `minimal` drops the timestamp (and version): a build date/time is
+    data that may or may not be sensitive to publish (it can reveal when
+    a document was prepared), so a series that wants the freshness marker
+    without that disclosure gets a fixed "Compiled with lightwebpres."
+    instead — no version either, kept symmetric with dropping the date
+    rather than a partial disclosure.
+
+    position: absolute, not fixed: this belongs in the page's own header
+    (specifically requested — visible only while scrolled to the top,
+    same as any other header content, never pinned over the rest of the
+    page while reading). With no positioned ancestor, absolute resolves
+    against the initial containing block — anchored to the top of the
+    document, so it scrolls away exactly like ordinary content, not the
+    viewport-pinned behavior `fixed` would give.
 
     Styled entirely inline, not via a `.build-stamp` rule in style.css:
     a series with its own templates/style.css (customized, or simply
@@ -3368,16 +3405,20 @@ def build_stamp_html(version):
     built-in rule short of refresh-templates (§9.4) — the marker would
     render as a plain, undiscreet block-flow line (full width, default
     dark text, pushing the first slide down) instead of the intended
-    small fixed corner overlay. Inline style has no such dependency."""
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    small corner overlay. Inline style has no such dependency."""
+    if minimal:
+        text = 'Compiled with lightwebpres.'
+    else:
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        text = f'Compiled at {now} with lightwebpres v{version}.'
     style = (
         # Literal hex, not var(--grey): the same staleness risk applies to
         # a series' own custom property definitions, not just its rules.
-        'position:fixed;top:16px;left:20px;font-size:11px;color:#6b6b7d;'
+        'position:absolute;top:16px;left:20px;font-size:11px;color:#6b6b7d;'
         'letter-spacing:0.3px;opacity:0.75;z-index:50;pointer-events:none;'
         'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;'
     )
-    return f'<div class="build-stamp" style="{style}">Compiled at {now} with lightwebpres v{version}.</div>'
+    return f'<div class="build-stamp" style="{style}">{text}</div>'
 
 
 def strip_build_stamp(html):
@@ -3469,8 +3510,16 @@ def cmd_build(series_dir, args):
     # Opt-in, off by default (§11.3.2): embedding a live timestamp makes
     # every build non-reproducible byte-for-byte, which most workflows
     # (starting with `check`, see cmd_check) explicitly rely on NOT
-    # happening.
-    build_stamp = build_stamp_html(VERSION) if args.get('--build-stamp') else ''
+    # happening. --build-stamp-minimal wins if both are passed: the
+    # explicit ask for the version-and-timestamp-free variant is a
+    # privacy choice, and a privacy choice should never be silently
+    # overridden by the richer flag also being present.
+    if args.get('--build-stamp-minimal'):
+        build_stamp = build_stamp_html(VERSION, minimal=True)
+    elif args.get('--build-stamp'):
+        build_stamp = build_stamp_html(VERSION)
+    else:
+        build_stamp = ''
 
     nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
     fresh_fingerprint = compute_nav_fingerprint(ctx.articles)
@@ -4082,9 +4131,14 @@ OPTIONS
                         (default: .lwp-cache/nav.json in the series directory)
   --build-stamp           build: stamps every generated page with a discreet
                         "Compiled at <date/time> with lightwebpres v<version>"
-                        marker (top-left corner) — a live timestamp, so off by
-                        default; ignored by check's comparison either way
+                        marker, in the page's own header (visible only while
+                        scrolled to the top) — a live timestamp, so off by
+                        default and ignored by check's comparison either way
                         (spec §11.3.2)
+  --build-stamp-minimal   Same marker, without the date/time or version —
+                        "Compiled with lightwebpres." — for when even the
+                        build date isn't something you want published.
+                        Wins over --build-stamp if both are passed.
 
 THEMES (install --theme, see specifications.md §9.5)
   {theme_names}

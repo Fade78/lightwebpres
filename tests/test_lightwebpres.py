@@ -1520,7 +1520,49 @@ class BuildStamp(unittest.TestCase):
             self.assertIsNotNone(match, article_html)
             style_attr = re.search(r'<div class="build-stamp" style="([^"]*)"', article_html)
             self.assertIsNotNone(style_attr, article_html)
-            self.assertIn('position:fixed', style_attr.group(1))
+            self.assertIn('position:absolute', style_attr.group(1))
+
+    def test_minimal_variant_has_no_date_or_version(self):
+        """--build-stamp-minimal (§11.3.2): a build date/time is data
+        that may or may not be safe to publish (it can reveal when a
+        document was prepared) — the minimal marker drops it entirely,
+        along with the version, rather than a half-measure."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._md())
+            result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp-minimal')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="build-stamp" style="', article_html)
+            self.assertIn('>Compiled with lightwebpres.</div>', article_html)
+            self.assertIn('>Compiled with lightwebpres.</div>', index_html)
+            # No leftover date/version anywhere near the marker.
+            self.assertIsNone(self.STAMP_RE.search(article_html), article_html)
+            self.assertNotIn('lightwebpres v', article_html.split('build-stamp')[1][:120])
+
+    def test_minimal_wins_if_both_flags_passed(self):
+        """A privacy choice must never be silently overridden by the
+        richer flag also being present, however that happened (a stray
+        flag left over from a script, a copy-pasted command...)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._md())
+            result = run(
+                'build', str(root), '--output', str(root / 'public'),
+                '--build-stamp', '--build-stamp-minimal',
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            article_html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('>Compiled with lightwebpres.</div>', article_html)
+            self.assertIsNone(self.STAMP_RE.search(article_html), article_html)
+
+    def test_minimal_variant_ignored_by_check_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._md())
+            build_result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp-minimal')
+            self.assertEqual(build_result.returncode, 0, build_result.stderr)
+            check_result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertEqual(check_result.returncode, 0, check_result.stdout + check_result.stderr)
+            self.assertIn('[OK] a.html', check_result.stdout)
 
 
 class Themes(unittest.TestCase):
