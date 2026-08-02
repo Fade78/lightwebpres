@@ -422,6 +422,23 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     padding: 1px 4px;
     border-radius: 2px;
   }
+  .fact-content h1, .fact-content h2, .fact-content h3 {
+    color: var(--dark);
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 14px 0 6px;
+  }
+  .fact-content h1:first-child, .fact-content h2:first-child, .fact-content h3:first-child {
+    margin-top: 0;
+  }
+  .fact-content h1 { font-size: 1.3em; }
+  .fact-content h2 { font-size: 1.15em; }
+  .fact-content h3 { font-size: 1.05em; }
+  .fact-content ul, .fact-content ol {
+    padding-left: 20px;
+    margin-bottom: 10px;
+  }
+  .fact-content li { margin-bottom: 4px; }
   .source {
     font-size: 12px;
     color: var(--grey);
@@ -2705,7 +2722,7 @@ def parse_markdown_extended(md_text):
             # which would swallow a non-breaking space right after the
             # ':' instead of preserving it as the value's first character
             # (§7.6).
-            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption|h1|h2):[ \t]*(.*)', stripped)
+            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption):[ \t]*(.*)', stripped)
             if field_match and not in_content:
                 key = field_match.group(1)
                 value = field_match.group(2)
@@ -2721,13 +2738,21 @@ def parse_markdown_extended(md_text):
                     slide.highlight = value
                 elif key == 'highlight-caption':
                     slide.highlight_caption = value
-                elif key == 'h1':
-                    slide.h1 = value
-                elif key == 'h2':
-                    slide.h2 = value
-            elif stripped.startswith('# ') and not stripped.startswith('## ') and not in_content:
+            # `#` only ever means "this cover's own title" and `##` only
+            # ever means "this non-cover slide's own title" — the other
+            # heading level can never legitimately set anything here (a
+            # non-cover slide is never rendered from slide.h1, a cover
+            # never from slide.h2 — render_slide() treats any slide_type
+            # other than 'cover' as standard, an unrecognized type
+            # included, since nothing validates that token; matched here
+            # for the two to agree), so it must fall through to content
+            # immediately rather than being silently captured into an
+            # attribute nothing ever reads.
+            elif (slide.slide_type == 'cover' and stripped.startswith('# ')
+                  and not stripped.startswith('## ') and not in_content and slide.h1 is None):
                 slide.h1 = strip_ws(stripped[2:])
-            elif stripped.startswith('## ') and not in_content:
+            elif (slide.slide_type != 'cover' and stripped.startswith('## ')
+                  and not in_content and slide.h2 is None):
                 slide.h2 = strip_ws(stripped[3:])
             else:
                 # This is content (the fact-box)
@@ -2879,15 +2904,19 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
                 label = apply_typo(typo_engine, slide.fact_label, disabled)
                 parts.append(f'  <div class="fact-box">')
                 parts.append(f'    <div class="fact-label">{label}</div>')
-                # If the converted content starts with <p>, insert it directly
-                # instead of wrapping it in an extra <p class="fact-content">
-                stripped_content = content_html.strip()
-                if stripped_content.startswith('<p>') or stripped_content.startswith('  <p>'):
-                    # Replace <p> with <p class="fact-content"> throughout
-                    content_html = content_html.replace('<p>', '<p class="fact-content">')
-                    parts.append(content_html)
-                else:
-                    parts.append(f'    <p class="fact-content">{content_html}</p>')
+                # A single wrapping <div> (not a <p>) around the converted
+                # content, regardless of what it starts with: fact-box body
+                # text isn't always a bare paragraph — a heading (#/##/###)
+                # or a list can legitimately open it too, and a <p> can't
+                # validly contain block-level children (a browser silently
+                # closes it right before one, which would both break the
+                # visual structure and stop the .fact-content CSS scoping
+                # below from reaching anything past that point). Font-size/
+                # color inherit from the wrapping div, so this is visually
+                # identical to the old per-<p> class for plain-paragraph
+                # content — the fix only changes anything for non-paragraph
+                # content.
+                parts.append(f'    <div class="fact-content">{content_html}</div>')
                 parts.append(f'  </div>')
             else:
                 # No fact-label: free-form text, no box wrapper (spec 4.3)

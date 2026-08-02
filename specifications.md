@@ -205,7 +205,9 @@ automatiquement (`01 / NN` où NN est le nombre total de slides).
   </div>
   <div class="fact-box">
     <div class="fact-label">Le repère</div>
-    <p class="fact-content">Le four doit être préchauffé avant d'enfourner...</p>
+    <div class="fact-content">
+      <p>Le four doit être préchauffé avant d'enfourner...</p>
+    </div>
   </div>
   <p class="source">Source : Guide de pâtisserie, édition 2024.</p>
 </section>
@@ -341,25 +343,31 @@ même long — c'est la règle LWP de §4.1. En revanche, le texte libre de la
 seconde fiche ci-dessus contient volontairement **deux paragraphes Markdown**
 séparés par une ligne vide (« Le four doit être préchauffé... » et « Le
 temps de cuisson varie... ») : c'est le cas normal d'usage, et les deux
-doivent être rendus comme deux `<p class="fact-content">` distincts (§6.1).
+doivent être rendus comme deux `<p>` distincts à l'intérieur du même
+`<div class="fact-content">` (§6.1).
 
 ### 4.3 Champs d'une fiche standard
 
 | Champ           | HTML généré                              | Obligatoire |
 |-----------------|------------------------------------------|-------------|
 | `tag`           | `<span class="slide-tag">VALEUR</span>`  | Non         |
-| `h2` ou `## `   | `<h2>VALEUR</h2>`                        | Non         |
+| `## `           | `<h2>VALEUR</h2>`                        | Non         |
 | `summary`        | `<p class="summary">VALEUR</p>`          | Non         |
 | `fact-label`     | `<div class="fact-label">VALEUR</div>`   | Non         |
 | `source`         | `<p class="source">Source : VALEUR</p>` | Non         |
 | `highlight`         | `<span class="highlight-figure">VALEUR</span>` | Non     |
 | `highlight-caption` | `<span class="highlight-caption">VALEUR</span>` | Non  |
 
-Le texte libre après les champs est placé dans la `fact-content` si un
-`fact-label` est présent, sinon dans un paragraphe `<p>`. Ce texte libre peut
-contenir plusieurs paragraphes Markdown (séparés par une ligne vide, voir
-§6.1) ; chaque champ `clé: valeur`, à l'inverse, tient toujours sur une seule
-ligne physique (§4.1).
+Le texte libre après les champs est placé dans un `<div class="fact-content">`
+si un `fact-label` est présent, sinon dans un `<p>` nu. Ce texte libre suit le
+convertisseur Markdown générique (§6.1) : plusieurs paragraphes (séparés par
+une ligne vide), des titres (`#`/`##`/`###`), des listes, etc. sont tous
+autorisés, avec un style dédié plus petit pour les titres (`.fact-content
+h1/h2/h3`) que le grand titre de la slide, pour rester proportionné au cadre
+du fact-box. Un titre ouvrant directement le fact-box (sans paragraphe avant)
+ne redéfinit pas le titre de la slide — voir §22.2 pour la règle exacte.
+Chaque champ `clé: valeur`, à l'inverse, tient toujours sur une seule ligne
+physique (§4.1).
 
 ### 4.4 Types de slides
 
@@ -1583,10 +1591,10 @@ render_standard(slide, slide_num, total_slides, language):
      IF slide.fact_label:
        html += '<div class="fact-box">'
        html += '<div class="fact-label">{slide.fact_label}</div>'
-       html += '<p class="fact-content">{content}</p>'
+       html += '<div class="fact-content">{content}</div>'
        html += '</div>'
      ELSE:
-       html += '<p>{content}</p>'
+       html += '{content}'  # content is already full HTML (§6.1), not re-wrapped
   9. IF slide.source:
      html += '<p class="source">{language.strings.source_label} : {source}</p>'
   10. html += '</section>'
@@ -2376,9 +2384,28 @@ cesse de chercher des métadonnées.
 Cette règle s'applique aussi aux titres `# `/`## ` : un `## Sous-titre` qui
 apparaît **après** le début du contenu (donc dans le corps de la fact-box, pas
 dans l'en-tête de la slide) est du texte de contenu — un titre Markdown normal
-dans le rendu de la fact-box — et non une nouvelle valeur pour le `h2` de la
-slide. Seul un `# `/`## ` rencontré avant tout contenu définit le titre de la
+dans le rendu de la fact-box — et non une nouvelle valeur pour le titre de la
 slide.
+
+Deux précisions sur ce qui compte comme « avant tout contenu », toutes deux
+là pour permettre à un fact-box de **commencer directement** par un titre
+sans que celui-ci soit avalé comme titre de la slide :
+
+- **Un seul `#`/`## ` peut définir le titre d'une slide donnée.** Une fois
+  que `slide.h1` (cover) ou `slide.h2` (non-cover) a déjà été assigné une
+  première fois, un second `#`/`## ` rencontré avant tout autre contenu
+  bascule immédiatement en texte de contenu, au lieu d'écraser
+  silencieusement le titre déjà défini.
+- **Le niveau qui ne correspond pas au type de la slide ne définit jamais de
+  titre.** `#` ne définit un titre que sur une fiche `cover` ; `## ` ne
+  définit un titre que sur une fiche non-`cover` (`render_slide()` traite
+  tout `slide_type` autre que `cover` comme standard, y compris un type
+  inconnu — non validé, §11.5 — donc le parseur suit la même règle). Un
+  `## ` sur une fiche `cover`, ou un `#` sur une fiche non-`cover`, bascule
+  donc immédiatement en contenu dès sa première occurrence — sans cette
+  règle, un tel titre serait capturé dans un attribut que le rendu ne lit
+  jamais pour ce type de fiche, et disparaîtrait silencieusement au lieu de
+  devenir un titre visible dans le fact-box.
 
 ### 22.3 Slide sans `tag:`
 

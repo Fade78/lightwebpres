@@ -130,8 +130,8 @@ cascade.
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `tag`, `h1` (or `# Title`), `summary` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `h2` (or `## Title`), `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, then free Markdown text | As many as you want |
+| `cover` | `tag`, `# Title`, `summary` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
@@ -144,10 +144,19 @@ free text, not instead of it.
 
 The free Markdown text on a standard slide has two possible renderings,
 picked automatically: with a `fact-label:` line, it's wrapped in a
-labeled fact-box (`<div class="fact-box">` / `<div class="fact-label">`);
-without one, it renders as plain paragraph(s) — no box, no label. Use
-`fact-label:` when you want the highlighted-callout look, omit it for
-ordinary body text.
+labeled fact-box (`<div class="fact-box">` / `<div class="fact-label">` /
+`<div class="fact-content">`); without one, it renders as plain
+paragraph(s) — no box, no label. Use `fact-label:` when you want the
+highlighted-callout look, omit it for ordinary body text.
+
+That free text isn't limited to plain paragraphs — headings (`#`/`##`/
+`###`) and lists work too, styled smaller than the slide's own big title
+to fit the fact-box's frame. One trap to know about: a heading opening
+the free text directly (no paragraph before it) is still just content,
+*not* a redefinition of the slide's own title — but only the first `#`
+on a `cover` / first `##` on a non-`cover` slide is ever captured as the
+slide's title at all; a second one, or the wrong level for that slide
+type, always falls through to content (§22.2 in `specifications.md`).
 
 `series-nav` and `full-article` are **at most one each** per article —
 having two is a fatal build error, not "the second one wins."

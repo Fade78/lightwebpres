@@ -109,8 +109,9 @@ class ParagraphHandling(unittest.TestCase):
             root = scaffold(tmp, md)
             run('build', str(root), '--output', str(root / 'public'))
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            self.assertIn('<p class="fact-content">First paragraph.</p>', html)
-            self.assertIn('<p class="fact-content">Second paragraph, clearly distinct.</p>', html)
+            self.assertIn('<div class="fact-content">', html)
+            self.assertIn('<p>First paragraph.</p>', html)
+            self.assertIn('<p>Second paragraph, clearly distinct.</p>', html)
 
     def test_hardwrap_without_blank_line_is_joined_into_one_paragraph(self):
         # Standard Markdown rule (spec §6.1): consecutive lines with no
@@ -125,7 +126,7 @@ class ParagraphHandling(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn(
-                '<p class="fact-content">A sentence broken by mistake across two physical lines.</p>',
+                '<p>A sentence broken by mistake across two physical lines.</p>',
                 html,
             )
 
@@ -1020,7 +1021,7 @@ class NbspPreservedFromSource(unittest.TestCase):
             # source is rendered as "Source : {value}" (§4.3), so only
             # the value's own edges are checked, via substring containment.
             self.assertIn(w('Réf'), re.search(r'<p class="source">(.*?)</p>', html).group(1))
-            self._both_ends(re.search(r'<p class="fact-content">(.*?)</p>', html).group(1))
+            self._both_ends(re.search(r'<div class="fact-content">\s*<p>(.*?)</p>', html).group(1))
 
     def test_leading_nbsp_in_field_value_is_not_swallowed_by_regex(self):
         """Regression: the field regex used `key:\\s*(.*)`, and \\s
@@ -2816,11 +2817,14 @@ class ArticlesArrayOrder(unittest.TestCase):
             self.assertLess(readme.index('1. [zzz]'), readme.index('2. [aaa]'))
 
 
-class H2FieldForm(unittest.TestCase):
-    """§4.3: h2: as a key-value field is equivalent to a Markdown ## Title
-    heading — only the ## form is exercised elsewhere in this suite."""
+class H1H2FieldFormRemoved(unittest.TestCase):
+    """§4.3: `#`/`##` is the only way to set a slide's own heading — a
+    literal `h1:`/`h2:` key-value field used to be an accepted synonym,
+    but that redundant spelling was removed (GLOSSARY.md): an unrecognized
+    key flips the one-way field->free-text switch (§4.1/§22.2) like any
+    other typo would, it doesn't silently become a heading."""
 
-    def test_h2_field_form_renders_like_markdown_heading(self):
+    def test_h2_field_form_is_not_a_heading_anymore(self):
         md = (
             '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\nh2: Title via field\nsummary: Summary.\n'
@@ -2830,7 +2834,24 @@ class H2FieldForm(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            self.assertIn('<h2>Title via field</h2>', html)
+            self.assertNotIn('<h2>Title via field</h2>', html)
+            # The one-way switch already flipped on the unrecognized `h2:`
+            # line, so `summary:` right after it is text too, not a field.
+            self.assertIn('h2: Title via field', html)
+            self.assertIn('summary: Summary.', html)
+
+    def test_h1_field_form_is_fatal_on_a_cover_slide(self):
+        """A cover slide has no fact-box (§22.12) — free text after its
+        recognized fields is a fatal error, and `h1:` no longer counts as
+        one of those fields."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\nh1: Title via field\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
 
 
 class FactLabelOptional(unittest.TestCase):
@@ -2850,7 +2871,8 @@ class FactLabelOptional(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('<div class="fact-box">', html)
             self.assertIn('<div class="fact-label">The takeaway</div>', html)
-            self.assertIn('<p class="fact-content">Content with a fact-label.</p>', html)
+            self.assertIn('<div class="fact-content">', html)
+            self.assertIn('<p>Content with a fact-label.</p>', html)
 
     def test_fact_label_absent_produces_bare_paragraph(self):
         md = (
@@ -3071,13 +3093,119 @@ class HeadingInBodyIsContentNotRetitle(unittest.TestCase):
             self.assertIn('<h2>Real title</h2>', html)
             # ...and the in-body heading must render as fact-box content.
             self.assertIn(
-                '<p class="fact-content">First paragraph of body text.</p>',
+                '<p>First paragraph of body text.</p>',
                 html,
             )
             self.assertIn('<h2>This looks like a heading in the body</h2>', html)
             # Only one <h2> may be the slide title; the second is nested
             # inside the fact-box, not a sibling slide title.
             self.assertEqual(html.count('<h2>'), 2)
+
+
+class FactBoxOpensWithHeadingOrList(unittest.TestCase):
+    """A fact-box whose free text starts directly with a heading or a
+    list (no leading plain paragraph) is a legitimate, common shape —
+    the parser must not mistake that opening heading for a second
+    assignment of the slide's own title, and the wrapper around the
+    content must be a <div> (valid regardless of what block-level
+    element opens it), not a <p> (invalid once anything but plain text
+    is inside)."""
+
+    def test_heading_as_first_fact_box_line_does_not_overwrite_slide_title(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## The real slide title\nfact-label: The fact\n\n'
+            '## Sub-heading opening the fact-box\n\n'
+            'Body text after the sub-heading.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # Exactly one <h2> is the slide's own title...
+            self.assertIn('<h2>The real slide title</h2>', html)
+            # ...and the fact-box's own opening heading is real content,
+            # nested inside .fact-content, not a second slide title.
+            self.assertIn('<div class="fact-content">', html)
+            self.assertIn('<h2>Sub-heading opening the fact-box</h2>', html)
+            self.assertIn('<p>Body text after the sub-heading.</p>', html)
+            self.assertEqual(html.count('<h2>'), 2)
+
+    def test_second_h1_on_a_cover_is_content_and_therefore_fatal(self):
+        """Same trap, on a cover slide (its own title is h1, not h2) — a
+        second `#` before any content must fall through to content, same
+        rule as the h2/standard case, NOT silently overwrite the cover's
+        real title. Unlike a standard slide, a cover has no fact-box
+        (§22.12), so that content is a fatal error, not silently
+        rendered — this test's job is to prove it reaches THAT correct
+        error (content detected), not a wrong h1 in the output."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# The real cover title\nsummary: Summary.\n\n'
+            '# This is body text, not a retitle\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('has no fact-box', result.stderr)
+
+    def test_hash_heading_on_standard_slide_is_content_not_silently_dropped(self):
+        """The deeper trap: `#` (not `##`) opening a standard slide's
+        fact-box used to be captured into slide.h1 — an attribute a
+        standard slide's renderer never reads — vanishing with no error
+        and no trace, worse than the h2-on-h2 case (which at least
+        produced a visibly wrong title)."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Real title\nfact-label: The fact\n\n'
+            '# A heading using single hash\n\n'
+            'Body text.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<h2>Real title</h2>', html)
+            self.assertIn('<h1>A heading using single hash</h1>', html)
+            self.assertIn('<p>Body text.</p>', html)
+
+    def test_list_as_first_fact_box_line_wraps_in_div_not_p(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n\n'
+            '- First item\n- Second item\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="fact-content">', html)
+            self.assertNotIn('<p class="fact-content">', html)
+            self.assertIn('<ul>', html)
+            self.assertIn('<li>First item</li>', html)
+            self.assertIn('<li>Second item</li>', html)
+            # A <p> can never validly contain a <ul> — the fix must not
+            # produce that invalid nesting, only the correct <div> wrapper.
+            self.assertNotIn('<p><ul>', html)
+
+    def test_stylesheet_scopes_fact_content_headings_smaller_than_slide_title(self):
+        """CSS-only guarantee: nested headings inside a fact-box must not
+        inherit the giant global slide-title sizing — a scoped rule for
+        .fact-content h1/h2/h3 must exist in the generated stylesheet."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('.fact-content h1, .fact-content h2, .fact-content h3', html)
 
 
 if __name__ == '__main__':
