@@ -2815,6 +2815,97 @@ class Themes(unittest.TestCase):
             self.assertIn('--yellow: #D79921;', index_html)
 
 
+def load_lightwebpres_module():
+    """Imports the executable as a module, for the few things that can
+    only be checked from the inside. Safe: everything below `if __name__
+    == '__main__'` stays unrun, so importing has no side effect."""
+    import importlib.util
+    from importlib.machinery import SourceFileLoader
+    loader = SourceFileLoader('lightwebpres_under_test', str(EXECUTABLE))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+class DarkBackgroundThemes(unittest.TestCase):
+    """§9.5.2: a theme can declare a dark background and get its neutral
+    overlays inverted. Until that existed, every theme was forced to be
+    light-backgrounded — a white surface veil turns a card into an
+    unreadable pale block over a dark page, which is exactly what a
+    green-on-black candidate produced. No built-in theme uses the flag
+    yet, so this exercises the mechanism directly rather than through
+    one, and would otherwise be shipping untested."""
+
+    OVERLAY_VARS = ('rule', 'rule-strong', 'surface', 'sunken',
+                    'cover-bg', 'cover-fg', 'cover-fg-faint',
+                    'control', 'control-soft')
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_every_built_in_theme_still_resolves_to_the_light_preset(self):
+        """The assertion that matters, and the one that caught a real
+        bug: the flag was first called `dark`, which is ALSO the palette
+        key holding each theme's dark tone. `theme.get('dark')` therefore
+        returned a colour string — truthy — and all nine built-in themes
+        silently switched to the dark overlays. Nothing else in the suite
+        noticed, because those overlays are rgba and the colour checks
+        look for hex."""
+        self.assertEqual(
+            self.lwp.theme_surface_properties({}),
+            self.lwp.SURFACE_PRESETS[False],
+        )
+        for key, theme in self.lwp.THEMES.items():
+            self.assertIs(
+                self.lwp.theme_surface_properties(theme),
+                self.lwp.SURFACE_PRESETS[False],
+                f'{key} resolves to the dark overlays; every built-in theme '
+                'is light-backgrounded',
+            )
+
+    def test_a_dark_theme_inverts_every_overlay(self):
+        light = self.lwp.SURFACE_PRESETS[False]
+        dark = self.lwp.SURFACE_PRESETS[True]
+        self.assertEqual(sorted(light), sorted(dark), 'both presets must define the same variables')
+        for var in self.OVERLAY_VARS:
+            self.assertIn(var, light)
+            self.assertNotEqual(
+                light[var], dark[var],
+                f'--{var} is identical in both presets, so it does not adapt',
+            )
+        # The two that actually broke: a surface must not be a heavy white
+        # veil on a dark page, and the cover must not use --dark as its
+        # background there (that variable holds the TEXT colour).
+        self.assertNotIn('var(--dark)', dark['cover-bg'])
+        white_veil = re.search(r'rgba\(255,\s*255,\s*255,\s*([0-9.]+)\)', dark['surface'])
+        self.assertIsNotNone(white_veil, 'dark surface should still be a white veil, only a faint one')
+        self.assertLess(float(white_veil.group(1)), 0.2)
+
+    def test_install_with_a_dark_theme_writes_the_inverted_overlays(self):
+        """End to end through the real install path, with a dark theme
+        injected into THEMES for the duration of the test."""
+        self.lwp.THEMES['test-dark'] = {
+            'label': 'Test Dark', 'source': 'tests',
+            'dark_background': True,
+            'yellow': '#F4FF52', 'dark': '#D7FFE0', 'grey': '#5F8C6A',
+            'light': '#0B0F0C', 'accent': '#FF3C6F', 'green': '#33FF88',
+        }
+        try:
+            styled = self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, 'test-dark')
+        finally:
+            del self.lwp.THEMES['test-dark']
+        self.assertIn('--light: #0B0F0C;', styled)
+        dark = self.lwp.SURFACE_PRESETS[True]
+        for var in self.OVERLAY_VARS:
+            m = re.search(r'--' + re.escape(var) + r':\s*([^;]+);', styled)
+            self.assertIsNotNone(m, f'--{var} missing from the themed stylesheet')
+            self.assertEqual(
+                m.group(1).strip(), dark[var],
+                f'--{var} kept its light value in a dark-backgrounded theme',
+            )
+
+
 class DefaultStylesheetCoverage(unittest.TestCase):
     """§9/§9.5: the default templates/style.css is a maintained artifact,
     not a leftover of the article it was first extracted from. Three
