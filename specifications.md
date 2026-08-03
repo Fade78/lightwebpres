@@ -125,9 +125,9 @@ série.
 Les options en ligne de commande **override** les variables d'environnement.
 
 ```bash
-lightwebpres install [répertoire] [--lang fr] [--force] [--theme nom]
+lightwebpres install [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal]
 lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
 lightwebpres audit [répertoire] [--lang fr]
 lightwebpres refresh-templates [répertoire]
@@ -140,9 +140,21 @@ lightwebpres --help
 - `--output` : le répertoire de sortie (défaut : `public/`, ou `$LWP_OUTPUT_DIR`)
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
 - `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide
+- `--theme` : `install` seulement — remplace les six couleurs du thème par défaut par celles d'une palette prédéfinie (§9.5)
+- `--gitlab-ci` : `install` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`check` seulement — construit aussi les articles marqués `draft: true` (§20.6), avec bandeau « Brouillon »
-- `--theme` : `install` seulement — remplace les six couleurs du thème par défaut par celles d'une palette prédéfinie (§9.5)
+- `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
+- `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
+- `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
+
+Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR`
+ne sont honorées que par `build`, `check` et `audit` ; `install`, `demo` et
+`refresh-templates` n'utilisent que leurs arguments explicites.
+
+L'aide s'obtient par `help`, `--help` ou `-h` (les trois formes sont
+équivalentes) ; sans argument du tout, l'aide s'affiche aussi. Une
+commande inconnue affiche l'aide et sort avec le code 1.
 
 ---
 
@@ -295,7 +307,8 @@ le **texte Markdown standard** (le contenu libre, régi par la section 6).
 
 La structure LWP n'est reconnue que sous ces formes précises :
 
-1. **`---`** (seul sur une ligne, entouré de lignes vides) sépare les fiches
+1. **`---`** (seul sur une ligne — les lignes vides autour sont d'usage
+   mais pas exigées, voir §12.2) sépare les fiches
 2. **`<!-- lwp:meta -->`** marque le début du bloc de métadonnées (avant le premier
    `---`)
 3. **`<!-- lwp:slide:TYPE -->`** marque le type d'une fiche (défaut : standard)
@@ -529,9 +542,27 @@ l'exécutable au moment du build.
 | `- item`          | `<li>item</li>` (regroupés en `<ul>`)  |
 | `| a | b |`       | `<table>` avec thead/tbody             |
 | `---` (seul)      | séparateur de slides (pas de `<hr>`)  |
-| `[texte](url)`    | `<a href="url">texte</a>`              |
+| `[texte](url)`    | lien — voir ci-dessous                 |
 | `![alt](src)`     | image — voir ci-dessous                |
 | Paragraphe        | `<p>texte</p>`                         |
+
+**Liens.** Seules les URL **http(s)** sont converties : `[texte](url)`
+devient `<a href="url" target="_blank" rel="noopener">texte</a>` — tout
+lien s'ouvre dans un nouvel onglet. Un lien vers une cible relative
+(`[autre](autre.html)`) reste du texte littéral : c'est voulu (les pages
+générées sont autonomes et la seule cible relative légitime, une image,
+a sa propre syntaxe ci-dessous). Pour un lien interne malgré tout, passer
+par du HTML brut (§6.2).
+
+**Titres.** Seuls trois niveaux existent (`#`, `##`, `###`) ; `####` et
+au-delà ne sont pas reconnus et restent du texte de paragraphe littéral.
+
+**Tableaux.** Chaque `<table>` généré porte `class="comparison-table"`
+— c'est le crochet de style du CSS par défaut (et donc un point de
+personnalisation documenté). La ligne séparatrice accepte les deux-points
+d'alignement CommonMark (`|:---|---:|`) mais ils sont **ignorés** (aucun
+alignement émis). Le nombre de cellules par ligne n'est pas validé : une
+ligne plus courte ou plus longue que l'en-tête est émise telle quelle.
 
 **Images.** `![alt](src)` **seule sur sa ligne** devient un bloc figure :
 `<figure class="figure"><img src="src" alt="alt"></figure>`. Un titre
@@ -572,6 +603,15 @@ etc.), la ligne reste un paragraphe Markdown ordinaire (fusion avec les
 lignes suivantes comprise) : une phrase qui commence par un mot en gras
 (`<strong>Mot</strong> commence la phrase.`) n'est pas traitée
 différemment d'une phrase qui commence par du texte normal.
+
+**Esperluettes et entités.** Dans le texte Markdown ordinaire, tout `&`
+est échappé en `&amp;` — une entité HTML écrite à la main (`&rarr;`,
+`&nbsp;`...) y est donc neutralisée et s'affiche littéralement
+(`&rarr;`). Pour utiliser une entité, il faut être dans un **bloc** HTML
+brut (ligne commençant par une balise de bloc, ou bloc multi-lignes
+ouvert par une balise non refermée), où les lignes passent verbatim.
+Dans une ligne-paragraphe ordinaire, écrire le caractère Unicode
+directement (`→`, ` `) — tout le pipeline est UTF-8 natif (§13.1).
 
 ### 6.3 Citations et code
 
@@ -641,14 +681,21 @@ ailleurs dans le texte, précédé d'un `\`, s'affiche de la même façon
 sans ouvrir de span de code. Un `>` ou un backtick qui n'est de toute
 façon pas en position de déclencher l'une de ces deux constructions (un
 `>` au milieu d'une phrase, par exemple) n'a jamais eu besoin d'être
-échappé et continue de s'afficher tel quel sans backslash.
+échappé et continue de s'afficher tel quel sans backslash. Précision :
+la séquence `\>` (comme `` \` ``) est nettoyée **où qu'elle apparaisse**
+dans la ligne — le backslash est retiré, le caractère reste — pas
+seulement en début de ligne ; un `\>` écrit au milieu d'une phrase rend
+donc `>` et non `\>`.
 
 ### 6.4 Espacement et indentation
 
-Le convertisseur est insensible à l'indentation (tabs et espaces supprimés en
-début de ligne). Une ligne vide sépare deux paragraphes ; des lignes de texte
-consécutives sans ligne vide entre elles sont fusionnées dans le même
-paragraphe (voir §6.1).
+Le convertisseur **ne tolère aucune indentation** (cohérent avec §6.3) :
+les espaces et tabulations de fin de ligne sont supprimés, mais ceux de
+**début** de ligne sont préservés — une ligne `  # Titre` ou `  - item`
+indentée n'est ni un titre ni une liste, c'est un paragraphe ordinaire.
+Une ligne vide sépare deux paragraphes ; des lignes de texte consécutives
+sans ligne vide entre elles sont fusionnées dans le même paragraphe
+(voir §6.1).
 
 ---
 
@@ -850,8 +897,8 @@ Générée depuis `series.json`. La page d'index contient :
 
 1. Le `<head>` avec `<meta>`, `<title>`, le CSS inline
 2. Un en-tête (titre de la série, sous-titre)
-3. Une introduction (texte libre, défini dans `series.json` ou un fichier
-   `index.md`)
+3. Une introduction (texte libre : `series_meta.intro` de `series.json`,
+   seule source)
 4. Les cartes d'articles (une par article, dans l'ordre de `series.json`)
 5. Le JavaScript de navigation
 
@@ -900,9 +947,11 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 1. Le titre de la série (`series_meta.title`, ou « Article series » si absent)
 2. Le sous-titre et l'intro (`series_meta.subtitle`, `series_meta.intro`),
    s'ils sont présents
-3. Une liste numérotée des articles (`nav_title` — `nav_desc`,
-   résolus comme en §20.3.1), chacun lié vers son fichier HTML construit
-   (chemin relatif depuis le répertoire de série jusqu'à `--output`)
+3. Un titre de section fixe `## Articles` (non localisé), puis une liste
+   numérotée des articles (`nav_title` — `nav_desc`, résolus comme en
+   §20.3.1), chacun lié vers son fichier HTML construit (chemin relatif
+   depuis le répertoire de série jusqu'à `--output`, toujours avec des
+   `/` même sous Windows)
 
 ---
 
@@ -998,7 +1047,14 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
   désactivée, pas masquée : la matrice garde sa forme, seule l'action est
   indisponible.
 - « Copier le lien » utilise le presse-papiers (`navigator.clipboard`),
-  avec repli sur `prompt()` si l'API est indisponible.
+  avec repli sur `prompt()` si l'API est indisponible (ou si l'écriture
+  échoue). Après une copie réussie, le bouton affiche « ✓ » et son
+  infobulle devient la chaîne `copy_link_done` pendant **1600 ms**,
+  puis les deux reviennent à leur état initial.
+- Fermetures : la touche **Échap** ferme la pop-up de partage et la
+  modale QR ; un clic **hors** de la pop-up la ferme (un clic à
+  l'intérieur ne la ferme pas) ; la modale QR se ferme par un clic sur
+  son fond ou sur sa croix.
 - « Afficher le QR code » ouvre une fenêtre modale avec le QR code en SVG
   vectoriel, généré **entièrement côté client** par un encodeur JS
   embarqué dans `nav.js` — pas d'appel à un service tiers de génération
@@ -1146,7 +1202,7 @@ rendu du gras en fact-box (`fact_weight`/`fact_style`/`fact_highlight`,
 choisir un traitement typographique différent (ex. italique sans fond
 coloré plutôt que gras surligné) — et des métadonnées purement
 éditoriales (étiquette affichable, source, remarque) qui ne servent qu'à
-`themes-gallery` (§11.8) — jamais à `install --theme`. `fact_highlight`
+`themes-gallery` (§11.7) — jamais à `install --theme`. `fact_highlight`
 vaut le nom d'un des six rôles de couleur ci-dessus (résolu en
 `var(--rôle)`) ou `None` pour aucun fond ; les trois propriétés sont
 toujours explicites dans chaque entrée, y compris quand la valeur
@@ -1160,7 +1216,7 @@ palette appliquée par `install --theme` et celle affichée par
 `themes-gallery` viennent de la même donnée, elles ne peuvent pas diverger
 l'une de l'autre par construction — contrairement au premier jet de
 `themes-gallery.html` (une page écrite à la main), désormais remplacé par
-un fichier généré depuis cette table (§11.8).
+un fichier généré depuis cette table (§11.7).
 
 #### 9.5.1 Appliquer un thème à l'installation (`install --theme`)
 
@@ -1370,6 +1426,14 @@ travaille un seul article, voir la spec `lightwebpres-gui` §8.2), là où
 reconstruire toute la série à chaque pause de frappe serait disproportionné
 sur une série à beaucoup d'articles.
 
+**Désignation de l'article** : la valeur de `--only` est comparée au
+`page_dest` **ou** au `page_source` de chaque article — `--only a.html`
+et `--only a.md` désignent le même article. Aucune correspondance →
+erreur fatale (« matches no article »), de même qu'un `page_source`
+correspondant mais dont le fichier n'existe pas. Les brouillons étant
+exclus de la liste avant ce filtre, un article `draft: true` n'est
+désignable par `--only` qu'avec `--include-drafts`.
+
 **Le piège que ça doit éviter** : `build_index()` et `build_series_nav()`
 utilisent tous les deux les champs d'affichage résolus par
 `resolve_article_fields()` (`page_title`, `card_title`, `card_desc`,
@@ -1533,10 +1597,16 @@ compare le HTML généré à l'existant, §11.4) :
 1. Pour chaque article, lit et parse le `.md` source
 2. Avertit si l'article ne contient **aucune** fiche `cover`
 3. Avertit si la **première** fiche de l'article n'est pas une `cover`
-4. Affiche un résumé : « N avertissement(s) » ou « Aucun avertissement »
+4. Avertit si l'article n'a de description **nulle part** (`page_desc`
+   vide à tous les niveaux de la cascade §20.3.1 — la balise
+   `<meta name="description">` serait omise)
+5. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+   editorial conventions are respected. » ou « N warning(s). Reminder:
+   audit never blocks... »
 
 Le nombre et la position des fiches `cover` restent libres (§4.4, §22.13) :
-`audit` ne fait qu'informer, la décision reste à l'auteur.
+`audit` ne fait qu'informer, la décision reste à l'auteur. Les brouillons
+(§20.6) sont audités comme les autres articles, jamais exclus.
 
 ### 11.6 `refresh-templates`
 
@@ -1701,6 +1771,15 @@ render_standard(slide, slide_num, total_slides, language):
 Tous les fichiers sont lus et écrits en UTF-8. Les chaînes Python sont en
 Unicode. Les règles typographiques utilisent `\u00a0` pour l'espace insécable.
 
+Deux comportements de lecture, valables pour **toutes** les sources
+(articles, `series.json`, fichiers de langue, templates) :
+
+- Un **BOM UTF-8** en tête de fichier est toléré et absorbé (lecture en
+  `utf-8-sig`) — il n'apparaît jamais dans la sortie. (Historiquement, un
+  BOM fuyait un U+FEFF dans le HTML publié et cassait le premier titre.)
+- Un fichier qui n'est **pas de l'UTF-8 valide** produit une erreur
+  fatale propre avec l'offset de l'octet fautif — jamais une traceback.
+
 ### 13.2 HTML autonome
 
 Chaque fichier HTML généré est **autonome** :
@@ -1718,8 +1797,10 @@ non déterministe.
 ### 13.4 Pas de dépendance externe
 
 L'exécutable n'utilise que la bibliothèque standard de Python 3 — version
-minimale 3.8 (§2.1) — (sys, os, json,
-re, pathlib, glob, argparse, textwrap). Pas de `pip install`.
+minimale 3.8 (§2.1) : sys, os, re, json, shutil, difflib, hashlib,
+datetime, pathlib, types, html et html.parser. Pas de `pip install`.
+Ni `argparse` (la ligne de commande est analysée à la main dans `main()`)
+ni `glob`/`textwrap`.
 
 ### 13.5 Édition par LLM
 
@@ -2070,11 +2151,18 @@ placeholders `{{str_*}}` comme le reste.
 {{css}}
 </style>
 </head>
-<body>
+<body style="padding: 60px 8vw; max-width: 1200px; margin: 0 auto;">
 
-{{header}}
+{{build_stamp}}
+<div class="header">
+  <h1>{{series_title}}</h1>
+  <p class="subtitle">{{series_subtitle}}</p>
+  <span class="version-tag">{{series_version}}</span>
+</div>
 
-{{intro}}
+<div class="intro">
+  <p>{{series_intro}}</p>
+</div>
 
 {{cards}}
 {{index_footer}}
@@ -2086,6 +2174,7 @@ placeholders `{{str_*}}` comme le reste.
 {{js_index}}
 </script>
 
+{{index_extra}}
 </body>
 </html>
 ```
@@ -2094,35 +2183,50 @@ Placeholders supplémentaires :
 
 | Placeholder | Source | Description |
 |-------------|--------|-------------|
-| `{{header}}` | Métadonnées de `series.json` | En-tête avec titre, sous-titre, version |
-| `{{intro}}` | Texte d'introduction (dans `series.json` ou un fichier) | Paragraphe d'intro de l'index |
+| `{{series_title}}` / `{{series_subtitle}}` / `{{series_version}}` | `series_meta` de `series.json` | En-tête de l'index (l'en-tête est du markup fixe, pas un placeholder unique) |
+| `{{series_intro}}` | `series_meta.intro` (seule source) | Paragraphe d'intro de l'index |
 | `{{cards}}` | Généré depuis `series.json` | Les cartes d'articles |
 | `{{index_footer}}` | `series_meta.author`/`series_meta.license` (§20.3.1) | Pied de page éditorial de la série — tout absent = rien d'émis |
 | `{{js_index}}` | Généré, intégré à l'exécutable | Le JS spécifique à l'index (scroll) — pas overridable (§9). Pas de bouton de partage sur l'index (§9.2.1) |
+| `{{index_extra}}` | `templates/index_extra.html` s'il existe | Fragment HTML libre inséré tel quel en fin de `<body>` |
+| `{{build_stamp}}` | `--build-stamp`/`--build-stamp-minimal` (§11.3.2) | Marqueur de fraîcheur du build, vide par défaut |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Infobulles `index_nav_up`/`index_nav_home`/`index_nav_down`, voir §7.3 |
 
-### 18.3 Template `series-nav.html`
+### 18.3 Fragments de la slide series-nav
 
-```html
-<section class="slide" id="{{slide_id}}">
-  <h2>{{str_series_nav_title}}</h2>
-  <div class="series-list">
-{{nav_items}}
-  </div>
-</section>
-```
+Il n'y a **pas** de template `series-nav.html` à placeholders `{{...}}` :
+la `<section>` de navigation est produite par le rendu de slides avec un
+marqueur interne littéral (`{SERIES_NAV_PLACEHOLDER}`), remplacé lors de
+l'assemblage de la page par le bloc généré — c'est ce qui permet au bloc
+d'être calculé par article (l'item « courant » diffère) sans re-rendre
+les slides. Les items eux-mêmes sont des fragments internes au format
+`str.format` Python (champs à **simple** accolade) :
 
-| Placeholder | Source | Description |
-|-------------|--------|-------------|
-| `{{slide_id}}` | Calculé (ex. `s9-series`) | ID de la slide de navigation |
-| `{{nav_items}}` | Généré depuis `series.json` | Les items de navigation (liens + courant), chacun affichant `card_label`/`nav_title`/`nav_desc` résolus (§20.3.1) et utilisant `series_read`/`series_current_status`/`series_back_to_index` (§7.3) |
-| `{{str_series_nav_title}}` | `language/{lang}.json` → `strings` | Titre du bloc (« Cette série » / « This series ») |
+| Fragment | Champs | Rôle |
+|----------|--------|------|
+| item lien | `{file}` `{label}` `{title}` `{desc}` `{read}` | Un autre article de la série (lien) |
+| item courant | `{label}` `{title}` `{desc}` `{status}` | L'article en cours de lecture (pas un lien) |
+| retour index | `{back}` | Lien « Retour à l'index » en fin de liste |
+
+`label`/`title`/`desc` sont `card_label`/`nav_title`/`nav_desc` résolus
+(§20.3.1) et typographiés ; `read`/`status`/`back` viennent des chaînes
+`series_read`/`series_current_status`/`series_back_to_index` (§7.3).
+Chaque item émet toujours son `<div class="series-label">`, même vide.
+Le titre du bloc utilise la chaîne `series_nav_title`.
 
 ### 18.4 Règles de remplacement
 
-- Le remplacement est fait dans l'ordre : d'abord `{{css}}`, `{{js_nav}}`
-  (contenu statique), puis `{{slides}}`, `{{title}}`, `{{lang}}` (contenu
-  dynamique), puis les `{{str_KEY}}` (chaînes d'interface, §7.3) en dernier.
+- Page article, ordre réel : `{{lang}}`, `{{title}}`, `{{meta_head}}`,
+  `{{css}}`, `{{slides}}`, `{{page_footer}}`, `{{js_nav}}`,
+  `{{build_stamp}}`, `{{draft_banner}}`, puis les `{{str_KEY}}` (§7.3)
+  **en dernier**, appliqués sur la page entièrement assemblée.
+- Index, ordre réel : `{{lang}}`, `{{title}}`, `{{css}}`, `{{series_*}}`,
+  `{{cards}}`, `{{index_footer}}`, `{{js_index}}` (chaînes déjà
+  appliquées au JS avant insertion), `{{index_extra}}`,
+  `{{build_stamp}}`, puis les `{{str_KEY}}` en dernier.
+- Conséquence observable de « chaînes en dernier » : un `{{str_KEY}}`
+  n'est PAS re-substitué dans le CSS/JS injectés avant lui s'il n'y était
+  pas au chargement — mais l'est partout dans la page assemblée.
 - Si un placeholder n'est pas trouvé dans le template, il est ignoré (pas
   d'erreur). Cela permet d'avoir des templates plus simples sans tous les
   placeholders.
@@ -2203,9 +2307,20 @@ contenu réel embarqué dans l'exécutable.
 
 | Champ | Type | Obligatoire | Description |
 |-------|------|-------------|-------------|
-| `lang` | string | oui | Code de langue (ex. `fr`, `en`) |
+| `lang` | string | non* | Code de langue (ex. `fr`, `en`) |
 | `name` | string | non | Nom affichable (ex. « Français ») |
-| `rules` | array | oui | Liste des règles à appliquer, dans l'ordre |
+| `rules` | array | non* | Liste des règles à appliquer, dans l'ordre |
+
+\* Aucun champ n'est exigé d'un fichier de **surcharge** : un fichier
+chargé via `--language-file` ou `language/<lang>.json` est **fusionné**
+avec le pack embarqué de base (sélectionné par `--lang`, anglais si la
+langue n'est ni `fr` ni `en`). Sémantique : `rules` présent remplace les
+règles de base **en bloc** (absent = règles de base) ; `strings` est
+fusionné **clé par clé** par-dessus les chaînes de base (un fichier
+partiel ne définit que ce qu'il change) ; `lang`/`name` absents
+retombent sur le pack de base. Erreurs fatales : JSON invalide, racine
+non-objet, `rules` non-liste, `strings` non-objet, `--language-file`
+introuvable. Les packs embarqués, eux, portent évidemment tout.
 | `rules[].name` | string | non | Nom court de la règle (pour le debug) |
 | `rules[].description` | string | non | Description humaine |
 | `rules[].pattern` | string | oui | Regex Python (sans délimiteurs) |
@@ -2749,6 +2864,8 @@ web/
 ├── index.html              # La page : les deux onglets (zip et GitLab)
 ├── app.py                  # Colle Python de l'onglet zip : zip → cmd_build() → zip
 ├── git_sync.py              # Colle Python de l'onglet GitLab : API GitLab v4 <-> cmd_build() (§23.9)
+├── lwp_banner.svg           # Bannière du projet (utilisée aussi par le README du dépôt)
+├── lwp_logo_icon.svg        # Icône/logo de la page
 ├── .htaccess                # Types MIME Apache pour vendor/pyodide/ (§23.7)
 └── vendor/
     ├── NOTICE.md            # Provenance, licence, procédure de mise à jour

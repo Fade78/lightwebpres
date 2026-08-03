@@ -165,13 +165,24 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
     version vendorisée) à énoncer formellement.
 11. Administratif : LICENSE du dépôt, politique de versionnage post-1.0
     (que promet-on exactement à partir de 1.0 ?).
-12. Audit de la spec (en cours) : direction C faite (§16 feuille de route
-    resynchronisée, §17.5 nuance idempotence, §1.1 écosystème
-    documentaire déclaré — sans le journal, transitoire). Images :
-    tranchées et implémentées (§2.6, v0.7.0). Directions A (spec→code,
-    19 constats) et B (code→spec, 33 constats) : rapports livrés,
-    **consolidation présentée au propriétaire — corrections en attente
-    de son arbitrage** (« qui a raison » par ligne, avant tout fix).
+12. Audit de la spec (en cours) : direction C faite. Images : tranchées
+    et implémentées (§2.6, v0.7.0). Directions A (spec→code, 19
+    constats) et B (code→spec, 33 constats) : consolidation en 3 groupes
+    présentée au propriétaire. **Groupe 1 (le code a raison → spec
+    corrigée) : FAIT** — §2.4 options+env+aide, §4.1 séparateur, §6.1
+    liens http(s)/titres 3 niveaux/tableaux, §6.2 entités &, §6.3 \>
+    partout, §6.4 indentation, §8.1 intro sans index.md, §8.3 en-tête
+    Articles, §9.2.1 micro-interactions partage, §9.5 renvois §11.7,
+    §11.3.1 désignation --only, §11.5 audit (3e avertissement, résumé
+    anglais, brouillons inclus), §13.1 BOM/UTF-8, §13.4 stdlib, §18.2-4
+    placeholders réels, §19.2 fusion des packs, §23.4 SVG. **Groupes 2
+    (7 bugs code) et 3 (7 choix de conception) : EN ATTENTE de
+    l'arbitrage du propriétaire** — liste détaillée dans la conversation
+    du 2026-08-03 (groupe 2 : parseur CLI ×2, full-article manquant,
+    page_source manquant, contenu avant lwp:meta, demo/series.json,
+    spans vides ; groupe 3 : check index/README, portée Fiche par type,
+    champ dupliqué, champs ignorés cover/series-nav, flags langue,
+    str_KEY dans contenu d'auteur).
 13. Juste avant la release 1.0 : supprimer JOURNAL-1.0.md du dépôt.
 
 ## 4. Notes de processus (demandes explicites du propriétaire)
