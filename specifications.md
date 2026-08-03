@@ -530,7 +530,22 @@ l'exécutable au moment du build.
 | `| a | b |`       | `<table>` avec thead/tbody             |
 | `---` (seul)      | séparateur de slides (pas de `<hr>`)  |
 | `[texte](url)`    | `<a href="url">texte</a>`              |
+| `![alt](src)`     | image — voir ci-dessous                |
 | Paragraphe        | `<p>texte</p>`                         |
+
+**Images.** `![alt](src)` **seule sur sa ligne** devient un bloc figure :
+`<figure class="figure"><img src="src" alt="alt"></figure>`. Un titre
+Markdown standard après le chemin — `![alt](src "Légende")` — ajoute
+`<figcaption class="figure-caption">Légende</figcaption>` sous l'image ;
+la légende passe par le rendu inline (gras, liens...) et par la
+typographie, et le style par défaut l'affiche petite, centrée et grise
+(`var(--grey)`, donc adaptée à chaque thème). Une image **au milieu d'un
+paragraphe** devient un simple `<img>` inline, sans légende. Dans les
+deux cas la `src` peut être un chemin relatif — contrairement aux liens,
+restreints à http(s) — car les images vivent dans `articles/img/`,
+copié vers `public/img/` au build (§11.3). Une ligne-image n'est jamais
+fusionnée dans le paragraphe qui la précède : c'est un démarreur de
+bloc, comme un titre ou une liste.
 
 **Fusion des paragraphes.** Un paragraphe peut être écrit sur plusieurs
 lignes physiques consécutives : tant qu'aucune ligne vide ne les sépare, ces
@@ -1272,16 +1287,18 @@ lightwebpres demo [répertoire] [--lang fr]
 Vérifie que `install` a été fait (présence de `templates/style.css`). Si
 non, erreur fatale invitant à lancer `install` d'abord.
 
-Refuse de s'exécuter si l'un des 6 fichiers de démo existe déjà dans
-`articles/` (erreur fatale) — jamais d'écrasement silencieux d'un travail
-en cours.
+Refuse de s'exécuter si l'un des 7 fichiers de démo (6 `.md` +
+`img/demo-figure.svg`) existe déjà dans `articles/` (erreur fatale) —
+jamais d'écrasement silencieux d'un travail en cours.
 
 Crée trois articles d'exemple, un pour chaque position de la navigation de
 série :
 
 1. Crée `articles/first.md` + `articles/first_article.md` (position
    « first » ; démontre chaque champ d'affichage explicitement, plus
-   `date:` et `comment:`)
+   `date:` et `comment:` ; l'article long contient une image légendée
+   `![alt](img/demo-figure.svg "…")` (§6.1) dont le SVG est écrit dans
+   `articles/img/demo-figure.svg`)
 2. Crée `articles/middle.md` + `articles/middle_article.md` (position
    « middle » ; démontre `highlight`/`highlight-caption`, et la surcharge
    d'un `card_label` depuis `series.json`)
@@ -1884,26 +1901,28 @@ ressort. D'autres vérifications éditoriales pourront s'y ajouter plus tard.
 
 ### Phase 6 : pistes non planifiées (périmètre à trancher — 1.0 ou post-1.0)
 
-Demandées le 2026-07-31, volontairement jamais implémentées à ce jour :
+Demandées le 2026-07-31 :
 
-20. **Syntaxe Markdown native pour les images** (`![alt](src)`) — n'existe
-    pas aujourd'hui : une image ne peut être insérée que via une balise
-    `<img>` HTML brute recopiée telle quelle dans le Markdown (§6.2), et
-    `![alt](src)` produit actuellement un rendu cassé (le convertisseur de
-    liens reconnaît `[alt](src)` et laisse le `!` en texte littéral devant).
-21. **Légendes** pour les tableaux et les images — pas de mécanisme dédié
-    aujourd'hui ; à concevoir (ex. une ligne de texte immédiatement après
-    l'élément, ou une syntaxe d'attribut).
+20. **Syntaxe Markdown native pour les images** (`![alt](src)`) —
+    IMPLÉMENTÉ (voir §6.1) : seule sur sa ligne, l'image devient un bloc
+    `<figure>` ; au milieu d'un paragraphe, un `<img>` inline. La `src`
+    peut être un chemin relatif (contrairement aux liens, restreints à
+    http(s)) — c'est le cas d'usage `articles/img/` → `public/img/`.
+21. **Légendes pour les images** — IMPLÉMENTÉ (voir §6.1) : le titre
+    Markdown standard `![alt](src "Légende")` devient un `<figcaption>`
+    affiché petit, centré et gris (`var(--grey)`) sous l'image — le style
+    par défaut suit donc automatiquement chacun des 9 thèmes. Les légendes
+    de **tableaux** restent non planifiées.
 22. **Images cliquables** — pas de comportement par défaut aujourd'hui (ex.
     lien vers l'image en taille réelle, ou lightbox JS) ; à ajouter dans
     `nav.js` si lightbox, ou simplement envelopper l'`<img>` dans un `<a>`.
 23. **Taille et justification des images réglables** — pas de mécanisme
-    dédié aujourd'hui (l'auteur doit tout gérer lui-même en CSS/HTML inline
-    s'il écrit du HTML brut) ; à concevoir (classes CSS prédéfinies ? syntaxe
+    dédié aujourd'hui (le style par défaut `.figure` centre l'image et la
+    limite à la largeur du contenu ; au-delà, l'auteur passe par le CSS ou
+    du HTML brut) ; à concevoir (classes CSS prédéfinies ? syntaxe
     d'attribut sur `![alt](src)` ?).
 
-Ces quatre points demandent des choix de syntaxe (comment un auteur exprime
-une légende, une taille, un alignement en Markdown) qui n'ont pas encore été
+Les points 22 et 23 demandent des choix de syntaxe qui n'ont pas encore été
 tranchés — à spécifier avant implémentation.
 
 ---

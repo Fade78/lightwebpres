@@ -161,8 +161,9 @@ paragraph(s) — no box, no label. Use `fact-label:` when you want the
 highlighted-callout look, omit it for ordinary body text.
 
 That free text isn't limited to plain paragraphs — headings (`#`/`##`/
-`###`) and lists work too, styled smaller than the slide's own big title
-to fit the fact-box's frame. One trap to know about: a heading opening
+`###`), lists and captioned images (`![alt](src "Caption")`) work too,
+headings styled smaller than the slide's own big title to fit the
+fact-box's frame. One trap to know about: a heading opening
 the free text directly (no paragraph before it) is still just content,
 *not* a redefinition of the slide's own title — but only the first `#`
 on a `cover` / first `##` on a non-`cover` slide is ever captured as the
@@ -178,10 +179,15 @@ Referenced by `article:`, it's a separate `.md` file (by convention
 `{name}_article.md`) with **no LWP structure at all** — just standard
 Markdown: headings, `**bold**`/`*italic*`, `[links](url)`, footnotes
 (`[^1]` + `[^1]: definition`), lists, tables, blockquotes (`> text`),
-inline code (`` `code` ``), fenced code blocks (` ```lang ` ... ` ``` `,
-the language optional and purely informational — no syntax
-highlighting), and raw HTML passed through as-is (so an author can drop
-in a hand-written `<figure>` or similar if the situation calls for it).
+images (`![alt](img/pic.png)` — alone on its line it becomes a centered
+`<figure>` block, and a standard Markdown title, `![alt](src "Caption")`,
+renders as a small centered caption under the image; mid-paragraph it's
+a plain inline `<img>`, no caption; the path is relative — images live
+in `articles/img/`, copied to `public/img/` at build), inline code
+(`` `code` ``), fenced code blocks (` ```lang ` ... ` ``` `, the
+language optional and purely informational — no syntax highlighting),
+and raw HTML passed through as-is (so an author can drop in a
+hand-written `<figure>` or similar if the situation calls for it).
 
 Code is the one exception to "nothing gets escaped": text inside
 `` `...` `` or a ` ``` ` block is HTML-escaped and shown exactly as

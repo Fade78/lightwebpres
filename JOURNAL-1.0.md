@@ -6,10 +6,10 @@ décision actée en discussion est reportée ici **avant** d'être
 implémentée ; l'état est resynchronisé ici après chaque étape poussée ;
 le contenu est présenté régulièrement dans les comptes rendus.
 
-Dernière mise à jour : 2026-08-03 — état du dépôt : v0.6.0 (champ
-`comment` + gel de la nomenclature §2, implémenté en une passe : code,
-tests, spec, glossaire, README, GUIDE, SKILL). La release GitHub v0.6.0
-couvre tout depuis v0.5.1.
+Dernière mise à jour : 2026-08-03 — état du dépôt : v0.7.0 (images
+Markdown natives + légendes, voir §2.6 ; inclut aussi les correctifs des
+axes 1/2/3/9 poussés après le tag v0.6.0). La release GitHub v0.6.0
+couvre le champ `comment` + le gel de la nomenclature.
 
 ## 1. Cadrage produit (décidé)
 
@@ -93,6 +93,27 @@ couvre tout depuis v0.5.1.
 - Champs article/série : snake_case (`page_title`, `nav_desc`).
 - Règle à figer pour tout futur champ.
 
+### 2.6 Images Markdown natives + légendes (décidé et IMPLÉMENTÉ, v0.7.0)
+
+- `![alt](src)` **seule sur sa ligne** → bloc
+  `<figure class="figure"><img></figure>` ; le titre Markdown standard
+  `![alt](src "Légende")` → `<figcaption class="figure-caption">`.
+- Style par défaut de la légende (décision propriétaire) : **petit,
+  centré sous l'image**, gris via `var(--grey)` dans TEMPLATE_STYLE —
+  chaque thème des 9 proposés a donc sa déclinaison automatiquement.
+- Image **dans un paragraphe** → `<img>` inline, sans légende.
+- La `src` peut être un chemin relatif (contrairement aux liens,
+  restreints à http(s)) — cas d'usage `articles/img/` → `public/img/`.
+- La légende passe par md_inline + typographie ; alt/src échappés.
+- Une ligne-image n'est jamais fusionnée au paragraphe précédent
+  (démarreur de bloc). Avant : `![alt](src)` rendait un `!` littéral
+  suivi du rendu du lien (bug historique, §16 item 20).
+- Démo : `articles/img/demo-figure.svg` + figure légendée dans
+  `first_article.md` ; le garde anti-écrasement de `demo` couvre le SVG.
+- Points 22 (images cliquables) et 23 (taille/justification) : toujours
+  NON tranchés, restent en §16 phase 6.
+- Légendes de **tableaux** : non planifiées.
+
 ## 3. Revue 1.0 — axes restants (après le gel)
 
 Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
@@ -146,11 +167,11 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
     (que promet-on exactement à partir de 1.0 ?).
 12. Audit de la spec (en cours) : direction C faite (§16 feuille de route
     resynchronisée, §17.5 nuance idempotence, §1.1 écosystème
-    documentaire déclaré — sans le journal, transitoire). EN ATTENTE :
-    décision propriétaire sur les images (§16 phase 6 : périmètre 1.0 ou
-    post-1.0 ? — noter que `![alt](src)` produit aujourd'hui un rendu
-    cassé). Directions A (spec→code) et B (code→spec) : rapports d'agents
-    en cours de production.
+    documentaire déclaré — sans le journal, transitoire). Images :
+    tranchées et implémentées (§2.6, v0.7.0). Directions A (spec→code,
+    19 constats) et B (code→spec, 33 constats) : rapports livrés,
+    **consolidation présentée au propriétaire — corrections en attente
+    de son arbitrage** (« qui a raison » par ligne, avant tout fix).
 13. Juste avant la release 1.0 : supprimer JOURNAL-1.0.md du dépôt.
 
 ## 4. Notes de processus (demandes explicites du propriétaire)
@@ -185,3 +206,7 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
   `author`/`license`/`date` affichés, `page_desc` + `<meta>` tags,
   `draft`/`--include-drafts` + bandeau, erreurs de migration, §1
   généraliste, convention de casse au glossaire.
+- v0.7.0 : images Markdown natives + légendes (§2.6) ; inclut aussi les
+  travaux des axes 1/2/3/9 poussés après le tag v0.6.0 (BOM/UTF-8
+  invalide, Python 3.8 + Windows, déterminisme du build, parité i18n +
+  UTF-8 natif — chacun figé par tests).

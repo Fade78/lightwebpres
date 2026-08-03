@@ -137,8 +137,9 @@ all generated automatically.
   `series.json` (at most one per article).
 - **`full-article`** — includes a separate long-form Markdown file,
   converted with full support for headings, bold/italic, links,
-  footnotes, lists, tables, blockquotes, inline/fenced code, and inline
-  raw HTML (at most one per article).
+  footnotes, lists, tables, blockquotes, images with captions
+  (`![alt](src "Caption")` — small, centered, themed), inline/fenced
+  code, and inline raw HTML (at most one per article).
 
 Every slide (and `series.json`/the article's own meta block) also
 accepts `comment:` — a review note, recognized but never rendered, never

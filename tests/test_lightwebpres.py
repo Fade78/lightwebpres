@@ -370,6 +370,97 @@ class HighlightField(unittest.TestCase):
             self.assertNotIn('class="highlight"', html)
 
 
+class ImageFiguresAndCaptions(unittest.TestCase):
+    """§6.1: `![alt](src)` alone on a line renders as a <figure>; an
+    optional quoted title after the path becomes a small centered
+    <figcaption>. Mid-paragraph images render as plain <img> (no
+    caption). Before this feature, `![alt](src)` rendered broken —
+    a literal `!` followed by the link rules' output."""
+
+    def _build_article_html(self, article_body, slide_body=None):
+        slide = slide_body or '<!-- lwp:slide:full-article -->\narticle: art.md\n'
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            + slide
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'art.md').write_text(article_body or '', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+    def test_standalone_image_with_caption(self):
+        html = self._build_article_html(
+            '![A pie](img/pie.png "The finished pie")\n'
+        )
+        self.assertIn(
+            '<figure class="figure"><img src="img/pie.png" alt="A pie">'
+            '<figcaption class="figure-caption">The finished pie</figcaption></figure>',
+            html,
+        )
+
+    def test_standalone_image_without_caption_has_no_figcaption(self):
+        html = self._build_article_html('![A pie](img/pie.png)\n')
+        self.assertIn(
+            '<figure class="figure"><img src="img/pie.png" alt="A pie"></figure>', html
+        )
+        self.assertNotIn('<figcaption', html)
+
+    def test_no_literal_bang_leaks(self):
+        # The historical broken rendering: "!" left behind before the
+        # link output. Neither form may leak a literal "![" anywhere.
+        for body in ('![A pie](img/pie.png)\n',
+                     '![Photo](https://example.org/p.png "Cap")\n',
+                     'Inline ![icon](img/i.png) here.\n'):
+            html = self._build_article_html(body)
+            self.assertNotIn('![', html)
+
+    def test_inline_image_in_paragraph(self):
+        html = self._build_article_html('Text with ![icon](img/i.png) inline.\n')
+        self.assertIn('<p>Text with <img src="img/i.png" alt="icon"> inline.</p>', html)
+
+    def test_image_line_not_merged_into_preceding_paragraph(self):
+        # No blank line between a paragraph and the image line: the image
+        # still becomes its own <figure> block (it is a block starter,
+        # like a heading or a list — not a paragraph continuation).
+        html = self._build_article_html('Before.\n![pie](img/pie.png "Cap")\nAfter.\n')
+        self.assertIn('<p>Before.</p>', html)
+        self.assertIn('<figure class="figure">', html)
+        self.assertIn('<p>After.</p>', html)
+
+    def test_caption_supports_inline_markdown_and_escaping(self):
+        html = self._build_article_html(
+            '![alt "q"](img/a&b.png "With **bold** & a [link](https://x.org)")\n'
+        )
+        self.assertIn('src="img/a&amp;b.png"', html)
+        self.assertIn('alt="alt &quot;q&quot;"', html)
+        self.assertIn('<figcaption class="figure-caption">With <strong>bold</strong> '
+                      '&amp; a <a href="https://x.org" target="_blank" rel="noopener">link</a>'
+                      '</figcaption>', html)
+
+    def test_caption_gets_typography(self):
+        # French typography: NBSP before "!" inside the caption text.
+        html = self._build_article_html('![p](img/p.png "Magnifique !")\n')
+        self.assertIn('Magnifique !', html)
+
+    def test_figure_works_in_fact_box(self):
+        html = self._build_article_html(
+            None,
+            slide_body=(
+                '<!-- lwp:slide -->\n## Card\nfact-label: FACT\n'
+                'Some intro text.\n\n![pie](img/pie.png "In a fact box")\n'
+            ),
+        )
+        self.assertIn('<figure class="figure">', html)
+        self.assertIn('<figcaption class="figure-caption">In a fact box</figcaption>', html)
+
+    def test_figure_css_present_in_default_stylesheet(self):
+        html = self._build_article_html('![p](img/p.png "Cap")\n')
+        self.assertIn('.figure-caption', html)
+        self.assertIn('color: var(--grey)', html)
+
+
 class MarkdownConversion(unittest.TestCase):
     """§3.2/§6: the full-article body goes through convert_markdown() and
     must support standard Markdown, not just paragraphs."""

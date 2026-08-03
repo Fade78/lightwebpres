@@ -44,7 +44,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -499,6 +499,18 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .comparison-table .yes { color: var(--grey); font-weight: 500; }
   .comparison-table .no { color: var(--green); font-weight: 700; }
   .comparison-table .partial { color: var(--grey); font-weight: 500; }
+  .figure {
+    margin: 20px auto;
+    max-width: var(--content-max);
+    text-align: center;
+  }
+  .figure img { max-width: 100%; height: auto; }
+  .figure-caption {
+    margin-top: 6px;
+    font-size: 0.85em;
+    color: var(--grey);
+    text-align: center;
+  }
   .full-article {
     background: white;
     padding: 60px 8vw 80px 8vw;
@@ -2349,6 +2361,20 @@ def md_inline(text):
 
     # Escape ampersands before inserting our own tags
     text = text.replace('&', '&amp;')
+    # Inline images: `![alt](src)` anywhere in a line. Unlike links —
+    # restricted to http(s) — the src may be a relative path (images
+    # live in articles/img/, copied to public/img/ at build). The tag
+    # goes straight into a placeholder so the bold/italic/link rules
+    # below can never rewrite its inside. Standalone image lines never
+    # reach this point: convert_markdown() turns them into <figure>
+    # blocks (with optional caption) first.
+    def _inline_img(m):
+        alt = m.group(1).replace('"', '&quot;')
+        src = m.group(2).replace('"', '&quot;')
+        code_spans.append(f'<img src="{src}" alt="{alt}">')
+        return f'\x00{len(code_spans) - 1}\x00'
+
+    text = re.sub(r'!\[([^\]]*)\]\(([^)\s"]+)\)', _inline_img, text)
     # Bold before italic
     text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<em>\1</em>', text)
@@ -2402,6 +2428,12 @@ _HTML_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(/?)>')
 # just "```" with nothing after it, which this pattern also matches
 # (empty language group).
 _CODE_FENCE_RE = re.compile(r'^```(\S*)$')
+
+# A standalone image line (§6.1): the whole line is `![alt](src)`, with
+# an optional quoted caption after the path. Unlike links — restricted
+# to http(s) — the src may be a relative path: images live in
+# articles/img/ and are copied to public/img/ at build time.
+_FIGURE_LINE_RE = re.compile(r'^!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)$')
 
 
 def _html_tag_depth_delta(line):
@@ -2471,6 +2503,8 @@ def _is_paragraph_continuation(line, lines, idx, n):
         return False
     if _CODE_FENCE_RE.match(line):
         return False
+    if _FIGURE_LINE_RE.match(line):
+        return False
     return True
 
 
@@ -2535,6 +2569,23 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
         if line.startswith('### '):
             close_list()
             out.append(f'  <h3>{md_inline(strip_ws(line[4:]))}</h3>')
+            i += 1
+            continue
+
+        # Standalone image (§6.1): the whole line is `![alt](src)`, with
+        # an optional quoted caption — rendered as a <figure>, the
+        # caption as a small centered <figcaption> under the image.
+        # Mid-paragraph images are md_inline()'s job and have no caption.
+        m_fig = _FIGURE_LINE_RE.match(line)
+        if m_fig:
+            close_list()
+            alt = html_escape(m_fig.group(1), quote=True)
+            src = html_escape(m_fig.group(2), quote=True)
+            caption = m_fig.group(3)
+            if caption:
+                out.append(f'  <figure class="figure"><img src="{src}" alt="{alt}"><figcaption class="figure-caption">{md_inline(caption)}</figcaption></figure>')
+            else:
+                out.append(f'  <figure class="figure"><img src="{src}" alt="{alt}"></figure>')
             i += 1
             continue
 
@@ -4168,7 +4219,7 @@ def cmd_demo(target_dir, args):
     articles_dir = td / 'articles'
 
     demo_filenames = ['first.md', 'first_article.md', 'middle.md', 'middle_article.md',
-                       'last.md', 'last_article.md']
+                       'last.md', 'last_article.md', 'img/demo-figure.svg']
     existing = [f for f in demo_filenames if (articles_dir / f).exists()]
     if existing:
         print(f'[ERROR] {td}/articles already has demo file(s): {", ".join(existing)}. '
@@ -4232,9 +4283,19 @@ A paragraph with some **bold** and *italic* text.
 - A list item
 - Another item
 
+## II. An image with a caption
+
+![A demo figure](img/demo-figure.svg "A captioned image — small, centered, themed (see §6.1)")
+
 ## References
 
 [^1]: Demo source, 2025.
+'''
+
+    demo_figure_svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120" viewBox="0 0 240 120">
+  <rect x="4" y="4" width="232" height="112" rx="10" fill="#e8e8e0" stroke="#3a3a44" stroke-width="2"/>
+  <text x="120" y="68" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#3a3a44">LWP</text>
+</svg>
 '''
 
     # Article 2: middle — only page_title and card_label set; card_title/
@@ -4340,6 +4401,8 @@ This is the full article for the third demo article [^1].
 
     # Write the files
     (articles_dir / 'first.md').write_text(demo1, encoding='utf-8')
+    (articles_dir / 'img').mkdir(exist_ok=True)
+    (articles_dir / 'img' / 'demo-figure.svg').write_text(demo_figure_svg, encoding='utf-8')
     (articles_dir / 'first_article.md').write_text(demo1_article, encoding='utf-8')
     (articles_dir / 'middle.md').write_text(demo2, encoding='utf-8')
     (articles_dir / 'middle_article.md').write_text(demo2_article, encoding='utf-8')
@@ -4367,6 +4430,7 @@ This is the full article for the third demo article [^1].
 
     print(f'Demo created: {td}')
     print('  3 articles (first, middle, last) with full articles')
+    print('  1 demo image with a caption (articles/img/demo-figure.svg)')
 
     # Run the build
     print()
