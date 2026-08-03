@@ -519,7 +519,7 @@ class PlaceholderNotSubstitutedInAuthorContent(unittest.TestCase):
             # The real stylesheet must never be dumped into the title/meta:
             # the <title> content is exactly the literal placeholder text.
             title = html.split('<title>')[1].split('</title>')[0]
-            self.assertNotIn('--yellow', title)
+            self.assertNotIn('--marker', title)
             self.assertNotIn('box-sizing', title)
 
     def test_index_series_title_placeholder_stays_literal(self):
@@ -1392,7 +1392,7 @@ class ImageFiguresAndCaptions(unittest.TestCase):
     def test_figure_css_present_in_default_stylesheet(self):
         html = self._build_article_html('![p](img/p.png "Cap")\n')
         self.assertIn('.figure-caption', html)
-        self.assertIn('color: var(--grey)', html)
+        self.assertIn('color: var(--ink-muted)', html)
 
 
 class MarkdownConversion(unittest.TestCase):
@@ -2707,7 +2707,7 @@ class Themes(unittest.TestCase):
             root = Path(tmp)
             self.assertEqual(run('install', str(root)).returncode, 0)
             style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--yellow: #FFFC00;', style)
+            self.assertIn('--marker: #FFFC00;', style)
             self.assertIsNone(self.THEME_MARKER_RE.search(style))
 
     def test_install_with_valid_theme_substitutes_colors_and_records_marker(self):
@@ -2717,8 +2717,8 @@ class Themes(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Nord', result.stdout)
             style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--yellow: #EBCB8B;', style)
-            self.assertIn('--dark: #2E3440;', style)
+            self.assertIn('--marker: #EBCB8B;', style)
+            self.assertIn('--ink: #2E3440;', style)
             self.assertNotIn('#FFFC00', style)
             m = self.THEME_MARKER_RE.search(style)
             self.assertIsNotNone(m)
@@ -2746,7 +2746,7 @@ class Themes(unittest.TestCase):
             self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
             style_path = root / 'templates' / 'style.css'
             stale = style_path.read_text(encoding='utf-8').replace(
-                '--yellow: #F1FA8C;', '--yellow: #F1FA8C;\n  /* STALE-BUILTIN-RULE */', 1,
+                '--marker: #F1FA8C;', '--marker: #F1FA8C;\n  /* STALE-BUILTIN-RULE */', 1,
             )
             style_path.write_text(stale, encoding='utf-8')
 
@@ -2755,8 +2755,8 @@ class Themes(unittest.TestCase):
 
             refreshed = style_path.read_text(encoding='utf-8')
             self.assertNotIn('STALE-BUILTIN-RULE', refreshed)
-            self.assertIn('--yellow: #F1FA8C;', refreshed)
-            self.assertIn('--dark: #282A36;', refreshed)
+            self.assertIn('--marker: #F1FA8C;', refreshed)
+            self.assertIn('--ink: #282A36;', refreshed)
             m = self.THEME_MARKER_RE.search(refreshed)
             self.assertIsNotNone(m)
             self.assertEqual(m.group(1), 'dracula')
@@ -2776,7 +2776,7 @@ class Themes(unittest.TestCase):
             self.assertIn('retired-theme', result.stderr)
 
             refreshed = style_path.read_text(encoding='utf-8')
-            self.assertIn('--yellow: #FFFC00;', refreshed)
+            self.assertIn('--marker: #FFFC00;', refreshed)
             self.assertIsNone(self.THEME_MARKER_RE.search(refreshed))
 
     def test_themes_gallery_default_path(self):
@@ -2798,7 +2798,7 @@ class Themes(unittest.TestCase):
                           'Catppuccin Latte', 'Tokyo Night', 'Monokai', 'Everforest',
                           'Rosé Pine Dawn'):
                 self.assertIn(f'<h2>{label}</h2>', html)
-            self.assertIn('--yellow:#EBCB8B', html)
+            self.assertIn('--marker:#EBCB8B', html)
             self.assertIn('lightwebpres install my-series --theme nord', html)
             # One card per theme, whatever the count — asserting a literal
             # number here just means editing the test every time a palette
@@ -2822,7 +2822,7 @@ class Themes(unittest.TestCase):
             self.assertEqual(run('demo', str(root)).returncode, 0)
             self.assertEqual(run('build', str(root)).returncode, 0)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('--yellow: #D79921;', index_html)
+            self.assertIn('--marker: #D79921;', index_html)
 
 
 def load_lightwebpres_module():
@@ -2891,7 +2891,7 @@ class DarkBackgroundThemes(unittest.TestCase):
         # The two that actually broke: a surface must not be a heavy white
         # veil on a dark page, and the cover must not use --dark as its
         # background there (that variable holds the TEXT colour).
-        self.assertNotIn('var(--dark)', dark['cover-bg'])
+        self.assertNotIn('var(--ink)', dark['cover-bg'])
         white_veil = re.search(r'rgba\(255,\s*255,\s*255,\s*([0-9.]+)\)', dark['surface'])
         self.assertIsNotNone(white_veil, 'dark surface should still be a white veil, only a faint one')
         self.assertLess(float(white_veil.group(1)), 0.2)
@@ -2905,12 +2905,12 @@ class DarkBackgroundThemes(unittest.TestCase):
         figure was invisible. On a dark theme --light IS the dark page
         ground, so it is the ink this needs."""
         _, _, highlight, ink = self.lwp.theme_fact_properties(
-            {'dark_background': True, 'fact_highlight': 'yellow'})
-        self.assertEqual(highlight, 'var(--yellow)')
-        self.assertEqual(ink, 'var(--light)')
+            {'dark_background': True, 'fact_highlight': 'marker'})
+        self.assertEqual(highlight, 'var(--marker)')
+        self.assertEqual(ink, 'var(--page)')
 
-        _, _, _, light_ink = self.lwp.theme_fact_properties({'fact_highlight': 'yellow'})
-        self.assertEqual(light_ink, 'var(--dark)')
+        _, _, _, light_ink = self.lwp.theme_fact_properties({'fact_highlight': 'marker'})
+        self.assertEqual(light_ink, 'var(--ink)')
 
         # No marker means no marker to sit on: the text must keep the
         # body colour, or a dark theme would paint it dark-on-dark.
@@ -2925,14 +2925,14 @@ class DarkBackgroundThemes(unittest.TestCase):
         self.lwp.THEMES['test-dark'] = {
             'label': 'Test Dark', 'source': 'tests',
             'dark_background': True,
-            'yellow': '#F4FF52', 'dark': '#D7FFE0', 'grey': '#5F8C6A',
-            'light': '#0B0F0C', 'accent': '#FF3C6F', 'green': '#33FF88',
+            'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#5F8C6A',
+            'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
         }
         try:
             styled = self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, 'test-dark')
         finally:
             del self.lwp.THEMES['test-dark']
-        self.assertIn('--light: #0B0F0C;', styled)
+        self.assertIn('--page: #0B0F0C;', styled)
         dark = self.lwp.SURFACE_PRESETS[True]
         for var in self.OVERLAY_VARS:
             m = re.search(r'--' + re.escape(var) + r':\s*([^;]+);', styled)
@@ -2968,7 +2968,7 @@ class ThemeFacets(unittest.TestCase):
         ]
         for hex_colour, expected in cases:
             self.assertEqual(
-                self.lwp.theme_hue_family({'light': hex_colour}), expected,
+                self.lwp.theme_hue_family({'page': hex_colour}), expected,
                 f'{hex_colour} should read as {expected}',
             )
 
@@ -3014,7 +3014,7 @@ class GalleryPreviewFidelity(unittest.TestCase):
 
     Passing the theme's variables into the preview is not enough if the
     preview then ignores them. It did: the cover ground was hard-coded to
-    var(--dark) and its text to #fff, and the fact-box to #fff. On a
+    var(--ink) and its text to #fff, and the fact-box to #fff. On a
     dark-backgrounded theme --dark holds the TEXT colour, so Synthwave
     previewed as a pale lavender panel with white text on it, above a
     white fact-box whose own text was near-invisible — the exact bugs
@@ -3023,7 +3023,7 @@ class GalleryPreviewFidelity(unittest.TestCase):
 
     # role -> (preview selector, real-stylesheet selector, variable)
     ROLE_MAP = (
-        ('page ground', '.preview', 'body', '--light'),
+        ('page ground', '.preview', 'body', '--page'),
         ('cover ground', '.preview-cover', '.slide-cover', '--cover-bg'),
         ('cover text', '.preview-cover-title', '.slide-cover h1', '--cover-fg'),
         ('card surface', '.preview-factbox', '.fact-box', '--surface'),
@@ -3101,7 +3101,7 @@ class GalleryPreviewFidelity(unittest.TestCase):
         after their values in the very first theme and never renamed —
         they are what an author overrides in style.css, so renaming them
         would break every existing customization. The consequence is that
-        they lie: --yellow is a dark olive on Pop Lemon (a yellow marker
+        they lied: --yellow held a dark olive on Pop Lemon (a yellow marker
         on a yellow page would be invisible) and --light is a near-black
         on any dark theme. A swatch reading 'yellow #7A6A00' teaches a
         reader nothing, so the role leads and the variable follows."""
@@ -3113,20 +3113,21 @@ class GalleryPreviewFidelity(unittest.TestCase):
         roles = re.findall(r'<div class="swatch-role">([^<]*)</div>', html)
         self.assertEqual(len(roles), 6 * len(self.lwp.THEMES))
         # A role, never a bare variable name posing as one.
-        for name in ('yellow', 'dark', 'grey', 'light', 'accent', 'green'):
+        for name in self.lwp.PALETTE_ROLES:
             self.assertNotIn(name, roles, f'{name!r} is a variable name, not a role')
         self.assertIn('Fond de page', roles)
         self.assertIn('Filets &amp; rep&egrave;res', roles)
 
         # The variable name still has to be reachable — it is what you
         # type to override the value.
-        for var in ('--light', '--dark', '--grey', '--yellow', '--accent', '--green'):
-            self.assertIn(f'&middot; {var}<', html, f'{var} no longer shown')
+        for var in (f'--{r}' for r in self.lwp.PALETTE_ROLES):
+            self.assertIn(f'<div class="swatch-var">{var}</div>', html,
+                          f'{var} no longer shown')
 
     def test_the_palette_reads_in_the_order_it_is_seen(self):
         """Background, then the two text colours, then the furniture —
         not the alphabetical-ish order the variables happen to be
-        declared in, which opened on --yellow and left a reader hunting
+        declared in, which opened on the marker and left a reader hunting
         for which swatch was the page itself."""
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
@@ -3134,8 +3135,8 @@ class GalleryPreviewFidelity(unittest.TestCase):
             html = out.read_text(encoding='utf-8')
         first_card = html.split('<ul class="swatches">')[1].split('</ul>')[0]
         self.assertEqual(
-            re.findall(r'&middot; (--[^<]+)<', first_card),
-            ['--light', '--dark', '--grey', '--yellow', '--accent', '--green'])
+            re.findall(r'<div class="swatch-var">(--[^<]+)</div>', first_card),
+            [f'--{r}' for r in self.lwp.PALETTE_ROLES])
 
     def test_the_verdict_cells_carry_the_shape_marker_too(self):
         """The real stylesheet gained these for WCAG 1.4.1. A preview
@@ -3150,6 +3151,86 @@ class GalleryPreviewFidelity(unittest.TestCase):
         for marker in (r'"\25CF"', r'"\25CB"'):
             self.assertIn(marker, html, f'{marker} missing or mangled')
         self.assertNotIn('\x15', html, 'an octal escape survived into the page')
+
+
+class PaletteRoleNames(unittest.TestCase):
+    """§9.1: the six palette variables are named for what they DO. Until
+    v0.15.0 they were named for the values they happened to hold in the
+    very first theme, so the names lied on every theme that moved away
+    from it. Renamed with no compatibility aliases — a deliberate choice,
+    which is what makes `audit` responsible for keeping the break
+    audible."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_no_palette_variable_is_named_after_a_colour(self):
+        """The whole point. A colour name in this tuple is a name that
+        will be wrong for some theme in the table — which is how
+        --yellow came to hold a dark olive."""
+        colours = set(self.lwp.FACET_VALUES['hue']) | {
+            'white', 'black', 'grey', 'gray', 'light', 'dark'}
+        offenders = [r for r in self.lwp.PALETTE_ROLES
+                     if any(part in colours for part in r.split('-'))]
+        self.assertEqual(offenders, [], f'colour names among the roles: {offenders}')
+
+    def test_every_theme_defines_exactly_the_declared_roles(self):
+        meta_keys = {'label', 'source', 'note', 'note_good', 'intensity',
+                     'dark_background', 'fact_weight', 'fact_style', 'fact_highlight'}
+        for slug, theme in self.lwp.THEMES.items():
+            self.assertEqual(sorted(k for k in theme if k not in meta_keys),
+                             sorted(self.lwp.PALETTE_ROLES), slug)
+
+    def test_a_fact_highlight_only_ever_names_a_role_that_exists(self):
+        for slug, theme in self.lwp.THEMES.items():
+            role = theme.get('fact_highlight')
+            if role is not None:
+                self.assertIn(role, self.lwp.PALETTE_ROLES, slug)
+
+    def test_the_generated_stylesheet_declares_every_role_and_no_old_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
+        for role in self.lwp.PALETTE_ROLES:
+            self.assertIn(f'--{role}: ', css, role)
+        for old in self.lwp.LEGACY_PALETTE_ROLES:
+            self.assertNotIn(f'var(--{old})', css, f'--{old} survived the rename')
+
+    def test_audit_reports_old_names_left_in_the_authors_own_rules(self):
+        """There are no aliases, so var(--yellow) does not fall back to
+        anything: the declaration is invalid and the property keeps its
+        inherited value. Neither the browser nor the build says a word.
+        This is what stops the rename from breaking in silence."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('demo', tmp).returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+
+            clean = run('audit', tmp)
+            self.assertNotIn('renamed in v0.15.0', clean.stdout)
+
+            style.write_text(style.read_text(encoding='utf-8') +
+                             '\n.mine { color: var(--yellow); border-color: var(--grey); }\n',
+                             encoding='utf-8')
+            flagged = run('audit', tmp)
+            self.assertEqual(flagged.returncode, 0, 'audit must never block')
+            self.assertIn('--yellow -> --marker', flagged.stdout)
+            self.assertIn('--grey -> --ink-muted', flagged.stdout)
+
+    def test_audit_ignores_old_names_in_the_builtin_part(self):
+        """The section above the marker is regenerated by
+        refresh-templates, so it migrates on its own — warning about it
+        would send an author editing a file they must not edit."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('demo', tmp).returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+            builtin, custom = style.read_text(encoding='utf-8').split(
+                self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER, 1)
+            style.write_text(builtin + '.stale { color: var(--yellow); }\n' +
+                             self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER + custom,
+                             encoding='utf-8')
+            self.assertNotIn('renamed in v0.15.0', run('audit', tmp).stdout)
 
 
 class ThemesCommand(unittest.TestCase):
@@ -3246,7 +3327,7 @@ class SetThemeCommand(unittest.TestCase):
             self.assertIn('Theme changed: nord -> evergreen', result.stdout)
             css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
             self.assertEqual(self.lwp.detect_theme(css), 'evergreen')
-            self.assertIn(self.lwp.THEMES['evergreen']['light'], css)
+            self.assertIn(self.lwp.THEMES['evergreen']['page'], css)
 
     def test_the_default_theme_is_named_default_in_that_message(self):
         """A file with no marker is on the default theme, which is an
@@ -3299,7 +3380,7 @@ class SetThemeCommand(unittest.TestCase):
             self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
             style = Path(tmp) / 'templates' / 'style.css'
             style.write_text(style.read_text(encoding='utf-8').replace(
-                '    --grey: ', '    --grey:'), encoding='utf-8')
+                '    --ink-muted: ', '    --ink-muted:'), encoding='utf-8')
             edited = style.read_text(encoding='utf-8')
 
             result = run('set-theme', tmp, '--theme', 'crimson')
@@ -3383,7 +3464,7 @@ class DefaultStylesheetCoverage(unittest.TestCase):
     not a leftover of the article it was first extracted from. Three
     properties, none of which held before the stylesheet was audited."""
 
-    PALETTE_VARS = ('--yellow', '--dark', '--grey', '--light', '--accent', '--green')
+    PALETTE_VARS = tuple(f'--{r}' for r in load_lightwebpres_module().PALETTE_ROLES)
 
     def _installed_style(self, tmp, *extra):
         root = Path(tmp)
@@ -3462,7 +3543,7 @@ class FactStrongEmphasis(unittest.TestCase):
             style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
             self.assertIn('--fact-strong-weight: bold;', style)
             self.assertIn('--fact-strong-style: normal;', style)
-            self.assertIn('--fact-strong-highlight: var(--yellow);', style)
+            self.assertIn('--fact-strong-highlight: var(--marker);', style)
 
     def test_themes_set_distinct_fact_strong_treatments(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3477,7 +3558,7 @@ class FactStrongEmphasis(unittest.TestCase):
             root = Path(tmp)
             self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
             style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--fact-strong-highlight: var(--green);', style)
+            self.assertIn('--fact-strong-highlight: var(--positive);', style)
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -3519,7 +3600,7 @@ class FactStrongEmphasis(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             refreshed = style_path.read_text(encoding='utf-8')
             self.assertIn(':root { --fact-strong-weight: normal; }', refreshed)
-            self.assertIn('--fact-strong-highlight: var(--yellow);', refreshed)
+            self.assertIn('--fact-strong-highlight: var(--marker);', refreshed)
 
     def test_themes_gallery_shows_a_bolded_word_styled_per_theme(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -9,47 +9,47 @@
 
 <style>
   :root {
-    --paper: #F6F4EF;
-    --ink: #1C1E24;
-    --muted: #6B6558;
-    --rule: #E4E0D6;
-    --card-bg: #FFFFFF;
-    --card-border: #E7E2D5;
-    --structural: #3E4C7A;
-    --structural-soft: #EEF0F8;
-    --chip-good-bg: #E9F1E7;
-    --chip-good-fg: #3E6B47;
-    --chip-warn-bg: #FBEFE3;
-    --chip-warn-fg: #8A5A2A;
+    --ui-paper: #F6F4EF;
+    --ui-ink: #1C1E24;
+    --ui-muted: #6B6558;
+    --ui-rule: #E4E0D6;
+    --ui-card-bg: #FFFFFF;
+    --ui-card-border: #E7E2D5;
+    --ui-structural: #3E4C7A;
+    --ui-structural-soft: #EEF0F8;
+    --ui-chip-good-bg: #E9F1E7;
+    --ui-chip-good-fg: #3E6B47;
+    --ui-chip-warn-bg: #FBEFE3;
+    --ui-chip-warn-fg: #8A5A2A;
   }
   :root[data-theme="dark"] {
-    --paper: #17181D;
-    --ink: #ECE8DE;
-    --muted: #948C7B;
-    --rule: #2C2E35;
-    --card-bg: #1E2026;
-    --card-border: #2E3038;
-    --structural: #92A2E0;
-    --structural-soft: #232A44;
-    --chip-good-bg: #1E3226;
-    --chip-good-fg: #8FCB9B;
-    --chip-warn-bg: #3A2C1C;
-    --chip-warn-fg: #E3B27E;
+    --ui-paper: #17181D;
+    --ui-ink: #ECE8DE;
+    --ui-muted: #948C7B;
+    --ui-rule: #2C2E35;
+    --ui-card-bg: #1E2026;
+    --ui-card-border: #2E3038;
+    --ui-structural: #92A2E0;
+    --ui-structural-soft: #232A44;
+    --ui-chip-good-bg: #1E3226;
+    --ui-chip-good-fg: #8FCB9B;
+    --ui-chip-warn-bg: #3A2C1C;
+    --ui-chip-warn-fg: #E3B27E;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #17181D;
-      --ink: #ECE8DE;
-      --muted: #948C7B;
-      --rule: #2C2E35;
-      --card-bg: #1E2026;
-      --card-border: #2E3038;
-      --structural: #92A2E0;
-      --structural-soft: #232A44;
-      --chip-good-bg: #1E3226;
-      --chip-good-fg: #8FCB9B;
-      --chip-warn-bg: #3A2C1C;
-      --chip-warn-fg: #E3B27E;
+      --ui-paper: #17181D;
+      --ui-ink: #ECE8DE;
+      --ui-muted: #948C7B;
+      --ui-rule: #2C2E35;
+      --ui-card-bg: #1E2026;
+      --ui-card-border: #2E3038;
+      --ui-structural: #92A2E0;
+      --ui-structural-soft: #232A44;
+      --ui-chip-good-bg: #1E3226;
+      --ui-chip-good-fg: #8FCB9B;
+      --ui-chip-warn-bg: #3A2C1C;
+      --ui-chip-warn-fg: #E3B27E;
     }
   }
 
@@ -57,13 +57,13 @@
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
-    background: var(--paper);
-    color: var(--ink);
+    background: var(--ui-paper);
+    color: var(--ui-ink);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     line-height: 1.5;
   }
-  a { color: var(--structural); }
-  ::selection { background: var(--structural-soft); }
+  a { color: var(--ui-structural); }
+  ::selection { background: var(--ui-structural-soft); }
 
   .wrap {
     max-width: 1180px;
@@ -80,7 +80,7 @@
     font-size: 11.5px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--structural);
+    color: var(--ui-structural);
     margin: 0 0 14px;
   }
   h1 {
@@ -94,7 +94,7 @@
   }
   .dek {
     font-size: 16px;
-    color: var(--muted);
+    color: var(--ui-muted);
     margin: 0 0 8px;
     max-width: 62ch;
   }
@@ -103,17 +103,17 @@
   .dek--note {
     margin-top: 16px;
     padding: 12px 16px;
-    border-left: 3px solid var(--card-border);
-    background: var(--card-bg);
+    border-left: 3px solid var(--ui-card-border);
+    background: var(--ui-card-bg);
     border-radius: 0 8px 8px 0;
     font-size: 15px;
   }
-  .dek--note strong { color: var(--ink); }
+  .dek--note strong { color: var(--ui-ink); }
   .dek code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.92em;
-    background: var(--structural-soft);
-    color: var(--structural);
+    background: var(--ui-structural-soft);
+    color: var(--ui-structural);
     padding: 0.1em 0.4em;
     border-radius: 4px;
     /* A variable name must not break across lines: '--yellow' split
@@ -123,19 +123,19 @@
   }
 
   .facets { max-width: 1180px; margin: 0 auto 26px; padding: 16px 20px;
-    background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; }
+    background: var(--ui-card-bg); border: 1px solid var(--ui-card-border); border-radius: 12px; }
   .facets[hidden] { display: none; }
   .facet-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .facet-row:last-of-type { margin-bottom: 0; }
   .facet-label { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase;
-    color: var(--muted); min-width: 108px; }
+    color: var(--ui-muted); min-width: 108px; }
   .facet { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 99px;
-    border: 1px solid var(--card-border); background: transparent; color: var(--ink);
+    border: 1px solid var(--ui-card-border); background: transparent; color: var(--ui-ink);
     cursor: pointer; }
-  .facet:hover:not(:disabled) { border-color: var(--structural); }
-  .facet.on { background: var(--structural); border-color: var(--structural); color: #fff; }
+  .facet:hover:not(:disabled) { border-color: var(--ui-structural); }
+  .facet.on { background: var(--ui-structural); border-color: var(--ui-structural); color: #fff; }
   .facet:disabled { opacity: 0.32; cursor: default; }
-  .facet-count { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .facet-count { margin-top: 10px; font-size: 12px; color: var(--ui-muted); }
   .grid {
     margin-top: 40px;
     display: grid;
@@ -144,8 +144,8 @@
   }
 
   .theme-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
+    background: var(--ui-card-bg);
+    border: 1px solid var(--ui-card-border);
     border-radius: 14px;
     overflow: hidden;
     display: flex;
@@ -177,7 +177,7 @@
   .theme-source {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 10.5px;
-    color: var(--muted);
+    color: var(--ui-muted);
     margin: 0;
     text-align: right;
     white-space: nowrap;
@@ -192,16 +192,16 @@
     margin: 14px 18px 0;
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid var(--card-border);
+    border: 1px solid var(--ui-card-border);
     /* The page ground, and it has to be here. The neutrals are
        TRANSLUCENT overlays (§9.5.2): --cover-bg on a dark theme is
        rgba(0,0,0,0.45), meant to deepen the page underneath it. Without
        a ground of its own the preview composited that veil against the
        gallery's own light card instead, and a synthwave cover came out
-       plain grey. In the real page body already carries var(--light);
+       plain grey. In the real page body already carries var(--page);
        the preview has to carry it too or every overlay lands on the
        wrong backdrop. */
-    background: var(--light);
+    background: var(--page);
   }
   /* Every rule below mirrors the ROLE MAPPING of the real stylesheet:
      the same custom property feeds the same part of the page. Sizes and
@@ -210,7 +210,7 @@
      colour may never be hard-coded.
 
      That is not a stylistic preference. This preview used to hard-code
-     var(--dark) as the cover ground and #fff as its text, and #fff again
+     var(--ink) as the cover ground and #fff as its text, and #fff again
      for the fact-box. On a dark-backgrounded theme --dark holds the TEXT
      colour, so the cover came out as a pale panel with white text on it,
      and the fact-box as a white block on a black page — the very bugs
@@ -227,7 +227,7 @@
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: var(--yellow);
+    color: var(--marker);
   }
   .preview-cover-title {
     margin-top: 9px;
@@ -237,7 +237,7 @@
     color: var(--cover-fg);
   }
   .preview-body {
-    background: var(--light);
+    background: var(--page);
     padding: 15px;
   }
   .preview-tag--muted {
@@ -245,19 +245,19 @@
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: var(--grey);
+    color: var(--ink-muted);
   }
   .preview-h2 {
     margin-top: 5px;
     font-size: 15px;
     font-weight: 800;
-    color: var(--dark);
+    color: var(--ink);
     line-height: 1.25;
   }
   .preview-summary {
     margin-top: 5px;
     font-size: 12px;
-    color: var(--grey);
+    color: var(--ink-muted);
     line-height: 1.5;
   }
   .preview-highlight {
@@ -270,7 +270,7 @@
   .preview-figure {
     font-size: 21px;
     font-weight: 800;
-    color: var(--dark);
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
   }
   .preview-arrow {
@@ -280,12 +280,12 @@
   }
   .preview-caption {
     font-size: 10.5px;
-    color: var(--grey);
+    color: var(--ink-muted);
   }
   .preview-factbox {
     margin-top: 12px;
     background: var(--surface);
-    border-left: 4px solid var(--yellow);
+    border-left: 4px solid var(--marker);
     padding: 9px 11px;
     border-radius: 0 6px 6px 0;
   }
@@ -294,12 +294,12 @@
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: var(--grey);
+    color: var(--ink-muted);
   }
   .preview-factcontent {
     margin-top: 4px;
     font-size: 11.5px;
-    color: var(--dark);
+    color: var(--ink);
     line-height: 1.4;
   }
   .preview-factcontent strong {
@@ -322,11 +322,11 @@
     border-radius: 4px;
   }
   .preview-cell--neutral {
-    color: var(--grey);
+    color: var(--ink-muted);
     background: var(--sunken);
   }
   .preview-cell--green {
-    color: var(--green);
+    color: var(--positive);
     background: var(--sunken);
   }
   /* The shape marker too, not just the colour. The real stylesheet
@@ -347,7 +347,7 @@
   }
   .swatch {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     min-width: 0;
   }
@@ -373,39 +373,44 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .swatch-hex {
+  /* The value and the variable name each get their own line. Putting
+     them side by side truncated the longest pair ('#6E9C7A · --ink-muted')
+     to '--ink-mu…' at the card's real width — and an elided variable
+     name is worse than none, since it cannot be typed. */
+  .swatch-hex, .swatch-var {
     font-size: 9.5px;
-    color: var(--muted);
+    color: var(--ui-muted);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .swatch-var { color: var(--ui-structural); }
 
   .theme-note {
     margin: 14px 18px 18px;
     font-size: 11.5px;
-    color: var(--chip-warn-fg);
-    background: var(--chip-warn-bg);
+    color: var(--ui-chip-warn-fg);
+    background: var(--ui-chip-warn-bg);
     padding: 8px 11px;
     border-radius: 8px;
     line-height: 1.45;
   }
   .theme-note--good {
-    color: var(--chip-good-fg);
-    background: var(--chip-good-bg);
+    color: var(--ui-chip-good-fg);
+    background: var(--ui-chip-good-bg);
   }
 
   .install-hint {
     margin: 0 18px 18px;
     font-size: 11px;
-    color: var(--muted);
+    color: var(--ui-muted);
   }
   .install-hint code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.95em;
-    background: var(--structural-soft);
-    color: var(--structural);
+    background: var(--ui-structural-soft);
+    color: var(--ui-structural);
     padding: 0.1em 0.4em;
     border-radius: 4px;
   }
@@ -413,9 +418,9 @@
   footer {
     margin-top: 64px;
     padding-top: 24px;
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--ui-rule);
     font-size: 12.5px;
-    color: var(--muted);
+    color: var(--ui-muted);
     max-width: 70ch;
   }
   footer code {
@@ -446,15 +451,18 @@
     </p>
     <p class="dek dek--note">
       <strong>Les six variables d&eacute;signent un r&ocirc;le, pas une couleur.</strong>
-      Leurs noms (<code>--yellow</code>, <code>--green</code>, <code>--light</code>&hellip;)
-      viennent des valeurs du tout premier th&egrave;me et n'ont jamais &eacute;t&eacute;
-      renomm&eacute;s : ce sont ceux qu'on surcharge dans <code>templates/style.css</code>,
-      et les changer casserait toute personnalisation existante. D'o&ugrave; des noms qui
-      mentent sur les th&egrave;mes suivants : sur un fond d&eacute;j&agrave; jaune,
-      <code>--yellow</code> porte un brun sombre, sans quoi le rep&egrave;re serait
-      invisible ; sur un th&egrave;me &agrave; fond sombre, <code>--light</code> porte un
-      presque-noir et <code>--dark</code> la couleur du texte. Les pastilles ci-dessous
-      annoncent donc le r&ocirc;le d'abord, le nom de variable ensuite.
+      Elles s'appelaient <code>--yellow</code>, <code>--dark</code>, <code>--grey</code>,
+      <code>--light</code> et <code>--green</code> jusqu'en v0.15.0, d'apr&egrave;s leurs
+      valeurs dans le tout premier th&egrave;me. Ces noms mentaient d&egrave;s qu'un
+      th&egrave;me s'en &eacute;loignait : sur un fond d&eacute;j&agrave; jaune,
+      <code>--yellow</code> portait un brun sombre, faute de quoi le rep&egrave;re
+      aurait &eacute;t&eacute; invisible ; sur un th&egrave;me &agrave; fond sombre,
+      <code>--light</code> portait un presque-noir pendant que <code>--dark</code>
+      portait la couleur du texte. Un nom qu'il faut d&eacute;sapprendre pour s'en
+      servir ne vaut pas mieux que pas de nom : chaque variable porte d&eacute;sormais
+      le sien. Aucun alias n'a &eacute;t&eacute; conserv&eacute; &mdash;
+      <code>audit</code> signale les anciens noms rest&eacute;s dans vos propres
+      r&egrave;gles.
     </p>
   </div>
 
@@ -502,7 +510,7 @@
         <h2>Nord</h2>
         <p class="theme-source">nordtheme.com</p>
       </header>
-      <div class="preview" style="--yellow:#EBCB8B;--dark:#2E3440;--grey:#4C566A;--light:#ECEFF4;--accent:#BF616A;--green:#A3BE8C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#EBCB8B;--ink:#2E3440;--ink-muted:#4C566A;--page:#ECEFF4;--accent:#BF616A;--positive:#A3BE8C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -530,12 +538,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#ECEFF4"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#ECEFF4 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#2E3440"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#2E3440 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#4C566A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#4C566A &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#EBCB8B"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#EBCB8B &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#BF616A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#BF616A &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#A3BE8C"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#A3BE8C &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#ECEFF4"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#ECEFF4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#2E3440"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#2E3440</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#4C566A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#4C566A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#EBCB8B"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#EBCB8B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#BF616A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#BF616A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A3BE8C"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A3BE8C</div></span></li>
       </ul>
       <p class="theme-note">Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme nord</code></p>
@@ -546,7 +554,7 @@
         <h2>Dracula</h2>
         <p class="theme-source">draculatheme.com</p>
       </header>
-      <div class="preview" style="--yellow:#F1FA8C;--dark:#282A36;--grey:#6272A4;--light:#F8F8F2;--accent:#FF5555;--green:#50FA7B;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--green);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#F1FA8C;--ink:#282A36;--ink-muted:#6272A4;--page:#F8F8F2;--accent:#FF5555;--positive:#50FA7B;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--positive);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -574,14 +582,14 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#F8F8F2"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#F8F8F2 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#282A36"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#282A36 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6272A4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#6272A4 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F1FA8C"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#F1FA8C &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FF5555"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FF5555 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#50FA7B"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#50FA7B &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F8F8F2"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#F8F8F2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#282A36"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#282A36</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6272A4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#6272A4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F1FA8C"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#F1FA8C</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FF5555"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF5555</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#50FA7B"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#50FA7B</div></span></li>
       </ul>
-      <p class="theme-note">Palette pensée pour un fond sombre — <code>--light</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.</p>
+      <p class="theme-note">Palette pensée pour un fond sombre — <code>--page</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme dracula</code></p>
     </article>
 
@@ -590,7 +598,7 @@
         <h2>Solarized Light</h2>
         <p class="theme-source">ethanschoonover.com</p>
       </header>
-      <div class="preview" style="--yellow:#B58900;--dark:#002B36;--grey:#93A1A1;--light:#FDF6E3;--accent:#DC322F;--green:#859900;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#B58900;--ink:#002B36;--ink-muted:#93A1A1;--page:#FDF6E3;--accent:#DC322F;--positive:#859900;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -618,12 +626,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FDF6E3"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FDF6E3 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#002B36"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#002B36 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#93A1A1"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#93A1A1 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B58900"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#B58900 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#DC322F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#DC322F &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#859900"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#859900 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FDF6E3"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FDF6E3</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#002B36"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#002B36</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#93A1A1"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#93A1A1</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B58900"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#B58900</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#DC322F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#DC322F</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#859900"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#859900</div></span></li>
       </ul>
       <p class="theme-note">Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme solarized</code></p>
@@ -634,7 +642,7 @@
         <h2>Gruvbox Light</h2>
         <p class="theme-source">github.com/morhetz</p>
       </header>
-      <div class="preview" style="--yellow:#D79921;--dark:#282828;--grey:#928374;--light:#FBF1C7;--accent:#CC241D;--green:#98971A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#D79921;--ink:#282828;--ink-muted:#928374;--page:#FBF1C7;--accent:#CC241D;--positive:#98971A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -662,12 +670,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FBF1C7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FBF1C7 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#282828"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#282828 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#928374"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#928374 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D79921"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#D79921 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#CC241D"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#CC241D &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#98971A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#98971A &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FBF1C7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FBF1C7</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#282828"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#282828</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#928374"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#928374</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D79921"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#D79921</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#CC241D"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#CC241D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#98971A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#98971A</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme gruvbox</code></p>
@@ -678,7 +686,7 @@
         <h2>Catppuccin Latte</h2>
         <p class="theme-source">github.com/catppuccin</p>
       </header>
-      <div class="preview" style="--yellow:#DF8E1D;--dark:#4C4F69;--grey:#6C6F85;--light:#EFF1F5;--accent:#D20F39;--green:#40A02B;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#DF8E1D;--ink:#4C4F69;--ink-muted:#6C6F85;--page:#EFF1F5;--accent:#D20F39;--positive:#40A02B;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -706,14 +714,14 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#EFF1F5"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#EFF1F5 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#4C4F69"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#4C4F69 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6C6F85"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#6C6F85 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#DF8E1D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#DF8E1D &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D20F39"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#D20F39 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#40A02B"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#40A02B &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#EFF1F5"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#EFF1F5</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#4C4F69"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#4C4F69</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6C6F85"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#6C6F85</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#DF8E1D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#DF8E1D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D20F39"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D20F39</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#40A02B"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#40A02B</div></span></li>
       </ul>
-      <p class="theme-note">La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--dark</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).</p>
+      <p class="theme-note">La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--ink</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme catppuccin</code></p>
     </article>
 
@@ -722,7 +730,7 @@
         <h2>Tokyo Night</h2>
         <p class="theme-source">github.com/folke</p>
       </header>
-      <div class="preview" style="--yellow:#E0AF68;--dark:#1A1B26;--grey:#565F89;--light:#E1E2E7;--accent:#F7768E;--green:#9ECE6A;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:var(--accent);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E0AF68;--ink:#1A1B26;--ink-muted:#565F89;--page:#E1E2E7;--accent:#F7768E;--positive:#9ECE6A;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:var(--accent);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -750,14 +758,14 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#E1E2E7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#E1E2E7 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#1A1B26"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#1A1B26 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#565F89"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#565F89 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E0AF68"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E0AF68 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F7768E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#F7768E &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#9ECE6A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#9ECE6A &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E1E2E7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#E1E2E7</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#1A1B26"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#1A1B26</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#565F89"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#565F89</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E0AF68"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E0AF68</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F7768E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F7768E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#9ECE6A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9ECE6A</div></span></li>
       </ul>
-      <p class="theme-note">Tokyo Night est nocturne par nature — <code>--light</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.</p>
+      <p class="theme-note">Tokyo Night est nocturne par nature — <code>--page</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme tokyo-night</code></p>
     </article>
 
@@ -766,7 +774,7 @@
         <h2>Monokai</h2>
         <p class="theme-source">classique, Sublime Text</p>
       </header>
-      <div class="preview" style="--yellow:#E6DB74;--dark:#272822;--grey:#75715E;--light:#F8F8F2;--accent:#F92672;--green:#A6E22E;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E6DB74;--ink:#272822;--ink-muted:#75715E;--page:#F8F8F2;--accent:#F92672;--positive:#A6E22E;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -794,14 +802,14 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#F8F8F2"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#F8F8F2 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#272822"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#272822 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#75715E"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#75715E &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E6DB74"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E6DB74 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F92672"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#F92672 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#A6E22E"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#A6E22E &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F8F8F2"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#F8F8F2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#272822"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#272822</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#75715E"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#75715E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E6DB74"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E6DB74</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F92672"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F92672</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A6E22E"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A6E22E</div></span></li>
       </ul>
-      <p class="theme-note">Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--light</code> reprend le texte-sur-noir, comme Dracula.</p>
+      <p class="theme-note">Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--page</code> reprend le texte-sur-noir, comme Dracula.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme monokai</code></p>
     </article>
 
@@ -810,7 +818,7 @@
         <h2>Everforest</h2>
         <p class="theme-source">github.com/sainnhe</p>
       </header>
-      <div class="preview" style="--yellow:#DFA000;--dark:#2D353B;--grey:#859289;--light:#FDF6E3;--accent:#F85552;--green:#A7C080;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--green);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#DFA000;--ink:#2D353B;--ink-muted:#859289;--page:#FDF6E3;--accent:#F85552;--positive:#A7C080;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--positive);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -838,14 +846,14 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FDF6E3"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FDF6E3 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#2D353B"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#2D353B &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#859289"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#859289 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#DFA000"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#DFA000 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F85552"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#F85552 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#A7C080"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#A7C080 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FDF6E3"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FDF6E3</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#2D353B"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#2D353B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#859289"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#859289</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#DFA000"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#DFA000</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F85552"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F85552</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A7C080"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A7C080</div></span></li>
       </ul>
-      <p class="theme-note theme-note--good">Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--green</code>. Assemblage clair+sombre officiels.</p>
+      <p class="theme-note theme-note--good">Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--positive</code>. Assemblage clair+sombre officiels.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme everforest</code></p>
     </article>
 
@@ -854,7 +862,7 @@
         <h2>Rosé Pine Dawn</h2>
         <p class="theme-source">rosepinetheme.com</p>
       </header>
-      <div class="preview" style="--yellow:#EA9D34;--dark:#464261;--grey:#797593;--light:#FAF4ED;--accent:#B4637A;--green:#6D8F89;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#EA9D34;--ink:#464261;--ink-muted:#797593;--page:#FAF4ED;--accent:#B4637A;--positive:#6D8F89;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -882,14 +890,14 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FAF4ED"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FAF4ED &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#464261"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#464261 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#797593"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#797593 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#EA9D34"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#EA9D34 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B4637A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#B4637A &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6D8F89"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#6D8F89 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FAF4ED"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FAF4ED</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#464261"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#464261</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#797593"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#797593</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#EA9D34"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#EA9D34</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B4637A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#B4637A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6D8F89"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#6D8F89</div></span></li>
       </ul>
-      <p class="theme-note">La plus douce du lot — <code>--dark</code> est un prune assourdi, pas un noir franc, et <code>--green</code> (« leaf ») penche vers le sarcelle.</p>
+      <p class="theme-note">La plus douce du lot — <code>--ink</code> est un prune assourdi, pas un noir franc, et <code>--positive</code> (« leaf ») penche vers le sarcelle.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme rose-pine</code></p>
     </article>
 
@@ -898,7 +906,7 @@
         <h2>High Contrast</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFD500;--dark:#000000;--grey:#4A4A4A;--light:#FFFFFF;--accent:#D00000;--green:#006B2C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#FFD500;--ink:#000000;--ink-muted:#4A4A4A;--page:#FFFFFF;--accent:#D00000;--positive:#006B2C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -926,12 +934,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FFFFFF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FFFFFF &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#000000"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#000000 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#4A4A4A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#4A4A4A &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFD500"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFD500 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D00000"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#D00000 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#006B2C"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#006B2C &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFFFFF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FFFFFF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#000000"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#000000</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#4A4A4A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#4A4A4A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFD500"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFD500</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D00000"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D00000</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#006B2C"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#006B2C</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Noir pur sur blanc pur, un seul rouge. Visée AAA : lisible en plein soleil, en vidéoprojection, et en basse vision.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme high-contrast</code></p>
@@ -942,7 +950,7 @@
         <h2>Blueprint</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#F2C14E;--dark:#0B2545;--grey:#5A7184;--light:#EEF2F7;--accent:#D64045;--green:#136F63;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#F2C14E;--ink:#0B2545;--ink-muted:#5A7184;--page:#EEF2F7;--accent:#D64045;--positive:#136F63;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -970,12 +978,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#EEF2F7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#EEF2F7 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#0B2545"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#0B2545 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#5A7184"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#5A7184 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F2C14E"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#F2C14E &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D64045"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#D64045 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#136F63"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#136F63 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#EEF2F7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#EEF2F7</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0B2545"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#0B2545</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#5A7184"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#5A7184</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F2C14E"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#F2C14E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D64045"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D64045</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#136F63"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#136F63</div></span></li>
       </ul>
       <p class="theme-note">Encre bleu-nuit sur papier calque — registre notice technique, plan, documentation.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme blueprint</code></p>
@@ -986,7 +994,7 @@
         <h2>Blueprint Night</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#F2C14E;--dark:#DCE6F2;--grey:#7B8FA8;--light:#0A1626;--accent:#FF8A5B;--green:#5BC0A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#F2C14E;--ink:#DCE6F2;--ink-muted:#7B8FA8;--page:#0A1626;--accent:#FF8A5B;--positive:#5BC0A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1014,12 +1022,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#0A1626"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#0A1626 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#DCE6F2"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#DCE6F2 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#7B8FA8"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#7B8FA8 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F2C14E"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#F2C14E &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FF8A5B"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FF8A5B &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#5BC0A8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#5BC0A8 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0A1626"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#0A1626</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#DCE6F2"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#DCE6F2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#7B8FA8"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#7B8FA8</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F2C14E"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#F2C14E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FF8A5B"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF8A5B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#5BC0A8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#5BC0A8</div></span></li>
       </ul>
       <p class="theme-note">Le pendant sombre de Blueprint : table traçante rétroéclairée. L'accent est orangé, un rouge s'y éteindrait.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme blueprint-night</code></p>
@@ -1030,7 +1038,7 @@
         <h2>Monochrome</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#D8D8D8;--dark:#111111;--grey:#707070;--light:#FAFAFA;--accent:#2B2B2B;--green:#000000;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#D8D8D8;--ink:#111111;--ink-muted:#707070;--page:#FAFAFA;--accent:#2B2B2B;--positive:#000000;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1058,12 +1066,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FAFAFA"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FAFAFA &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#111111"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#111111 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#707070"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#707070 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D8D8D8"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#D8D8D8 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#2B2B2B"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#2B2B2B &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#000000"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#000000 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FAFAFA"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FAFAFA</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#111111"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#111111</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#707070"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#707070</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D8D8D8"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#D8D8D8</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#2B2B2B"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#2B2B2B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#000000"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#000000</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Aucune couleur nulle part. Les verdicts d'un tableau tiennent alors sur la graisse, l'opacité et les marqueurs de forme — et ça fonctionne.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme monochrome</code></p>
@@ -1074,7 +1082,7 @@
         <h2>Graphite</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#C9C9C9;--dark:#EDEDED;--grey:#8A8A8A;--light:#121212;--accent:#FFFFFF;--green:#B8B8B8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#C9C9C9;--ink:#EDEDED;--ink-muted:#8A8A8A;--page:#121212;--accent:#FFFFFF;--positive:#B8B8B8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1102,12 +1110,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#121212"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#121212 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#EDEDED"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#EDEDED &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#8A8A8A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#8A8A8A &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#C9C9C9"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#C9C9C9 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFFFFF"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FFFFFF &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B8B8B8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#B8B8B8 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#121212"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#121212</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#EDEDED"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#EDEDED</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#8A8A8A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#8A8A8A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#C9C9C9"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#C9C9C9</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFFFFF"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFFFFF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B8B8B8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#B8B8B8</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Le pendant sombre de Monochrome : tout repose sur la clarté et la forme, jamais sur la teinte.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme graphite</code></p>
@@ -1118,7 +1126,7 @@
         <h2>Newsprint</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#E4DAC2;--dark:#1A1A18;--grey:#6B6862;--light:#F4F1EA;--accent:#8C2F1E;--green:#3E5641;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E4DAC2;--ink:#1A1A18;--ink-muted:#6B6862;--page:#F4F1EA;--accent:#8C2F1E;--positive:#3E5641;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1146,12 +1154,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#F4F1EA"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#F4F1EA &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#1A1A18"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#1A1A18 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6B6862"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#6B6862 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E4DAC2"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E4DAC2 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#8C2F1E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#8C2F1E &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#3E5641"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#3E5641 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F4F1EA"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#F4F1EA</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#1A1A18"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#1A1A18</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6B6862"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#6B6862</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E4DAC2"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E4DAC2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#8C2F1E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#8C2F1E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#3E5641"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#3E5641</div></span></li>
       </ul>
       <p class="theme-note">Monochrome chaud avec une seule encre rouge en réserve — la grammaire d'un quotidien imprimé.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme newsprint</code></p>
@@ -1162,7 +1170,7 @@
         <h2>Gold Leaf</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#E8C874;--dark:#F3EDDF;--grey:#8E8269;--light:#0B0B0D;--accent:#D4AF37;--green:#A8B26A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#E8C874;--ink:#F3EDDF;--ink-muted:#8E8269;--page:#0B0B0D;--accent:#D4AF37;--positive:#A8B26A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1190,12 +1198,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#0B0B0D"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#0B0B0D &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F3EDDF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#F3EDDF &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#8E8269"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#8E8269 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E8C874"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E8C874 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D4AF37"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#D4AF37 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#A8B26A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#A8B26A &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0B0B0D"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#0B0B0D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F3EDDF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#F3EDDF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#8E8269"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#8E8269</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E8C874"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E8C874</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D4AF37"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D4AF37</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A8B26A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A8B26A</div></span></li>
       </ul>
       <p class="theme-note">Noir et or : encre crème sur noir profond, filets et surlignage dorés. Registre rapport annuel, invitation, édition soignée.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme gold-leaf</code></p>
@@ -1206,7 +1214,7 @@
         <h2>Crimson</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#E8B4A0;--dark:#3B0A12;--grey:#8A6A6E;--light:#FFF6F0;--accent:#B00020;--green:#5C7A3F;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E8B4A0;--ink:#3B0A12;--ink-muted:#8A6A6E;--page:#FFF6F0;--accent:#B00020;--positive:#5C7A3F;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1234,12 +1242,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FFF6F0"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FFF6F0 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#3B0A12"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#3B0A12 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#8A6A6E"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#8A6A6E &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E8B4A0"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E8B4A0 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B00020"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#B00020 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#5C7A3F"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#5C7A3F &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFF6F0"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FFF6F0</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#3B0A12"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#3B0A12</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#8A6A6E"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#8A6A6E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E8B4A0"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E8B4A0</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B00020"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#B00020</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#5C7A3F"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#5C7A3F</div></span></li>
       </ul>
       <p class="theme-note">Carmin profond sur crème rosée — registre lettre, opéra, grand récit intime.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme crimson</code></p>
@@ -1250,7 +1258,7 @@
         <h2>Ember</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFC24D;--dark:#FFEDE2;--grey:#A08074;--light:#140A08;--accent:#F4622E;--green:#8CBF5A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC24D;--ink:#FFEDE2;--ink-muted:#A08074;--page:#140A08;--accent:#F4622E;--positive:#8CBF5A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1278,12 +1286,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#140A08"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#140A08 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFEDE2"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#FFEDE2 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#A08074"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#A08074 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFC24D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFC24D &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F4622E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#F4622E &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#8CBF5A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#8CBF5A &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#140A08"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#140A08</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFEDE2"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#FFEDE2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A08074"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#A08074</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFC24D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFC24D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F4622E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F4622E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#8CBF5A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#8CBF5A</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Braise sur charbon. Le vermillon est choisi parce qu'il reste lumineux même en vision protanope, là où un rouge profond s'éteint.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme ember</code></p>
@@ -1294,7 +1302,7 @@
         <h2>Dread</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#B9C46A;--dark:#D6D2C8;--grey:#6E6A64;--light:#0B0A0C;--accent:#C1121F;--green:#7F9440;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#B9C46A;--ink:#D6D2C8;--ink-muted:#6E6A64;--page:#0B0A0C;--accent:#C1121F;--positive:#7F9440;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1322,12 +1330,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#0B0A0C"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#0B0A0C &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D6D2C8"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#D6D2C8 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6E6A64"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#6E6A64 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B9C46A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#B9C46A &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#C1121F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#C1121F &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#7F9440"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#7F9440 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0B0A0C"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#0B0A0C</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D6D2C8"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#D6D2C8</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6E6A64"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#6E6A64</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B9C46A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#B9C46A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#C1121F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#C1121F</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#7F9440"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#7F9440</div></span></li>
       </ul>
       <p class="theme-note">Noir profond, encre os désaturée, sang, et un vert maladif pour le positif — la grammaire du giallo et du thriller.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme dread</code></p>
@@ -1338,7 +1346,7 @@
         <h2>Sage</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#E5D9A8;--dark:#26302A;--grey:#7C8B7E;--light:#F3F5EF;--accent:#B4652A;--green:#4F7A52;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E5D9A8;--ink:#26302A;--ink-muted:#7C8B7E;--page:#F3F5EF;--accent:#B4652A;--positive:#4F7A52;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1366,12 +1374,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#F3F5EF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#F3F5EF &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#26302A"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#26302A &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#7C8B7E"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#7C8B7E &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E5D9A8"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E5D9A8 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B4652A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#B4652A &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#4F7A52"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#4F7A52 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F3F5EF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#F3F5EF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#26302A"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#26302A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#7C8B7E"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#7C8B7E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E5D9A8"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E5D9A8</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B4652A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#B4652A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#4F7A52"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#4F7A52</div></span></li>
       </ul>
       <p class="theme-note">Vert de gris apaisé sur lin. L'accent terre cuite évite le piège du tout-vert et garde les verdicts distincts.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme sage</code></p>
@@ -1382,7 +1390,7 @@
         <h2>Evergreen</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#E8C35A;--dark:#DDE9DC;--grey:#7D9480;--light:#0D1712;--accent:#E0A32E;--green:#6FBF73;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#E8C35A;--ink:#DDE9DC;--ink-muted:#7D9480;--page:#0D1712;--accent:#E0A32E;--positive:#6FBF73;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1410,12 +1418,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#0D1712"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#0D1712 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#DDE9DC"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#DDE9DC &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#7D9480"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#7D9480 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E8C35A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E8C35A &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E0A32E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#E0A32E &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6FBF73"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#6FBF73 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0D1712"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#0D1712</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#DDE9DC"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#DDE9DC</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#7D9480"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#7D9480</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E8C35A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E8C35A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E0A32E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#E0A32E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6FBF73"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#6FBF73</div></span></li>
       </ul>
       <p class="theme-note">Nuit en sous-bois. L'ambre remplace le rouge en accent : sur un fond vert sombre, un rouge deviendrait illisible.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme evergreen</code></p>
@@ -1426,7 +1434,7 @@
         <h2>Sprout</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#F2D544;--dark:#1E2B1B;--grey:#7A8A72;--light:#FBFDF7;--accent:#6D28D9;--green:#3F8F29;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#F2D544;--ink:#1E2B1B;--ink-muted:#7A8A72;--page:#FBFDF7;--accent:#6D28D9;--positive:#3F8F29;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1454,12 +1462,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FBFDF7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FBFDF7 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#1E2B1B"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#1E2B1B &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#7A8A72"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#7A8A72 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F2D544"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#F2D544 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6D28D9"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#6D28D9 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#3F8F29"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#3F8F29 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FBFDF7"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FBFDF7</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#1E2B1B"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#1E2B1B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#7A8A72"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#7A8A72</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F2D544"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#F2D544</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6D28D9"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#6D28D9</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#3F8F29"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#3F8F29</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Vert de pousse sur blanc cassé. L'accent violet est un choix mesuré : une terre cuite se confondait avec le vert.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme sprout</code></p>
@@ -1470,7 +1478,7 @@
         <h2>Vaporwave</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#E0FF4F;--dark:#16003B;--grey:#6B5CA5;--light:#F3F0FF;--accent:#FF2FB9;--green:#00C2A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E0FF4F;--ink:#16003B;--ink-muted:#6B5CA5;--page:#F3F0FF;--accent:#FF2FB9;--positive:#00C2A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1498,12 +1506,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#F3F0FF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#F3F0FF &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#16003B"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#16003B &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6B5CA5"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#6B5CA5 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#E0FF4F"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#E0FF4F &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FF2FB9"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FF2FB9 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#00C2A8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#00C2A8 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F3F0FF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#F3F0FF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#16003B"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#16003B</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6B5CA5"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#6B5CA5</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#E0FF4F"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#E0FF4F</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FF2FB9"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF2FB9</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#00C2A8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#00C2A8</div></span></li>
       </ul>
       <p class="theme-note">Violet profond, magenta, cyan acide — le registre cyber en version fond clair, lisible en salle éclairée.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme vaporwave</code></p>
@@ -1514,7 +1522,7 @@
         <h2>Terminal</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#F4FF52;--dark:#D7FFE0;--grey:#6E9C7A;--light:#0B0F0C;--accent:#FF3C6F;--green:#33FF88;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#F4FF52;--ink:#D7FFE0;--ink-muted:#6E9C7A;--page:#0B0F0C;--accent:#FF3C6F;--positive:#33FF88;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1542,12 +1550,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#0B0F0C"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#0B0F0C &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#D7FFE0"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#D7FFE0 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6E9C7A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#6E9C7A &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F4FF52"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#F4FF52 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FF3C6F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FF3C6F &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#33FF88"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#33FF88 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0B0F0C"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#0B0F0C</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#D7FFE0"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#D7FFE0</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6E9C7A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#6E9C7A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F4FF52"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#F4FF52</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FF3C6F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF3C6F</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#33FF88"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#33FF88</div></span></li>
       </ul>
       <p class="theme-note">Phosphore vert sur noir — le registre terminal, tel quel.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme terminal</code></p>
@@ -1558,7 +1566,7 @@
         <h2>Synthwave</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFE66D;--dark:#F2E9FF;--grey:#9A86C4;--light:#1A1030;--accent:#FF2E97;--green:#2DE2C5;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE66D;--ink:#F2E9FF;--ink-muted:#9A86C4;--page:#1A1030;--accent:#FF2E97;--positive:#2DE2C5;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1586,12 +1594,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#1A1030"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#1A1030 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F2E9FF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#F2E9FF &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#9A86C4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#9A86C4 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFE66D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFE66D &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FF2E97"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FF2E97 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#2DE2C5"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#2DE2C5 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#1A1030"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#1A1030</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F2E9FF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#F2E9FF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#9A86C4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#9A86C4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFE66D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFE66D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FF2E97"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF2E97</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#2DE2C5"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#2DE2C5</div></span></li>
       </ul>
       <p class="theme-note">Nuit violette, magenta et cyan — le rétro-futurisme, celui qui profite le plus du fond sombre.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme synthwave</code></p>
@@ -1602,7 +1610,7 @@
         <h2>Pop Red</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFC94D;--dark:#FFF1F0;--grey:#F7BDC2;--light:#9E1128;--accent:#FFD400;--green:#86EFAC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC94D;--ink:#FFF1F0;--ink-muted:#F7BDC2;--page:#9E1128;--accent:#FFD400;--positive:#86EFAC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1630,12 +1638,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#9E1128"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#9E1128 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFF1F0"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#FFF1F0 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F7BDC2"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#F7BDC2 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFC94D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFC94D &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FFD400 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#86EFAC"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#86EFAC &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#9E1128"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#9E1128</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFF1F0"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#FFF1F0</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F7BDC2"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#F7BDC2</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFC94D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFC94D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFD400</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#86EFAC"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#86EFAC</div></span></li>
       </ul>
       <p class="theme-note">Rouge plein sur toute la page, accent jaune. Premier de la famille Pop, où la couleur est le fond et non un détail.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-red</code></p>
@@ -1646,7 +1654,7 @@
         <h2>Pop Tangerine</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#7A3E00;--dark:#241000;--grey:#5E3000;--light:#FF9500;--accent:#4C1D95;--green:#0F3D21;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#7A3E00;--ink:#241000;--ink-muted:#5E3000;--page:#FF9500;--accent:#4C1D95;--positive:#0F3D21;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1674,12 +1682,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FF9500"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FF9500 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#241000"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#241000 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#5E3000"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#5E3000 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#7A3E00"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#7A3E00 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#4C1D95"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#4C1D95 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#0F3D21"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#0F3D21 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FF9500"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FF9500</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#241000"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#241000</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#5E3000"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#5E3000</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#7A3E00"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#7A3E00</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#4C1D95"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#4C1D95</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0F3D21"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#0F3D21</div></span></li>
       </ul>
       <p class="theme-note">Orange vif à encre sombre, accent violet profond. Le surlignage du fait est désactivé : un jaune sur un aplat orange ne se verrait pas.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-tangerine</code></p>
@@ -1690,7 +1698,7 @@
         <h2>Pop Lemon</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#7A6A00;--dark:#1F1A00;--grey:#6B5C0A;--light:#FFD400;--accent:#8F0049;--green:#0D5C2A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--dark);--cover-fg:var(--light);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#7A6A00;--ink:#1F1A00;--ink-muted:#6B5C0A;--page:#FFD400;--accent:#8F0049;--positive:#0D5C2A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1718,12 +1726,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#FFD400 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#1F1A00"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#1F1A00 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#6B5C0A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#6B5C0A &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#7A6A00"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#7A6A00 &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#8F0049"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#8F0049 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#0D5C2A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#0D5C2A &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#FFD400</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#1F1A00"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#1F1A00</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#6B5C0A"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#6B5C0A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#7A6A00"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#7A6A00</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#8F0049"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#8F0049</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#0D5C2A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#0D5C2A</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Jaune plein, encre presque noire — le plus lumineux de la série, à 12:1 de contraste.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lemon</code></p>
@@ -1734,7 +1742,7 @@
         <h2>Pop Lime</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFC94D;--dark:#F0FFF4;--grey:#B5E4C4;--light:#075C26;--accent:#FFD400;--green:#C7F9CC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC94D;--ink:#F0FFF4;--ink-muted:#B5E4C4;--page:#075C26;--accent:#FFD400;--positive:#C7F9CC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1762,12 +1770,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#075C26"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#075C26 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F0FFF4"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#F0FFF4 &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B5E4C4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#B5E4C4 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFC94D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFC94D &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FFD400 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#C7F9CC"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#C7F9CC &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#075C26"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#075C26</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F0FFF4"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#F0FFF4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B5E4C4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#B5E4C4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFC94D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFC94D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFD400</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#C7F9CC"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#C7F9CC</div></span></li>
       </ul>
       <p class="theme-note">Vert franc et profond, encre blanc verdi. Le vert des verdicts vire au menthe pour rester détaché du fond.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lime</code></p>
@@ -1778,7 +1786,7 @@
         <h2>Pop Lagoon</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFC94D;--dark:#EFFCFF;--grey:#A6D9E4;--light:#075B6E;--accent:#FFC2D8;--green:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC94D;--ink:#EFFCFF;--ink-muted:#A6D9E4;--page:#075B6E;--accent:#FFC2D8;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1806,12 +1814,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#075B6E"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#075B6E &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#EFFCFF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#EFFCFF &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#A6D9E4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#A6D9E4 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFC94D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFC94D &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFC2D8"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FFC2D8 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#9BF6C8 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#075B6E"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#075B6E</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#EFFCFF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#EFFCFF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#A6D9E4"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#A6D9E4</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFC94D"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFC94D</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFC2D8"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFC2D8</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9BF6C8</div></span></li>
       </ul>
       <p class="theme-note">Bleu-vert lagon, accent rose — le plus doux de la famille Pop sans cesser d'être un aplat plein.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lagoon</code></p>
@@ -1822,7 +1830,7 @@
         <h2>Pop Cobalt</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFE45C;--dark:#F0F4FF;--grey:#B3C2F0;--light:#1B3FBF;--accent:#FFD400;--green:#8CF2AE;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE45C;--ink:#F0F4FF;--ink-muted:#B3C2F0;--page:#1B3FBF;--accent:#FFD400;--positive:#8CF2AE;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1850,12 +1858,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#1B3FBF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#1B3FBF &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F0F4FF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#F0F4FF &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#B3C2F0"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#B3C2F0 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFE45C"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFE45C &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FFD400 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#8CF2AE"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#8CF2AE &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#1B3FBF"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#1B3FBF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F0F4FF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#F0F4FF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#B3C2F0"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#B3C2F0</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFE45C"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFE45C</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFD400</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#8CF2AE"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#8CF2AE</div></span></li>
       </ul>
       <p class="theme-note">Bleu cobalt saturé, accent jaune — registre affiche et signalétique.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-cobalt</code></p>
@@ -1866,7 +1874,7 @@
         <h2>Pop Violet</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFE99A;--dark:#F6F1FF;--grey:#CBB6EE;--light:#5B1DB8;--accent:#FDE047;--green:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE99A;--ink:#F6F1FF;--ink-muted:#CBB6EE;--page:#5B1DB8;--accent:#FDE047;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1894,12 +1902,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#5B1DB8"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#5B1DB8 &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F6F1FF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#F6F1FF &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#CBB6EE"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#CBB6EE &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFE99A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFE99A &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FDE047"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FDE047 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#9BF6C8 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#5B1DB8"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#5B1DB8</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F6F1FF"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#F6F1FF</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#CBB6EE"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#CBB6EE</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFE99A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFE99A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FDE047"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FDE047</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9BF6C8</div></span></li>
       </ul>
       <p class="theme-note theme-note--good">Violet plein et vif, accent jaune citron — le plus contrasté de la famille Pop.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-violet</code></p>
@@ -1910,7 +1918,7 @@
         <h2>Pop Fuchsia</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--yellow:#FFE99A;--dark:#FFF0FA;--grey:#F0B8D8;--light:#94105F;--accent:#FDE047;--green:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--yellow);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--dark);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE99A;--ink:#FFF0FA;--ink-muted:#F0B8D8;--page:#94105F;--accent:#FDE047;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1938,12 +1946,12 @@
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:#94105F"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">#94105F &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFF0FA"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">#FFF0FA &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#F0B8D8"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">#F0B8D8 &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FFE99A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">#FFE99A &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#FDE047"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">#FDE047 &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">#9BF6C8 &middot; --green</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#94105F"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-var">--page</div><div class="swatch-hex">#94105F</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFF0FA"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-var">--ink</div><div class="swatch-hex">#FFF0FA</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#F0B8D8"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-var">--ink-muted</div><div class="swatch-hex">#F0B8D8</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FFE99A"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-var">--marker</div><div class="swatch-hex">#FFE99A</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#FDE047"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FDE047</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9BF6C8</div></span></li>
       </ul>
       <p class="theme-note">Fuchsia profond, accent jaune, verdicts en menthe — assumé, éditorial.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-fuchsia</code></p>

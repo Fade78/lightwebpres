@@ -646,11 +646,11 @@ des classes que la feuille par défaut style déjà —
 
 | Classe | Usage | Rendu par défaut |
 |---|---|---|
-| `yes` | le critère est rempli | `--green`, gras |
-| `no` | il ne l'est pas | `--grey`, atténué |
+| `yes` | le critère est rempli | `--positive`, gras |
+| `no` | il ne l'est pas | `--ink-muted`, atténué |
 | `partial` | partiellement | `--accent`, demi-gras |
 | `col-signal` | mettre en valeur toute une colonne | fond creusé, demi-gras |
-| `col-snap` | une seconde colonne à distinguer | fond creusé + filet `--yellow` |
+| `col-snap` | une seconde colonne à distinguer | fond creusé + filet `--marker` |
 
 soit `<td class="yes">Oui</td>`, ou `<span class="yes">Oui</span>` à
 l'intérieur d'une cellule Markdown. Les couleurs viennent de la palette,
@@ -672,7 +672,7 @@ Markdown standard après le chemin — `![alt](src "Légende")` — ajoute
 `<figcaption class="figure-caption">Légende</figcaption>` sous l'image ;
 la légende passe par le rendu inline (gras, liens...) et par la
 typographie, et le style par défaut l'affiche petite, centrée et grise
-(`var(--grey)`, donc adaptée à chaque thème). Une image **au milieu d'un
+(`var(--ink-muted)`, donc adaptée à chaque thème). Une image **au milieu d'un
 paragraphe** devient un simple `<img>` inline, **sans légende** : une
 légende est un élément de bloc et cette image-là est au fil de la
 phrase. Le titre y est malgré tout accepté et devient un attribut
@@ -1089,31 +1089,52 @@ Le CSS par défaut est le look actuel de la série. Il est éditable par
 l'utilisateur ; `build` le relit depuis `templates/style.css` s'il existe,
 sinon utilise la version intégrée à l'exécutable.
 
-Le CSS par défaut expose six variables CSS (`--yellow --dark --grey
---light --accent --green`) qui pilotent son apparence. `install
---theme <nom>` en substitue les valeurs par une palette prédéfinie au
-moment de la création du site — voir §9.5.
+Le CSS par défaut expose six variables CSS qui pilotent son apparence.
+`install --theme <nom>` en substitue les valeurs par une palette
+prédéfinie au moment de la création du site — voir §9.5.
 
-**Ces six noms désignent un rôle, pas une couleur.** Ils viennent des
-valeurs qu'elles avaient dans le tout premier thème, et n'ont jamais été
-renommés : ce sont les noms qu'un auteur surcharge dans son
-`templates/style.css`, donc les renommer casserait toute personnalisation
-existante ainsi que tout thème déjà appliqué. La conséquence est qu'ils
-mentent dès qu'un thème s'éloigne de cette palette d'origine, et il faut
-le savoir pour lire une palette :
+**Chacune porte le nom de son rôle**, dans l'ordre où un lecteur
+rencontre la page :
 
-| Variable | Rôle réel | Exemple de valeur qui « ment » |
-|---|---|---|
-| `--light` | fond de page | `#1A1030` sur Synthwave — un presque-noir |
-| `--dark` | texte courant, et le fond de couverture sur un thème clair | `#F2E9FF` sur Synthwave — la couleur du texte |
-| `--grey` | textes secondaires : résumé, légende, source, verdict « non » | |
-| `--yellow` | filets et repères : filet de fact-box, tag de couverture, soulignement d'en-tête, point de nav actif, colonne mise en avant | `#7A6A00` sur Pop Lemon — un brun-olive, parce qu'un jaune sur un fond déjà jaune ne se verrait pas |
-| `--accent` | liens, focus, flèche de chiffre-clé, verdict « partiel » | |
-| `--green` | verdict « oui » d'un tableau comparatif (§6.1) | |
+| Variable | Rôle |
+|---|---|
+| `--page` | le fond de page |
+| `--ink` | le texte courant ; et le fond de couverture sur un thème clair |
+| `--ink-muted` | les textes secondaires : résumé, légende, source, verdict « non » |
+| `--marker` | les filets et repères : filet de fact-box, tag de couverture, soulignement d'en-tête, point de nav actif, colonne mise en avant |
+| `--accent` | liens, focus, flèche de chiffre-clé, verdict « partiel » |
+| `--positive` | le verdict « oui » d'un tableau comparatif (§6.1) |
 
-`themes-gallery` (§11.7) présente donc chaque pastille par son **rôle**
+Une couleur de palette **ne peut pas** porter un nom de composant, parce
+qu'elle en sert plusieurs : `--marker` dessine à la fois le filet d'une
+fact-box, le tag d'une couverture et le point de navigation actif. Les
+variables qui, elles, appartiennent à un composant existent séparément et
+gardent leur propre nom (`--cover-bg`, `--fact-strong-*`, `--surface`,
+`--sunken`… — §9.5.2).
+
+**Renommage de la v0.15.0.** Ces six variables s'appelaient auparavant
+`--yellow`, `--dark`, `--grey`, `--light`, `--accent` et `--green` :
+elles avaient été nommées d'après les valeurs qu'elles portaient dans le
+tout premier thème. Ces noms mentaient dès qu'un thème s'en éloignait —
+`--yellow` portait un brun-olive sur Pop Lemon, faute de quoi le repère
+aurait été invisible sur un fond déjà jaune ; `--light` portait un
+presque-noir sur tout thème sombre, pendant que `--dark` y portait la
+couleur du texte. Un nom qu'il faut désapprendre pour s'en servir ne vaut
+pas mieux que pas de nom.
+
+**Aucun alias n'a été conservé.** `var(--yellow)` ne se replie donc sur
+rien : la déclaration est invalide et la propriété garde sa valeur
+héritée, sans que ni le navigateur ni le build ne le signalent. C'est la
+commande `audit` (§11.5) qui rend la rupture audible : elle inspecte la
+section personnelle de `templates/style.css` (après le marqueur de §9.4)
+et nomme chaque ancienne variable encore référencée, avec son
+remplaçant. La partie intégrée au-dessus du marqueur, elle, migre seule
+au premier `refresh-templates` — l'y signaler enverrait un auteur éditer
+un fichier qu'il ne doit pas éditer.
+
+`themes-gallery` (§11.7) présente chaque pastille par son **rôle**
 d'abord et son nom de variable ensuite : lire « yellow · #7A6A00 » sans
-autre indication n'apprend rien à personne.
+autre indication n'apprenait rien à personne.
 
 Quatre variables supplémentaires pilotent, indépendamment les unes des
 autres, le rendu visuel du gras Markdown (`**texte**` → `<strong>`)
@@ -1126,17 +1147,17 @@ paramétrable :
 - `--fact-strong-style` (`normal` par défaut) — l'italique : `normal` ou
   `italic`. Combinable librement avec la graisse (gras, italique,
   gras+italique, ou ni l'un ni l'autre).
-- `--fact-strong-highlight` (`var(--yellow)` par défaut) — le fond
+- `--fact-strong-highlight` (`var(--marker)` par défaut) — le fond
   coloré façon `<mark>` (à ne pas confondre avec un `overline`, un axe
   visuel différent) : n'importe quelle couleur CSS, ou `transparent`
   pour le désactiver entièrement. Référencer une des six variables
-  ci-dessus (`var(--accent)`, `var(--green)`...) plutôt qu'une couleur
+  ci-dessus (`var(--accent)`, `var(--positive)`...) plutôt qu'une couleur
   en dur permet à une surcharge ultérieure de cette variable de continuer
   à s'appliquer.
-- `--fact-strong-ink` (`var(--dark)` par défaut) — la couleur du **texte
+- `--fact-strong-ink` (`var(--ink)` par défaut) — la couleur du **texte
   posé sur ce fond**. Sans elle, la règle ne posait qu'un fond, ce qui
   présupposait un texte foncé sur un marqueur vif : vrai sur un thème
-  clair, faux sur un thème sombre où `--dark` porte justement la couleur
+  clair, faux sur un thème sombre où `--ink` porte justement la couleur
   claire du texte — rapport de contraste mesuré à 1,00, c'est-à-dire un
   surlignage invisible. Vaut `inherit` quand il n'y a pas de fond
   (`fact_highlight` absent) : sans marqueur, le texte garde la couleur du
@@ -1339,8 +1360,8 @@ réécriture inutile.
 ### 9.5 Thèmes de couleurs prédéfinis
 
 Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
-(« slug ») à une palette complète : les six couleurs de §9.1 (`--yellow
---dark --grey --light --accent --green`), plus les trois propriétés de
+(« slug ») à une palette complète : les six couleurs de §9.1 (`--page
+--ink --ink-muted --marker --accent --positive`), plus les propriétés de
 rendu du gras en fact-box (`fact_weight`/`fact_style`/`fact_highlight`,
 §9.1) — un thème n'est donc pas qu'une recoloration, il peut aussi
 choisir un traitement typographique différent (ex. italique sans fond
@@ -1423,14 +1444,14 @@ Le **sens** de ces superpositions dépend du fond. Sur une page claire,
 une surface est un voile blanc et un filet un voile noir ; sur une page
 sombre c'est exactement l'inverse, et le même voile blanc transforme une
 carte en bloc illisible. Un thème déclare donc `dark_background: True`
-quand son `--light` n'est, de fait, pas clair, et reçoit le second des
+quand son `--page` n'est, de fait, pas clair, et reçoit le second des
 deux jeux de valeurs — deux dictionnaires aux **clés identiques**, ce
 qui permet de substituer l'un pour l'autre sans que le reste du code ait
 à connaître la polarité.
 
 Deux conséquences en découlent, toutes deux vérifiées par les tests :
 
-- La couverture ne peut pas se contenter de `var(--dark)` comme fond. Sur
+- La couverture ne peut pas se contenter de `var(--ink)` comme fond. Sur
   un thème sombre cette variable porte la couleur du **texte** : l'utiliser
   en fond retournerait la couverture en panneau pâle. Le jeu sombre
   utilise un voile noir sur la page elle-même.
@@ -1502,9 +1523,9 @@ de mémoire : les angles CIELAB ne sont pas ceux que l'intuition RVB
 suggère — un bleu franc se situe vers 297°, pas 240°, et le cyan vers
 227°.
 
-La teinte est prise sur `--light`, c'est-à-dire **le fond de la page** :
+La teinte est prise sur `--page`, c'est-à-dire **le fond de la page** :
 c'est ce qu'un lecteur voit en premier, et ce qu'il désigne en disant
-« un thème vert ». Sur un thème à polarité sombre, `--light` porte le
+« un thème vert ». Sur un thème à polarité sombre, `--page` porte le
 fond sombre, donc la même règle continue de s'appliquer sans cas
 particulier.
 
@@ -1824,7 +1845,7 @@ d'écran à l'appui, avant d'être corrigé). Le style (couleur, taille,
 `pointer-events: none`, positionnement) est maintenant entièrement porté
 par l'attribut `style=""` de la `<div>` elle-même, jamais dépendant d'une
 règle externe — y compris la couleur grise, qui utilise une valeur
-hexadécimale fixe plutôt que `var(--grey)` (même risque : une propriété
+hexadécimale fixe plutôt que `var(--ink-muted)` (même risque : une propriété
 personnalisée définie dans le `style.css` intégré peut, elle aussi, être
 absente d'un `style.css` ancien ou personnalisé).
 
@@ -1888,7 +1909,17 @@ compare le HTML généré à l'existant, §11.4) :
 4. Avertit si l'article n'a de description **nulle part** (`page_desc`
    vide à tous les niveaux de la cascade §20.3.1 — la balise
    `<meta name="description">` serait omise)
-5. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+5. Avertit si la **section personnelle** de `templates/style.css` (après
+   le marqueur de §9.4) référence encore une variable de palette
+   renommée en v0.15.0, en nommant chacune et son remplaçant. Voir §9.1 :
+   aucun alias n'a été conservé, donc une telle déclaration est
+   simplement invalide et cesse de s'appliquer sans que rien ne le
+   signale — c'est le seul endroit du système qui rend cette rupture
+   audible. La partie intégrée au-dessus du marqueur n'est pas
+   inspectée : elle migre seule au premier `refresh-templates`, et la
+   signaler enverrait un auteur éditer un fichier qu'il ne doit pas
+   éditer.
+6. Affiche un résumé (en anglais, non localisé) : « No warnings: all
    editorial conventions are respected. » ou « N warning(s). Reminder:
    audit never blocks... »
 
@@ -1945,7 +1976,7 @@ figée :
 
 | Rôle | Aperçu | Feuille réelle | Variable |
 |---|---|---|---|
-| fond de page | `.preview` | `body` | `--light` |
+| fond de page | `.preview` | `body` | `--page` |
 | fond de couverture | `.preview-cover` | `.slide-cover` | `--cover-bg` |
 | texte de couverture | `.preview-cover-title` | `.slide-cover h1` | `--cover-fg` |
 | surface de carte | `.preview-factbox` | `.fact-box` | `--surface` |
@@ -1954,8 +1985,8 @@ figée :
 
 Passer les variables du thème à l'aperçu ne suffit pas si l'aperçu les
 ignore ensuite : c'est ce qui s'est produit. Le fond de couverture était
-figé à `var(--dark)` et son texte à `#fff`, la fact-box à `#fff`. Sur un
-thème à fond sombre, `--dark` porte la couleur du **texte** : Synthwave
+figé à `var(--ink)` et son texte à `#fff`, la fact-box à `#fff`. Sur un
+thème à fond sombre, `--ink` porte la couleur du **texte** : Synthwave
 s'affichait donc en panneau lavande pâle surmonté de texte blanc, au-dessus
 d'une fact-box blanche dont le texte était presque invisible — exactement
 les défauts corrigés dans la feuille réelle, toujours exposés dans la page
@@ -1963,7 +1994,7 @@ censée montrer ce que donnent les thèmes.
 
 Deux conséquences moins évidentes, toutes deux vérifiées par les tests :
 
-- L'aperçu doit porter **son propre fond de page** (`var(--light)`). Les
+- L'aperçu doit porter **son propre fond de page** (`var(--page)`). Les
   neutres sont des superpositions translucides : `--cover-bg` vaut
   `rgba(0, 0, 0, 0.45)` sur un thème sombre, destiné à assombrir la page
   en dessous. Sans fond propre, ce voile se composait sur la carte claire
@@ -2525,7 +2556,7 @@ Demandées le 2026-07-31 :
     http(s)) — c'est le cas d'usage `articles/img/` → `public/img/`.
 21. **Légendes pour les images** — IMPLÉMENTÉ (voir §6.1) : le titre
     Markdown standard `![alt](src "Légende")` devient un `<figcaption>`
-    affiché petit, centré et gris (`var(--grey)`) sous l'image — le style
+    affiché petit, centré et gris (`var(--ink-muted)`) sous l'image — le style
     par défaut suit donc automatiquement chacun des 9 thèmes. Les légendes
     de **tableaux** restent non planifiées.
 22. **Images cliquables** — pas de comportement par défaut aujourd'hui (ex.

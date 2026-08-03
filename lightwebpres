@@ -46,7 +46,45 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.14.2"
+VERSION = "0.15.0"
+
+# The six palette variables, in the order a reader meets them on the page:
+# the ground, then the two inks, then the furniture (§9.1).
+#
+# These are ROLE names. They were colour names until v0.15.0 — --yellow,
+# --dark, --grey, --light, --green — because they were named after their
+# values in the very first theme. Those names then lied on every theme
+# that moved away from that palette: --yellow held a dark olive on Pop
+# Lemon (a yellow marker on a yellow page is invisible), and --light held
+# a near-black on every dark theme while --dark held the TEXT colour.
+# A name that has to be un-learned to be used is worse than no name.
+#
+# A palette colour cannot be named after a component, because each one
+# serves several: --marker draws the fact-box rule, the cover tag, the
+# header underline, the active nav dot and the emphasized column. The
+# component-scoped variables are separate and keep their own names
+# (--cover-bg, --fact-strong-*, --surface, --sunken...).
+PALETTE_ROLES = ('page', 'ink', 'ink-muted', 'marker', 'accent', 'positive')
+
+# What each one does, for `themes` (§11.9) and themes-gallery (§11.7).
+# French: both surfaces that show it are French.
+PALETTE_ROLE_LABELS = {
+    'page': 'Fond de page',
+    'ink': 'Texte',
+    'ink-muted': 'Texte secondaire',
+    'marker': 'Filets &amp; rep&egrave;res',
+    'accent': 'Accent &amp; liens',
+    'positive': 'Verdict &laquo;&nbsp;oui&nbsp;&raquo;',
+}
+
+# Renamed in v0.15.0. Kept ONLY so `audit` (§11.5) can tell an author
+# that their own CSS still names a variable that no longer exists —
+# there are no aliases, so such a rule silently stops applying. Never
+# used to resolve anything.
+LEGACY_PALETTE_ROLES = {
+    'yellow': 'marker', 'dark': 'ink', 'grey': 'ink-muted',
+    'light': 'page', 'green': 'positive',
+}
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -167,8 +205,8 @@ LANG_EN = r'''{
   }
 }'''
 
-# Candidate color themes for the default template's six --yellow/--dark/
-# --grey/--light/--accent/--green custom properties (§9.1), plus how each
+# Candidate color themes for the default template's six palette
+# properties (PALETTE_ROLES, §9.1), plus how each
 # theme renders **bold** text inside a fact-box (§9.1's --fact-strong-*
 # properties): fact_weight ('bold'|'normal'), fact_style ('normal'|
 # 'italic'), and fact_highlight (one of this same theme's own color roles
@@ -187,74 +225,74 @@ LANG_EN = r'''{
 THEMES = {
     'nord': {
         'label': 'Nord', 'source': 'nordtheme.com',
-        'yellow': '#EBCB8B', 'dark': '#2E3440', 'grey': '#4C566A',
-        'light': '#ECEFF4', 'accent': '#BF616A', 'green': '#A3BE8C',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#EBCB8B', 'ink': '#2E3440', 'ink-muted': '#4C566A',
+        'page': '#ECEFF4', 'accent': '#BF616A', 'positive': '#A3BE8C',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.',
         'note_good': False,
     },
     'dracula': {
         'label': 'Dracula', 'source': 'draculatheme.com',
-        'yellow': '#F1FA8C', 'dark': '#282A36', 'grey': '#6272A4',
-        'light': '#F8F8F2', 'accent': '#FF5555', 'green': '#50FA7B',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'green',
-        'note': 'Palette pensée pour un fond sombre — <code>--light</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.',
+        'marker': '#F1FA8C', 'ink': '#282A36', 'ink-muted': '#6272A4',
+        'page': '#F8F8F2', 'accent': '#FF5555', 'positive': '#50FA7B',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
+        'note': 'Palette pensée pour un fond sombre — <code>--page</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.',
         'note_good': False,
     },
     'solarized': {
         'label': 'Solarized Light', 'source': 'ethanschoonover.com',
-        'yellow': '#B58900', 'dark': '#002B36', 'grey': '#93A1A1',
-        'light': '#FDF6E3', 'accent': '#DC322F', 'green': '#859900',
+        'marker': '#B58900', 'ink': '#002B36', 'ink-muted': '#93A1A1',
+        'page': '#FDF6E3', 'accent': '#DC322F', 'positive': '#859900',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': None,
         'note': "Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.",
         'note_good': False,
     },
     'gruvbox': {
         'label': 'Gruvbox Light', 'source': 'github.com/morhetz',
-        'yellow': '#D79921', 'dark': '#282828', 'grey': '#928374',
-        'light': '#FBF1C7', 'accent': '#CC241D', 'green': '#98971A',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#D79921', 'ink': '#282828', 'ink-muted': '#928374',
+        'page': '#FBF1C7', 'accent': '#CC241D', 'positive': '#98971A',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.',
         'note_good': True,
     },
     'catppuccin': {
         'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin',
-        'yellow': '#DF8E1D', 'dark': '#4C4F69', 'grey': '#6C6F85',
-        'light': '#EFF1F5', 'accent': '#D20F39', 'green': '#40A02B',
-        'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'yellow',
-        'note': "La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--dark</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).",
+        'marker': '#DF8E1D', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
+        'page': '#EFF1F5', 'accent': '#D20F39', 'positive': '#40A02B',
+        'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'marker',
+        'note': "La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--ink</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).",
         'note_good': False,
     },
     'tokyo-night': {
         'label': 'Tokyo Night', 'source': 'github.com/folke',
-        'yellow': '#E0AF68', 'dark': '#1A1B26', 'grey': '#565F89',
-        'light': '#E1E2E7', 'accent': '#F7768E', 'green': '#9ECE6A',
+        'marker': '#E0AF68', 'ink': '#1A1B26', 'ink-muted': '#565F89',
+        'page': '#E1E2E7', 'accent': '#F7768E', 'positive': '#9ECE6A',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
-        'note': 'Tokyo Night est nocturne par nature — <code>--light</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.',
+        'note': 'Tokyo Night est nocturne par nature — <code>--page</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.',
         'note_good': False,
     },
     'monokai': {
         'label': 'Monokai', 'source': 'classique, Sublime Text',
-        'yellow': '#E6DB74', 'dark': '#272822', 'grey': '#75715E',
-        'light': '#F8F8F2', 'accent': '#F92672', 'green': '#A6E22E',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
-        'note': 'Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--light</code> reprend le texte-sur-noir, comme Dracula.',
+        'marker': '#E6DB74', 'ink': '#272822', 'ink-muted': '#75715E',
+        'page': '#F8F8F2', 'accent': '#F92672', 'positive': '#A6E22E',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': 'Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--page</code> reprend le texte-sur-noir, comme Dracula.',
         'note_good': False,
     },
     'everforest': {
         'label': 'Everforest', 'source': 'github.com/sainnhe',
-        'yellow': '#DFA000', 'dark': '#2D353B', 'grey': '#859289',
-        'light': '#FDF6E3', 'accent': '#F85552', 'green': '#A7C080',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'green',
-        'note': 'Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--green</code>. Assemblage clair+sombre officiels.',
+        'marker': '#DFA000', 'ink': '#2D353B', 'ink-muted': '#859289',
+        'page': '#FDF6E3', 'accent': '#F85552', 'positive': '#A7C080',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
+        'note': 'Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--positive</code>. Assemblage clair+sombre officiels.',
         'note_good': True,
     },
     'rose-pine': {
         'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com',
-        'yellow': '#EA9D34', 'dark': '#464261', 'grey': '#797593',
-        'light': '#FAF4ED', 'accent': '#B4637A', 'green': '#6D8F89',
+        'marker': '#EA9D34', 'ink': '#464261', 'ink-muted': '#797593',
+        'page': '#FAF4ED', 'accent': '#B4637A', 'positive': '#6D8F89',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
-        'note': 'La plus douce du lot — <code>--dark</code> est un prune assourdi, pas un noir franc, et <code>--green</code> (« leaf ») penche vers le sarcelle.',
+        'note': 'La plus douce du lot — <code>--ink</code> est un prune assourdi, pas un noir franc, et <code>--positive</code> (« leaf ») penche vers le sarcelle.',
         'note_good': False,
     },
     # --- Palettes originales : plus contrastées, monochromes, ou pop ---
@@ -266,161 +304,161 @@ THEMES = {
     # deutéranope et protanope (§9.5.3).
     'high-contrast': {
         'label': 'High Contrast', 'source': 'lightwebpres', 'intensity': 'vivid',
-        'yellow': '#FFD500', 'dark': '#000000', 'grey': '#4A4A4A',
-        'light': '#FFFFFF', 'accent': '#D00000', 'green': '#006B2C',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFD500', 'ink': '#000000', 'ink-muted': '#4A4A4A',
+        'page': '#FFFFFF', 'accent': '#D00000', 'positive': '#006B2C',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Noir pur sur blanc pur, un seul rouge. Visée AAA : lisible en plein soleil, en vidéoprojection, et en basse vision.',
         'note_good': True,
     },
     'blueprint': {
         'label': 'Blueprint', 'source': 'lightwebpres', 'intensity': 'sober',
-        'yellow': '#F2C14E', 'dark': '#0B2545', 'grey': '#5A7184',
-        'light': '#EEF2F7', 'accent': '#D64045', 'green': '#136F63',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#F2C14E', 'ink': '#0B2545', 'ink-muted': '#5A7184',
+        'page': '#EEF2F7', 'accent': '#D64045', 'positive': '#136F63',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Encre bleu-nuit sur papier calque — registre notice technique, plan, documentation.',
         'note_good': False,
     },
     'blueprint-night': {
         'label': 'Blueprint Night', 'source': 'lightwebpres', 'intensity': 'sober',
         'dark_background': True,
-        'yellow': '#F2C14E', 'dark': '#DCE6F2', 'grey': '#7B8FA8',
-        'light': '#0A1626', 'accent': '#FF8A5B', 'green': '#5BC0A8',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#F2C14E', 'ink': '#DCE6F2', 'ink-muted': '#7B8FA8',
+        'page': '#0A1626', 'accent': '#FF8A5B', 'positive': '#5BC0A8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Le pendant sombre de Blueprint : table traçante rétroéclairée. L\'accent est orangé, un rouge s\'y éteindrait.',
         'note_good': False,
     },
     'monochrome': {
         'label': 'Monochrome', 'source': 'lightwebpres', 'intensity': 'mono',
-        'yellow': '#D8D8D8', 'dark': '#111111', 'grey': '#707070',
-        'light': '#FAFAFA', 'accent': '#2B2B2B', 'green': '#000000',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#D8D8D8', 'ink': '#111111', 'ink-muted': '#707070',
+        'page': '#FAFAFA', 'accent': '#2B2B2B', 'positive': '#000000',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Aucune couleur nulle part. Les verdicts d\'un tableau tiennent alors sur la graisse, l\'opacité et les marqueurs de forme — et ça fonctionne.',
         'note_good': True,
     },
     'graphite': {
         'label': 'Graphite', 'source': 'lightwebpres', 'intensity': 'mono',
         'dark_background': True,
-        'yellow': '#C9C9C9', 'dark': '#EDEDED', 'grey': '#8A8A8A',
-        'light': '#121212', 'accent': '#FFFFFF', 'green': '#B8B8B8',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#C9C9C9', 'ink': '#EDEDED', 'ink-muted': '#8A8A8A',
+        'page': '#121212', 'accent': '#FFFFFF', 'positive': '#B8B8B8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Le pendant sombre de Monochrome : tout repose sur la clarté et la forme, jamais sur la teinte.',
         'note_good': True,
     },
     'newsprint': {
         'label': 'Newsprint', 'source': 'lightwebpres', 'intensity': 'sober',
-        'yellow': '#E4DAC2', 'dark': '#1A1A18', 'grey': '#6B6862',
-        'light': '#F4F1EA', 'accent': '#8C2F1E', 'green': '#3E5641',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#E4DAC2', 'ink': '#1A1A18', 'ink-muted': '#6B6862',
+        'page': '#F4F1EA', 'accent': '#8C2F1E', 'positive': '#3E5641',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Monochrome chaud avec une seule encre rouge en réserve — la grammaire d\'un quotidien imprimé.',
         'note_good': False,
     },
     'gold-leaf': {
         'label': 'Gold Leaf', 'source': 'lightwebpres', 'intensity': 'sober',
         'dark_background': True,
-        'yellow': '#E8C874', 'dark': '#F3EDDF', 'grey': '#8E8269',
-        'light': '#0B0B0D', 'accent': '#D4AF37', 'green': '#A8B26A',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#E8C874', 'ink': '#F3EDDF', 'ink-muted': '#8E8269',
+        'page': '#0B0B0D', 'accent': '#D4AF37', 'positive': '#A8B26A',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Noir et or : encre crème sur noir profond, filets et surlignage dorés. Registre rapport annuel, invitation, édition soignée.',
         'note_good': False,
     },
     'crimson': {
         'label': 'Crimson', 'source': 'lightwebpres', 'intensity': 'sober',
-        'yellow': '#E8B4A0', 'dark': '#3B0A12', 'grey': '#8A6A6E',
-        'light': '#FFF6F0', 'accent': '#B00020', 'green': '#5C7A3F',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#E8B4A0', 'ink': '#3B0A12', 'ink-muted': '#8A6A6E',
+        'page': '#FFF6F0', 'accent': '#B00020', 'positive': '#5C7A3F',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Carmin profond sur crème rosée — registre lettre, opéra, grand récit intime.',
         'note_good': False,
     },
     'ember': {
         'label': 'Ember', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFC24D', 'dark': '#FFEDE2', 'grey': '#A08074',
-        'light': '#140A08', 'accent': '#F4622E', 'green': '#8CBF5A',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFC24D', 'ink': '#FFEDE2', 'ink-muted': '#A08074',
+        'page': '#140A08', 'accent': '#F4622E', 'positive': '#8CBF5A',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Braise sur charbon. Le vermillon est choisi parce qu\'il reste lumineux même en vision protanope, là où un rouge profond s\'éteint.',
         'note_good': True,
     },
     'dread': {
         'label': 'Dread', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#B9C46A', 'dark': '#D6D2C8', 'grey': '#6E6A64',
-        'light': '#0B0A0C', 'accent': '#C1121F', 'green': '#7F9440',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#B9C46A', 'ink': '#D6D2C8', 'ink-muted': '#6E6A64',
+        'page': '#0B0A0C', 'accent': '#C1121F', 'positive': '#7F9440',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Noir profond, encre os désaturée, sang, et un vert maladif pour le positif — la grammaire du giallo et du thriller.',
         'note_good': False,
     },
     'sage': {
         'label': 'Sage', 'source': 'lightwebpres', 'intensity': 'sober',
-        'yellow': '#E5D9A8', 'dark': '#26302A', 'grey': '#7C8B7E',
-        'light': '#F3F5EF', 'accent': '#B4652A', 'green': '#4F7A52',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#E5D9A8', 'ink': '#26302A', 'ink-muted': '#7C8B7E',
+        'page': '#F3F5EF', 'accent': '#B4652A', 'positive': '#4F7A52',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Vert de gris apaisé sur lin. L\'accent terre cuite évite le piège du tout-vert et garde les verdicts distincts.',
         'note_good': False,
     },
     'evergreen': {
         'label': 'Evergreen', 'source': 'lightwebpres', 'intensity': 'sober',
         'dark_background': True,
-        'yellow': '#E8C35A', 'dark': '#DDE9DC', 'grey': '#7D9480',
-        'light': '#0D1712', 'accent': '#E0A32E', 'green': '#6FBF73',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#E8C35A', 'ink': '#DDE9DC', 'ink-muted': '#7D9480',
+        'page': '#0D1712', 'accent': '#E0A32E', 'positive': '#6FBF73',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Nuit en sous-bois. L\'ambre remplace le rouge en accent : sur un fond vert sombre, un rouge deviendrait illisible.',
         'note_good': False,
     },
     'sprout': {
         'label': 'Sprout', 'source': 'lightwebpres', 'intensity': 'vivid',
-        'yellow': '#F2D544', 'dark': '#1E2B1B', 'grey': '#7A8A72',
-        'light': '#FBFDF7', 'accent': '#6D28D9', 'green': '#3F8F29',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#F2D544', 'ink': '#1E2B1B', 'ink-muted': '#7A8A72',
+        'page': '#FBFDF7', 'accent': '#6D28D9', 'positive': '#3F8F29',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Vert de pousse sur blanc cassé. L\'accent violet est un choix mesuré : une terre cuite se confondait avec le vert.',
         'note_good': True,
     },
     'vaporwave': {
         'label': 'Vaporwave', 'source': 'lightwebpres', 'intensity': 'vivid',
-        'yellow': '#E0FF4F', 'dark': '#16003B', 'grey': '#6B5CA5',
-        'light': '#F3F0FF', 'accent': '#FF2FB9', 'green': '#00C2A8',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#E0FF4F', 'ink': '#16003B', 'ink-muted': '#6B5CA5',
+        'page': '#F3F0FF', 'accent': '#FF2FB9', 'positive': '#00C2A8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Violet profond, magenta, cyan acide — le registre cyber en version fond clair, lisible en salle éclairée.',
         'note_good': False,
     },
     'terminal': {
         'label': 'Terminal', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#F4FF52', 'dark': '#D7FFE0', 'grey': '#6E9C7A',
-        'light': '#0B0F0C', 'accent': '#FF3C6F', 'green': '#33FF88',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
+        'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Phosphore vert sur noir — le registre terminal, tel quel.',
         'note_good': False,
     },
     'synthwave': {
         'label': 'Synthwave', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFE66D', 'dark': '#F2E9FF', 'grey': '#9A86C4',
-        'light': '#1A1030', 'accent': '#FF2E97', 'green': '#2DE2C5',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFE66D', 'ink': '#F2E9FF', 'ink-muted': '#9A86C4',
+        'page': '#1A1030', 'accent': '#FF2E97', 'positive': '#2DE2C5',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Nuit violette, magenta et cyan — le rétro-futurisme, celui qui profite le plus du fond sombre.',
         'note_good': False,
     },
     'pop-red': {
         'label': 'Pop Red', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFC94D', 'dark': '#FFF1F0', 'grey': '#F7BDC2',
-        'light': '#9E1128', 'accent': '#FFD400', 'green': '#86EFAC',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFC94D', 'ink': '#FFF1F0', 'ink-muted': '#F7BDC2',
+        'page': '#9E1128', 'accent': '#FFD400', 'positive': '#86EFAC',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Rouge plein sur toute la page, accent jaune. Premier de la famille Pop, où la couleur est le fond et non un détail.',
         'note_good': False,
     },
     'pop-tangerine': {
         'label': 'Pop Tangerine', 'source': 'lightwebpres', 'intensity': 'vivid',
-        'yellow': '#7A3E00', 'dark': '#241000', 'grey': '#5E3000',
-        'light': '#FF9500', 'accent': '#4C1D95', 'green': '#0F3D21',
+        'marker': '#7A3E00', 'ink': '#241000', 'ink-muted': '#5E3000',
+        'page': '#FF9500', 'accent': '#4C1D95', 'positive': '#0F3D21',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': 'Orange vif à encre sombre, accent violet profond. Le surlignage du fait est désactivé : un jaune sur un aplat orange ne se verrait pas.',
         'note_good': False,
     },
     'pop-lemon': {
         'label': 'Pop Lemon', 'source': 'lightwebpres', 'intensity': 'vivid',
-        'yellow': '#7A6A00', 'dark': '#1F1A00', 'grey': '#6B5C0A',
-        'light': '#FFD400', 'accent': '#8F0049', 'green': '#0D5C2A',
+        'marker': '#7A6A00', 'ink': '#1F1A00', 'ink-muted': '#6B5C0A',
+        'page': '#FFD400', 'accent': '#8F0049', 'positive': '#0D5C2A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': 'Jaune plein, encre presque noire — le plus lumineux de la série, à 12:1 de contraste.',
         'note_good': True,
@@ -428,45 +466,45 @@ THEMES = {
     'pop-lime': {
         'label': 'Pop Lime', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFC94D', 'dark': '#F0FFF4', 'grey': '#B5E4C4',
-        'light': '#075C26', 'accent': '#FFD400', 'green': '#C7F9CC',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFC94D', 'ink': '#F0FFF4', 'ink-muted': '#B5E4C4',
+        'page': '#075C26', 'accent': '#FFD400', 'positive': '#C7F9CC',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Vert franc et profond, encre blanc verdi. Le vert des verdicts vire au menthe pour rester détaché du fond.',
         'note_good': False,
     },
     'pop-lagoon': {
         'label': 'Pop Lagoon', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFC94D', 'dark': '#EFFCFF', 'grey': '#A6D9E4',
-        'light': '#075B6E', 'accent': '#FFC2D8', 'green': '#9BF6C8',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFC94D', 'ink': '#EFFCFF', 'ink-muted': '#A6D9E4',
+        'page': '#075B6E', 'accent': '#FFC2D8', 'positive': '#9BF6C8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Bleu-vert lagon, accent rose — le plus doux de la famille Pop sans cesser d\'être un aplat plein.',
         'note_good': False,
     },
     'pop-cobalt': {
         'label': 'Pop Cobalt', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFE45C', 'dark': '#F0F4FF', 'grey': '#B3C2F0',
-        'light': '#1B3FBF', 'accent': '#FFD400', 'green': '#8CF2AE',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFE45C', 'ink': '#F0F4FF', 'ink-muted': '#B3C2F0',
+        'page': '#1B3FBF', 'accent': '#FFD400', 'positive': '#8CF2AE',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Bleu cobalt saturé, accent jaune — registre affiche et signalétique.',
         'note_good': False,
     },
     'pop-violet': {
         'label': 'Pop Violet', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFE99A', 'dark': '#F6F1FF', 'grey': '#CBB6EE',
-        'light': '#5B1DB8', 'accent': '#FDE047', 'green': '#9BF6C8',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFE99A', 'ink': '#F6F1FF', 'ink-muted': '#CBB6EE',
+        'page': '#5B1DB8', 'accent': '#FDE047', 'positive': '#9BF6C8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Violet plein et vif, accent jaune citron — le plus contrasté de la famille Pop.',
         'note_good': True,
     },
     'pop-fuchsia': {
         'label': 'Pop Fuchsia', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
-        'yellow': '#FFE99A', 'dark': '#FFF0FA', 'grey': '#F0B8D8',
-        'light': '#94105F', 'accent': '#FDE047', 'green': '#9BF6C8',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'yellow',
+        'marker': '#FFE99A', 'ink': '#FFF0FA', 'ink-muted': '#F0B8D8',
+        'page': '#94105F', 'accent': '#FDE047', 'positive': '#9BF6C8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': 'Fuchsia profond, accent jaune, verdicts en menthe — assumé, éditorial.',
         'note_good': False,
     },
@@ -535,7 +573,7 @@ def theme_hue_family(theme):
     the answer matches perception: a pale cream has a hue ANGLE like a
     full orange but almost no chroma, and is called 'neutral'."""
     import math
-    _, a, b = _lab(theme['light'])
+    _, a, b = _lab(theme['page'])
     if math.hypot(a, b) < NEUTRAL_CHROMA:
         return 'neutral'
     angle = math.degrees(math.atan2(b, a)) % 360
@@ -622,8 +660,8 @@ SURFACE_PRESETS = {
         'sunken': 'rgba(0, 0, 0, 0.045)',
         # The cover inverts the page: the palette's dark tone, with its
         # light tone as text.
-        'cover-bg': 'var(--dark)',
-        'cover-fg': 'var(--light)',
+        'cover-bg': 'var(--ink)',
+        'cover-fg': 'var(--page)',
         'cover-fg-faint': 'rgba(255, 255, 255, 0.34)',
         # Floating round controls: near-opaque over a light page.
         'control': 'rgba(255, 255, 255, 0.92)',
@@ -636,11 +674,11 @@ SURFACE_PRESETS = {
         # lift, never as a pale block.
         'surface': 'rgba(255, 255, 255, 0.055)',
         'sunken': 'rgba(0, 0, 0, 0.30)',
-        # Not var(--dark) — on a dark theme that variable holds the TEXT
+        # Not var(--ink) — on a dark theme that variable holds the TEXT
         # colour, so using it as a background would invert the cover into
         # a pale panel. A deeper veil of the page itself instead.
         'cover-bg': 'rgba(0, 0, 0, 0.45)',
-        'cover-fg': 'var(--dark)',
+        'cover-fg': 'var(--ink)',
         'cover-fg-faint': 'rgba(255, 255, 255, 0.30)',
         # A lift out of the dark ground, not a white pill on top of it.
         'control': 'rgba(255, 255, 255, 0.13)',
@@ -682,15 +720,15 @@ def theme_fact_properties(theme):
     if not highlight_role:
         ink = 'inherit'
     elif theme.get('dark_background'):
-        ink = 'var(--light)'
+        ink = 'var(--page)'
     else:
-        ink = 'var(--dark)'
+        ink = 'var(--ink)'
     return weight, style, highlight, ink
 
 
 def apply_theme(css_text, theme_key):
-    """Rewrites the six --yellow/--dark/--grey/--light/--accent/--green
-    declarations, the four --fact-strong-* ones (§9.1), and the nine
+    """Rewrites the six palette declarations (PALETTE_ROLES),
+    the four --fact-strong-* ones (§9.1), and the nine
     overlay/cover/control ones (§9.5.2 — --rule, --rule-strong,
     --surface, --sunken, --cover-bg, --cover-fg, --cover-fg-faint,
     --control, --control-soft) in `css_text`'s :root block to
@@ -710,7 +748,7 @@ def apply_theme(css_text, theme_key):
     Assumes theme_key is a valid THEMES key; callers validate first so
     the error message can name the invalid input directly (§9.5.1)."""
     theme = THEMES[theme_key]
-    for var in ('yellow', 'dark', 'grey', 'light', 'accent', 'green'):
+    for var in PALETTE_ROLES:
         pattern = r'(--%s:\s*)#[0-9A-Fa-f]{3,8}(\s*;)' % var
         css_text = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), css_text, count=1)
 
@@ -787,16 +825,25 @@ def theme_state(css_text):
 # --- Template: style.css ---
 TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
 :root {
-    --yellow: #FFFC00;
-    --dark: #1a1a2e;
-    --grey: #6b6b7d;
-    --light: #f8f8f5;
+    /* The palette, by role (§9.1). Ground first, then the two inks,
+       then the furniture — the order the page is read in.
+         --page       the page background
+         --ink        body text; also the cover ground on a light theme
+         --ink-muted  summary, caption, source, "no" verdict
+         --marker     fact-box rule, cover tag, header underline,
+                      active nav dot, emphasized column
+         --accent     links, focus ring, key-figure arrow, "partial"
+         --positive   the "yes" verdict of a comparison table */
+    --page: #f8f8f5;
+    --ink: #1a1a2e;
+    --ink-muted: #6b6b7d;
+    --marker: #FFFC00;
     --accent: #ff4757;
-    --green: #3aa55c;
+    --positive: #3aa55c;
     --fact-strong-weight: bold;
     --fact-strong-style: normal;
-    --fact-strong-highlight: var(--yellow);
-    --fact-strong-ink: var(--dark);
+    --fact-strong-highlight: var(--marker);
+    --fact-strong-ink: var(--ink);
     --content-max: min(84vw, 1100px);
     /* Neutrals as translucent overlays rather than fixed greys, so they
        tint whatever is actually underneath and the page follows the
@@ -816,8 +863,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     /* The cover is the page's inverse. On a light theme that means the
        palette's dark tone; on a dark one, a deeper veil of the page
        itself — never --dark, which is the TEXT colour there. */
-    --cover-bg: var(--dark);
-    --cover-fg: var(--light);
+    --cover-bg: var(--ink);
+    --cover-fg: var(--page);
     --cover-fg-faint: rgba(255, 255, 255, 0.34);
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
@@ -826,8 +873,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   html { scroll-behavior: smooth; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    background: var(--light);
-    color: var(--dark);
+    background: var(--page);
+    color: var(--ink);
     line-height: 1.6;
   }
   .slide {
@@ -844,7 +891,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     top: 24px;
     right: 32px;
     font-size: 13px;
-    color: var(--grey);
+    color: var(--ink-muted);
     letter-spacing: 1px;
   }
   .slide-tag {
@@ -853,7 +900,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--grey);
+    color: var(--ink-muted);
     margin-bottom: 16px;
   }
   h1 {
@@ -872,14 +919,14 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   }
   .summary {
     font-size: clamp(16px, 2vw, 22px);
-    color: var(--dark);
+    color: var(--ink);
     max-width: var(--content-max);
     margin-bottom: 32px;
     line-height: 1.55;
   }
   .fact-box {
     background: var(--surface);
-    border-left: 4px solid var(--yellow);
+    border-left: 4px solid var(--marker);
     padding: 24px 28px;
     border-radius: 0 8px 8px 0;
     max-width: var(--content-max);
@@ -890,12 +937,12 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--grey);
+    color: var(--ink-muted);
     margin-bottom: 8px;
   }
   .fact-content {
     font-size: clamp(15px, 1.6vw, 18px);
-    color: var(--dark);
+    color: var(--ink);
   }
   .fact-content strong {
     font-weight: var(--fact-strong-weight);
@@ -906,7 +953,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     border-radius: 2px;
   }
   .fact-content h1, .fact-content h2, .fact-content h3 {
-    color: var(--dark);
+    color: var(--ink);
     font-weight: 700;
     line-height: 1.3;
     margin: 14px 0 6px;
@@ -928,7 +975,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
      same scoping fact-content applies. The 1.3em/1.15em/1.05em resolve
      against the inherited ~16px base, i.e. well under the title size. */
   .slide-body h1, .slide-body h2, .slide-body h3 {
-    color: var(--dark);
+    color: var(--ink);
     font-weight: 700;
     line-height: 1.3;
     margin: 14px 0 6px;
@@ -942,14 +989,14 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .slide-body h3 { font-size: 1.05em; }
   .source {
     font-size: 12px;
-    color: var(--grey);
+    color: var(--ink-muted);
     margin-top: 16px;
     max-width: var(--content-max);
   }
   .page-footer {
     padding: 20px 8vw 28px;
     font-size: 12px;
-    color: var(--grey);
+    color: var(--ink-muted);
     border-top: 1px solid var(--rule);
   }
   .page-footer .footer-byline { margin-bottom: 4px; }
@@ -957,7 +1004,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .slide-cover { background: var(--cover-bg); color: var(--cover-fg); }
   .slide-cover h1 { color: var(--cover-fg); }
   .slide-cover .summary { color: var(--cover-fg); opacity: 0.78; }
-  .slide-cover .slide-tag { color: var(--yellow); }
+  .slide-cover .slide-tag { color: var(--marker); }
   .slide-cover .slide-num { color: var(--cover-fg-faint); }
   /* Markdown constructs the converter has always emitted but that had
      NO rule at all until this stylesheet was audited: a blockquote read
@@ -969,7 +1016,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     margin: 0 0 16px;
     padding: 4px 0 4px 18px;
     border-left: 3px solid var(--rule-strong);
-    color: var(--grey);
+    color: var(--ink-muted);
     font-style: italic;
     max-width: var(--content-max);
   }
@@ -1013,8 +1060,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   }
   .comparison-table th {
     background: var(--sunken);
-    color: var(--dark);
-    border-bottom: 2px solid var(--dark);
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
     font-weight: 700;
     font-size: 13px;
     letter-spacing: 0.5px;
@@ -1030,8 +1077,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
      of how anyone reads those words. Colours come from the palette, so
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
-  .comparison-table .yes { color: var(--green); font-weight: 700; }
-  .comparison-table .no { color: var(--grey); font-weight: 500; opacity: 0.75; }
+  .comparison-table .yes { color: var(--positive); font-weight: 700; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -1057,7 +1104,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   /* Column emphasis, same idea at column scale: put the class on every
      cell of the column you want to stand out. */
   .comparison-table .col-signal { background: var(--sunken); font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .comparison-table .col-snap { background: var(--sunken); box-shadow: inset 3px 0 0 var(--yellow); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .comparison-table .col-snap { background: var(--sunken); box-shadow: inset 3px 0 0 var(--marker); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .figure {
     margin: 20px auto;
     max-width: var(--content-max);
@@ -1067,7 +1114,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .figure-caption {
     margin-top: 6px;
     font-size: 0.85em;
-    color: var(--grey);
+    color: var(--ink-muted);
     text-align: center;
   }
   .full-article {
@@ -1084,7 +1131,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .full-article table th { background: var(--sunken); font-weight: 700; }
   .full-article strong { font-weight: 700; }
   .full-article em { font-style: italic; }
-  .full-article .refs { font-size: 13px; color: var(--grey); }
+  .full-article .refs { font-size: 13px; color: var(--ink-muted); }
   .full-article .refs p { font-size: 13px; line-height: 1.5; margin-bottom: 6px; }
   .series-list { max-width: 680px; }
   .series-item {
@@ -1096,15 +1143,15 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     color: inherit;
   }
   .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
-  .series-link { background: var(--surface); border: 2px solid var(--yellow); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
+  .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  .series-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
+  .series-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px; }
   .series-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-  .series-desc { font-size: 14px; color: var(--grey); margin-bottom: 8px; }
+  .series-desc { font-size: 14px; color: var(--ink-muted); margin-bottom: 8px; }
   .series-status { font-size: 13px; font-weight: 600; }
-  .series-current .series-status { color: var(--grey); }
-  .series-link .series-status { color: var(--dark); }
+  .series-current .series-status { color: var(--ink-muted); }
+  .series-link .series-status { color: var(--ink); }
   .nav-buttons {
     position: fixed;
     bottom: 24px;
@@ -1127,7 +1174,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     justify-content: center;
     cursor: pointer;
     font-size: 20px;
-    color: var(--dark);
+    color: var(--ink);
     box-shadow: 0 2px 8px rgba(0,0,0,0.10);
     transition: opacity 0.2s, transform 0.15s, box-shadow 0.15s;
     user-select: none;
@@ -1155,8 +1202,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     display: block;
     transition: background 0.2s, transform 0.2s;
   }
-  .nav-dots a:hover { background: var(--grey); transform: scale(1.3); }
-  .nav-dots a.active { background: var(--yellow); transform: scale(1.3); }
+  .nav-dots a:hover { background: var(--ink-muted); transform: scale(1.3); }
+  .nav-dots a.active { background: var(--marker); transform: scale(1.3); }
   @media (max-width: 600px) {
     :root { --content-max: calc(100vw - 48px); }
     .slide { padding: 40px 24px; }
@@ -1167,16 +1214,16 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .highlight { display: flex; flex-direction: column; align-items: center;
     gap: 6px; margin: 18px 0 22px; text-align: center; max-width: var(--content-max); }
   .highlight-figure { font-size: clamp(2.1rem, 8vw, 3.4rem); font-weight: 800;
-    line-height: 1.05; color: var(--dark); letter-spacing: -0.01em;
+    line-height: 1.05; color: var(--ink); letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .highlight-arrow { color: var(--accent); font-weight: 700; }
-  .highlight-caption { font-size: 0.9rem; color: var(--grey); max-width: 480px; }
+  .highlight-caption { font-size: 0.9rem; color: var(--ink-muted); max-width: 480px; }
   .share-popover {
     position: fixed;
     bottom: 80px;
     right: 28px;
     z-index: 250;
-    background: var(--light);
+    background: var(--page);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.18);
     padding: 14px;
@@ -1192,19 +1239,19 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   }
   .share-cell { font-size: 13px; }
   .share-cell-head {
-    font-weight: 700; text-align: center; color: var(--grey);
+    font-weight: 700; text-align: center; color: var(--ink-muted);
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
   }
   .share-cell-head-disabled { opacity: 0.35; }
-  .share-cell-label { color: var(--dark); white-space: nowrap; padding-right: 10px; }
+  .share-cell-label { color: var(--ink); white-space: nowrap; padding-right: 10px; }
   button.share-action {
     width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule-strong);
-    background: var(--light); cursor: pointer; font-size: 16px;
+    background: var(--page); cursor: pointer; font-size: 16px;
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto; font-family: inherit; color: var(--dark);
+    margin: 0 auto; font-family: inherit; color: var(--ink);
     transition: border-color 0.15s, background 0.15s;
   }
-  button.share-action:hover:not(:disabled) { border-color: var(--dark); background: var(--surface); }
+  button.share-action:hover:not(:disabled) { border-color: var(--ink); background: var(--surface); }
   button.share-action:disabled { opacity: 0.25; cursor: default; }
   .share-qr-modal {
     position: fixed; inset: 0; z-index: 300;
@@ -1214,7 +1261,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   }
   .share-qr-modal.open { display: flex; }
   .share-qr-modal-content {
-    background: var(--light); border-radius: 12px; padding: 24px;
+    background: var(--page); border-radius: 12px; padding: 24px;
     /* 400px, not 320: longer URLs bump the QR to a higher version (more
        modules), and a small on-screen code is the most likely reason a
        phone's native camera fails to focus/detect it even though the
@@ -1225,12 +1272,12 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   }
   .share-qr-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
   .share-qr-modal-content svg { width: 100%; height: auto; display: block; margin-bottom: 12px; }
-  .share-qr-modal-url { font-size: 12px; color: var(--grey); word-break: break-all; margin-bottom: 16px; }
+  .share-qr-modal-url { font-size: 12px; color: var(--ink-muted); word-break: break-all; margin-bottom: 16px; }
   .share-qr-close {
-    border: 1px solid var(--rule-strong); background: var(--light); border-radius: 8px;
-    padding: 8px 20px; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--dark);
+    border: 1px solid var(--rule-strong); background: var(--page); border-radius: 8px;
+    padding: 8px 20px; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--ink);
   }
-  .share-qr-close:hover { border-color: var(--dark); }
+  .share-qr-close:hover { border-color: var(--ink); }
   .article-card {
     display: block;
     padding: 24px 28px;
@@ -1246,16 +1293,16 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .article-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(0,0,0,0.10);
-    border-color: var(--yellow);
+    border-color: var(--marker);
   }
-  .article-number { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); margin-bottom: 6px; }
+  .article-number { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
   .article-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-  .article-desc { font-size: 15px; color: var(--grey); margin-bottom: 8px; }
-  .article-cta { font-size: 14px; font-weight: 600; color: var(--dark); }
-  .header { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 2px solid var(--yellow); }
+  .article-desc { font-size: 15px; color: var(--ink-muted); margin-bottom: 8px; }
+  .article-cta { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .header { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 2px solid var(--marker); }
   .header h1 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
-  .header .subtitle { font-size: clamp(16px, 2vw, 20px); color: var(--grey); max-width: 700px; }
-  .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--grey); background: var(--sunken); padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
+  .header .subtitle { font-size: clamp(16px, 2vw, 20px); color: var(--ink-muted); max-width: 700px; }
+  .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--ink-muted); background: var(--sunken); padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
   .intro { font-size: 17px; line-height: 1.7; max-width: 700px; margin-bottom: 48px; }
   .intro p { margin-bottom: 16px; }
 ''' + '\n  ' + TEMPLATE_STYLE_CUSTOM_MARKER + '\n'
@@ -2321,47 +2368,47 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 
 <style>
   :root {
-    --paper: #F6F4EF;
-    --ink: #1C1E24;
-    --muted: #6B6558;
-    --rule: #E4E0D6;
-    --card-bg: #FFFFFF;
-    --card-border: #E7E2D5;
-    --structural: #3E4C7A;
-    --structural-soft: #EEF0F8;
-    --chip-good-bg: #E9F1E7;
-    --chip-good-fg: #3E6B47;
-    --chip-warn-bg: #FBEFE3;
-    --chip-warn-fg: #8A5A2A;
+    --ui-paper: #F6F4EF;
+    --ui-ink: #1C1E24;
+    --ui-muted: #6B6558;
+    --ui-rule: #E4E0D6;
+    --ui-card-bg: #FFFFFF;
+    --ui-card-border: #E7E2D5;
+    --ui-structural: #3E4C7A;
+    --ui-structural-soft: #EEF0F8;
+    --ui-chip-good-bg: #E9F1E7;
+    --ui-chip-good-fg: #3E6B47;
+    --ui-chip-warn-bg: #FBEFE3;
+    --ui-chip-warn-fg: #8A5A2A;
   }
   :root[data-theme="dark"] {
-    --paper: #17181D;
-    --ink: #ECE8DE;
-    --muted: #948C7B;
-    --rule: #2C2E35;
-    --card-bg: #1E2026;
-    --card-border: #2E3038;
-    --structural: #92A2E0;
-    --structural-soft: #232A44;
-    --chip-good-bg: #1E3226;
-    --chip-good-fg: #8FCB9B;
-    --chip-warn-bg: #3A2C1C;
-    --chip-warn-fg: #E3B27E;
+    --ui-paper: #17181D;
+    --ui-ink: #ECE8DE;
+    --ui-muted: #948C7B;
+    --ui-rule: #2C2E35;
+    --ui-card-bg: #1E2026;
+    --ui-card-border: #2E3038;
+    --ui-structural: #92A2E0;
+    --ui-structural-soft: #232A44;
+    --ui-chip-good-bg: #1E3226;
+    --ui-chip-good-fg: #8FCB9B;
+    --ui-chip-warn-bg: #3A2C1C;
+    --ui-chip-warn-fg: #E3B27E;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #17181D;
-      --ink: #ECE8DE;
-      --muted: #948C7B;
-      --rule: #2C2E35;
-      --card-bg: #1E2026;
-      --card-border: #2E3038;
-      --structural: #92A2E0;
-      --structural-soft: #232A44;
-      --chip-good-bg: #1E3226;
-      --chip-good-fg: #8FCB9B;
-      --chip-warn-bg: #3A2C1C;
-      --chip-warn-fg: #E3B27E;
+      --ui-paper: #17181D;
+      --ui-ink: #ECE8DE;
+      --ui-muted: #948C7B;
+      --ui-rule: #2C2E35;
+      --ui-card-bg: #1E2026;
+      --ui-card-border: #2E3038;
+      --ui-structural: #92A2E0;
+      --ui-structural-soft: #232A44;
+      --ui-chip-good-bg: #1E3226;
+      --ui-chip-good-fg: #8FCB9B;
+      --ui-chip-warn-bg: #3A2C1C;
+      --ui-chip-warn-fg: #E3B27E;
     }
   }
 
@@ -2369,13 +2416,13 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
-    background: var(--paper);
-    color: var(--ink);
+    background: var(--ui-paper);
+    color: var(--ui-ink);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     line-height: 1.5;
   }
-  a { color: var(--structural); }
-  ::selection { background: var(--structural-soft); }
+  a { color: var(--ui-structural); }
+  ::selection { background: var(--ui-structural-soft); }
 
   .wrap {
     max-width: 1180px;
@@ -2392,7 +2439,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     font-size: 11.5px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--structural);
+    color: var(--ui-structural);
     margin: 0 0 14px;
   }
   h1 {
@@ -2406,7 +2453,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
   .dek {
     font-size: 16px;
-    color: var(--muted);
+    color: var(--ui-muted);
     margin: 0 0 8px;
     max-width: 62ch;
   }
@@ -2415,17 +2462,17 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   .dek--note {
     margin-top: 16px;
     padding: 12px 16px;
-    border-left: 3px solid var(--card-border);
-    background: var(--card-bg);
+    border-left: 3px solid var(--ui-card-border);
+    background: var(--ui-card-bg);
     border-radius: 0 8px 8px 0;
     font-size: 15px;
   }
-  .dek--note strong { color: var(--ink); }
+  .dek--note strong { color: var(--ui-ink); }
   .dek code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.92em;
-    background: var(--structural-soft);
-    color: var(--structural);
+    background: var(--ui-structural-soft);
+    color: var(--ui-structural);
     padding: 0.1em 0.4em;
     border-radius: 4px;
     /* A variable name must not break across lines: '--yellow' split
@@ -2435,19 +2482,19 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
 
   .facets { max-width: 1180px; margin: 0 auto 26px; padding: 16px 20px;
-    background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; }
+    background: var(--ui-card-bg); border: 1px solid var(--ui-card-border); border-radius: 12px; }
   .facets[hidden] { display: none; }
   .facet-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .facet-row:last-of-type { margin-bottom: 0; }
   .facet-label { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase;
-    color: var(--muted); min-width: 108px; }
+    color: var(--ui-muted); min-width: 108px; }
   .facet { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 99px;
-    border: 1px solid var(--card-border); background: transparent; color: var(--ink);
+    border: 1px solid var(--ui-card-border); background: transparent; color: var(--ui-ink);
     cursor: pointer; }
-  .facet:hover:not(:disabled) { border-color: var(--structural); }
-  .facet.on { background: var(--structural); border-color: var(--structural); color: #fff; }
+  .facet:hover:not(:disabled) { border-color: var(--ui-structural); }
+  .facet.on { background: var(--ui-structural); border-color: var(--ui-structural); color: #fff; }
   .facet:disabled { opacity: 0.32; cursor: default; }
-  .facet-count { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .facet-count { margin-top: 10px; font-size: 12px; color: var(--ui-muted); }
   .grid {
     margin-top: 40px;
     display: grid;
@@ -2456,8 +2503,8 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
 
   .theme-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
+    background: var(--ui-card-bg);
+    border: 1px solid var(--ui-card-border);
     border-radius: 14px;
     overflow: hidden;
     display: flex;
@@ -2489,7 +2536,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   .theme-source {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 10.5px;
-    color: var(--muted);
+    color: var(--ui-muted);
     margin: 0;
     text-align: right;
     white-space: nowrap;
@@ -2504,16 +2551,16 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     margin: 14px 18px 0;
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid var(--card-border);
+    border: 1px solid var(--ui-card-border);
     /* The page ground, and it has to be here. The neutrals are
        TRANSLUCENT overlays (§9.5.2): --cover-bg on a dark theme is
        rgba(0,0,0,0.45), meant to deepen the page underneath it. Without
        a ground of its own the preview composited that veil against the
        gallery's own light card instead, and a synthwave cover came out
-       plain grey. In the real page body already carries var(--light);
+       plain grey. In the real page body already carries var(--page);
        the preview has to carry it too or every overlay lands on the
        wrong backdrop. */
-    background: var(--light);
+    background: var(--page);
   }
   /* Every rule below mirrors the ROLE MAPPING of the real stylesheet:
      the same custom property feeds the same part of the page. Sizes and
@@ -2522,7 +2569,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
      colour may never be hard-coded.
 
      That is not a stylistic preference. This preview used to hard-code
-     var(--dark) as the cover ground and #fff as its text, and #fff again
+     var(--ink) as the cover ground and #fff as its text, and #fff again
      for the fact-box. On a dark-backgrounded theme --dark holds the TEXT
      colour, so the cover came out as a pale panel with white text on it,
      and the fact-box as a white block on a black page — the very bugs
@@ -2539,7 +2586,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: var(--yellow);
+    color: var(--marker);
   }
   .preview-cover-title {
     margin-top: 9px;
@@ -2549,7 +2596,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     color: var(--cover-fg);
   }
   .preview-body {
-    background: var(--light);
+    background: var(--page);
     padding: 15px;
   }
   .preview-tag--muted {
@@ -2557,19 +2604,19 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: var(--grey);
+    color: var(--ink-muted);
   }
   .preview-h2 {
     margin-top: 5px;
     font-size: 15px;
     font-weight: 800;
-    color: var(--dark);
+    color: var(--ink);
     line-height: 1.25;
   }
   .preview-summary {
     margin-top: 5px;
     font-size: 12px;
-    color: var(--grey);
+    color: var(--ink-muted);
     line-height: 1.5;
   }
   .preview-highlight {
@@ -2582,7 +2629,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   .preview-figure {
     font-size: 21px;
     font-weight: 800;
-    color: var(--dark);
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
   }
   .preview-arrow {
@@ -2592,12 +2639,12 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
   .preview-caption {
     font-size: 10.5px;
-    color: var(--grey);
+    color: var(--ink-muted);
   }
   .preview-factbox {
     margin-top: 12px;
     background: var(--surface);
-    border-left: 4px solid var(--yellow);
+    border-left: 4px solid var(--marker);
     padding: 9px 11px;
     border-radius: 0 6px 6px 0;
   }
@@ -2606,12 +2653,12 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: var(--grey);
+    color: var(--ink-muted);
   }
   .preview-factcontent {
     margin-top: 4px;
     font-size: 11.5px;
-    color: var(--dark);
+    color: var(--ink);
     line-height: 1.4;
   }
   .preview-factcontent strong {
@@ -2634,11 +2681,11 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     border-radius: 4px;
   }
   .preview-cell--neutral {
-    color: var(--grey);
+    color: var(--ink-muted);
     background: var(--sunken);
   }
   .preview-cell--green {
-    color: var(--green);
+    color: var(--positive);
     background: var(--sunken);
   }
   /* The shape marker too, not just the colour. The real stylesheet
@@ -2659,7 +2706,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
   .swatch {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     min-width: 0;
   }
@@ -2685,39 +2732,44 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .swatch-hex {
+  /* The value and the variable name each get their own line. Putting
+     them side by side truncated the longest pair ('#6E9C7A · --ink-muted')
+     to '--ink-mu…' at the card's real width — and an elided variable
+     name is worse than none, since it cannot be typed. */
+  .swatch-hex, .swatch-var {
     font-size: 9.5px;
-    color: var(--muted);
+    color: var(--ui-muted);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .swatch-var { color: var(--ui-structural); }
 
   .theme-note {
     margin: 14px 18px 18px;
     font-size: 11.5px;
-    color: var(--chip-warn-fg);
-    background: var(--chip-warn-bg);
+    color: var(--ui-chip-warn-fg);
+    background: var(--ui-chip-warn-bg);
     padding: 8px 11px;
     border-radius: 8px;
     line-height: 1.45;
   }
   .theme-note--good {
-    color: var(--chip-good-fg);
-    background: var(--chip-good-bg);
+    color: var(--ui-chip-good-fg);
+    background: var(--ui-chip-good-bg);
   }
 
   .install-hint {
     margin: 0 18px 18px;
     font-size: 11px;
-    color: var(--muted);
+    color: var(--ui-muted);
   }
   .install-hint code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.95em;
-    background: var(--structural-soft);
-    color: var(--structural);
+    background: var(--ui-structural-soft);
+    color: var(--ui-structural);
     padding: 0.1em 0.4em;
     border-radius: 4px;
   }
@@ -2725,9 +2777,9 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   footer {
     margin-top: 64px;
     padding-top: 24px;
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--ui-rule);
     font-size: 12.5px;
-    color: var(--muted);
+    color: var(--ui-muted);
     max-width: 70ch;
   }
   footer code {
@@ -2758,15 +2810,18 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     </p>
     <p class="dek dek--note">
       <strong>Les six variables d&eacute;signent un r&ocirc;le, pas une couleur.</strong>
-      Leurs noms (<code>--yellow</code>, <code>--green</code>, <code>--light</code>&hellip;)
-      viennent des valeurs du tout premier th&egrave;me et n'ont jamais &eacute;t&eacute;
-      renomm&eacute;s : ce sont ceux qu'on surcharge dans <code>templates/style.css</code>,
-      et les changer casserait toute personnalisation existante. D'o&ugrave; des noms qui
-      mentent sur les th&egrave;mes suivants : sur un fond d&eacute;j&agrave; jaune,
-      <code>--yellow</code> porte un brun sombre, sans quoi le rep&egrave;re serait
-      invisible ; sur un th&egrave;me &agrave; fond sombre, <code>--light</code> porte un
-      presque-noir et <code>--dark</code> la couleur du texte. Les pastilles ci-dessous
-      annoncent donc le r&ocirc;le d'abord, le nom de variable ensuite.
+      Elles s'appelaient <code>--yellow</code>, <code>--dark</code>, <code>--grey</code>,
+      <code>--light</code> et <code>--green</code> jusqu'en v0.15.0, d'apr&egrave;s leurs
+      valeurs dans le tout premier th&egrave;me. Ces noms mentaient d&egrave;s qu'un
+      th&egrave;me s'en &eacute;loignait : sur un fond d&eacute;j&agrave; jaune,
+      <code>--yellow</code> portait un brun sombre, faute de quoi le rep&egrave;re
+      aurait &eacute;t&eacute; invisible ; sur un th&egrave;me &agrave; fond sombre,
+      <code>--light</code> portait un presque-noir pendant que <code>--dark</code>
+      portait la couleur du texte. Un nom qu'il faut d&eacute;sapprendre pour s'en
+      servir ne vaut pas mieux que pas de nom : chaque variable porte d&eacute;sormais
+      le sien. Aucun alias n'a &eacute;t&eacute; conserv&eacute; &mdash;
+      <code>audit</code> signale les anciens noms rest&eacute;s dans vos propres
+      r&egrave;gles.
     </p>
   </div>
 
@@ -2816,7 +2871,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
         <h2>{label}</h2>
         <p class="theme-source">{source}</p>
       </header>
-      <div class="preview" style="--yellow:{yellow};--dark:{dark};--grey:{grey};--light:{light};--accent:{accent};--green:{green};--fact-strong-weight:{fact_weight};--fact-strong-style:{fact_style};--fact-strong-highlight:{fact_highlight};{overlay_vars}">
+      <div class="preview" style="--marker:{marker};--ink:{ink};--ink-muted:{ink_muted};--page:{page};--accent:{accent};--positive:{positive};--fact-strong-weight:{fact_weight};--fact-strong-style:{fact_style};--fact-strong-highlight:{fact_highlight};{overlay_vars}">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -2843,13 +2898,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
            entr&eacute;e annonce ce que la couleur FAIT ; le nom de variable ne
            vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
            d&eacute;crit la couleur. -->
-      <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:{light}"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">{light} &middot; --light</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{dark}"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">{dark} &middot; --dark</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{grey}"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">{grey} &middot; --grey</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{yellow}"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">{yellow} &middot; --yellow</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{accent}"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">{accent} &middot; --accent</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{green}"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">{green} &middot; --green</div></span></li>
+      <ul class="swatches">{swatches}
       </ul>
       <p class="theme-note{note_good_class}">{note}</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme {slug}</code></p>
@@ -4753,7 +4802,7 @@ def build_stamp_html(version, minimal=False):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         text = f'Compiled at {now} with lightwebpres v{version}.'
     style = (
-        # Literal hex, not var(--grey): the same staleness risk applies to
+        # Literal hex, not var(--ink-muted): the same staleness risk applies to
         # a series' own custom property definitions, not just its rules.
         'position:absolute;top:16px;left:20px;font-size:11px;color:#6b6b7d;'
         'letter-spacing:0.3px;opacity:0.75;z-index:50;pointer-events:none;'
@@ -5060,10 +5109,45 @@ def cmd_audit(series_dir, args):
                   f'have no <meta name="description">')
             warnings += 1
 
+    warnings += audit_legacy_palette_names(templates_dir)
+
     if warnings == 0:
         print('No warnings: all editorial conventions are respected.')
     else:
         print(f'{warnings} warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
+
+
+def audit_legacy_palette_names(templates_dir):
+    """Warns when an author's own CSS still names a palette variable that
+    v0.15.0 renamed (§9.1). Returns the number of warnings.
+
+    There are no compatibility aliases — that was a deliberate choice —
+    so `color: var(--yellow)` does not fall back to anything: the
+    declaration is simply invalid and the property keeps its inherited
+    value. Nothing in the browser says so, and nothing in a build says so
+    either. A rename that breaks quietly is the worst kind, and this is
+    what makes it audible.
+
+    Only the author's own section is examined (after the personalization
+    marker, §9.4): the built-in part above it is regenerated by
+    refresh-templates and migrates on its own."""
+    style_path = templates_dir / 'style.css'
+    if not style_path.exists():
+        return 0
+
+    custom = read_text_file(style_path).split(TEMPLATE_STYLE_CUSTOM_MARKER, 1)
+    if len(custom) < 2:
+        return 0
+
+    found = sorted({old for old in LEGACY_PALETTE_ROLES if f'var(--{old})' in custom[1]})
+    if not found:
+        return 0
+
+    renames = ', '.join(f'--{old} -> --{LEGACY_PALETTE_ROLES[old]}' for old in found)
+    print(f'[WARNING] templates/style.css: your own rules still use palette '
+          f'variables renamed in v0.15.0 ({renames}). They no longer exist, so '
+          f'those declarations are silently ignored — see specifications.md §9.1.')
+    return 1
 
 
 # ============================================================================
@@ -5385,19 +5469,34 @@ def cmd_themes_gallery(output_path, args):
         # dans la galerie avec les surfaces claires du préréglage par
         # défaut — une carte blanche sur une page noire.
         overlay = ''.join(f'--{k}:{v};' for k, v in theme_surface_properties(theme).items())
+        # Built from PALETTE_ROLES rather than spelled out in the
+        # template, so a role can never be renamed in one place and left
+        # behind in the other — which is how the swatches came to
+        # announce variable names in the first place.
+        swatches = ''.join(
+            f'\n        <li class="swatch">'
+            f'<span class="swatch-chip" style="background:{theme[role]}"></span>'
+            f'<span class="swatch-text">'
+            f'<div class="swatch-role">{PALETTE_ROLE_LABELS[role]}</div>'
+            f'<div class="swatch-var">--{role}</div>'
+            f'<div class="swatch-hex">{theme[role]}</div>'
+            f'</span></li>'
+            for role in PALETTE_ROLES
+        )
         cards.append(TEMPLATE_THEMES_GALLERY_CARD.format(
             overlay_vars=overlay,
+            swatches=swatches,
             polarity=facets['polarity'],
             intensity=facets['intensity'],
             hue=facets['hue'],
             label=theme['label'],
             source=theme['source'],
-            yellow=theme['yellow'],
-            dark=theme['dark'],
-            grey=theme['grey'],
-            light=theme['light'],
+            marker=theme['marker'],
+            ink=theme['ink'],
+            ink_muted=theme['ink-muted'],
+            page=theme['page'],
             accent=theme['accent'],
-            green=theme['green'],
+            positive=theme['positive'],
             fact_weight=fact_weight,
             fact_style=fact_style,
             fact_highlight=fact_highlight,

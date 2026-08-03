@@ -214,15 +214,37 @@ version — because the substitution could leave it half-recolored;
 `--force` overrides that and warns. Rules you appended after the
 personalization marker are preserved either way.
 
-A theme substitutes nineteen CSS custom properties: the six colors
-(`--yellow --dark --grey --light --accent --green`), four fact-box
-emphasis properties, and nine translucent overlays for rules, surfaces
-and floating controls. Those overlays are what makes a dark-background
-theme possible at all — over a dark page a surface veil has to be white
-on dark instead of the reverse. Nothing else in the CSS changes, and the
-substitution survives an executable upgrade: `refresh-templates`
-reapplies the same theme to the refreshed built-in CSS instead of
-silently reverting to the default.
+A theme substitutes nineteen CSS custom properties: six palette colors,
+four fact-box emphasis properties, and nine translucent overlays for
+rules, surfaces and floating controls. Those overlays are what makes a
+dark-background theme possible at all — over a dark page a surface veil
+has to be white on dark instead of the reverse. Nothing else in the CSS
+changes, and the substitution survives an executable upgrade:
+`refresh-templates` reapplies the same theme to the refreshed built-in
+CSS instead of silently reverting to the default.
+
+Each palette variable is named for **what it does**, not for a color:
+
+| Variable | Role |
+|---|---|
+| `--page` | the page background |
+| `--ink` | body text; also the cover ground on a light theme |
+| `--ink-muted` | summary, caption, source, the "no" verdict |
+| `--marker` | fact-box rule, cover tag, header underline, active nav dot, emphasized column |
+| `--accent` | links, focus ring, key-figure arrow, the "partial" verdict |
+| `--positive` | the "yes" verdict of a comparison table |
+
+> **Renamed in v0.15.0.** These were `--yellow --dark --grey --light
+> --accent --green`, named after the values they held in the very first
+> theme. The names then lied on every theme that moved away from it:
+> `--yellow` held a dark olive on Pop Lemon (a yellow marker on a
+> yellow page is invisible), and `--light` held a near-black on every
+> dark theme while `--dark` held the text color. No compatibility
+> aliases were kept, so `var(--yellow)` in your own rules no longer
+> resolves to anything — `lightwebpres audit` names every old variable
+> still left in your section of `templates/style.css`, with its
+> replacement. The built-in part above the personalization marker
+> migrates by itself on the next `refresh-templates`.
 
 ![Preview of the built-in color themes](themes-gallery.png)
 

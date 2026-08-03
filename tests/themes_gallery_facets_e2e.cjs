@@ -96,6 +96,22 @@ async function main() {
                       deadEnabled.join(', '));
     }
 
+    // No swatch label is clipped. The v0.15.0 role names are longer than
+    // the colour names they replaced, and the first layout truncated
+    // '--ink-muted' to '--ink-mu…' — an elided variable name is worse
+    // than none, because it cannot be typed. Only real layout catches
+    // this; the HTML contains the full string either way.
+    // Every text line of a swatch, not just the ones that happen to be
+    // there today: a selector that misses the truncated element passes
+    // as happily as one that finds nothing wrong.
+    const clipped = await page.$$eval('.swatch-text > *',
+      (els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1)
+                  .map((e) => e.textContent));
+    if (clipped.length) {
+      throw new Error('Swatch labels truncated: ' +
+                      [...new Set(clipped)].join(', '));
+    }
+
     // "All" restores the full gallery: no card is lost along the way.
     await page.click('[data-facet="polarity"][data-value=""]');
     await page.click('[data-facet="intensity"][data-value=""]');
