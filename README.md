@@ -139,6 +139,10 @@ all generated automatically.
   footnotes, lists, tables, blockquotes, inline/fenced code, and inline
   raw HTML (at most one per article).
 
+Every slide (and `series.json`/the article's own meta block) also
+accepts `comment:` — a review note, recognized but never rendered, never
+published, not even in the page's raw HTML source.
+
 ## Language & typography
 
 Built-in French and English packs (typography rules — non-breaking

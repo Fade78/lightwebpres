@@ -358,6 +358,7 @@ doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 | `source`         | `<p class="source">Source : VALEUR</p>` | Non         |
 | `highlight`         | `<span class="highlight-figure">VALEUR</span>` | Non     |
 | `highlight-caption` | `<span class="highlight-caption">VALEUR</span>` | Non  |
+| `comment`        | Aucun — jamais rendu (§4.6)               | Non         |
 
 Le texte libre après les champs est placé dans un `<div class="fact-content">`
 si un `fact-label` est présent, sinon dans un `<p>` nu. Ce texte libre suit le
@@ -423,6 +424,22 @@ réutilisés ailleurs — sa carte et sa description dans l'index, son entrée
 dans le bloc « Cette série » d'un autre article — restent soumis aux règles
 normales, puisqu'ils sont générés par `build_index`/`build_series_nav`, pas
 par le rendu de la page de l'article lui-même.
+
+### 4.6 Notes de relecture (`comment`)
+
+`comment` est reconnu à chaque niveau (`series.json` — entrée d'article ou
+`series_meta` —, bloc meta de l'article, en-tête d'une fiche `cover` ou
+non-`cover`) mais n'est **jamais lu par aucun moteur de rendu** : le
+parseur le reconnaît comme un champ valide (pas de bascule vers le texte
+libre, pas d'erreur fatale sur une fiche `cover`), stocke sa valeur, puis
+ne la relit jamais — elle n'atteint donc ni le HTML publié, ni même son
+code source brut. C'est la différence avec un commentaire HTML
+(`<!-- note -->`) placé dans du texte libre : celui-ci est préservé tel
+quel par le passthrough HTML brut (§6.2) et reste donc présent — invisible
+à l'écran, mais visible dans le code source de la page publiée. `comment`
+n'a aucune contrainte de contenu et aucun effet sur le build ; il sert
+uniquement à laisser une note de relecture (à vérifier, TODO, remarque
+éditoriale) directement dans la source, sans qu'elle soit jamais publiée.
 
 ---
 
@@ -1746,7 +1763,9 @@ git add . && git commit && git push
 - **Multi-langue dans une même page** : une langue par build
 - **Images inline** : les images restent en chemin relatif
 - **Recherche full-text** : pas de moteur de recherche
-- **Commentaires** : pas de système de commentaires
+- **Commentaires** : pas de système de commentaires de lecteurs (discussion
+  publique sur un article publié) — à ne pas confondre avec le champ
+  `comment` (§4.6), une note de relecture d'auteur, jamais publiée
 - **Analytics** : pas de tracking
 - **Citations imbriquées ou multi-paragraphes** (§6.3) : une seule
   citation, un seul paragraphe à la fois
@@ -1880,7 +1899,9 @@ tranchés — à spécifier avant implémentation.
 - **Multi-langue dans une même page** : une langue par build ✓ (documenté)
 - **Images inline** : les images restent en chemin relatif ✓ (documenté)
 - **Recherche full-text** : pas de moteur de recherche ✓ (documenté)
-- **Commentaires** : pas de système de commentaires ✓ (documenté)
+- **Commentaires** : pas de système de commentaires de lecteurs (discussion
+  publique sur un article publié) — à ne pas confondre avec le champ
+  `comment` (§4.6), une note de relecture d'auteur, jamais publiée ✓ (documenté)
 - **Analytics** : pas de tracking ✓ (documenté)
 - **Citations imbriquées ou multi-paragraphes** ✓ (documenté, §6.3/§15)
 - **Coloration syntaxique des blocs de code** ✓ (documenté, §6.3/§15)
@@ -2227,6 +2248,7 @@ son propre bloc meta ou son propre contenu.
 | `card_label` | string | non | index, nav | Étiquette libre sur la carte d'index et dans le bloc « Cette série » — texte, pas un numéro ; surcharge celle du bloc meta (§20.3.1) |
 | `nav_title` | string | non | nav (carte de navigation intra-article) | Titre affiché quand cet article apparaît dans la navigation d'un autre article ; surcharge celui du bloc meta (§20.3.1) |
 | `nav_desc` | string | non | nav | Description affichée dans ce même contexte ; surcharge celle du bloc meta (§20.3.1) |
+| `comment` | string | non | aucun — jamais lu | Note de relecture ; ignorée par le build (§4.6) |
 
 ### 20.3 Règles de validation
 
@@ -2326,6 +2348,7 @@ direct (rétrocompatible avec un format de série déjà utilisé).
 | `subtitle` | string | non | Sous-titre sur la page d'index |
 | `version` | string | non | Version affichée (ex. `v0.13`) |
 | `intro` | string | non | Paragraphe d'introduction de l'index |
+| `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
 
 Le template d'index enveloppe `intro` dans un unique `<p>` fixe
 (`<p>{{series_intro}}</p>`) : pour plusieurs paragraphes, insérer
@@ -2456,10 +2479,10 @@ elle-même un champ reconnu bascule immédiatement en texte libre.
 ### 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover`
 
 Erreur fatale. Une fiche `cover` n'a pas de fact-box : `tag`, `slide_title`
-(écrit `# Titre`) et `summary` sont ses seuls champs. Si du texte suit ces
-champs sans être lui-même un champ reconnu, le build s'arrête avec un
-message indiquant le fichier et le numéro de fiche, plutôt que d'ignorer
-silencieusement ce texte.
+(écrit `# Titre`), `summary` et `comment` (§4.6, jamais rendu) sont ses
+seuls champs. Si du texte suit ces champs sans être lui-même un champ
+reconnu, le build s'arrête avec un message indiquant le fichier et le
+numéro de fiche, plutôt que d'ignorer silencieusement ce texte.
 
 ### 22.13 Nombre et position des fiches `cover`
 

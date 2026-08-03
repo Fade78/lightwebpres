@@ -34,7 +34,7 @@ from html.parser import HTMLParser
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.5.1"
+VERSION = "0.6.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -2629,6 +2629,7 @@ class Slide:
         self.source = None
         self.highlight = None
         self.highlight_caption = None
+        self.comment = None  # Review note (GLOSSARY.md) — parsed, never rendered
         self.article_file = None  # For full-article
         self.raw_meta = {}  # Raw metadata
 
@@ -2722,7 +2723,7 @@ def parse_markdown_extended(md_text):
             # which would swallow a non-breaking space right after the
             # ':' instead of preserving it as the value's first character
             # (§7.6).
-            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption):[ \t]*(.*)', stripped)
+            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption|comment):[ \t]*(.*)', stripped)
             if field_match and not in_content:
                 key = field_match.group(1)
                 value = field_match.group(2)
@@ -2738,6 +2739,8 @@ def parse_markdown_extended(md_text):
                     slide.highlight = value
                 elif key == 'highlight-caption':
                     slide.highlight_caption = value
+                elif key == 'comment':
+                    slide.comment = value  # review note — never rendered (GLOSSARY.md)
             # `#` only ever means "this cover's own title" and `##` only
             # ever means "this non-cover slide's own title" — the other
             # heading level can never legitimately set anything here (a

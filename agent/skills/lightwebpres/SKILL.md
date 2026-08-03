@@ -4,7 +4,7 @@ description: >
   Reference for the exact LightWebPres (LWP) Markdown syntax lightwebpres
   parses: the lwp:meta comment block, the four slide types (cover,
   standard, series-nav, full-article) and their fields (tag, slide_title,
-  summary, highlight, fact-label, source), the one-way field/free-text
+  summary, highlight, fact-label, source, comment), the one-way field/free-text
   parsing switch, series.json wiring, and automatic non-breaking-space
   typography with its opt-outs (typo, typo-units, typo-thousands).
   Format mechanics only, not editorial writing — it doesn't decide what
@@ -126,12 +126,15 @@ Nothing in this chain is fatal — every field always resolves to
 `specifications.md` §20.3.1 for the authoritative version of this
 cascade.
 
+`comment:` here works too, for an article-wide note — same rule as the
+per-slide one below: recognized, never read, never published.
+
 ## Slide types
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `tag`, `# Title`, `summary` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, then free Markdown text | As many as you want |
+| `cover` | `tag`, `# Title`, `summary`, `comment` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, `comment`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
@@ -141,6 +144,14 @@ are all optional — simplest to just omit the line if you don't need it
 to write it). `highlight` is a short standalone figure (a number, a
 stat, a quote) with an optional caption underneath; it renders above the
 free text, not instead of it.
+
+`comment` is a review note — recognized as a real field on any slide
+(and in `series.json`/the article's own meta block too), but never read
+by any renderer. It never reaches the built output, not even the page's
+raw HTML source — unlike an HTML comment (`<!-- ... -->`) written in
+free text, which passes through untouched (still shipped, just invisible
+on screen). Use it for an editorial note, a TODO, a "verify this stat"
+flag — anything that must stay in the source without ever publishing.
 
 The free Markdown text on a standard slide has two possible renderings,
 picked automatically: with a `fact-label:` line, it's wrapped in a
@@ -241,6 +252,10 @@ file, e.g.:
 Nothing here is ever a fatal build error — every field resolves to
 *something* down the cascade, `card_label` included (it just ends up
 empty if it's absent everywhere).
+
+`comment` also works as a `series.json` entry key, or in `series_meta`
+for a note about the series as a whole — same rule: recognized, never
+read, never published.
 
 ## Always verify before calling it done
 

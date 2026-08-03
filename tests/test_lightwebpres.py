@@ -3152,6 +3152,65 @@ class GeneratedHtmlValidation(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
 
 
+class CommentField(unittest.TestCase):
+    """GLOSSARY.md: `comment` is a review-note field, recognized wherever
+    other fields are (series.json entry, article meta block, cover/
+    standard slide header) but never read by any renderer — parsed and
+    discarded, never reaching the built output anywhere."""
+
+    def test_comment_recognized_everywhere_never_leaks_into_output(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\n'
+            'nav_desc: A\ncomment: META-BLOCK-SECRET\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\ncomment: COVER-SECRET\n'
+            '# Title\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T2\ncomment: STANDARD-SECRET\n'
+            '## Standard title\nsummary: Summary 2.\nfact-label: The fact\n'
+            'Body text.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({
+                'articles': [{'source': 'a.md', 'comment': 'SERIES-JSON-SECRET'}],
+            }), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html_a = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            for secret in ('META-BLOCK-SECRET', 'COVER-SECRET', 'STANDARD-SECRET',
+                           'SERIES-JSON-SECRET'):
+                self.assertNotIn(secret, html_a)
+                self.assertNotIn(secret, index_html)
+
+    def test_comment_on_cover_slide_is_not_a_fatal_unexpected_content_error(self):
+        """A cover slide has no fact-box (§22.12) — comment: must be
+        recognized as a real field there, not fall through to content."""
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\ncomment: a note\n# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_comment_on_standard_slide_does_not_become_fact_box_content(self):
+        md = (
+            '<!-- lwp:meta -->\nfile: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\ncomment: a note\n## Title\nsummary: Summary.\n'
+            'fact-label: The fact\nReal fact-box body.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Real fact-box body.', html)
+            self.assertNotIn('a note', html)
+
+
 class HeadingInBodyIsContentNotRetitle(unittest.TestCase):
     """§22.2: the field->free-text switch applies to # / ## lines exactly
     like key: value fields — a heading appearing after body content has
