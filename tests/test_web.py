@@ -25,6 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 WEB_E2E_SCRIPT = Path(__file__).resolve().parent / 'web_e2e.cjs'
 FILE_PROTOCOL_GUARD_SCRIPT = Path(__file__).resolve().parent / 'file_protocol_guard_e2e.cjs'
 LWP_LOOKUP_SCRIPT = Path(__file__).resolve().parent / 'lightwebpres_lookup_e2e.cjs'
+GALLERY_FACETS_SCRIPT = Path(__file__).resolve().parent / 'themes_gallery_facets_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -238,6 +239,39 @@ class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
             timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
+class ThemesGalleryFacets(unittest.TestCase):
+    """§11.7/§9.5.3: the gallery's facet filters, measured against real
+    layout in a real browser.
+
+    This needs a browser because the failure it guards against is
+    invisible to everything cheaper. The script hides a card by setting
+    its `hidden` property, which relies on the browser default
+    [hidden] { display: none } — and a class rule carrying a `display` of
+    its own outranks that UA default. When that happened the counter read
+    "14 palettes sur 33" and the dead-end facets greyed out correctly,
+    while all 33 cards were still on screen. Asserting on the attribute,
+    or on the counter, would have passed."""
+
+    def test_facets_actually_hide_and_restore_the_previews(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gallery = Path(tmp) / 'themes-gallery.html'
+            generated = subprocess.run(
+                [sys.executable, str(REPO_ROOT / 'lightwebpres'),
+                 'themes-gallery', str(gallery)],
+                capture_output=True, text=True, timeout=60,
+            )
+            self.assertEqual(generated.returncode, 0,
+                             generated.stdout + generated.stderr)
+            result = subprocess.run(
+                ['node', str(GALLERY_FACETS_SCRIPT), 'file://%s' % gallery],
+                capture_output=True, text=True,
+                env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+                timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == '__main__':

@@ -123,6 +123,8 @@ all generated automatically.
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking editorial warnings (e.g. "no cover slide") — never fails the build |
 | `refresh-templates [dir]` | Updates the built-in CSS/JS in `templates/` after an executable upgrade, keeping local customizations |
+| `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
+| `set-theme [dir] --theme X` | Changes an existing series' theme, reporting what it replaced; `--force` for a stylesheet whose built-in part isn't standard |
 | `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme, with facet filters (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
@@ -178,29 +180,59 @@ if present, replacing the built-in defaults — the page/index HTML
 structure itself is fixed, not a template, so a build can't be broken by
 a malformed structural override.
 
-Nine named color themes ship pre-configured — Nord, Dracula, Solarized,
-Gruvbox, Catppuccin, Tokyo Night, Monokai, Everforest, Rosé Pine — pick
-one at scaffold time:
+Thirty-three named color themes ship pre-configured. Nine borrow known
+editor palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo
+Night, Monokai, Everforest, Rosé Pine); the rest are the project's own —
+high-contrast and monochrome sets, a red family, a green one, three cyber
+palettes, and an eight-strong Pop family whose backgrounds carry the
+color themselves. Every project-owned palette was measured before being
+kept: AAA contrast for body text, AA for secondary text and accents, 3:1
+for rules, and comparison verdicts checked for separability under
+simulated deuteranopia and protanopia.
+
+Thirty-three is too many to pick from a list, so themes are found by
+facet — **polarity** (light or dark background), **intensity** (sober,
+vivid, mono), and **hue**, computed from the background in CIELAB rather
+than declared, so it can't drift when a color is tweaked:
 
 ```bash
-./lightwebpres install my-series --theme nord
+./lightwebpres themes                              # all 33, with their facets
+./lightwebpres themes --polarity dark --hue green  # just the ones you mean
 ```
 
-`--theme` substitutes the six CSS custom properties (`--yellow --dark
---grey --light --accent --green`) the default stylesheet exposes; nothing
-else in the CSS changes, and the substitution survives an executable
-upgrade — `refresh-templates` reapplies the same theme to the refreshed
-built-in CSS instead of silently reverting to the default.
+Apply one when scaffolding, or change your mind later:
+
+```bash
+./lightwebpres install my-series --theme evergreen
+./lightwebpres set-theme my-series --theme crimson
+```
+
+`set-theme` reports what it replaced (`Theme changed: evergreen ->
+crimson`) and refuses a `templates/style.css` whose built-in part isn't
+what this executable would have written — hand-edited, or from another
+version — because the substitution could leave it half-recolored;
+`--force` overrides that and warns. Rules you appended after the
+personalization marker are preserved either way.
+
+A theme substitutes nineteen CSS custom properties: the six colors
+(`--yellow --dark --grey --light --accent --green`), four fact-box
+emphasis properties, and nine translucent overlays for rules, surfaces
+and floating controls. Those overlays are what makes a dark-background
+theme possible at all — over a dark page a surface veil has to be white
+on dark instead of the reverse. Nothing else in the CSS changes, and the
+substitution survives an executable upgrade: `refresh-templates`
+reapplies the same theme to the refreshed built-in CSS instead of
+silently reverting to the default.
 
 ![Preview of the built-in color themes](themes-gallery.png)
 
 That's [`themes-gallery.html`](themes-gallery.html) in this repo,
-rendered — open it directly in a browser for the live, interactive
-version (each card previews the theme against real slide content: tag,
-title, summary, a highlighted figure, a fact-box, a table). It's
-generated straight from the tool's own `THEMES` data with
-`./lightwebpres themes-gallery`, so it can never drift from what
-`install --theme` actually applies.
+rendered — open it directly in a browser for the live version, where
+those same facets become filters (each card previews the theme against
+real slide content: tag, title, summary, a highlighted figure, a
+fact-box, a table). It's generated straight from the tool's own `THEMES`
+data with `./lightwebpres themes-gallery`, so it can never drift from
+what `install --theme` actually applies.
 
 ## One browser-based tool, two tabs
 

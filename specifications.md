@@ -103,7 +103,7 @@ L'exécutable contient en interne :
    Python, extraites par la commande `install`
 4. Le générateur de démo (crée des articles d'exemple)
 5. Le CLI (`install`, `demo`, `build`, `check`, `audit`, `refresh-templates`,
-   `themes-gallery`, `--help`)
+   `themes`, `set-theme`, `themes-gallery`, `--help`)
 
 ### 2.2 Le répertoire de série
 
@@ -167,6 +167,8 @@ lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file
 lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
 lightwebpres audit [répertoire] [--lang fr]
 lightwebpres refresh-templates [répertoire]
+lightwebpres themes [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
+lightwebpres set-theme [répertoire] --theme nom [--force]
 lightwebpres themes-gallery [chemin]
 lightwebpres --help
 ```
@@ -175,8 +177,9 @@ lightwebpres --help
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
 - `--output` : le répertoire de sortie (défaut : `public/`, ou `$LWP_OUTPUT_DIR`)
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
-- `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide
-- `--theme` : `install` seulement — remplace les six couleurs du thème par défaut par celles d'une palette prédéfinie (§9.5)
+- `--force` : `install` — procède même si le répertoire cible n'est pas vide ; `set-theme` — rethème un `style.css` non standard, au risque d'un résultat partiellement recoloré (§11.10)
+- `--theme` : `install`/`set-theme` — applique une palette prédéfinie (§9.5)
+- `--polarity` / `--intensity` / `--hue` : `themes` seulement — restreint la liste par facette (§9.5.3, §11.9)
 - `--gitlab-ci` : `install` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`check` seulement — construit aussi les articles marqués `draft: true` (§20.6), avec bandeau « Brouillon »
@@ -185,8 +188,11 @@ lightwebpres --help
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 
 Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR`
-ne sont honorées que par `build`, `check` et `audit` ; `install`, `demo` et
-`refresh-templates` n'utilisent que leurs arguments explicites.
+ne sont honorées que par `build`, `check` et `audit` ; `install`, `demo`,
+`refresh-templates` et `set-theme` n'utilisent que leurs arguments
+explicites. `themes` et `themes-gallery` ne lisent aucun répertoire de
+série : la première n'interroge que la table `THEMES` intégrée, la
+seconde ne prend qu'un chemin de sortie.
 
 L'aide s'obtient par `help`, `--help` ou `-h` (les trois formes sont
 équivalentes) ; sans argument du tout, l'aide s'affiche aussi. Une
@@ -1428,14 +1434,27 @@ qu'elles font :
 
 **Facettes.** Passé une douzaine de palettes, une galerie cesse d'être
 un moyen de choisir et devient une chose à faire défiler. Trois facettes
-décrivent donc chaque entrée, et `themes-gallery` (§11.7) les expose en
-filtres :
+décrivent donc chaque entrée ; `themes-gallery` (§11.7) les expose en
+filtres, et la commande `themes` (§11.9) en options :
 
 | Facette | Valeurs | Origine |
 |---|---|---|
-| polarité | `clair`, `sombre` | dérivée de `dark_background` (§9.5.2) |
-| intensité | `sober`, `vivid`, `mono` | déclarée dans l'entrée |
-| teinte | `neutre`, `rouge`, `orange`, `jaune`, `vert`, `cyan`, `bleu`, `violet`, `magenta` | **calculée** à partir du fond |
+| polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.2) |
+| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée |
+| hue | `neutral`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta` | **calculée** à partir du fond |
+
+Les noms de facettes et leurs valeurs sont en anglais, comme tout
+identifiant que la ligne de commande accepte. La galerie est une page
+française et affiche « Clair », « Sobre », « Teinte du fond » : elle
+garde ses libellés d'affichage séparés des valeurs sur lesquelles elle
+filtre. Une chaîne affichée et une clé ne sont pas la même chose, et les
+confondre rendrait la CLI intraduisible.
+
+Une même fonction, `theme_facets()`, alimente les deux surfaces. Un
+sélecteur dans un terminal et un sélecteur dans un navigateur ne peuvent
+donc pas diverger — propriété vérifiée par un test qui compare, pour
+chaque combinaison, la sortie de `themes` aux attributs `data-*` des
+cartes de la galerie.
 
 L'intensité est déclarée parce que « à quel point est-ce criard » est un
 jugement éditorial, pas une grandeur mesurable. La teinte, elle, est
@@ -1912,6 +1931,105 @@ moteur de fiches lui-même.
 ### 11.8 `--help`
 
 Affiche l'aide avec la liste des commandes et options.
+
+La section THEMES de cette aide **n'énumère plus les slugs**. À neuf
+thèmes, la liste était un rappel utile ; passé la trentaine, c'est un mur
+de noms qui ne dit rien de ce que chacun donne à l'écran — exactement le
+problème que les facettes existent pour résoudre, simplement déplacé de
+la galerie vers le terminal. L'aide renvoie donc aux deux commandes qui
+savent répondre à « lequel je veux » : `themes` et `themes-gallery`.
+
+### 11.9 `themes`
+
+```bash
+lightwebpres themes [--polarity light|dark] [--intensity sober|vivid|mono] [--hue <teinte>]
+```
+
+Liste les thèmes intégrés depuis le terminal, avec pour chacun son slug,
+ses trois facettes (§9.5.3), son étiquette et sa remarque éditoriale.
+Sans option, les liste tous ; chaque option restreint la liste, et les
+options se combinent.
+
+Cette commande existe parce que **lightwebpres doit pouvoir être utilisé
+seul**. Les facettes n'ont d'abord vécu que dans le HTML produit par
+`themes-gallery`, ce qui imposait un aller-retour par un navigateur pour
+choisir un thème — inacceptable pour un outil en ligne de commande, et
+d'autant plus que l'interface graphique est un projet séparé qui ne peut
+rien garantir ici.
+
+Le slug est mis en avant dans la sortie parce que c'est ce que
+`install --theme` et `set-theme` attendent : ce qu'on lit est
+directement ce qu'on retape.
+
+Deux cas se distinguent volontairement :
+
+- **Valeur de facette inconnue** (`--hue rouge`) : erreur fatale qui
+  liste les valeurs valides. Répondre « aucun thème ne correspond »
+  enverrait le lecteur chercher un thème qui existe pourtant, à une
+  faute de frappe près.
+- **Combinaison valide mais vide** (`--polarity dark --hue orange`) :
+  succès, avec un message nommant la combinaison restée sans résultat.
+  Ce n'est pas une erreur, c'est une réponse.
+
+### 11.10 `set-theme`
+
+```bash
+lightwebpres set-theme [répertoire] --theme <slug> [--force]
+```
+
+Change le thème d'une série existante, en réécrivant les variables de
+`templates/style.css` (§9.5.1). Avant cette commande, les seules voies
+étaient de réinstaller la série ou d'éditer à la main le marqueur de
+thème puis de lancer `refresh-templates` — un effet de bord du mécanisme
+de survie aux mises à jour (§9.5.4), que rien ne documentait et que
+personne ne devinerait.
+
+Le fichier produit est **identique octet pour octet** à celui
+qu'`install --theme <slug>` aurait écrit. Deux chemins vers le même état
+ne doivent pas donner deux fichiers différents, sans quoi `check`
+signalerait une dérive sur une série dont on a simplement changé le
+thème.
+
+**Le message nomme les deux thèmes**, celui qui part et celui qui
+arrive :
+
+```
+Theme changed: nord -> evergreen
+```
+
+Un fichier sans marqueur est sur le thème par défaut, ce qui est une
+réponse à « remplacé par quoi » et non une valeur manquante : il
+s'affiche `default -> <slug>`. Un marqueur nommant un thème que cette
+version ne connaît pas s'affiche `<slug> (unknown) -> <slug>`.
+
+**`--force` et la notion de fichier standard.** La commande refuse un
+`templates/style.css` dont la partie intégrée n'est pas exactement celle
+que cet exécutable aurait écrite pour le thème qu'il porte. Trois cas
+la rendent non standard :
+
+1. la partie intégrée diffère (éditée à la main, ou écrite par une autre
+   version de l'exécutable) ;
+2. le marqueur de personnalisation (§9.4) est absent, donc le CSS
+   intégré ne peut pas être distingué des règles de l'auteur ;
+3. le marqueur de thème nomme un slug inconnu de `THEMES`.
+
+Le motif du refus n'est pas la prudence de principe : la substitution
+opère sur des motifs précis (`--<nom>: <valeur>;` dans `:root`). Une
+déclaration réécrite en `rgb(...)`, ou déplacée hors de `:root`, ne
+correspond plus au motif et **garderait silencieusement son ancienne
+valeur** — une page à moitié recolorée, pire que pas de commande du
+tout. `--force` passe outre, applique quand même, et **avertit** en
+nommant le motif.
+
+Un refus n'écrit rien.
+
+Les règles ajoutées **après** le marqueur de personnalisation (§9.4) sont
+préservées dans tous les cas et ne rendent jamais un fichier non
+standard : c'est la façon prévue de personnaliser.
+
+Enfin, demander le thème déjà en place n'écrit pas le fichier et le dit
+(`Theme unchanged`), plutôt que de mettre à jour une date de
+modification pour rien.
 
 ---
 

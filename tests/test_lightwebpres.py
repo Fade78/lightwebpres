@@ -2960,11 +2960,11 @@ class ThemeFacets(unittest.TestCase):
         CIELAB's angles are not the ones RGB intuition suggests (a full
         blue sits near 297 degrees, not 240)."""
         cases = [
-            ('#9E1128', 'rouge'), ('#FF9500', 'orange'), ('#FFD400', 'jaune'),
-            ('#075C26', 'vert'), ('#075B6E', 'cyan'), ('#1B3FBF', 'bleu'),
+            ('#9E1128', 'red'), ('#FF9500', 'orange'), ('#FFD400', 'yellow'),
+            ('#075C26', 'green'), ('#075B6E', 'cyan'), ('#1B3FBF', 'blue'),
             ('#5B1DB8', 'violet'), ('#94105F', 'magenta'),
             # Paper and ink: a hue angle exists but no reader would name it.
-            ('#FDF6E3', 'neutre'), ('#F8F8F2', 'neutre'), ('#0B0B0D', 'neutre'),
+            ('#FDF6E3', 'neutral'), ('#F8F8F2', 'neutral'), ('#0B0B0D', 'neutral'),
         ]
         for hex_colour, expected in cases:
             self.assertEqual(
@@ -2975,7 +2975,7 @@ class ThemeFacets(unittest.TestCase):
     def test_every_theme_carries_the_three_facets(self):
         for key, theme in self.lwp.THEMES.items():
             facets = self.lwp.theme_facets(theme)
-            self.assertIn(facets['polarity'], ('clair', 'sombre'), key)
+            self.assertIn(facets['polarity'], ('light', 'dark'), key)
             self.assertIn(facets['intensity'], ('sober', 'vivid', 'mono'), key)
             self.assertIsInstance(facets['hue'], str)
 
@@ -2984,7 +2984,7 @@ class ThemeFacets(unittest.TestCase):
         disagreed the gallery would file a theme under the wrong heading
         while rendering it the other way."""
         for key, theme in self.lwp.THEMES.items():
-            dark_facet = self.lwp.theme_facets(theme)['polarity'] == 'sombre'
+            dark_facet = self.lwp.theme_facets(theme)['polarity'] == 'dark'
             dark_css = self.lwp.theme_surface_properties(theme) is self.lwp.SURFACE_PRESETS[True]
             self.assertEqual(dark_facet, dark_css, key)
 
@@ -3004,6 +3004,232 @@ class ThemeFacets(unittest.TestCase):
         for style in previews:
             for var in ('--surface:', '--rule:', '--sunken:', '--cover-bg:', '--cover-fg:'):
                 self.assertIn(var, style)
+
+
+class ThemesCommand(unittest.TestCase):
+    """§11.9: the facets have to be reachable from the terminal, not only
+    from the generated gallery page. lightwebpres is a standalone tool —
+    if choosing a theme requires opening a browser, the CLI cannot do its
+    own job."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_bare_listing_names_every_theme_with_its_facets(self):
+        result = run('themes')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for slug, theme in self.lwp.THEMES.items():
+            facets = self.lwp.theme_facets(theme)
+            trio = '/'.join((facets['polarity'], facets['intensity'], facets['hue']))
+            self.assertIn(f'{slug}  [{trio}]', result.stdout, slug)
+
+    def test_a_facet_filter_narrows_the_list_to_exactly_the_matching_themes(self):
+        expected = [s for s, t in self.lwp.THEMES.items()
+                    if self.lwp.theme_facets(t)['polarity'] == 'dark']
+        self.assertTrue(expected, 'no dark theme to filter on')
+        self.assertNotEqual(len(expected), len(self.lwp.THEMES))
+
+        result = run('themes', '--polarity', 'dark')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        listed = re.findall(r'^  (\S+)  \[', result.stdout, re.MULTILINE)
+        self.assertEqual(sorted(listed), sorted(expected))
+
+    def test_filters_combine_and_agree_with_the_gallery_data_attributes(self):
+        """One function feeds both surfaces (theme_facets), so a terminal
+        picker and a browser picker cannot drift apart. Pinned, because
+        the whole point of computing the facets is that nothing has to be
+        kept in step by hand."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+
+        cards = re.findall(
+            r'data-polarity="([^"]*)" data-intensity="([^"]*)" data-hue="([^"]*)" '
+            r'data-name="(\S+) ', html)
+        self.assertEqual(len(cards), len(self.lwp.THEMES))
+
+        for polarity, intensity, hue in {(c[0], c[1], c[2]) for c in cards}:
+            from_gallery = sorted(c[3] for c in cards
+                                  if (c[0], c[1], c[2]) == (polarity, intensity, hue))
+            result = run('themes', '--polarity', polarity,
+                         '--intensity', intensity, '--hue', hue)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            from_cli = sorted(re.findall(r'^  (\S+)  \[', result.stdout, re.MULTILINE))
+            self.assertEqual(from_cli, from_gallery, (polarity, intensity, hue))
+
+    def test_an_unknown_facet_value_is_a_fatal_error_that_lists_the_valid_ones(self):
+        """Not an empty result: 'rouge' is a typo for 'red', and quietly
+        answering "no theme is like that" would send the reader looking
+        for a theme that is right there."""
+        result = run('themes', '--hue', 'rouge')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('Unknown --hue', result.stderr)
+        self.assertIn('red', result.stderr)
+
+    def test_an_empty_but_legitimate_combination_says_so_and_succeeds(self):
+        result = run('themes', '--polarity', 'dark', '--hue', 'orange')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('No theme matches', result.stdout)
+
+    def test_help_no_longer_dumps_the_flat_slug_list(self):
+        """At nine themes it was a reminder; past thirty it is the same
+        unusable flat list the facets exist to replace, only relocated
+        into the terminal."""
+        result = run('--help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        listed = [s for s in self.lwp.THEMES if s in result.stdout]
+        self.assertLessEqual(len(listed), 2, f'help still enumerates themes: {listed}')
+        self.assertIn('lightwebpres themes', result.stdout)
+
+
+class SetThemeCommand(unittest.TestCase):
+    """§11.10: a theme must be changeable after install. Until this
+    existed the only routes were reinstalling the series or hand-editing
+    the theme marker and running refresh-templates — an undocumented side
+    effect of the upgrade mechanism that nobody would guess."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_changing_a_theme_names_the_one_being_replaced_and_the_new_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            result = run('set-theme', tmp, '--theme', 'evergreen')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Theme changed: nord -> evergreen', result.stdout)
+            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertEqual(self.lwp.detect_theme(css), 'evergreen')
+            self.assertIn(self.lwp.THEMES['evergreen']['light'], css)
+
+    def test_the_default_theme_is_named_default_in_that_message(self):
+        """A file with no marker is on the default theme, which is an
+        answer to "replaced by what" — not a missing value to elide."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            result = run('set-theme', tmp, '--theme', 'crimson')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Theme changed: default -> crimson', result.stdout)
+
+    def test_the_result_is_byte_identical_to_installing_with_that_theme(self):
+        """Two routes to the same state must not produce two different
+        files, or `check` would report drift on a series whose theme was
+        changed rather than reinstalled."""
+        with tempfile.TemporaryDirectory() as tmp:
+            switched, fresh = Path(tmp) / 'switched', Path(tmp) / 'fresh'
+            self.assertEqual(run('install', str(switched), '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('set-theme', str(switched), '--theme', 'synthwave').returncode, 0)
+            self.assertEqual(run('install', str(fresh), '--theme', 'synthwave').returncode, 0)
+            self.assertEqual(
+                (switched / 'templates' / 'style.css').read_text(encoding='utf-8'),
+                (fresh / 'templates' / 'style.css').read_text(encoding='utf-8'),
+            )
+
+    def test_repeated_theme_changes_do_not_accumulate_blank_lines(self):
+        """The marker is rewritten on every run. Removing it with the
+        search regex leaves its blank line behind, so after a few changes
+        the file drifts from its standard form and set-theme starts
+        demanding --force against its own output."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            for slug in ('synthwave', 'crimson', 'sage', 'nord'):
+                result = run('set-theme', tmp, '--theme', slug)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertEqual(css, self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, 'nord'))
+
+    def test_rules_added_after_the_personalization_marker_survive_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+            style.write_text(style.read_text(encoding='utf-8') + '\n.mine { color: red; }\n',
+                             encoding='utf-8')
+            result = run('set-theme', tmp, '--theme', 'crimson')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('.mine { color: red; }', style.read_text(encoding='utf-8'))
+
+    def test_a_hand_edited_builtin_stylesheet_is_refused_without_force(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+            style.write_text(style.read_text(encoding='utf-8').replace(
+                '    --grey: ', '    --grey:'), encoding='utf-8')
+            edited = style.read_text(encoding='utf-8')
+
+            result = run('set-theme', tmp, '--theme', 'crimson')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('not a standard theme file', result.stderr)
+            self.assertIn('--force', result.stderr)
+            self.assertEqual(style.read_text(encoding='utf-8'), edited,
+                             'a refused set-theme must not have written anything')
+
+            forced = run('set-theme', tmp, '--theme', 'crimson', '--force')
+            self.assertEqual(forced.returncode, 0, forced.stderr)
+            self.assertIn('Theme changed: nord -> crimson', forced.stdout)
+            self.assertIn('[WARN]', forced.stderr)
+            self.assertEqual(self.lwp.detect_theme(style.read_text(encoding='utf-8')), 'crimson')
+
+    def test_a_stylesheet_with_no_personalization_marker_needs_force(self):
+        """Without the marker the built-in CSS cannot be told apart from
+        the author's own rules — the same reason refresh-templates
+        refuses such a file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+            style.write_text(style.read_text(encoding='utf-8').replace(
+                self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER, ''), encoding='utf-8')
+            result = run('set-theme', tmp, '--theme', 'nord')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('no personalization marker', result.stderr)
+
+    def test_a_marker_naming_an_unknown_theme_needs_force_and_is_named_as_unknown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+            style.write_text(style.read_text(encoding='utf-8').replace(
+                'lightwebpres-theme: nord', 'lightwebpres-theme: from-the-future'),
+                encoding='utf-8')
+
+            self.assertEqual(run('set-theme', tmp, '--theme', 'nord').returncode, 1)
+            forced = run('set-theme', tmp, '--theme', 'nord', '--force')
+            self.assertEqual(forced.returncode, 0, forced.stderr)
+            self.assertIn('Theme changed: from-the-future (unknown) -> nord', forced.stdout)
+
+    def test_setting_the_theme_already_in_place_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+            before = style.stat().st_mtime_ns
+            result = run('set-theme', tmp, '--theme', 'nord')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Theme unchanged', result.stdout)
+            self.assertEqual(style.stat().st_mtime_ns, before)
+
+    def test_an_unknown_slug_and_a_missing_theme_option_are_both_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            unknown = run('set-theme', tmp, '--theme', 'nope')
+            self.assertEqual(unknown.returncode, 1)
+            self.assertIn('Unknown theme', unknown.stderr)
+            missing = run('set-theme', tmp)
+            self.assertEqual(missing.returncode, 1)
+            self.assertIn('requires --theme', missing.stderr)
+
+    def test_a_series_that_was_never_installed_is_a_clean_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run('set-theme', tmp, '--theme', 'nord')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('Run install first', result.stderr)
+
+    def test_refresh_templates_keeps_the_theme_set_this_way(self):
+        """set-theme writes the same marker install does, so the upgrade
+        path (§9.5.4) cannot tell the two apart — which is the point."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('set-theme', tmp, '--theme', 'terminal').returncode, 0)
+            self.assertEqual(run('refresh-templates', tmp).returncode, 0)
+            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
+            self.assertEqual(self.lwp.detect_theme(css), 'terminal')
 
 
 class DefaultStylesheetCoverage(unittest.TestCase):

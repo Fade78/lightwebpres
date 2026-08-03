@@ -13,6 +13,8 @@ Usage:
   lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres refresh-templates [directory]
+  lightwebpres themes [--polarity light|dark] [--intensity name] [--hue name]
+  lightwebpres set-theme [directory] --theme name [--force]
   lightwebpres themes-gallery [path]
   lightwebpres --help
 """
@@ -44,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.13.0"
+VERSION = "0.14.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -491,12 +493,28 @@ THEMES = {
 # Calibrated by measuring the angle of known references rather than from
 # memory: CIELAB's angles are not the ones RGB intuition suggests (a full
 # blue sits near 297°, not 240°, and cyan near 227°).
+#
+# Facet VALUES are in English, like every other identifier the CLI takes
+# (`themes --hue green`, §11.9). The gallery is a French page and shows
+# French labels, but it holds them separately from the data-* values it
+# filters on — a display string and a key are not the same thing.
 HUE_NAMES = (
-    (38, 'rouge'), (78, 'orange'), (120, 'jaune'), (185, 'vert'),
-    (262, 'cyan'), (303, 'bleu'), (330, 'violet'), (358, 'magenta'), (360, 'rouge'),
+    (38, 'red'), (78, 'orange'), (120, 'yellow'), (185, 'green'),
+    (262, 'cyan'), (303, 'blue'), (330, 'violet'), (358, 'magenta'), (360, 'red'),
 )
 # Below this chroma a background reads as paper or ink, never as a hue.
 NEUTRAL_CHROMA = 18.0
+
+# Every value each facet can take, in the order a listing should show
+# them (hue follows the colour wheel, not the alphabet). Single source of
+# truth for the `themes` command's validation and for its grouped output,
+# so a new hue band cannot be added to HUE_NAMES without appearing here.
+FACET_VALUES = {
+    'polarity': ('light', 'dark'),
+    'intensity': ('sober', 'vivid', 'mono'),
+    'hue': ('neutral', 'red', 'orange', 'yellow', 'green',
+            'cyan', 'blue', 'violet', 'magenta'),
+}
 
 
 def _lab(hex_colour):
@@ -515,26 +533,39 @@ def theme_hue_family(theme):
     """Names the hue family of a theme's BACKGROUND — what a reader sees
     first, and what they mean by "a green theme". Computed in CIELAB so
     the answer matches perception: a pale cream has a hue ANGLE like a
-    full orange but almost no chroma, and is called 'neutre'."""
+    full orange but almost no chroma, and is called 'neutral'."""
     import math
     _, a, b = _lab(theme['light'])
     if math.hypot(a, b) < NEUTRAL_CHROMA:
-        return 'neutre'
+        return 'neutral'
     angle = math.degrees(math.atan2(b, a)) % 360
     for bound, name in HUE_NAMES:
         if angle < bound:
             return name
-    return 'rouge'
+    return 'red'
 
 
 def theme_facets(theme):
-    """The three facets of a THEMES entry, as the gallery and any picker
-    should present them."""
+    """The three facets of a THEMES entry, as the gallery (§11.7) and the
+    `themes` command (§11.9) both present them — one function, so a
+    browser picker and a terminal picker can never disagree."""
     return {
-        'polarity': 'sombre' if theme.get('dark_background') else 'clair',
+        'polarity': 'dark' if theme.get('dark_background') else 'light',
         'intensity': theme.get('intensity', 'sober'),
         'hue': theme_hue_family(theme),
     }
+
+
+def themes_matching(filters):
+    """The THEMES entries whose facets satisfy every filter in `filters`
+    (a facet-name -> value mapping; a None or absent value matches
+    anything). Returns a list of (slug, theme, facets) in table order."""
+    out = []
+    for slug, theme in THEMES.items():
+        facets = theme_facets(theme)
+        if all(want is None or facets[name] == want for name, want in filters.items()):
+            out.append((slug, theme, facets))
+    return out
 
 
 # Marks where the built-in portion of templates/style.css ends and a site's
@@ -551,6 +582,15 @@ TEMPLATE_STYLE_CUSTOM_MARKER = '/* === Personnalisations locales : refresh-templ
 # theme instead of silently reverting to the default when it regenerates
 # the built-in portion of the file.
 TEMPLATE_STYLE_THEME_MARKER_RE = re.compile(r'^/\* lightwebpres-theme: (\S+) \*/$', re.MULTILINE)
+
+# Same marker, but swallowing its line ending, for REMOVING it. The
+# search regex above cannot do that job: `$` stops before the newline, so
+# substituting it away leaves the blank line behind. Harmless once, but
+# `set-theme` (§11.10) rewrites the marker every time it runs, and the
+# blanks accumulate — after a few theme changes the file no longer
+# matches its standard form and set-theme starts demanding --force
+# against its own output.
+TEMPLATE_STYLE_THEME_MARKER_LINE_RE = re.compile(r'^/\* lightwebpres-theme: \S+ \*/\n', re.MULTILINE)
 
 
 # §9.5.2 — the neutral overlays and the cover, per background polarity.
@@ -688,7 +728,7 @@ def apply_theme(css_text, theme_key):
         pattern = r'(--%s:\s*)[^;]+(;)' % re.escape(var)
         css_text = re.sub(pattern, lambda m, value=value: m.group(1) + value + m.group(2), css_text, count=1)
 
-    css_text = TEMPLATE_STYLE_THEME_MARKER_RE.sub('', css_text, count=1)
+    css_text = TEMPLATE_STYLE_THEME_MARKER_LINE_RE.sub('', css_text, count=1)
     header_end = css_text.index('\n') + 1
     css_text = css_text[:header_end] + f'/* lightwebpres-theme: {theme_key} */\n' + css_text[header_end:]
     return css_text
@@ -703,6 +743,45 @@ def detect_theme(css_text):
     builtin_part = css_text.split(TEMPLATE_STYLE_CUSTOM_MARKER, 1)[0]
     m = TEMPLATE_STYLE_THEME_MARKER_RE.search(builtin_part)
     return m.group(1) if m else None
+
+
+def theme_state(css_text):
+    """Inspects a templates/style.css and answers the two questions
+    `set-theme` (§11.10) has to ask before touching it:
+
+      slug      which theme it currently carries — a THEMES key, or None
+                for the default theme (no marker).
+      standard  whether its built-in portion is EXACTLY what this
+                executable would generate for that theme. False means
+                someone edited the built-in CSS by hand, so substituting
+                the theme variables may leave the file half-recoloured:
+                a declaration rewritten to `rgb(...)` or moved out of
+                :root no longer matches the patterns apply_theme() looks
+                for, and would silently keep its old value.
+      reason    a short explanation when standard is False, for the
+                error message to quote; '' otherwise.
+
+    Rules the author appended AFTER the personalization marker (§9.4) are
+    none of this function's business — that is the supported way to
+    customize, and it never makes a file non-standard.
+
+    Returns (slug, standard, reason)."""
+    slug = detect_theme(css_text)
+    if slug is not None and slug not in THEMES:
+        return slug, False, f'it records theme {slug!r}, which this version does not know'
+
+    marker_pos = css_text.find(TEMPLATE_STYLE_CUSTOM_MARKER)
+    if marker_pos == -1:
+        return slug, False, ('it has no personalization marker, so the built-in CSS '
+                             'cannot be told apart from your own rules')
+
+    builtin = css_text[:marker_pos + len(TEMPLATE_STYLE_CUSTOM_MARKER)]
+    expected = apply_theme(TEMPLATE_STYLE, slug) if slug else TEMPLATE_STYLE
+    expected_end = expected.find(TEMPLATE_STYLE_CUSTOM_MARKER) + len(TEMPLATE_STYLE_CUSTOM_MARKER)
+    if builtin != expected[:expected_end]:
+        return slug, False, ('its built-in CSS differs from this version of lightwebpres '
+                             '(edited by hand, or written by another version)')
+    return slug, True, ''
 
 
 # --- Template: style.css ---
@@ -2365,6 +2444,14 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     display: flex;
     flex-direction: column;
   }
+  /* Required, not decorative. The filter script hides a card by setting
+     its `hidden` property, which relies on the browser default
+     [hidden] { display: none }. That default is a type selector in the
+     UA sheet, so the class rule just above wins on specificity and the
+     card stays on screen: the counter said "14 palettes sur 33" while
+     all 33 were still displayed. Any future display: on .theme-card
+     needs this override kept alongside it. */
+  .theme-card[hidden] { display: none; }
 
   .theme-head {
     padding: 18px 18px 4px;
@@ -2624,8 +2711,8 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     <div class="facet-row">
       <span class="facet-label">Fond</span>
       <button type="button" class="facet on" data-facet="polarity" data-value="">Tous</button>
-      <button type="button" class="facet" data-facet="polarity" data-value="clair">Clair</button>
-      <button type="button" class="facet" data-facet="polarity" data-value="sombre">Sombre</button>
+      <button type="button" class="facet" data-facet="polarity" data-value="light">Clair</button>
+      <button type="button" class="facet" data-facet="polarity" data-value="dark">Sombre</button>
     </div>
     <div class="facet-row">
       <span class="facet-label">Registre</span>
@@ -2637,13 +2724,13 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     <div class="facet-row">
       <span class="facet-label">Teinte du fond</span>
       <button type="button" class="facet on" data-facet="hue" data-value="">Toutes</button>
-      <button type="button" class="facet" data-facet="hue" data-value="neutre">Neutre</button>
-      <button type="button" class="facet" data-facet="hue" data-value="rouge">Rouge</button>
+      <button type="button" class="facet" data-facet="hue" data-value="neutral">Neutre</button>
+      <button type="button" class="facet" data-facet="hue" data-value="red">Rouge</button>
       <button type="button" class="facet" data-facet="hue" data-value="orange">Orange</button>
-      <button type="button" class="facet" data-facet="hue" data-value="jaune">Jaune</button>
-      <button type="button" class="facet" data-facet="hue" data-value="vert">Vert</button>
+      <button type="button" class="facet" data-facet="hue" data-value="yellow">Jaune</button>
+      <button type="button" class="facet" data-facet="hue" data-value="green">Vert</button>
       <button type="button" class="facet" data-facet="hue" data-value="cyan">Cyan</button>
-      <button type="button" class="facet" data-facet="hue" data-value="bleu">Bleu</button>
+      <button type="button" class="facet" data-facet="hue" data-value="blue">Bleu</button>
       <button type="button" class="facet" data-facet="hue" data-value="violet">Violet</button>
       <button type="button" class="facet" data-facet="hue" data-value="magenta">Magenta</button>
     </div>
@@ -5082,6 +5169,131 @@ def cmd_refresh_templates(target_dir, args):
 
 
 # ============================================================================
+# THEMES / SET-THEME COMMANDS
+# ============================================================================
+
+def _facet_filters(args):
+    """Reads --polarity/--intensity/--hue out of parsed CLI options,
+    rejecting an unknown value by name rather than silently returning an
+    empty list (which would read as "no theme is like that")."""
+    filters = {}
+    for facet in FACET_VALUES:
+        value = args.get(f'--{facet}')
+        if value is not None and value not in FACET_VALUES[facet]:
+            print(f'[ERROR] Unknown --{facet}: {value!r}. Valid values: '
+                  f'{", ".join(FACET_VALUES[facet])}', file=sys.stderr)
+            sys.exit(1)
+        filters[facet] = value
+    return filters
+
+
+def cmd_themes(args):
+    """themes command (§11.9) — lists the built-in themes, optionally
+    narrowed by facet, so a theme can be chosen from the terminal instead
+    of only from the generated gallery page. Prints slugs, because a slug
+    is what `install --theme` and `set-theme` take."""
+    import textwrap
+
+    filters = _facet_filters(args)
+    matches = themes_matching(filters)
+    active = ' '.join(f'--{k} {v}' for k, v in filters.items() if v)
+
+    if not matches:
+        # Not an error: an empty result to a legitimate question. Name
+        # the combination that came up empty rather than printing nothing
+        # and letting the reader wonder whether the command ran.
+        print(f'No theme matches {active}.')
+        print(f'Drop a filter, or run `lightwebpres themes` for all {len(THEMES)}.')
+        return
+
+    if active:
+        print(f'{len(matches)} of {len(THEMES)} themes match {active}:')
+    else:
+        print(f'{len(THEMES)} built-in themes:')
+    print()
+
+    for slug, theme, facets in matches:
+        trio = '/'.join((facets['polarity'], facets['intensity'], facets['hue']))
+        print(f'  {slug}  [{trio}]')
+        # The notes are written for the gallery, so they carry <code>
+        # markup. Strip it rather than print angle brackets at someone.
+        note = re.sub(r'<[^<>]+>', '', theme['note'])
+        for line in textwrap.wrap(f'{theme["label"]} — {note}', width=72):
+            print(f'      {line}')
+        print()
+
+    print('Facets: polarity (light/dark), intensity (sober/vivid/mono), hue.')
+    print('Narrow the list with, for example:')
+    print('  lightwebpres themes --polarity dark --hue green')
+    print('Apply one with `install --theme <slug>` (new series) or')
+    print('`set-theme --theme <slug>` (existing one); see them rendered with')
+    print('`lightwebpres themes-gallery`.')
+
+
+def cmd_set_theme(target_dir, args):
+    """set-theme command (§11.10) — changes the theme of an existing
+    series by rewriting the variables in templates/style.css, instead of
+    forcing a reinstall or a hand-edit of the theme marker.
+
+    Refuses a file whose built-in CSS is not what this executable would
+    have produced (theme_state()), unless --force: on such a file the
+    substitution can silently miss a declaration and leave the page
+    half-recoloured, which is worse than not running at all."""
+    td = Path(target_dir).resolve()
+    style_path = td / 'templates' / 'style.css'
+    new_slug = args.get('--theme')
+    force = bool(args.get('--force'))
+
+    if new_slug is None:
+        print(f'[ERROR] set-theme requires --theme <slug>. '
+              f'Run `lightwebpres themes` to list them.', file=sys.stderr)
+        sys.exit(1)
+    if new_slug not in THEMES:
+        print(f'[ERROR] Unknown theme: {new_slug!r}. '
+              f'Run `lightwebpres themes` to list the {len(THEMES)} valid slugs.',
+              file=sys.stderr)
+        sys.exit(1)
+    if not style_path.exists():
+        print(f'[ERROR] {style_path} not found. Run install first.', file=sys.stderr)
+        sys.exit(1)
+
+    old_css = read_text_file(style_path)
+    current, standard, reason = theme_state(old_css)
+
+    if not standard and not force:
+        print(f'[ERROR] {style_path} is not a standard theme file: {reason}.',
+              file=sys.stderr)
+        print(f'        Changing its theme may leave it partly recoloured. '
+              f'Pass --force to do it anyway.', file=sys.stderr)
+        sys.exit(1)
+
+    # Named for the message even when it is not a THEMES key: the point
+    # of the report is to say what is being replaced, and 'the default
+    # theme' or an unknown slug are both answers to that.
+    if current is None:
+        current_name = 'default'
+    elif current in THEMES:
+        current_name = current
+    else:
+        current_name = f'{current} (unknown)'
+
+    if current == new_slug and standard:
+        print(f'Theme unchanged: {style_path} already uses {new_slug}. Nothing written.')
+        return
+
+    style_path.write_text(apply_theme(old_css, new_slug), encoding='utf-8')
+
+    print(f'Theme changed: {current_name} -> {new_slug}')
+    print(f'  {style_path}')
+    if not standard:
+        print(f'[WARN] Forced: {reason}. Check the result — any declaration you '
+              f'moved out of :root or rewrote in another notation kept its old '
+              f'value.', file=sys.stderr)
+    print()
+    print('Run build again to apply the new theme.')
+
+
+# ============================================================================
 # THEMES-GALLERY COMMAND
 # ============================================================================
 
@@ -5388,7 +5600,12 @@ This is the full article for the third demo article [^1].
 # ============================================================================
 
 def print_help():
-    theme_names = ', '.join(sorted(THEMES))
+    # Deliberately NOT the full slug list any more. At nine themes it was
+    # a helpful reminder; past thirty it is a wall of names carrying no
+    # information about what any of them look like — the same problem the
+    # facets exist to solve, only relocated into the terminal. Point at
+    # the two commands that can actually answer "which one do I want".
+    theme_count = len(THEMES)
     print(f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
 
 COMMANDS
@@ -5399,6 +5616,10 @@ COMMANDS
   lightwebpres audit [directory] [--lang fr]     Warns about editorial conventions (never blocking)
   lightwebpres refresh-templates [directory]     Updates the built-in CSS/JS in templates/,
                                                   keeping local customizations (see §9.4)
+  lightwebpres themes [--polarity ...]           Lists the built-in color themes, narrowed
+                                                  by facet (see THEMES below, §11.9)
+  lightwebpres set-theme [directory] --theme X   Changes an existing series' theme
+                                                  (see §11.10)
   lightwebpres themes-gallery [path]             Generates a self-contained HTML page
                                                   documenting every built-in color theme
                                                   (default path: themes-gallery.html, see §11.7)
@@ -5410,8 +5631,15 @@ OPTIONS
   --lang fr|en           Language: typography rules + interface strings (default: fr)
   --output public/       Output directory (default: public/)
   --force                install: proceed even if the target directory is not empty
-  --theme name           install: replace the default theme's colors with a named
-                        palette (see THEMES below); unknown name is a fatal error
+                        set-theme: retheme a templates/style.css whose built-in
+                        part is not standard, accepting that the result may be
+                        only partly recolored
+  --theme name           install/set-theme: apply a named palette (see THEMES
+                        below); unknown name is a fatal error
+  --polarity light|dark  themes: list only themes with that background polarity
+  --intensity name       themes: sober | vivid | mono
+  --hue name             themes: neutral, red, orange, yellow, green, cyan,
+                        blue, violet, magenta — the hue of the page background
   --gitlab-ci             install: also write a .gitlab-ci.yml pipeline (opt-in —
                         install never assumes a GitLab deployment on its own)
   --language-file path   build/check: use this language pack file instead of
@@ -5444,9 +5672,21 @@ OPTIONS
                         build date isn't something you want published.
                         Wins over --build-stamp if both are passed.
 
-THEMES (install --theme, see specifications.md §9.5)
-  {theme_names}
-  Preview every theme (rendered against real slide content) with:
+THEMES ({theme_count} built in, see specifications.md §9.5)
+  Themes are chosen by slug, and found by facet — polarity (light/dark),
+  intensity (sober/vivid/mono), and hue, computed from the background:
+    lightwebpres themes                            all {theme_count}, with their facets
+    lightwebpres themes --polarity dark --hue green   just the ones you mean
+  Then apply one, at scaffold time or afterwards:
+    lightwebpres install my-series --theme evergreen
+    lightwebpres set-theme my-series --theme evergreen
+  set-theme refuses a templates/style.css whose built-in part is not what
+  this executable would have written (hand-edited, or from another
+  version), because the substitution could leave it half-recoloured;
+  --force overrides that and warns. Rules you added after the
+  personalization marker are always preserved either way.
+  Preview every theme rendered against real slide content, with facet
+  filters, at:
     lightwebpres themes-gallery
   refresh-templates automatically reapplies a chosen theme to the up-to-date
   built-in CSS, so upgrading the executable never silently reverts it.
@@ -5538,7 +5778,8 @@ Full reference: specifications.md.''')
 # out-of-place option is a fatal error instead of a silent no-op, and
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
-                            '--theme', '--only', '--nav-cache'})
+                            '--theme', '--only', '--nav-cache',
+                            '--polarity', '--intensity', '--hue'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
@@ -5549,6 +5790,8 @@ _COMMAND_OPTIONS = {
               '--include-drafts'},
     'audit': {'--lang'},
     'refresh-templates': set(),
+    'themes': {'--polarity', '--intensity', '--hue'},
+    'set-theme': {'--theme', '--force'},
     'themes-gallery': set(),
 }
 
@@ -5625,6 +5868,12 @@ def main():
         cmd_audit(target, opts)
     elif command == 'refresh-templates':
         cmd_refresh_templates(target, opts)
+    elif command == 'themes':
+        # Not a series-directory command: it reads the built-in table
+        # only, so a stray positional would mean nothing.
+        cmd_themes(opts)
+    elif command == 'set-theme':
+        cmd_set_theme(target, opts)
     elif command == 'themes-gallery':
         # Not a series-directory command: no LWP_SERIES_DIR fallback here,
         # just an output file path defaulting to themes-gallery.html in cwd.

@@ -136,6 +136,14 @@
     display: flex;
     flex-direction: column;
   }
+  /* Required, not decorative. The filter script hides a card by setting
+     its `hidden` property, which relies on the browser default
+     [hidden] { display: none }. That default is a type selector in the
+     UA sheet, so the class rule just above wins on specificity and the
+     card stays on screen: the counter said "14 palettes sur 33" while
+     all 33 were still displayed. Any future display: on .theme-card
+     needs this override kept alongside it. */
+  .theme-card[hidden] { display: none; }
 
   .theme-head {
     padding: 18px 18px 4px;
@@ -395,8 +403,8 @@
     <div class="facet-row">
       <span class="facet-label">Fond</span>
       <button type="button" class="facet on" data-facet="polarity" data-value="">Tous</button>
-      <button type="button" class="facet" data-facet="polarity" data-value="clair">Clair</button>
-      <button type="button" class="facet" data-facet="polarity" data-value="sombre">Sombre</button>
+      <button type="button" class="facet" data-facet="polarity" data-value="light">Clair</button>
+      <button type="button" class="facet" data-facet="polarity" data-value="dark">Sombre</button>
     </div>
     <div class="facet-row">
       <span class="facet-label">Registre</span>
@@ -408,13 +416,13 @@
     <div class="facet-row">
       <span class="facet-label">Teinte du fond</span>
       <button type="button" class="facet on" data-facet="hue" data-value="">Toutes</button>
-      <button type="button" class="facet" data-facet="hue" data-value="neutre">Neutre</button>
-      <button type="button" class="facet" data-facet="hue" data-value="rouge">Rouge</button>
+      <button type="button" class="facet" data-facet="hue" data-value="neutral">Neutre</button>
+      <button type="button" class="facet" data-facet="hue" data-value="red">Rouge</button>
       <button type="button" class="facet" data-facet="hue" data-value="orange">Orange</button>
-      <button type="button" class="facet" data-facet="hue" data-value="jaune">Jaune</button>
-      <button type="button" class="facet" data-facet="hue" data-value="vert">Vert</button>
+      <button type="button" class="facet" data-facet="hue" data-value="yellow">Jaune</button>
+      <button type="button" class="facet" data-facet="hue" data-value="green">Vert</button>
       <button type="button" class="facet" data-facet="hue" data-value="cyan">Cyan</button>
-      <button type="button" class="facet" data-facet="hue" data-value="bleu">Bleu</button>
+      <button type="button" class="facet" data-facet="hue" data-value="blue">Bleu</button>
       <button type="button" class="facet" data-facet="hue" data-value="violet">Violet</button>
       <button type="button" class="facet" data-facet="hue" data-value="magenta">Magenta</button>
     </div>
@@ -423,7 +431,7 @@
 
   <div class="grid">
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="nord Nord">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="nord Nord">
       <header class="theme-head">
         <h2>Nord</h2>
         <p class="theme-source">nordtheme.com</p>
@@ -463,7 +471,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme nord</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="dracula Dracula">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="dracula Dracula">
       <header class="theme-head">
         <h2>Dracula</h2>
         <p class="theme-source">draculatheme.com</p>
@@ -503,7 +511,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme dracula</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="solarized Solarized Light">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="solarized Solarized Light">
       <header class="theme-head">
         <h2>Solarized Light</h2>
         <p class="theme-source">ethanschoonover.com</p>
@@ -543,7 +551,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme solarized</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="jaune" data-name="gruvbox Gruvbox Light">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="yellow" data-name="gruvbox Gruvbox Light">
       <header class="theme-head">
         <h2>Gruvbox Light</h2>
         <p class="theme-source">github.com/morhetz</p>
@@ -583,7 +591,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme gruvbox</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="catppuccin Catppuccin Latte">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="catppuccin Catppuccin Latte">
       <header class="theme-head">
         <h2>Catppuccin Latte</h2>
         <p class="theme-source">github.com/catppuccin</p>
@@ -623,7 +631,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme catppuccin</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="tokyo-night Tokyo Night">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="tokyo-night Tokyo Night">
       <header class="theme-head">
         <h2>Tokyo Night</h2>
         <p class="theme-source">github.com/folke</p>
@@ -663,7 +671,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme tokyo-night</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="monokai Monokai">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="monokai Monokai">
       <header class="theme-head">
         <h2>Monokai</h2>
         <p class="theme-source">classique, Sublime Text</p>
@@ -703,7 +711,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme monokai</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="everforest Everforest">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="everforest Everforest">
       <header class="theme-head">
         <h2>Everforest</h2>
         <p class="theme-source">github.com/sainnhe</p>
@@ -743,7 +751,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme everforest</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="rose-pine Rosé Pine Dawn">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="rose-pine Rosé Pine Dawn">
       <header class="theme-head">
         <h2>Rosé Pine Dawn</h2>
         <p class="theme-source">rosepinetheme.com</p>
@@ -783,7 +791,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme rose-pine</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="vivid" data-hue="neutre" data-name="high-contrast High Contrast">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="neutral" data-name="high-contrast High Contrast">
       <header class="theme-head">
         <h2>High Contrast</h2>
         <p class="theme-source">lightwebpres</p>
@@ -823,7 +831,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme high-contrast</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="blueprint Blueprint">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="blueprint Blueprint">
       <header class="theme-head">
         <h2>Blueprint</h2>
         <p class="theme-source">lightwebpres</p>
@@ -863,7 +871,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme blueprint</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="sober" data-hue="neutre" data-name="blueprint-night Blueprint Night">
+    <article class="theme-card" data-polarity="dark" data-intensity="sober" data-hue="neutral" data-name="blueprint-night Blueprint Night">
       <header class="theme-head">
         <h2>Blueprint Night</h2>
         <p class="theme-source">lightwebpres</p>
@@ -903,7 +911,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme blueprint-night</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="mono" data-hue="neutre" data-name="monochrome Monochrome">
+    <article class="theme-card" data-polarity="light" data-intensity="mono" data-hue="neutral" data-name="monochrome Monochrome">
       <header class="theme-head">
         <h2>Monochrome</h2>
         <p class="theme-source">lightwebpres</p>
@@ -943,7 +951,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme monochrome</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="mono" data-hue="neutre" data-name="graphite Graphite">
+    <article class="theme-card" data-polarity="dark" data-intensity="mono" data-hue="neutral" data-name="graphite Graphite">
       <header class="theme-head">
         <h2>Graphite</h2>
         <p class="theme-source">lightwebpres</p>
@@ -983,7 +991,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme graphite</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="newsprint Newsprint">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="newsprint Newsprint">
       <header class="theme-head">
         <h2>Newsprint</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1023,7 +1031,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme newsprint</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="sober" data-hue="neutre" data-name="gold-leaf Gold Leaf">
+    <article class="theme-card" data-polarity="dark" data-intensity="sober" data-hue="neutral" data-name="gold-leaf Gold Leaf">
       <header class="theme-head">
         <h2>Gold Leaf</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1063,7 +1071,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme gold-leaf</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="crimson Crimson">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="crimson Crimson">
       <header class="theme-head">
         <h2>Crimson</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1103,7 +1111,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme crimson</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="neutre" data-name="ember Ember">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="neutral" data-name="ember Ember">
       <header class="theme-head">
         <h2>Ember</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1143,7 +1151,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme ember</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="neutre" data-name="dread Dread">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="neutral" data-name="dread Dread">
       <header class="theme-head">
         <h2>Dread</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1183,7 +1191,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme dread</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="sober" data-hue="neutre" data-name="sage Sage">
+    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="sage Sage">
       <header class="theme-head">
         <h2>Sage</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1223,7 +1231,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme sage</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="sober" data-hue="neutre" data-name="evergreen Evergreen">
+    <article class="theme-card" data-polarity="dark" data-intensity="sober" data-hue="neutral" data-name="evergreen Evergreen">
       <header class="theme-head">
         <h2>Evergreen</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1263,7 +1271,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme evergreen</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="vivid" data-hue="neutre" data-name="sprout Sprout">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="neutral" data-name="sprout Sprout">
       <header class="theme-head">
         <h2>Sprout</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1303,7 +1311,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme sprout</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="vivid" data-hue="neutre" data-name="vaporwave Vaporwave">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="neutral" data-name="vaporwave Vaporwave">
       <header class="theme-head">
         <h2>Vaporwave</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1343,7 +1351,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme vaporwave</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="neutre" data-name="terminal Terminal">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="neutral" data-name="terminal Terminal">
       <header class="theme-head">
         <h2>Terminal</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1383,7 +1391,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme terminal</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="violet" data-name="synthwave Synthwave">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="violet" data-name="synthwave Synthwave">
       <header class="theme-head">
         <h2>Synthwave</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1423,7 +1431,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme synthwave</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="rouge" data-name="pop-red Pop Red">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="red" data-name="pop-red Pop Red">
       <header class="theme-head">
         <h2>Pop Red</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1463,7 +1471,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-red</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="vivid" data-hue="orange" data-name="pop-tangerine Pop Tangerine">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="orange" data-name="pop-tangerine Pop Tangerine">
       <header class="theme-head">
         <h2>Pop Tangerine</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1503,7 +1511,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-tangerine</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="clair" data-intensity="vivid" data-hue="jaune" data-name="pop-lemon Pop Lemon">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="yellow" data-name="pop-lemon Pop Lemon">
       <header class="theme-head">
         <h2>Pop Lemon</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1543,7 +1551,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lemon</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="vert" data-name="pop-lime Pop Lime">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="green" data-name="pop-lime Pop Lime">
       <header class="theme-head">
         <h2>Pop Lime</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1583,7 +1591,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lime</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="cyan" data-name="pop-lagoon Pop Lagoon">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="cyan" data-name="pop-lagoon Pop Lagoon">
       <header class="theme-head">
         <h2>Pop Lagoon</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1623,7 +1631,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lagoon</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="bleu" data-name="pop-cobalt Pop Cobalt">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="blue" data-name="pop-cobalt Pop Cobalt">
       <header class="theme-head">
         <h2>Pop Cobalt</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1663,7 +1671,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-cobalt</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="violet" data-name="pop-violet Pop Violet">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="violet" data-name="pop-violet Pop Violet">
       <header class="theme-head">
         <h2>Pop Violet</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1703,7 +1711,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-violet</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="sombre" data-intensity="vivid" data-hue="magenta" data-name="pop-fuchsia Pop Fuchsia">
+    <article class="theme-card" data-polarity="dark" data-intensity="vivid" data-hue="magenta" data-name="pop-fuchsia Pop Fuchsia">
       <header class="theme-head">
         <h2>Pop Fuchsia</h2>
         <p class="theme-source">lightwebpres</p>
