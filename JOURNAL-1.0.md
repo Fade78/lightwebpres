@@ -192,10 +192,28 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
     (lignes vides tolérées) ; éléments décoratifs vides omis
     (highlight-caption, pastille version-tag, article-number,
     series-label). Spec resynchronisée (§2.4, §11.2, §18.2/18.3, §20.3,
-    §22.7/22.8), 14 tests ajoutés + 2 réécrits. **Groupe 3 : EN ATTENTE
-    de l'arbitrage du propriétaire** — check index/README, portée Fiche
-    par type, champ dupliqué, champs ignorés cover/series-nav, flags
-    langue, str_KEY dans contenu d'auteur.
+    §22.7/22.8), 14 tests ajoutés + 2 réécrits. **Groupe 3 : FAIT
+    (v0.9.0) sauf E3, arbitré E1a/E2a/E4b/E5a/E6a/E7a** — E1a `check`
+    compare aussi index.html et README.md (résumé « articles + 2 ») ;
+    E2a portée « Fiche » du partage décidée par TYPE (classe
+    slide-cover), plus par position s1 ; E4b champs de fiche standard
+    sur une cover = AVERTISSEMENT, pas erreur (aller-retour
+    standard↔cover normal en écriture — noter que du texte libre sur une
+    cover reste fatal, §22.12) ; E5a contenu non reconnu dans
+    series-nav/full-article = erreur fatale + `comment:` désormais
+    reconnu sur TOUT type de fiche (contrat du glossaire complété) ;
+    E6a `rules[].flags` réellement implémenté (g global/défaut, i
+    insensible casse, autre = fatal) ; E7a chaînes {{str_KEY}}
+    appliquées au squelette avant injection — un {{str_KEY}} littéral
+    dans le contenu d'auteur reste littéral. Spec : §4.6, §9.2.1, §11.4,
+    §18.4, §19.2, §22.9.1, §22.12 ; glossaire (portée comment) ;
+    12 tests ajoutés + 2 ajustés. **E3 (champ de fiche dupliqué : fatal
+    vs dernier-gagne) : EN ATTENTE — question du propriétaire sur les
+    systèmes d'assemblage (make) ; panorama des autres outils fourni en
+    conversation (formats stricts TOML/YAML → erreur ; formats
+    d'empilement CSS/Make/INI/env → dernier gagne = idiome de
+    surcharge) ; recommandation révisée : dernier-gagne documenté ;
+    décision à confirmer.**
 
 ### Note vérifiée : rigidité de l'architecture d'une page (2026-08-03)
 

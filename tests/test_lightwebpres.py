@@ -376,6 +376,181 @@ _MINIMAL_MD = (
 )
 
 
+class CheckCoversIndexAndReadme(unittest.TestCase):
+    """§11.4: check compares index.html and README.md too — a series_meta
+    change alters only those, and check used to stay green over them."""
+
+    def test_series_meta_change_is_caught_via_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'title': 'A brand new title'}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('[DRIFT] index.html', result.stdout)
+
+    def test_readme_drift_is_caught(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            (root / 'README.md').write_text('Hand-edited.', encoding='utf-8')
+            result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('[DRIFT] README.md', result.stdout)
+
+
+class ShareSlideScopeByType(unittest.TestCase):
+    """§9.2.1: the share matrix's slide scope is disabled by slide TYPE
+    (cover, series-nav), not by position — slide order is free (§4.4)."""
+
+    def test_nav_js_tests_cover_class_not_first_position(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn("classList.contains('slide-cover')", html)
+            self.assertNotIn("s.id === 's1'", html)
+
+
+class CoverIgnoredFieldsWarn(unittest.TestCase):
+    """A cover renders only tag/#/summary(+comment). The other standard
+    fields are accepted with a WARNING, not an error: toggling a slide
+    between standard and cover while drafting is a normal workflow."""
+
+    def test_standard_fields_on_cover_warn_but_build(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n'
+            'highlight: 42 %\nfact-label: FACT\nsource: Someone, 2020.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[WARNING]', result.stderr)
+            self.assertIn('highlight', result.stderr)
+            self.assertIn('never rendered on a cover', result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('42 %', html)
+
+
+class SeriesNavFullArticleStrictContent(unittest.TestCase):
+    """§22.8/§22.9: series-nav and full-article slides render none of
+    their own content beyond their directives — unrecognized lines are
+    fatal (they used to vanish silently). comment: is recognized on
+    every slide type, these two included."""
+
+    def _build(self, tmp, slide_block, extra_files=None):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+            + slide_block
+        )
+        root = scaffold(tmp, md)
+        for name, content in (extra_files or {}).items():
+            (root / 'articles' / name).write_text(content, encoding='utf-8')
+        return root, run('build', str(root), '--output', str(root / 'public'))
+
+    def test_stray_text_in_series_nav_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, result = self._build(tmp, '<!-- lwp:slide:series-nav -->\nSome stray text.\n')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('never renders', result.stderr)
+            self.assertIn('Some stray text.', result.stderr)
+
+    def test_stray_field_in_full_article_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, result = self._build(
+                tmp, '<!-- lwp:slide:full-article -->\narticle: art.md\ntag: Oops\n',
+                extra_files={'art.md': '# Art\n\nBody.\n'})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('never renders', result.stderr)
+
+    def test_article_directive_on_series_nav_is_fatal(self):
+        # article: only means something on a full-article slide.
+        with tempfile.TemporaryDirectory() as tmp:
+            _, result = self._build(tmp, '<!-- lwp:slide:series-nav -->\narticle: art.md\n')
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_comment_is_recognized_and_never_published(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build(
+                tmp,
+                '<!-- lwp:slide:series-nav -->\ncomment: nav review note\n\n---\n\n'
+                '<!-- lwp:slide:full-article -->\narticle: art.md\ncomment: article review note\n',
+                extra_files={'art.md': '# Art\n\nBody.\n'})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('review note', html)
+
+
+class LanguageRuleFlags(unittest.TestCase):
+    """§19.2: rules[].flags is honored — 'g' global (default), 'i'
+    case-insensitive, anything else fatal. It used to be parsed and
+    silently ignored."""
+
+    def _build_with_rules(self, tmp, rules, body='cat Cat cat.\n'):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art.md\n'
+        )
+        root = scaffold(tmp, md)
+        (root / 'articles' / 'art.md').write_text('# T\n\n' + body, encoding='utf-8')
+        lang_file = root / 'custom.json'
+        lang_file.write_text(json.dumps({'rules': rules}), encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'),
+                     '--language-file', str(lang_file))
+        return root, result
+
+    def test_i_flag_is_case_insensitive(self):
+        rules = [{'name': 'r', 'pattern': 'cat', 'replacement': 'dog', 'flags': 'gi'}]
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build_with_rules(tmp, rules)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('dog dog dog.', html)
+
+    def test_without_g_only_first_occurrence_is_replaced(self):
+        rules = [{'name': 'r', 'pattern': 'cat', 'replacement': 'dog', 'flags': ''}]
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build_with_rules(tmp, rules)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('dog Cat cat.', html)
+
+    def test_unknown_flag_is_fatal(self):
+        rules = [{'name': 'r', 'pattern': 'cat', 'replacement': 'dog', 'flags': 'gx'}]
+        with tempfile.TemporaryDirectory() as tmp:
+            _, result = self._build_with_rules(tmp, rules)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unknown flag', result.stderr)
+
+
+class AuthorContentStrKeyStaysLiteral(unittest.TestCase):
+    """§18.4: interface strings are applied to the page skeleton before
+    author content is injected — a literal {{str_KEY}} written in an
+    article stays literal instead of being substituted."""
+
+    def test_str_key_in_fact_box_stays_literal(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Slide\nfact-label: FACT\n'
+            'The engine replaces {{str_copy_link}} in its own templates.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # The author's literal placeholder survives...
+            self.assertIn('{{str_copy_link}}', html)
+            # ...while the skeleton's own placeholders were substituted.
+            self.assertIn('title="Previous slide"', html)
+
+
 class CliStrictParsing(unittest.TestCase):
     """The CLI parser knows which options each command accepts and which
     take a value: typos and out-of-place options are fatal instead of
@@ -2766,12 +2941,16 @@ class CheckSummaryLine(unittest.TestCase):
             root = scaffold(tmp, md)
             run('build', str(root), '--output', str(root / 'public'))
             clean = run('check', str(root), '--output', str(root / 'public'))
-            self.assertIn('1 file(s) OK, 0 file(s) different.', clean.stdout)
+            # 3 files: the article page, index.html and README.md (§11.4)
+            self.assertIn('3 file(s) OK, 0 file(s) different.', clean.stdout)
 
             changed_md = md.replace('Original.', 'Changed.')
             (root / 'articles' / 'a.md').write_text(changed_md, encoding='utf-8')
             drifted = run('check', str(root), '--output', str(root / 'public'))
-            self.assertIn('0 file(s) OK, 1 file(s) different.', drifted.stdout)
+            # The cover summary cascades to the index card's card_desc
+            # (§20.3.1), so the page AND the index drift — exactly the
+            # kind of index staleness check now catches (§11.4).
+            self.assertIn('1 file(s) OK, 2 file(s) different.', drifted.stdout)
 
 
 class InstallCopiesExecutable(unittest.TestCase):

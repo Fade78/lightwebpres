@@ -44,7 +44,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -1432,9 +1432,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- Share button: popover with a copy-link / QR-code matrix, scoped to
   // the series index, this article, or the current slide. §9.2.1.
+  // The slide scope is decided by TYPE, not position: disabled on cover
+  // slides (they identify the article itself, wherever they sit — slide
+  // order is free, §4.4) and on the series-nav slide (its id is not
+  // sN); enabled on standard and full-article slides, including one in
+  // first position.
   function currentSlideId() {
     var s = slides[current];
-    if (!s || !/^s\d+$/.test(s.id) || s.id === 's1') return null;
+    if (!s || !/^s\d+$/.test(s.id)) return null;
+    if (s.classList.contains('slide-cover')) return null;
     return s.id;
   }
 
@@ -2193,16 +2199,26 @@ class TypoEngine:
             replacement = rule['replacement']
             # Convert $1 -> \1 for Python re.sub
             replacement = re.sub(r'\$(\d)', r'\\\1', replacement)
-            flags = 0
-            if 'g' in rule.get('flags', 'g'):
-                flags |= 0  # re.sub replaces everything by default
+            # flags (§19.2): 'g' = replace every occurrence (without it,
+            # only the first per text segment), 'i' = case-insensitive.
+            # Anything else is fatal — this key used to be parsed and
+            # silently ignored, a schema that lied to custom-pack authors.
+            flags_str = str(rule.get('flags', 'g'))
+            unknown_flags = set(flags_str) - {'g', 'i'}
+            if unknown_flags:
+                print(f'[ERROR] language rule {i} ("{name}"): unknown flag(s) '
+                      f'{"".join(sorted(unknown_flags))!r} — supported: '
+                      f'"g" (global), "i" (case-insensitive).', file=sys.stderr)
+                sys.exit(1)
+            re_flags = re.IGNORECASE if 'i' in flags_str else 0
+            count = 0 if 'g' in flags_str else 1
             try:
-                compiled = re.compile(pattern, flags)
+                compiled = re.compile(pattern, re_flags)
             except re.error as e:
                 print(f'[ERROR] language rule {i}: invalid regex pattern '
                       f'"{pattern}" ({e}).', file=sys.stderr)
                 sys.exit(1)
-            self.rules.append((name, compiled, replacement))
+            self.rules.append((name, compiled, replacement, count))
 
     # Elements whose text content must never receive a typography
     # substitution (spec §6.3/§19.3): a code sample or a cited command is
@@ -2245,10 +2261,10 @@ class TypoEngine:
                 continue
             if skip_depth > 0:
                 continue
-            for name, pattern, replacement in self.rules:
+            for name, pattern, replacement, count in self.rules:
                 if name in disabled:
                     continue
-                segment = pattern.sub(replacement, segment)
+                segment = pattern.sub(replacement, segment, count=count)
             segments[i] = segment
         return ''.join(segments)
 
@@ -2716,6 +2732,7 @@ class Slide:
         self.highlight = None
         self.highlight_caption = None
         self.comment = None  # Review note (GLOSSARY.md) — parsed, never rendered
+        self.extra_content = None  # series-nav/full-article only: unrecognized lines (fatal)
         self.article_file = None  # For full-article
         self.raw_meta = {}  # Raw metadata
 
@@ -2788,13 +2805,29 @@ def parse_markdown_extended(md_text):
             else:
                 continue
 
-        # For series-nav and full-article, read the directives
+        # For series-nav and full-article, read the directives. Anything
+        # else in these slides is collected as extra_content — fatal at
+        # validation (it used to be silently dropped, invisible data
+        # loss). `comment:` is recognized on every slide type (GLOSSARY),
+        # these two included.
         if slide.slide_type in ('series-nav', 'full-article'):
-            # Look for article: file.md
-            if slide.slide_type == 'full-article':
-                article_match = re.search(r'^article:\s*(.+)$', part, re.MULTILINE)
-                if article_match:
-                    slide.article_file = article_match.group(1).strip()
+            extra_lines = []
+            for line in part.split('\n'):
+                stripped = strip_ws(line)
+                if not stripped or stripped.startswith('<!-- lwp:slide'):
+                    continue
+                comment_match = re.match(r'^comment:[ \t]*(.*)', stripped)
+                if comment_match:
+                    slide.comment = comment_match.group(1)
+                    continue
+                if slide.slide_type == 'full-article':
+                    article_match = re.match(r'^article:\s*(.+)$', stripped)
+                    if article_match:
+                        slide.article_file = article_match.group(1).strip()
+                        continue
+                extra_lines.append(stripped)
+            if extra_lines:
+                slide.extra_content = '\n'.join(extra_lines)
             slides.append(slide)
             continue
 
@@ -2919,6 +2952,31 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
         if slide.slide_type == 'cover' and slide.fact_content:
             print(f'[ERROR] {filename}: slide {i} (cover) has content after its '
                   f'fields, but a cover slide has no fact-box.', file=sys.stderr)
+            sys.exit(1)
+
+        # A cover renders only tag / # title / summary (+ comment, never
+        # rendered anywhere). The other standard-slide fields are parsed
+        # but never rendered on a cover — warn, don't fail: toggling a
+        # slide between standard and cover while drafting is a normal
+        # workflow, and the extra fields cost nothing.
+        if slide.slide_type == 'cover':
+            ignored = [name for name, value in (
+                ('fact-label', slide.fact_label), ('source', slide.source),
+                ('highlight', slide.highlight),
+                ('highlight-caption', slide.highlight_caption)) if value is not None]
+            if ignored:
+                print(f'[WARNING] {filename}: slide {i} (cover) has field(s) '
+                      f'{", ".join(ignored)} — parsed but never rendered on a '
+                      f'cover slide.', file=sys.stderr)
+
+        # series-nav / full-article: any line that isn't a recognized
+        # directive (article:, comment:) would be silently dropped from
+        # the rendering — fatal instead (§22.9/§22.8).
+        if slide.slide_type in ('series-nav', 'full-article') and slide.extra_content:
+            preview = slide.extra_content.splitlines()[0][:60]
+            print(f'[ERROR] {filename}: slide {i} ({slide.slide_type}) has '
+                  f'content that this slide type never renders (starting '
+                  f'with: "{preview}").', file=sys.stderr)
             sys.exit(1)
 
         if slide.slide_type == 'full-article':
@@ -3138,7 +3196,11 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     if footer_parts:
         index_footer = '<footer class="page-footer">\n' + '\n'.join(footer_parts) + '\n</footer>'
 
-    html = TEMPLATE_INDEX
+    # Interface strings on the SKELETON first (template + the user's
+    # index_extra fragment, which is a template file, not content), so a
+    # literal {{str_KEY}} inside series_meta text stays literal (§18.4).
+    html = apply_strings(TEMPLATE_INDEX, strings)
+    index_extra = apply_strings(index_extra, strings)
     html = html.replace('{{lang}}', lang)
     html = html.replace('{{title}}', title_clean)
     html = html.replace('{{css}}', css)
@@ -3156,7 +3218,6 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     html = html.replace('{{js_index}}', apply_strings(TEMPLATE_INDEX_JS, strings))
     html = html.replace('{{index_extra}}', index_extra)
     html = html.replace('{{build_stamp}}', build_stamp)
-    html = apply_strings(html, strings)
 
     validate_html(html, 'index.html')
     return html
@@ -3386,8 +3447,11 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         )
         draft_banner = f'<div class="draft-banner" style="{banner_style}">{banner_text}</div>'
 
-    # Assemble the page
-    html = TEMPLATE_PAGE
+    # Assemble the page. Interface strings are applied to the SKELETON
+    # (template — nav_js got its own pass at load time) before any
+    # author-provided content is injected: a literal {{str_KEY}} written
+    # in an article stays literal instead of being substituted (§18.4).
+    html = apply_strings(TEMPLATE_PAGE, strings)
     html = html.replace('{{lang}}', lang)
     html = html.replace('{{title}}', title_clean)
     html = html.replace('{{meta_head}}', meta_head)
@@ -3397,7 +3461,6 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     html = html.replace('{{js_nav}}', nav_js)
     html = html.replace('{{build_stamp}}', build_stamp)
     html = html.replace('{{draft_banner}}', draft_banner)
-    html = apply_strings(html, strings)
 
     validate_html(html, current_file)
     return html
@@ -3931,32 +3994,34 @@ def cmd_build(series_dir, args):
 
 
 def cmd_check(series_dir, args):
-    """check command — compares the existing HTML with what the build would produce."""
+    """check command — compares the existing output with what the build
+    would produce: every article page, index.html AND README.md. The two
+    latter used to be skipped, which left a hole in the CI gate: a
+    series_meta change (title, intro, article order) alters only the
+    index/README, and check stayed green over a stale publication."""
     ctx = load_build_context(series_dir, args)
 
     ok_count = 0
     diff_count = 0
 
-    for entry in ctx.articles:
-        source_path = ctx.articles_dir / entry['page_source']
+    def compare(name, generated, existing_path):
+        nonlocal ok_count, diff_count
+        if not existing_path.exists():
+            print(f'[NEW] {name} does not exist yet')
+            diff_count += 1
+            return
         # Never generated here, on either side of the comparison: a build
         # stamp's timestamp is different on every single run by design, so
         # comparing it against anything (including itself, moments later)
         # would always drift — check's job is real content drift, not
         # "time has passed". strip_build_stamp() on the disk copy is what
         # keeps a series built with --build-stamp still checkable.
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
-        existing_path = ctx.output_dir / entry['page_dest']
-        if not existing_path.exists():
-            print(f'[NEW] {entry["page_dest"]} does not exist yet')
-            diff_count += 1
-            continue
         existing = strip_build_stamp(read_text_file(existing_path))
         if existing.strip() == generated.strip():
-            print(f'[OK] {entry["page_dest"]}')
+            print(f'[OK] {name}')
             ok_count += 1
         else:
-            print(f'[DRIFT] {entry["page_dest"]}')
+            print(f'[DRIFT] {name}')
             diff = list(difflib.unified_diff(
                 existing.strip().splitlines(), generated.strip().splitlines(),
                 lineterm='', n=1))
@@ -3964,9 +4029,23 @@ def cmd_check(series_dir, args):
                 print(' ', line)
             diff_count += 1
 
+    for entry in ctx.articles:
+        source_path = ctx.articles_dir / entry['page_source']
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+        compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
+
+    index_extra_file = ctx.templates_dir / 'index_extra.html'
+    index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
+    compare('index.html',
+            build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra),
+            ctx.output_dir / 'index.html')
+    compare('README.md',
+            build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
+            ctx.sd / 'README.md')
+
     print(f'{ok_count} file(s) OK, {diff_count} file(s) different.')
     if diff_count == 0:
-        print('All articles are up to date.')
+        print('All files are up to date.')
     else:
         sys.exit(1)
 

@@ -489,8 +489,9 @@ par le rendu de la page de l'article lui-même.
 ### 4.6 Notes de relecture (`comment`)
 
 `comment` est reconnu à chaque niveau (`series.json` — entrée d'article ou
-`series_meta` —, bloc meta de l'article, en-tête d'une fiche `cover` ou
-non-`cover`) mais n'est **jamais lu par aucun moteur de rendu** : le
+`series_meta` —, bloc meta de l'article, en-tête d'une fiche de **tout**
+type : `cover`, standard, `series-nav`, `full-article`) mais n'est
+**jamais lu par aucun moteur de rendu** : le
 parseur le reconnaît comme un champ valide (pas de bascule vers le texte
 libre, pas d'erreur fatale sur une fiche `cover`), stocke sa valeur, puis
 ne la relit jamais — elle n'atteint donc ni le HTML publié, ni même son
@@ -1059,7 +1060,10 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
   `series-nav` (dont l'ancrage `sN-series` n'identifie pas un point de
   lecture précis). Sur ces deux cas, la colonne « Fiche » est grisée et
   désactivée, pas masquée : la matrice garde sa forme, seule l'action est
-  indisponible.
+  indisponible. La décision se fait par **type** de slide (classe
+  `slide-cover`), jamais par position — l'ordre des fiches étant libre
+  (§4.4), une cover en plein milieu est désactivée et une fiche standard
+  en première position est partageable.
 - « Copier le lien » utilise le presse-papiers (`navigator.clipboard`),
   avec repli sur `prompt()` si l'API est indisponible (ou si l'écriture
   échoue). Après une copie réussie, le bouton affiche « ✓ » et son
@@ -1591,14 +1595,20 @@ Vérifie sans modifier :
    ignorer une vraie différence de typographie sur un `public/` généré
    normalement (`check` comparerait alors deux HTML volontairement
    différents et signalerait un `[DRIFT]` correct, pas un faux positif)
-2. Compare le HTML généré avec le HTML existant dans `public/`
+2. Compare la sortie générée avec l'existant : **chaque page d'article**
+   contre `public/`, plus **`index.html`** (contre `public/`) et
+   **`README.md`** (contre la racine du répertoire de série) — un
+   changement de `series_meta` (titre, intro, ordre des articles) ne
+   modifie que ces deux derniers, et `check` restait vert dessus avant la
+   v0.9.0 : c'était un trou dans la porte de CI
 3. Pour chaque fichier différent, affiche `[DRIFT] fichier` suivi d'un diff ;
-   pour chaque fichier absent de `public/`, affiche `[NEW] fichier` ; pour
+   pour chaque fichier absent, affiche `[NEW] fichier` ; pour
    chaque fichier identique, affiche `[OK] fichier`
 4. Affiche un résumé chiffré : « N file(s) OK, M file(s) different. »
+   (N + M = nombre d'articles + 2)
 5. Code de sortie non nul (1) si au moins un fichier diffère ou est absent —
    c'est ce qui permet d'utiliser `check` comme porte de vérification dans un
-   script ou une CI (§10) ; code de sortie 0 et « All articles are up to
+   script ou une CI (§10) ; code de sortie 0 et « All files are up to
    date. » si tout est identique (M = 0)
 
 ### 11.5 `audit`
@@ -2235,17 +2245,22 @@ utilise la chaîne `series_nav_title`.
 
 ### 18.4 Règles de remplacement
 
-- Page article, ordre réel : `{{lang}}`, `{{title}}`, `{{meta_head}}`,
-  `{{css}}`, `{{slides}}`, `{{page_footer}}`, `{{js_nav}}`,
-  `{{build_stamp}}`, `{{draft_banner}}`, puis les `{{str_KEY}}` (§7.3)
-  **en dernier**, appliqués sur la page entièrement assemblée.
-- Index, ordre réel : `{{lang}}`, `{{title}}`, `{{css}}`, `{{series_*}}`,
-  `{{cards}}`, `{{index_footer}}`, `{{js_index}}` (chaînes déjà
-  appliquées au JS avant insertion), `{{index_extra}}`,
-  `{{build_stamp}}`, puis les `{{str_KEY}}` en dernier.
-- Conséquence observable de « chaînes en dernier » : un `{{str_KEY}}`
-  n'est PAS re-substitué dans le CSS/JS injectés avant lui s'il n'y était
-  pas au chargement — mais l'est partout dans la page assemblée.
+- Les chaînes d'interface (`{{str_KEY}}`, §7.3) sont appliquées au
+  **squelette seulement**, avant toute injection de contenu : au template
+  de page/d'index d'abord, à `nav.js` et `index_extra.html` à leur
+  chargement (ce sont des fichiers de template, pas du contenu). Un
+  `{{str_KEY}}` écrit littéralement par un auteur dans son contenu
+  (fiche, article de fond, `series_meta`) reste donc **littéral** dans la
+  page publiée — la mécanique interne ne fuit jamais dans l'espace de
+  contenu.
+- Page article, ordre réel : chaînes sur le template, puis `{{lang}}`,
+  `{{title}}`, `{{meta_head}}`, `{{css}}`, `{{slides}}`,
+  `{{page_footer}}`, `{{js_nav}}`, `{{build_stamp}}`,
+  `{{draft_banner}}`.
+- Index, ordre réel : chaînes sur le template et sur `index_extra`, puis
+  `{{lang}}`, `{{title}}`, `{{css}}`, `{{series_*}}`, `{{cards}}`,
+  `{{index_footer}}`, `{{js_index}}`, `{{index_extra}}`,
+  `{{build_stamp}}`.
 - Si un placeholder n'est pas trouvé dans le template, il est ignoré (pas
   d'erreur). Cela permet d'avoir des templates plus simples sans tous les
   placeholders.
@@ -2344,7 +2359,7 @@ introuvable. Les packs embarqués, eux, portent évidemment tout.
 | `rules[].description` | string | non | Description humaine |
 | `rules[].pattern` | string | oui | Regex Python (sans délimiteurs) |
 | `rules[].replacement` | string | oui | Remplacement (avec `$1`, `$2` pour les groupes) |
-| `rules[].flags` | string | non | Flags regex (ex. `g` pour global). Défaut : `g` |
+| `rules[].flags` | string | non | Flags regex, défaut `g`. Supportés : `g` (toutes les occurrences ; sans lui, seule la **première** occurrence par segment de texte est remplacée) et `i` (insensible à la casse). Tout autre caractère : erreur fatale |
 | `strings` | object | non | Chaînes d'interface, clé → valeur (voir §7.3 pour la liste des clés) |
 
 ### 19.3 Règles d'application
@@ -2759,6 +2774,16 @@ placeholder à la place de l'article).
 
 Erreur fatale. Un article ne peut contenir qu'une seule navigation de série.
 
+### 22.9.1 Contenu non reconnu dans une fiche `series-nav` ou `full-article`
+
+Erreur fatale. Ces deux types de fiche ne rendent **aucun** contenu
+propre : leurs seules lignes reconnues sont leurs directives —
+`article:` (fiche `full-article` uniquement) et `comment:` (§4.6,
+reconnu sur tout type, jamais rendu). Toute autre ligne non vide
+(du texte, un champ de fiche standard, un `article:` sur une
+`series-nav`...) arrête le build avec un message citant le début de la
+ligne fautive, plutôt que de disparaître silencieusement du rendu.
+
 ### 22.10 Fichier `.md` vide (aucune slide)
 
 Erreur fatale. Le fichier doit contenir au moins une slide.
@@ -2779,6 +2804,13 @@ Erreur fatale. Une fiche `cover` n'a pas de fact-box : `tag`, `slide_title`
 seuls champs. Si du texte suit ces champs sans être lui-même un champ
 reconnu, le build s'arrête avec un message indiquant le fichier et le
 numéro de fiche, plutôt que d'ignorer silencieusement ce texte.
+
+Cas voisin, traité plus doucement : les **champs** de fiche standard
+posés sur une cover (`fact-label`, `source`, `highlight`,
+`highlight-caption`) sont parsés mais jamais rendus — **avertissement**
+au build, pas d'erreur. Basculer une fiche entre standard et cover
+pendant l'écriture est un aller-retour normal ; l'avertissement signale
+la perte d'affichage sans casser la source.
 
 ### 22.13 Nombre et position des fiches `cover`
 
