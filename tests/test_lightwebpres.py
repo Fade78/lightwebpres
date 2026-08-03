@@ -376,6 +376,40 @@ _MINIMAL_MD = (
 )
 
 
+class DuplicateFieldLastWins(unittest.TestCase):
+    """§4.3: a duplicated field in the same header is deliberate override
+    semantics (CSS/Make-style) — the LAST occurrence wins, silently — so
+    a build system can assemble a slide by concatenating a base fragment
+    and an overriding one. Headings keep first-captured (§22.2)."""
+
+    def test_last_slide_field_wins(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: Base tag\ntag: Override tag\n'
+            '# Title\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Override tag', html)
+            self.assertNotIn('Base tag', html)
+
+    def test_last_meta_field_wins(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Base title\n'
+            'page_title: Override title\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<title>Override title</title>', html)
+
+
 class CheckCoversIndexAndReadme(unittest.TestCase):
     """§11.4: check compares index.html and README.md too — a series_meta
     change alters only those, and check used to stay green over them."""

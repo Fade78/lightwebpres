@@ -47,6 +47,13 @@ even a later line that looks exactly like `tag: something` is just text
 from then on. So: put every field before any body text, one per line,
 and never expect a field to wrap.
 
+A **duplicated field** in the same header is not an error: the last
+occurrence wins, silently — deliberate override semantics (like CSS or
+Make) so a build system can assemble a slide by concatenating a base
+fragment and an overriding one. Headings differ: only the first `#` (on
+a cover) / `##` (elsewhere) is captured as the slide's title, later ones
+fall through to content.
+
 ## Anatomy of a file
 
 ```markdown

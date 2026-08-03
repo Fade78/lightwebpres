@@ -207,13 +207,14 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
     appliquées au squelette avant injection — un {{str_KEY}} littéral
     dans le contenu d'auteur reste littéral. Spec : §4.6, §9.2.1, §11.4,
     §18.4, §19.2, §22.9.1, §22.12 ; glossaire (portée comment) ;
-    12 tests ajoutés + 2 ajustés. **E3 (champ de fiche dupliqué : fatal
-    vs dernier-gagne) : EN ATTENTE — question du propriétaire sur les
-    systèmes d'assemblage (make) ; panorama des autres outils fourni en
-    conversation (formats stricts TOML/YAML → erreur ; formats
-    d'empilement CSS/Make/INI/env → dernier gagne = idiome de
-    surcharge) ; recommandation révisée : dernier-gagne documenté ;
-    décision à confirmer.**
+    12 tests ajoutés + 2 ajustés. **E3 : tranché E3b (v0.9.0)** — champ
+    dupliqué : le dernier gagne, documenté comme sémantique de surcharge
+    volontaire (idiome CSS/Make/INI, permet l'assemblage d'un .md par
+    concaténation de fragments — cas du propriétaire) ; les titres
+    gardent « premier capturé, les suivants tombent dans le contenu »
+    (rien n'est perdu, donc pas une incohérence — §4.3, §22.2, SKILL) ;
+    figé par tests (fiche + bloc meta). L'audit de spec (item 12) est
+    ainsi ENTIÈREMENT CLOS : 52 constats, groupes 1/2/3 tous traités.
 
 ### Note vérifiée : rigidité de l'architecture d'une page (2026-08-03)
 
@@ -229,6 +230,14 @@ porte pas de texte libre après ses champs. Si « plusieurs longs textes
 par page » devient un besoin : levable en rendant le placeholder unique
 par fiche — non planifié à ce jour.
 13. Juste avant la release 1.0 : supprimer JOURNAL-1.0.md du dépôt.
+14. Juste avant la 1.0 — **bug mineur signalé par le propriétaire
+    (2026-08-03)** : le rendu d'un `#` dans le texte d'un fait ne
+    correspond pas chez lui à la garantie de taille attendue (le `#`
+    d'un fait devrait toujours être plus petit que le `##` de la
+    fiche ; le CSS `.fact-content h1` 1.3em est censé l'assurer —
+    reproduire son cas réel avant de conclure, il a observé autre
+    chose). À traiter avec l'axe 8 (rendu/accessibilité) ou en
+    dernière passe.
 
 ## 4. Notes de processus (demandes explicites du propriétaire)
 

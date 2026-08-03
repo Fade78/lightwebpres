@@ -432,6 +432,19 @@ ne redéfinit pas le titre de la slide — voir §22.2 pour la règle exacte.
 Chaque champ `clé: valeur`, à l'inverse, tient toujours sur une seule ligne
 physique (§4.1).
 
+**Champ dupliqué : le dernier gagne.** Si la même clé apparaît deux fois
+dans l'en-tête d'une fiche (ou d'un bloc meta), la dernière occurrence
+l'emporte, sans erreur ni avertissement. C'est une **sémantique de
+surcharge volontaire**, comme CSS, Make ou les fichiers INI : elle permet
+d'assembler un `.md` par concaténation de fragments (un fragment de base,
+puis un fragment qui surcharge certains champs) — un système de build
+peut produire une fiche par couches. Les **titres** (`#`/`##`) suivent
+une autre règle, qui n'est pas une incohérence : seule la première
+occurrence du niveau attendu est capturée comme titre de la fiche, les
+suivantes **tombent dans le contenu** (§22.2) — rien n'est perdu, alors
+qu'un champ écrasé l'est ; c'est précisément pour ça que l'écrasement de
+champ est défini comme une surcharge assumée.
+
 ### 4.4 Types de slides
 
 | Marqueur                     | Type        | Description                           | Nombre par article | Position |
