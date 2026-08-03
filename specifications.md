@@ -633,6 +633,33 @@ d'alignement CommonMark (`|:---|---:|`) mais ils sont **ignorés** (aucun
 alignement émis). Le nombre de cellules par ligne n'est pas validé : une
 ligne plus courte ou plus longue que l'en-tête est émise telle quelle.
 
+**Verdicts colorés dans un tableau comparatif.** Le Markdown n'a pas de
+syntaxe pour qualifier une cellule, et il n'est pas prévu qu'il en ait
+une : la voie **documentée** est le HTML inline (§6.2), en posant l'une
+des classes que la feuille par défaut style déjà —
+
+| Classe | Usage | Rendu par défaut |
+|---|---|---|
+| `yes` | le critère est rempli | `--green`, gras |
+| `no` | il ne l'est pas | `--grey`, atténué |
+| `partial` | partiellement | `--accent`, demi-gras |
+| `col-signal` | mettre en valeur toute une colonne | fond creusé, demi-gras |
+| `col-snap` | une seconde colonne à distinguer | fond creusé + filet `--yellow` |
+
+soit `<td class="yes">Oui</td>`, ou `<span class="yes">Oui</span>` à
+l'intérieur d'une cellule Markdown. Les couleurs viennent de la palette,
+donc un thème (§9.5) les restyle comme le reste, et
+`print-color-adjust` conserve la distinction à l'impression, où la
+couleur saute souvent.
+
+Ces classes existaient dans la feuille par défaut depuis l'origine sans
+être documentées **ni atteignables autrement** : `lightwebpres` livrait
+donc des crochets de style que son propre format ne savait pas produire.
+Deux étaient en outre inutilisables telles quelles — `yes` et `partial`
+portaient des déclarations identiques (trois verdicts, deux
+apparences), et `no` était le seul mis en valeur, en vert gras, à
+rebours de la lecture naturelle. Corrigé, documenté, figé par test.
+
 **Images.** `![alt](src)` **seule sur sa ligne** devient un bloc figure :
 `<figure class="figure"><img src="src" alt="alt"></figure>`. Un titre
 Markdown standard après le chemin — `![alt](src "Légende")` — ajoute
@@ -640,7 +667,17 @@ Markdown standard après le chemin — `![alt](src "Légende")` — ajoute
 la légende passe par le rendu inline (gras, liens...) et par la
 typographie, et le style par défaut l'affiche petite, centrée et grise
 (`var(--grey)`, donc adaptée à chaque thème). Une image **au milieu d'un
-paragraphe** devient un simple `<img>` inline, sans légende. Dans les
+paragraphe** devient un simple `<img>` inline, **sans légende** : une
+légende est un élément de bloc et cette image-là est au fil de la
+phrase. Le titre y est malgré tout accepté et devient un attribut
+`title` (une infobulle), jamais un `<figcaption>` — il n'est passé ni
+par le rendu inline ni par la typographie, qui produisent l'un des
+balises et l'autre des insécables, sans objet dans une valeur
+d'attribut. Avant la v0.12.0, ce cas ne rendait pas du tout : le motif
+inline n'acceptait pas de titre, donc `![alt](src "Titre")` au milieu
+d'un paragraphe survivait tel quel dans la page (et la typographie
+prenait ensuite le `!` de `![alt]` pour une ponctuation haute et
+glissait une insécable devant). Dans les
 deux cas la `src` peut être un chemin relatif — contrairement aux liens,
 restreints à http(s) — car les images vivent dans `articles/img/`,
 copié vers `public/img/` au build (§11.3). Une ligne-image n'est jamais

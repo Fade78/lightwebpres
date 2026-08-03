@@ -44,7 +44,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.11.0"
+VERSION = "0.12.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -351,6 +351,22 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     --fact-strong-style: normal;
     --fact-strong-highlight: var(--yellow);
     --content-max: min(84vw, 1100px);
+    /* Neutrals expressed as translucent overlays instead of fixed greys.
+       A theme (--theme, §9.5) only substitutes the six colours above, so
+       every hard-coded #e0e0d8 / white / #ddd in here used to stay put
+       whatever the palette: rules and card backgrounds kept a cool grey
+       cast on a warm palette like Solarized, and the cover's fixed greys
+       ignored the theme entirely. Overlays tint whatever is actually
+       underneath, so the whole page follows the six colours — which is
+       what the theme feature promises. Change these two alphas to make
+       the design flatter or more contrasted as a whole. */
+    --rule: rgba(0, 0, 0, 0.10);
+    --rule-strong: rgba(0, 0, 0, 0.16);
+    --surface: rgba(255, 255, 255, 0.72);
+    --sunken: rgba(0, 0, 0, 0.045);
+    /* On the cover, where the background is --dark. */
+    --on-dark: rgba(255, 255, 255, 0.78);
+    --on-dark-faint: rgba(255, 255, 255, 0.34);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -366,7 +382,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     flex-direction: column;
     justify-content: center;
     padding: 60px 8vw;
-    border-bottom: 1px solid #e0e0d8;
+    border-bottom: 1px solid var(--rule);
     position: relative;
   }
   .slide-num {
@@ -408,7 +424,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     line-height: 1.55;
   }
   .fact-box {
-    background: white;
+    background: var(--surface);
     border-left: 4px solid var(--yellow);
     padding: 24px 28px;
     border-radius: 0 8px 8px 0;
@@ -479,16 +495,55 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     padding: 20px 8vw 28px;
     font-size: 12px;
     color: var(--grey);
-    border-top: 1px solid #e0e0d8;
+    border-top: 1px solid var(--rule);
   }
   .page-footer .footer-byline { margin-bottom: 4px; }
   .page-footer .footer-license a { color: inherit; }
-  .slide-cover { background: var(--dark); color: white; }
-  .slide-cover h1 { color: white; }
-  .slide-cover .summary { color: #c8c8d0; }
+  .slide-cover { background: var(--dark); color: var(--light); }
+  .slide-cover h1 { color: var(--light); }
+  .slide-cover .summary { color: var(--on-dark); }
   .slide-cover .slide-tag { color: var(--yellow); }
-  .slide-cover .slide-num { color: #555560; }
-  .slide-accent { background: white; }
+  .slide-cover .slide-num { color: var(--on-dark-faint); }
+  /* Markdown constructs the converter has always emitted but that had
+     NO rule at all until this stylesheet was audited: a blockquote read
+     exactly like a paragraph, code kept the body font with no ground of
+     its own, and a footnote marker was indistinguishable from ordinary
+     text. Every colour here comes from the palette, so they follow a
+     theme like the rest. */
+  blockquote {
+    margin: 0 0 16px;
+    padding: 4px 0 4px 18px;
+    border-left: 3px solid var(--rule-strong);
+    color: var(--grey);
+    font-style: italic;
+    max-width: var(--content-max);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+  code {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--sunken);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  pre {
+    margin: 0 0 16px;
+    padding: 14px 16px;
+    background: var(--sunken);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow-x: auto;
+    max-width: var(--content-max);
+  }
+  /* Inside a block, the ground belongs to the block itself: a second one
+     would double up and the rounded corners would show through. No tag
+     names spelled out literally in these comments — the stylesheet is
+     inlined into every page, so one would read as markup to anything
+     scanning the output (a test caught exactly that here). */
+  pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
+  sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+  .full-article blockquote, .full-article pre { font-size: 15px; }
+
   .comparison-table {
     width: 100%;
     max-width: var(--content-max);
@@ -499,10 +554,10 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .comparison-table th, .comparison-table td {
     padding: 12px 16px;
     text-align: left;
-    border-bottom: 1px solid #e8e8e0;
+    border-bottom: 1px solid var(--rule);
   }
   .comparison-table th {
-    background: #eeeee6;
+    background: var(--sunken);
     color: var(--dark);
     border-bottom: 2px solid var(--dark);
     font-weight: 700;
@@ -512,11 +567,24 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     print-color-adjust: exact;
     color-adjust: exact;
   }
-  .comparison-table .col-snap { background: #fffbe5; color: var(--dark); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .comparison-table .col-signal { background: #eef7ee; color: var(--dark); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .comparison-table .yes { color: var(--grey); font-weight: 500; }
-  .comparison-table .no { color: var(--green); font-weight: 700; }
-  .comparison-table .partial { color: var(--grey); font-weight: 500; }
+  /* Verdict cells (§6.1). Markdown has no syntax for these — write the
+     cell as raw HTML: <td class="yes">Oui</td>. Three verdicts, three
+     DISTINCT appearances: .yes and .partial used to be byte-identical
+     (both grey/500), so a three-way comparison only ever showed two
+     states, and .no was the one picked out in bold green — the reverse
+     of how anyone reads those words. Colours come from the palette, so
+     a theme restyles them like everything else. print-color-adjust
+     keeps the distinction on paper, where colour is often dropped. */
+  .comparison-table .yes { color: var(--green); font-weight: 700; }
+  .comparison-table .no { color: var(--grey); font-weight: 500; opacity: 0.75; }
+  .comparison-table .partial { color: var(--accent); font-weight: 600; }
+  .comparison-table .yes, .comparison-table .no, .comparison-table .partial {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* Column emphasis, same idea at column scale: put the class on every
+     cell of the column you want to stand out. */
+  .comparison-table .col-signal { background: var(--sunken); font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .comparison-table .col-snap { background: var(--sunken); box-shadow: inset 3px 0 0 var(--yellow); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .figure {
     margin: 20px auto;
     max-width: var(--content-max);
@@ -530,7 +598,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     text-align: center;
   }
   .full-article {
-    background: white;
+    background: var(--surface);
     padding: 60px 8vw 80px 8vw;
   }
   .full-article h1 { font-size: 28px; margin-bottom: 8px; }
@@ -539,8 +607,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .full-article p { font-size: 15px; margin-bottom: 14px; max-width: 800px; line-height: 1.7; }
   .full-article ul, .full-article ol { font-size: 15px; margin-bottom: 14px; padding-left: 24px; max-width: 800px; }
   .full-article table { width: 100%; max-width: 800px; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
-  .full-article table th, .full-article table td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
-  .full-article table th { background: #f5f5f0; font-weight: 700; }
+  .full-article table th, .full-article table td { padding: 8px 12px; border: 1px solid var(--rule); text-align: left; }
+  .full-article table th { background: var(--sunken); font-weight: 700; }
   .full-article strong { font-weight: 700; }
   .full-article em { font-style: italic; }
   .full-article .refs { font-size: 13px; color: var(--grey); }
@@ -554,8 +622,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: #f0f0e8; border: 2px solid #ddd; opacity: 0.6; }
-  .series-link { background: white; border: 2px solid var(--yellow); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  .series-link { background: var(--surface); border: 2px solid var(--yellow); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .series-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
@@ -577,7 +645,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    border: 1px solid #ddd;
+    border: 1px solid var(--rule-strong);
     background: rgba(255,255,255,0.92);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
@@ -610,11 +678,11 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #ccc;
+    background: var(--rule-strong);
     display: block;
     transition: background 0.2s, transform 0.2s;
   }
-  .nav-dots a:hover { background: #999; transform: scale(1.3); }
+  .nav-dots a:hover { background: var(--grey); transform: scale(1.3); }
   .nav-dots a.active { background: var(--yellow); transform: scale(1.3); }
   @media (max-width: 600px) {
     :root { --content-max: calc(100vw - 48px); }
@@ -635,7 +703,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     bottom: 80px;
     right: 28px;
     z-index: 250;
-    background: white;
+    background: var(--light);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.18);
     padding: 14px;
@@ -657,23 +725,23 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .share-cell-head-disabled { opacity: 0.35; }
   .share-cell-label { color: var(--dark); white-space: nowrap; padding-right: 10px; }
   button.share-action {
-    width: 36px; height: 36px; border-radius: 8px; border: 1px solid #ddd;
+    width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule-strong);
     background: var(--light); cursor: pointer; font-size: 16px;
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto; font-family: inherit; color: var(--dark);
     transition: border-color 0.15s, background 0.15s;
   }
-  button.share-action:hover:not(:disabled) { border-color: var(--dark); background: white; }
+  button.share-action:hover:not(:disabled) { border-color: var(--dark); background: var(--surface); }
   button.share-action:disabled { opacity: 0.25; cursor: default; }
   .share-qr-modal {
     position: fixed; inset: 0; z-index: 300;
-    background: rgba(26,26,46,0.7);
+    background: rgba(0, 0, 0, 0.55);
     display: none; align-items: center; justify-content: center;
     padding: 24px;
   }
   .share-qr-modal.open { display: flex; }
   .share-qr-modal-content {
-    background: white; border-radius: 12px; padding: 24px;
+    background: var(--light); border-radius: 12px; padding: 24px;
     /* 400px, not 320: longer URLs bump the QR to a higher version (more
        modules), and a small on-screen code is the most likely reason a
        phone's native camera fails to focus/detect it even though the
@@ -686,13 +754,10 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .share-qr-modal-content svg { width: 100%; height: auto; display: block; margin-bottom: 12px; }
   .share-qr-modal-url { font-size: 12px; color: var(--grey); word-break: break-all; margin-bottom: 16px; }
   .share-qr-close {
-    border: 1px solid #ddd; background: var(--light); border-radius: 8px;
+    border: 1px solid var(--rule-strong); background: var(--light); border-radius: 8px;
     padding: 8px 20px; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--dark);
   }
   .share-qr-close:hover { border-color: var(--dark); }
-  .comic-teaser { display: block; margin-top: 16px; text-decoration: none; }
-  .comic-teaser img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
-  .comic-caption { display: block; margin-top: 8px; font-size: 14px; color: var(--grey); }
   .article-card {
     display: block;
     padding: 24px 28px;
@@ -700,8 +765,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     border-radius: 12px;
     text-decoration: none;
     color: inherit;
-    background: white;
-    border: 2px solid #e8e8e0;
+    background: var(--surface);
+    border: 2px solid var(--rule-strong);
     box-shadow: 0 1px 8px rgba(0,0,0,0.06);
     transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
   }
@@ -717,7 +782,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .header { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 2px solid var(--yellow); }
   .header h1 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
   .header .subtitle { font-size: clamp(16px, 2vw, 20px); color: var(--grey); max-width: 700px; }
-  .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--grey); background: #eeeeea; padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
+  .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--grey); background: var(--sunken); padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
   .intro { font-size: 17px; line-height: 1.7; max-width: 700px; margin-bottom: 48px; }
   .intro p { margin-bottom: 16px; }
 ''' + '\n  ' + TEMPLATE_STYLE_CUSTOM_MARKER + '\n'
@@ -2460,10 +2525,25 @@ def md_inline(text):
     def _inline_img(m):
         alt = m.group(1).replace('"', '&quot;')
         src = m.group(2).replace('"', '&quot;')
-        code_spans.append(f'<img src="{src}" alt="{alt}">')
+        # The optional Markdown title becomes a title="" attribute (a
+        # tooltip), never a <figcaption>: a caption is block-level and
+        # this image sits inside a sentence (§6.1). Deliberately NOT run
+        # through md_inline() or the typography engine — both emit tags
+        # and non-breaking spaces, which have no business inside an
+        # attribute value. Escaping " is what makes it safe there; & is
+        # already escaped globally further up.
+        title = m.group(3)
+        title_attr = ' title="{}"'.format(title.replace('"', '&quot;')) if title else ''
+        code_spans.append(f'<img src="{src}" alt="{alt}"{title_attr}>')
         return f'\x00{len(code_spans) - 1}\x00'
 
-    text = re.sub(r'!\[([^\]]*)\]\(([^)\s"]+)\)', _inline_img, text)
+    # The optional title group mirrors _FIGURE_LINE_RE's. Without it,
+    # `![alt](src "Titre")` mid-paragraph matched NOTHING — the src class
+    # stops at the first space — so the raw Markdown survived into the
+    # page, and the typography engine then read the "!" of "![alt]" as
+    # high punctuation and put a non-breaking space in front of it.
+    # Bounded quantifiers only: no ReDoS window.
+    text = re.sub(r'!\[([^\]]*)\]\(([^)\s"]+)(?:\s+"([^"]*)")?\)', _inline_img, text)
     # Bold before italic
     text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<em>\1</em>', text)

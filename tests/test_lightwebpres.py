@@ -1306,6 +1306,41 @@ class ImageFiguresAndCaptions(unittest.TestCase):
         )
         self.assertNotIn('<figcaption', html)
 
+    def test_all_four_image_positions_at_once(self):
+        """The four combinations of (alone on its line | mid-paragraph) x
+        (no title | title), in ONE article. Case D — mid-paragraph WITH a
+        title — used to survive into the page as raw Markdown: the inline
+        pattern had no title group and its src class stops at the first
+        space, so it matched nothing at all. Each case had a test; the
+        combination did not, which is exactly how the gap slipped in, so
+        this asserts all four together."""
+        html = self._build_article_html(
+            '![A](img/a.png)\n\n'
+            '![B](img/b.png "Cap B")\n\n'
+            'Before ![C](img/c.png) after.\n\n'
+            'Before ![D](img/d.png "Tip D") after.\n'
+        )
+        # A and B: block figures, B captioned.
+        self.assertIn('<figure class="figure"><img src="img/a.png" alt="A"></figure>', html)
+        self.assertIn(
+            '<figure class="figure"><img src="img/b.png" alt="B">'
+            '<figcaption class="figure-caption">Cap B</figcaption></figure>',
+            html,
+        )
+        # C and D: inline images, never a figure or a caption. D's title
+        # becomes a tooltip, not a <figcaption> (§6.1: an inline image has
+        # no caption).
+        self.assertIn('<img src="img/c.png" alt="C">', html)
+        self.assertIn('<img src="img/d.png" alt="D" title="Tip D">', html)
+        self.assertNotIn('<figure class="figure"><img src="img/c.png"', html)
+        self.assertNotIn('<figure class="figure"><img src="img/d.png"', html)
+        self.assertNotIn('<figcaption class="figure-caption">Tip D</figcaption>', html)
+        # Nothing left literal. The tell-tale of the old bug was the
+        # typography engine treating the "!" of "![D]" as high
+        # punctuation and slipping a non-breaking space in front of it.
+        self.assertNotIn('![', html)
+        self.assertNotIn(' ![', html)
+
     def test_no_literal_bang_leaks(self):
         # The historical broken rendering: "!" left behind before the
         # link output. Neither form may leak a literal "![" anywhere.
@@ -2778,6 +2813,77 @@ class Themes(unittest.TestCase):
             self.assertEqual(run('build', str(root)).returncode, 0)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('--yellow: #D79921;', index_html)
+
+
+class DefaultStylesheetCoverage(unittest.TestCase):
+    """§9/§9.5: the default templates/style.css is a maintained artifact,
+    not a leftover of the article it was first extracted from. Three
+    properties, none of which held before the stylesheet was audited."""
+
+    PALETTE_VARS = ('--yellow', '--dark', '--grey', '--light', '--accent', '--green')
+
+    def _installed_style(self, tmp, *extra):
+        root = Path(tmp)
+        self.assertEqual(run('install', str(root), *extra).returncode, 0)
+        return (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+
+    def test_a_theme_leaves_no_default_colour_behind(self):
+        """A theme substitutes the six palette variables and nothing
+        else, so any OTHER fixed colour in the sheet silently survives
+        it. That is how rules, table headers, card backgrounds and the
+        cover's greys used to keep a default-palette cast on every one of
+        the nine themes. Everything outside :root must therefore be
+        expressed through the palette (or as a translucent overlay of
+        it), never as a literal colour."""
+        with tempfile.TemporaryDirectory() as tmp:
+            style = self._installed_style(tmp, '--theme', 'solarized')
+        # Strip comments first: prose about colours is not styling.
+        body = re.sub(r'/\*.*?\*/', '', style, flags=re.S)
+        root_block = body[body.index(':root'):body.index('}', body.index(':root'))]
+        outside_root = body.replace(root_block, '')
+        leftovers = re.findall(r'#[0-9a-fA-F]{3,8}\b', outside_root)
+        self.assertEqual(
+            leftovers, [],
+            'Fixed colours outside :root survive theming, so these stay '
+            'default-palette on all nine themes: ' + ', '.join(sorted(set(leftovers))),
+        )
+        self.assertNotIn(': white', outside_root)
+
+    def test_the_three_verdict_classes_look_different(self):
+        """.yes/.no/.partial are the documented hook for a comparison
+        table's verdict cells (§6.1). .yes and .partial used to carry
+        byte-identical declarations, so a three-way comparison only ever
+        showed two states — which defeats the entire point of colouring
+        them."""
+        with tempfile.TemporaryDirectory() as tmp:
+            style = self._installed_style(tmp)
+        decls = {}
+        for name in ('yes', 'no', 'partial'):
+            m = re.search(r'\.comparison-table \.' + name + r'\s*\{([^}]*)\}', style)
+            self.assertIsNotNone(m, f'.{name} has no rule in the default stylesheet')
+            decls[name] = ' '.join(m.group(1).split())
+        self.assertNotEqual(decls['yes'], decls['partial'])
+        self.assertNotEqual(decls['yes'], decls['no'])
+        self.assertNotEqual(decls['no'], decls['partial'])
+        # Whatever the exact design, they must be told apart by colour,
+        # and that colour must come from the palette so a theme restyles
+        # them like everything else.
+        for name, decl in decls.items():
+            self.assertIn('var(--', decl, f'.{name} does not use the palette')
+
+    def test_every_markdown_construct_the_converter_emits_is_styled(self):
+        """The converter has always produced blockquotes, code spans,
+        fenced code blocks and footnote markers, and the stylesheet had
+        no rule for any of them: a quotation rendered exactly like a
+        paragraph. A feature added without touching the default template
+        ships invisible, so this pins the tags rather than the look."""
+        with tempfile.TemporaryDirectory() as tmp:
+            style = self._installed_style(tmp)
+        for selector in ('blockquote', 'code', 'pre', 'sup'):
+            self.assertRegex(
+                style, r'(^|[\s,])' + selector + r'\s*[,{]',
+                f'{selector} is emitted by the converter but has no rule',
+            )
 
 
 class FactStrongEmphasis(unittest.TestCase):

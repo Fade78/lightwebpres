@@ -138,8 +138,12 @@ all generated automatically.
 - **`full-article`** — includes a separate long-form Markdown file,
   converted with full support for headings, bold/italic, links,
   footnotes, lists, tables, blockquotes, images with captions
-  (`![alt](src "Caption")` — small, centered, themed), inline/fenced
-  code, and inline raw HTML (at most one per article).
+  (`![alt](src "Caption")` — small, centered, themed; mid-sentence the
+  same image stays inline and its title becomes a tooltip),
+  inline/fenced code, and inline raw HTML (at most one per article).
+  A comparison table's cells can carry `yes` / `no` / `partial` — or
+  `col-signal` on a whole column — to be coloured by verdict; written as
+  inline HTML, since Markdown has no syntax for it.
 
 Every slide (and `series.json`/the article's own meta block) also
 accepts `comment:` — a review note, recognized but never rendered, never

@@ -10,12 +10,19 @@ Chaque entrée dit ce qui a été **vérifié** et ce qui reste à **décider**.
 
 ---
 
-## B1 — Image en milieu de paragraphe avec titre : reste en Markdown littéral
+## B1 — Image en milieu de paragraphe avec titre — RÉSOLU en v0.12.0
 
-**Type :** bug d'implémentation (le comportement attendu est déjà spécifié).
+**Type :** bug d'implémentation (le comportement attendu était déjà spécifié).
 **Signalé sur :** v0.11.0, dans un article de fond (`_article.md`).
-**Impact constaté :** nul chez le rapporteur, aucun article n'utilise ce cas.
-**Statut :** reproduit et cause confirmée ; correction non faite.
+**Statut :** **corrigé**. Le motif inline a reçu le groupe de titre
+optionnel qui manquait. Décision prise au passage : le titre n'est pas
+jeté mais devient un attribut `title` (infobulle), jamais un
+`<figcaption>` — ni passé par le rendu inline ni par la typographie, qui
+n'ont rien à faire dans une valeur d'attribut. Couvert par un test qui
+exerce les quatre cas A/B/C/D **ensemble**, puisque c'est leur test
+séparé qui avait laissé passer le trou. Spec §6.1 mise à jour.
+
+L'analyse d'origine est conservée ci-dessous : elle documente la cause.
 
 ### Les quatre cas
 
@@ -75,11 +82,37 @@ cas A/B/C/D d'un coup — le trou vient précisément de ce que A/B et C
 
 ---
 
-## B2 — Exprimer un verdict visuel dans une cellule de tableau
+## B2 — Verdict visuel dans une cellule de tableau — TRANCHÉ en v0.12.0
 
-**Type :** demande d'évolution du format + décision à prendre.
-**Statut :** rien de décidé. La question posée est explicitement « est-ce
-un manque ou un choix ? » — donc à trancher, pas à implémenter d'office.
+**Statut :** la question « manque ou choix ? » a reçu une réponse, et
+elle n'était ni l'une ni l'autre. La feuille de style par défaut
+livrait **déjà** `.yes` / `.no` / `.partial` / `.col-signal` /
+`.col-snap` à tout le monde — mais sans documentation et sans aucun
+moyen de les produire depuis le Markdown. `lightwebpres` expédiait donc
+des crochets de style que son propre format ne savait pas atteindre :
+une incohérence interne, pas un arbitrage.
+
+Ce qui a été fait (option 3 de l'analyse ci-dessous, la seule qui ne
+touche pas au contrat d'entrée) :
+
+- **Le HTML inline est désormais la voie documentée**, avec le tableau
+  des classes en spec §6.1 et une mention au README. « Le HTML brut est
+  la voie prévue » n'était un choix qu'une fois écrit ; c'est écrit.
+- **Deux des classes étaient inutilisables.** `yes` et `partial` avaient
+  des déclarations identiques — trois verdicts, deux apparences, donc le
+  comparatif existant ne distinguait déjà pas « oui » de
+  « partiellement ». Et `no` était le seul mis en valeur (vert gras), à
+  rebours de la lecture naturelle. Les trois sont maintenant distinctes
+  et prises dans la palette. **À vérifier de ton côté** : ton comparatif
+  publié changera d'aspect, et c'est voulu.
+- Verrouillé par test (les trois déclarations doivent différer et venir
+  de la palette).
+
+**Reste ouvert, post-1.0** : l'option 2, une syntaxe de marqueur en
+cellule (`| +oui |`) pour atteindre ces classes sans HTML. C'est une
+addition au contrat d'entrée, donc une version mineure, jamais un
+correctif. Si elle est retenue, traiter le cas colonne dans la même
+passe. L'analyse des trois options reste ci-dessous.
 
 ### Le besoin
 
