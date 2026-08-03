@@ -260,8 +260,16 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    au lieu d'« empty »). Tests ajoutés (gitlab-ci porte --lang, demo --lang
    en = UI anglaise). NB : la v0.11.0 accumule le polish pré-1.0 (axes 6+)
    au-dessus de la v0.10.0 (sécurité, en attente de publication).
-7. Qualité des messages d'erreur : provoquer chaque erreur fatale, juger
-   le message sans connaître le code.
+7. FAIT (v0.11.0) — Qualité des messages d'erreur : ~55 messages
+   [ERROR]/[WARNING] collectés et jugés « à froid » (sans connaître le
+   code), un échantillon provoqué en réel. Verdict : très bons dans
+   l'ensemble — chacun nomme le fichier/l'entrée, le problème, et souvent
+   l'action (« Run first: lightwebpres install X », « pass --force »,
+   « renamed to X », liste des thèmes valides, pointeur vers --help).
+   UN seul amélioré : « generated HTML is not well-formed » sonnait comme
+   un bug interne ; reformulé pour dire que c'est presque toujours du HTML
+   brut déséquilibré dans la SOURCE (ex. un <div> jamais fermé dans un
+   fact-box), avec l'action à faire. Rien d'autre à corriger.
 8. Accessibilité + validité du HTML généré : sémantique, ARIA, contraste
    des 9 thèmes, validation W3C.
 9. FAIT (v0.6.0) — Parité i18n + UTF-8 natif : clés fr/en identiques

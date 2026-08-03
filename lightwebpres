@@ -3393,7 +3393,11 @@ def validate_html(html_text, filename):
         unclosed = ', '.join(f'<{t}>' for t in reversed(checker.stack))
         checker.errors.append(f'unclosed tag(s) at end of document: {unclosed}')
     if checker.errors:
-        print(f'[ERROR] {filename}: generated HTML is not well-formed:', file=sys.stderr)
+        print(f'[ERROR] {filename}: the generated HTML is not well-formed — '
+              f'this almost always means unbalanced raw HTML in the source '
+              f'for this page (an unclosed or mismatched tag, e.g. a <div> in '
+              f'a fact-box or full-article that is never closed). Fix the tag '
+              f'balance in the source and rebuild:', file=sys.stderr)
         for e in checker.errors:
             print(f'  - {e}', file=sys.stderr)
         sys.exit(1)
