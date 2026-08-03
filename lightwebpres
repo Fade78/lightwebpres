@@ -350,7 +350,20 @@ def theme_fact_properties(theme):
     style = theme.get('fact_style', 'normal')
     highlight_role = theme.get('fact_highlight', 'yellow')
     highlight = f'var(--{highlight_role})' if highlight_role else 'transparent'
-    return weight, style, highlight
+    # The text sitting ON that highlight. The rule used to set only a
+    # background, which silently assumed dark text on a bright marker —
+    # true on a light theme, false on a dark one, where --dark holds the
+    # LIGHT text colour: measured at a contrast ratio of 1.00, i.e.
+    # invisible. On a dark theme --light is the dark page ground, so it
+    # is exactly the ink needed here. With no highlight there is no
+    # marker to sit on and the text keeps the body colour.
+    if not highlight_role:
+        ink = 'inherit'
+    elif theme.get('dark_background'):
+        ink = 'var(--light)'
+    else:
+        ink = 'var(--dark)'
+    return weight, style, highlight, ink
 
 
 def apply_theme(css_text, theme_key):
@@ -378,11 +391,12 @@ def apply_theme(css_text, theme_key):
         pattern = r'(--%s:\s*)#[0-9A-Fa-f]{3,8}(\s*;)' % var
         css_text = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), css_text, count=1)
 
-    fact_weight, fact_style, fact_highlight = theme_fact_properties(theme)
+    fact_weight, fact_style, fact_highlight, fact_ink = theme_fact_properties(theme)
     for var, value in (
         ('fact-strong-weight', fact_weight),
         ('fact-strong-style', fact_style),
         ('fact-strong-highlight', fact_highlight),
+        ('fact-strong-ink', fact_ink),
         # The overlays and the cover (§9.5.2). Substituted like the rest,
         # so a dark-backgrounded theme gets veils that go the right way
         # instead of a white card on a black page.
@@ -420,6 +434,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     --fact-strong-weight: bold;
     --fact-strong-style: normal;
     --fact-strong-highlight: var(--yellow);
+    --fact-strong-ink: var(--dark);
     --content-max: min(84vw, 1100px);
     /* Neutrals as translucent overlays rather than fixed greys, so they
        tint whatever is actually underneath and the page follows the
@@ -524,6 +539,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     font-weight: var(--fact-strong-weight);
     font-style: var(--fact-strong-style);
     background: var(--fact-strong-highlight);
+    color: var(--fact-strong-ink);
     padding: 1px 4px;
     border-radius: 2px;
   }
@@ -4679,7 +4695,7 @@ def cmd_themes_gallery(output_path, args):
 
     cards = []
     for slug, theme in THEMES.items():
-        fact_weight, fact_style, fact_highlight = theme_fact_properties(theme)
+        fact_weight, fact_style, fact_highlight, _fact_ink = theme_fact_properties(theme)
         cards.append(TEMPLATE_THEMES_GALLERY_CARD.format(
             label=theme['label'],
             source=theme['source'],

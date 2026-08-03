@@ -2882,6 +2882,29 @@ class DarkBackgroundThemes(unittest.TestCase):
         self.assertIsNotNone(white_veil, 'dark surface should still be a white veil, only a faint one')
         self.assertLess(float(white_veil.group(1)), 0.2)
 
+    def test_the_fact_highlight_gets_readable_ink_on_a_dark_theme(self):
+        """The fact-box marker sets a BACKGROUND from the palette's
+        bright tone. Setting no colour alongside it silently assumes the
+        text over it is dark — true on a light theme, false on a dark
+        one, where --dark is the LIGHT text colour. Measured in a browser
+        on a real dark build before this: contrast ratio 1.00, i.e. the
+        figure was invisible. On a dark theme --light IS the dark page
+        ground, so it is the ink this needs."""
+        _, _, highlight, ink = self.lwp.theme_fact_properties(
+            {'dark_background': True, 'fact_highlight': 'yellow'})
+        self.assertEqual(highlight, 'var(--yellow)')
+        self.assertEqual(ink, 'var(--light)')
+
+        _, _, _, light_ink = self.lwp.theme_fact_properties({'fact_highlight': 'yellow'})
+        self.assertEqual(light_ink, 'var(--dark)')
+
+        # No marker means no marker to sit on: the text must keep the
+        # body colour, or a dark theme would paint it dark-on-dark.
+        _, _, no_highlight, no_ink = self.lwp.theme_fact_properties(
+            {'dark_background': True, 'fact_highlight': None})
+        self.assertEqual(no_highlight, 'transparent')
+        self.assertEqual(no_ink, 'inherit')
+
     def test_install_with_a_dark_theme_writes_the_inverted_overlays(self):
         """End to end through the real install path, with a dark theme
         injected into THEMES for the duration of the test."""
