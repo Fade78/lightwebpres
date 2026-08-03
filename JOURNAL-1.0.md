@@ -171,8 +171,35 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    (Note de cohérence, faite avec l'axe 3 : démo enrichie de `date:` +
    `comment:` sur l'article 1, scaffold install avec clés
    `author`/`license` vides, §11.1/§11.2/§12.1 resynchronisés.)
-5. Sécurité (2e passe post-gel) : injection via sources, XSS, path
-   traversal, ReDoS fichiers de langue.
+5. FAIT (v0.10.0) — Sécurité, 2e passe post-gel. 3 agents adverses
+   (injection contenu, path traversal/FS, ReDoS/ressources/client-side),
+   chaque vrai-positif reproduit par moi-même avant correction. 5 vrais
+   positifs corrigés + tests de régression (suite 311 → 319) :
+   - XSS stockée via le href d'un lien Markdown (le `"`/`>` de l'URL
+     s'évadait de l'attribut → handler injecté) — href désormais échappé
+     comme le src d'image (HIGH).
+   - Exfiltration de fichiers de l'hôte via un lien symbolique dans
+     `articles/img/` (copytree suivait le lien → contenu publié dans
+     public/img/) — symlinks échappants refusés (CRITIQUE).
+   - Exfiltration via un `article:` lien symbolique (contenu intégré au
+     HTML) — containment realpath sur la lecture (HIGH).
+   - `article: ..` → traceback IsADirectoryError ; `.`/`..`/octet NUL
+     désormais rejetés par le garde de nom (LOW/robustesse).
+   - Deux ReDoS quadratiques O(n²) sur entrée adverse : `_HTML_TAG_RE`
+     (`<a`×N : 80 Ko → 37,7 s) et la regex de lien (`[`×N : 40 Ko →
+     5,1 s) — regex resserrées, désormais < 0,01 s (MEDIUM, surtout pour
+     l'exécution navigateur mono-thread).
+   Confirmés SÛRS / by-design (non modifiés) : échappement `<meta>`/
+   `<title>` (attribut/RCDATA) tient contre `">`/`</title>` ; pieds de
+   page author/date/license et card_* en HTML brut = §6.2 assumé ;
+   zip-slip des deux extractions (stdlib strippe `..`/`/`) ; jeton
+   GitLab en en-tête seulement + redirect='error' ; aucun sink DOM XSS
+   (tout en textContent) ; ReDoS des règles de langue = code de
+   confiance (§7.2). Modèle de menace et contenances figés dans la spec
+   §13.7 (nouveau). Note de processus : un 4e agent (hors de mon
+   contrôle) avait auto-appliqué le fix du href ; j'ai remis une base
+   propre, reproduit la vuln moi-même, et re-validé le correctif avant
+   de le conserver.
 6. Dogfooding de la doc : exécuter GUIDE.md et README.md verbatim dans
    un répertoire vierge.
 7. Qualité des messages d'erreur : provoquer chaque erreur fatale, juger

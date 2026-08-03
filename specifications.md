@@ -1879,6 +1879,46 @@ conception comme pour `<br>`) fait désormais échouer le build au lieu
 d'être publié — cette vérification agit comme un filet de sécurité
 générique, pas seulement contre les bugs de rendu.
 
+### 13.7 Modèle de menace et contenances
+
+Le contenu source (`series.json`, `.md`) est **semi-fiable** : il peut
+être édité par un LLM ou tiré d'un dépôt lors d'une CI non surveillée
+(§13.5). Deux principes en découlent, et sont figés par des tests de
+régression :
+
+- **Contenance du système de fichiers.** Toute valeur qui devient un
+  chemin réel — `page_source`, `page_dest`, le champ `article:` d'une
+  fiche full-article, et le contenu de `articles/img/` — est confinée à
+  son répertoire. Le contrôle de forme du nom (nom nu, ni `/` ni `..` ni
+  `.` ni octet NUL) est doublé d'un contrôle **realpath** : un nom nu qui
+  est en réalité un lien symbolique pointant hors de `articles/`
+  (respectivement `articles/img/`) est **refusé**, jamais suivi — sinon
+  un lien commité dans un dépôt exfiltrerait un fichier de l'hôte dans le
+  site publié. Un lien symbolique interne (cible restant dans le
+  répertoire) reste autorisé.
+- **Contextes HTML échappés vs bruts.** Les valeurs qui atterrissent dans
+  un **attribut** (`<meta name="author">`/`<meta name="description">`
+  depuis `author`/`page_desc`, le `href` d'un lien Markdown, `src`/`alt`
+  d'une image) sont **débalisées et/ou échappées** — un guillemet ou un
+  chevron ne peut pas s'évader du contexte. Le `<title>` (RCDATA) est
+  débalisé. Les rendus **visibles** (corps de fiche, `card_*`, pied de
+  page `author`/`date`/`license`, `intro`, légendes) sont du HTML brut
+  **par conception** (§6.2) : l'auteur y a délibérément la main. Le champ
+  `license` accepte ainsi du HTML brut quelconque (typiquement un lien) ;
+  ce n'est pas une élévation de privilège, c'est la même capacité que
+  dans tout corps de fiche. Un intégrateur qui alimenterait `author`,
+  `date` ou `license` depuis une source **moins** fiable doit donc les
+  échapper lui-même en amont. Le contrôle d'équilibrage (§13.6) rattrape
+  en dernier recours toute charge brute qui casserait la structure : elle
+  fait échouer le build au lieu d'être publiée.
+- **Complexité bornée.** Les expressions régulières du convertisseur sont
+  linéaires sur une entrée adverse (pas de retour arrière quadratique) —
+  une ligne pathologique ne peut pas geler un build (important pour
+  l'exécution navigateur, mono-thread, §23). Les règles typographiques
+  d'un **fichier de langue** restent hors de ce périmètre : un fichier de
+  langue est du **code de confiance** (§7.2), au même niveau que
+  l'exécutable.
+
 ---
 
 ## 14. Parcours utilisateur

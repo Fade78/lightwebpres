@@ -44,7 +44,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.9.0"
+VERSION = "0.10.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -2392,8 +2392,25 @@ def md_inline(text):
     # Bold before italic
     text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<em>\1</em>', text)
-    # Markdown links
-    text = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', r'<a href="\2" target="_blank" rel="noopener">\1</a>', text)
+    # Markdown links. The captured URL goes into an href="..." attribute,
+    # so it must be attribute-escaped — exactly like _inline_img does for
+    # its src above. Without this, a `"` in the URL closes the attribute
+    # early and any following text is parsed as further tag attributes or
+    # markup: `[x](https://a" onmouseover="location=name)` would inject a
+    # live event handler, and `>` would let the URL close the <a> tag and
+    # open an arbitrary element (§6.3's http(s)-only restriction is not by
+    # itself a containment guarantee). `&` is already globally escaped
+    # above, so only " < > remain to handle here (matching _inline_img).
+    def _md_link(m):
+        label = m.group(1)
+        href = m.group(2).replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+        return f'<a href="{href}" target="_blank" rel="noopener">{label}</a>'
+
+    # Label class excludes '[' as well as ']': a run of "["×N would
+    # otherwise make each '[' rescan the whole line for a closing ']('
+    # (O(n²)). A real link label doesn't contain a bare '[', so this
+    # doesn't change normal parsing.
+    text = re.sub(r'\[([^\]\[]+)\]\((https?://[^\)]+)\)', _md_link, text)
     # Inline footnotes
     text = re.sub(r'\[\^([\w]+)\]', r'<sup>[^\1]</sup>', text)
     # A backslash-escaped backtick that never became part of a span
@@ -2433,7 +2450,14 @@ _VOID_HTML_TAGS = frozenset({
     'meta', 'param', 'source', 'track', 'wbr',
 })
 
-_HTML_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(/?)>')
+# The attribute run is [^<>]*? (not [^>]*?): forbidding a nested '<'
+# bounds each match attempt to the distance to the next '<', which
+# removes the O(n²) backtracking a line of "<a"×N would otherwise cause
+# (each '<' rescanned the whole remainder looking for a '>' that never
+# came). A valid tag never contains an unescaped '<' in its attribute
+# area, so this doesn't change recognition of real markup; it stays lazy
+# so the (/?) group still captures a trailing self-closing slash.
+_HTML_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*?(/?)>')
 
 # A fenced code block delimiter (§6.3): three backticks alone, optionally
 # followed immediately (no space) by a language hint on the opening line.
@@ -2906,9 +2930,32 @@ def _is_safe_relative_filename(value):
     CI) and get joined into real filesystem paths (Path(dir) / value) with
     no other containment check — Path('/x') / '/etc/passwd' silently
     discards the left side and resolves to '/etc/passwd', so this check is
-    the only thing standing between that input and an arbitrary file
-    read/write."""
-    return bool(value) and value == Path(value).name
+    the first thing standing between that input and an arbitrary file
+    read/write. It is a name-shape check only: it cannot see that a bare
+    name is a symlink pointing outside the tree — _resolve_contained()
+    below is the realpath barrier that catches that. `.` and `..` both
+    satisfy `value == Path(value).name` yet are directories (a bare `..`
+    used to crash with IsADirectoryError), and a NUL byte would raise a
+    raw ValueError at open() time — both are rejected here explicitly."""
+    if not value or value in ('.', '..') or '\x00' in value:
+        return False
+    return value == Path(value).name
+
+
+def _resolve_contained(base_dir, value):
+    """Resolve base_dir/value and return the real path only if it stays
+    inside base_dir — otherwise None. This is the barrier the name-shape
+    check (_is_safe_relative_filename) cannot provide: a bare filename
+    that is itself a symlink into an outside file or directory passes the
+    name check, and every read/copy site would otherwise follow it. A git
+    repo can carry such symlinks, so an unattended build of an
+    attacker-authored series would leak host files into the published
+    output without this."""
+    base = Path(base_dir).resolve()
+    target = (base / value).resolve()
+    if target == base or base in target.parents:
+        return target
+    return None
 
 
 def validate_slides(slides, filename, has_meta_block=True, content_before_meta=''):
@@ -3377,7 +3424,16 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # place of the article, and exit 0 — a corrupted page shipped green.
     for i, slide in enumerate(slides):
         if slide.slide_type == 'full-article' and slide.article_file:
-            article_path = articles_dir / slide.article_file
+            # Realpath containment on top of the name-shape guard: the
+            # name check already ran at parse time, but a bare name that
+            # is a symlink pointing outside articles/ passes it and would
+            # otherwise be read and embedded verbatim into the page.
+            article_path = _resolve_contained(articles_dir, slide.article_file)
+            if article_path is None:
+                print(f'[ERROR] {source_path.name}: article file "{slide.article_file}" '
+                      f'resolves outside articles/ (symlink or traversal).',
+                      file=sys.stderr)
+                sys.exit(1)
             if not article_path.exists():
                 print(f'[ERROR] {source_path.name}: article file not found: '
                       f'{slide.article_file} (referenced by its full-article slide).',
@@ -3471,12 +3527,36 @@ def copy_images(articles_dir, output_dir):
 
     Merges into an existing img_dst (dirs_exist_ok) instead of wiping it
     first: a mistyped --output pointing at an unrelated existing directory
-    must never delete a pre-existing img/ there."""
+    must never delete a pre-existing img/ there.
+
+    Symlinks that escape img/ are refused, not followed: copytree's
+    default (symlinks=False) copies a link's *referent content*, so a
+    committed `img/leak.png -> /etc/passwd` (or a directory symlink) would
+    otherwise be published into public/img/ — arbitrary host-file
+    exfiltration from an attacker-authored series built unattended. A
+    symlink whose realpath stays inside img/ is harmless and kept."""
     img_src = articles_dir / 'img'
     img_dst = output_dir / 'img'
-    if img_src.exists() and img_src.is_dir():
-        shutil.copytree(img_src, img_dst, dirs_exist_ok=True)
-        print(f'  Images copied: {img_dst}')
+    if not (img_src.exists() and img_src.is_dir()):
+        return
+    src_root = img_src.resolve()
+
+    def _refuse_escaping_symlinks(dir_path, names):
+        ignored = set()
+        for name in names:
+            entry = Path(dir_path) / name
+            if entry.is_symlink():
+                target = entry.resolve()
+                if not (target == src_root or src_root in target.parents):
+                    print(f'  [WARNING] img/: skipped symlink escaping the '
+                          f'image directory: {entry.relative_to(img_src)}',
+                          file=sys.stderr)
+                    ignored.add(name)
+        return ignored
+
+    shutil.copytree(img_src, img_dst, dirs_exist_ok=True,
+                    ignore=_refuse_escaping_symlinks)
+    print(f'  Images copied: {img_dst}')
 
 
 def load_series_data(series_dir):

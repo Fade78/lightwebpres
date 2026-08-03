@@ -3389,6 +3389,145 @@ class PathTraversalSafety(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('unsafe', result.stderr)
 
+    def test_bare_dotdot_article_is_rejected_not_crash(self):
+        # `article: ..` passes a name-shape check (Path('..').name == '..')
+        # yet is a directory — it used to raise an uncaught IsADirectoryError.
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: ..\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn('Traceback', result.stderr)
+
+
+class SymlinkContainment(unittest.TestCase):
+    """Security: the name-shape guard cannot see that a bare filename is a
+    symlink into an outside file/dir. A git repo can carry such symlinks,
+    so an unattended build of an attacker-authored series would otherwise
+    exfiltrate host files. Realpath containment refuses them."""
+
+    def _secret(self, tmp):
+        secret = Path(tmp) / 'SECRET.txt'
+        secret.write_text('TOP-SECRET-CONTENTS', encoding='utf-8')
+        return secret
+
+    def test_full_article_symlink_escaping_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = self._secret(tmp)
+            root = Path(tmp) / 'proj'
+            (root / 'articles').mkdir(parents=True)
+            (root / 'articles' / 'a.md').write_text(
+                '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:full-article -->\narticle: leak.md\n', encoding='utf-8')
+            (root / 'articles' / 'leak.md').symlink_to(secret)
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('resolves outside', result.stderr)
+            if (root / 'public' / 'a.html').exists():
+                self.assertNotIn('TOP-SECRET-CONTENTS',
+                                 (root / 'public' / 'a.html').read_text(encoding='utf-8'))
+
+    def test_img_symlink_escaping_is_not_published(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = self._secret(tmp)
+            root = Path(tmp) / 'proj'
+            (root / 'articles' / 'img').mkdir(parents=True)
+            (root / 'articles' / 'a.md').write_text(
+                '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n', encoding='utf-8')
+            (root / 'articles' / 'img' / 'leak.png').symlink_to(secret)
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            leaked = root / 'public' / 'img' / 'leak.png'
+            if leaked.exists():
+                self.assertNotIn('TOP-SECRET-CONTENTS', leaked.read_text(encoding='utf-8'))
+            self.assertIn('skipped symlink', result.stderr)
+
+    def test_internal_img_symlink_is_kept(self):
+        # A symlink pointing WITHIN img/ is harmless and must still copy.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'proj'
+            (root / 'articles' / 'img').mkdir(parents=True)
+            (root / 'articles' / 'img' / 'real.png').write_text('PNGDATA', encoding='utf-8')
+            (root / 'articles' / 'img' / 'alias.png').symlink_to(
+                root / 'articles' / 'img' / 'real.png')
+            (root / 'articles' / 'a.md').write_text(
+                '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\n', encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                (root / 'public' / 'img' / 'alias.png').read_text(encoding='utf-8'),
+                'PNGDATA')
+
+
+class LinkHrefEscaping(unittest.TestCase):
+    """Security: the Markdown link URL goes into an href="..." attribute
+    and must be attribute-escaped — the http(s)-only restriction is not a
+    containment guarantee. A `"` used to close the attribute and inject a
+    live event handler; a `>` used to close the <a> and open a new tag."""
+
+    def _html(self, body):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'art.md').write_text(body, encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            assert result.returncode == 0, result.stderr
+            return (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+    def test_quote_in_url_cannot_break_the_attribute(self):
+        html = self._html('[x](https://a" onmouseover="alert(1)) end\n')
+        self.assertNotIn('" onmouseover="', html)
+        self.assertIn('&quot; onmouseover=&quot;', html)
+
+    def test_angle_in_url_cannot_close_the_anchor(self):
+        html = self._html('[x](https://a><img src=y onerror=alert(1) ) end\n')
+        self.assertNotIn('<img src=y onerror', html)
+        self.assertIn('&gt;&lt;img', html)
+
+    def test_ampersand_in_url_is_single_escaped(self):
+        html = self._html('[x](https://a.org/p?q=1&r=2)\n')
+        self.assertIn('href="https://a.org/p?q=1&amp;r=2"', html)
+        self.assertNotIn('&amp;amp;', html)
+
+
+class NoQuadraticBacktracking(unittest.TestCase):
+    """Security: the converter's own regexes run over attacker-influenced
+    input text (article bodies, and in the browser flow the whole thing is
+    attacker-supplied and single-threaded). A line of '<a'×N or '['×N used
+    to be O(n²) — 40 KB took tens of seconds. Bounded now: a large
+    pathological line must convert in well under a second."""
+
+    def test_repeated_open_tag_and_bracket_are_linear(self):
+        import time
+        import importlib.machinery, importlib.util
+        loader = importlib.machinery.SourceFileLoader('lwp_perf', str(EXECUTABLE))
+        spec = importlib.util.spec_from_loader('lwp_perf', loader)
+        lwp = importlib.util.module_from_spec(spec)
+        loader.exec_module(lwp)
+        for payload in ('<a' * 40000, '[' * 40000):
+            start = time.time()
+            lwp.convert_markdown(payload)
+            elapsed = time.time() - start
+            self.assertLess(elapsed, 1.0,
+                            'converter went superlinear on a pathological line (%.2fs)' % elapsed)
+
 
 class IndexTitleXssProtection(unittest.TestCase):
     """Security: series_meta.title lands both in <title> (RCDATA, always
