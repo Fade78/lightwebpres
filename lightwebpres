@@ -3978,7 +3978,9 @@ def cmd_install(target_dir, args):
             "title": "My article series",
             "subtitle": "Series subtitle",
             "version": "v0.1",
-            "intro": "Series introduction."
+            "intro": "Series introduction.",
+            "author": "",
+            "license": ""
         },
         "articles": []
     }
@@ -4167,6 +4169,8 @@ nav_desc: The first demo article, as shown in another article's navigation
 card_label: Article 1
 card_title: First article (card)
 card_desc: The first demo article, as shown on the index page
+date: January 2026
+comment: A review note — recognized everywhere, never published (check this page's HTML source).
 ---
 
 <!-- lwp:slide:cover -->

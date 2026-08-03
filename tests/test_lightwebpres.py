@@ -3648,5 +3648,41 @@ class DegenerateInputRobustness(unittest.TestCase):
 
 
 
+class BuildDeterminism(unittest.TestCase):
+    """1.0 review axis 3 (JOURNAL-1.0.md §3): without --build-stamp, two
+    builds of the same sources are byte-identical across every output
+    file (articles, index, README) — the property `check` (§11.4)
+    structurally depends on. datetime.now() lives only in
+    build_stamp_html(); nothing else in the build path reads the clock,
+    randomness, locale, or directory enumeration order."""
+
+    def test_two_builds_are_byte_identical_across_all_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            for name in ('a', 'b'):
+                (root / 'articles' / f'{name}.md').write_text(
+                    f'<!-- lwp:meta -->\npage_title: Article {name}\ndate: 2026\n---\n\n'
+                    f'<!-- lwp:slide:cover -->\ntag: T\n# Article {name}\nsummary: Résumé : test.\n\n---\n\n'
+                    f'<!-- lwp:slide -->\ntag: F\n## Fiche\nsummary: S.\nfact-label: Fait\n\nCorps **gras**.\n\n---\n\n'
+                    f'<!-- lwp:slide:series-nav -->\n', encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({
+                'series_meta': {'title': 'S', 'author': 'A', 'license': 'L'},
+                'articles': [{'page_source': 'a.md'}, {'page_source': 'b.md'}],
+            }), encoding='utf-8')
+            for out in ('pub1', 'pub2'):
+                result = run('build', str(root), '--output', str(root / out))
+                self.assertEqual(result.returncode, 0, result.stderr)
+            files1 = sorted(p.relative_to(root / 'pub1') for p in (root / 'pub1').rglob('*') if p.is_file())
+            files2 = sorted(p.relative_to(root / 'pub2') for p in (root / 'pub2').rglob('*') if p.is_file())
+            self.assertEqual(files1, files2)
+            self.assertTrue(files1)
+            for rel in files1:
+                self.assertEqual((root / 'pub1' / rel).read_bytes(),
+                                 (root / 'pub2' / rel).read_bytes(), rel)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

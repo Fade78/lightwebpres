@@ -106,10 +106,18 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    gros fichiers/séries (perf), reporté avec l'axe 3.
 2. Portabilité : version Python minimale (à tester et déclarer),
    Windows (séparateurs, casse), environnement Pyodide.
-3. Reproductibilité : aucune source de non-déterminisme hors
-   `--build-stamp` (check repose sur du byte-for-byte).
+3. FAIT (v0.6.0) — Reproductibilité : audit du code (datetime.now()
+   uniquement dans build_stamp_html ; pas de random/locale/énumération de
+   répertoire dans le chemin de build) + preuve empirique (300 articles,
+   deux builds byte-identiques sur tous les fichiers) + test de
+   régression BuildDeterminism. Perf au passage : 300 articles avec
+   series-nav de 300 entrées chacun → 6,4 s, ~39 Mo (dominé par le
+   CSS/JS inline par page, par conception).
 4. Couverture de test par § de spec : croiser chaque § avec la suite,
    lister les trous.
+   (Note de cohérence, faite avec l'axe 3 : démo enrichie de `date:` +
+   `comment:` sur l'article 1, scaffold install avec clés
+   `author`/`license` vides, §11.1/§11.2/§12.1 resynchronisés.)
 5. Sécurité (2e passe post-gel) : injection via sources, XSS, path
    traversal, ReDoS fichiers de langue.
 6. Dogfooding de la doc : exécuter GUIDE.md et README.md verbatim dans

@@ -1221,7 +1221,11 @@ Crée la structure de travail dans `[répertoire]` :
 4. Extrait les packs de langue par défaut depuis l'exécutable :
    - `language/fr.json`
    - `language/en.json`
-5. Crée un `series.json` vide (tableau vide `[]`)
+5. Crée un `series.json` de départ : `series_meta` pré-rempli de
+   valeurs génériques (`title`/`subtitle`/`version`/`intro`, plus
+   `author`/`license` vides — présents pour faire connaître les champs,
+   rien n'est rendu tant qu'ils sont vides) et un tableau `articles`
+   vide
 6. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
    passé** — `install` seul ne présuppose jamais un déploiement GitLab
    (§10) ; par défaut, aucun fichier de CI n'est créé
@@ -1250,11 +1254,15 @@ Crée trois articles d'exemple, un pour chaque position de la navigation de
 série :
 
 1. Crée `articles/first.md` + `articles/first_article.md` (position
-   « first »)
+   « first » ; démontre chaque champ d'affichage explicitement, plus
+   `date:` et `comment:`)
 2. Crée `articles/middle.md` + `articles/middle_article.md` (position
-   « middle » ; démontre `highlight`/`highlight-caption`)
-3. Crée `articles/last.md` + `articles/last_article.md` (position « last »)
-4. Met à jour `series.json` avec ces trois articles (`series_meta` inclus)
+   « middle » ; démontre `highlight`/`highlight-caption`, et la surcharge
+   d'un `card_label` depuis `series.json`)
+3. Crée `articles/last.md` + `articles/last_article.md` (position
+   « last » ; bloc meta vide — démontre la cascade complète §20.3.1)
+4. Met à jour `series.json` avec ces trois articles (`series_meta`
+   inclus, avec `author`/`license` de démonstration)
 5. Lance le build → génère `public/first.html`, `public/middle.html`,
    `public/last.html` et `public/index.html`
 6. Affiche un message : « Demo site generated in public/. Open
@@ -1556,7 +1564,7 @@ build(répertoire):
   # fixe, intégrée à l'exécutable — pas lue depuis templates/ (§9)
 
   6. FOR each article IN series:
-     a. source = read_file(répertoire/articles/{article.source})
+     a. source = read_file(répertoire/articles/{article.page_source})
      b. meta, slides = parse_markdown(source)
      c. html_slides = []
      d. slide_num = 0
@@ -1586,7 +1594,7 @@ build(répertoire):
           "js_nav": js,
           "slides": "\n".join(html_slides)
         })  # fill_page_template uses the fixed, built-in page structure (§18.1)
-     i. write_file(répertoire/public/{article.file}, html)
+     i. write_file(répertoire/public/{article.page_dest}, html)
 
   7. index_html = generate_index(series, css, js)  # fixed, built-in index structure (§18.2)
   8. write_file(répertoire/public/index.html, index_html)
