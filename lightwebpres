@@ -1685,15 +1685,13 @@ TEMPLATE_INDEX = '''<!DOCTYPE html>
 
 # --- Template: series-nav (fragment) ---
 TEMPLATE_SERIES_NAV_ITEM_LINK = '''    <a href="{file}" class="series-item series-link">
-      <div class="series-label">{label}</div>
-      <div class="series-title">{title}</div>
+{label_html}      <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
       <div class="series-status">&rarr; {read}</div>
     </a>'''
 
 TEMPLATE_SERIES_NAV_ITEM_CURRENT = '''    <div class="series-item series-current">
-      <div class="series-label">{label}</div>
-      <div class="series-title">{title}</div>
+{label_html}      <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
       <div class="series-status">&#9656; {status}</div>
     </div>'''
@@ -2739,20 +2737,26 @@ def parse_metadata_block(text):
 
 
 def parse_markdown_extended(md_text):
-    """Parses an extended Markdown file and returns (meta, slides, has_meta_block).
+    """Parses an extended Markdown file and returns
+    (meta, slides, has_meta_block, content_before_meta).
 
     has_meta_block is False when no <!-- lwp:meta --> block was found at
     all (as opposed to one that parsed to an empty dict) — callers that
     must enforce §22.7 (a file must start with <!-- lwp:meta -->) need to
     tell the two apart, callers that don't (like audit, which never
-    blocks) can just ignore it.
+    blocks) can just ignore it. content_before_meta is whatever non-blank
+    text precedes the marker ('' when the file starts with it) — §22.7
+    makes that fatal at build time too: it used to be silently discarded,
+    which turned a stray first line into invisible data loss.
     """
     # Extract the meta block
     meta = {}
     has_meta_block = False
+    content_before_meta = ''
     meta_match = re.search(r'<!--\s*lwp:meta\s*-->(.*?)(?:^|\n)---', md_text, re.DOTALL)
     if meta_match:
         has_meta_block = True
+        content_before_meta = md_text[:meta_match.start()].strip()
         meta = parse_metadata_block(meta_match.group(1))
         # Strip the meta block from the text
         md_text = md_text[meta_match.end():]
@@ -2859,7 +2863,7 @@ def parse_markdown_extended(md_text):
 
         slides.append(slide)
 
-    return meta, slides, has_meta_block
+    return meta, slides, has_meta_block, content_before_meta
 
 
 def _is_safe_relative_filename(value):
@@ -2874,7 +2878,7 @@ def _is_safe_relative_filename(value):
     return bool(value) and value == Path(value).name
 
 
-def validate_slides(slides, filename, has_meta_block=True):
+def validate_slides(slides, filename, has_meta_block=True, content_before_meta=''):
     """Rejects the parser edge cases the spec (§22) says must be fatal,
     instead of letting them silently corrupt or truncate the build:
 
@@ -2892,6 +2896,16 @@ def validate_slides(slides, filename, has_meta_block=True):
     if not has_meta_block:
         print(f'[ERROR] {filename}: file must start with a <!-- lwp:meta --> block.',
               file=sys.stderr)
+        sys.exit(1)
+
+    # §22.7: nothing but blank lines may precede the marker (a BOM is
+    # already absorbed at read time, §13.1). This content used to be
+    # silently discarded — invisible data loss for a stray first line.
+    if content_before_meta:
+        preview = content_before_meta.splitlines()[0][:60]
+        print(f'[ERROR] {filename}: content found before the <!-- lwp:meta --> '
+              f'block (starting with: "{preview}"). The file must start with the '
+              f'marker; only blank lines may precede it.', file=sys.stderr)
         sys.exit(1)
 
     if not slides:
@@ -2982,11 +2996,13 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
         if summary:
             parts.append(f'  <p class="summary">{summary}</p>')
 
-        # Highlight
+        # Highlight — no empty caption span when there is no caption
+        # (§12.3: the caption is emitted only if present)
         if slide.highlight:
             highlight = apply_typo(typo_engine, slide.highlight, disabled)
             caption = apply_typo(typo_engine, slide.highlight_caption or '', disabled)
-            parts.append(f'  <div class="highlight"><span class="highlight-figure">{highlight}</span><span class="highlight-caption">{caption}</span></div>')
+            caption_html = f'<span class="highlight-caption">{caption}</span>' if caption else ''
+            parts.append(f'  <div class="highlight"><span class="highlight-figure">{highlight}</span>{caption_html}</div>')
 
         # Fact-box
         if slide.fact_content:
@@ -3045,18 +3061,20 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
         # resolve_article_fields() (series.json > article meta > fallback
         # chain, §20.3.1).
         label = apply_typo(typo_engine, entry.get('card_label', ''))
+        # No empty <div class="series-label"> when there is no label
+        label_html = f'      <div class="series-label">{label}</div>\n' if label else ''
         title = apply_typo(typo_engine, entry['nav_title'])
         desc = apply_typo(typo_engine, entry['nav_desc'])
         if entry['page_dest'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
-                label=label,
+                label_html=label_html,
                 title=title,
                 desc=desc,
                 status=current_status))
         else:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
                 file=html_escape(entry['page_dest'], quote=True),
-                label=label,
+                label_html=label_html,
                 title=title,
                 desc=desc,
                 read=read))
@@ -3098,8 +3116,8 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         # href is an attribute context: entry['page_dest'] is validated to be a
         # plain filename (validate_series), but it's escaped here too as
         # defense in depth against a future validation gap.
-        card = f'''<a href="{html_escape(entry['page_dest'], quote=True)}" class="article-card">
-  <div class="article-number">{label}</div>
+        label_html = f'\n  <div class="article-number">{label}</div>' if label else ''
+        card = f'''<a href="{html_escape(entry['page_dest'], quote=True)}" class="article-card">{label_html}
   <div class="article-title">{card_title}</div>
   <div class="article-desc">{card_desc}</div>
   <div class="article-cta">→ {read}</div>
@@ -3126,6 +3144,11 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     html = html.replace('{{css}}', css)
     html = html.replace('{{series_title}}', title)
     html = html.replace('{{series_subtitle}}', subtitle)
+    # No visible empty pill when series_meta has no version: drop the
+    # whole span (the index markup is fixed, §18.2, so this line-level
+    # removal can't break a user template).
+    if not version:
+        html = html.replace('\n  <span class="version-tag">{{series_version}}</span>', '')
     html = html.replace('{{series_version}}', version)
     html = html.replace('{{series_intro}}', intro)
     html = html.replace('{{cards}}', '\n'.join(cards))
@@ -3264,8 +3287,8 @@ def typo_disabled_rules(meta):
 def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp=''):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
-    meta, slides, has_meta_block = parse_markdown_extended(md_text)
-    validate_slides(slides, source_path.name, has_meta_block)
+    meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
+    validate_slides(slides, source_path.name, has_meta_block, content_before_meta)
     disabled_rules = typo_disabled_rules(meta)
     # typo: off (§4.5) is this article's own --no-typography: skip the
     # engine entirely for its page, the same `None` the CLI flag passes
@@ -3288,17 +3311,20 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     series_nav_html = build_series_nav(current_file, series_data, strings, typo_engine)
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
 
-    # Inject the full article
+    # Inject the full article. A missing file is fatal (§22.8): the page
+    # would otherwise be published with the literal placeholder text in
+    # place of the article, and exit 0 — a corrupted page shipped green.
     for i, slide in enumerate(slides):
         if slide.slide_type == 'full-article' and slide.article_file:
             article_path = articles_dir / slide.article_file
-            if article_path.exists():
-                article_md = read_text_file(article_path)
-                article_html = convert_markdown(article_md, article_typo_engine, disabled_rules)
-                placeholder = '{FULL_ARTICLE_PLACEHOLDER}'
-                slides_html = slides_html.replace(placeholder, article_html)
-            else:
-                print(f'  [ERROR] Article file not found: {slide.article_file}', file=sys.stderr)
+            if not article_path.exists():
+                print(f'[ERROR] {source_path.name}: article file not found: '
+                      f'{slide.article_file} (referenced by its full-article slide).',
+                      file=sys.stderr)
+                sys.exit(1)
+            article_md = read_text_file(article_path)
+            article_html = convert_markdown(article_md, article_typo_engine, disabled_rules)
+            slides_html = slides_html.replace('{FULL_ARTICLE_PLACEHOLDER}', article_html)
 
     # Page title — the already-resolved page_title (series.json > article
     # meta > cover slide's own slide_title > page_dest, see
@@ -3537,7 +3563,7 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
         source_path = articles_dir / entry['page_source']
         meta, slides = {}, []
         if source_path.exists():
-            meta, slides, _ = parse_markdown_extended(read_text_file(source_path))
+            meta, slides, _, _ = parse_markdown_extended(read_text_file(source_path))
         cover = _find_cover_slide(slides)
         cover_summary = cover.summary if cover and cover.summary else ''
 
@@ -3771,6 +3797,19 @@ def load_build_context(series_dir, args):
         for f in skipped:
             print(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
 
+    # Every listed page_source must exist, checked up front and fatal
+    # (§20.3): building around a missing source used to leave the entry's
+    # index card, series-nav entries and README line pointing at a page
+    # that was never built — dead links shipped with exit code 0. Failing
+    # here, before anything is written, also means no partial output.
+    missing = [e['page_source'] for e in articles
+               if not (articles_dir / e['page_source']).exists()]
+    if missing:
+        for name in missing:
+            print(f'[ERROR] Source not found: {articles_dir / name} '
+                  f'(listed in series.json).', file=sys.stderr)
+        sys.exit(1)
+
     return SimpleNamespace(
         sd=sd, articles_dir=articles_dir, templates_dir=templates_dir,
         lang_dir=lang_dir, output_dir=output_dir, lang=lang,
@@ -3861,15 +3900,12 @@ def cmd_build(series_dir, args):
     # Create the output directory
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Build each article
+    # Build each article (every page_source was checked to exist by
+    # load_build_context — fatal before any output is written)
     for entry in ctx.articles:
         source_file = entry['page_source']
         output_file = entry['page_dest']
         source_path = ctx.articles_dir / source_file
-
-        if not source_path.exists():
-            print(f'  [ERROR] Source not found: {source_path}', file=sys.stderr)
-            continue
 
         print(f'  {output_file} ← {source_file}')
         html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp)
@@ -3903,10 +3939,6 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        if not source_path.exists():
-            print(f'[ERROR] {entry["page_dest"]}: source not found: {source_path}', file=sys.stderr)
-            diff_count += 1
-            continue
         # Never generated here, on either side of the comparison: a build
         # stamp's timestamp is different on every single run by design, so
         # comparing it against anything (including itself, moments later)
@@ -3974,7 +4006,7 @@ def cmd_audit(series_dir, args):
             continue
 
         md_text = read_text_file(source_path)
-        meta, slides, has_meta_block = parse_markdown_extended(md_text)
+        meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
         if not has_cover:
@@ -4226,6 +4258,26 @@ def cmd_demo(target_dir, args):
               f'Remove them first, or run demo in an empty series.', file=sys.stderr)
         sys.exit(1)
 
+    # demo rewrites series.json wholesale below — never over real work
+    # (the no-clobber guarantee, §11.2). Right after install the file only
+    # holds scaffold boilerplate with an empty articles list; the moment
+    # it lists articles, it's a series in progress and demo must refuse.
+    series_file = td / 'series.json'
+    if series_file.exists():
+        try:
+            existing_series = json.loads(read_text_file(series_file))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            existing_series = None
+        if isinstance(existing_series, dict):
+            existing_articles = existing_series.get('articles', [])
+        else:
+            existing_articles = existing_series if isinstance(existing_series, list) else []
+        if existing_articles:
+            print(f'[ERROR] {series_file} already lists {len(existing_articles)} '
+                  f'article(s) — demo would overwrite it. Run demo in a fresh '
+                  f'series, or remove those entries first.', file=sys.stderr)
+            sys.exit(1)
+
     # Article 1: first — every display field set explicitly, as a
     # reference showing every one of them (§20.2/§20.3.1). Neither
     # `page_source` nor `page_dest` belong in this block: `page_source`
@@ -4462,6 +4514,8 @@ COMMANDS
   lightwebpres help | --help | -h                Shows this help
 
 OPTIONS
+  (--option value and --option=value are equivalent; an unknown or
+   out-of-place option is a fatal error, never silently ignored)
   --lang fr|en           Language: typography rules + interface strings (default: fr)
   --output public/       Output directory (default: public/)
   --force                install: proceed even if the target directory is not empty
@@ -4587,6 +4641,71 @@ Python 3.8+ standard library only. Native UTF-8. On Windows
 Full reference: specifications.md.''')
 
 
+# Which options each command accepts, and whether they take a value.
+# The parser consults this instead of guessing: a boolean flag never
+# swallows the positional argument that follows it, a typoed or
+# out-of-place option is a fatal error instead of a silent no-op, and
+# `--opt=value` is accepted as equivalent to `--opt value`.
+_VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
+                            '--theme', '--only', '--nav-cache'})
+_COMMAND_OPTIONS = {
+    'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
+    'demo': {'--lang', '--output'},
+    'build': {'--lang', '--output', '--language-file', '--no-typography',
+              '--include-drafts', '--only', '--nav-cache',
+              '--build-stamp', '--build-stamp-minimal'},
+    'check': {'--lang', '--output', '--language-file', '--no-typography',
+              '--include-drafts'},
+    'audit': {'--lang'},
+    'refresh-templates': set(),
+    'themes-gallery': set(),
+}
+
+
+def parse_cli_options(command, rest):
+    """Parses `rest` into (opts, positional) against _COMMAND_OPTIONS.
+
+    Fatal errors (exit 1): an option the command doesn't accept (whether
+    it exists elsewhere or not), and a value option with no value."""
+    allowed = _COMMAND_OPTIONS[command]
+    opts = {}
+    positional = []
+    i = 0
+    while i < len(rest):
+        arg = rest[i]
+        if arg.startswith('--'):
+            # GNU-style --opt=value: split once, the rest is the value
+            # (which may itself contain '=').
+            name, eq, inline_value = arg.partition('=')
+            if name not in allowed:
+                hint = f' (not an option of `{command}`)' if name in _VALUE_OPTIONS or any(
+                    name in v for v in _COMMAND_OPTIONS.values()) else ''
+                print(f'[ERROR] Unknown option: {name}{hint}. '
+                      f'Run `lightwebpres --help` for the option list.', file=sys.stderr)
+                sys.exit(1)
+            if name in _VALUE_OPTIONS:
+                if eq:
+                    opts[name] = inline_value
+                    i += 1
+                elif i + 1 < len(rest) and not rest[i + 1].startswith('--'):
+                    opts[name] = rest[i + 1]
+                    i += 2
+                else:
+                    print(f'[ERROR] Option {name} requires a value '
+                          f'(`{name} VALUE` or `{name}=VALUE`).', file=sys.stderr)
+                    sys.exit(1)
+            else:
+                if eq:
+                    print(f'[ERROR] Option {name} takes no value.', file=sys.stderr)
+                    sys.exit(1)
+                opts[name] = True
+                i += 1
+        else:
+            positional.append(arg)
+            i += 1
+    return opts, positional
+
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ('-h', '--help', 'help'):
@@ -4594,23 +4713,12 @@ def main():
         return
 
     command = args[0]
-    rest = args[1:]
+    if command not in _COMMAND_OPTIONS:
+        print(f'Unknown command: {command}', file=sys.stderr)
+        print_help()
+        sys.exit(1)
 
-    # Parse the options
-    opts = {}
-    positional = []
-    i = 0
-    while i < len(rest):
-        if rest[i].startswith('--'):
-            if i + 1 < len(rest) and not rest[i + 1].startswith('--'):
-                opts[rest[i]] = rest[i + 1]
-                i += 2
-            else:
-                opts[rest[i]] = True
-                i += 1
-        else:
-            positional.append(rest[i])
-            i += 1
+    opts, positional = parse_cli_options(command, args[1:])
 
     target = positional[0] if positional else os.environ.get('LWP_SERIES_DIR', '.')
 
@@ -4631,10 +4739,6 @@ def main():
         # just an output file path defaulting to themes-gallery.html in cwd.
         output_path = positional[0] if positional else 'themes-gallery.html'
         cmd_themes_gallery(output_path, opts)
-    else:
-        print(f'Unknown command: {command}', file=sys.stderr)
-        print_help()
-        sys.exit(1)
 
 
 if __name__ == '__main__':

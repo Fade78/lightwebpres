@@ -156,6 +156,20 @@ L'aide s'obtient par `help`, `--help` ou `-h` (les trois formes sont
 équivalentes) ; sans argument du tout, l'aide s'affiche aussi. Une
 commande inconnue affiche l'aide et sort avec le code 1.
 
+**Analyse stricte des options.** Le parseur connaît, par commande, les
+options acceptées et lesquelles prennent une valeur :
+
+- Une option inconnue — faute de frappe ou option d'une autre commande
+  (`build --force`) — est une **erreur fatale**, jamais un no-op
+  silencieux.
+- La forme GNU `--option=valeur` est acceptée, équivalente à
+  `--option valeur` (la valeur peut elle-même contenir `=`).
+- Une option à valeur sans valeur (`--lang` en fin de ligne) est une
+  erreur fatale ; une option booléenne avec `=valeur` aussi.
+- Un flag booléen n'avale jamais l'argument positionnel qui le suit :
+  `build --no-typography mon-repertoire` construit bien
+  `mon-repertoire`.
+
 ---
 
 ## 3. Niveaux d'objets
@@ -1344,8 +1358,11 @@ Vérifie que `install` a été fait (présence de `templates/style.css`). Si
 non, erreur fatale invitant à lancer `install` d'abord.
 
 Refuse de s'exécuter si l'un des 7 fichiers de démo (6 `.md` +
-`img/demo-figure.svg`) existe déjà dans `articles/` (erreur fatale) —
-jamais d'écrasement silencieux d'un travail en cours.
+`img/demo-figure.svg`) existe déjà dans `articles/`, **ou si
+`series.json` liste déjà au moins un article** (erreur fatale dans les
+deux cas) — jamais d'écrasement silencieux d'un travail en cours :
+`demo` réécrit `series.json` entièrement, ce qui n'est inoffensif que
+sur le boilerplate d'un `install` frais (liste d'articles vide).
 
 Crée trois articles d'exemple, un pour chaque position de la navigation de
 série :
@@ -2183,7 +2200,7 @@ Placeholders supplémentaires :
 
 | Placeholder | Source | Description |
 |-------------|--------|-------------|
-| `{{series_title}}` / `{{series_subtitle}}` / `{{series_version}}` | `series_meta` de `series.json` | En-tête de l'index (l'en-tête est du markup fixe, pas un placeholder unique) |
+| `{{series_title}}` / `{{series_subtitle}}` / `{{series_version}}` | `series_meta` de `series.json` | En-tête de l'index (markup fixe, pas un placeholder unique). Sans `version`, le `<span class="version-tag">` entier est omis — pas de pastille vide |
 | `{{series_intro}}` | `series_meta.intro` (seule source) | Paragraphe d'intro de l'index |
 | `{{cards}}` | Généré depuis `series.json` | Les cartes d'articles |
 | `{{index_footer}}` | `series_meta.author`/`series_meta.license` (§20.3.1) | Pied de page éditorial de la série — tout absent = rien d'émis |
@@ -2211,8 +2228,10 @@ les slides. Les items eux-mêmes sont des fragments internes au format
 `label`/`title`/`desc` sont `card_label`/`nav_title`/`nav_desc` résolus
 (§20.3.1) et typographiés ; `read`/`status`/`back` viennent des chaînes
 `series_read`/`series_current_status`/`series_back_to_index` (§7.3).
-Chaque item émet toujours son `<div class="series-label">`, même vide.
-Le titre du bloc utilise la chaîne `series_nav_title`.
+Le `<div class="series-label">` d'un item est omis quand le
+`card_label` résolu est vide (pas de div vide), comme le
+`<div class="article-number">` des cartes d'index. Le titre du bloc
+utilise la chaîne `series_nav_title`.
 
 ### 18.4 Règles de remplacement
 
@@ -2500,7 +2519,11 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
   incohérente) étant identique pour toute extension qui n'est ni l'une ni
   l'autre.
 - `page_source` doit pointer vers un fichier qui existe dans `articles/` —
-  sinon cette entrée est ignorée (avertissement, pas d'arrêt du build).
+  sinon **erreur fatale**, pour `build` comme pour `check`, vérifiée en
+  amont avant toute écriture (aucune sortie partielle). Un article
+  volontairement absent du build a son mécanisme dédié : `draft: true`
+  (§20.6). `audit`, non bloquant par contrat, signale le fichier
+  manquant et continue.
 
 #### 20.3.1 Résolution des champs (surcharge et déduction de contenu)
 
@@ -2719,13 +2742,18 @@ simple nom de fichier (séparateur de chemin ou `..` détecté) — même risque
 de lecture de fichier arbitraire que pour `page_dest`/`page_source` dans
 `series.json` (§20.3).
 
-### 22.7 `---` au tout début du fichier (avant `<!-- lwp:meta -->`)
+### 22.7 Contenu avant `<!-- lwp:meta -->` (y compris un `---`)
 
-Erreur fatale. Le fichier doit commencer par `<!-- lwp:meta -->`.
+Erreur fatale. Le fichier doit commencer par `<!-- lwp:meta -->` ; seules
+des lignes vides peuvent précéder le marqueur (un BOM est absorbé à la
+lecture, §13.1). Le message d'erreur cite le début du contenu fautif.
 
 ### 22.8 Plusieurs `<!-- lwp:slide:full-article -->` dans le même fichier
 
 Erreur fatale. Un article ne peut inclure qu'un seul article de fond.
+Le fichier référencé par `article:` doit exister — sinon erreur fatale
+aussi (la page serait sinon publiée avec le texte littéral du
+placeholder à la place de l'article).
 
 ### 22.9 Plusieurs `<!-- lwp:slide:series-nav -->` dans le même fichier
 

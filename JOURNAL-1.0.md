@@ -178,11 +178,34 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
     placeholders réels, §19.2 fusion des packs, §23.4 SVG. **Groupes 2
     (7 bugs code) et 3 (7 choix de conception) : EN ATTENTE de
     l'arbitrage du propriétaire** — liste détaillée dans la conversation
-    du 2026-08-03 (groupe 2 : parseur CLI ×2, full-article manquant,
-    page_source manquant, contenu avant lwp:meta, demo/series.json,
-    spans vides ; groupe 3 : check index/README, portée Fiche par type,
-    champ dupliqué, champs ignorés cover/series-nav, flags langue,
-    str_KEY dans contenu d'auteur).
+    du 2026-08-03. **Groupe 2 : FAIT (v0.7.0), arbitré D1a/D2a/D3a/D4a**
+    — page_source manquant fatal en amont (build ET check, zéro sortie
+    partielle ; audit signale et continue) ; fichier full-article
+    manquant fatal ; demo refuse si series.json liste ≥1 article ;
+    parseur CLI strict (table d'options par commande, option
+    inconnue/déplacée fatale, forme `--opt=valeur` acceptée, flag
+    booléen n'avale plus le positionnel) ; contenu avant lwp:meta fatal
+    (lignes vides tolérées) ; éléments décoratifs vides omis
+    (highlight-caption, pastille version-tag, article-number,
+    series-label). Spec resynchronisée (§2.4, §11.2, §18.2/18.3, §20.3,
+    §22.7/22.8), 14 tests ajoutés + 2 réécrits. **Groupe 3 : EN ATTENTE
+    de l'arbitrage du propriétaire** — check index/README, portée Fiche
+    par type, champ dupliqué, champs ignorés cover/series-nav, flags
+    langue, str_KEY dans contenu d'auteur.
+
+### Note vérifiée : rigidité de l'architecture d'une page (2026-08-03)
+
+Question du propriétaire, vérifiée code + test empirique : l'ordre des
+fiches est **libre** (le rendu suit l'ordre du fichier, ids s1..sN) ;
+**rien n'est obligatoire** hormis le bloc meta et ≥1 fiche (cover
+absente ou en dernière position = permis, audit avertit seulement ;
+series-nav omissible ; full-article omissible) ; des fiches **après**
+le full-article se rendent normalement après lui. Contraintes réelles :
+**au plus UN** full-article par page (2 = erreur fatale — mécanique du
+placeholder partagé, §22.8) et au plus UN series-nav ; une cover ne
+porte pas de texte libre après ses champs. Si « plusieurs longs textes
+par page » devient un besoin : levable en rendant le placeholder unique
+par fiche — non planifié à ce jour.
 13. Juste avant la release 1.0 : supprimer JOURNAL-1.0.md du dépôt.
 
 ## 4. Notes de processus (demandes explicites du propriétaire)

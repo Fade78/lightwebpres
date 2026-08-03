@@ -370,6 +370,182 @@ class HighlightField(unittest.TestCase):
             self.assertNotIn('class="highlight"', html)
 
 
+_MINIMAL_MD = (
+    '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+    '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+)
+
+
+class CliStrictParsing(unittest.TestCase):
+    """The CLI parser knows which options each command accepts and which
+    take a value: typos and out-of-place options are fatal instead of
+    silent no-ops, --opt=value is accepted, and a boolean flag never
+    swallows the positional argument that follows it."""
+
+    def _root(self, tmp):
+        return scaffold(tmp, _MINIMAL_MD)
+
+    def test_unknown_option_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--typo-off')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Unknown option', result.stderr)
+
+    def test_option_of_another_command_is_fatal(self):
+        # --force exists (install) but is not a build option.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--force')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Unknown option', result.stderr)
+
+    def test_equals_form_is_accepted(self):
+        # --lang=en used to be silently ignored (site built in French).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--lang=en',
+                         '--output=' + str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Read the article', html)
+
+    def test_boolean_flag_does_not_swallow_the_positional(self):
+        # `build --no-typography <dir>` used to parse <dir> as the flag's
+        # value and build the current directory instead.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', '--no-typography', str(root),
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.html').exists())
+
+    def test_value_option_without_value_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--lang')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('requires a value', result.stderr)
+
+    def test_boolean_option_with_value_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--include-drafts=yes')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('takes no value', result.stderr)
+
+
+class MissingReferencedFilesAreFatal(unittest.TestCase):
+    """§20.3/§22.8: a series.json entry whose page_source doesn't exist,
+    or a full-article slide whose article: file doesn't exist, is a fatal
+    build error — never dead links or a page published with the literal
+    placeholder text, never exit 0."""
+
+    def test_missing_full_article_file_is_fatal(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: missing_article.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('article file not found', result.stderr)
+            # The corrupted page must not have been written
+            written = (root / 'public' / 'a.html')
+            if written.exists():
+                self.assertNotIn('FULL_ARTICLE_PLACEHOLDER',
+                                 written.read_text(encoding='utf-8'))
+
+
+class ContentBeforeMetaBlockIsFatal(unittest.TestCase):
+    """§22.7: only blank lines may precede <!-- lwp:meta -->. Stray
+    content used to be silently discarded — invisible data loss."""
+
+    def test_stray_content_before_meta_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, 'A stray first line\n' + _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('content found before', result.stderr)
+            self.assertIn('A stray first line', result.stderr)
+
+    def test_blank_lines_before_meta_are_tolerated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, '\n\n' + _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class DemoRefusesRealSeriesJson(unittest.TestCase):
+    """§11.2: demo rewrites series.json wholesale, so it must refuse when
+    the file already lists articles — the no-clobber guarantee covers the
+    author's series list, not just the demo article filenames."""
+
+    def test_demo_refuses_when_series_json_lists_articles(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            result = run('install', str(root), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            (root / 'articles' / 'mine.md').write_text(_MINIMAL_MD, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'mine.md'}]}), encoding='utf-8')
+            result = run('demo', str(root), '--lang', 'en')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('already lists', result.stderr)
+            # The user's series.json is untouched
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            self.assertEqual(data['articles'][0]['page_source'], 'mine.md')
+
+    def test_demo_still_works_on_a_fresh_install(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            result = run('install', str(root), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            result = run('demo', str(root), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class NoEmptyDecorativeElements(unittest.TestCase):
+    """Optional decorative elements are omitted when empty, not emitted
+    as empty tags: the highlight caption span, the index version pill,
+    the index card label and the series-nav label."""
+
+    def test_highlight_without_caption_emits_no_caption_span(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Slide\nsummary: S.\nhighlight: 42 %\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('highlight-figure', html)
+            self.assertNotIn('<span class="highlight-caption">', html)
+
+    def test_index_without_series_version_emits_no_pill(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertNotIn('<span class="version-tag">', html)
+
+    def test_series_nav_without_label_emits_no_label_div(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('<div class="series-label">', html)
+
+
 class ImageFiguresAndCaptions(unittest.TestCase):
     """§6.1: `![alt](src)` alone on a line renders as a <figure>; an
     optional quoted title after the path becomes a small centered
@@ -2040,7 +2216,11 @@ class SeriesJsonRequiredFields(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
-    def test_nonexistent_source_file_is_a_warning_not_fatal(self):
+    def test_nonexistent_source_file_is_fatal_before_any_output(self):
+        # §20.3: a listed page_source that doesn't exist is a fatal error,
+        # checked up front — the entry used to keep its index card,
+        # series-nav entries and README line pointing at a page that was
+        # never built (dead links shipped with exit code 0).
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'articles').mkdir()
@@ -2049,8 +2229,10 @@ class SeriesJsonRequiredFields(unittest.TestCase):
             ]}
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse((root / 'public' / 'a.html').exists())
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Source not found', result.stderr)
+            # Fatal before writing anything: no partial output directory
+            self.assertFalse((root / 'public' / 'index.html').exists())
 
     def test_missing_series_meta_falls_back_to_untitled_string(self):
         """§20.5: series_meta (and title within it) is optional — despite
@@ -2314,12 +2496,14 @@ class DisplayFieldOverrides(unittest.TestCase):
             self.assertNotIn('Meta label', html)
 
     def test_card_label_absent_everywhere_is_not_an_error(self):
+        # No label anywhere: still no error — and no empty
+        # <div class="article-number"></div> is emitted either.
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(tmp, 'page_title: Page title', {})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('<div class="article-number"></div>', html)
+            self.assertNotIn('<div class="article-number">', html)
 
     # --- nav_title / nav_desc, and card_label reused in series-nav -----
 

@@ -45,9 +45,11 @@ told otherwise); `--force` lets you install into a non-empty directory;
 assumes a GitLab deployment on its own, see section 7).
 
 `demo` only works after `install` and refuses to overwrite existing
-files — it drops three example articles (first, middle, last position in
-the series navigation) that exercise every slide type and field, so you
-have something real to look at and copy from before writing your own.
+work — both its own example files and a `series.json` that already lists
+articles. It drops three example articles (first, middle, last position
+in the series navigation) plus a captioned demo image, exercising every
+slide type and field, so you have something real to look at and copy
+from before writing your own.
 
 `build` reads `series.json` and every article it lists, and writes
 `public/*.html` plus a `public/index.html` and a generated `README.md`
