@@ -35,14 +35,19 @@ open my-series/public/index.html
 ```
 
 `install` scaffolds a working project — `articles/` (empty, for your
-`.md` files), `templates/` (default CSS/JS, editable), `language/`
-(French and English packs — typography rules + interface strings), an
-empty `series.json`, and a copy of the `lightwebpres` executable itself,
-so the project directory is self-sufficient. `--lang fr|en` picks the
-default language (French unless
-told otherwise); `--force` lets you install into a non-empty directory;
-`--gitlab-ci` also writes a `.gitlab-ci.yml` (opt-in — `install` never
-assumes a GitLab deployment on its own, see section 7).
+`.md` files), `templates/` (default CSS/JS, editable), `language/` (both
+the French and English packs — typography rules + interface strings), a
+starter `series.json` (series-wide metadata, empty article list), and a
+copy of the `lightwebpres` executable itself, so the project directory is
+self-sufficient. Language is chosen **per build**, not stored in the
+project (both packs are always installed): pass `--lang fr|en` to
+`build`/`demo` (or set `LWP_LANG`), French by default. At install time,
+`--lang` only sets the language baked into the generated
+`.gitlab-ci.yml` build command — so `--gitlab-ci --lang en` produces a
+pipeline that builds in English. `--force` lets you install into a
+non-empty directory; `--gitlab-ci` also writes that `.gitlab-ci.yml`
+(opt-in — `install` never assumes a GitLab deployment on its own, see
+section 7).
 
 `demo` only works after `install` and refuses to overwrite existing
 work — both its own example files and a `series.json` that already lists

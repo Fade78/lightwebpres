@@ -57,8 +57,8 @@ one `.html` file, opens straight from disk or any static host.
 ## Quickstart
 
 ```bash
-./lightwebpres install my-series --lang en   # scaffold a series directory
-./lightwebpres demo my-series                # generate + build 3 example articles
+./lightwebpres install my-series             # scaffold a series directory
+./lightwebpres demo my-series --lang en      # generate + build 3 example articles (English UI)
 open my-series/public/index.html
 ```
 

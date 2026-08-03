@@ -1356,8 +1356,17 @@ Crée la structure de travail dans `[répertoire]` :
    vide
 6. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
    passé** — `install` seul ne présuppose jamais un déploiement GitLab
-   (§10) ; par défaut, aucun fichier de CI n'est créé
+   (§10) ; par défaut, aucun fichier de CI n'est créé. La commande de
+   build de ce fichier porte la langue choisie (`build . --lang <lang>`,
+   `fr` par défaut)
 7. Copie l'exécutable `lightwebpres` dans le répertoire (pour autonomie)
+
+**`--lang` à l'install.** La langue n'est **pas** une propriété du projet
+stockée quelque part : les deux packs (fr, en) sont toujours installés, et
+la langue est un choix **par build** (`--lang` sur `build`/`demo`, ou
+`$LWP_LANG`, `fr` par défaut — §7.1/§12.1). À l'install, `--lang` ne fait
+qu'une chose : fixer la langue inscrite dans la commande de build du
+`.gitlab-ci.yml` généré (donc utile surtout avec `--gitlab-ci`).
 
 Si le répertoire existe déjà et contient déjà des fichiers, `install` refuse
 et s'arrête (erreur, code de sortie non nul), sauf avec `--force` qui laisse

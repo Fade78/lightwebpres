@@ -826,6 +826,28 @@ class Axis4CommandGaps(unittest.TestCase):
             ci = (root / '.gitlab-ci.yml').read_text(encoding='utf-8')
             self.assertIn('python:3.12-slim', ci)
             self.assertIn('public/', ci)
+            # install --lang is baked into the CI build command (its one
+            # persistent effect); fr by default (§11.1).
+            self.assertIn('build . --lang fr', ci)
+
+    def test_gitlab_ci_build_command_carries_install_lang(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            result = run('install', str(root), '--gitlab-ci', '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            ci = (root / '.gitlab-ci.yml').read_text(encoding='utf-8')
+            self.assertIn('build . --lang en', ci)
+
+    def test_demo_lang_produces_english_ui(self):
+        # The README quickstart passes --lang to demo (not install, where
+        # it is inert for local builds) — the UI chrome must be English.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root), '--lang', 'en').returncode, 0)
+            index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Read the article', index)
+            self.assertNotIn("Lire l'article", index)
 
     def test_empty_string_page_source_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:

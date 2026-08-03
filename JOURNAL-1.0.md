@@ -246,8 +246,20 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
      (runPython jamais sur du contenu de série), thèmes/build-stamp/
      draft-banner. Spec §13.7 étendue (types, placeholders, complexité),
      §13.8 ajoutée (dépendance vendorisée).
-6. Dogfooding de la doc : exécuter GUIDE.md et README.md verbatim dans
-   un répertoire vierge.
+6. FAIT (v0.11.0) — Dogfooding de la doc : GUIDE.md et README.md exécutés
+   verbatim dans un répertoire vierge. Presque tout conforme (install →
+   demo → build → audit → check → refresh-templates, --theme nord, exemple
+   article §4/§5, README.md généré). UN vrai défaut : `install --lang en`
+   était inerte (variable `lang` morte) → le quick-start README (« install
+   --lang en » puis « demo ») produisait une UI française. Correctifs :
+   (a) `install --lang` alimente désormais la commande de build du
+   `.gitlab-ci.yml` généré (seul endroit où une langue de projet peut
+   persister) ; (b) quick-start README corrigé (`--lang en` sur `demo`,
+   là où il agit) ; (c) GUIDE §2 + spec §11.1 reformulés (la langue est un
+   choix par build, pas une propriété stockée ; « series.json de départ »
+   au lieu d'« empty »). Tests ajoutés (gitlab-ci porte --lang, demo --lang
+   en = UI anglaise). NB : la v0.11.0 accumule le polish pré-1.0 (axes 6+)
+   au-dessus de la v0.10.0 (sécurité, en attente de publication).
 7. Qualité des messages d'erreur : provoquer chaque erreur fatale, juger
    le message sans connaître le code.
 8. Accessibilité + validité du HTML généré : sémantique, ARIA, contraste

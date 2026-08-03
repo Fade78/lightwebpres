@@ -44,7 +44,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -1714,7 +1714,7 @@ build:
   stage: build
   image: python:3.12-slim
   script:
-    - python3 lightwebpres build .
+    - python3 lightwebpres build . --lang {lang}
   artifacts:
     paths:
       - public/
@@ -4338,9 +4338,14 @@ def cmd_install(target_dir, args):
 
     # .gitlab-ci.yml — opt-in only (--gitlab-ci): install never assumes a
     # GitLab deployment, so a project doesn't end up depending on GitLab
-    # just from having been scaffolded (see specifications.md §11.1).
+    # just from having been scaffolded (see specifications.md §11.1). The
+    # chosen --lang is baked into the CI build command: it's the one place
+    # a scaffolded project's language persists, since a plain build/demo
+    # otherwise defaults to fr (both packs are always installed, language
+    # is a per-build choice — §7.1).
     if gitlab_ci:
-        (td / '.gitlab-ci.yml').write_text(TEMPLATE_GITLAB_CI, encoding='utf-8')
+        (td / '.gitlab-ci.yml').write_text(
+            TEMPLATE_GITLAB_CI.format(lang=lang), encoding='utf-8')
 
     # Copy the executable itself into the directory, for standalone use
     # (the series directory shouldn't have to depend on lightwebpres being
