@@ -399,6 +399,11 @@ par fiche — non planifié à ce jour.
 - **Ce journal est transitoire : il devra être SUPPRIMÉ du dépôt juste
   avant la release 1.0** (décision du propriétaire). Il ne doit donc
   jamais être référencé par la spec ou la doc pérenne.
+  Corollaire pratique : tout ce qui doit survivre à la 1.0 ne va PAS
+  ici. `BACKLOG.md` (pérenne) tient ce rôle — bugs sans urgence,
+  demandes d'évolution, décisions de format à trancher. Supprimer ce
+  journal ne doit donc rien faire perdre ; le vérifier avant de le
+  faire.
 - Le glossaire (GLOSSARY.md) est en anglais ; specifications.md en
   français.
 - Versionnage observé : fonctionnalité = bump mineur, correctif = patch,
