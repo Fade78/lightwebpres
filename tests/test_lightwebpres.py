@@ -3733,5 +3733,72 @@ class Portability(unittest.TestCase):
 
 
 
+class I18nParity(unittest.TestCase):
+    """1.0 review axis 9 (JOURNAL-1.0.md §3): the built-in language packs
+    must stay in lockstep — same string keys in fr and en, every key the
+    code or templates reference present in both, no dead keys."""
+
+    @staticmethod
+    def _packs_and_source():
+        src = EXECUTABLE.read_text(encoding='utf-8')
+        fr = json.loads(re.search(r"LANG_FR = r\'\'\'(.*?)\'\'\'", src, re.DOTALL).group(1))
+        en = json.loads(re.search(r"LANG_EN = r\'\'\'(.*?)\'\'\'", src, re.DOTALL).group(1))
+        return fr, en, src
+
+    def test_fr_and_en_have_identical_string_key_sets(self):
+        fr, en, _ = self._packs_and_source()
+        self.assertEqual(set(fr['strings']), set(en['strings']))
+
+    def test_every_referenced_key_exists_in_both_packs_and_none_is_dead(self):
+        fr, en, src = self._packs_and_source()
+        used = set(re.findall(r"strings\.get\('([a-z_0-9]+)'", src))
+        used |= set(re.findall(r"\{\{str_([a-z_0-9]+)\}\}", src))
+        self.assertFalse(used - set(fr['strings']), 'referenced but missing from fr')
+        self.assertFalse(used - set(en['strings']), 'referenced but missing from en')
+        self.assertFalse(set(fr['strings']) - used, 'dead keys (defined, never referenced)')
+
+    def test_copy_feedback_tooltip_uses_the_language_pack(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, (
+                '<!-- lwp:meta -->\npage_title: T\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# T\nsummary: S.\n'))
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn("btn.title = 'Link copied!'", html)
+
+
+class NativeUtf8EndToEnd(unittest.TestCase):
+    """Native UTF-8, end to end: accents, CJK, emoji, Cyrillic and RTL
+    Arabic through every field AND in the page_source/page_dest filenames
+    themselves — content, hrefs, README links and <meta> tags all intact."""
+
+    def test_full_unicode_pipeline_including_accented_filenames(self):
+        md = (
+            '<!-- lwp:meta -->\npage_title: Café ☕ 日本語\nauthor: Zoë Müller\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: Été\n# À 東京 🗼\nsummary: всё хорошо.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: نص\n## عنوان عربي\nsummary: RTL.\nfact-label: Факт\n\nCorps 中文 🎉.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'articles' / 'café-日本.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'café-日本.md'}]}, ensure_ascii=False), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'café-日本.html').read_text(encoding='utf-8')
+            for needle in ('<meta charset="UTF-8">', '東京 🗼', 'всё хорошо',
+                           '<h2>عنوان عربي</h2>', 'Факт', '中文 🎉',
+                           'name="author" content="Zoë Müller"'):
+                self.assertIn(needle, html)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('href="café-日本.html"', index_html)
+            readme = (root / 'README.md').read_text(encoding='utf-8')
+            self.assertIn('café-日本.html', readme)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

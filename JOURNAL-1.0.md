@@ -132,7 +132,14 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    le message sans connaître le code.
 8. Accessibilité + validité du HTML généré : sémantique, ARIA, contraste
    des 9 thèmes, validation W3C.
-9. Parité i18n : le pack `en` a-t-il toutes les clés du pack `fr` ?
+9. FAIT (v0.6.0) — Parité i18n + UTF-8 natif : clés fr/en identiques
+   (26/26), toute clé référencée présente dans les deux packs, zéro clé
+   morte (copy_link_done, définie mais jamais utilisée, désormais câblée
+   comme tooltip du retour de copie ✓) — le tout figé par des tests qui
+   échoueraient sur toute future divergence. UTF-8 vérifié de bout en
+   bout : accents, CJK, emoji, cyrillique, arabe RTL dans tous les
+   champs ET dans les noms de fichiers page_source/page_dest (contenu,
+   hrefs, liens README, balises meta) — test NativeUtf8EndToEnd.
 10. Contrat avec lightwebpres-gui : convention partagée (glossaire,
     version vendorisée) à énoncer formellement.
 11. Administratif : LICENSE du dépôt, politique de versionnage post-1.0

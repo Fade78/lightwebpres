@@ -1497,9 +1497,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!url) return;
         if (action === 'copy') {
           var original = btn.textContent;
+          var originalTitle = btn.title;
           var done = function () {
             btn.textContent = '✓';
-            setTimeout(function () { btn.textContent = original; }, 1600);
+            btn.title = '{{str_copy_link_done}}';
+            setTimeout(function () { btn.textContent = original; btn.title = originalTitle; }, 1600);
           };
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(url).then(done, function () { window.prompt('{{str_copy_prompt}}', url); });
