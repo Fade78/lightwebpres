@@ -2800,10 +2800,20 @@ class Themes(unittest.TestCase):
                 self.assertIn(f'<h2>{label}</h2>', html)
             self.assertIn('--yellow:#EBCB8B', html)
             self.assertIn('lightwebpres install my-series --theme nord', html)
-            open_tags = html.count('<article class="theme-card">')
+            # One card per theme, whatever the count — asserting a literal
+            # number here just means editing the test every time a palette
+            # is added, which tests nothing.
+            expected = len(load_lightwebpres_module().THEMES)
+            # Prefix, not the exact tag: cards carry data-* facet
+            # attributes (§9.5.3), so an exact-string count silently
+            # dropped to zero when those were added.
+            open_tags = html.count('<article class="theme-card"')
             close_tags = html.count('</article>')
-            self.assertEqual(open_tags, 9)
+            self.assertEqual(open_tags, expected)
             self.assertEqual(open_tags, close_tags)
+            # Every card must be filterable, or the facet bar lies.
+            for facet in ('data-polarity=', 'data-intensity=', 'data-hue='):
+                self.assertEqual(html.count(facet), expected)
 
     def test_themed_build_actually_uses_the_substituted_colors(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2844,25 +2854,29 @@ class DarkBackgroundThemes(unittest.TestCase):
     def setUp(self):
         self.lwp = load_lightwebpres_module()
 
-    def test_every_built_in_theme_still_resolves_to_the_light_preset(self):
+    def test_each_theme_resolves_to_the_preset_its_flag_asks_for(self):
         """The assertion that matters, and the one that caught a real
         bug: the flag was first called `dark`, which is ALSO the palette
         key holding each theme's dark tone. `theme.get('dark')` therefore
-        returned a colour string — truthy — and all nine built-in themes
-        silently switched to the dark overlays. Nothing else in the suite
-        noticed, because those overlays are rgba and the colour checks
-        look for hex."""
+        returned a colour string — truthy — and every theme silently
+        switched to the dark overlays. Nothing else in the suite noticed,
+        because those overlays are rgba and the colour checks look for
+        hex. Stated as a mapping rather than 'all are light', so it keeps
+        holding as dark palettes ship."""
         self.assertEqual(
             self.lwp.theme_surface_properties({}),
             self.lwp.SURFACE_PRESETS[False],
         )
         for key, theme in self.lwp.THEMES.items():
+            wanted = self.lwp.SURFACE_PRESETS[bool(theme.get('dark_background'))]
             self.assertIs(
-                self.lwp.theme_surface_properties(theme),
-                self.lwp.SURFACE_PRESETS[False],
-                f'{key} resolves to the dark overlays; every built-in theme '
-                'is light-backgrounded',
+                self.lwp.theme_surface_properties(theme), wanted,
+                f'{key} does not get the overlays its dark_background flag asks for',
             )
+        # Both cases must actually be represented, or the mapping above
+        # is only ever exercised in one direction.
+        polarities = {bool(t.get('dark_background')) for t in self.lwp.THEMES.values()}
+        self.assertEqual(polarities, {True, False})
 
     def test_a_dark_theme_inverts_every_overlay(self):
         light = self.lwp.SURFACE_PRESETS[False]
@@ -2927,6 +2941,69 @@ class DarkBackgroundThemes(unittest.TestCase):
                 m.group(1).strip(), dark[var],
                 f'--{var} kept its light value in a dark-backgrounded theme',
             )
+
+
+class ThemeFacets(unittest.TestCase):
+    """§9.5.3: past a dozen palettes the gallery stops being a thing you
+    read and becomes a thing you search. Two of the three facets are
+    derived rather than declared, so they can never contradict the
+    palette they describe."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_hue_is_named_from_perception_not_from_rgb(self):
+        """Hue is computed in CIELAB. RGB cannot tell a pale cream from a
+        full orange — both sit at the same angle — and naming from it
+        labelled Solarized's paper 'orange', which no reader would say.
+        Boundaries were calibrated by measuring references, since
+        CIELAB's angles are not the ones RGB intuition suggests (a full
+        blue sits near 297 degrees, not 240)."""
+        cases = [
+            ('#9E1128', 'rouge'), ('#FF9500', 'orange'), ('#FFD400', 'jaune'),
+            ('#075C26', 'vert'), ('#075B6E', 'cyan'), ('#1B3FBF', 'bleu'),
+            ('#5B1DB8', 'violet'), ('#94105F', 'magenta'),
+            # Paper and ink: a hue angle exists but no reader would name it.
+            ('#FDF6E3', 'neutre'), ('#F8F8F2', 'neutre'), ('#0B0B0D', 'neutre'),
+        ]
+        for hex_colour, expected in cases:
+            self.assertEqual(
+                self.lwp.theme_hue_family({'light': hex_colour}), expected,
+                f'{hex_colour} should read as {expected}',
+            )
+
+    def test_every_theme_carries_the_three_facets(self):
+        for key, theme in self.lwp.THEMES.items():
+            facets = self.lwp.theme_facets(theme)
+            self.assertIn(facets['polarity'], ('clair', 'sombre'), key)
+            self.assertIn(facets['intensity'], ('sober', 'vivid', 'mono'), key)
+            self.assertIsInstance(facets['hue'], str)
+
+    def test_polarity_facet_agrees_with_the_overlays_actually_applied(self):
+        """The facet is a label; the flag drives real CSS. If they ever
+        disagreed the gallery would file a theme under the wrong heading
+        while rendering it the other way."""
+        for key, theme in self.lwp.THEMES.items():
+            dark_facet = self.lwp.theme_facets(theme)['polarity'] == 'sombre'
+            dark_css = self.lwp.theme_surface_properties(theme) is self.lwp.SURFACE_PRESETS[True]
+            self.assertEqual(dark_facet, dark_css, key)
+
+    def test_the_gallery_preview_receives_the_overlay_variables(self):
+        """Without them a dark-backgrounded theme previews with the light
+        preset's surfaces — a white card on a black page — so the gallery
+        would misrepresent exactly the themes hardest to judge."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+        # Scoped to each preview's own style attribute: the gallery's
+        # chrome declares a --rule of its own, so a document-wide count
+        # would happily pass on the wrong occurrences.
+        previews = re.findall(r'<div class="preview" style="([^"]*)"', html)
+        self.assertEqual(len(previews), len(self.lwp.THEMES))
+        for style in previews:
+            for var in ('--surface:', '--rule:', '--sunken:', '--cover-bg:', '--cover-fg:'):
+                self.assertIn(var, style)
 
 
 class DefaultStylesheetCoverage(unittest.TestCase):

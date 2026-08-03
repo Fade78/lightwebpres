@@ -123,7 +123,7 @@ all generated automatically.
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking editorial warnings (e.g. "no cover slide") — never fails the build |
 | `refresh-templates [dir]` | Updates the built-in CSS/JS in `templates/` after an executable upgrade, keeping local customizations |
-| `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme (default: `themes-gallery.html`) |
+| `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme, with facet filters (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
 ## Slide types
@@ -192,7 +192,7 @@ else in the CSS changes, and the substitution survives an executable
 upgrade — `refresh-templates` reapplies the same theme to the refreshed
 built-in CSS instead of silently reverting to the default.
 
-![Preview of the nine built-in color themes](themes-gallery.png)
+![Preview of the built-in color themes](themes-gallery.png)
 
 That's [`themes-gallery.html`](themes-gallery.html) in this repo,
 rendered — open it directly in a browser for the live, interactive
@@ -268,7 +268,7 @@ for both tabs of the browser-based tool.
 ```
 lightwebpres          # the executable — the only thing you need to run this
 specifications.md     # full reference specification (French)
-themes-gallery.html   # preview of the nine built-in color themes (generated, see below)
+themes-gallery.html   # preview of every built-in color theme (generated, see below)
 themes-gallery.png    # a rendered snapshot of the above, for this README
 web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
 tests/                # regression suite

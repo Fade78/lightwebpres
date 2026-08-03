@@ -1309,16 +1309,26 @@ Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
 rendu du gras en fact-box (`fact_weight`/`fact_style`/`fact_highlight`,
 §9.1) — un thème n'est donc pas qu'une recoloration, il peut aussi
 choisir un traitement typographique différent (ex. italique sans fond
-coloré plutôt que gras surligné) — et des métadonnées purement
+coloré plutôt que gras surligné) — plus un drapeau de polarité
+(`dark_background`, §9.5.2) et une intensité déclarée (`intensity`,
+§9.5.3), et enfin des métadonnées purement
 éditoriales (étiquette affichable, source, remarque) qui ne servent qu'à
 `themes-gallery` (§11.7) — jamais à `install --theme`. `fact_highlight`
 vaut le nom d'un des six rôles de couleur ci-dessus (résolu en
 `var(--rôle)`) ou `None` pour aucun fond ; les trois propriétés sont
 toujours explicites dans chaque entrée, y compris quand la valeur
 choisie est celle par défaut du moteur (`bold`/`normal`/`yellow`) — un
-choix délibéré consigné, pas un oubli. Neuf entrées aujourd'hui : `nord`,
-`dracula`, `solarized`, `gruvbox`, `catppuccin`, `tokyo-night`,
-`monokai`, `everforest`, `rose-pine`.
+choix délibéré consigné, pas un oubli.
+
+Les neuf premières entrées reprenaient des palettes d'éditeurs de code
+connues (`nord`, `dracula`, `solarized`, `gruvbox`, `catppuccin`,
+`tokyo-night`, `monokai`, `everforest`, `rose-pine`) ; le catalogue
+s'est ensuite élargi à des thèmes propres au projet (`source:
+'lightwebpres'`), notamment une famille à fond sombre et une famille
+« pop » à fond franchement coloré. Le nombre exact d'entrées n'est pas
+figé par cette spécification — c'est justement pourquoi §9.5.3 existe :
+au-delà d'une trentaine de thèmes, une liste plate n'est plus un moyen
+de choisir.
 
 `THEMES` est la **seule** source de vérité pour ces couleurs : la
 palette appliquée par `install --theme` et celle affichée par
@@ -1329,9 +1339,10 @@ un fichier généré depuis cette table (§11.7).
 
 #### 9.5.1 Appliquer un thème à l'installation (`install --theme`)
 
-`install [répertoire] --theme <slug>` (§11.1) substitue les neuf
-variables (six couleurs + les trois propriétés de gras en fact-box) du
-fichier `templates/style.css` généré par celles du thème choisi — rien
+`install [répertoire] --theme <slug>` (§11.1) substitue les dix-neuf
+variables du fichier `templates/style.css` généré par celles du thème
+choisi — six couleurs, quatre propriétés de gras en fact-box (§9.1), et
+neuf superpositions neutres (§9.5.2). Rien
 d'autre dans le CSS par défaut n'est modifié. Le fichier obtenu se termine
 toujours par le marqueur de personnalisation (§9.4), donc
 `refresh-templates` continue de fonctionner normalement dessus ensuite.
@@ -1345,20 +1356,122 @@ début de fichier (juste après le commentaire d'en-tête) :
 
 Absent du CSS par défaut (aucun `--theme` fourni) ; toujours présent dès
 qu'un thème a été appliqué — c'est ce qui permet à `refresh-templates`
-(§9.5.2) de savoir quel thème réappliquer après une mise à jour de
+(§9.5.4) de savoir quel thème réappliquer après une mise à jour de
 l'exécutable, sans avoir à comparer des couleurs pour le deviner.
 
 Un slug inconnu est une erreur fatale (code de sortie non nul), qui
 liste les slugs valides.
 
-#### 9.5.2 Interaction avec `refresh-templates`
+#### 9.5.2 Polarité de fond et superpositions neutres
+
+Les six couleurs de §9.1 ne suffisent pas à décrire une page. Entre
+elles, la feuille de style a besoin de neutres : le filet sous un titre,
+le fond légèrement décalé d'une carte, le creux d'un bloc de code, la
+pastille ronde d'un bouton de navigation. Ces neutres ne sont pas des
+gris fixes — ce sont des **superpositions translucides**, donc ils
+teintent ce qui se trouve dessous et suivent la palette au lieu de la
+contredire :
+
+| Variable | Rôle |
+|---|---|
+| `--rule` | filet fin, séparateurs |
+| `--rule-strong` | filet appuyé, bordure de carte |
+| `--surface` | fond d'une carte, posé sur la page |
+| `--sunken` | fond en creux (bloc de code, cellule d'en-tête) |
+| `--cover-bg` | fond de la fiche de couverture |
+| `--cover-fg` | texte de la couverture |
+| `--cover-fg-faint` | texte secondaire de la couverture |
+| `--control` | pastille d'un bouton flottant |
+| `--control-soft` | même pastille, état discret |
+
+Le **sens** de ces superpositions dépend du fond. Sur une page claire,
+une surface est un voile blanc et un filet un voile noir ; sur une page
+sombre c'est exactement l'inverse, et le même voile blanc transforme une
+carte en bloc illisible. Un thème déclare donc `dark_background: True`
+quand son `--light` n'est, de fait, pas clair, et reçoit le second des
+deux jeux de valeurs — deux dictionnaires aux **clés identiques**, ce
+qui permet de substituer l'un pour l'autre sans que le reste du code ait
+à connaître la polarité.
+
+Deux conséquences en découlent, toutes deux vérifiées par les tests :
+
+- La couverture ne peut pas se contenter de `var(--dark)` comme fond. Sur
+  un thème sombre cette variable porte la couleur du **texte** : l'utiliser
+  en fond retournerait la couverture en panneau pâle. Le jeu sombre
+  utilise un voile noir sur la page elle-même.
+- Le surlignage du gras en fact-box a besoin d'une encre explicite,
+  `--fact-strong-ink` (§9.1). La règle ne posait qu'un fond, ce qui
+  présupposait un texte foncé sur un marqueur vif : vrai sur un thème
+  clair, faux sur un thème sombre, où le rapport de contraste mesuré
+  tombait à 1,00 — c'est-à-dire invisible.
+
+Le drapeau s'appelle `dark_background` et non `dark` parce que cette
+seconde clé porte déjà la couleur foncée de la palette dans chaque
+entrée : un drapeau ainsi nommé serait lu comme une chaîne de couleur,
+donc toujours vrai, et tous les thèmes basculeraient silencieusement en
+polarité sombre.
+
+#### 9.5.3 Critères d'admission d'un thème, et facettes
+
+**Admission.** Les neuf premières entrées citent leur origine ; celles
+propres au projet (`source: 'lightwebpres'`) sont dessinées puis
+**mesurées** avant d'être retenues, jamais retenues sur l'impression
+qu'elles font :
+
+- texte courant sur le fond : niveau AAA (rapport ≥ 7) ;
+- textes secondaires et accents : niveau AA (≥ 4,5) ;
+- filets et bordures : ≥ 3 ;
+- verdicts d'un tableau comparatif (§6.1) : séparables en vision
+  deutéranope et protanope — la couleur n'étant de toute façon jamais le
+  seul porteur de l'information, puisque chaque verdict porte aussi son
+  marqueur de forme (WCAG 1.4.1).
+
+**Facettes.** Passé une douzaine de palettes, une galerie cesse d'être
+un moyen de choisir et devient une chose à faire défiler. Trois facettes
+décrivent donc chaque entrée, et `themes-gallery` (§11.7) les expose en
+filtres :
+
+| Facette | Valeurs | Origine |
+|---|---|---|
+| polarité | `clair`, `sombre` | dérivée de `dark_background` (§9.5.2) |
+| intensité | `sober`, `vivid`, `mono` | déclarée dans l'entrée |
+| teinte | `neutre`, `rouge`, `orange`, `jaune`, `vert`, `cyan`, `bleu`, `violet`, `magenta` | **calculée** à partir du fond |
+
+L'intensité est déclarée parce que « à quel point est-ce criard » est un
+jugement éditorial, pas une grandeur mesurable. La teinte, elle, est
+calculée : une étiquette écrite à la main dérive dès que quelqu'un
+retouche une couleur, et rien ne justifie de croire une prose plutôt que
+la valeur qu'elle prétend décrire.
+
+Le calcul se fait en **CIELAB**, pas en RVB. En RVB, une teinte est un
+angle, et un crème pâle occupe le même angle qu'une orange pleine — ce
+qui faisait nommer « orange » le papier de Solarized, ce qu'aucun
+lecteur ne dirait. En CIELAB on dispose en plus du **chroma** : sous un
+seuil (`NEUTRAL_CHROMA`), un fond se lit comme du papier ou de l'encre,
+jamais comme une teinte, et la facette vaut `neutre`. Les bornes
+d'angle ont été calibrées en mesurant des références connues plutôt que
+de mémoire : les angles CIELAB ne sont pas ceux que l'intuition RVB
+suggère — un bleu franc se situe vers 297°, pas 240°, et le cyan vers
+227°.
+
+La teinte est prise sur `--light`, c'est-à-dire **le fond de la page** :
+c'est ce qu'un lecteur voit en premier, et ce qu'il désigne en disant
+« un thème vert ». Sur un thème à polarité sombre, `--light` porte le
+fond sombre, donc la même règle continue de s'appliquer sans cas
+particulier.
+
+Ces facettes ne changent rien au rendu : elles ne servent qu'à
+présenter et à choisir. `install --theme` continue de ne connaître que
+des slugs.
+
+#### 9.5.4 Interaction avec `refresh-templates`
 
 Avant de reconstruire la partie intégrée du fichier (§9.4),
 `refresh-templates` cherche le marqueur de thème (§9.5.1) dans l'ancien
 `templates/style.css` :
 
-- Marqueur présent et slug toujours connu de `THEMES` : les neuf
-  variables de ce thème sont réappliquées au CSS par défaut à jour avant écriture —
+- Marqueur présent et slug toujours connu de `THEMES` : les variables de
+  ce thème (§9.5.1) sont réappliquées au CSS par défaut à jour avant écriture —
   une mise à jour de l'exécutable ne fait donc jamais revenir
   silencieusement un site à la palette par défaut. Le marqueur de thème
   est réécrit à l'identique, pour survivre aux rafraîchissements suivants
@@ -1746,7 +1859,7 @@ Met à jour la partie intégrée à l'exécutable de `templates/style.css` et
 pour le mécanisme exact (marqueur pour `style.css`, sauvegarde
 `nav.js.bak` pour `nav.js`). Si `style.css` porte le marqueur de thème de
 §9.5.1, le thème identifié est réappliqué à la partie intégrée à jour
-plutôt que de revenir au thème par défaut — voir §9.5.2 pour le détail.
+plutôt que de revenir au thème par défaut — voir §9.5.4 pour le détail.
 
 1. Erreur fatale si `templates/` n'existe pas (`install` pas encore fait)
 2. Pour chaque fichier présent, affiche s'il a été rafraîchi ou était déjà
@@ -1771,6 +1884,19 @@ entrée de `THEMES` (§9.5) — un aperçu de son rendu sur un fragment de
 fiche réel, ses six valeurs, et sa remarque éditoriale. Ne modifie aucun
 `series.json` ni `templates/` : cette commande documente, elle n'installe
 rien.
+
+L'aperçu reçoit aussi les superpositions neutres du thème (§9.5.2), sans
+quoi une palette à fond sombre s'afficherait avec les voiles d'une page
+claire — c'est-à-dire pas telle qu'elle rendra réellement.
+
+En tête de page, une barre de **facettes** (§9.5.3) filtre les aperçus
+par polarité, intensité et teinte. Elle est produite en HTML statique
+mais masquée par défaut, et révélée par le script inline de la page :
+sans JavaScript, la galerie reste une liste complète et lisible plutôt
+qu'une barre de boutons inertes. Le script affiche en permanence le
+nombre d'aperçus visibles et **désactive** toute facette qui ne mènerait
+à aucun résultat compte tenu des autres déjà actives — on ne peut donc
+pas se retrouver devant une page vide sans comprendre pourquoi.
 
 `chemin`, s'il est omis, vaut `themes-gallery.html` dans le répertoire
 courant — c'est ainsi que le fichier à la racine du dépôt lightwebpres
