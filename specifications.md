@@ -422,13 +422,18 @@ doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 | `comment`        | Aucun — jamais rendu (§4.6)               | Non         |
 
 Le texte libre après les champs est placé dans un `<div class="fact-content">`
-si un `fact-label` est présent, sinon dans un `<p>` nu. Ce texte libre suit le
-convertisseur Markdown générique (§6.1) : plusieurs paragraphes (séparés par
-une ligne vide), des titres (`#`/`##`/`###`), des listes, etc. sont tous
-autorisés, avec un style dédié plus petit pour les titres (`.fact-content
-h1/h2/h3`) que le grand titre de la slide, pour rester proportionné au cadre
-du fact-box. Un titre ouvrant directement le fact-box (sans paragraphe avant)
-ne redéfinit pas le titre de la slide — voir §22.2 pour la règle exacte.
+si un `fact-label` est présent, sinon dans un `<div class="slide-body">`.
+Ce texte libre suit le convertisseur Markdown générique (§6.1) : plusieurs
+paragraphes (séparés par une ligne vide), des titres (`#`/`##`/`###`), des
+listes, etc. sont tous autorisés. Les titres du corps reçoivent un style
+dédié **plus petit** que le grand titre de la slide (`.fact-content
+h1/h2/h3` dans un fact-box, `.slide-body h1/h2/h3` sinon), pour rester
+proportionnés — sans wrapper, un `#` de corps aurait la taille d'un titre
+de cover, plus grosse que le `##` de la slide. Le `<div class="slide-body">`
+ne porte aucune taille de police propre : un paragraphe ordinaire y rend
+exactement comme avant. Un titre ouvrant directement le corps (sans
+paragraphe avant) ne redéfinit pas le titre de la slide — voir §22.2 pour
+la règle exacte.
 Chaque champ `clé: valeur`, à l'inverse, tient toujours sur une seule ligne
 physique (§4.1).
 
@@ -2250,6 +2255,16 @@ Placeholders :
 Il n'y a pas de fichier `share.js` séparé : le bouton de partage, sa matrice
 et l'encodeur QR font partie de `nav.js`, leurs propres textes sont des
 placeholders `{{str_*}}` comme le reste.
+
+**Accessibilité des boutons ronds.** Les quatre boutons de navigation
+(précédent, accueil, suivant, partage — et de même les trois de l'index)
+sont des `<div class="nav-btn">` porteurs de `role="button"`,
+`tabindex="0"`, d'un `aria-label` (en plus du `title`), et d'un style
+`:focus-visible`. `nav.js` (et le JS de l'index) leur ajoute une
+activation clavier Entrée/Espace équivalente au clic — sans quoi le
+bouton de partage, qui n'a pas d'autre point d'entrée clavier, serait
+inatteignable au clavier. Le parcours de lecture lui-même reste piloté
+par les flèches au niveau document (§9.2.2).
 
 ### 18.2 Template `index.html`
 

@@ -270,8 +270,25 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    un bug interne ; reformulé pour dire que c'est presque toujours du HTML
    brut déséquilibré dans la SOURCE (ex. un <div> jamais fermé dans un
    fact-box), avec l'action à faire. Rien d'autre à corriger.
-8. Accessibilité + validité du HTML généré : sémantique, ARIA, contraste
-   des 9 thèmes, validation W3C.
+8. FAIT (v0.11.0) — Accessibilité + validité du HTML généré. Item 14
+   (bug signalé par le propriétaire) REPRODUIT ET CORRIGÉ : un `#` dans
+   le texte libre d'une fiche SANS `fact-label` devenait un `<h1>` nu à
+   taille de cover (clamp 28→52px), plus gros que le `##` de la fiche —
+   le cas AVEC fact-label était déjà scopé (`.fact-content`), pas le cas
+   sans. Cause : sans étiquette, le corps était ajouté sans wrapper, donc
+   le titre de fiche et un titre de corps étaient indistinguables par
+   sélecteur. Fix : wrapper `<div class="slide-body">` + CSS
+   `.slide-body h1/h2/h3` (1.3/1.15/1.05em, sous la taille du titre) ;
+   paragraphe ordinaire inchangé (le div ne porte pas de font-size). Revue
+   a11y statique : `<html lang>` ✓, `alt` sur les images ✓, landmarks
+   nav/footer/section ✓, aria-label du partage ✓. Un vrai manque corrigé :
+   les boutons ronds étaient des `<div>` non focusables (le bouton partage
+   n'avait AUCUN accès clavier) → `role="button"` + `tabindex="0"` +
+   `aria-label` + `:focus-visible` + activation Entrée/Espace en JS (page
+   et index) ; prouvé par un test e2e (focus + Entrée ouvre la pop-up).
+   Reste pour l'expérimentation manuelle du propriétaire avant 1.0 :
+   contraste réel des 9 thèmes et validation W3C complète (nécessitent un
+   navigateur/validateur externe).
 9. FAIT (v0.6.0) — Parité i18n + UTF-8 natif : clés fr/en identiques
    (26/26), toute clé référencée présente dans les deux packs, zéro clé
    morte (copy_link_done, définie mais jamais utilisée, désormais câblée

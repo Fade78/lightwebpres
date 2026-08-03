@@ -34,6 +34,17 @@ async function main() {
     await page.goto(pageUrl);
     await page.waitForSelector('#navShare');
 
+    // 0. Keyboard operability: the share button is a role=button div with
+    // tabindex=0; focusing it and pressing Enter must open the popover
+    // (it has no other keyboard entry point). Then Escape closes it.
+    await page.focus('#navShare');
+    const shareFocused = await page.evaluate(() => document.activeElement && document.activeElement.id === 'navShare');
+    if (!shareFocused) fail('share button is not keyboard-focusable (missing tabindex?)');
+    await page.keyboard.press('Enter');
+    const openedByKeyboard = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
+    if (!openedByKeyboard) fail('Enter on the focused share button must open the popover');
+    await page.keyboard.press('Escape');
+
     // 1. Opening the popover on the cover slide (current === 0): the
     // "Fiche" column has no meaningful target (no per-slide anchor other
     // than the article itself) and must be disabled.

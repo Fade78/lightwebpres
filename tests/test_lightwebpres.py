@@ -4125,6 +4125,24 @@ class FactLabelOptional(unittest.TestCase):
             self.assertIn('<p>First paragraph.</p>', html)
             self.assertIn('<p>Second paragraph.</p>', html)
 
+    def test_heading_in_no_label_body_is_scoped_smaller_than_slide_title(self):
+        # A `#` in a standard slide's free text (no fact-label) is body
+        # content (§22.2), not the slide's title. It used to render as a
+        # bare <h1> at cover-title size (bigger than the slide's own `##`
+        # title); it must now be wrapped in .slide-body and scoped down.
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Slide title\n# Body heading\n\nBody.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<div class="slide-body">', html)
+            self.assertIn('<h1>Body heading</h1>', html)
+            self.assertIn('.slide-body h1 { font-size: 1.3em; }', html)
+
 
 class FactBoxBlockquoteAndCode(unittest.TestCase):
     """§6.3: fact-box free text shares convert_markdown() with the
