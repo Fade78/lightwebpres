@@ -144,6 +144,14 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
     version vendorisée) à énoncer formellement.
 11. Administratif : LICENSE du dépôt, politique de versionnage post-1.0
     (que promet-on exactement à partir de 1.0 ?).
+12. Audit de la spec (en cours) : direction C faite (§16 feuille de route
+    resynchronisée, §17.5 nuance idempotence, §1.1 écosystème
+    documentaire déclaré — sans le journal, transitoire). EN ATTENTE :
+    décision propriétaire sur les images (§16 phase 6 : périmètre 1.0 ou
+    post-1.0 ? — noter que `![alt](src)` produit aujourd'hui un rendu
+    cassé). Directions A (spec→code) et B (code→spec) : rapports d'agents
+    en cours de production.
+13. Juste avant la release 1.0 : supprimer JOURNAL-1.0.md du dépôt.
 
 ## 4. Notes de processus (demandes explicites du propriétaire)
 
@@ -155,6 +163,9 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
   dans les comptes rendus.
 - **À chaque action terminée : toujours dire la suite qu'on devrait
   faire et ce qui reste à faire.**
+- **Ce journal est transitoire : il devra être SUPPRIMÉ du dépôt juste
+  avant la release 1.0** (décision du propriétaire). Il ne doit donc
+  jamais être référencé par la spec ou la doc pérenne.
 - Le glossaire (GLOSSARY.md) est en anglais ; specifications.md en
   français.
 - Versionnage observé : fonctionnalité = bump mineur, correctif = patch,

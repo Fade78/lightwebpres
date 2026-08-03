@@ -20,6 +20,24 @@ Il est utilisable à la fois en édition manuelle (un humain édite les fichiers
 Markdown) et en édition par LLM (un modèle de langue génère ou modifie les
 fichiers Markdown puis lance le build).
 
+### 1.1 Documents du projet
+
+La documentation fait partie du contrat interne entre les composants du
+projet, au même titre que le code. Les documents normatifs et leur rôle :
+
+- **`specifications.md`** (ce document, français) — la spécification
+  comportementale de référence ; en cas de divergence avec un autre
+  document, c'est elle qui est soit appliquée, soit corrigée
+  explicitement, jamais ignorée.
+- **`GLOSSARY.md`** (anglais) — l'index de tous les champs `clé: valeur`
+  du format : portée, chaîne de repli, rendu, et les conventions de
+  nommage gelées.
+- **`README.md`** (anglais) — présentation et démarrage rapide.
+- **`GUIDE.md`** (anglais) — le parcours complet côté utilisateur
+  (installer, écrire, vérifier, publier).
+- **`agent/skills/lightwebpres/SKILL.md`** (anglais) — la référence du
+  format à destination d'un agent LLM qui écrit ou modifie des articles.
+
 ---
 
 ## 2. Architecture générale
@@ -1818,6 +1836,12 @@ git add . && git commit && git push
 
 ## 16. Feuille de route de développement
 
+Les phases 1 à 5 ci-dessous sont **réalisées** (elles correspondent aux
+versions 0.1 à 0.4) ; elles sont conservées comme trace de la
+construction. Le développement ultérieur est tracé par les notes de
+release du dépôt. Les pistes de la phase 6 restent **non planifiées** :
+leur périmètre (1.0 ou post-1.0) n'est pas encore tranché.
+
 ### Phase 1 : Noyau (essentiel)
 
 1. CLI avec `install`, `build`, `check`
@@ -1858,10 +1882,9 @@ sans jamais faire échouer le build ni contraindre l'auteur : la mise en page
 (nombre et position des `cover`, voir §22.13) reste entièrement de son
 ressort. D'autres vérifications éditoriales pourront s'y ajouter plus tard.
 
-### Phase 6 : v0.2 (pistes non planifiées)
+### Phase 6 : pistes non planifiées (périmètre à trancher — 1.0 ou post-1.0)
 
-Demandé le 2026-07-31, volontairement pas dans cette version — pas
-bloquant, à faire en v0.2 :
+Demandées le 2026-07-31, volontairement jamais implémentées à ce jour :
 
 20. **Syntaxe Markdown native pour les images** (`![alt](src)`) — n'existe
     pas aujourd'hui : une image ne peut être insérée que via une balise
@@ -1919,7 +1942,7 @@ tranchés — à spécifier avant implémentation.
 
 - **UTF-8** : lecture, traitement, écriture ✓
 - **HTML autonome** : CSS inline, JS inline ✓
-- **Idempotence** : pas de variable non déterministe ✓
+- **Idempotence** : pas de variable non déterministe ✓ (hors `--build-stamp`, opt-in et volontairement horodaté, §11.3.2)
 - **Pipeline GitLab CI** : Python 3.12, pas de dépendance externe ✓
 - **Langue** : typographie + chaînes d'interface dans des fichiers JSON
   séparés par langue, `fr` et `en` intégrés par défaut, `en` en repli ultime ✓
