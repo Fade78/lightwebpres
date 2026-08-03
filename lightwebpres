@@ -2239,6 +2239,22 @@ def apply_typo(typo_engine, text, disabled=None):
     return typo_engine.apply(text, disabled) if typo_engine else text
 
 
+def read_text_file(path):
+    """Every source-file read goes through here. utf-8-sig, not utf-8:
+    it silently absorbs a Windows-style BOM (a BOM'd full-article used
+    to leak a literal U+FEFF into the published HTML and break its first
+    heading, since '\\ufeff# Title' is not a heading line) and reads
+    BOM-less files identically. A file that isn't valid UTF-8 dies with
+    a clean [ERROR] naming the file and byte offset instead of a raw
+    UnicodeDecodeError traceback."""
+    try:
+        return Path(path).read_text(encoding='utf-8-sig')
+    except UnicodeDecodeError as e:
+        print(f'[ERROR] {path}: not valid UTF-8 (byte offset {e.start}: '
+              f'{e.reason}).', file=sys.stderr)
+        sys.exit(1)
+
+
 def load_language(lang_dir, lang='fr', language_file=None):
     """Loads the language pack (typography rules + interface strings) for `lang`.
 
@@ -2257,12 +2273,11 @@ def load_language(lang_dir, lang='fr', language_file=None):
 
     lang_file = Path(language_file) if language_file else lang_dir / f'{lang}.json'
     if lang_file.exists():
-        with open(lang_file, 'r', encoding='utf-8') as f:
-            try:
-                override = json.load(f)
-            except json.JSONDecodeError as e:
-                print(f'[ERROR] {lang_file}: invalid JSON ({e}).', file=sys.stderr)
-                sys.exit(1)
+        try:
+            override = json.loads(read_text_file(lang_file))
+        except json.JSONDecodeError as e:
+            print(f'[ERROR] {lang_file}: invalid JSON ({e}).', file=sys.stderr)
+            sys.exit(1)
         if not isinstance(override, dict):
             print(f'[ERROR] {lang_file}: must be a JSON object.', file=sys.stderr)
             sys.exit(1)
@@ -3183,7 +3198,7 @@ def typo_disabled_rules(meta):
 
 def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp=''):
     """Builds an HTML page for an article."""
-    md_text = source_path.read_text(encoding='utf-8')
+    md_text = read_text_file(source_path)
     meta, slides, has_meta_block = parse_markdown_extended(md_text)
     validate_slides(slides, source_path.name, has_meta_block)
     disabled_rules = typo_disabled_rules(meta)
@@ -3213,7 +3228,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         if slide.slide_type == 'full-article' and slide.article_file:
             article_path = articles_dir / slide.article_file
             if article_path.exists():
-                article_md = article_path.read_text(encoding='utf-8')
+                article_md = read_text_file(article_path)
                 article_html = convert_markdown(article_md, article_typo_engine, disabled_rules)
                 placeholder = '{FULL_ARTICLE_PLACEHOLDER}'
                 slides_html = slides_html.replace(placeholder, article_html)
@@ -3316,12 +3331,11 @@ def load_series_data(series_dir):
     if not series_file.exists():
         print(f'[ERROR] series.json not found in {series_dir}', file=sys.stderr)
         sys.exit(1)
-    with open(series_file, 'r', encoding='utf-8') as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError as e:
-            print(f'[ERROR] {series_file}: invalid JSON ({e}).', file=sys.stderr)
-            sys.exit(1)
+    try:
+        data = json.loads(read_text_file(series_file))
+    except json.JSONDecodeError as e:
+        print(f'[ERROR] {series_file}: invalid JSON ({e}).', file=sys.stderr)
+        sys.exit(1)
     articles = data.get('articles', data) if isinstance(data, dict) else data
     if not isinstance(articles, list) or not all(isinstance(e, dict) for e in articles):
         print(f'[ERROR] {series_file}: "articles" must be a list of objects.',
@@ -3458,7 +3472,7 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
         source_path = articles_dir / entry['page_source']
         meta, slides = {}, []
         if source_path.exists():
-            meta, slides, _ = parse_markdown_extended(source_path.read_text(encoding='utf-8'))
+            meta, slides, _ = parse_markdown_extended(read_text_file(source_path))
         cover = _find_cover_slide(slides)
         cover_summary = cover.summary if cover and cover.summary else ''
 
@@ -3660,9 +3674,9 @@ def load_build_context(series_dir, args):
     strings = language_pack.get('strings', {})
 
     css_file = templates_dir / 'style.css'
-    css = css_file.read_text(encoding='utf-8') if css_file.exists() else TEMPLATE_STYLE
+    css = read_text_file(css_file) if css_file.exists() else TEMPLATE_STYLE
     nav_js_file = templates_dir / 'nav.js'
-    nav_js = nav_js_file.read_text(encoding='utf-8') if nav_js_file.exists() else TEMPLATE_NAV_JS
+    nav_js = read_text_file(nav_js_file) if nav_js_file.exists() else TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
 
     series_data = load_series_data(sd)
@@ -3719,7 +3733,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     (ctx.output_dir / entry['page_dest']).write_text(html, encoding='utf-8')
 
     index_extra_file = ctx.templates_dir / 'index_extra.html'
-    index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
+    index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
     print('  index.html')
     index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
     (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
@@ -3771,7 +3785,7 @@ def cmd_build(series_dir, args):
     # right before </body> — the only extension point for the index page,
     # since style.css/nav.js don't cover site-specific index features)
     index_extra_file = ctx.templates_dir / 'index_extra.html'
-    index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
+    index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
 
     # Create the output directory
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
@@ -3834,7 +3848,7 @@ def cmd_check(series_dir, args):
             print(f'[NEW] {entry["page_dest"]} does not exist yet')
             diff_count += 1
             continue
-        existing = strip_build_stamp(existing_path.read_text(encoding='utf-8'))
+        existing = strip_build_stamp(read_text_file(existing_path))
         if existing.strip() == generated.strip():
             print(f'[OK] {entry["page_dest"]}')
             ok_count += 1
@@ -3888,7 +3902,7 @@ def cmd_audit(series_dir, args):
             print(f'[ERROR] {entry["page_dest"]}: page_source not found ({source_path})', file=sys.stderr)
             continue
 
-        md_text = source_path.read_text(encoding='utf-8')
+        md_text = read_text_file(source_path)
         meta, slides, has_meta_block = parse_markdown_extended(md_text)
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
@@ -4026,7 +4040,7 @@ def cmd_refresh_templates(target_dir, args):
 
     style_path = templates_dir / 'style.css'
     if style_path.exists():
-        old = style_path.read_text(encoding='utf-8')
+        old = read_text_file(style_path)
         detected_theme = detect_theme(old)
         if detected_theme is not None and detected_theme not in THEMES:
             print(f'[WARN] templates/style.css was built with theme {detected_theme!r}, '
@@ -4052,7 +4066,7 @@ def cmd_refresh_templates(target_dir, args):
 
     nav_path = templates_dir / 'nav.js'
     if nav_path.exists():
-        old_nav = nav_path.read_text(encoding='utf-8')
+        old_nav = read_text_file(nav_path)
         if old_nav == TEMPLATE_NAV_JS:
             up_to_date.append('templates/nav.js')
         else:

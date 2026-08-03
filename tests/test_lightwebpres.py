@@ -3562,5 +3562,91 @@ class LegacyFieldMigrationErrors(unittest.TestCase):
             self.assertIn('renamed to "page_dest" in v1.0', result.stderr)
 
 
+class DegenerateInputRobustness(unittest.TestCase):
+    """1.0 review axis 1 (JOURNAL-1.0.md §3): BOM, CRLF, empty files and
+    invalid encodings must produce either a correct build or a clean
+    [ERROR] — never a raw traceback, never silent corruption."""
+
+    def _series(self, tmp):
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        (root / 'series.json').write_text(
+            json.dumps({'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+        return root
+
+    MD = ('<!-- lwp:meta -->\npage_title: Test\n---\n\n'
+          '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n')
+
+    def test_bom_in_series_json_is_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (root / 'articles' / 'a.md').write_text(self.MD, encoding='utf-8')
+            raw = (root / 'series.json').read_bytes()
+            (root / 'series.json').write_bytes(b'\xef\xbb\xbf' + raw)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_bom_in_full_article_does_not_leak_or_break_heading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (root / 'articles' / 'a.md').write_text(
+                self.MD + '\n---\n\n<!-- lwp:slide:full-article -->\narticle: a_article.md\n',
+                encoding='utf-8')
+            (root / 'articles' / 'a_article.md').write_bytes(
+                b'\xef\xbb\xbf# Full article heading\n\nBody.\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<h1>Full article heading</h1>', html)
+            self.assertNotIn('\ufeff', html)
+
+    def test_crlf_article_parses_identically(self):
+        crlf_md = (
+            '<!-- lwp:meta -->\npage_title: Test\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T2\n## Second\nsummary: S2.\nfact-label: F\n\nBody.\n'
+        ).replace('\n', '\r\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (root / 'articles' / 'a.md').write_bytes(crlf_md.encode('utf-8'))
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<h1>Title</h1>', html)
+            self.assertIn('<h2>Second</h2>', html)
+            self.assertEqual(html.count('<section class="slide'), 2)
+
+    def test_invalid_utf8_article_gets_clean_error_not_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (root / 'articles' / 'a.md').write_bytes(
+                b'<!-- lwp:meta -->\npage_title: T\n---\n\n'
+                b'<!-- lwp:slide:cover -->\ntag: T\n# Broken \xff\xfe\nsummary: S.\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('not valid UTF-8', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_empty_article_file_gets_clean_meta_block_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (root / 'articles' / 'a.md').write_text('', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('must start with a <!-- lwp:meta --> block', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+
+    def test_empty_articles_array_builds_an_empty_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'series.json').write_text(json.dumps({'articles': []}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'index.html').exists())
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

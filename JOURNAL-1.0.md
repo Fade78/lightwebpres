@@ -97,8 +97,13 @@ couvre tout depuis v0.5.1.
 
 Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
 
-1. Robustesse des entrées dégénérées : BOM UTF-8, CRLF, fichier vide,
-   encodage invalide, très gros fichiers/séries.
+1. FAIT (v0.6.0) — Robustesse des entrées dégénérées : BOM UTF-8 accepté
+   partout (utf-8-sig via un helper read_text_file unique ; un BOM dans un
+   full-article fuyait un U+FEFF dans le HTML publié et cassait son
+   premier titre), CRLF déjà sain (universal newlines de Python, testé),
+   fichier vide → erreur propre §22.7, UTF-8 invalide → erreur propre au
+   lieu d'une traceback, série vide → index vide. Reste ouvert : très
+   gros fichiers/séries (perf), reporté avec l'axe 3.
 2. Portabilité : version Python minimale (à tester et déclarer),
    Windows (séparateurs, casse), environnement Pyodide.
 3. Reproductibilité : aucune source de non-déterminisme hors
@@ -127,6 +132,8 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
   conteneurs sont détruits sans prévenir).
 - Ce journal est mis à jour à chaque décision et présenté régulièrement
   dans les comptes rendus.
+- **À chaque action terminée : toujours dire la suite qu'on devrait
+  faire et ce qui reste à faire.**
 - Le glossaire (GLOSSARY.md) est en anglais ; specifications.md en
   français.
 - Versionnage observé : fonctionnalité = bump mineur, correctif = patch,
