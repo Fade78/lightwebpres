@@ -75,6 +75,44 @@ async function main() {
     await page.click('#pushBtn');
     await waitForStatus('Pushed', 30000);
 
+    // Token persistence contract (§23.11): connection fields (token
+    // included) always mirrored to sessionStorage; localStorage ONLY via
+    // the explicit "remember" opt-in, whose checkbox is unchecked by
+    // default and shows a warning when checked. A regression to
+    // localStorage-by-default would be a silent privacy break.
+    const STORE_KEY = 'lwp_git_sync_connection';
+    const defaults = await page.evaluate((key) => ({
+      rememberChecked: document.getElementById('rememberToken').checked,
+      session: sessionStorage.getItem(key),
+      local: localStorage.getItem(key),
+    }), STORE_KEY);
+    if (defaults.rememberChecked) console.error('E2E failure: remember checkbox must be unchecked by default'), process.exitCode = 1;
+    if (!defaults.session || !defaults.session.includes(token)) {
+      console.error('E2E failure: sessionStorage must hold the connection (token included)');
+      process.exitCode = 1;
+    }
+    if (defaults.local !== null) {
+      console.error('E2E failure: localStorage must stay empty without the remember opt-in');
+      process.exitCode = 1;
+    }
+    await page.check('#rememberToken');
+    const optedIn = await page.evaluate((key) => ({
+      warningVisible: document.getElementById('rememberWarning').style.display === 'block',
+      local: localStorage.getItem(key),
+    }), STORE_KEY);
+    if (!optedIn.warningVisible) console.error('E2E failure: warning must be visible while remember is checked'), process.exitCode = 1;
+    if (!optedIn.local || !optedIn.local.includes(token)) {
+      console.error('E2E failure: localStorage must hold the connection after opting in');
+      process.exitCode = 1;
+    }
+    await page.uncheck('#rememberToken');
+    const optedOut = await page.evaluate((key) => localStorage.getItem(key), STORE_KEY);
+    if (optedOut !== null) {
+      console.error('E2E failure: unchecking remember must clear localStorage');
+      process.exitCode = 1;
+    }
+    if (process.exitCode) process.exit(process.exitCode);
+
     const unexpectedErrors = consoleErrors.filter((e) => !isExpectedLightwebpresProbe404(e));
     if (unexpectedErrors.length) {
       console.error('Browser console errors:\n' + unexpectedErrors.map((e) => e.text).join('\n'));

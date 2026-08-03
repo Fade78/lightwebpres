@@ -49,9 +49,12 @@ class _QuietHandler(SimpleHTTPRequestHandler):
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class ShareButton(unittest.TestCase):
-    """A built article with two slides (cover + one standard slide), so
-    the "fiche" scope can be exercised both disabled (on the cover) and
-    enabled (past it)."""
+    """A built article with three slides (cover + one standard slide +
+    series-nav), so the "fiche" scope can be exercised disabled (on the
+    cover), enabled (standard slide, with a real #s2 clipboard check),
+    and disabled again (series-nav — §9.2.1 says the scope follows the
+    slide TYPE, and this slide type was previously absent from the
+    fixture entirely)."""
 
     @classmethod
     def setUpClass(cls):
@@ -67,7 +70,8 @@ class ShareButton(unittest.TestCase):
             '<!-- lwp:slide:cover -->\ntag: T\n# Share button test\n'
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide -->\ntag: T2\n## Second slide\n'
-            'summary: A second slide, to leave the cover behind.\n',
+            'summary: A second slide, to leave the cover behind.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n',
             encoding='utf-8',
         )
         output_dir = root / 'public'

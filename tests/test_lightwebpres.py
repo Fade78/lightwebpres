@@ -376,6 +376,320 @@ _MINIMAL_MD = (
 )
 
 
+class SlideCounter(unittest.TestCase):
+    """§3.3/§12.3: every slide carries a zero-padded 'NN / NN' counter —
+    completely unasserted before axis 4 (a broken counter would ship on
+    every page unnoticed)."""
+
+    def test_counter_is_zero_padded_with_correct_total(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Two\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Three\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<span class="slide-num">01 / 03</span>', html)
+            self.assertIn('<span class="slide-num">02 / 03</span>', html)
+            self.assertIn('<span class="slide-num">03 / 03</span>', html)
+
+
+class OnlyAcceptsPageSourceForm(unittest.TestCase):
+    """§11.3.1: --only matches by page_dest OR page_source — the .md form
+    was documented but never exercised."""
+
+    def test_only_with_md_name_takes_incremental_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--only', 'a.md')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+            self.assertTrue((root / 'public' / 'a.html').exists())
+
+
+class CheckIncludeDrafts(unittest.TestCase):
+    """§11.3/§20.6: --include-drafts applies to check too — a
+    drafts-included build must be checkable with the same flag, and a
+    plain check over it must report the index drift."""
+
+    def _series_with_draft(self, tmp):
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        (root / 'articles' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
+        (root / 'articles' / 'b.md').write_text(
+            _MINIMAL_MD.replace('a.html', 'b.html'), encoding='utf-8')
+        (root / 'series.json').write_text(json.dumps({'articles': [
+            {'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
+            {'page_source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B', 'draft': True},
+        ]}), encoding='utf-8')
+        return root
+
+    def test_check_include_drafts_is_green_after_matching_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with_draft(tmp)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--include-drafts')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            result = run('check', str(root), '--output', str(root / 'public'),
+                         '--include-drafts')
+            self.assertEqual(result.returncode, 0,
+                             result.stdout + result.stderr)
+            self.assertIn('[OK] b.html', result.stdout)
+
+    def test_plain_check_after_drafts_build_reports_index_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with_draft(tmp)
+            run('build', str(root), '--output', str(root / 'public'),
+                '--include-drafts')
+            result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('[DRIFT] index.html', result.stdout)
+
+
+class LanguagePackMergeSemantics(unittest.TestCase):
+    """§19.2: an override file's `rules`, when present, replaces the
+    built-in rules EN BLOC ('rules': [] kills all built-in typography);
+    a strings-only override keeps the built-in rules active. A silent
+    regression here would change published typography for every
+    override user."""
+
+    def _build_with_pack(self, tmp, pack):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Magnifique !\n'
+        )
+        root = scaffold(tmp, md)
+        pack_file = root / 'custom.json'
+        pack_file.write_text(json.dumps(pack), encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'),
+                     '--language-file', str(pack_file))
+        return root, result
+
+    def test_empty_rules_override_disables_builtin_typography(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build_with_pack(tmp, {'rules': []})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Magnifique !', html)
+            self.assertNotIn('Magnifique !', html)
+
+    def test_strings_only_override_keeps_builtin_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build_with_pack(
+                tmp, {'strings': {'nav_prev': 'Custom prev'}})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Magnifique !', html)
+            self.assertIn('Custom prev', html)
+
+
+class Axis4MarkdownGaps(unittest.TestCase):
+    """Axis-4 sweep: Markdown-converter contracts that had no coverage."""
+
+    def _html(self, body):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'art.md').write_text(body, encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            assert result.returncode == 0, result.stderr
+            return (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+    def test_ordered_list(self):
+        html = self._html('1. First step\n2. Second step\n')
+        self.assertIn('<ol>', html)
+        self.assertIn('<li>First step</li>', html)
+        self.assertIn('<li>Second step</li>', html)
+
+    def test_table_carries_comparison_table_class_and_structure(self):
+        html = self._html('| A | B |\n|:---|---:|\n| a | b |\n')
+        self.assertIn('<table class="comparison-table">', html)
+        self.assertIn('<thead>', html)
+        self.assertIn('<tbody>', html)
+        # Alignment colons are accepted but ignored: no align/style attr
+        self.assertNotIn('align=', html.split('<table')[1].split('</table>')[0])
+
+    def test_h4_stays_literal_paragraph_text(self):
+        html = self._html('#### Not a heading\n')
+        self.assertIn('<p>#### Not a heading</p>', html)
+        self.assertNotIn('<h4>', html)
+
+    def test_relative_link_stays_literal(self):
+        html = self._html('See [other](other.html) page.\n')
+        self.assertIn('[other](other.html)', html)
+        self.assertNotIn('<a href="other.html"', html)
+
+    def test_hand_written_entity_is_neutralized_in_paragraph(self):
+        html = self._html('A &rarr; B\n')
+        self.assertIn('A &amp;rarr; B', html)
+
+    def test_midline_escaped_gt_is_cleaned(self):
+        html = self._html('a \\> b\n')
+        self.assertIn('<p>a > b</p>', html)
+
+    def test_midline_bare_gt_is_literal_no_blockquote(self):
+        html = self._html('la valeur est > 10\n')
+        self.assertIn('<p>la valeur est > 10</p>', html)
+        self.assertNotIn('<blockquote>', html)
+
+    def test_lone_backtick_is_literal_no_code_span(self):
+        html = self._html('un backtick ` isolé\n')
+        self.assertIn('un backtick ` isolé', html)
+        self.assertNotIn('<code>', html)
+
+    def test_indented_heading_and_list_are_plain_paragraphs(self):
+        html = self._html('  # Indented\n\n  - item\n')
+        self.assertIn('<p>  # Indented</p>', html)
+        self.assertIn('<p>  - item</p>', html)
+        self.assertNotIn('<h1>Indented</h1>', html)
+        self.assertNotIn('<li>', html)
+
+
+class Axis4CommandGaps(unittest.TestCase):
+    """Axis-4 sweep: command contracts that had no coverage."""
+
+    def test_lwp_lang_env_var_selects_language(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         env={'LWP_LANG': 'en'})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Read the article', html)
+
+    def test_html_lang_attribute_follows_lang(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<html lang="en">', html)
+
+    def test_help_lists_every_command(self):
+        result = run('--help')
+        self.assertEqual(result.returncode, 0)
+        for command in ('install', 'demo', 'build', 'check', 'audit',
+                        'refresh-templates', 'themes-gallery'):
+            self.assertIn(command, result.stdout)
+
+    def test_demo_without_install_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run('demo', tmp)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('install', result.stderr)
+
+    def test_demo_writes_svg_and_editorial_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            run('install', str(root), '--lang', 'en')
+            result = run('demo', str(root), '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'articles' / 'img' / 'demo-figure.svg').exists())
+            first = (root / 'articles' / 'first.md').read_text(encoding='utf-8')
+            self.assertIn('date:', first)
+            self.assertIn('comment:', first)
+            self.assertIn('Demo site generated in public/', result.stdout)
+
+    def test_check_exit_code_is_exactly_one_with_diff_hunk(self):
+        md = _MINIMAL_MD.replace('Summary.', 'Original.')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            run('build', str(root), '--output', str(root / 'public'))
+            (root / 'articles' / 'a.md').write_text(
+                md.replace('Original.', 'Changed.'), encoding='utf-8')
+            result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertTrue(any(line.strip().startswith('+') and 'Changed.' in line
+                                for line in result.stdout.splitlines()))
+
+    def test_audit_numeric_summary_and_drafts_audited(self):
+        # A draft article with no cover: audit must still inspect it and
+        # count its warning — audit never excludes drafts (§11.5).
+        md_no_cover = (
+            '<!-- lwp:meta -->\npage_dest: b.html\npage_title: B\nnav_title: B\nnav_desc: B\n'
+            'page_desc: Has one.\ndraft: true\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## Standard only\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'articles' / 'b.md').write_text(md_no_cover, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_source': 'b.md'},
+            ]}), encoding='utf-8')
+            result = run('audit', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('no cover slide', result.stdout)
+            self.assertIn('1 warning(s).', result.stdout)
+
+    def test_corrupt_nav_cache_falls_back_to_full_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            (root / '.lwp-cache' / 'nav.json').write_text('{garbage', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--only', 'a.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[INFO]', result.stdout)
+
+    def test_gitlab_ci_content_pins_image_and_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            result = run('install', str(root), '--gitlab-ci')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            ci = (root / '.gitlab-ci.yml').read_text(encoding='utf-8')
+            self.assertIn('python:3.12-slim', ci)
+            self.assertIn('public/', ci)
+
+    def test_empty_string_page_source_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_source': ''},
+            ]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+
+    def test_draft_string_true_is_case_insensitive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD, series_extra={'draft': 'TRUE'})
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+    def test_no_share_button_on_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertNotIn('id="navShare"', index)
+
+    def test_series_nav_status_strings_reach_output(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--lang', 'en')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('This series', html)
+            self.assertIn('Currently reading', html)
+            self.assertIn('Back to index', html)
+
+
 class DuplicateFieldLastWins(unittest.TestCase):
     """§4.3: a duplicated field in the same header is deliberate override
     semantics (CSS/Make-style) — the LAST occurrence wins, silently — so

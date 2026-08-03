@@ -144,8 +144,30 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    régression BuildDeterminism. Perf au passage : 300 articles avec
    series-nav de 300 entrées chacun → 6,4 s, ~39 Mo (dominé par le
    CSS/JS inline par page, par conception).
-4. Couverture de test par § de spec : croiser chaque § avec la suite,
-   lister les trous.
+4. FAIT (post-v0.9.0) — Couverture de test par § de spec : cartographie
+   complète par 3 agents (§1-9, §10-16, §17-23), chaque affirmation
+   normative croisée avec la suite. 8 trous IMPORTANTS trouvés et TOUS
+   comblés (30 tests unitaires + 2 extensions e2e ; suite 283 → 311) :
+   compteur de fiches « 01 / NN » (jamais assertté !), listes ordonnées
+   `<ol>`, classe `comparison-table`, `--only` par page_source,
+   `check --include-drafts` (les deux sens), sémantique de fusion des
+   `rules` des packs (`rules: []` tue la typo intégrée / surcharge
+   strings-only la garde), « Fiche » désactivée sur series-nav (e2e
+   navigateur + URL `#s2` du presse-papiers), contrat de stockage du
+   jeton GitLab (sessionStorage toujours, localStorage opt-in seulement,
+   avertissement, décoché par défaut — e2e). Plus ~20 mineurs comblés
+   (lang attribute, LWP_LANG, ####, lien relatif, entités &, \> et `
+   en milieu de ligne, indentation, aide exhaustive, demo sans install,
+   contenu démo, exit code 1 de check + hunk de diff, résumé chiffré
+   d'audit + brouillons audités, cache nav corrompu, contenu
+   .gitlab-ci.yml, page_source vide, draft "TRUE", pas de partage sur
+   l'index, chaînes de statut series-nav). Trous restants ASSUMÉS
+   (mineurs, listes complètes dans les rapports d'agents de la
+   conversation du 2026-08-03) : branches symétriques du §20.3.1 déjà
+   couvertes par motif, précision de messages d'erreur, quelques
+   interactions navigateur supplémentaires (fallback prompt() sans
+   presse-papiers, timing 1600 ms du ✓, PageUp/Home), chunking >100
+   fichiers du push GitLab, jeton jamais dans les URL du mock.
    (Note de cohérence, faite avec l'axe 3 : démo enrichie de `date:` +
    `comment:` sur l'article 1, scaffold install avec clés
    `author`/`license` vides, §11.1/§11.2/§12.1 resynchronisés.)

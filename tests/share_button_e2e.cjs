@@ -84,6 +84,31 @@ async function main() {
     const qrClosed = await page.evaluate(() => !document.getElementById('shareQrModal').classList.contains('open'));
     if (!qrClosed) fail('QR modal did not close via its close button');
 
+    // 6. Fiche-scope copy on the standard slide: the clipboard URL must
+    // anchor to the slide itself (#s2), not just the article.
+    await page.click('#navShare');
+    await page.click('[data-action="copy"][data-scope="fiche"]');
+    const clipboardFiche = await page.evaluate(() => navigator.clipboard.readText());
+    if (clipboardFiche !== expectedArticleUrl + '#s2') {
+      fail('fiche copy-link mismatch: got ' + clipboardFiche + ' expected ' + expectedArticleUrl + '#s2');
+    }
+    await page.keyboard.press('Escape');
+
+    // 7. Move to the series-nav slide: the fiche column must be disabled
+    // again — the scope follows the slide TYPE (§9.2.1), and series-nav
+    // is not a reading position.
+    await page.click('#navNext');
+    await page.waitForTimeout(800);
+    const onSeriesNav = await page.evaluate(() => {
+      const s = document.querySelectorAll('section.slide');
+      return s[s.length - 1].getBoundingClientRect().top < window.innerHeight / 2;
+    });
+    if (!onSeriesNav) fail('did not reach the series-nav slide after navNext');
+    await page.click('#navShare');
+    const ficheDisabledOnSeriesNav = await page.evaluate(() =>
+      Array.prototype.every.call(document.querySelectorAll('[data-scope="fiche"]'), (b) => b.disabled));
+    if (!ficheDisabledOnSeriesNav) fail('fiche column must be disabled on the series-nav slide');
+
     if (consoleErrors.length) fail('unexpected console errors: ' + JSON.stringify(consoleErrors));
 
     if (process.exitCode) {
