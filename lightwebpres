@@ -34,7 +34,7 @@ from html.parser import HTMLParser
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.7.0"
+VERSION = "0.6.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:

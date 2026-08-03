@@ -6,9 +6,10 @@ décision actée en discussion est reportée ici **avant** d'être
 implémentée ; l'état est resynchronisé ici après chaque étape poussée ;
 le contenu est présenté régulièrement dans les comptes rendus.
 
-Dernière mise à jour : 2026-08-03 — état du dépôt : v0.7.0 (gel de la
-nomenclature §2 implémenté en une passe : code, tests, spec, glossaire,
-README, GUIDE, SKILL).
+Dernière mise à jour : 2026-08-03 — état du dépôt : v0.6.0 (champ
+`comment` + gel de la nomenclature §2, implémenté en une passe : code,
+tests, spec, glossaire, README, GUIDE, SKILL). La release GitHub v0.6.0
+couvre tout depuis v0.5.1.
 
 ## 1. Cadrage produit (décidé)
 
@@ -18,11 +19,11 @@ README, GUIDE, SKILL).
   le contenu sur mobile ou ordinateur. Le logiciel permet de faire des
   slides de différents types et, éventuellement, d'y adjoindre un long
   texte — qui n'est pas forcément un article sourcé.
-- Conséquence : **réécrire §1 de specifications.md** dans ce sens (FAIT, v0.7.0)
+- Conséquence : **réécrire §1 de specifications.md** dans ce sens (FAIT, v0.6.0)
   (supprimer « public adolescent », reformuler « article de fond » comme
   cas particulier de « texte long optionnel »).
 
-## 2. Gel de la nomenclature (décisions actées — IMPLÉMENTÉ en v0.7.0)
+## 2. Gel de la nomenclature (décisions actées — IMPLÉMENTÉ en v0.6.0)
 
 ### 2.1 Renommage `source`/`file` → `page_source`/`page_dest`
 
@@ -139,9 +140,9 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
   `slide_title`), fact-box acceptant titres/listes, GLOSSARY.md créé.
 - v0.5.1 : fix — `build_series_nav()` n'appliquait aucune typographie
   (nav_title/nav_desc/card_label).
-- v0.6.0 : champ `comment` (note de relecture, reconnu partout, jamais
-  rendu ni publié).
-- v0.7.0 : gel de la nomenclature (§2) — `page_source`/`page_dest`,
+- v0.6.0 (couvre tout depuis la release GitHub v0.5.1) : champ `comment`
+  (note de relecture, reconnu partout, jamais rendu ni publié) + gel de
+  la nomenclature (§2) — `page_source`/`page_dest`,
   `author`/`license`/`date` affichés, `page_desc` + `<meta>` tags,
   `draft`/`--include-drafts` + bandeau, erreurs de migration, §1
   généraliste, convention de casse au glossaire.
