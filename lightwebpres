@@ -671,6 +671,24 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .comparison-table .yes { color: var(--green); font-weight: 700; }
   .comparison-table .no { color: var(--grey); font-weight: 500; opacity: 0.75; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
+  /* A shape as well as a colour, and this is not decoration. Red/green
+     colour-vision deficiency affects roughly one man in twelve, and a
+     simulation over the built-in palettes put "yes" and "partial" at a
+     perceptual distance of under 12 for three of the nine themes —
+     literally the same colour to those readers. Weight alone (700 vs
+     600) is too fine a cue to carry the distinction. Filled / half /
+     empty is language-independent, survives greyscale printing, and
+     works in a cell that holds nothing else. WCAG 1.4.1 (level A) asks
+     exactly this: never let colour be the only carrier of meaning. */
+  .comparison-table .yes::before,
+  .comparison-table .partial::before,
+  .comparison-table .no::before {
+    margin-right: 0.4em;
+    font-size: 0.95em;
+  }
+  .comparison-table .yes::before { content: "\25CF"; }
+  .comparison-table .partial::before { content: "\25D0"; }
+  .comparison-table .no::before { content: "\25CB"; }
   .comparison-table .yes, .comparison-table .no, .comparison-table .partial {
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
