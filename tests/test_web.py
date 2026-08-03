@@ -57,7 +57,7 @@ def _make_test_zip(zip_path):
         root = Path(tmp)
         (root / 'articles').mkdir()
         (root / 'series.json').write_text(json.dumps({
-            'articles': [{'source': 'a.md'}],
+            'articles': [{'page_source': 'a.md'}],
         }), encoding='utf-8')
         (root / 'articles' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Web test\n'

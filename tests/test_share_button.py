@@ -59,7 +59,7 @@ class ShareButton(unittest.TestCase):
         root = Path(cls.tmpdir.name)
         (root / 'articles').mkdir()
         (root / 'series.json').write_text(json.dumps({
-            'articles': [{'source': 'a.md'}],
+            'articles': [{'page_source': 'a.md'}],
         }), encoding='utf-8')
         (root / 'articles' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Share button test\n'

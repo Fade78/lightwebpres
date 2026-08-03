@@ -105,10 +105,10 @@ a field when you want it to win over what's set here (or over the
 content-derived fallback) — not as a rule for every entry. The full
 chain, cheapest to most specific:
 
-- `file` (output HTML filename) — `series.json` entry > this meta
-  block's `file:` > `source` with `.md` swapped for `.html`.
+- `page_dest` (output HTML filename) — `series.json` entry > this meta
+  block's `page_dest:` > `page_source` with `.md` swapped for `.html`.
 - `page_title` (the `<title>` tag) — `series.json` > `page_title:` here >
-  the cover slide's own `# Heading` > the resolved `file`.
+  the cover slide's own `# Heading` > the resolved `page_dest`.
 - `card_title`/`card_desc` (this article's card on the **index page**) —
   `series.json` > `card_title:`/`card_desc:` here > resolved
   `page_title` (for the title) / the cover slide's own `summary:` (for
@@ -230,23 +230,25 @@ entry in `series.json`'s `articles` array — at minimum, just one
 structural field:
 
 ```json
-{"source": "apple-pie.md"}
+{"page_source": "apple-pie.md"}
 ```
 
-`source` must be a **bare filename** — no `/`, no `..` — and is the only
-field ever required directly in `series.json`. The array order is the
-navigation/index order. `file`, if you give one, must be a bare filename
-too; leave it out and it's derived from `source` (see "The meta block"
-above for the full cascade).
+`page_source` must be a **bare filename** — no `/`, no `..` — and is the
+only field ever required directly in `series.json`. The array order is the
+navigation/index order. `page_dest`, if you give one, must be a bare
+filename too; leave it out and it's derived from `page_source` (see "The
+meta block" above for the full cascade). The pre-v1.0 names
+`source`/`file` are rejected with an explicit migration error.
 
-Every other field — `file`, `page_title`, `card_title`/`card_desc`,
+Every other field — `page_dest`, `page_title`/`page_desc`,
+`card_title`/`card_desc`,
 `card_label`, `nav_title`/`nav_desc` — is read from the article's own
 meta block and content by default; add one to the `series.json` entry
 only to override it for this particular article without touching the
 file, e.g.:
 
 ```json
-{"source": "apple-pie.md", "card_label": "Article 3 (corrected)"}
+{"page_source": "apple-pie.md", "card_label": "Article 3 (corrected)"}
 ```
 
 Nothing here is ever a fatal build error — every field resolves to
@@ -288,7 +290,7 @@ as finished — don't guess at whether it would build.
 - A bare `---` inside body text, expecting a visual divider — it splits
   the slide instead.
 - Two `full-article` or two `series-nav` slides in one file.
-- `file`/`source` values with a path (`articles/x.md` instead of `x.md`)
+- `page_source`/`page_dest` values with a path (`articles/x.md` instead of `x.md`)
   or anything that isn't a plain filename.
 - Opening a ` ``` ` code fence without a matching closing ` ``` ` —
   every line after it, including the rest of the file, is swallowed as

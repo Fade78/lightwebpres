@@ -6,7 +6,9 @@ décision actée en discussion est reportée ici **avant** d'être
 implémentée ; l'état est resynchronisé ici après chaque étape poussée ;
 le contenu est présenté régulièrement dans les comptes rendus.
 
-Dernière mise à jour : 2026-08-03 — état du dépôt : v0.6.0 publiée.
+Dernière mise à jour : 2026-08-03 — état du dépôt : v0.7.0 (gel de la
+nomenclature §2 implémenté en une passe : code, tests, spec, glossaire,
+README, GUIDE, SKILL).
 
 ## 1. Cadrage produit (décidé)
 
@@ -16,11 +18,11 @@ Dernière mise à jour : 2026-08-03 — état du dépôt : v0.6.0 publiée.
   le contenu sur mobile ou ordinateur. Le logiciel permet de faire des
   slides de différents types et, éventuellement, d'y adjoindre un long
   texte — qui n'est pas forcément un article sourcé.
-- Conséquence : **réécrire §1 de specifications.md** dans ce sens
+- Conséquence : **réécrire §1 de specifications.md** dans ce sens (FAIT, v0.7.0)
   (supprimer « public adolescent », reformuler « article de fond » comme
   cas particulier de « texte long optionnel »).
 
-## 2. Gel de la nomenclature (décisions actées, à implémenter)
+## 2. Gel de la nomenclature (décisions actées — IMPLÉMENTÉ en v0.7.0)
 
 ### 2.1 Renommage `source`/`file` → `page_source`/`page_dest`
 
@@ -37,10 +39,9 @@ Dernière mise à jour : 2026-08-03 — état du dépôt : v0.6.0 publiée.
   `page_dest:` > déduit de `page_source` (`.md` → `.html`).
 - Le homonyme `source` disparaît ainsi complètement du format.
 - **Migration** : une seule série existante ; son propriétaire la rendra
-  compatible lui-même (via agent). Des messages d'erreur explicites pour
-  les anciens noms (« renommé en X à la v1.0 ») restent souhaitables si
-  peu coûteux, mais dégradés en priorité basse — à confirmer à
-  l'implémentation.
+  compatible lui-même (via agent). Implémenté : les anciens noms
+  `source`/`file` dans series.json produisent une erreur fatale explicite
+  (« renommé en X à la v1.0 »), détectée avant toute autre validation.
 
 ### 2.2 Nouveaux champs éditoriaux : `author`, `license`, `date`
 
@@ -140,3 +141,7 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
   (nav_title/nav_desc/card_label).
 - v0.6.0 : champ `comment` (note de relecture, reconnu partout, jamais
   rendu ni publié).
+- v0.7.0 : gel de la nomenclature (§2) — `page_source`/`page_dest`,
+  `author`/`license`/`date` affichés, `page_desc` + `<meta>` tags,
+  `draft`/`--include-drafts` + bandeau, erreurs de migration, §1
+  généraliste, convention de casse au glossaire.

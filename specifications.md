@@ -4,13 +4,17 @@
 
 LightWebPres est un framework de génération de pages web autonomes à partir de
 fichiers Markdown étendus. Il produit des pages HTML contenant une suite de
-fiches (slides) scrollables suivies d'un article de fond, avec une navigation
-inter-articles. Le résultat est un ensemble de fichiers HTML **autonomes** (CSS
-inline, JS inline, aucune dépendance externe), déployables sur n'importe quel
-serveur statique.
+fiches (slides) scrollables de différents types, optionnellement suivies d'un
+texte long (qui n'est pas forcément un article sourcé — le format est né d'un
+besoin de fiches documentées mais ne s'y cantonne pas), avec une navigation
+inter-articles. Le résultat est un ensemble de fichiers HTML **autonomes**
+(CSS inline, JS inline, aucune dépendance externe), déployables sur n'importe
+quel serveur statique.
 
-Le framework est conçu pour un public rédacteur (auteur d'une série d'articles)
-et un public lecteur (adolescents en lecture autonome sur mobile ou desktop).
+Le framework est conçu pour un public rédacteur (auteur d'une série
+d'articles). Il n'y a pas de public lecteur cible : les utilisateurs
+consultent le contenu produit sur mobile ou sur ordinateur, quel que soit le
+sujet de la série.
 
 Il est utilisable à la fois en édition manuelle (un humain édite les fichiers
 Markdown) et en édition par LLM (un modèle de langue génère ou modifie les
@@ -97,8 +101,8 @@ Les options en ligne de commande **override** les variables d'environnement.
 ```bash
 lightwebpres install [répertoire] [--lang fr] [--force] [--theme nom]
 lightwebpres demo [répertoire] [--lang fr]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography]
-lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
+lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
 lightwebpres audit [répertoire] [--lang fr]
 lightwebpres refresh-templates [répertoire]
 lightwebpres themes-gallery [chemin]
@@ -111,6 +115,7 @@ lightwebpres --help
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
 - `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide
 - `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
+- `--include-drafts` : `build`/`check` seulement — construit aussi les articles marqués `draft: true` (§20.6), avec bandeau « Brouillon »
 - `--theme` : `install` seulement — remplace les six couleurs du thème par défaut par celles d'une palette prédéfinie (§9.5)
 
 ---
@@ -126,16 +131,19 @@ contient, pour chaque article, deux catégories de champs bien distinctes
 (détail complet en §20) :
 
 - **Structurel — toujours dans `series.json`**, aucune autre source
-  possible : `source` (nom du fichier Markdown source, ex. `snapchat.md`).
-  C'est le seul champ qu'une entrée `articles[]` doit réellement porter —
-  un article est auto-décrit (§20.3.1).
-- **D'affichage — surcharge optionnelle** d'une valeur par défaut lue dans
-  le bloc meta de l'article lui-même, ou à défaut extrapolée de son contenu
-  (§20.3.1) : `file` (nom du fichier HTML de sortie, déduit de `source` si
-  absent), `page_title` (titre de la page HTML de l'article), `card_title`/
+  possible : `page_source` (nom du fichier Markdown source, ex.
+  `snapchat.md`). C'est le seul champ qu'une entrée `articles[]` doit
+  réellement porter — un article est auto-décrit (§20.3.1).
+- **D'affichage/éditorial — surcharge optionnelle** d'une valeur par
+  défaut lue dans le bloc meta de l'article lui-même, ou à défaut
+  extrapolée de son contenu ou héritée de `series_meta` (§20.3.1) :
+  `page_dest` (nom du fichier HTML de sortie, déduit de `page_source` si
+  absent), `page_title` (titre de la page HTML de l'article), `page_desc`
+  (description de la page, `<meta name="description">`), `card_title`/
   `card_desc`/`card_label` (carte de la page d'index), `nav_title`/
   `nav_desc` (carte de navigation affichée dans la page d'un *autre*
-  article).
+  article), `author`/`license`/`date` (champs éditoriaux affichés,
+  §20.3.1), `draft` (statut brouillon, §20.6).
 
 Le contenu d'une fiche `cover` (tag, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
@@ -695,6 +703,7 @@ un placeholder `{{str_CLÉ}}` (§9, §18).
 | `series_current_status`      | Statut de l'article courant dans la nav de série     |
 | `series_back_to_index`       | Texte du lien de retour à l'index (nav de série)     |
 | `series_untitled_fallback`   | Titre de secours si `series_meta.title` est absent   |
+| `draft_banner`               | Texte du bandeau brouillon (`--include-drafts`, §11.3/§20.6) |
 | `full_article_tag`           | Étiquette de la fiche `full-article`                |
 | `source_label`               | Préfixe avant la valeur de `source`                  |
 | `copy_link`                  | Libellé de la ligne « copier le lien » de la matrice de partage |
@@ -1254,12 +1263,21 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
 ```
 
 Construit le site :
 
-1. Lit `series.json` dans `[répertoire]`
+1. Lit `series.json` dans `[répertoire]`. Les articles marqués
+   `draft: true` (§20.6) sont **entièrement exclus** — pas de page, pas
+   de carte d'index, pas d'entrée dans les navigations des autres
+   articles — sauf avec `--include-drafts` (build **et** check), qui les
+   construit tous, chaque page brouillon portant alors un bandeau
+   « Brouillon » (clé `draft_banner` du fichier de langue) affiché au
+   centre de l'en-tête de page, entre l'éventuel build stamp (§11.3.2) et
+   le numéro de fiche — un aperçu ne doit jamais être confondu avec une
+   publication (style inline, comme le stamp, pour ne pas dépendre d'un
+   `templates/style.css` antérieur à la fonctionnalité).
 2. Pour chaque article dans `series.json` :
    a. Lit le fichier `.md` source depuis `articles/`
    b. Parse le Markdown étendu (découpe les slides, extrait les métadonnées)
@@ -1319,11 +1337,14 @@ résumés) — et écrite dans `.lwp-cache/nav.json` (racine du répertoire de
 série, à côté de `articles/`/`templates/`/`public/`, jamais dans l'un de
 ces deux derniers pour les garder tels quels — un artefact de build de
 plus, comme `public/`, mais pas mélangé avec lui). `--nav-cache chemin`
-change cet emplacement. `file` n'entre pas dans ce hash : il sert de *clé*
-à l'empreinte (une empreinte par `file`), donc un `file` qui change — via
-une nouvelle valeur explicite ou une redéduction depuis `source`/le bloc
-meta — change la clé elle-même et est détecté par construction, sans avoir
-besoin d'entrer aussi dans le hash.
+change cet emplacement. `page_dest` n'entre pas dans ce hash : il sert de
+*clé* à l'empreinte (une empreinte par `page_dest`), donc un `page_dest`
+qui change — via une nouvelle valeur explicite ou une redéduction depuis
+`page_source`/le bloc meta — change la clé elle-même et est détecté par
+construction, sans avoir besoin d'entrer aussi dans le hash. Même
+mécanisme pour `draft` : l'empreinte est calculée sur la liste *après*
+filtrage des brouillons, donc basculer un article en brouillon (ou l'en
+sortir) change l'ensemble des clés et force un build complet.
 
 Au lancement de `build --only fichier`, l'empreinte est recalculée pour
 **tous** les articles (rien de coûteux : ne fait que reparser les blocs
@@ -1923,13 +1944,14 @@ les templates. Le remplacement est fait par `str.replace()` en Python.
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{title}}</title>
+{{meta_head}}<title>{{title}}</title>
 <style>
 {{css}}
 </style>
 </head>
 <body>
 
+{{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
 
 <div class="nav-buttons">
@@ -1948,7 +1970,7 @@ les templates. Le remplacement est fait par `str.replace()` en Python.
 </div>
 
 {{slides}}
-
+{{page_footer}}
 <script defer>
 {{js_nav}}
 </script>
@@ -1967,6 +1989,10 @@ Placeholders :
 | `{{slides}}` | Généré par le build | Toutes les `<section class="slide">` |
 | `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, bouton de partage, encodeur QR) |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Chaîne d'interface (voir §7.3), remplacée dans `page.html` **et** dans `js_nav` une fois celui-ci chargé |
+| `{{meta_head}}` | `author`/`page_desc` résolus (§20.3.1) | Balises `<meta name="author">` et `<meta name="description">` (débalisées, échappées) — vides toutes deux = rien d'émis |
+| `{{page_footer}}` | `author`/`date`/`license` résolus (§20.3.1) | Pied de page éditorial (`<footer class="page-footer">`) — tout absent = rien d'émis |
+| `{{build_stamp}}` | `--build-stamp`/`--build-stamp-minimal` (§11.3.2) | Marqueur de fraîcheur du build, vide par défaut |
+| `{{draft_banner}}` | `draft` + `--include-drafts` (§20.6) | Bandeau « Brouillon » centré dans l'en-tête, vide hors brouillon |
 
 Il n'y a pas de fichier `share.js` séparé : le bouton de partage, sa matrice
 et l'encodeur QR font partie de `nav.js`, leurs propres textes sont des
@@ -1992,7 +2018,7 @@ placeholders `{{str_*}}` comme le reste.
 {{intro}}
 
 {{cards}}
-
+{{index_footer}}
 <div class="nav-buttons">
   ...
 </div>
@@ -2012,6 +2038,7 @@ Placeholders supplémentaires :
 | `{{header}}` | Métadonnées de `series.json` | En-tête avec titre, sous-titre, version |
 | `{{intro}}` | Texte d'introduction (dans `series.json` ou un fichier) | Paragraphe d'intro de l'index |
 | `{{cards}}` | Généré depuis `series.json` | Les cartes d'articles |
+| `{{index_footer}}` | `series_meta.author`/`series_meta.license` (§20.3.1) | Pied de page éditorial de la série — tout absent = rien d'émis |
 | `{{js_index}}` | Généré, intégré à l'exécutable | Le JS spécifique à l'index (scroll) — pas overridable (§9). Pas de bouton de partage sur l'index (§9.2.1) |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Infobulles `index_nav_up`/`index_nav_home`/`index_nav_down`, voir §7.3 |
 
@@ -2215,97 +2242,115 @@ de moteur du tout plutôt que d'énumérer des noms de règles à exclure.
   },
   "articles": [
     {
-      "source": "tarte-aux-pommes.md"
+      "page_source": "tarte-aux-pommes.md"
     },
     {
-      "source": "creme-patissiere.md",
+      "page_source": "creme-patissiere.md",
       "card_label": "Article 2 : Les classiques (corrigé)"
     }
   ]
 }
 ```
 
-Un article est **auto-décrit** : à part `source`, aucun champ n'est requis
-dans `series.json` — un article se suffit à lui-même. Le premier
-article ci-dessus n'a que ce seul champ structurel : `file` se déduit de
-`tarte-aux-pommes.md` (→ `tarte-aux-pommes.html`), et `page_title`/
-`nav_title`/`nav_desc`/`card_title`/`card_desc`/`card_label` sont lus
-depuis le bloc meta de `tarte-aux-pommes.md`, ou à défaut extrapolés de son
-contenu (cover, §20.3.1). Le second illustre une surcharge : `card_label`
-prend le pas sur celui du bloc meta de `creme-patissiere.md` sans y
-toucher — les autres champs d'affichage de cet article restent lus depuis
-son propre bloc meta ou son propre contenu.
+Un article est **auto-décrit** : à part `page_source`, aucun champ n'est
+requis dans `series.json` — un article se suffit à lui-même. Le premier
+article ci-dessus n'a que ce seul champ structurel : `page_dest` se déduit
+de `tarte-aux-pommes.md` (→ `tarte-aux-pommes.html`), et `page_title`/
+`page_desc`/`nav_title`/`nav_desc`/`card_title`/`card_desc`/`card_label`
+sont lus depuis le bloc meta de `tarte-aux-pommes.md`, ou à défaut
+extrapolés de son contenu (cover, §20.3.1). Le second illustre une
+surcharge : `card_label` prend le pas sur celui du bloc meta de
+`creme-patissiere.md` sans y toucher — les autres champs d'affichage de
+cet article restent lus depuis son propre bloc meta ou son propre contenu.
+
+Nommage (gel v1.0) : la famille `page_*` regroupe tout ce qui concerne la
+page compilée — sa source (`page_source`), son fichier de destination
+(`page_dest`), son titre (`page_title`), sa description (`page_desc`). Les
+anciens noms `source`/`file` (avant v1.0) produisent une erreur explicite
+de migration, pas un « champ manquant » incompréhensible. Le champ de
+fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 
 ### 20.2 Champs des articles
 
 | Champ | Type | Obligatoire dans `series.json` | Utilisé par | Description |
 |-------|------|-------------|------------|-------------|
-| `source` | string | oui | build | Nom du fichier `.md` source dans `articles/` |
-| `file` | string | non | build, index, nav | Nom du fichier HTML de sortie ; déduit de `source` si absent (§20.3.1) |
+| `page_source` | string | oui | build | Nom du fichier `.md` source dans `articles/` |
+| `page_dest` | string | non | build, index, nav | Nom du fichier HTML de sortie ; déduit de `page_source` si absent (§20.3.1) |
 | `page_title` | string | non | balise `<title>` de la page de l'article | Titre de la page HTML de l'article ; surcharge celui du bloc meta (§20.3.1) |
+| `page_desc` | string | non | `<meta name="description">` de la page | Description de la page (SEO/aperçu de partage) ; surcharge celle du bloc meta (§20.3.1) — jamais affichée dans l'interface visible |
 | `card_title` | string | non | index | Titre de la carte d'index ; surcharge celui du bloc meta (§20.3.1) |
 | `card_desc` | string | non | index | Description de la carte d'index ; surcharge celle du bloc meta (§20.3.1) |
 | `card_label` | string | non | index, nav | Étiquette libre sur la carte d'index et dans le bloc « Cette série » — texte, pas un numéro ; surcharge celle du bloc meta (§20.3.1) |
 | `nav_title` | string | non | nav (carte de navigation intra-article) | Titre affiché quand cet article apparaît dans la navigation d'un autre article ; surcharge celui du bloc meta (§20.3.1) |
 | `nav_desc` | string | non | nav | Description affichée dans ce même contexte ; surcharge celle du bloc meta (§20.3.1) |
+| `author` | string | non | pied de page de l'article + `<meta name="author">` | Auteur de l'article ; surcharge le bloc meta, qui surcharge le défaut `series_meta.author` (§20.3.1) |
+| `license` | string | non | pied de page de l'article | Licence du contenu ; même cascade que `author` (défaut `series_meta.license`) ; HTML brut autorisé (lien) |
+| `date` | string | non | pied de page de l'article (signature) | Date affichée telle quelle (texte libre) ; surcharge le bloc meta ; jamais déduite du mtime (§20.3.1) |
+| `draft` | bool/string | non | build/check | `true` = brouillon, exclu du build sauf `--include-drafts` (§20.6) |
 | `comment` | string | non | aucun — jamais lu | Note de relecture ; ignorée par le build (§4.6) |
 
 ### 20.3 Règles de validation
 
 - Le tableau `articles` est **ordonné** : l'ordre des entrées définit l'ordre
   des articles dans la navigation et l'index.
-- `file` (une fois résolu, §20.3.1) doit être unique dans le tableau (pas de
-  doublons) — erreur fatale sinon.
-- `source` est **obligatoire** et doit être non vide sur chaque entrée —
-  erreur fatale sinon, avec l'index de l'entrée en cause. `file` ne l'est
-  **pas** : absent, il se déduit de `source` (§20.3.1). Aucun autre champ
-  n'est obligatoire *dans `series.json`* — `page_title`/`card_title`/
-  `card_desc`/`card_label`/`nav_title`/`nav_desc` se résolvent selon
-  §20.3.1.
-- `source` doit être un simple nom de fichier, sans séparateur de chemin ni
-  `..` — erreur fatale sinon. Même règle pour `file` quand il est donné
-  explicitement (dans `series.json` ou le bloc meta de l'article) —
-  `series.json` est une donnée éditable par un LLM ou une CI non surveillée
-  (§13.5) ; sans cette validation, une valeur comme `/etc/passwd` ou
-  `../../.ssh/id_rsa` serait jointe telle quelle au répertoire attendu
-  (`Path(dir) / valeur` ignore silencieusement `dir` quand `valeur` est un
-  chemin absolu) et permettrait une lecture ou une écriture de fichier
-  arbitraire hors de `articles/`/`public/`.
-- `source` doit se terminer par `.md` (insensible à la casse) et `file`
-  (une fois résolu, qu'il soit explicite ou déduit) par `.html` ou `.htm`
-  (insensible à la casse) — erreur fatale sinon, avec le même traitement
-  que le contrôle de sécurité ci-dessus : sans ça, une valeur comme
-  `"file": "a.md"` construit sans avertissement un `public/a.md` contenant
-  du HTML rendu, une extension de sortie incohérente qu'aucun choix
-  éditorial ne justifie. `.htm` est accepté au même titre que `.html` :
-  extension standard, toujours utile sur les systèmes de fichiers limités à
-  trois lettres (FAT 8.3 et dérivés, certains hébergements ou
+- Les anciens noms `source`/`file` (retirés au gel v1.0) produisent une
+  **erreur fatale de migration explicite** (« renommé en page_source/
+  page_dest à la v1.0 »), détectée avant toute autre validation.
+- `page_dest` (une fois résolu, §20.3.1) doit être unique dans le tableau
+  (pas de doublons) — erreur fatale sinon.
+- `page_source` est **obligatoire** et doit être non vide sur chaque entrée —
+  erreur fatale sinon, avec l'index de l'entrée en cause. `page_dest` ne
+  l'est **pas** : absent, il se déduit de `page_source` (§20.3.1). Aucun
+  autre champ n'est obligatoire *dans `series.json`* — les champs
+  d'affichage et éditoriaux se résolvent selon §20.3.1.
+- `page_source` doit être un simple nom de fichier, sans séparateur de
+  chemin ni `..` — erreur fatale sinon. Même règle pour `page_dest` quand
+  il est donné explicitement (dans `series.json` ou le bloc meta de
+  l'article) — `series.json` est une donnée éditable par un LLM ou une CI
+  non surveillée (§13.5) ; sans cette validation, une valeur comme
+  `/etc/passwd` ou `../../.ssh/id_rsa` serait jointe telle quelle au
+  répertoire attendu (`Path(dir) / valeur` ignore silencieusement `dir`
+  quand `valeur` est un chemin absolu) et permettrait une lecture ou une
+  écriture de fichier arbitraire hors de `articles/`/`public/`.
+- `page_source` doit se terminer par `.md` (insensible à la casse) et
+  `page_dest` (une fois résolu, qu'il soit explicite ou déduit) par `.html`
+  ou `.htm` (insensible à la casse) — erreur fatale sinon, avec le même
+  traitement que le contrôle de sécurité ci-dessus : sans ça, une valeur
+  comme `"page_dest": "a.md"` construit sans avertissement un `public/a.md`
+  contenant du HTML rendu, une extension de sortie incohérente qu'aucun
+  choix éditorial ne justifie. `.htm` est accepté au même titre que
+  `.html` : extension standard, toujours utile sur les systèmes de fichiers
+  limités à trois lettres (FAT 8.3 et dérivés, certains hébergements ou
   environnements embarqués) ; la restreindre à `.html` seul briserait cet
   usage sans apport de sécurité, le risque visé (extension de sortie
   incohérente) étant identique pour toute extension qui n'est ni l'une ni
   l'autre.
-- `source` doit pointer vers un fichier qui existe dans `articles/` — sinon
-  cette entrée est ignorée (avertissement, pas d'arrêt du build).
+- `page_source` doit pointer vers un fichier qui existe dans `articles/` —
+  sinon cette entrée est ignorée (avertissement, pas d'arrêt du build).
 
 #### 20.3.1 Résolution des champs (surcharge et déduction de contenu)
 
-`file`, `page_title`, `card_title`, `card_desc`, `card_label`, `nav_title`
-et `nav_desc` ne sont jamais requis dans `series.json` lui-même : chacun a
-une valeur par défaut, lue dans le bloc meta de l'article correspondant
-(même nom de champ — ex. `card_title:` dans le `.md`, §4.2), et
-`series.json` ne sert qu'à la corriger pour un article donné, sans toucher
-au fichier source. Quand le bloc meta ne le précise pas non plus, chaque
-champ retombe sur une valeur **extrapolée du contenu déjà écrit** par
-l'auteur, plutôt que d'exiger une saisie redondante :
+À part `page_source`, aucun champ n'est jamais requis dans `series.json`
+lui-même : chacun a une valeur par défaut, lue dans le bloc meta de
+l'article correspondant (même nom de champ — ex. `card_title:` dans le
+`.md`, §4.2), et `series.json` ne sert qu'à la corriger pour un article
+donné, sans toucher au fichier source. Quand le bloc meta ne le précise
+pas non plus, chaque champ retombe sur une valeur **extrapolée du contenu
+déjà écrit** par l'auteur (ou, pour les champs éditoriaux, héritée de
+`series_meta`), plutôt que d'exiger une saisie redondante :
 
 ```
-file        : series.json  >  meta (file:)         >  source, .md → .html
-page_title  : series.json  >  meta (page_title:)    >  slide_title de la fiche cover  >  file (résolu)
+page_dest   : series.json  >  meta (page_dest:)     >  page_source, .md → .html
+page_title  : series.json  >  meta (page_title:)    >  slide_title de la fiche cover  >  page_dest (résolu)
+page_desc   : series.json  >  meta (page_desc:)     >  summary de la fiche cover  >  balise omise
 card_title  : series.json  >  meta (card_title:)    >  page_title (résolu)
 card_desc   : series.json  >  meta (card_desc:)      >  summary de la fiche cover
 card_label  : series.json  >  meta (card_label:)     >  '' (rien à en extrapoler)
 nav_title   : series.json  >  meta (nav_title:)      >  card_title (résolu)
 nav_desc    : series.json  >  meta (nav_desc:)       >  card_desc (résolu)
+author      : series.json  >  meta (author:)         >  series_meta.author   >  '' (rien d'affiché)
+license     : series.json  >  meta (license:)        >  series_meta.license  >  '' (rien d'affiché)
+date        : series.json  >  meta (date:)           >  '' (rien d'affiché — jamais le mtime)
 ```
 
 Ordre de résolution, pour chaque champ, du plus prioritaire au moins
@@ -2318,18 +2363,47 @@ prioritaire :
 3. **Repli**, selon le tableau ci-dessus, si absent des deux niveaux
    précédents. Rien dans cette chaîne n'est une erreur fatale : chaque
    champ finit toujours par se résoudre à quelque chose, au pire le nom de
-   fichier lui-même — `card_label` est le seul sans repli de contenu (rien
-   d'évident à en extrapoler), et reste alors simplement vide, sans que ce
-   soit considéré comme une erreur.
+   fichier lui-même ou une valeur vide (rendu alors simplement omis).
+   `audit` (§11.5) signale un article dont `page_desc` reste vide partout
+   (page publiée sans `<meta name="description">`) — avertir plutôt que
+   substituer.
 
-Cette chaîne à deux étages (nav_title → card_title → page_title → contenu
-de la fiche cover) reflète deux contextes d'affichage réellement distincts,
-pas une redondance : `card_title`/`card_desc` pilotent la carte de la page
-d'index, `nav_title`/`nav_desc` pilotent la carte de navigation affichée
-**dans la page d'un autre article** — un lecteur peut donc voir un texte
-différent selon qu'il découvre l'article depuis l'index ou depuis la
-navigation d'un article voisin, sans avoir à ressaisir la même information
-deux fois si la distinction n'est pas utile pour un article donné.
+La chaîne des titres se chaîne (nav_title → card_title → page_title →
+contenu de la fiche cover) parce qu'elle reflète des contextes d'affichage
+réellement distincts, pas une redondance : `card_title`/`card_desc`
+pilotent la carte de la page d'index, `nav_title`/`nav_desc` la carte de
+navigation affichée **dans la page d'un autre article** — un lecteur peut
+donc voir un texte différent selon qu'il découvre l'article depuis l'index
+ou depuis la navigation d'un article voisin, sans avoir à ressaisir la
+même information deux fois si la distinction n'est pas utile.
+
+**Les descriptions, elles, ne se chaînent PAS entre elles — asymétrie
+intentionnelle.** `page_desc` et `card_desc` sont deux branches parallèles
+issues du même summary de cover, jamais l'une de l'autre : `page_desc` est
+une métadonnée invisible (SEO, aperçu de partage), `card_desc` de
+l'interface visible. Chaîner `card_desc` sur `page_desc` ferait fuiter un
+texte optimisé pour le référencement sur les cartes d'index visibles. Ne
+pas « corriger » cette asymétrie.
+
+**Champs éditoriaux (`author`/`license`/`date`) et leurs rendus.** Nouveau
+motif de cascade : l'article se replie sur un défaut *de série*
+(`series_meta.author`/`series_meta.license` — pas de défaut de série pour
+`date`, propre à chaque article). Contrairement aux champs d'affichage
+ci-dessus, ils sont rendus hors des fiches :
+
+- `author` + `date` : signature discrète en pied de la page de l'article
+  (`<footer class="page-footer">`, « Auteur — date ») ; `author` alimente
+  aussi `<meta name="author">` (débalisé et échappé — contexte attribut).
+- `license` : mention en pied de la page de l'article ; HTML brut autorisé
+  (un lien vers la licence, §6.2).
+- La page d'index porte son propre pied de page avec les valeurs **de
+  série** (`series_meta.author`/`series_meta.license`) — les valeurs par
+  article restent sur les pages des articles.
+- `date` est affichée **telle quelle** (texte libre) et n'est jamais
+  déduite du mtime du fichier : le build resterait sinon non reproductible
+  octet par octet, ce sur quoi `check` (§11.4) repose.
+- Ces champs traversent le moteur typographique comme tout contenu visible ;
+  absents partout, aucun pied de page n'est émis (pas de bloc vide).
 
 ### 20.4 Métadonnées de la série (`series_meta`)
 
@@ -2348,12 +2422,32 @@ direct (rétrocompatible avec un format de série déjà utilisé).
 | `subtitle` | string | non | Sous-titre sur la page d'index |
 | `version` | string | non | Version affichée (ex. `v0.13`) |
 | `intro` | string | non | Paragraphe d'introduction de l'index |
+| `author` | string | non | Auteur par défaut de toute la série (§20.3.1) ; affiché en pied de la page d'index, et sur chaque article qui ne le surcharge pas |
+| `license` | string | non | Licence par défaut de toute la série (§20.3.1) ; même affichage que `author` ; HTML brut autorisé (lien) |
 | `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
 
 Le template d'index enveloppe `intro` dans un unique `<p>` fixe
 (`<p>{{series_intro}}</p>`) : pour plusieurs paragraphes, insérer
 `</p>\n<p>` dans la valeur — HTML brut passthrough, cohérent avec le
 reste (§6.2).
+
+### 20.6 Statut brouillon (`draft`)
+
+`draft: true` (booléen JSON ou chaîne `"true"`, insensible à la casse ;
+**toute autre valeur = pas brouillon**) marque un article comme brouillon.
+Posable dans l'entrée `series.json` ou le bloc meta de l'article ;
+`series.json` prioritaire — y compris avec une valeur explicitement
+fausse : `"draft": false` dans `series.json` l'emporte sur un
+`draft: true` resté dans le bloc meta.
+
+Par défaut, un article brouillon est **entièrement exclu** du build : pas
+de page générée, pas de carte d'index, pas d'entrée dans le bloc « Cette
+série » des autres articles — comme s'il n'était pas listé (un message
+informatif `[draft] x.html skipped` le rappelle). `--include-drafts`
+(build **et** check) construit tout, chaque page brouillon portant alors
+le bandeau décrit en §11.3. `audit`, lui, n'exclut jamais les brouillons :
+c'est un outil d'écriture, le travail en cours est précisément ce qu'il
+doit regarder.
 
 ---
 
@@ -2448,8 +2542,8 @@ Autorisé. La page ne contient que des fiches, sans article de fond.
 Erreur fatale. Le build s'arrête avec un message indiquant le fichier et le
 numéro de slide. Même chose si `article:` est présent mais n'est pas un
 simple nom de fichier (séparateur de chemin ou `..` détecté) — même risque
-de lecture de fichier arbitraire que pour `file`/`source` dans `series.json`
-(§20.3).
+de lecture de fichier arbitraire que pour `page_dest`/`page_source` dans
+`series.json` (§20.3).
 
 ### 22.7 `---` au tout début du fichier (avant `<!-- lwp:meta -->`)
 

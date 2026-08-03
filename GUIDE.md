@@ -132,20 +132,22 @@ Register every article that should appear in navigation in
     "intro": "Series introduction."
   },
   "articles": [
-    {"source": "apple-pie.md"}
+    {"page_source": "apple-pie.md"}
   ]
 }
 ```
 
-`source` — a bare filename, no path — is the only field ever required
-directly here. Each article is self-described: `file` (the output HTML
-name), `page_title`, `card_title`/`card_desc`/`card_label`, and
-`nav_title`/`nav_desc` all default to values derived from the article's
-own meta block and cover slide, and any of them can be overridden per
-entry here when you want `series.json` to have the final say. The array
-order is the navigation and index order. The full fallback chain for
-each field is covered in `SKILL.md`, since it's really about the article
-format, not about `series.json` itself.
+`page_source` — a bare filename, no path — is the only field ever
+required directly here. Each article is self-described: `page_dest` (the
+output HTML name), `page_title`/`page_desc`,
+`card_title`/`card_desc`/`card_label`, `nav_title`/`nav_desc`, and the
+editorial fields (`author`/`license`/`date`, defaulting series-wide from
+`series_meta`) all resolve from the article's own meta block and cover
+slide, and any of them can be overridden per entry here when you want
+`series.json` to have the final say. `draft: true` keeps an article out
+of the build until it's ready (`--include-drafts` previews it, with a
+banner). The array order is the navigation and index order. The full
+fallback chain for each field is covered in `GLOSSARY.md`.
 
 ## 6. Verifying before you ship
 

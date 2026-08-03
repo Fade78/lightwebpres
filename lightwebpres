@@ -9,8 +9,8 @@ rules + interface strings).
 Usage:
   lightwebpres install [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr]
-  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path]
-  lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts]
+  lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres refresh-templates [directory]
   lightwebpres themes-gallery [path]
@@ -34,7 +34,7 @@ from html.parser import HTMLParser
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -101,6 +101,7 @@ LANG_FR = r'''{
     "series_current_status": "En cours de lecture",
     "series_back_to_index": "Retour à l'index",
     "series_untitled_fallback": "Série d'articles",
+    "draft_banner": "Brouillon",
     "full_article_tag": "Article complet",
     "source_label": "Source",
     "copy_link": "Copier le lien",
@@ -137,6 +138,7 @@ LANG_EN = r'''{
     "series_current_status": "Currently reading",
     "series_back_to_index": "Back to index",
     "series_untitled_fallback": "Article series",
+    "draft_banner": "Draft",
     "full_article_tag": "Full article",
     "source_label": "Source",
     "copy_link": "Copy link",
@@ -445,6 +447,14 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     margin-top: 16px;
     max-width: var(--content-max);
   }
+  .page-footer {
+    padding: 20px 8vw 28px;
+    font-size: 12px;
+    color: var(--grey);
+    border-top: 1px solid #e0e0d8;
+  }
+  .page-footer .footer-byline { margin-bottom: 4px; }
+  .page-footer .footer-license a { color: inherit; }
   .slide-cover { background: var(--dark); color: white; }
   .slide-cover h1 { color: white; }
   .slide-cover .summary { color: #c8c8d0; }
@@ -1556,14 +1566,14 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{title}}</title>
+{{meta_head}}<title>{{title}}</title>
 <style>
 {{css}}
 </style>
 </head>
 <body>
 
-{{build_stamp}}
+{{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
 
 <div class="nav-buttons">
@@ -1602,7 +1612,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 </div>
 
 {{slides}}
-
+{{page_footer}}
 <script defer>
 {{js_nav}}
 </script>
@@ -1634,7 +1644,7 @@ TEMPLATE_INDEX = '''<!DOCTYPE html>
 </div>
 
 {{cards}}
-
+{{index_footer}}
 <div class="nav-buttons">
   <div class="nav-btn" id="navUp" title="{{str_index_nav_up}}">&#8593;</div>
   <div class="nav-btn nav-btn-home" id="navHome" title="{{str_index_nav_home}}">&#127968;</div>
@@ -2959,7 +2969,7 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
         label = apply_typo(typo_engine, entry.get('card_label', ''))
         title = apply_typo(typo_engine, entry['nav_title'])
         desc = apply_typo(typo_engine, entry['nav_desc'])
-        if entry['file'] == current_file:
+        if entry['page_dest'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
                 label=label,
                 title=title,
@@ -2967,7 +2977,7 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
                 status=current_status))
         else:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
-                file=html_escape(entry['file'], quote=True),
+                file=html_escape(entry['page_dest'], quote=True),
                 label=label,
                 title=title,
                 desc=desc,
@@ -3007,16 +3017,30 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         label = apply_typo(typo_engine, entry.get('card_label', ''))
         card_title = apply_typo(typo_engine, entry.get('card_title', ''))
         card_desc = apply_typo(typo_engine, entry.get('card_desc', ''))
-        # href is an attribute context: entry['file'] is validated to be a
+        # href is an attribute context: entry['page_dest'] is validated to be a
         # plain filename (validate_series), but it's escaped here too as
         # defense in depth against a future validation gap.
-        card = f'''<a href="{html_escape(entry['file'], quote=True)}" class="article-card">
+        card = f'''<a href="{html_escape(entry['page_dest'], quote=True)}" class="article-card">
   <div class="article-number">{label}</div>
   <div class="article-title">{card_title}</div>
   <div class="article-desc">{card_desc}</div>
   <div class="article-cta">→ {read}</div>
 </a>'''
         cards.append(card)
+
+    # Index footer — the series-wide author/license (series_meta only:
+    # per-article values belong on the articles' own pages). Raw HTML
+    # passthrough like every visible rendering (§6.2).
+    index_footer = ''
+    footer_author = apply_typo(typo_engine, meta.get('author', ''))
+    footer_license = apply_typo(typo_engine, meta.get('license', ''))
+    footer_parts = []
+    if footer_author:
+        footer_parts.append(f'  <div class="footer-byline">{footer_author}</div>')
+    if footer_license:
+        footer_parts.append(f'  <div class="footer-license">{footer_license}</div>')
+    if footer_parts:
+        index_footer = '<footer class="page-footer">\n' + '\n'.join(footer_parts) + '\n</footer>'
 
     html = TEMPLATE_INDEX
     html = html.replace('{{lang}}', lang)
@@ -3027,6 +3051,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     html = html.replace('{{series_version}}', version)
     html = html.replace('{{series_intro}}', intro)
     html = html.replace('{{cards}}', '\n'.join(cards))
+    html = html.replace('{{index_footer}}', index_footer)
     html = html.replace('{{js_index}}', apply_strings(TEMPLATE_INDEX_JS, strings))
     html = html.replace('{{index_extra}}', index_extra)
     html = html.replace('{{build_stamp}}', build_stamp)
@@ -3058,9 +3083,9 @@ def build_readme(series_data, sd, output_dir, strings):
     lines.append('## Articles')
     lines.append('')
     for i, entry in enumerate(articles, 1):
-        article_title = entry.get('nav_title', entry.get('file', ''))
+        article_title = entry.get('nav_title', entry.get('page_dest', ''))
         article_desc = entry.get('nav_desc', '')
-        link = os.path.relpath(output_dir / entry['file'], start=sd)
+        link = os.path.relpath(output_dir / entry['page_dest'], start=sd)
         if article_desc:
             lines.append(f'{i}. [{article_title}]({link}) — {article_desc}')
         else:
@@ -3196,25 +3221,76 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                 print(f'  [ERROR] Article file not found: {slide.article_file}', file=sys.stderr)
 
     # Page title — the already-resolved page_title (series.json > article
-    # meta > cover slide's own slide_title > file, see
+    # meta > cover slide's own slide_title > page_dest, see
     # resolve_article_fields()), not a fresh re-read of the meta block
     # here: series.json's own override would never reach this function
     # otherwise.
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
-    own_entry = next((e for e in articles if e.get('file') == current_file), None)
+    own_entry = next((e for e in articles if e.get('page_dest') == current_file), None)
     title = own_entry['page_title'] if own_entry else meta.get('page_title', current_file)
     # Strip HTML tags from the title
     title_clean = strip_ws(re.sub(r'<[^>]+>', ' ', title))
     title_clean = apply_typo(article_typo_engine, title_clean, disabled_rules)
 
+    # <head> metadata — author and description, both attribute contexts:
+    # tag-stripped (they may legitimately carry inline HTML for the
+    # visible renderings, §6.2, but an attribute can't) and quote-escaped.
+    # Omitted entirely when empty, never an empty content="".
+    meta_head = ''
+    if own_entry:
+        for name, value in (('author', own_entry.get('author', '')),
+                            ('description', own_entry.get('page_desc', ''))):
+            if value:
+                clean = strip_ws(re.sub(r'<[^>]+>', ' ', value))
+                clean = apply_typo(article_typo_engine, clean, disabled_rules)
+                meta_head += f'<meta name="{name}" content="{html_escape(clean, quote=True)}">\n'
+
+    # Page footer — byline (author, date) + license, visible renderings:
+    # raw HTML passthrough like all body content (§6.2), typography
+    # applied via this article's own engine (it IS this page's content).
+    page_footer = ''
+    if own_entry:
+        author = apply_typo(article_typo_engine, own_entry.get('author', ''), disabled_rules)
+        date = apply_typo(article_typo_engine, own_entry.get('date', ''), disabled_rules)
+        license_text = apply_typo(article_typo_engine, own_entry.get('license', ''), disabled_rules)
+        byline = ' — '.join(part for part in (author, date) if part)
+        parts = []
+        if byline:
+            parts.append(f'  <div class="footer-byline">{byline}</div>')
+        if license_text:
+            parts.append(f'  <div class="footer-license">{license_text}</div>')
+        if parts:
+            page_footer = '<footer class="page-footer">\n' + '\n'.join(parts) + '\n</footer>'
+
+    # Draft banner — only ever reachable under --include-drafts (drafts
+    # are filtered out of the build entirely otherwise). Inline-styled
+    # for the same staleness reason as the build stamp (see
+    # build_stamp_html): a series' own templates/style.css predating this
+    # feature has no .draft-banner rule, and a preview must NEVER look
+    # like a publication because of a stale stylesheet.
+    draft_banner = ''
+    if own_entry and own_entry.get('draft'):
+        banner_text = strings.get('draft_banner', 'Draft')
+        banner_style = (
+            'position:absolute;top:14px;left:50%;transform:translateX(-50%);'
+            'background:#ff4757;color:white;padding:3px 12px;border-radius:4px;'
+            'font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;'
+            'z-index:60;pointer-events:none;'
+            "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
+        )
+        draft_banner = f'<div class="draft-banner" style="{banner_style}">{banner_text}</div>'
+
     # Assemble the page
     html = TEMPLATE_PAGE
     html = html.replace('{{lang}}', lang)
     html = html.replace('{{title}}', title_clean)
+    html = html.replace('{{meta_head}}', meta_head)
     html = html.replace('{{css}}', css)
     html = html.replace('{{slides}}', slides_html)
+    html = html.replace('{{page_footer}}', page_footer)
     html = html.replace('{{js_nav}}', nav_js)
     html = html.replace('{{build_stamp}}', build_stamp)
+    html = html.replace('{{draft_banner}}', draft_banner)
     html = apply_strings(html, strings)
 
     validate_html(html, current_file)
@@ -3254,22 +3330,30 @@ def load_series_data(series_dir):
     return data
 
 
-def validate_series(articles):
-    """Rejects series.json structural errors (§20.3): `source` must be
-    present, non-empty, a plain filename (no path separators, no "..") and
-    end in .md on every entry — otherwise the build crashes on a raw
-    KeyError instead of a clear message, or (source being joined into a
-    real filesystem path with no other containment check) a malicious or
-    LLM-mangled entry reads an arbitrary file outside articles/ (Path(dir)
-    / value silently ignores `dir` when `value` is an absolute path).
+# Field names retired by the v1.0 nomenclature freeze (JOURNAL-1.0.md §2.1),
+# mapped to their replacements — recognized only to produce a clear
+# migration error instead of a mystifying "missing required field".
+_LEGACY_SERIES_FIELDS = {'source': 'page_source', 'file': 'page_dest'}
 
-    `file` is NOT required here (§20.3.1) — it resolves later, once
+
+def validate_series(articles):
+    """Rejects series.json structural errors (§20.3): `page_source` must
+    be present, non-empty, a plain filename (no path separators, no "..")
+    and end in .md on every entry — otherwise the build crashes on a raw
+    KeyError instead of a clear message, or (page_source being joined
+    into a real filesystem path with no other containment check) a
+    malicious or LLM-mangled entry reads an arbitrary file outside
+    articles/ (Path(dir) / value silently ignores `dir` when `value` is
+    an absolute path).
+
+    `page_dest` is NOT required here (§20.3.1) — it resolves later, once
     resolve_article_fields() has had a chance to read the article's own
-    meta block or derive it from `source`. An EXPLICIT `file` already in
-    series.json still gets the same safety/extension check right here,
-    since that doesn't depend on reading anything else; uniqueness of the
-    final, resolved `file` across every entry is checked at the end of
-    resolve_article_fields() instead, once every entry actually has one.
+    meta block or derive it from `page_source`. An EXPLICIT `page_dest`
+    already in series.json still gets the same safety/extension check
+    right here, since that doesn't depend on reading anything else;
+    uniqueness of the final, resolved `page_dest` across every entry is
+    checked at the end of resolve_article_fields() instead, once every
+    entry actually has one.
 
     page_title/card_title/card_desc/card_label/nav_title/nav_desc are NOT
     checked here either — per §20.3.1 they're optional overrides of the
@@ -3277,28 +3361,34 @@ def validate_series(articles):
     requires reading that meta block first, which this function
     (series.json-only) can't do; see resolve_article_fields()."""
     for i, entry in enumerate(articles, 1):
-        if not entry.get('source'):
-            print(f'[ERROR] series.json: entry {i} is missing required '
-                  f'field "source".', file=sys.stderr)
-            sys.exit(1)
-        if not _is_safe_relative_filename(entry['source']):
-            print(f'[ERROR] series.json: entry {i} has an unsafe "source" '
-                  f'value "{entry["source"]}" (must be a plain filename, no '
-                  f'path separators, no "..").', file=sys.stderr)
-            sys.exit(1)
-        if not entry['source'].lower().endswith('.md'):
-            print(f'[ERROR] series.json: entry {i} has a "source" value '
-                  f'"{entry["source"]}" that does not end in .md.', file=sys.stderr)
-            sys.exit(1)
-        if entry.get('file') is not None:
-            if not _is_safe_relative_filename(entry['file']):
-                print(f'[ERROR] series.json: entry {i} has an unsafe "file" '
-                      f'value "{entry["file"]}" (must be a plain filename, no '
-                      f'path separators, no "..").', file=sys.stderr)
+        for legacy, renamed in _LEGACY_SERIES_FIELDS.items():
+            if legacy in entry:
+                print(f'[ERROR] series.json: entry {i} uses "{legacy}", '
+                      f'renamed to "{renamed}" in v1.0 — just rename the '
+                      f'key, the value is unchanged.', file=sys.stderr)
                 sys.exit(1)
-            if not entry['file'].lower().endswith(('.html', '.htm')):
-                print(f'[ERROR] series.json: entry {i} has a "file" value '
-                      f'"{entry["file"]}" that does not end in .html or .htm.', file=sys.stderr)
+        if not entry.get('page_source'):
+            print(f'[ERROR] series.json: entry {i} is missing required '
+                  f'field "page_source".', file=sys.stderr)
+            sys.exit(1)
+        if not _is_safe_relative_filename(entry['page_source']):
+            print(f'[ERROR] series.json: entry {i} has an unsafe '
+                  f'"page_source" value "{entry["page_source"]}" (must be a '
+                  f'plain filename, no path separators, no "..").', file=sys.stderr)
+            sys.exit(1)
+        if not entry['page_source'].lower().endswith('.md'):
+            print(f'[ERROR] series.json: entry {i} has a "page_source" value '
+                  f'"{entry["page_source"]}" that does not end in .md.', file=sys.stderr)
+            sys.exit(1)
+        if entry.get('page_dest') is not None:
+            if not _is_safe_relative_filename(entry['page_dest']):
+                print(f'[ERROR] series.json: entry {i} has an unsafe '
+                      f'"page_dest" value "{entry["page_dest"]}" (must be a '
+                      f'plain filename, no path separators, no "..").', file=sys.stderr)
+                sys.exit(1)
+            if not entry['page_dest'].lower().endswith(('.html', '.htm')):
+                print(f'[ERROR] series.json: entry {i} has a "page_dest" value '
+                      f'"{entry["page_dest"]}" that does not end in .html or .htm.', file=sys.stderr)
                 sys.exit(1)
 
 
@@ -3313,13 +3403,13 @@ def _find_cover_slide(slides):
     return next((s for s in slides if s.slide_type == 'cover'), None)
 
 
-def resolve_article_fields(articles, articles_dir):
-    """Resolves `file` and the display fields (page_title, card_title,
-    card_desc, card_label, nav_title, nav_desc) for every entry, per
-    §20.3.1. Mutates each entry in place so downstream renderers
-    (build_article, build_series_nav, build_index, build_readme) can read
-    the fields directly, with every override/fallback already applied —
-    none of them need to know this mechanism exists.
+def resolve_article_fields(articles, articles_dir, series_meta=None):
+    """Resolves `page_dest` and the display/editorial fields for every
+    entry, per §20.3.1. Mutates each entry in place so downstream
+    renderers (build_article, build_series_nav, build_index,
+    build_readme) can read the fields directly, with every
+    override/fallback already applied — none of them need to know this
+    mechanism exists.
 
     Must run once, after validate_series and before any of those
     renderers — build_series_nav in particular renders every OTHER
@@ -3329,44 +3419,66 @@ def resolve_article_fields(articles, articles_dir):
 
     Resolution order, per field, most specific wins:
 
-      file        : series.json > article meta (`file:`) > derived from
-                    `source` (.md -> .html)
+      page_dest   : series.json > article meta (`page_dest:`) > derived
+                    from `page_source` (.md -> .html)
       page_title  : series.json > article meta > the cover slide's own
-                    slide_title > the resolved `file`
+                    slide_title > the resolved `page_dest`
+      page_desc   : series.json > article meta > the cover slide's summary
+                    > '' (the <meta name="description"> tag is omitted)
       card_title  : series.json > article meta > page_title (resolved)
       card_desc   : series.json > article meta > the cover slide's summary
       card_label  : series.json > article meta > '' (nothing sensible to
                     extrapolate a short label from)
       nav_title   : series.json > article meta > card_title (resolved)
       nav_desc    : series.json > article meta > card_desc (resolved)
+      author      : series.json > article meta > series_meta (series-wide
+                    default) > '' (nothing shown)
+      license     : series.json > article meta > series_meta > ''
+      date        : series.json > article meta > '' (per-article only —
+                    no series-wide default, and never derived from file
+                    mtime: that would break byte-for-byte reproducibility)
+      draft       : series.json > article meta > not a draft. Only the
+                    exact value true/"true" (case-insensitive) marks a
+                    draft; anything else doesn't.
 
-    A source file that doesn't exist can't be read for its meta block or
-    slides; that case is already a non-fatal warning elsewhere (source not
-    found), so every field here just falls through to its
-    filesystem-independent default (derived `file`, or '') instead of
-    erroring a second time."""
+    card_desc deliberately does NOT fall back through page_desc (and vice
+    versa): page_desc is invisible metadata (SEO/share preview),
+    card_desc is visible UI — an SEO-tuned page_desc must never leak
+    onto the index cards. The titles chain (page > card > nav); the
+    descriptions are parallel branches off the same cover summary. That
+    asymmetry is intentional (§20.3.1).
+
+    A page_source file that doesn't exist can't be read for its meta
+    block or slides; that case is already a non-fatal warning elsewhere,
+    so every field here just falls through to its filesystem-independent
+    default (derived `page_dest`, or '') instead of erroring a second
+    time."""
+    series_meta = series_meta or {}
     for entry in articles:
-        source_path = articles_dir / entry['source']
+        source_path = articles_dir / entry['page_source']
         meta, slides = {}, []
         if source_path.exists():
             meta, slides, _ = parse_markdown_extended(source_path.read_text(encoding='utf-8'))
         cover = _find_cover_slide(slides)
+        cover_summary = cover.summary if cover and cover.summary else ''
 
-        if not entry.get('file'):
-            entry['file'] = meta.get('file') or re.sub(r'\.md$', '.html', entry['source'], flags=re.IGNORECASE)
-            if not _is_safe_relative_filename(entry['file']) or not entry['file'].lower().endswith(('.html', '.htm')):
-                print(f'[ERROR] {entry["source"]}: resolved "file" value '
-                      f'"{entry["file"]}" is not a safe .html/.htm filename '
+        if not entry.get('page_dest'):
+            entry['page_dest'] = meta.get('page_dest') or re.sub(r'\.md$', '.html', entry['page_source'], flags=re.IGNORECASE)
+            if not _is_safe_relative_filename(entry['page_dest']) or not entry['page_dest'].lower().endswith(('.html', '.htm')):
+                print(f'[ERROR] {entry["page_source"]}: resolved "page_dest" value '
+                      f'"{entry["page_dest"]}" is not a safe .html/.htm filename '
                       f'(from the article\'s own meta block).', file=sys.stderr)
                 sys.exit(1)
 
         if not entry.get('page_title'):
-            entry['page_title'] = meta.get('page_title') or (cover.h1 if cover and cover.h1 else '') or entry['file']
+            entry['page_title'] = meta.get('page_title') or (cover.h1 if cover and cover.h1 else '') or entry['page_dest']
+        if not entry.get('page_desc'):
+            entry['page_desc'] = meta.get('page_desc') or cover_summary
 
         if not entry.get('card_title'):
             entry['card_title'] = meta.get('card_title') or entry['page_title']
         if not entry.get('card_desc'):
-            entry['card_desc'] = meta.get('card_desc') or (cover.summary if cover and cover.summary else '')
+            entry['card_desc'] = meta.get('card_desc') or cover_summary
         if not entry.get('card_label'):
             entry['card_label'] = meta.get('card_label', '')
 
@@ -3375,11 +3487,24 @@ def resolve_article_fields(articles, articles_dir):
         if not entry.get('nav_desc'):
             entry['nav_desc'] = meta.get('nav_desc') or entry['card_desc']
 
+        if not entry.get('author'):
+            entry['author'] = meta.get('author') or series_meta.get('author', '')
+        if not entry.get('license'):
+            entry['license'] = meta.get('license') or series_meta.get('license', '')
+        if not entry.get('date'):
+            entry['date'] = meta.get('date', '')
+
+        # series.json wins even with an explicit falsy value there, so
+        # `"draft": false` in series.json can override a `draft: true`
+        # left in the meta block.
+        draft_value = entry['draft'] if 'draft' in entry else meta.get('draft', '')
+        entry['draft'] = str(draft_value).strip().lower() == 'true'
+
     seen = {}
     for i, entry in enumerate(articles, 1):
-        f = entry['file']
+        f = entry['page_dest']
         if f in seen:
-            print(f'[ERROR] series.json: duplicate file "{f}" (articles {seen[f]} '
+            print(f'[ERROR] series.json: duplicate page_dest "{f}" (articles {seen[f]} '
                   f'and {i}).', file=sys.stderr)
             sys.exit(1)
         seen[f] = i
@@ -3411,7 +3536,7 @@ def compute_nav_fingerprint(articles):
     article added/removed, or a DIFFERENT article's meta/series.json entry
     having changed since the last build, not only the one named by
     --only."""
-    return {entry['file']: _entry_fingerprint(entry) for entry in articles}
+    return {entry['page_dest']: _entry_fingerprint(entry) for entry in articles}
 
 
 def default_nav_cache_path(series_dir):
@@ -3504,7 +3629,7 @@ def build_stamp_html(version, minimal=False):
         # a series' own custom property definitions, not just its rules.
         'position:absolute;top:16px;left:20px;font-size:11px;color:#6b6b7d;'
         'letter-spacing:0.3px;opacity:0.75;z-index:50;pointer-events:none;'
-        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;'
+        "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
     )
     return f'<div class="build-stamp" style="{style}">{text}</div>'
 
@@ -3541,9 +3666,25 @@ def load_build_context(series_dir, args):
     nav_js = apply_strings(nav_js, strings)
 
     series_data = load_series_data(sd)
+    series_meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
-    resolve_article_fields(articles, articles_dir)
+    resolve_article_fields(articles, articles_dir, series_meta)
+
+    # Draft articles are excluded from the build entirely — no page, no
+    # index card, no entry in the other articles' series-nav blocks —
+    # unless --include-drafts (authors, GUI preview). Filtering the list
+    # that series_data itself references (in place, not a copy) keeps
+    # every downstream renderer consistent: they all re-derive the list
+    # from series_data. It also means the nav fingerprint is computed on
+    # the filtered list, so toggling an article's draft status changes
+    # the cache's key set and correctly forces a full build over the
+    # --only fast path.
+    if not args.get('--include-drafts'):
+        skipped = [e['page_dest'] for e in articles if e.get('draft')]
+        articles[:] = [e for e in articles if not e.get('draft')]
+        for f in skipped:
+            print(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
 
     return SimpleNamespace(
         sd=sd, articles_dir=articles_dir, templates_dir=templates_dir,
@@ -3560,12 +3701,12 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     only the named article's own page needs re-converting — index.html,
     README.md, and images are cheap regardless of series size, so they're
     always redone rather than also trying to skip them."""
-    entry = next((e for e in ctx.articles if only_file in (e['file'], e['source'])), None)
+    entry = next((e for e in ctx.articles if only_file in (e['page_dest'], e['page_source'])), None)
     if entry is None:
         print(f'[ERROR] --only {only_file!r} matches no article (by file or source).', file=sys.stderr)
         sys.exit(1)
 
-    source_path = ctx.articles_dir / entry['source']
+    source_path = ctx.articles_dir / entry['page_source']
     if not source_path.exists():
         print(f'[ERROR] Source not found: {source_path}', file=sys.stderr)
         sys.exit(1)
@@ -3573,9 +3714,9 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     print(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f'  {entry["file"]} ← {entry["source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['file'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp)
-    (ctx.output_dir / entry['file']).write_text(html, encoding='utf-8')
+    print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp)
+    (ctx.output_dir / entry['page_dest']).write_text(html, encoding='utf-8')
 
     index_extra_file = ctx.templates_dir / 'index_extra.html'
     index_extra = index_extra_file.read_text(encoding='utf-8') if index_extra_file.exists() else ''
@@ -3589,7 +3730,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
-    print(f'Incremental build complete: {entry["file"]} + index -> {ctx.output_dir}')
+    print(f'Incremental build complete: {entry["page_dest"]} + index -> {ctx.output_dir}')
 
 
 def cmd_build(series_dir, args):
@@ -3637,8 +3778,8 @@ def cmd_build(series_dir, args):
 
     # Build each article
     for entry in ctx.articles:
-        source_file = entry['source']
-        output_file = entry['file']
+        source_file = entry['page_source']
+        output_file = entry['page_dest']
         source_path = ctx.articles_dir / source_file
 
         if not source_path.exists():
@@ -3676,9 +3817,9 @@ def cmd_check(series_dir, args):
     diff_count = 0
 
     for entry in ctx.articles:
-        source_path = ctx.articles_dir / entry['source']
+        source_path = ctx.articles_dir / entry['page_source']
         if not source_path.exists():
-            print(f'[ERROR] {entry["file"]}: source not found: {source_path}', file=sys.stderr)
+            print(f'[ERROR] {entry["page_dest"]}: source not found: {source_path}', file=sys.stderr)
             diff_count += 1
             continue
         # Never generated here, on either side of the comparison: a build
@@ -3687,18 +3828,18 @@ def cmd_check(series_dir, args):
         # would always drift — check's job is real content drift, not
         # "time has passed". strip_build_stamp() on the disk copy is what
         # keeps a series built with --build-stamp still checkable.
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['file'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
-        existing_path = ctx.output_dir / entry['file']
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+        existing_path = ctx.output_dir / entry['page_dest']
         if not existing_path.exists():
-            print(f'[NEW] {entry["file"]} does not exist yet')
+            print(f'[NEW] {entry["page_dest"]} does not exist yet')
             diff_count += 1
             continue
         existing = strip_build_stamp(existing_path.read_text(encoding='utf-8'))
         if existing.strip() == generated.strip():
-            print(f'[OK] {entry["file"]}')
+            print(f'[OK] {entry["page_dest"]}')
             ok_count += 1
         else:
-            print(f'[DRIFT] {entry["file"]}')
+            print(f'[DRIFT] {entry["page_dest"]}')
             diff = list(difflib.unified_diff(
                 existing.strip().splitlines(), generated.strip().splitlines(),
                 lineterm='', n=1))
@@ -3728,20 +3869,23 @@ def cmd_audit(series_dir, args):
     """
     sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
+    series_meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
-    # entry['file'] below needs the resolution §20.3.1 describes (derived
-    # from `source` when series.json omits it, the common case since
-    # v0.5.0) — without this, an entry that legitimately has no explicit
-    # `file` crashes audit with a raw KeyError instead of a warning.
+    # entry['page_dest'] below needs the resolution §20.3.1 describes
+    # (derived from `page_source` when series.json omits it, the common
+    # case) — without this, an entry that legitimately has no explicit
+    # `page_dest` crashes audit with a raw KeyError instead of a warning.
+    # Drafts are NOT filtered out here: audit is an authoring tool, and
+    # work-in-progress articles are exactly what it should look at.
     validate_series(articles)
-    resolve_article_fields(articles, articles_dir)
+    resolve_article_fields(articles, articles_dir, series_meta)
 
     warnings = 0
 
     for entry in articles:
-        source_path = articles_dir / entry['source']
+        source_path = articles_dir / entry['page_source']
         if not source_path.exists():
-            print(f'[ERROR] {entry["file"]}: source not found ({source_path})', file=sys.stderr)
+            print(f'[ERROR] {entry["page_dest"]}: page_source not found ({source_path})', file=sys.stderr)
             continue
 
         md_text = source_path.read_text(encoding='utf-8')
@@ -3749,10 +3893,21 @@ def cmd_audit(series_dir, args):
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
         if not has_cover:
-            print(f'[WARNING] {entry["file"]}: no cover slide')
+            print(f'[WARNING] {entry["page_dest"]}: no cover slide')
             warnings += 1
         elif slides[0].slide_type != 'cover':
-            print(f'[WARNING] {entry["file"]}: the first slide is not a cover (found: {slides[0].slide_type})')
+            print(f'[WARNING] {entry["page_dest"]}: the first slide is not a cover (found: {slides[0].slide_type})')
+            warnings += 1
+
+        # §20.3.1: page_desc resolves to '' only when no description
+        # exists at ANY level (series.json, meta block, cover summary) —
+        # the page then ships without a <meta name="description">. Warn
+        # rather than invent one from other display fields: descriptions
+        # are not silently substituted across display contexts.
+        if not entry.get('page_desc'):
+            print(f'[WARNING] {entry["page_dest"]}: no description anywhere '
+                  f'(page_desc, meta block, or cover summary) — the page will '
+                  f'have no <meta name="description">')
             warnings += 1
 
     if warnings == 0:
@@ -3985,11 +4140,12 @@ def cmd_demo(target_dir, args):
         sys.exit(1)
 
     # Article 1: first — every display field set explicitly, as a
-    # reference showing every one of them (§20.2/§20.3.1). Neither `file`
-    # nor `source` belong in this block: `source` is always this file
-    # itself (nothing to say), and `file` — like every field below — has
-    # a sensible default (derived from `source`) so it's left out here on
-    # purpose too, demonstrated instead via series.json (see below).
+    # reference showing every one of them (§20.2/§20.3.1). Neither
+    # `page_source` nor `page_dest` belong in this block: `page_source`
+    # is always this file itself (nothing to say), and `page_dest` — like
+    # every field below — has a sensible default (derived from
+    # `page_source`) so it's left out here on purpose too, demonstrated
+    # instead via series.json (see below).
     demo1 = '''<!-- lwp:meta -->
 page_title: First article
 nav_title: First article (nav)
@@ -4152,18 +4308,21 @@ This is the full article for the third demo article [^1].
     (articles_dir / 'last.md').write_text(demo3, encoding='utf-8')
     (articles_dir / 'last_article.md').write_text(demo3_article, encoding='utf-8')
 
-    # Update series.json
+    # Update series.json — series_meta carries author/license so the demo
+    # exercises the series-wide editorial defaults and their footers.
     series_json = {
         "series_meta": {
             "title": "Demo series",
             "subtitle": "Three articles to test LightWebPres",
             "version": "v0.1",
-            "intro": "This demo series contains three articles that test the first, middle, and last positions in navigation."
+            "intro": "This demo series contains three articles that test the first, middle, and last positions in navigation.",
+            "author": "The LightWebPres demo",
+            "license": "Demo content, no rights reserved."
         },
         "articles": [
-            {"source": "first.md"},
-            {"source": "middle.md", "card_label": "Article 2 (overridden from series.json)"},
-            {"source": "last.md"}
+            {"page_source": "first.md"},
+            {"page_source": "middle.md", "card_label": "Article 2 (overridden from series.json)"},
+            {"page_source": "last.md"}
         ]
     }
     (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -4213,12 +4372,17 @@ OPTIONS
   --no-typography        build/check: disables ALL typography rules (non-breaking
                         spaces included) for this run — no rule runs anywhere,
                         not just the ones below (see TYPOGRAPHY section)
-  --only file             build: rebuild just this one article (by file or source
-                        name) instead of the whole series, IF nothing that
-                        affects index.html/series-nav changed since the last
-                        build (checked via --nav-cache) — silently falls back
-                        to a full build otherwise, never a stale page
-                        (spec §11.3.1)
+  --only file             build: rebuild just this one article (by page_dest or
+                        page_source name) instead of the whole series, IF
+                        nothing that affects index.html/series-nav changed
+                        since the last build (checked via --nav-cache) —
+                        silently falls back to a full build otherwise, never
+                        a stale page (spec §11.3.1)
+  --include-drafts        build/check: also build articles marked draft: true
+                        (excluded entirely by default — no page, no index
+                        card, no nav entry). Draft pages built this way carry
+                        a centered "draft" banner in their header so a
+                        preview is never mistaken for a publication.
   --nav-cache path        build --only: where the nav/index fingerprint used for
                         that safety check is read from and written to
                         (default: .lwp-cache/nav.json in the series directory)
@@ -4281,7 +4445,16 @@ SLIDE TYPES
                 (required; only one full-article slide per article)
 
 FIELDS RECOGNIZED IN A SLIDE
-  tag, ## Title, summary, fact-label, source, highlight, highlight-caption
+  tag, ## Title, summary, fact-label, source, highlight, highlight-caption,
+  comment (review note, never rendered)
+
+ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
+  page_source (required, series.json only), page_dest, page_title, page_desc,
+  card_title, card_desc, card_label, nav_title, nav_desc, author, license,
+  date, draft, comment — see GLOSSARY.md for every field's scope and
+  fallback chain. author/license default from series_meta for the whole
+  series; author/date/license are displayed (page footer + <meta> tags),
+  page_desc feeds <meta name="description">.
 
 TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specifications.md §7/§19
   The built-in French pack (language/fr.json) inserts a non-breaking space

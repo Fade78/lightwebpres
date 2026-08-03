@@ -61,7 +61,7 @@ one `.html` file, opens straight from disk or any static host.
 open my-series/public/index.html
 ```
 
-Then write your own `.md` files in `my-series/articles/`, add a `{"source":
+Then write your own `.md` files in `my-series/articles/`, add a `{"page_source":
 "apple-pie.md"}` entry per article to `my-series/series.json` (that's the
 only field it needs — see below), and run `build` again.
 
@@ -71,7 +71,7 @@ Each article is one Markdown file: a metadata block, then a sequence of
 "slides" separated by `---`. An article is self-describing — its own
 `page_title`/`card_title`/`card_desc`/`nav_title`/`nav_desc` all fall back
 to sensible content-derived defaults if left out, and `series.json` only
-needs `source` per article (see specifications.md §20.3.1); every field
+needs `page_source` per article (see specifications.md §20.3.1); every field
 below can be omitted or overridden from `series.json` instead.
 
 ```markdown
