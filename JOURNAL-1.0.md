@@ -104,8 +104,14 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    fichier vide → erreur propre §22.7, UTF-8 invalide → erreur propre au
    lieu d'une traceback, série vide → index vide. Reste ouvert : très
    gros fichiers/séries (perf), reporté avec l'axe 3.
-2. Portabilité : version Python minimale (à tester et déclarer),
-   Windows (séparateurs, casse), environnement Pyodide.
+2. FAIT (v0.6.0) — Portabilité : minimum Python 3.8 déclaré (§2.1,
+   README, --help) et vérifié à l'import avec message clair (le source
+   parse jusqu'à 3.6, pin par test ast feature_version) ; suite verte
+   sous 3.10/3.11/3.13 ; liens du README générés en as_posix (relpath
+   donnait des antislashs sous Windows = liens Markdown cassés) ;
+   collision de page_dest insensible à la casse désormais fatale
+   (écrasement silencieux sinon sur FS Windows/macOS) ; Pyodide
+   (emscripten, POSIX) sans point notable.
 3. FAIT (v0.6.0) — Reproductibilité : audit du code (datetime.now()
    uniquement dans build_stamp_html ; pas de random/locale/énumération de
    répertoire dans le chemin de build) + preuve empirique (300 articles,

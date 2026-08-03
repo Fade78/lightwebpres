@@ -28,7 +28,15 @@ fichiers Markdown puis lance le build).
 
 Le framework est un **fichier exécutable unique** (`lightwebpres`), script
 Python 3 avec shebang `#!/usr/bin/env python3`. Il ne dépend d'aucune librairie
-externe (Python 3 standard library uniquement). Il peut être installé
+externe (Python 3 standard library uniquement). **Version minimale :
+Python 3.8** — vérifiée à l'import avec un message clair (le source
+lui-même reste analysable jusqu'à 3.6, précisément pour que ce contrôle
+s'exécute au lieu d'une erreur incompréhensible plus tard). Sous Windows,
+où le shebang ne s'applique pas, lancer `python lightwebpres <commande>` ;
+les liens du README généré utilisent toujours `/` (jamais le séparateur de
+l'OS), et une collision de `page_dest` insensible à la casse est une
+erreur fatale partout (deux noms distincts pour une URL peuvent être le
+même fichier sur un système de fichiers Windows/macOS). Il peut être installé
 system-wide (`/usr/local/bin/lightwebpres`) ou utilisé localement
 (`./lightwebpres`).
 
@@ -1674,7 +1682,8 @@ non déterministe.
 
 ### 13.4 Pas de dépendance externe
 
-L'exécutable n'utilise que la bibliothèque standard de Python 3 (sys, os, json,
+L'exécutable n'utilise que la bibliothèque standard de Python 3 — version
+minimale 3.8 (§2.1) — (sys, os, json,
 re, pathlib, glob, argparse, textwrap). Pas de `pip install`.
 
 ### 13.5 Édition par LLM

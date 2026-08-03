@@ -3684,5 +3684,54 @@ class BuildDeterminism(unittest.TestCase):
 
 
 
+class Portability(unittest.TestCase):
+    """1.0 review axis 2 (JOURNAL-1.0.md §3): declared minimum Python 3.8,
+    OS-independent output, and case-collision safety for Windows/macOS
+    filesystems."""
+
+    def test_source_parses_under_python_36_grammar(self):
+        """The version guard can only explain itself on an old
+        interpreter if the module still PARSES there — pin the grammar
+        floor so a future edit doesn't silently break the guard."""
+        import ast as ast_mod
+        src = EXECUTABLE.read_text(encoding='utf-8')
+        ast_mod.parse(src, feature_version=(3, 6))
+
+    def test_version_guard_present_and_declares_38(self):
+        src = EXECUTABLE.read_text(encoding='utf-8')
+        self.assertIn('sys.version_info < (3, 8)', src)
+
+    def test_readme_links_use_forward_slashes(self):
+        md = (
+            '<!-- lwp:meta -->\npage_title: Test\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            readme = (root / 'README.md').read_text(encoding='utf-8')
+            self.assertIn('(public/a.html)', readme)
+            self.assertNotIn('\\', readme.split('## Articles')[1])
+
+    def test_case_insensitive_page_dest_collision_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            for name in ('a.md', 'b.md'):
+                (root / 'articles' / name).write_text(
+                    '<!-- lwp:meta -->\npage_title: T\n---\n\n'
+                    '<!-- lwp:slide:cover -->\ntag: T\n# T\nsummary: S.\n', encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_source': 'a.md', 'page_dest': 'Same.html'},
+                {'page_source': 'b.md', 'page_dest': 'same.html'},
+            ]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('case-insensitively', result.stderr)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

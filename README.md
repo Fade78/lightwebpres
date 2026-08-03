@@ -17,7 +17,8 @@ any static host.
 ```
 
 No `pip install`, no build step beyond the tool itself, no JavaScript
-framework in the output. Every generated page is inline CSS + inline JS,
+framework in the output. Python 3.8+ (standard library only); on
+Windows, run `python lightwebpres <command>`. Every generated page is inline CSS + inline JS,
 one `.html` file, opens straight from disk or any static host.
 
 ## Features
