@@ -297,10 +297,25 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    bout : accents, CJK, emoji, cyrillique, arabe RTL dans tous les
    champs ET dans les noms de fichiers page_source/page_dest (contenu,
    hrefs, liens README, balises meta) — test NativeUtf8EndToEnd.
-10. Contrat avec lightwebpres-gui : convention partagée (glossaire,
-    version vendorisée) à énoncer formellement.
-11. Administratif : LICENSE du dépôt, politique de versionnage post-1.0
-    (que promet-on exactement à partir de 1.0 ?).
+10. FAIT (v0.11.0) — Contrat avec lightwebpres-gui : formalisé en
+    §1.2 (nouveau). Le GUI est un projet séparé qui consomme celui-ci ;
+    contrat unidirectionnel : GLOSSARY.md = vocabulaire partagé (« field »,
+    casse figée §2.5), specifications.md/SKILL.md = format/rendu identiques
+    (même HTML CLI vs GUI, la page navigateur exécute l'exécutable tel
+    quel via Pyodide), version **épinglée** et vendorisée côté GUI (jamais
+    « au fil de l'eau »), stabilité promise à partir de la 1.0 (§13.9).
+    Les fonctionnalités propres au GUI (chiffrement, aperçu, sync Git)
+    sont explicitement hors de ce document.
+11. PARTIEL (v0.11.0) — Administratif. Politique de versionnage : FAIT,
+    §13.9 (nouveau) — semver, ce que promet chaque incrément à partir de
+    1.0, le contrat stable = l'ENTRÉE (noms de champs §2.5, series.json,
+    format .md, CLI, LWP_*) pas la SORTIE (le HTML peut changer entre
+    correctifs → dérive `check` normale), reproductibilité à l'octet pour
+    une version donnée mais pas entre versions. **LICENSE du dépôt : EN
+    ATTENTE du propriétaire** — décision légale, non prise seul ; le
+    README dit « Not yet set ». À trancher avant la 1.0 (options usuelles :
+    MIT, Apache-2.0, BSD-3, ou copyleft). Le Pyodide vendorisé reste sous
+    sa propre MPL-2.0 (NOTICE.md), indépendamment.
 12. Audit de la spec (en cours) : direction C faite. Images : tranchées
     et implémentées (§2.6, v0.7.0). Directions A (spec→code, 19
     constats) et B (code→spec, 33 constats) : consolidation en 3 groupes

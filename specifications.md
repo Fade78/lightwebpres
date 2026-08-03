@@ -38,6 +38,42 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
 - **`agent/skills/lightwebpres/SKILL.md`** (anglais) — la référence du
   format à destination d'un agent LLM qui écrit ou modifie des articles.
 
+Le fichier de travail `JOURNAL-1.0.md`, transitoire, ne fait **pas**
+partie de ce contrat : il est supprimé du dépôt juste avant la 1.0 et
+n'est jamais référencé par un document pérenne.
+
+### 1.2 Contrat avec `lightwebpres-gui`
+
+`lightwebpres-gui` est un **projet séparé** (dépôt distinct, hors du
+périmètre de version de celui-ci) : une interface graphique qui édite des
+séries et pilote des builds. Il **consomme** ce projet ; le contrat entre
+les deux est explicite et unidirectionnel (le GUI suit, `lightwebpres`
+est la source de vérité) :
+
+- **Vocabulaire.** `GLOSSARY.md` est le contrat de vocabulaire partagé :
+  tout champ que le GUI présente, valide ou génère porte le nom, la
+  portée et la casse qui y sont figés (§2.5 des conventions de nommage).
+  Le générique est « field », jamais « tag »/« balise ».
+- **Format et comportement.** `specifications.md` (ce document) et
+  `SKILL.md` décrivent le format et le rendu que le GUI doit produire à
+  l'identique — un build lancé depuis le GUI et un build en ligne de
+  commande donnent le **même** HTML (la page navigateur exécute d'ailleurs
+  l'exécutable `lightwebpres` tel quel via Pyodide, §23.1).
+- **Version vendorisée.** Le GUI **épingle une version exacte** de
+  l'exécutable `lightwebpres` (il en vendorise une copie) et affiche
+  laquelle ; il ne suit jamais une version « au fil de l'eau ». La montée
+  de version est une action explicite côté GUI, vérifiée par ses propres
+  tests.
+- **Stabilité promise.** À partir de la 1.0, les noms de champs gelés
+  (§2.5) et le format d'entrée (`series.json`, article `.md`) sont
+  stables au sens de la politique de versionnage (§13.9) : le GUI peut
+  s'y fier sans qu'un patch les casse.
+
+Réciproquement, les fonctionnalités propres au GUI (édition assistée,
+chiffrement au repos, aperçu, synchronisation Git…) sont **hors** de ce
+document : elles vivent dans le dépôt `lightwebpres-gui` et n'imposent
+rien à l'exécutable.
+
 ---
 
 ## 2. Architecture générale
@@ -1956,6 +1992,41 @@ SHA256SUMS` enregistre le SHA-256 de chaque fichier servi ; un test de la
 suite vérifie que ce fichier reste synchrone, et la procédure de mise à
 jour (`web/vendor/NOTICE.md`) épingle une version exacte et **vérifie le
 hash amont avant de copier** — jamais `latest` sans contrôle.
+
+### 13.9 Politique de versionnage
+
+Le numéro de version (constante `VERSION` de l'exécutable, affichée par
+`--help` et par le build stamp) suit le **versionnage sémantique**
+`MAJEUR.MINEUR.CORRECTIF`. Ce que chaque incrément promet, à partir de la
+1.0 :
+
+- **CORRECTIF** (`x.y.Z`) : corrections de bugs, durcissements, sans
+  changement d'API ni de format. Peut modifier le **HTML de sortie** (une
+  correction de rendu, un ajustement de style) — ce n'est **pas** garanti
+  stable à l'octet (voir ci-dessous).
+- **MINEUR** (`x.Y.0`) : nouvelles fonctionnalités **rétrocompatibles** —
+  un nouveau champ optionnel, une nouvelle option de commande, un nouveau
+  thème. Une série valide pour `x.Y` le reste pour `x.Y+1`.
+- **MAJEUR** (`X.0.0`) : changement **incompatible** du contrat d'entrée —
+  renommer/supprimer un champ gelé (§2.5), changer la sémantique de la
+  cascade (§20.3.1), retirer une commande ou une option. C'est exactement
+  ce qui a motivé le gel de nomenclature avant la 1.0.
+
+**Le contrat stable, c'est l'entrée, pas la sortie.** Sont garantis
+stables au sein d'une même version MAJEURE : les noms et la portée des
+champs (§2.5), la structure de `series.json`, le format de l'article
+`.md`, les commandes et options de la CLI, les variables `LWP_*`. Le
+**HTML produit**, lui, peut changer entre deux CORRECTIFs (amélioration de
+style, de sémantique, d'accessibilité) : c'est pourquoi `check` (§11.4)
+signale une dérive normale après une montée de version, jusqu'au prochain
+`build` — ce n'est pas une régression, mais le comportement attendu. Un
+build reste **reproductible à l'octet pour une version donnée** (§13.3),
+ce dont `check` dépend ; la reproductibilité ne traverse pas les versions.
+
+Avant la 1.0, toutes les releases sont des **préversions** : le format a
+pu bouger d'une mineure à l'autre (c'est la phase de stabilisation qui
+s'achève avec le gel §2.5). La 1.0 est le premier engagement de stabilité
+au sens ci-dessus.
 
 ---
 
