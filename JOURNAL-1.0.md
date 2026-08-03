@@ -6,10 +6,14 @@ décision actée en discussion est reportée ici **avant** d'être
 implémentée ; l'état est resynchronisé ici après chaque étape poussée ;
 le contenu est présenté régulièrement dans les comptes rendus.
 
-Dernière mise à jour : 2026-08-03 — état du dépôt : v0.7.0 (images
-Markdown natives + légendes, voir §2.6 ; inclut aussi les correctifs des
-axes 1/2/3/9 poussés après le tag v0.6.0). La release GitHub v0.6.0
-couvre le champ `comment` + le gel de la nomenclature.
+Dernière mise à jour : 2026-08-03 — état du dépôt : v0.8.0 (audit de la
+spec, groupes 1 et 2 : resynchronisation de specifications.md + sept
+corrections de comportement arbitrées). Releases GitHub : v0.6.0
+(comment + gel de la nomenclature), v0.7.0 (images + légendes, axes
+1/2/3/9). Règle de processus : chaque message de release livré dans la
+conversation EST publié par le propriétaire — le travail qui suit part
+donc toujours dans une nouvelle version, jamais replié dans une version
+déjà annoncée.
 
 ## 1. Cadrage produit (décidé)
 
@@ -178,7 +182,7 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
     placeholders réels, §19.2 fusion des packs, §23.4 SVG. **Groupes 2
     (7 bugs code) et 3 (7 choix de conception) : EN ATTENTE de
     l'arbitrage du propriétaire** — liste détaillée dans la conversation
-    du 2026-08-03. **Groupe 2 : FAIT (v0.7.0), arbitré D1a/D2a/D3a/D4a**
+    du 2026-08-03. **Groupe 2 : FAIT (v0.8.0), arbitré D1a/D2a/D3a/D4a**
     — page_source manquant fatal en amont (build ET check, zéro sortie
     partielle ; audit signale et continue) ; fichier full-article
     manquant fatal ; demo refuse si series.json liste ≥1 article ;
@@ -244,3 +248,8 @@ par fiche — non planifié à ce jour.
   travaux des axes 1/2/3/9 poussés après le tag v0.6.0 (BOM/UTF-8
   invalide, Python 3.8 + Windows, déterminisme du build, parité i18n +
   UTF-8 natif — chacun figé par tests).
+- v0.8.0 : audit de la spec — groupe 1 (specifications.md resynchronisée
+  sur le comportement réel, 12 points) + groupe 2 (7 corrections de
+  comportement arbitrées D1a/D2a/D3a/D4a : sources manquantes fatales,
+  CLI stricte, garde series.json de demo, contenu avant lwp:meta fatal,
+  éléments décoratifs vides omis).
