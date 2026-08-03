@@ -200,6 +200,48 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    contrôle) avait auto-appliqué le fix du href ; j'ai remis une base
    propre, reproduit la vuln moi-même, et re-validé le correctif avant
    de le conserver.
+   **Passe complète (v0.11.0, sur demande « test complet, pas juste les
+   deltas »).** 4 agents adverses sur des surfaces distinctes (crypto/
+   stockage/SW, converter+parseur re-balayé, JSON/config/placeholders/
+   thèmes, réseau/Pyodide/supply-chain). Constat de cadrage : le
+   chiffrement (argon2id/AES-GCM/OPFS/SW) N'EXISTE PAS dans ce dépôt — il
+   appartient à lightwebpres-gui (hors périmètre 1.0) ; rien à corriger
+   ici de ce côté. 8 vrais-positifs corrigés + tests (suite 319 → 331) :
+   - ReDoS quadratique du débalisage `<[^>]+>` (×3 : title index, title
+     article, meta head) — raté en 1re passe, 200k `<` → 20 s. Borné à
+     `<[^<>]+>` (MEDIUM).
+   - Confusion de types JSON → tracebacks (spec §20.3/§19.2 promettent
+     des erreurs propres) : `page_source`/`page_dest`/champs éditoriaux
+     non-string, `series_meta` non-dict et ses feuilles, `rules`/
+     `strings` de langue non-string. Validation isinstance ajoutée
+     (MEDIUM robustesse).
+   - `RecursionError` sur JSON très imbriqué (`[`×100000) — `json.loads`
+     élargi à `(ValueError, RecursionError)` (LOW-MED).
+   - Substitution de placeholders : mon fix `{{str_KEY}}` du groupe 3
+     était incomplet — `{{css}}`/`{{js_nav}}`/`{{cards}}` dans le contenu
+     d'auteur restaient substitués, contournant discrètement le garde
+     `<title>`/`<meta>`. Passe unique `fill_placeholders` (LOW-MED,
+     pas de XSS — validate_html bloque toute charge à balise/guillemet).
+   - refresh-templates `rfind` → `find` : le CSS d'auteur entre deux
+     marqueurs dupliqués n'est plus perdu (LOW).
+   - Chaîne d'appro : Pyodide vendorisé sans hash épinglé + recette
+     tirant `latest` → SHA256SUMS ajouté + test d'intégrité + recette
+     durcie (épingle la version, vérifie le hash amont) ; §13.8 spec
+     (MEDIUM).
+   - En-tête `X-Content-Type-Options: nosniff` ajouté au .htaccess ; CSP
+     délibérément non posée (scripts inline + wasm/worker Pyodide +
+     connect-src GitLab arbitraire → protection nulle, risque de casse ;
+     aucun sink DOM XSS trouvé) — décision documentée.
+   Re-vérifiés SÛRS (indépendamment, sur code propre) : échappement
+     `<meta>`/`<title>` (attribut/RCDATA), href/img/légende, toutes les
+     autres regexes du converter (linéaires), validateur d'équilibrage
+     (structurel, by-design ; pas de bypass non-équilibré trouvé),
+     protection de balises typographie, zip-slip (2 chemins, stdlib),
+     jeton en-tête+redirect='error', SSRF baseUrl (by-design, non
+     pilotable depuis le contenu), aucun sink DOM XSS, frontière Pyodide
+     (runPython jamais sur du contenu de série), thèmes/build-stamp/
+     draft-banner. Spec §13.7 étendue (types, placeholders, complexité),
+     §13.8 ajoutée (dépendance vendorisée).
 6. Dogfooding de la doc : exécuter GUIDE.md et README.md verbatim dans
    un répertoire vierge.
 7. Qualité des messages d'erreur : provoquer chaque erreur fatale, juger

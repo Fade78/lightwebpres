@@ -1911,13 +1911,37 @@ régression :
   échapper lui-même en amont. Le contrôle d'équilibrage (§13.6) rattrape
   en dernier recours toute charge brute qui casserait la structure : elle
   fait échouer le build au lieu d'être publiée.
-- **Complexité bornée.** Les expressions régulières du convertisseur sont
-  linéaires sur une entrée adverse (pas de retour arrière quadratique) —
-  une ligne pathologique ne peut pas geler un build (important pour
+- **Complexité bornée.** Les expressions régulières — du convertisseur
+  **comme** le débalisage des sinks `<title>`/`<meta>` — sont linéaires
+  sur une entrée adverse (pas de retour arrière quadratique) : une ligne
+  ou un champ pathologique ne peut pas geler un build (important pour
   l'exécution navigateur, mono-thread, §23). Les règles typographiques
   d'un **fichier de langue** restent hors de ce périmètre : un fichier de
   langue est du **code de confiance** (§7.2), au même niveau que
   l'exécutable.
+- **Types validés, erreurs propres.** Une valeur de `series.json` ou d'un
+  fichier de langue au mauvais type (un nombre/objet/liste là où une
+  chaîne est attendue, un `series_meta` non-objet, un JSON trop imbriqué)
+  produit un `[ERROR]` clair, jamais une traceback Python — la même
+  garantie que §20.3/§19.2 posent pour le reste du format.
+- **Placeholders non ré-injectables.** Les gabarits de page sont remplis
+  en **une seule passe** : un jeton `{{…}}` écrit littéralement dans un
+  champ d'auteur (par ex. `{{css}}` dans `page_title`) reste littéral, il
+  n'est jamais substitué — ce qui fermait la seule voie par laquelle du
+  contenu d'auteur pouvait contourner le débalisage de `<title>`/`<meta>`
+  (§18.4).
+
+### 13.8 Dépendance vendorisée (page navigateur)
+
+La page `web/` embarque Pyodide (§23) — le seul tiers du projet. Ces
+fichiers exécutent le code qui manipule la série de l'utilisateur (et,
+sur l'onglet GitLab, son jeton), donc leur intégrité compte. Ils sont
+**commités dans le dépôt** (toute modification est relue en diff) et
+servis **en même origine** (aucun CDN au runtime). `web/vendor/pyodide/
+SHA256SUMS` enregistre le SHA-256 de chaque fichier servi ; un test de la
+suite vérifie que ce fichier reste synchrone, et la procédure de mise à
+jour (`web/vendor/NOTICE.md`) épingle une version exacte et **vérifie le
+hash amont avant de copier** — jamais `latest` sans contrôle.
 
 ---
 

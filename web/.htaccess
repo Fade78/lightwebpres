@@ -9,3 +9,16 @@
 # specifications.md §23.7 for the nginx equivalent.
 AddType text/javascript .mjs
 AddType application/wasm .wasm
+
+# Defense-in-depth: stop the browser from MIME-sniffing a response into a
+# type it wasn't served as. Safe everywhere, no effect on how the page
+# functions. A Content-Security-Policy is deliberately NOT set here: the
+# page uses inline <script>/<style> and Pyodide needs dynamic wasm +
+# workers, so any CSP would require 'unsafe-inline' + 'wasm-unsafe-eval'
+# and a connect-src wide enough for any user-supplied GitLab host —
+# yielding little real protection (the security review found no DOM-XSS
+# sink to protect) while risking breakage across deploy targets. Revisit
+# if the page moves to nonce'd scripts.
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

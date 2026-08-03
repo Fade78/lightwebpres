@@ -19,14 +19,39 @@ dependency of the separate, additive browser build page only.
 - `pyodide.asm.mjs`, `pyodide.asm.wasm` — the compiled interpreter
 - `python_stdlib.zip` — the Python standard library
 - `pyodide-lock.json` — package manifest read by the loader
+- `SHA256SUMS` — integrity checksums for the five files above
 - `LICENSE` — upstream license text (MPL-2.0)
+
+## Integrity
+
+`pyodide/SHA256SUMS` records the SHA-256 of every served runtime file.
+These assets run the code that handles a user's series (and, on the
+GitLab tab, their token), so a tampered vendored file compromises the
+whole page. The files are committed to git — any change is reviewable in
+the diff — and served same-origin (no runtime CDN). Verify at any time
+with:
+
+```
+( cd web/vendor/pyodide && sha256sum -c SHA256SUMS )
+```
 
 ## Updating
 
+Pin an **exact** version (never `latest`), download it, **verify the
+upstream-published hash before copying**, then record the new local
+checksums. Set `VER` and paste the `dist.integrity` (or `dist.shasum`)
+npm publishes for that version:
+
 ```
-curl -sL "$(curl -s https://registry.npmjs.org/pyodide/latest | python3 -c 'import json,sys;print(json.load(sys.stdin)["dist"]["tarball"])')" -o pyodide.tgz
+VER=314.0.3
+curl -sL "https://registry.npmjs.org/pyodide/-/pyodide-${VER}.tgz" -o pyodide.tgz
+# Verify the tarball against npm's published integrity BEFORE trusting it:
+EXPECTED=$(curl -s "https://registry.npmjs.org/pyodide/${VER}" | python3 -c 'import json,sys;print(json.load(sys.stdin)["dist"]["shasum"])')
+echo "${EXPECTED}  pyodide.tgz" | sha1sum -c - || { echo "TARBALL HASH MISMATCH — abort"; exit 1; }
 tar xzf pyodide.tgz package/pyodide.js package/pyodide.asm.mjs package/pyodide.asm.wasm package/python_stdlib.zip package/pyodide-lock.json
 cp package/{pyodide.js,pyodide.asm.mjs,pyodide.asm.wasm,python_stdlib.zip,pyodide-lock.json} web/vendor/pyodide/
+# Record the new checksums and update the version string above:
+( cd web/vendor/pyodide && sha256sum pyodide.js pyodide.asm.mjs pyodide.asm.wasm python_stdlib.zip pyodide-lock.json > SHA256SUMS )
 ```
 
 Then re-run `python3 tests/run_tests.py` — the web E2E test will catch any

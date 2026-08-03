@@ -376,6 +376,184 @@ _MINIMAL_MD = (
 )
 
 
+class VendoredPyodideIntegrity(unittest.TestCase):
+    """Security (supply chain): web/vendor/pyodide/SHA256SUMS must stay in
+    sync with the vendored runtime files, so a tampered or accidentally
+    modified asset is caught in review/CI. These files run the code that
+    handles a user's series and GitLab token."""
+
+    def test_sha256sums_matches_vendored_files(self):
+        import hashlib
+        vendor = EXECUTABLE.parent / 'web' / 'vendor' / 'pyodide'
+        sums = vendor / 'SHA256SUMS'
+        if not sums.exists():
+            self.skipTest('vendored Pyodide not present in this checkout')
+        for line in sums.read_text(encoding='utf-8').splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            expected, name = line.split(None, 1)
+            digest = hashlib.sha256((vendor / name).read_bytes()).hexdigest()
+            self.assertEqual(digest, expected,
+                             f'{name} does not match its recorded SHA-256')
+
+
+class TagStripReDoS(unittest.TestCase):
+    """Security: the tag-strip re.sub(r'<[^>]+>') feeding <title> and
+    <meta> was quadratic on a run of '<' (200k '<' -> ~20s). Bounded now."""
+
+    def test_long_angle_run_in_title_is_linear(self):
+        import time
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: ' + ('<' * 120000) +
+            '\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            start = time.time()
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertLess(time.time() - start, 5.0)
+
+
+class JsonTypeConfusion(unittest.TestCase):
+    """Security/robustness (§20.3/§19.2): a wrong-typed JSON leaf value in
+    the semi-trusted series.json / language file must produce a clean
+    [ERROR], never a raw Python traceback."""
+
+    def _build_series(self, tmp, series_obj):
+        root = Path(tmp)
+        (root / 'articles').mkdir()
+        (root / 'articles' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
+        (root / 'series.json').write_text(json.dumps(series_obj), encoding='utf-8')
+        return run('build', str(root), '--output', str(root / 'public'))
+
+    def test_non_string_page_source_is_clean_error(self):
+        for bad in (123, True, 1.5, ['a.md'], {'x': 1}):
+            with tempfile.TemporaryDirectory() as tmp:
+                r = self._build_series(tmp, {'articles': [{'page_source': bad}]})
+                self.assertNotEqual(r.returncode, 0)
+                self.assertNotIn('Traceback', r.stderr)
+                self.assertIn('[ERROR]', r.stderr)
+
+    def test_non_string_editorial_field_is_clean_error(self):
+        for field, bad in (('author', {'x': 1}), ('license', 42),
+                           ('page_title', [1]), ('card_desc', {'a': 1})):
+            with tempfile.TemporaryDirectory() as tmp:
+                r = self._build_series(
+                    tmp, {'articles': [{'page_source': 'a.md', field: bad}]})
+                self.assertNotEqual(r.returncode, 0)
+                self.assertNotIn('Traceback', r.stderr)
+
+    def test_non_dict_series_meta_is_clean_error(self):
+        for bad in ([], 'str', 123):
+            with tempfile.TemporaryDirectory() as tmp:
+                r = self._build_series(
+                    tmp, {'series_meta': bad, 'articles': [{'page_source': 'a.md'}]})
+                self.assertNotEqual(r.returncode, 0)
+                self.assertNotIn('Traceback', r.stderr)
+
+    def test_non_string_series_meta_leaf_is_clean_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._build_series(
+                tmp, {'series_meta': {'version': 123}, 'articles': [{'page_source': 'a.md'}]})
+            self.assertNotEqual(r.returncode, 0)
+            self.assertNotIn('Traceback', r.stderr)
+
+    def test_deeply_nested_json_is_clean_error_not_recursionerror(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'series.json').write_text('[' * 100000 + ']' * 100000, encoding='utf-8')
+            r = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(r.returncode, 0)
+            self.assertNotIn('Traceback', r.stderr)
+            self.assertIn('invalid JSON', r.stderr)
+
+    def test_non_string_language_rule_is_clean_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            lang = root / 'l.json'
+            lang.write_text(json.dumps({'rules': [{'pattern': 123, 'replacement': 'x'}]}),
+                            encoding='utf-8')
+            r = run('build', str(root), '--output', str(root / 'public'),
+                    '--language-file', str(lang))
+            self.assertNotEqual(r.returncode, 0)
+            self.assertNotIn('Traceback', r.stderr)
+
+    def test_non_string_language_string_value_is_clean_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            lang = root / 'l.json'
+            lang.write_text(json.dumps({'strings': {'nav_prev': 123}}), encoding='utf-8')
+            r = run('build', str(root), '--output', str(root / 'public'),
+                    '--language-file', str(lang))
+            self.assertNotEqual(r.returncode, 0)
+            self.assertNotIn('Traceback', r.stderr)
+
+
+class PlaceholderNotSubstitutedInAuthorContent(unittest.TestCase):
+    """Security (§18.4): a literal template placeholder written in author
+    content must stay literal — the single-pass fill must not substitute
+    a {{css}}/{{js_nav}} an author typed into page_title/page_desc/a
+    fact-box, which used to dump the stylesheet into the escaped
+    <title>/<meta> sinks (bypassing their guard)."""
+
+    def test_placeholder_in_title_meta_and_factbox_stays_literal(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\n'
+            'page_title: {{css}}TITLE\npage_desc: {{css}}DESC\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: T\n## S\nfact-label: F\n'
+            'Body with {{js_nav}} literal.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<title>{{css}}TITLE</title>', html)
+            self.assertIn('content="{{css}}DESC"', html)
+            self.assertIn('{{js_nav}}', html)
+            # The real stylesheet must never be dumped into the title/meta:
+            # the <title> content is exactly the literal placeholder text.
+            title = html.split('<title>')[1].split('</title>')[0]
+            self.assertNotIn('--yellow', title)
+            self.assertNotIn('box-sizing', title)
+
+    def test_index_series_title_placeholder_stays_literal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'title': 'T{{cards}}X'}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('T{{cards}}X', html)
+
+
+class RefreshTemplatesDuplicateMarker(unittest.TestCase):
+    """A second copy of the customization marker pasted into the author's
+    own CSS must not cause refresh-templates to drop the author rules
+    between the two markers (rfind -> find)."""
+
+    def test_author_css_between_duplicate_markers_is_kept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            self.assertEqual(run('install', str(root), '--lang', 'en').returncode, 0)
+            marker = ('/* === Personnalisations locales : refresh-templates '
+                      'conserve tout ce qui suit cette ligne === */')
+            style = root / 'templates' / 'style.css'
+            style.write_text(style.read_text(encoding='utf-8') +
+                             f'\n/*BLOCK_A*/\n{marker}\n/*BLOCK_B*/\n', encoding='utf-8')
+            self.assertEqual(run('refresh-templates', str(root)).returncode, 0)
+            kept = style.read_text(encoding='utf-8')
+            self.assertIn('BLOCK_A', kept)
+            self.assertIn('BLOCK_B', kept)
+
+
 class SlideCounter(unittest.TestCase):
     """§3.3/§12.3: every slide carries a zero-padded 'NN / NN' counter —
     completely unasserted before axis 4 (a broken counter would ship on

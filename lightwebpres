@@ -44,7 +44,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -2194,6 +2194,14 @@ class TypoEngine:
                 print(f'[ERROR] language rule {i}: must be an object with '
                       f'"pattern" and "replacement".', file=sys.stderr)
                 sys.exit(1)
+            # pattern/replacement must be strings: a non-string used to
+            # escape the `except re.error` below (re.compile on an int
+            # raises TypeError, re.sub with an int replacement likewise) as
+            # a raw traceback instead of a clean [ERROR].
+            if not isinstance(rule['pattern'], str) or not isinstance(rule['replacement'], str):
+                print(f'[ERROR] language rule {i}: "pattern" and "replacement" '
+                      f'must be strings.', file=sys.stderr)
+                sys.exit(1)
             name = rule.get('name') or f'rule_{i}'
             pattern = rule['pattern']
             replacement = rule['replacement']
@@ -2313,7 +2321,9 @@ def load_language(lang_dir, lang='fr', language_file=None):
     if lang_file.exists():
         try:
             override = json.loads(read_text_file(lang_file))
-        except json.JSONDecodeError as e:
+        except (ValueError, RecursionError) as e:
+            # ValueError covers json.JSONDecodeError; RecursionError guards
+            # a deeply-nested array/object from crashing the parser itself.
             print(f'[ERROR] {lang_file}: invalid JSON ({e}).', file=sys.stderr)
             sys.exit(1)
         if not isinstance(override, dict):
@@ -2327,6 +2337,13 @@ def load_language(lang_dir, lang='fr', language_file=None):
         if not isinstance(strings, dict):
             print(f'[ERROR] {lang_file}: "strings" must be an object.', file=sys.stderr)
             sys.exit(1)
+        # Every interface string must be a string: a non-string value
+        # crashes apply_strings' str.replace with a raw TypeError.
+        for key, val in strings.items():
+            if not isinstance(val, str):
+                print(f'[ERROR] {lang_file}: strings["{key}"] must be a string '
+                      f'(got {type(val).__name__}).', file=sys.stderr)
+                sys.exit(1)
         return {
             'lang': override.get('lang', base.get('lang', lang)),
             'name': override.get('name', base.get('name', lang)),
@@ -2338,6 +2355,22 @@ def load_language(lang_dir, lang='fr', language_file=None):
         sys.exit(1)
 
     return base
+
+
+_PLACEHOLDER_RE = re.compile(r'\{\{(\w+)\}\}')
+
+
+def fill_placeholders(template, mapping):
+    """Fills {{key}} placeholders from `mapping` in a SINGLE left-to-right
+    pass. Because re.sub never re-scans its own replacement text, a value
+    that itself contains a {{...}} token (e.g. a literal {{css}} an author
+    typed into page_title, or a {{js_nav}} in a fact-box) is emitted
+    verbatim rather than being substituted by a later key — the
+    order-dependent str.replace chain this replaces let author content
+    inject templates into the escaped <title>/<meta> sinks (§18.4). An
+    unknown token is left untouched (missing placeholders are ignored,
+    §18.4)."""
+    return _PLACEHOLDER_RE.sub(lambda m: mapping.get(m.group(1), m.group(0)), template)
 
 
 def apply_strings(text, strings):
@@ -3193,7 +3226,7 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
 
 def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='', build_stamp=''):
     """Generates the index page."""
-    meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
+    meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
 
     title = apply_typo(typo_engine, meta.get('title', strings.get('series_untitled_fallback', 'Article series')))
@@ -3206,7 +3239,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     # slide_title — spec §4.3), a value here containing a literal
     # </title> would close the element early and let anything after it
     # execute as real markup.
-    title_clean = strip_ws(re.sub(r'<[^>]+>', ' ', title))
+    title_clean = strip_ws(re.sub(r'<[^<>]+>', ' ', title))
 
     # Cards
     read = strings.get('series_read', 'Read the article')
@@ -3244,27 +3277,26 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         index_footer = '<footer class="page-footer">\n' + '\n'.join(footer_parts) + '\n</footer>'
 
     # Interface strings on the SKELETON first (template + the user's
-    # index_extra fragment, which is a template file, not content), so a
-    # literal {{str_KEY}} inside series_meta text stays literal (§18.4).
+    # index_extra fragment, which is a template file, not content), then
+    # every data placeholder in a SINGLE pass (fill_placeholders), so a
+    # literal {{str_KEY}} / {{css}} / {{cards}} inside series_meta or card
+    # text stays literal instead of being re-substituted into the
+    # tag-stripped <title> or a card (§18.4).
     html = apply_strings(TEMPLATE_INDEX, strings)
     index_extra = apply_strings(index_extra, strings)
-    html = html.replace('{{lang}}', lang)
-    html = html.replace('{{title}}', title_clean)
-    html = html.replace('{{css}}', css)
-    html = html.replace('{{series_title}}', title)
-    html = html.replace('{{series_subtitle}}', subtitle)
     # No visible empty pill when series_meta has no version: drop the
     # whole span (the index markup is fixed, §18.2, so this line-level
     # removal can't break a user template).
     if not version:
         html = html.replace('\n  <span class="version-tag">{{series_version}}</span>', '')
-    html = html.replace('{{series_version}}', version)
-    html = html.replace('{{series_intro}}', intro)
-    html = html.replace('{{cards}}', '\n'.join(cards))
-    html = html.replace('{{index_footer}}', index_footer)
-    html = html.replace('{{js_index}}', apply_strings(TEMPLATE_INDEX_JS, strings))
-    html = html.replace('{{index_extra}}', index_extra)
-    html = html.replace('{{build_stamp}}', build_stamp)
+    html = fill_placeholders(html, {
+        'lang': lang, 'title': title_clean, 'css': css,
+        'series_title': title, 'series_subtitle': subtitle,
+        'series_version': version, 'series_intro': intro,
+        'cards': '\n'.join(cards), 'index_footer': index_footer,
+        'js_index': apply_strings(TEMPLATE_INDEX_JS, strings),
+        'index_extra': index_extra, 'build_stamp': build_stamp,
+    })
 
     validate_html(html, 'index.html')
     return html
@@ -3274,7 +3306,7 @@ def build_readme(series_data, sd, output_dir, strings):
     """Generates README.md content: series title/subtitle/intro from
     series_meta, then a numbered list of articles linking to their built
     HTML file (spec §8.3)."""
-    meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
+    meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
 
     title = meta.get('title', strings.get('series_untitled_fallback', 'Article series'))
@@ -3452,7 +3484,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     own_entry = next((e for e in articles if e.get('page_dest') == current_file), None)
     title = own_entry['page_title'] if own_entry else meta.get('page_title', current_file)
     # Strip HTML tags from the title
-    title_clean = strip_ws(re.sub(r'<[^>]+>', ' ', title))
+    title_clean = strip_ws(re.sub(r'<[^<>]+>', ' ', title))
     title_clean = apply_typo(article_typo_engine, title_clean, disabled_rules)
 
     # <head> metadata — author and description, both attribute contexts:
@@ -3464,7 +3496,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         for name, value in (('author', own_entry.get('author', '')),
                             ('description', own_entry.get('page_desc', ''))):
             if value:
-                clean = strip_ws(re.sub(r'<[^>]+>', ' ', value))
+                clean = strip_ws(re.sub(r'<[^<>]+>', ' ', value))
                 clean = apply_typo(article_typo_engine, clean, disabled_rules)
                 meta_head += f'<meta name="{name}" content="{html_escape(clean, quote=True)}">\n'
 
@@ -3505,18 +3537,21 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
 
     # Assemble the page. Interface strings are applied to the SKELETON
     # (template — nav_js got its own pass at load time) before any
-    # author-provided content is injected: a literal {{str_KEY}} written
-    # in an article stays literal instead of being substituted (§18.4).
+    # author-provided content is injected; then every remaining data
+    # placeholder is filled in a SINGLE pass (fill_placeholders), so a
+    # value that itself contains a {{...}} token — e.g. a literal {{css}}
+    # typed into an article's page_title or page_desc — is emitted as-is
+    # and never re-substituted. The old sequential str.replace chain
+    # re-scanned each injected value, letting author content inject the
+    # stylesheet/other markers into the tag-stripped <title> and escaped
+    # <meta> sinks, bypassing their guard (§18.4).
     html = apply_strings(TEMPLATE_PAGE, strings)
-    html = html.replace('{{lang}}', lang)
-    html = html.replace('{{title}}', title_clean)
-    html = html.replace('{{meta_head}}', meta_head)
-    html = html.replace('{{css}}', css)
-    html = html.replace('{{slides}}', slides_html)
-    html = html.replace('{{page_footer}}', page_footer)
-    html = html.replace('{{js_nav}}', nav_js)
-    html = html.replace('{{build_stamp}}', build_stamp)
-    html = html.replace('{{draft_banner}}', draft_banner)
+    html = fill_placeholders(html, {
+        'lang': lang, 'title': title_clean, 'meta_head': meta_head,
+        'css': css, 'slides': slides_html, 'page_footer': page_footer,
+        'js_nav': nav_js, 'build_stamp': build_stamp,
+        'draft_banner': draft_banner,
+    })
 
     validate_html(html, current_file)
     return html
@@ -3567,7 +3602,10 @@ def load_series_data(series_dir):
         sys.exit(1)
     try:
         data = json.loads(read_text_file(series_file))
-    except json.JSONDecodeError as e:
+    except (ValueError, RecursionError) as e:
+        # ValueError covers json.JSONDecodeError; RecursionError guards a
+        # deeply-nested array/object (e.g. "["*100000) from crashing the
+        # JSON parser with a raw traceback instead of a clean [ERROR].
         print(f'[ERROR] {series_file}: invalid JSON ({e}).', file=sys.stderr)
         sys.exit(1)
     articles = data.get('articles', data) if isinstance(data, dict) else data
@@ -3582,6 +3620,30 @@ def load_series_data(series_dir):
 # mapped to their replacements — recognized only to produce a clear
 # migration error instead of a mystifying "missing required field".
 _LEGACY_SERIES_FIELDS = {'source': 'page_source', 'file': 'page_dest'}
+
+
+# series_meta string leaves used by build_index / resolve_article_fields.
+_SERIES_META_STRING_FIELDS = ('title', 'subtitle', 'version', 'intro', 'author', 'license')
+
+
+def series_meta_of(series_data):
+    """The `series_meta` object, validated. A non-dict series_meta (or a
+    non-string leaf like `title: 123`) used to crash later at a .get() or
+    re.sub() with a raw traceback; reject it here with a clean error, the
+    same bar §20.5 sets for the rest of series.json."""
+    if not isinstance(series_data, dict):
+        return {}
+    meta = series_data.get('series_meta', {})
+    if not isinstance(meta, dict):
+        print(f'[ERROR] series.json: "series_meta" must be an object '
+              f'(got {type(meta).__name__}).', file=sys.stderr)
+        sys.exit(1)
+    for field in _SERIES_META_STRING_FIELDS:
+        if field in meta and meta[field] is not None and not isinstance(meta[field], str):
+            print(f'[ERROR] series.json: "series_meta.{field}" must be a string '
+                  f'(got {type(meta[field]).__name__}).', file=sys.stderr)
+            sys.exit(1)
+    return meta
 
 
 def validate_series(articles):
@@ -3609,6 +3671,23 @@ def validate_series(articles):
     requires reading that meta block first, which this function
     (series.json-only) can't do; see resolve_article_fields()."""
     for i, entry in enumerate(articles, 1):
+        # An entry must be a JSON object; a bare string/number/list here
+        # would crash at the first entry.get() or field access with a raw
+        # traceback instead of the clean error §20.3 promises for a
+        # semi-trusted series.json.
+        if not isinstance(entry, dict):
+            print(f'[ERROR] series.json: entry {i} must be an object '
+                  f'(got {type(entry).__name__}).', file=sys.stderr)
+            sys.exit(1)
+        # Every known field below is text: a wrong (truthy non-string)
+        # type — a number, list or object — used to sail past this
+        # validation and detonate downstream at a re.sub / Path() / join
+        # sink as a traceback. Reject it here with a clean message.
+        for field in _SERIES_STRING_FIELDS:
+            if field in entry and entry[field] is not None and not isinstance(entry[field], str):
+                print(f'[ERROR] series.json: entry {i} field "{field}" must be '
+                      f'a string (got {type(entry[field]).__name__}).', file=sys.stderr)
+                sys.exit(1)
         for legacy, renamed in _LEGACY_SERIES_FIELDS.items():
             if legacy in entry:
                 print(f'[ERROR] series.json: entry {i} uses "{legacy}", '
@@ -3641,6 +3720,15 @@ def validate_series(articles):
 
 
 _DISPLAY_OVERRIDE_FIELDS = ('page_title', 'card_title', 'card_desc', 'card_label', 'nav_title', 'nav_desc')
+
+# Every series.json entry field that must be a string when present.
+# `draft` is deliberately excluded: it is coerced with str().lower() and
+# so tolerates any type (a non-"true" value simply isn't a draft, §20.6).
+_SERIES_STRING_FIELDS = (
+    'page_source', 'page_dest', 'page_title', 'page_desc',
+    'card_title', 'card_desc', 'card_label', 'nav_title', 'nav_desc',
+    'author', 'license', 'date', 'comment',
+)
 
 
 def _find_cover_slide(slides):
@@ -3920,7 +4008,7 @@ def load_build_context(series_dir, args):
     nav_js = apply_strings(nav_js, strings)
 
     series_data = load_series_data(sd)
-    series_meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
+    series_meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
     resolve_article_fields(articles, articles_dir, series_meta)
@@ -4145,7 +4233,7 @@ def cmd_audit(series_dir, args):
     """
     sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
-    series_meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
+    series_meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     # entry['page_dest'] below needs the resolution §20.3.1 describes
     # (derived from `page_source` when series.json omits it, the common
@@ -4315,7 +4403,12 @@ def cmd_refresh_templates(target_dir, args):
         if old == new_builtin:
             up_to_date.append('templates/style.css')
         else:
-            marker_pos = old.rfind(TEMPLATE_STYLE_CUSTOM_MARKER)
+            # First occurrence, not last (rfind): the built-in part ends
+            # with exactly one marker, so everything after the FIRST
+            # marker is the author's — including a second literal marker
+            # they may have pasted into their own CSS. rfind dropped every
+            # author rule between the two markers.
+            marker_pos = old.find(TEMPLATE_STYLE_CUSTOM_MARKER)
             if marker_pos == -1:
                 skipped.append('templates/style.css')
                 print(f'[SKIP] templates/style.css: no marker found, cannot tell your '
