@@ -3006,6 +3006,111 @@ class ThemeFacets(unittest.TestCase):
                 self.assertIn(var, style)
 
 
+class GalleryPreviewFidelity(unittest.TestCase):
+    """§11.7: the gallery's preview is a MINIATURE, not a screenshot —
+    its sizes and spacing are deliberately smaller than the real page.
+    But the role mapping must be identical: the same custom property has
+    to feed the same part of the page, and no colour may be hard-coded.
+
+    Passing the theme's variables into the preview is not enough if the
+    preview then ignores them. It did: the cover ground was hard-coded to
+    var(--dark) and its text to #fff, and the fact-box to #fff. On a
+    dark-backgrounded theme --dark holds the TEXT colour, so Synthwave
+    previewed as a pale lavender panel with white text on it, above a
+    white fact-box whose own text was near-invisible — the exact bugs
+    that had been fixed in the real stylesheet, still on show in the page
+    that exists to show what the themes look like."""
+
+    # role -> (preview selector, real-stylesheet selector, variable)
+    ROLE_MAP = (
+        ('page ground', '.preview', 'body', '--light'),
+        ('cover ground', '.preview-cover', '.slide-cover', '--cover-bg'),
+        ('cover text', '.preview-cover-title', '.slide-cover h1', '--cover-fg'),
+        ('card surface', '.preview-factbox', '.fact-box', '--surface'),
+        ('recessed ground', '.preview-cell--neutral', '.comparison-table th', '--sunken'),
+        ('fact emphasis ink', '.preview-factcontent strong',
+         '.fact-content strong', '--fact-strong-ink'),
+    )
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    @staticmethod
+    def _rules(css):
+        """(selector list, declarations) for each rule. Comments are
+        stripped FIRST: without that the selector group swallows the
+        comment block preceding a rule, no selector ever compares equal,
+        and every assertion below passes by matching nothing — which is
+        exactly what happened when this helper was first written."""
+        css = re.sub(r'/\*.*?\*/', '', css, flags=re.DOTALL)
+        for match in re.finditer(r'([^{}]+)\{([^{}]*)\}', css):
+            yield [s.strip() for s in match.group(1).split(',')], match.group(2)
+
+    @classmethod
+    def _block(cls, css, selector):
+        """Every declaration that applies to exactly `selector`, from all
+        the rules that list it, concatenated — not just the first.
+        A selector routinely appears twice: '.comparison-table th' is
+        first in a shared th/td rule for padding and alignment, and only
+        later in its own rule carrying the background. Reading the first
+        match alone reported the variable as missing.
+
+        Exact selector match, so '.fact-content strong' is not picked up
+        by a search for 'strong'."""
+        found = [decls for selectors, decls in cls._rules(css) if selector in selectors]
+        return '\n'.join(found) if found else None
+
+    def test_each_preview_role_uses_the_same_variable_as_the_real_stylesheet(self):
+        gallery = self.lwp.TEMPLATE_THEMES_GALLERY_HEAD
+        real = self.lwp.TEMPLATE_STYLE
+        for role, preview_sel, real_sel, var in self.ROLE_MAP:
+            preview_block = self._block(gallery, preview_sel)
+            real_block = self._block(real, real_sel)
+            self.assertIsNotNone(preview_block, f'{role}: no {preview_sel} rule')
+            self.assertIsNotNone(real_block, f'{role}: no {real_sel} rule')
+            self.assertIn(f'var({var})', preview_block,
+                          f'{role}: {preview_sel} should take its value from {var}')
+            self.assertIn(f'var({var})', real_block,
+                          f'{role}: {real_sel} no longer uses {var} — the mapping '
+                          f'this test pins has moved, update both sides')
+
+    def test_the_preview_hardcodes_no_colour(self):
+        """Any literal colour is a value a theme cannot reach, so it
+        renders identically under all 33 palettes — which is precisely
+        how the cover text stayed #fff on every dark theme."""
+        offenders = []
+        for selectors, decls in self._rules(self.lwp.TEMPLATE_THEMES_GALLERY_HEAD):
+            if not any(s.startswith('.preview') for s in selectors):
+                continue
+            for literal in re.findall(r'#[0-9A-Fa-f]{3,8}\b|\brgba?\([^)]*\)|\b(?:white|black)\b',
+                                      decls):
+                offenders.append((', '.join(selectors), literal))
+        self.assertEqual(offenders, [], f'hard-coded colours in the preview: {offenders}')
+
+    def test_that_scan_actually_reaches_the_preview_rules(self):
+        """Guards the guard. The colour scan above is a search for
+        something that should not be there, so it passes just as happily
+        when it inspects nothing at all — as it did while CSS comments
+        were swallowing every selector."""
+        seen = [s for selectors, _ in self._rules(self.lwp.TEMPLATE_THEMES_GALLERY_HEAD)
+                for s in selectors if s.startswith('.preview')]
+        self.assertGreaterEqual(len(seen), 10, f'only reached {seen}')
+
+    def test_the_verdict_cells_carry_the_shape_marker_too(self):
+        """The real stylesheet gained these for WCAG 1.4.1. A preview
+        showing colour alone would advertise a cell the tool no longer
+        renders — and the escapes must survive Python's string parsing:
+        in a non-raw literal '\\25CF' is eaten as an octal escape and the
+        marker renders as a control character followed by 'CF'."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+        for marker in (r'"\25CF"', r'"\25CB"'):
+            self.assertIn(marker, html, f'{marker} missing or mangled')
+        self.assertNotIn('\x15', html, 'an octal escape survived into the page')
+
+
 class ThemesCommand(unittest.TestCase):
     """§11.9: the facets have to be reachable from the terminal, not only
     from the generated gallery page. lightwebpres is a standalone tool —

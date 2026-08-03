@@ -1908,6 +1908,41 @@ L'aperçu reçoit aussi les superpositions neutres du thème (§9.5.2), sans
 quoi une palette à fond sombre s'afficherait avec les voiles d'une page
 claire — c'est-à-dire pas telle qu'elle rendra réellement.
 
+**Fidélité de l'aperçu.** L'aperçu est une *miniature*, pas une capture
+d'écran : ses tailles et ses espacements sont délibérément réduits. En
+revanche la **correspondance variable → rôle** doit être identique à
+celle de la feuille de style réelle, et aucune couleur ne doit y être
+figée :
+
+| Rôle | Aperçu | Feuille réelle | Variable |
+|---|---|---|---|
+| fond de page | `.preview` | `body` | `--light` |
+| fond de couverture | `.preview-cover` | `.slide-cover` | `--cover-bg` |
+| texte de couverture | `.preview-cover-title` | `.slide-cover h1` | `--cover-fg` |
+| surface de carte | `.preview-factbox` | `.fact-box` | `--surface` |
+| fond en creux | `.preview-cell--neutral` | `.comparison-table th` | `--sunken` |
+| encre du surlignage | `.preview-factcontent strong` | `.fact-content strong` | `--fact-strong-ink` |
+
+Passer les variables du thème à l'aperçu ne suffit pas si l'aperçu les
+ignore ensuite : c'est ce qui s'est produit. Le fond de couverture était
+figé à `var(--dark)` et son texte à `#fff`, la fact-box à `#fff`. Sur un
+thème à fond sombre, `--dark` porte la couleur du **texte** : Synthwave
+s'affichait donc en panneau lavande pâle surmonté de texte blanc, au-dessus
+d'une fact-box blanche dont le texte était presque invisible — exactement
+les défauts corrigés dans la feuille réelle, toujours exposés dans la page
+censée montrer ce que donnent les thèmes.
+
+Deux conséquences moins évidentes, toutes deux vérifiées par les tests :
+
+- L'aperçu doit porter **son propre fond de page** (`var(--light)`). Les
+  neutres sont des superpositions translucides : `--cover-bg` vaut
+  `rgba(0, 0, 0, 0.45)` sur un thème sombre, destiné à assombrir la page
+  en dessous. Sans fond propre, ce voile se composait sur la carte claire
+  de la galerie et la couverture ressortait simplement grise.
+- Les cellules de verdict portent aussi leur **marqueur de forme**
+  (§6.1). Un aperçu qui n'en montrerait que la couleur annoncerait une
+  cellule que l'outil ne produit plus.
+
 En tête de page, une barre de **facettes** (§9.5.3) filtre les aperçus
 par polarité, intensité et teinte. Elle est produite en HTML statique
 mais masquée par défaut, et révélée par le script inline de la page :

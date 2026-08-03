@@ -46,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.14.0"
+VERSION = "0.14.1"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -2306,7 +2306,11 @@ build:
 # French, not localized by --lang: it documents THEMES itself, an
 # editorial choice for this one reference page, not a limitation of the
 # slide-rendering engine (specifications.md §11.7).
-TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
+# Raw, like TEMPLATE_STYLE: the CSS below carries \\25CF-style escapes for
+# the verdict shape markers, and in a plain string Python eats them as
+# octal before CSS ever sees them (\\25 becomes one control character, and
+# the marker renders as literal "CF").
+TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -2486,9 +2490,32 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--card-border);
+    /* The page ground, and it has to be here. The neutrals are
+       TRANSLUCENT overlays (§9.5.2): --cover-bg on a dark theme is
+       rgba(0,0,0,0.45), meant to deepen the page underneath it. Without
+       a ground of its own the preview composited that veil against the
+       gallery's own light card instead, and a synthwave cover came out
+       plain grey. In the real page body already carries var(--light);
+       the preview has to carry it too or every overlay lands on the
+       wrong backdrop. */
+    background: var(--light);
   }
+  /* Every rule below mirrors the ROLE MAPPING of the real stylesheet:
+     the same custom property feeds the same part of the page. Sizes and
+     spacing are deliberately miniaturized — this is a thumbnail, not a
+     screenshot — but a variable may never be swapped for another, and a
+     colour may never be hard-coded.
+
+     That is not a stylistic preference. This preview used to hard-code
+     var(--dark) as the cover ground and #fff as its text, and #fff again
+     for the fact-box. On a dark-backgrounded theme --dark holds the TEXT
+     colour, so the cover came out as a pale panel with white text on it,
+     and the fact-box as a white block on a black page — the very bugs
+     that were fixed in the real stylesheet, still on display here. The
+     gallery was misrepresenting exactly the themes a reader can least
+     judge from swatches alone. */
   .preview-cover {
-    background: var(--dark);
+    background: var(--cover-bg);
     padding: 16px 15px 15px;
   }
   .preview-tag {
@@ -2497,17 +2524,14 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: var(--dark);
-    background: var(--yellow);
-    padding: 3px 7px;
-    border-radius: 3px;
+    color: var(--yellow);
   }
   .preview-cover-title {
     margin-top: 9px;
     font-size: 14.5px;
     font-weight: 800;
     line-height: 1.25;
-    color: #fff;
+    color: var(--cover-fg);
   }
   .preview-body {
     background: var(--light);
@@ -2557,7 +2581,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
   }
   .preview-factbox {
     margin-top: 12px;
-    background: #fff;
+    background: var(--surface);
     border-left: 4px solid var(--yellow);
     padding: 9px 11px;
     border-radius: 0 6px 6px 0;
@@ -2579,6 +2603,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     font-weight: var(--fact-strong-weight);
     font-style: var(--fact-strong-style);
     background: var(--fact-strong-highlight);
+    color: var(--fact-strong-ink);
     padding: 1px 4px;
     border-radius: 2px;
   }
@@ -2595,12 +2620,18 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
   }
   .preview-cell--neutral {
     color: var(--grey);
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--sunken);
   }
   .preview-cell--green {
     color: var(--green);
-    background: color-mix(in srgb, var(--green) 16%, transparent);
+    background: var(--sunken);
   }
+  /* The shape marker too, not just the colour. The real stylesheet
+     gained these for WCAG 1.4.1 (colour is never the sole carrier of
+     meaning); a preview that showed the colour alone would advertise a
+     verdict cell the tool no longer renders. */
+  .preview-cell--green::before { content: "\25CF"; margin-right: 5px; }
+  .preview-cell--neutral::before { content: "\25CB"; margin-right: 5px; }
 
   /* --- swatch strip + metadata (artifact chrome, not the mock-up) --- */
   .swatches {
@@ -2691,10 +2722,14 @@ TEMPLATE_THEMES_GALLERY_HEAD = '''<!doctype html>
     <p class="eyebrow">lightwebpres &middot; th&egrave;mes de couleurs</p>
     <h1>Des palettes nomm&eacute;es, pr&ecirc;tes &agrave; l'emploi</h1>
     <p class="dek">
-      Chaque carte applique une palette r&eacute;elle aux six variables que lightwebpres lit dans
-      <code>templates/style.css</code> &mdash; <code>--yellow --dark --grey --light --accent --green</code>
-      &mdash; sur un vrai fragment de fiche (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;,
-      fact-box, tableau). Cette page est g&eacute;n&eacute;r&eacute;e depuis la table
+      Chaque carte applique une palette r&eacute;elle sur un vrai fragment de fiche
+      (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;, fact-box, tableau) : les six couleurs
+      &mdash; <code>--yellow --dark --grey --light --accent --green</code> &mdash; mais
+      aussi les quatre propri&eacute;t&eacute;s de gras en fact-box et les neuf superpositions
+      neutres, qui suivent la polarit&eacute; du fond. L'aper&ccedil;u fait correspondre chaque
+      variable au m&ecirc;me r&ocirc;le que la vraie feuille de style : ce n'est pas une
+      capture d'&eacute;cran, mais aucune couleur n'y est fig&eacute;e.
+      Cette page est g&eacute;n&eacute;r&eacute;e depuis la table
       <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; voir
       specifications.md &sect;9.5.
     </p>
