@@ -44,7 +44,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.11.0"
+VERSION = "0.10.0"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:

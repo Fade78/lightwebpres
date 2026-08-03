@@ -171,7 +171,11 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    (Note de cohérence, faite avec l'axe 3 : démo enrichie de `date:` +
    `comment:` sur l'article 1, scaffold install avec clés
    `author`/`license` vides, §11.1/§11.2/§12.1 resynchronisés.)
-5. FAIT (v0.10.0) — Sécurité, 2e passe post-gel. 3 agents adverses
+5. FAIT (v0.10.0) — Sécurité, 2e passe post-gel. NB numérotation : les
+   deux passes ci-dessous (ciblée puis complète) sont livrées ensemble
+   sous la SEULE release v0.10.0 — la release GitHub v0.10.0 n'ayant pas
+   été créée entre les deux, le code a été renuméroté de 0.11.0 à 0.10.0
+   (séquence GitHub sans trou : v0.9.0 → v0.10.0). 3 agents adverses
    (injection contenu, path traversal/FS, ReDoS/ressources/client-side),
    chaque vrai-positif reproduit par moi-même avant correction. 5 vrais
    positifs corrigés + tests de régression (suite 311 → 319) :
@@ -200,8 +204,8 @@ Ordre : le gel (§2 ci-dessus) d'abord, tout le reste en dépend.
    contrôle) avait auto-appliqué le fix du href ; j'ai remis une base
    propre, reproduit la vuln moi-même, et re-validé le correctif avant
    de le conserver.
-   **Passe complète (v0.11.0, sur demande « test complet, pas juste les
-   deltas »).** 4 agents adverses sur des surfaces distinctes (crypto/
+   **Passe complète (même release v0.10.0, sur demande « test complet,
+   pas juste les deltas »).** 4 agents adverses sur des surfaces distinctes (crypto/
    stockage/SW, converter+parseur re-balayé, JSON/config/placeholders/
    thèmes, réseau/Pyodide/supply-chain). Constat de cadrage : le
    chiffrement (argon2id/AES-GCM/OPFS/SW) N'EXISTE PAS dans ce dépôt — il
