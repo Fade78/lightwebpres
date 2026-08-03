@@ -1094,7 +1094,28 @@ Le CSS par défaut expose six variables CSS (`--yellow --dark --grey
 --theme <nom>` en substitue les valeurs par une palette prédéfinie au
 moment de la création du site — voir §9.5.
 
-Trois variables supplémentaires pilotent, indépendamment les unes des
+**Ces six noms désignent un rôle, pas une couleur.** Ils viennent des
+valeurs qu'elles avaient dans le tout premier thème, et n'ont jamais été
+renommés : ce sont les noms qu'un auteur surcharge dans son
+`templates/style.css`, donc les renommer casserait toute personnalisation
+existante ainsi que tout thème déjà appliqué. La conséquence est qu'ils
+mentent dès qu'un thème s'éloigne de cette palette d'origine, et il faut
+le savoir pour lire une palette :
+
+| Variable | Rôle réel | Exemple de valeur qui « ment » |
+|---|---|---|
+| `--light` | fond de page | `#1A1030` sur Synthwave — un presque-noir |
+| `--dark` | texte courant, et le fond de couverture sur un thème clair | `#F2E9FF` sur Synthwave — la couleur du texte |
+| `--grey` | textes secondaires : résumé, légende, source, verdict « non » | |
+| `--yellow` | filets et repères : filet de fact-box, tag de couverture, soulignement d'en-tête, point de nav actif, colonne mise en avant | `#7A6A00` sur Pop Lemon — un brun-olive, parce qu'un jaune sur un fond déjà jaune ne se verrait pas |
+| `--accent` | liens, focus, flèche de chiffre-clé, verdict « partiel » | |
+| `--green` | verdict « oui » d'un tableau comparatif (§6.1) | |
+
+`themes-gallery` (§11.7) présente donc chaque pastille par son **rôle**
+d'abord et son nom de variable ensuite : lire « yellow · #7A6A00 » sans
+autre indication n'apprend rien à personne.
+
+Quatre variables supplémentaires pilotent, indépendamment les unes des
 autres, le rendu visuel du gras Markdown (`**texte**` → `<strong>`)
 **à l'intérieur d'une fact-box** (`.fact-content strong`) — le marquage
 sémantique ne change pas, seule sa présentation par défaut devient
@@ -1112,8 +1133,16 @@ paramétrable :
   ci-dessus (`var(--accent)`, `var(--green)`...) plutôt qu'une couleur
   en dur permet à une surcharge ultérieure de cette variable de continuer
   à s'appliquer.
+- `--fact-strong-ink` (`var(--dark)` par défaut) — la couleur du **texte
+  posé sur ce fond**. Sans elle, la règle ne posait qu'un fond, ce qui
+  présupposait un texte foncé sur un marqueur vif : vrai sur un thème
+  clair, faux sur un thème sombre où `--dark` porte justement la couleur
+  claire du texte — rapport de contraste mesuré à 1,00, c'est-à-dire un
+  surlignage invisible. Vaut `inherit` quand il n'y a pas de fond
+  (`fact_highlight` absent) : sans marqueur, le texte garde la couleur du
+  corps.
 
-Ces trois variables se personnalisent exactement comme les six
+Ces quatre variables se personnalisent exactement comme les six
 premières : une surcharge dans `templates/style.css`, après le marqueur
 de personnalisation (§9.4). Elles sont aussi intégrées à `THEMES`
 (§9.5) — chaque thème prédéfini choisit ses propres valeurs plutôt que

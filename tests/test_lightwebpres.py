@@ -3096,6 +3096,47 @@ class GalleryPreviewFidelity(unittest.TestCase):
                 for s in selectors if s.startswith('.preview')]
         self.assertGreaterEqual(len(seen), 10, f'only reached {seen}')
 
+    def test_each_swatch_names_the_role_before_the_variable(self):
+        """§9.1: the six names are ROLES, not colours. They were named
+        after their values in the very first theme and never renamed —
+        they are what an author overrides in style.css, so renaming them
+        would break every existing customization. The consequence is that
+        they lie: --yellow is a dark olive on Pop Lemon (a yellow marker
+        on a yellow page would be invisible) and --light is a near-black
+        on any dark theme. A swatch reading 'yellow #7A6A00' teaches a
+        reader nothing, so the role leads and the variable follows."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+
+        roles = re.findall(r'<div class="swatch-role">([^<]*)</div>', html)
+        self.assertEqual(len(roles), 6 * len(self.lwp.THEMES))
+        # A role, never a bare variable name posing as one.
+        for name in ('yellow', 'dark', 'grey', 'light', 'accent', 'green'):
+            self.assertNotIn(name, roles, f'{name!r} is a variable name, not a role')
+        self.assertIn('Fond de page', roles)
+        self.assertIn('Filets &amp; rep&egrave;res', roles)
+
+        # The variable name still has to be reachable — it is what you
+        # type to override the value.
+        for var in ('--light', '--dark', '--grey', '--yellow', '--accent', '--green'):
+            self.assertIn(f'&middot; {var}<', html, f'{var} no longer shown')
+
+    def test_the_palette_reads_in_the_order_it_is_seen(self):
+        """Background, then the two text colours, then the furniture —
+        not the alphabetical-ish order the variables happen to be
+        declared in, which opened on --yellow and left a reader hunting
+        for which swatch was the page itself."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+        first_card = html.split('<ul class="swatches">')[1].split('</ul>')[0]
+        self.assertEqual(
+            re.findall(r'&middot; (--[^<]+)<', first_card),
+            ['--light', '--dark', '--grey', '--yellow', '--accent', '--green'])
+
     def test_the_verdict_cells_carry_the_shape_marker_too(self):
         """The real stylesheet gained these for WCAG 1.4.1. A preview
         showing colour alone would advertise a cell the tool no longer

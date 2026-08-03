@@ -46,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.14.1"
+VERSION = "0.14.2"
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -2410,6 +2410,17 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     margin: 0 0 8px;
     max-width: 62ch;
   }
+  /* The variable names read as colour names and are not — set apart so
+     the answer is found before the question is asked twice. */
+  .dek--note {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-left: 3px solid var(--card-border);
+    background: var(--card-bg);
+    border-radius: 0 8px 8px 0;
+    font-size: 15px;
+  }
+  .dek--note strong { color: var(--ink); }
   .dek code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.92em;
@@ -2417,6 +2428,10 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     color: var(--structural);
     padding: 0.1em 0.4em;
     border-radius: 4px;
+    /* A variable name must not break across lines: '--yellow' split
+       after its first hyphen reads as '- -yellow', which is not a thing
+       anyone can paste. */
+    white-space: nowrap;
   }
 
   .facets { max-width: 1180px; margin: 0 auto 26px; padding: 16px 20px;
@@ -2633,12 +2648,14 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   .preview-cell--green::before { content: "\25CF"; margin-right: 5px; }
   .preview-cell--neutral::before { content: "\25CB"; margin-right: 5px; }
 
-  /* --- swatch strip + metadata (artifact chrome, not the mock-up) --- */
+  /* --- swatch strip + metadata (artifact chrome, not the mock-up) ---
+     Two columns, not three: each entry now leads with what the colour
+     DOES, and a role needs room to be named. */
   .swatches {
     margin: 14px 18px 0;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9px 12px;
   }
   .swatch {
     display: flex;
@@ -2657,13 +2674,20 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     min-width: 0;
     line-height: 1.15;
   }
+  /* What the colour does, in words — the heading of the pair, because
+     that is the question a reader actually has. The variable name is
+     kept alongside, since it is what you type to override the value,
+     but it no longer poses as a description of the colour. */
   .swatch-role {
-    font-size: 9px;
-    color: var(--muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .swatch-hex {
-    font-size: 10.5px;
+    font-size: 9.5px;
+    color: var(--muted);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2723,15 +2747,26 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     <h1>Des palettes nomm&eacute;es, pr&ecirc;tes &agrave; l'emploi</h1>
     <p class="dek">
       Chaque carte applique une palette r&eacute;elle sur un vrai fragment de fiche
-      (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;, fact-box, tableau) : les six couleurs
-      &mdash; <code>--yellow --dark --grey --light --accent --green</code> &mdash; mais
-      aussi les quatre propri&eacute;t&eacute;s de gras en fact-box et les neuf superpositions
-      neutres, qui suivent la polarit&eacute; du fond. L'aper&ccedil;u fait correspondre chaque
-      variable au m&ecirc;me r&ocirc;le que la vraie feuille de style : ce n'est pas une
-      capture d'&eacute;cran, mais aucune couleur n'y est fig&eacute;e.
+      (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;, fact-box, tableau) : les six couleurs,
+      mais aussi les quatre propri&eacute;t&eacute;s de gras en fact-box et les neuf
+      superpositions neutres, qui suivent la polarit&eacute; du fond. L'aper&ccedil;u fait
+      correspondre chaque variable au m&ecirc;me r&ocirc;le que la vraie feuille de
+      style : ce n'est pas une capture d'&eacute;cran, mais aucune couleur n'y est fig&eacute;e.
       Cette page est g&eacute;n&eacute;r&eacute;e depuis la table
       <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; voir
       specifications.md &sect;9.5.
+    </p>
+    <p class="dek dek--note">
+      <strong>Les six variables d&eacute;signent un r&ocirc;le, pas une couleur.</strong>
+      Leurs noms (<code>--yellow</code>, <code>--green</code>, <code>--light</code>&hellip;)
+      viennent des valeurs du tout premier th&egrave;me et n'ont jamais &eacute;t&eacute;
+      renomm&eacute;s : ce sont ceux qu'on surcharge dans <code>templates/style.css</code>,
+      et les changer casserait toute personnalisation existante. D'o&ugrave; des noms qui
+      mentent sur les th&egrave;mes suivants : sur un fond d&eacute;j&agrave; jaune,
+      <code>--yellow</code> porte un brun sombre, sans quoi le rep&egrave;re serait
+      invisible ; sur un th&egrave;me &agrave; fond sombre, <code>--light</code> porte un
+      presque-noir et <code>--dark</code> la couleur du texte. Les pastilles ci-dessous
+      annoncent donc le r&ocirc;le d'abord, le nom de variable ensuite.
     </p>
   </div>
 
@@ -2804,13 +2839,17 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
           </div>
         </div>
       </div>
+      <!-- Ordre de lecture : fond, puis textes, puis mobilier. Chaque
+           entr&eacute;e annonce ce que la couleur FAIT ; le nom de variable ne
+           vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
+           d&eacute;crit la couleur. -->
       <ul class="swatches">
-        <li class="swatch"><span class="swatch-chip" style="background:{yellow}"></span><span class="swatch-text"><div class="swatch-role">yellow</div><div class="swatch-hex">{yellow}</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{dark}"></span><span class="swatch-text"><div class="swatch-role">dark</div><div class="swatch-hex">{dark}</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{grey}"></span><span class="swatch-text"><div class="swatch-role">grey</div><div class="swatch-hex">{grey}</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{light}"></span><span class="swatch-text"><div class="swatch-role">light</div><div class="swatch-hex">{light}</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{accent}"></span><span class="swatch-text"><div class="swatch-role">accent</div><div class="swatch-hex">{accent}</div></span></li>
-        <li class="swatch"><span class="swatch-chip" style="background:{green}"></span><span class="swatch-text"><div class="swatch-role">green</div><div class="swatch-hex">{green}</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{light}"></span><span class="swatch-text"><div class="swatch-role">Fond de page</div><div class="swatch-hex">{light} &middot; --light</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{dark}"></span><span class="swatch-text"><div class="swatch-role">Texte</div><div class="swatch-hex">{dark} &middot; --dark</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{grey}"></span><span class="swatch-text"><div class="swatch-role">Texte secondaire</div><div class="swatch-hex">{grey} &middot; --grey</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{yellow}"></span><span class="swatch-text"><div class="swatch-role">Filets &amp; rep&egrave;res</div><div class="swatch-hex">{yellow} &middot; --yellow</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{accent}"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-hex">{accent} &middot; --accent</div></span></li>
+        <li class="swatch"><span class="swatch-chip" style="background:{green}"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-hex">{green} &middot; --green</div></span></li>
       </ul>
       <p class="theme-note{note_good_class}">{note}</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme {slug}</code></p>
