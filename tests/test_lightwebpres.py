@@ -2278,6 +2278,58 @@ class NbspPreservedFromSource(unittest.TestCase):
             self._both_ends(re.search(r'<div class="article-desc">(.*?)</div>', index_html).group(1))
 
 
+class DashesAreNeverOrphaned(unittest.TestCase):
+    """A dash left with breakable spaces on both sides can end a line or
+    begin one, alone. The French pack had six rules and not one of them
+    touched a dash. Imprimerie nationale: the spaces INSIDE a paired incise
+    are non-breaking, the outer ones stay breakable."""
+
+    NB = '\u00a0'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+        cls.fr = cls.lwp.TypoEngine(json.loads(cls.lwp.LANG_FR))
+
+    def _typo(self, text):
+        return self.lwp.apply_typo(self.fr, text, None)
+
+    def test_a_paired_incise_binds_inward_and_stays_breakable_outward(self):
+        out = self._typo('Le sujet — celui-ci — est clair.')
+        self.assertEqual(out, f'Le sujet —{self.NB}celui-ci{self.NB}— est clair.')
+
+    def test_an_unpaired_dash_binds_to_the_word_before_it(self):
+        # So it can never begin a line, which in French reads as dialogue.
+        out = self._typo('Le fait est simple — et il est mesuré.')
+        self.assertEqual(out, f'Le fait est simple{self.NB}— et il est mesuré.')
+
+    def test_the_en_dash_follows_the_same_rule(self):
+        out = self._typo('Un cas – plus court – ici.')
+        self.assertEqual(out, f'Un cas –{self.NB}plus court{self.NB}– ici.')
+
+    def test_a_hyphen_is_not_a_dash(self):
+        # The one thing these rules must never touch: a compound word or a
+        # page range. Nothing here is spaced, so nothing matches.
+        for text in ('pages 12-15 et Marie-Claire', 'c-à-d', 'sous-jacent'):
+            self.assertEqual(self._typo(text), text)
+
+    def test_a_dialogue_dash_opening_a_line_is_left_alone(self):
+        # Nothing precedes it, so binding it backwards would be meaningless.
+        self.assertEqual(self._typo('— Bonjour, dit-il.'), '— Bonjour, dit-il.')
+
+    def test_several_incises_pair_correctly(self):
+        out = self._typo('Trois — une — puis — deux — ici.')
+        n = self.NB
+        self.assertEqual(out, f'Trois —{n}une{n}— puis —{n}deux{n}— ici.')
+
+    def test_the_english_pack_leaves_dashes_alone(self):
+        # English sets the em dash closed up against its words; there is
+        # nothing to protect and no space to make non-breaking.
+        en = self.lwp.TypoEngine(json.loads(self.lwp.LANG_EN))
+        text = 'The point — this one — is clear.'
+        self.assertEqual(self.lwp.apply_typo(en, text, None), text)
+
+
 class TypographyDisableSwitches(unittest.TestCase):
     """§4.5/§19.6: typo-units/typo-thousands/typo meta fields and
     --no-typography each turn off part or all of the typography engine,
@@ -3485,14 +3537,17 @@ class ContrastFloors(unittest.TestCase):
     def _over(fg, alpha, bg):
         return tuple(fg[i] * alpha + bg[i] * (1 - alpha) for i in range(3))
 
-    def _cover_ground(self, theme):
-        """What the cover slide actually paints under its own text: the
-        ink itself on a light theme, the #00000073 veil (the measured 45%
-        black, as the layer's explicit ARGB) over the page on a dark
-        one."""
-        if theme.get('dark_background'):
-            return self._over((0, 0, 0), 0x73 / 255, self._rgb(theme['page']))
-        return self._rgb(theme['ink'])
+    def _cover_ground(self, resolved):
+        """What the cover slide actually paints under its own text, READ
+        FROM THE RESOLVED LAYER. It was transcribed from the
+        implementation — the #00000073 veil written out by hand — which
+        made one of the two operands of a contrast ratio dead data:
+        repaint the cover ground white and the counter still measured
+        "readable" at 1.09:1. Exactly the defect this class exists to
+        prevent, in the class that exists to prevent it."""
+        frm = resolved['cover.bg.from']
+        return self._over(self._rgb(frm[:7]), int(frm[7:9], 16) / 255,
+                          self._rgb(resolved['color.page'][:7]))
 
     def test_the_cover_slide_counter_is_readable_on_every_theme(self):
         """The counter's colour (cover.num.fg, ex --cover-fg-faint) was
@@ -3507,7 +3562,7 @@ class ContrastFloors(unittest.TestCase):
             faint = resolved['cover.num.fg']
             self.assertRegex(faint, r'^#[0-9A-F]{8}$', slug)
             fg, alpha = self._rgb(faint[:7]), int(faint[7:9], 16) / 255
-            ground = self._cover_ground(theme)
+            ground = self._cover_ground(resolved)
             ratio = self._ratio(self._over(fg, alpha, ground), ground)
             self.assertGreaterEqual(round(ratio, 2), 4.5, f'{slug}: {ratio:.2f}:1')
 
@@ -4408,22 +4463,27 @@ class SeriesJsonExtensionValidation(unittest.TestCase):
 
 
 class DisplayFieldOverrides(unittest.TestCase):
-    """§20.3.1: file/page_title/card_title/card_desc/card_label/nav_title/
-    nav_desc all resolve as series.json entry > article's own meta block
-    field of the same name > a content-derived fallback, most specific to
-    least specific:
+    """§20.3.1: page_dest/page_title/card_title/card_desc/card_label/
+    nav_title/nav_desc all resolve as series.json entry > article's own
+    meta block field of the same name > a content-derived fallback, most
+    specific to least specific:
 
-      file        : derived from `source` (.md -> .html)
-      page_title  : the cover slide's own h1 -> the resolved `file`
+      page_dest   : derived from `page_source` (.md -> .html)
+      page_title  : the cover slide's own h1 -> the resolved page_dest
       card_title  : page_title (resolved)
       card_desc   : the cover slide's own summary
       card_label  : '' (nothing to extrapolate)
       nav_title   : card_title (resolved)
       nav_desc    : card_desc (resolved)
 
-    Nothing in this chain is fatal if absent everywhere — every field
-    always resolves to SOMETHING, down to the article's own file name in
-    the worst case. `source` is the only field series.json still requires."""
+    Written in the retired `file`/`source` vocabulary until this was
+    caught — the suite was documenting a surface its own
+    LegacyFieldMigrationErrors tests make fatal. And it claimed nothing
+    in the chain is ever fatal, the exact sentence
+    SkillDocumentsWhatTheCodeAccepts bans from SKILL.md on the grounds
+    that page_dest has three fatal paths. The display fields resolve to
+    something; page_dest and page_source do not, and series.json still
+    requires page_source."""
 
     def _build(self, tmp, meta_extra, series_entry_extra, cover_extra=''):
         root = Path(tmp)
@@ -6654,6 +6714,103 @@ class AlignmentAxes(unittest.TestCase):
                       sheet[sheet.index('.align-center,'):])
 
 
+class EverySixTypeRejectsWhatItMustReject(unittest.TestCase):
+    """Every property type's rejection branch, exercised. Three of the six
+    had none, and this is not a hypothetical gap: with the colour branch
+    neutered the whole suite stays green, and two of the five unguarded
+    types (font stack, length) turned out to be genuinely exploitable —
+    both shipped stored XSS until they were closed. Two thirds of the
+    registry is colour-typed; nothing pinned it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_the_rejection_branch_of_every_type_is_load_bearing(self):
+        lwp = self.lwp
+        # One escape attempt per type, all shaped the same way: close the
+        # declaration, close the sheet, open a script.
+        ESCAPE = '} </style><script>alert(1)</script><style>x{'
+        cases = [
+            (lwp.PROP_COLOR,   '#000' + ESCAPE),
+            (lwp.PROP_COLOR,   'rgb(0,0,0)'),
+            (lwp.PROP_COLOR,   '#12345'),
+            (lwp.PROP_ANGLE,   '0deg' + ESCAPE),
+            (lwp.PROP_ANGLE,   '90'),
+            (lwp.PROP_LENGTH,  '1px' + ESCAPE),
+            (lwp.PROP_LENGTH,  '10furlong'),
+            (lwp.PROP_RATIO,   '1.5px'),
+            (lwp.PROP_WEIGHT,  '600'),
+            (lwp.PROP_FONT,    'serif' + ESCAPE),
+            (lwp.PROP_TEXT,    '"a' + ESCAPE),
+        ]
+        for prop, bad in cases:
+            with self.assertRaises(lwp.PropertyError,
+                                   msg=f'{prop.name} accepted {bad!r}'):
+                prop.check('some.key', bad)
+
+    def test_a_neutered_colour_check_would_ship_a_script(self):
+        # States what the guard above is actually protecting, so a future
+        # reader knows the cost of weakening it: the article layer reaches
+        # the inlined <style>, and colour is what most of it is made of.
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            root = scaffold(tmp,
+                '<!-- lwp:meta -->\npage_title: A\n'
+                'style.color.mark: #000} </style><script>alert(1)</script>'
+                '<style> x{\n---\n\n# Cover\n\nsummary: s\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+
+class EveryAttributeSinkEscapes(unittest.TestCase):
+    """Four sinks share one threat — a value reaching an HTML attribute —
+    and only two had a test. All four escapes are load-bearing on the real
+    executable; the two untested ones survived mutation."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_a_quote_in_page_desc_cannot_leave_the_meta_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n'
+                                 'page_desc: D" onx="1\n---\n\n'
+                                 '# Cover\n\nsummary: s\n')
+            self.assertEqual(
+                run('build', str(root), '--output', str(root / 'public')
+                    ).returncode, 0)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('content="D&quot; onx=&quot;1"', html)
+
+    def test_a_quote_in_a_code_fence_language_cannot_leave_the_class(self):
+        # _CODE_FENCE_RE is ^```(\S*)$, so a quote does reach the attribute.
+        html = self.lwp.convert_markdown('```py"onload="alert(1)\nx\n```\n')
+        self.assertIn('class="language-py&quot;onload=&quot;alert(1)"', html)
+        self.assertNotIn('onload="alert', html)
+
+
+class TheGalleryInTheRepoIsTheGalleryTheToolMakes(unittest.TestCase):
+    """README says the gallery "can never drift from what install --theme
+    actually applies". That is true of the generator and was not true of
+    the committed copy, which is regenerated by hand — it happened to be
+    in sync, and nothing kept it so."""
+
+    def test_the_committed_gallery_is_byte_identical_to_a_fresh_one(self):
+        repo_copy = Path(__file__).resolve().parent.parent / 'themes-gallery.html'
+        if not repo_copy.exists():
+            self.skipTest('no committed gallery in this checkout')
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(
+                out.read_bytes(), repo_copy.read_bytes(),
+                'themes-gallery.html is stale: re-run '
+                '`lightwebpres themes-gallery themes-gallery.html`')
+
+
 class TypedSurfaceCannotLeaveItsDeclaration(unittest.TestCase):
     """§9 claims the CSS-string axis is "the only one whose value travels
     untransformed, so the only one that must guard itself". That was false:
@@ -6950,7 +7107,10 @@ class ContentMeasure(unittest.TestCase):
         skeleton = self.lwp.TEMPLATE_SKELETON
         for stale in ('800px', '480px', '700px', '1100px'):
             self.assertNotIn(f'max-width: {stale}', skeleton)
-        self.assertGreater(skeleton.count('var(--page-content-max)'), 10)
+        # WHICH selectors read which cap is BlockWidthIsNotAMeasure's job.
+        # A bare count would let two prose caps migrate to the block width
+        # and still pass — a proxy that can only produce a false green.
+        self.assertIn('var(--page-content-max)', skeleton)
 
     def test_the_type_scale_follows_the_constraining_dimension(self):
         # On vw, rotating a phone shortens the viewport and simultaneously
@@ -6971,10 +7131,11 @@ class ContentMeasure(unittest.TestCase):
         at = skeleton.index('@media (max-height: 520px)')
         for base in ('.slide {', '.highlight {', '.fact-box {'):
             self.assertGreater(at, skeleton.index(base), base)
-        # And it is genuinely last: nothing declares those three after it.
-        tail = skeleton[at + len('@media (max-height: 520px)'):]
-        closing = tail.index('\n}')
-        self.assertNotIn('.slide {', tail[closing:])
+        # And genuinely last, stated as the invariant rather than checked
+        # against the three characters that happened to follow it: any
+        # later @media overrides it at equal specificity, which is exactly
+        # how the share popover's mobile rules died (B15).
+        self.assertEqual(at, skeleton.rindex('@media'))
 
     def test_the_small_screen_override_of_the_measure_is_gone(self):
         # It existed to claw characters back on a narrow screen; a measure

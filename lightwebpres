@@ -109,6 +109,20 @@ LANG_FR = r'''{
       "flags": "g"
     },
     {
+      "name": "nbsp_inside_dash_incise",
+      "description": "Paired em/en dash incise: non-breaking space after the opening dash and before the closing one, so neither dash is ever separated from the incise it frames. The outer spaces stay breakable — Imprimerie nationale.",
+      "pattern": "([—–]) ([^—–]*?) ([—–])",
+      "replacement": "$1 $2 $3",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_before_lone_dash",
+      "description": "An unpaired em/en dash binds to the word before it, so it can never begin a line. Skips a dash already bound to what follows by the incise rule above.",
+      "pattern": "(?<=\\S) ([—–])(?! )",
+      "replacement": " $1",
+      "flags": "g"
+    },
+    {
       "name": "nbsp_before_percent",
       "description": "Non-breaking space before %",
       "pattern": " %",
