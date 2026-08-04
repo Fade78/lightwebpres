@@ -98,6 +98,25 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 |---|---|---|
 | `article` | None — required on this slide type | External `.md` file included as the article's long-form body |
 
+## Presentation vocabulary (§9 rewrite)
+
+The theme engine's terms of art. Seeded here because this file is the shared
+vocabulary contract with lightwebpres-gui and was empty on the whole
+presentation layer; the full set lands with the §9 documentation.
+
+| Term | Meaning |
+|---|---|
+| **property** | One typed setting, named `component.axis` (`tag.fg`, `cover.bg.angle`). The only vocabulary an author writes. |
+| **component** | A thing the format names that the page renders — `tag`, `summary`, `verdict.partial`. Properties belong to components; there is no intermediate semantic layer. |
+| **axis** | The last segment of a property key: what it sets (`fg`, `size`, `weight`, `shadow.blur`). The axis fixes the type; the type fixes where a bare-word reference is looked up. |
+| **shared value** | A palette colour (`color.*`) or font stack (`font.*`) themes provide and properties reference. Never read by an emitted rule directly. |
+| **theme** | A named layer of properties applied over the built-in defaults. |
+| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Never written by the tool except on explicit request. |
+| **override** | The relation between layers: a value in a later layer covering an earlier one. |
+| **customization** | The author's act of overriding — via settings, per-article properties, instance tags, or `custom.css`. |
+| **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
+| **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |
+
 ## See also
 
 - `specifications.md` — the authoritative behavioral spec; every §

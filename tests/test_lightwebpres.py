@@ -6212,6 +6212,33 @@ class ThemeEngineStaged(unittest.TestCase):
         # bold on the bright mark ground takes the dark page ink
         self.assertEqual(r['fact.strong.fg'], r['color.page'])
 
+    def test_skeleton_extraction_leaves_no_variable_behind(self):
+        # The gap check is the completeness rule made mechanical: after the
+        # driven declarations are removed, any surviving var() is a visual
+        # decision the registry does not expose. It found four real registry
+        # gaps on its first run; this pins that it now finds none.
+        skeleton = self.lwp.extract_skeleton()
+        for line in skeleton.splitlines():
+            for var in re.findall(r'var\((--[a-z-]+)', line):
+                self.assertEqual(var, '--content-max',
+                                 f'skeleton still references {var}')
+
+    def test_skeleton_keeps_media_overrides_and_shorthand_styles(self):
+        skeleton = self.lwp.extract_skeleton()
+        self.assertIn('@media (max-width: 600px)', skeleton)
+        # border shorthands lose colour and width to the engine but keep
+        # their style token, or every rule would silently vanish
+        self.assertIn('border-bottom-style: solid', skeleton)
+        self.assertIn('outline-style: solid', skeleton)
+
+    def test_composed_sheet_is_engine_then_skeleton(self):
+        # Order is load-bearing: the skeleton's @media overrides share
+        # specificity with the engine's base values and must win by coming
+        # later.
+        full = self.lwp.compose_stylesheet(self.resolve({}))
+        self.assertLess(full.index(':root'), full.index('@media'))
+        self.assertLess(full.index('--tag-fg:'), full.index('@media'))
+
     def test_emission_consumes_every_registered_component_property(self):
         # Completeness is structural: everything with a css= target appears
         # exactly as a var() consumer in the rules.

@@ -1374,7 +1374,8 @@ THEME_COMPONENTS = [
     ThemeComponent('code', 'code', [
         ThemeProp('code.font',       PROP_FONT,   'mono',      css='font-family'),
         ThemeProp('code.size',       PROP_LENGTH, '0.88em',    css='font-size'),
-        ThemeProp('code.bg',         PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('code.bg',         PROP_COLOR,  '#0000000B', css='background',
+                  selector='code, pre'),
         ThemeProp('code.rule-fg',    PROP_COLOR,  '#0000001A', css='border-color',
                   selector='pre'),
         ThemeProp('code.rule-width', PROP_LENGTH, '1px',       css='border-width',
@@ -1406,7 +1407,8 @@ THEME_COMPONENTS = [
                   selector='.comparison-table th, .comparison-table td'),
     ]),
     ThemeComponent('table.head', '.comparison-table th', [
-        ThemeProp('table.head.bg',         PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('table.head.bg',         PROP_COLOR,  '#0000000B', css='background',
+                  selector='.comparison-table th, .full-article table th'),
         ThemeProp('table.head.fg',         PROP_COLOR,  'ink',       css='color'),
         ThemeProp('table.head.rule-fg',    PROP_COLOR,  'ink',       css='border-bottom-color'),
         ThemeProp('table.head.rule-width', PROP_LENGTH, '2px',       css='border-bottom-width'),
@@ -1454,6 +1456,12 @@ THEME_COMPONENTS = [
                   selector='.full-article p, .full-article ul, .full-article ol'),
         ThemeProp('article.leading', PROP_RATIO,  '1.7',  css='line-height',
                   selector='.full-article p'),
+        ThemeProp('article.rule-fg',    PROP_COLOR,  '#0000001A',
+                  css='border-color',
+                  selector='.full-article table th, .full-article table td'),
+        ThemeProp('article.rule-width', PROP_LENGTH, '1px',
+                  css='border-width',
+                  selector='.full-article table th, .full-article table td'),
     ]),
     ThemeComponent('refs', '.full-article .refs', [
         ThemeProp('refs.fg',      PROP_COLOR,  'ink-quiet', css='color'),
@@ -1546,9 +1554,12 @@ THEME_COMPONENTS = [
     # geometry stay in the skeleton.
     ThemeComponent('share', '.share-popover', [
         ThemeProp('share.bg', PROP_COLOR, 'page', css='background',
-                  selector='.share-popover, .share-qr-modal-content'),
+                  selector='.share-popover, .share-qr-modal-content, '
+                           'button.share-action, .share-qr-close'),
         ThemeProp('share.fg', PROP_COLOR, 'ink', css='color',
-                  selector='.share-popover, .share-qr-modal-content'),
+                  selector='.share-popover, .share-qr-modal-content, '
+                           '.share-cell-label, button.share-action, '
+                           '.share-qr-close'),
         ThemeProp('share.quiet-fg', PROP_COLOR, 'ink-quiet', css='color',
                   selector='.share-cell-head, .share-qr-modal-url'),
         ThemeProp('share.size', PROP_LENGTH, '13px', css='font-size',
@@ -1559,6 +1570,11 @@ THEME_COMPONENTS = [
                   selector='button.share-action, .share-qr-close'),
         ThemeProp('share.scrim', PROP_COLOR, '#0000008C', css='background',
                   selector='.share-qr-modal'),
+        ThemeProp('share.rule-fg-hover', PROP_COLOR, 'ink', css='border-color',
+                  selector='button.share-action:hover:not(:disabled), '
+                           '.share-qr-close:hover'),
+        ThemeProp('share.bg-hover', PROP_COLOR, '#FFFFFFB8', css='background',
+                  selector='button.share-action:hover:not(:disabled)'),
     ]),
 
     ThemeComponent('card', '.article-card', [
@@ -1813,6 +1829,141 @@ def emit_theme_css(resolved):
             lines.append(
                 f'{c.selector}::before {{ content: var({mark.var}); }}')
     return '\n'.join(lines)
+
+
+def _driven_declarations():
+    """(simple selector, css property) pairs the engine emits — the set the
+    skeleton must NOT also contain, or a stale literal would fight the
+    engine's value across the cascade."""
+    driven = set()
+    for c in THEME_COMPONENTS:
+        for cssprop, _value in c.composite:
+            for s in c.selector.split(','):
+                driven.add((s.strip(), cssprop))
+        for p in c.props:
+            if p.css:
+                for s in (p.selector or c.selector).split(','):
+                    driven.add((s.strip(), p.css))
+        if any(p.key.endswith('.mark') for p in c.props):
+            driven.add((c.selector.strip() + '::before', 'content'))
+    return driven
+
+
+class SkeletonGapError(Exception):
+    """A declaration in TEMPLATE_STYLE still references a CSS variable after
+    every engine-driven declaration was removed. Each gap is a visual
+    decision the registry does not expose — the completeness rule says that
+    is a decision confiscated from the theme, so extraction refuses to ship
+    it silently dead instead."""
+
+
+def extract_skeleton(css_text=None):
+    """The static, layout-only part of TEMPLATE_STYLE: everything the
+    property registry does not drive.
+
+    Derived at runtime from the same constant the old system ships, so there
+    is exactly one source sheet during the transition. Drops the :root block
+    (the engine emits its own) and every declaration the engine drives; keeps
+    layout verbatim. --content-max stays: it is the skeleton's own layout
+    variable, declared in the minimal :root this returns, and the one var()
+    the gap check tolerates."""
+    css_text = css_text if css_text is not None else TEMPLATE_STYLE
+    driven = _driven_declarations()
+
+    # Comments go first: the sheet's documentation contains braces and even
+    # literal `:root { ... }` recipes, which wreck brace counting — and the
+    # skeleton is an artifact nobody reads for prose. Stripping them also
+    # removes the recipes block and the customization marker, both replaced
+    # by the settings scaffold.
+    css_text = re.sub(r'/\*.*?\*/', '', css_text, flags=re.S)
+
+    out = [':root {\n    --content-max: min(84vw, 1100px);\n  }']
+    gaps = []
+    pos = 0
+    depth = 0
+    block_start = None
+    at_rule = None
+    i = 0
+    # One linear pass. The sheet is machine-written and regular: top-level
+    # `selector { decls }` blocks, plus one @media containing the same shape.
+    while i < len(css_text):
+        ch = css_text[i]
+        if ch == '{':
+            if depth == 0:
+                block_start = pos
+                header = css_text[pos:i].strip()
+                if header.startswith('@'):
+                    at_rule = header
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                block = css_text[block_start:i + 1]
+                header = css_text[block_start:css_text.index('{', block_start)].strip()
+                if header.startswith('@'):
+                    # Media overrides must survive: engine rules are emitted
+                    # BEFORE the skeleton, so anything here wins by order —
+                    # removal would break exactly what the query exists for.
+                    out.append(block.strip())
+                elif header == ':root':
+                    pass                        # replaced by the engine's
+                else:
+                    kept = _strip_driven(header, block, driven, gaps)
+                    if kept:
+                        out.append(kept)
+                pos = i + 1
+                at_rule = None
+        i += 1
+
+    for line in out:
+        for m in re.finditer(r'var\((--[a-z-]+)', line):
+            if m.group(1) != '--content-max':
+                gaps.append(m.group(0))
+    if gaps:
+        raise SkeletonGapError(
+            'declarations the registry does not drive still reference '
+            'variables: ' + ', '.join(sorted(set(gaps))))
+    return '\n  '.join(out)
+
+
+# CSS shorthands carrying colour, width AND style in one declaration. The
+# engine drives colour and width as longhands; when it does, the skeleton
+# keeps only the style the shorthand carried.
+_SHORTHAND_STYLES = ('border', 'border-top', 'border-bottom', 'border-left',
+                     'border-right', 'outline')
+
+
+def _strip_driven(header, block, driven, gaps):
+    """One block with its engine-driven declarations removed; '' if nothing
+    is left worth keeping."""
+    simples = [s.strip() for s in header.split(',')]
+    body = block[block.index('{') + 1:block.rindex('}')]
+    kept = []
+    for decl in body.split(';'):
+        decl = decl.strip()
+        if not decl:
+            continue
+        prop = decl.split(':', 1)[0].strip()
+        if any((s, prop) in driven for s in simples):
+            continue
+        if (prop in _SHORTHAND_STYLES
+                and any((s, prop + '-color') in driven for s in simples)):
+            # `border-bottom: 1px solid var(--rule)` -> the engine owns
+            # colour and width; the style token is all that stays here.
+            kept.append(f'{prop}-style: solid')
+            continue
+        kept.append(decl)
+    if not kept:
+        return ''
+    return header + ' { ' + '; '.join(kept) + '; }'
+
+
+def compose_stylesheet(resolved):
+    """The full sheet for one resolved property set: the engine's :root and
+    rules first, then the static skeleton — order matters, because the
+    skeleton's @media overrides must beat the engine's base values, and they
+    share specificity."""
+    return emit_theme_css(resolved) + '\n' + extract_skeleton()
 
 
 # --- Template: style.css ---
