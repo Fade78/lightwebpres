@@ -16,13 +16,15 @@ scaffold a project, generate demo content, build, verify, and keep
 templates current.
 
 **This guide is written for a person working from a terminal — but you
-don't have to be the one typing every command.** LightWebPres ships a
-packaged skill (`SKILL.md`, in `agent/skills/lightwebpres/`) that teaches
-an LLM/agent the article format directly, and every command in this guide
+don't have to be the one typing every command.** LightWebPres ships two
+packaged skills under `agent/skills/`: `lightwebpres` teaches an
+LLM/agent the article format directly, and `sourced-presentation` teaches
+the editorial method the format was shaped around — a deck of short
+cards backed by a fully referenced article. Every command in this guide
 runs unattended — nothing here ever blocks on an interactive prompt. So
 if you'd rather describe what you want and have an agent write the
 Markdown and run the build, that works from minute one: point your agent
-at `SKILL.md` and skip to [section 4](#4-writing-your-own-articles). If
+at both skills and skip to [section 4](#4-writing-your-own-articles). If
 you're doing this yourself, keep reading from the top.
 
 ## 2. Install & your first build
@@ -105,7 +107,7 @@ Beyond the presets, `templates/style.css` and `templates/nav.js` are
 read back on every build if present, replacing the built-in defaults —
 the page/index HTML structure itself is fixed, not a template, so a
 malformed override can't break the build's structure, only its styling.
-Put your own CSS after the `Personnalisations locales` marker comment
+Put your own CSS after the `Local customizations` marker comment
 near the end of `style.css`; that's what lets `refresh-templates` update
 the built-in part later without touching what you added. That file also
 carries a commented block of ready-to-paste recipes for the fact-box
@@ -220,14 +222,17 @@ lightwebpres refresh-templates my-series
 ```
 
 For `style.css`, this updates only the built-in part and leaves anything
-you wrote after the `Personnalisations locales` marker untouched — and if
+you wrote after the `Local customizations` marker untouched — and if
 you'd picked a theme (section 3), that theme is reapplied to the
 refreshed CSS automatically — all twenty-one of its properties, not just
 its colors — so an upgrade never quietly reverts you to the default
 look. If the marker is missing (a file that predates it,
 or one where it was removed by accident), `refresh-templates` refuses to
 guess: it leaves the file alone and tells you the exact line to add
-first. `nav.js` has no such split-and-preserve mechanism — it gets fully
+first. **The marker text itself was reworded in English in v0.12.1** —
+if yours still reads `Personnalisations locales`, `refresh-templates`
+recognizes it, skips the file, and prints the replacement line to paste
+in; everything below it is kept exactly as it was. `nav.js` has no such split-and-preserve mechanism — it gets fully
 replaced, with the previous version saved as `nav.js.bak` in case you'd
 customized it.
 
@@ -264,6 +269,16 @@ step before it if you want drift caught before it merges (see section 6).
   the field/free-text parsing switch, typography rules and their
   opt-outs, `series.json` wiring. Read this before writing or debugging
   an article by hand, or point an agent at it to do the same.
+- **`SKILL.md`** (`agent/skills/sourced-presentation/`) — the other half:
+  not how to write the format, but what to put in it. The method for a
+  **sourced presentation** — a deck of short cards, each readable on its
+  own, backed by a fully referenced long-form article — covering the
+  whole chain, from commissioning the research to verifying every fact at
+  its source and cross-checking the deck against the article. It's the
+  content type this tool was shaped around, so it's the fastest way to
+  start a series that has something to say; the format skill above tells
+  you how to type it. Series-specific settings (audience, lengths,
+  numbering) stay in your own series specification and override it.
 - **`specifications.md`** — the complete, authoritative reference:
   exact algorithms, every parser edge case, the full `series.json` and
   language-file schemas, the browser-based tool's internals. Consult it for

@@ -560,8 +560,8 @@ class RefreshTemplatesDuplicateMarker(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 's'
             self.assertEqual(run('install', str(root), '--lang', 'en').returncode, 0)
-            marker = ('/* === Personnalisations locales : refresh-templates '
-                      'conserve tout ce qui suit cette ligne === */')
+            marker = ('/* === Local customizations: refresh-templates '
+                      'keeps everything below this line === */')
             style = root / 'templates' / 'style.css'
             style.write_text(style.read_text(encoding='utf-8') +
                              f'\n/*BLOCK_A*/\n{marker}\n/*BLOCK_B*/\n', encoding='utf-8')
@@ -2464,7 +2464,7 @@ class RefreshTemplates(unittest.TestCase):
     templates/style.css and templates/nav.js after an executable upgrade,
     without discarding local customizations."""
 
-    MARKER = '/* === Personnalisations locales : refresh-templates conserve tout ce qui suit cette ligne === */'
+    MARKER = '/* === Local customizations: refresh-templates keeps everything below this line === */'
 
     def test_requires_install_first(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3164,7 +3164,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             for _ in range(3):
                 self.assertEqual(run('refresh-templates', tmp).returncode, 0)
             after = style.read_text(encoding='utf-8')
-            self.assertEqual(after.count('Gras, sans aucun surlignage'), 1)
+            self.assertEqual(after.count('Bold, with no highlight at all'), 1)
 
     def test_help_documents_every_emphasis_variable(self):
         result = run('--help')
@@ -3229,7 +3229,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             label = self.lwp.fact_treatment_label(theme)
             self.assertIn(label, stated, slug)
             props = self.lwp.theme_fact_properties(theme)
-            self.assertEqual('soulign' in label, props['decoration'] == 'underline', slug)
+            self.assertEqual('underlined' in label, props['decoration'] == 'underline', slug)
         self.assertGreaterEqual(len(set(stated)), 5)
 
 

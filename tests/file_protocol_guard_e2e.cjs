@@ -11,6 +11,7 @@
 // argv: <fileUrl> <expectedCommand>  (exact command text, not a substring)
 
 const { chromium } = require('playwright');
+const { collectConsoleErrors } = require('./console_errors.cjs');
 
 async function main() {
   const [fileUrl, expectedSubstring] = process.argv.slice(2);
@@ -26,9 +27,7 @@ async function main() {
   const page = await context.newPage();
 
   const consoleErrors = [];
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text());
-  });
+  collectConsoleErrors(page, consoleErrors);
   page.on('pageerror', (err) => consoleErrors.push(String(err)));
 
   try {

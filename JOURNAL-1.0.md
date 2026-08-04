@@ -6,7 +6,7 @@ décision actée en discussion est reportée ici **avant** d'être
 implémentée ; l'état est resynchronisé ici après chaque étape poussée ;
 le contenu est présenté régulièrement dans les comptes rendus.
 
-Dernière mise à jour : 2026-08-04 — dernier tag du dépôt : **v0.11.0**.
+Dernière mise à jour : 2026-08-04 — dernier tag du dépôt : **v0.11.0** (§7 pour la passe la plus récente).
 Un lot important de travail non publié s'est accumulé au-dessus (§6).
 Règle de processus : chaque message de release livré dans la
 conversation EST publié par le propriétaire — le travail qui suit part
@@ -493,3 +493,52 @@ thème.
    numéro peuvent être réécrits pour l'ôter, au prix d'un push forcé sur
    `main` (les SHA changent). À décider ; rien n'a été fait sans accord.
 3. Décision de LICENSE (les deux dépôts), toujours ouverte.
+
+---
+
+## §7 — Passage à l'anglais (v0.12.1)
+
+Décision du propriétaire (2026-08-04) : **tout passe en anglais
+maintenant**, sauf `specifications.md` (traduite en dernier) et ce
+journal, qui est interne et reste en français. Pour le marqueur de
+personnalisation du `style.css`, **rupture nette** demandée : le texte
+est réécrit, pas doublé.
+
+**Fait dans cette passe :**
+
+- Marqueur `TEMPLATE_STYLE_CUSTOM_MARKER` réécrit en anglais
+  (`/* === Local customizations: ... === */`). L'ancien libellé français
+  survit sous `TEMPLATE_STYLE_CUSTOM_MARKER_LEGACY`, reconnu **uniquement**
+  pour que `refresh-templates` émette un `[SKIP]` compréhensible avec la
+  ligne exacte à coller — jamais pour accepter les deux formes.
+- Les **33 notes de thèmes**, les commentaires de la table `THEMES`, le
+  bloc de recettes livré dans chaque `style.css`, les libellés de
+  pastilles (`PALETTE_ROLE_LABELS`), `fact_treatment_label()`, tout le
+  chrome de `themes-gallery` (bandeau, facettes, compteur, pied de page,
+  commentaires JS) : anglais.
+- `BACKLOG.md` traduit intégralement. `README.md` et `GUIDE.md` mis en
+  conformité (marqueur, second skill).
+- `VERSION` passe à 0.12.1.
+
+**Le PNG du README était faux, et pas qu'un peu.** Signalé par le
+propriétaire : sur la planche de thèmes, seules les trois premières
+fiches montraient un aperçu, toutes les autres étaient blanches, et la
+quatrième colonne était coupée. Cause : les aperçus sont des
+`<iframe loading="lazy">` — une capture pleine page ne scrolle jamais,
+donc aucune iframe sous le premier viewport ne se charge. La capture
+avait été faite à la main, sans script, donc sans rien pour le détecter.
+Corrigé par `tools/screenshot-gallery.cjs`, versionné : il retire
+l'attribut `lazy`, renavigue les 33 cadres, **vérifie que chacun a peint
+une vraie `.slide`** (via `page.frames()`, seul moyen de voir dans une
+iframe `sandbox`) et échoue bruyamment sinon. PNG régénéré à 1280 px.
+
+**Deux tests e2e étaient rouges avant cette passe** (vérifié par `git
+stash` sur `a51b371`) : Chromium demande `/favicon.ico` de lui-même sur
+une page qui n'en déclare pas, et le 404 était compté comme une erreur
+console de la page. La page ne fait jamais cette requête. Filtre partagé
+`tests/console_errors.cjs`, sur l'URL et rien d'autre ; vérifié par
+mutation qu'une vraie erreur console fait toujours échouer le pilote.
+
+**Reste ouvert :** traduction de `specifications.md` (en dernier),
+décision de LICENSE, B3 (liens du corps non thémés) et B4 (option
+d'alignement du chiffre-clé), resynchronisation du GUI.

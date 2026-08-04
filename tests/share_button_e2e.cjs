@@ -7,6 +7,7 @@
 // argv: <pageUrl> <expectedArticleUrl> <expectedSeriesUrl>
 
 const { chromium } = require('playwright');
+const { collectConsoleErrors } = require('./console_errors.cjs');
 
 function fail(msg) {
   console.error('E2E failure: ' + msg);
@@ -27,7 +28,7 @@ async function main() {
   const page = await context.newPage();
 
   const consoleErrors = [];
-  page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+  collectConsoleErrors(page, consoleErrors);
   page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
 
   try {

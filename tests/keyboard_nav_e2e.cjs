@@ -9,6 +9,7 @@
 // argv: <tallArticleUrl> <navArticleUrl>
 
 const { chromium } = require('playwright');
+const { collectConsoleErrors } = require('./console_errors.cjs');
 
 function fail(msg) {
   console.error('E2E failure: ' + msg);
@@ -63,7 +64,7 @@ async function main() {
     // --- 1. A slide taller than the viewport gets scrolled in
     // increments before the arrow key advances to the next slide ------
     let page = await context.newPage();
-    page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+    collectConsoleErrors(page, consoleErrors);
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
 
     await page.goto(tallArticleUrl);
@@ -105,7 +106,7 @@ async function main() {
     // then one more ArrowUp (no card was ever focused-and-released, so
     // there's nothing to step back through) leaves the slide backward --
     page = await context.newPage();
-    page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+    collectConsoleErrors(page, consoleErrors);
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
     await page.goto(navArticleUrl);
     await page.waitForSelector('.nav-dots a');
@@ -159,7 +160,7 @@ async function main() {
     // to the focused article — fresh page, so focusedCard is still
     // genuinely mid-walk (not reset by an exhausting extra press) -----
     page = await context.newPage();
-    page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+    collectConsoleErrors(page, consoleErrors);
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
     await page.goto(navArticleUrl);
     await page.waitForSelector('.nav-dots a');
@@ -207,7 +208,7 @@ async function main() {
     // explicit waits between presses: deliberately as fast as Playwright
     // can fire them. --------------------------------------------------
     page = await context.newPage();
-    page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+    collectConsoleErrors(page, consoleErrors);
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err));
     await page.goto(heldArticleUrl);
     await page.waitForSelector('.nav-dots a');

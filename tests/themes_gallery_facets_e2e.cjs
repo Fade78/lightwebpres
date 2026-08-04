@@ -14,6 +14,7 @@
 // argv: <fileUrl>
 
 const { chromium } = require('playwright');
+const { collectConsoleErrors } = require('./console_errors.cjs');
 
 async function main() {
   const [fileUrl] = process.argv.slice(2);
@@ -27,7 +28,7 @@ async function main() {
   const page = await browser.newPage();
 
   const consoleErrors = [];
-  page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+  collectConsoleErrors(page, consoleErrors);
   page.on('pageerror', (err) => consoleErrors.push(String(err)));
 
   // Actually laid out, not merely un-flagged.

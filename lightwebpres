@@ -46,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.12.0"
+VERSION = "0.12.1"
 
 # The six palette variables, in the order a reader meets them on the page:
 # the ground, then the two inks, then the furniture (§9.1).
@@ -66,15 +66,14 @@ VERSION = "0.12.0"
 # (--cover-bg, --fact-strong-*, --surface, --sunken...).
 PALETTE_ROLES = ('page', 'ink', 'ink-muted', 'marker', 'accent', 'positive')
 
-# What each one does, for `themes` (§11.9) and themes-gallery (§11.7).
-# French: both surfaces that show it are French.
+# What each one does, for themes-gallery (§11.7).
 PALETTE_ROLE_LABELS = {
-    'page': 'Fond de page',
-    'ink': 'Texte',
-    'ink-muted': 'Texte secondaire',
-    'marker': 'Filets &amp; rep&egrave;res',
-    'accent': 'Accent &amp; liens',
-    'positive': 'Verdict &laquo;&nbsp;oui&nbsp;&raquo;',
+    'page': 'Page background',
+    'ink': 'Body text',
+    'ink-muted': 'Secondary text',
+    'marker': 'Rules &amp; markers',
+    'accent': 'Accent &amp; focus',
+    'positive': 'The &ldquo;yes&rdquo; verdict',
 }
 
 # Renamed in v0.12.0. Kept ONLY so `audit` (§11.5) can tell an author
@@ -235,7 +234,7 @@ THEMES = {
         'marker': '#EBCB8B', 'ink': '#2E3440', 'ink-muted': '#4C566A',
         'page': '#ECEFF4', 'accent': '#BF616A', 'positive': '#A3BE8C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.',
+        'note': "A deliberately desaturated &ldquo;arctic&rdquo; palette — the yellow (nord13) stays mustard, never fluorescent.",
         'note_good': False,
     },
     'dracula': {
@@ -243,7 +242,7 @@ THEMES = {
         'marker': '#F1FA8C', 'ink': '#282A36', 'ink-muted': '#6272A4',
         'page': '#F8F8F2', 'accent': '#FF5555', 'positive': '#50FA7B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': 'Palette pensée pour un fond sombre — <code>--page</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.',
+        'note': "A palette designed for a dark background — <code>--page</code> borrows Dracula&rsquo;s text-on-black here, for want of an official light one.",
         'note_good': False,
     },
     'solarized': {
@@ -251,7 +250,7 @@ THEMES = {
         'marker': '#B58900', 'ink': '#002B36', 'ink-muted': '#93A1A1',
         'page': '#FDF6E3', 'accent': '#DC322F', 'positive': '#859900',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': None,
-        'note': "Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.",
+        'note': "Deliberately low-contrast accents (the original CIELAB calibration) — the yellow stays muted gold, never highlighter.",
         'note_good': False,
     },
     'gruvbox': {
@@ -259,7 +258,7 @@ THEMES = {
         'marker': '#D79921', 'ink': '#282828', 'ink-muted': '#928374',
         'page': '#FBF1C7', 'accent': '#CC241D', 'positive': '#98971A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.',
+        'note': "Background and text designed together for a light background — no colour borrowed from another variant.",
         'note_good': True,
     },
     'catppuccin': {
@@ -267,7 +266,7 @@ THEMES = {
         'marker': '#DF8E1D', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
         'page': '#EFF1F5', 'accent': '#D20F39', 'positive': '#40A02B',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'marker',
-        'note': "La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--ink</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).",
+        'note': "The only light-background-first palette here with a true green — <code>--ink</code> is a slate blue, not a pure black (a less striking cover slide).",
         'note_good': False,
     },
     'tokyo-night': {
@@ -275,7 +274,7 @@ THEMES = {
         'marker': '#E0AF68', 'ink': '#1A1B26', 'ink-muted': '#565F89',
         'page': '#E1E2E7', 'accent': '#F7768E', 'positive': '#9ECE6A',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
-        'note': 'Tokyo Night est nocturne par nature — <code>--page</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.',
+        'note': "Tokyo Night is nocturnal by nature — <code>--page</code> is borrowed from its official sister variant &ldquo;Day&rdquo;, not from the Night palette itself.",
         'note_good': False,
     },
     'monokai': {
@@ -283,7 +282,7 @@ THEMES = {
         'marker': '#E6DB74', 'ink': '#272822', 'ink-muted': '#75715E',
         'page': '#F8F8F2', 'accent': '#F92672', 'positive': '#A6E22E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--page</code> reprend le texte-sur-noir, comme Dracula.',
+        'note': "Among the most vivid greens and yellows here. No official light variant — <code>--page</code> reuses the text-on-black, like Dracula.",
         'note_good': False,
     },
     'everforest': {
@@ -291,7 +290,7 @@ THEMES = {
         'marker': '#DFA000', 'ink': '#2D353B', 'ink-muted': '#859289',
         'page': '#FDF6E3', 'accent': '#F85552', 'positive': '#A7C080',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': 'Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--positive</code>. Assemblage clair+sombre officiels.',
+        'note': "Sage green is the palette&rsquo;s signature colour — the strongest semantic anchor here for the <code>--positive</code> role. Official light+dark pairing.",
         'note_good': True,
     },
     'rose-pine': {
@@ -299,22 +298,21 @@ THEMES = {
         'marker': '#EA9D34', 'ink': '#464261', 'ink-muted': '#797593',
         'page': '#FAF4ED', 'accent': '#B4637A', 'positive': '#6D8F89',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
-        'note': 'La plus douce du lot — <code>--ink</code> est un prune assourdi, pas un noir franc, et <code>--positive</code> (« leaf ») penche vers le sarcelle.',
+        'note': "The softest of the set — <code>--ink</code> is a muted plum rather than a true black, and <code>--positive</code> (&ldquo;leaf&rdquo;) leans teal.",
         'note_good': False,
     },
-    # --- Palettes originales : plus contrastées, monochromes, ou pop ---
-    # Les neuf ci-dessus reprennent des schémas de coloration connus et
-    # citent leur origine. Celles qui suivent sont propres au projet,
-    # dessinées puis MESURÉES avant d'être retenues : contraste du texte
-    # au niveau AAA, textes secondaires et accents au niveau AA, filets
-    # à 3:1, et séparation des verdicts d'un tableau vérifiée en vision
-    # deutéranope et protanope (§9.5.3).
+    # --- Original palettes: higher-contrast, monochrome, or pop ---
+    # The nine above reuse well-known colour schemes and credit their
+    # origin. The ones that follow belong to this project: drawn, then
+    # MEASURED before being kept — body text at AAA, secondary text and
+    # accents at AA, rules at 3:1, and a table's verdicts checked for
+    # separation in deuteranopic and protanopic vision (§9.5.3).
     'high-contrast': {
         'label': 'High Contrast', 'source': 'lightwebpres', 'intensity': 'vivid',
         'marker': '#FFD500', 'ink': '#000000', 'ink-muted': '#4A4A4A',
         'page': '#FFFFFF', 'accent': '#D00000', 'positive': '#006B2C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Noir pur sur blanc pur, un seul rouge. Visée AAA : lisible en plein soleil, en vidéoprojection, et en basse vision.',
+        'note': "Pure black on pure white, a single red. Aiming at AAA: readable in direct sunlight, on a projector, and in low vision.",
         'note_good': True,
     },
     'blueprint': {
@@ -322,7 +320,7 @@ THEMES = {
         'marker': '#F2C14E', 'ink': '#0B2545', 'ink-muted': '#5A7184',
         'page': '#EEF2F7', 'accent': '#D64045', 'positive': '#136F63',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Encre bleu-nuit sur papier calque — registre notice technique, plan, documentation.',
+        'note': "Midnight-blue ink on tracing paper — the register of a technical note, a plan, a piece of documentation.",
         'note_good': False,
     },
     'blueprint-night': {
@@ -331,7 +329,7 @@ THEMES = {
         'marker': '#F2C14E', 'ink': '#DCE6F2', 'ink-muted': '#7B8FA8',
         'page': '#0A1626', 'accent': '#FF8A5B', 'positive': '#5BC0A8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Le pendant sombre de Blueprint : table traçante rétroéclairée. L\'accent est orangé, un rouge s\'y éteindrait.',
+        'note': "Blueprint after dark: a backlit plotting table. The accent is orange, because a red would go out on this background.",
         'note_good': False,
     },
     'monochrome': {
@@ -339,12 +337,12 @@ THEMES = {
         'marker': '#D8D8D8', 'ink': '#111111', 'ink-muted': '#707070',
         'page': '#FAFAFA', 'accent': '#2B2B2B', 'positive': '#000000',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        # Souligné EN PLUS du surlignage — le seul thème du lot à cumuler
-        # les deux, ce qui montre que les axes sont bien indépendants.
-        # Trait en currentColor : sur un thème qui s'interdit la teinte,
-        # détacher le trait par la couleur n'aurait aucun sens.
+        # Underlined ON TOP OF the highlight — the only theme here to
+        # combine the two, which is what shows the axes really are
+        # independent. The line stays in currentColor: on a theme that
+        # rules out hue, detaching it by colour would make no sense.
         'fact_decoration': 'underline',
-        'note': 'Aucune couleur nulle part. Les verdicts d\'un tableau tiennent alors sur la graisse, l\'opacité et les marqueurs de forme — et ça fonctionne. Le gras en fact-box cumule surlignage et soulignement : quand la teinte est exclue, l\'emphase passe par la forme.',
+        'note': "No colour anywhere. A table&rsquo;s verdicts then rest on weight, opacity and shape markers — and it works. Fact-box bold combines highlight and underline: when hue is ruled out, emphasis goes through shape.",
         'note_good': True,
     },
     'graphite': {
@@ -352,13 +350,13 @@ THEMES = {
         'dark_background': True,
         'marker': '#C9C9C9', 'ink': '#EDEDED', 'ink-muted': '#8A8A8A',
         'page': '#121212', 'accent': '#FFFFFF', 'positive': '#B8B8B8',
-        # Souligné À LA PLACE du surlignage, le pendant exact de
-        # Monochrome : un aplat gris sur un fond noir empâte, un trait
-        # non. Les deux thèmes mono couvrent ainsi les deux façons
-        # d'employer l'axe, sur les deux polarités de fond.
+        # Underlined INSTEAD OF the highlight, the exact counterpart of
+        # Monochrome: a grey wash on a black background clogs, a line
+        # does not. Between them the two mono themes cover both ways of
+        # using the axis, on both background polarities.
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'fact_decoration': 'underline', 'fact_decoration_color': 'marker',
-        'note': 'Le pendant sombre de Monochrome : tout repose sur la clarté et la forme, jamais sur la teinte. Le gras en fact-box est souligné plutôt que surligné — sur un fond noir, un aplat empâte là où un trait porte.',
+        'note': "Monochrome after dark: everything rests on lightness and shape, never on hue. Fact-box bold is underlined rather than highlighted — on a black background a flat wash clogs where a line carries.",
         'note_good': True,
     },
     'newsprint': {
@@ -366,7 +364,7 @@ THEMES = {
         'marker': '#E4DAC2', 'ink': '#1A1A18', 'ink-muted': '#6B6862',
         'page': '#F4F1EA', 'accent': '#8C2F1E', 'positive': '#3E5641',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Monochrome chaud avec une seule encre rouge en réserve — la grammaire d\'un quotidien imprimé.',
+        'note': "A warm monochrome with a single red ink held in reserve — the grammar of a printed daily.",
         'note_good': False,
     },
     'gold-leaf': {
@@ -375,7 +373,7 @@ THEMES = {
         'marker': '#E8C874', 'ink': '#F3EDDF', 'ink-muted': '#8E8269',
         'page': '#0B0B0D', 'accent': '#D4AF37', 'positive': '#A8B26A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Noir et or : encre crème sur noir profond, filets et surlignage dorés. Registre rapport annuel, invitation, édition soignée.',
+        'note': "Black and gold: cream ink on deep black, gilded rules and highlight. The register of an annual report, an invitation, a fine edition.",
         'note_good': False,
     },
     'crimson': {
@@ -383,7 +381,7 @@ THEMES = {
         'marker': '#E8B4A0', 'ink': '#3B0A12', 'ink-muted': '#8A6A6E',
         'page': '#FFF6F0', 'accent': '#B00020', 'positive': '#5C7A3F',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Carmin profond sur crème rosée — registre lettre, opéra, grand récit intime.',
+        'note': "Deep carmine on rosy cream — the register of a letter, an opera, an intimate epic.",
         'note_good': False,
     },
     'ember': {
@@ -392,7 +390,7 @@ THEMES = {
         'marker': '#FFC24D', 'ink': '#FFEDE2', 'ink-muted': '#A08074',
         'page': '#140A08', 'accent': '#F4622E', 'positive': '#8CBF5A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Braise sur charbon. Le vermillon est choisi parce qu\'il reste lumineux même en vision protanope, là où un rouge profond s\'éteint.',
+        'note': "Embers on charcoal. The vermilion is chosen because it stays luminous even in protanopic vision, where a deep red goes out.",
         'note_good': True,
     },
     'dread': {
@@ -401,7 +399,7 @@ THEMES = {
         'marker': '#B9C46A', 'ink': '#D6D2C8', 'ink-muted': '#6E6A64',
         'page': '#0B0A0C', 'accent': '#C1121F', 'positive': '#7F9440',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Noir profond, encre os désaturée, sang, et un vert maladif pour le positif — la grammaire du giallo et du thriller.',
+        'note': "Deep black, desaturated bone ink, blood, and a sickly green for the positive — the grammar of giallo and the thriller.",
         'note_good': False,
     },
     'sage': {
@@ -409,7 +407,7 @@ THEMES = {
         'marker': '#E5D9A8', 'ink': '#26302A', 'ink-muted': '#7C8B7E',
         'page': '#F3F5EF', 'accent': '#B4652A', 'positive': '#4F7A52',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Vert de gris apaisé sur lin. L\'accent terre cuite évite le piège du tout-vert et garde les verdicts distincts.',
+        'note': "A calmed grey-green on linen. The terracotta accent avoids the all-green trap and keeps the verdicts distinct.",
         'note_good': False,
     },
     'evergreen': {
@@ -418,7 +416,7 @@ THEMES = {
         'marker': '#E8C35A', 'ink': '#DDE9DC', 'ink-muted': '#7D9480',
         'page': '#0D1712', 'accent': '#E0A32E', 'positive': '#6FBF73',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Nuit en sous-bois. L\'ambre remplace le rouge en accent : sur un fond vert sombre, un rouge deviendrait illisible.',
+        'note': "Night in the undergrowth. Amber replaces red as the accent: on a dark green background a red would become unreadable.",
         'note_good': False,
     },
     'sprout': {
@@ -426,7 +424,7 @@ THEMES = {
         'marker': '#F2D544', 'ink': '#1E2B1B', 'ink-muted': '#7A8A72',
         'page': '#FBFDF7', 'accent': '#6D28D9', 'positive': '#3F8F29',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Vert de pousse sur blanc cassé. L\'accent violet est un choix mesuré : une terre cuite se confondait avec le vert.',
+        'note': "New-shoot green on off-white. The violet accent is a measured choice: a terracotta blurred into the green.",
         'note_good': True,
     },
     'vaporwave': {
@@ -434,7 +432,7 @@ THEMES = {
         'marker': '#E0FF4F', 'ink': '#16003B', 'ink-muted': '#6B5CA5',
         'page': '#F3F0FF', 'accent': '#FF2FB9', 'positive': '#00C2A8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Violet profond, magenta, cyan acide — le registre cyber en version fond clair, lisible en salle éclairée.',
+        'note': "Deep violet, magenta, acid cyan — the cyber register in a light-background version, readable in a lit room.",
         'note_good': False,
     },
     'terminal': {
@@ -443,7 +441,7 @@ THEMES = {
         'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
         'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Phosphore vert sur noir — le registre terminal, tel quel.',
+        'note': "Green phosphor on black — the terminal register, as is.",
         'note_good': False,
     },
     'synthwave': {
@@ -452,7 +450,7 @@ THEMES = {
         'marker': '#FFE66D', 'ink': '#F2E9FF', 'ink-muted': '#9A86C4',
         'page': '#1A1030', 'accent': '#FF2E97', 'positive': '#2DE2C5',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Nuit violette, magenta et cyan — le rétro-futurisme, celui qui profite le plus du fond sombre.',
+        'note': "Violet night, magenta and cyan — retro-futurism, the one that gains most from a dark background.",
         'note_good': False,
     },
     'pop-red': {
@@ -461,7 +459,7 @@ THEMES = {
         'marker': '#FFC94D', 'ink': '#FFF1F0', 'ink-muted': '#F7BDC2',
         'page': '#9E1128', 'accent': '#FFD400', 'positive': '#86EFAC',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Rouge plein sur toute la page, accent jaune. Premier de la famille Pop, où la couleur est le fond et non un détail.',
+        'note': "Full red across the whole page, yellow accent. First of the Pop family, where the colour is the background and not a detail.",
         'note_good': False,
     },
     'pop-tangerine': {
@@ -469,7 +467,7 @@ THEMES = {
         'marker': '#7A3E00', 'ink': '#241000', 'ink-muted': '#5E3000',
         'page': '#FF9500', 'accent': '#4C1D95', 'positive': '#0F3D21',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
-        'note': 'Orange vif à encre sombre, accent violet profond. Le surlignage du fait est désactivé : un jaune sur un aplat orange ne se verrait pas.',
+        'note': "Bright orange with dark ink, deep violet accent. The fact highlight is switched off: a yellow on a flat orange would not show.",
         'note_good': False,
     },
     'pop-lemon': {
@@ -477,7 +475,7 @@ THEMES = {
         'marker': '#7A6A00', 'ink': '#1F1A00', 'ink-muted': '#6B5C0A',
         'page': '#FFD400', 'accent': '#8F0049', 'positive': '#0D5C2A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
-        'note': 'Jaune plein, encre presque noire — le plus lumineux de la série, à 12:1 de contraste.',
+        'note': "Full yellow, near-black ink — the brightest of the set, at 12:1 of contrast.",
         'note_good': True,
     },
     'pop-lime': {
@@ -486,7 +484,7 @@ THEMES = {
         'marker': '#FFC94D', 'ink': '#F0FFF4', 'ink-muted': '#B5E4C4',
         'page': '#075C26', 'accent': '#FFD400', 'positive': '#C7F9CC',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Vert franc et profond, encre blanc verdi. Le vert des verdicts vire au menthe pour rester détaché du fond.',
+        'note': "A true, deep green with greened-white ink. The verdict green turns mint to stay detached from the background.",
         'note_good': False,
     },
     'pop-lagoon': {
@@ -495,7 +493,7 @@ THEMES = {
         'marker': '#FFC94D', 'ink': '#EFFCFF', 'ink-muted': '#A6D9E4',
         'page': '#075B6E', 'accent': '#FFC2D8', 'positive': '#9BF6C8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Bleu-vert lagon, accent rose — le plus doux de la famille Pop sans cesser d\'être un aplat plein.',
+        'note': "Lagoon blue-green with a pink accent — the gentlest of the Pop family without ceasing to be a full wash.",
         'note_good': False,
     },
     'pop-cobalt': {
@@ -504,7 +502,7 @@ THEMES = {
         'marker': '#FFE45C', 'ink': '#F0F4FF', 'ink-muted': '#B3C2F0',
         'page': '#1B3FBF', 'accent': '#FFD400', 'positive': '#8CF2AE',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Bleu cobalt saturé, accent jaune — registre affiche et signalétique.',
+        'note': "Saturated cobalt blue, yellow accent — the register of a poster, of signage.",
         'note_good': False,
     },
     'pop-violet': {
@@ -513,7 +511,7 @@ THEMES = {
         'marker': '#FFE99A', 'ink': '#F6F1FF', 'ink-muted': '#CBB6EE',
         'page': '#5B1DB8', 'accent': '#FDE047', 'positive': '#9BF6C8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Violet plein et vif, accent jaune citron — le plus contrasté de la famille Pop.',
+        'note': "Full, vivid violet with a lemon-yellow accent — the highest-contrast of the Pop family.",
         'note_good': True,
     },
     'pop-fuchsia': {
@@ -522,7 +520,7 @@ THEMES = {
         'marker': '#FFE99A', 'ink': '#FFF0FA', 'ink-muted': '#F0B8D8',
         'page': '#94105F', 'accent': '#FDE047', 'positive': '#9BF6C8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Fuchsia profond, accent jaune, verdicts en menthe — assumé, éditorial.',
+        'note': "Deep fuchsia, yellow accent, mint verdicts — unapologetic, editorial.",
         'note_good': False,
     },
 }
@@ -644,7 +642,14 @@ def themes_matching(filters):
 # built-in rules above the marker while preserving anything appended below
 # it verbatim, instead of guessing the boundary from a CSS selector that may
 # legitimately also appear in the built-in CSS (see specifications.md §9.4).
-TEMPLATE_STYLE_CUSTOM_MARKER = '/* === Personnalisations locales : refresh-templates conserve tout ce qui suit cette ligne === */'
+TEMPLATE_STYLE_CUSTOM_MARKER = '/* === Local customizations: refresh-templates keeps everything below this line === */'
+
+# The French wording this marker had until v0.12.1. Recognized ONLY to
+# produce a comprehensible error: a stylesheet carrying it is NOT
+# accepted, by explicit decision — but "no marker found" on a file that
+# visibly has one would be a riddle. Same discipline as the palette
+# rename: break cleanly, and say so out loud.
+TEMPLATE_STYLE_CUSTOM_MARKER_LEGACY = '/* === Personnalisations locales : refresh-templates conserve tout ce qui suit cette ligne === */'
 
 # Records which THEMES entry (§9.5) a templates/style.css was generated
 # with, right after the file's header line — absent for the default
@@ -776,7 +781,7 @@ def theme_fact_properties(theme):
 
 
 def fact_treatment_label(theme):
-    """One French sentence saying how a theme renders **bold** inside a
+    """One sentence saying how a theme renders **bold** inside a
     fact-box (§9.1), for themes-gallery (§11.7).
 
     The gallery applied these properties to its mock-up and never said a
@@ -790,18 +795,18 @@ def fact_treatment_label(theme):
 
     faces = []
     if weight == 'bold':
-        faces.append('gras')
+        faces.append('bold')
     if style == 'italic':
-        faces.append('italique')
-    face = ' '.join(faces) if faces else 'sans changement de graisse'
+        faces.append('italic')
+    face = ' '.join(faces) if faces else 'no change of weight'
     face = face[0].upper() + face[1:]
 
-    parts = [face, f'surlign&eacute; <code>--{role}</code>' if role else 'sans surlignage']
+    parts = [face, f'highlighted <code>--{role}</code>' if role else 'no highlight']
     # Only mentioned when present: naming the absence of an underline on
     # every one of the built-in themes would bury the axes that differ.
     if theme.get('fact_decoration') == 'underline':
         colour = theme.get('fact_decoration_color')
-        parts.append(f'soulign&eacute; <code>--{colour}</code>' if colour else 'soulign&eacute;')
+        parts.append(f'underlined <code>--{colour}</code>' if colour else 'underlined')
     return ', '.join(parts)
 
 
@@ -1470,47 +1475,47 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .intro p { margin-bottom: 16px; }
 
   /* --------------------------------------------------------------
-     Le gras Markdown a l'interieur d'une fact-box se regle par six
-     variables independantes (specifications.md 9.1) : un theme peut
-     etre gras SANS surlignage, non gras AVEC un surlignage vert, ou
-     souligne et rien d'autre.
+     Markdown bold INSIDE a fact-box is controlled by six independent
+     variables (specifications.md 9.1), on four axes: a theme can be bold
+     with NO highlight, un-bold WITH a green one, or underlined and
+     nothing else.
 
        --fact-strong-weight            bold | normal
        --fact-strong-style             normal | italic
-       --fact-strong-highlight         var(--role) pour un fond colore,
-                                       ou transparent pour aucun fond
-       --fact-strong-ink               la couleur du texte POSE sur ce fond
+       --fact-strong-highlight         var(--role) for a coloured ground,
+                                       or transparent for none
+       --fact-strong-ink               the colour of the text ON that ground
        --fact-strong-decoration        underline | none
-       --fact-strong-decoration-color  var(--role), ou currentColor pour
-                                       la couleur du texte lui-meme
+       --fact-strong-decoration-color  var(--role), or currentColor to
+                                       reuse the text's own colour
 
-     Le fond et l'encre vont par paire : changer l'un sans l'autre peut
-     tomber sous le seuil de lisibilite. Cinq exemples prets a coller,
-     A PLACER APRES LE MARQUEUR ci-dessous -- c'est la seule section que
-     refresh-templates conserve.
+     Ground and ink go together: changing one without the other can drop
+     the pair below readable contrast. Five ready-to-paste examples, TO BE
+     PLACED AFTER THE MARKER below -- that is the only section
+     refresh-templates preserves.
 
-     Gras, sans aucun surlignage :
+     Bold, with no highlight at all:
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }
 
-     Non gras, surligne en vert, encre claire par-dessus :
+     Un-bold, highlighted green, light ink on top:
        :root { --fact-strong-weight: normal; --fact-strong-highlight: var(--positive);
                --fact-strong-ink: var(--page); }
 
-     Italique seul, sans fond -- le registre le plus discret :
+     Italic alone, no ground -- the quietest register:
        :root { --fact-strong-weight: normal; --fact-strong-style: italic;
                --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }
 
-     Gras souligne, sans fond -- le trait reprend la couleur des filets :
+     Bold underlined, no ground -- the rule takes the marker's colour:
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
 
-     Souligne EN PLUS du surlignage, pour appuyer deux fois :
+     Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
 
-     L'epaisseur et le decalage du trait ne sont pas parametrables : un
-     trait fin colle a la ligne de base est precisement ce qui rend un
-     texte souligne penible a lire.
+     The rule's thickness and offset are not configurable: a hairline
+     sitting on the baseline is precisely what makes underlined text hard
+     to read.
      -------------------------------------------------------------- */
 ''' + '\n  ' + TEMPLATE_STYLE_CUSTOM_MARKER + '\n'
 
@@ -2565,19 +2570,19 @@ build:
 # octal before CSS ever sees them (\\25 becomes one control character, and
 # the marker renders as literal "CF").
 TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Palettes de couleurs — lightwebpres</title>
+<title>Colour themes — lightwebpres</title>
 </head>
 <body>
 
 <style>
   :root {
-    /* L'apercu est rendu a 1100px de large puis reduit a la largeur de
-       la carte. Une seule valeur pilote la largeur du cadre et sa
-       hauteur, sinon les deux divergent. */
+    /* The preview renders at 1100px wide and is scaled to the card's
+       width. One value drives both the frame's width and its height, or
+       the two drift apart. */
     --preview-scale: 0.34;
     --ui-paper: #F6F4EF;
     --ui-ink: #1C1E24;
@@ -2758,10 +2763,10 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 
   /* --- live mock-up of the real lightwebpres UI, driven entirely by --- */
   /* --- the theme's own properties, set inline per card              --- */
-  /* L'apercu est un iframe portant la VRAIE feuille de style. Il est
-     rendu a une largeur de bureau puis reduit geometriquement : une
-     miniature du rendu reel, pas une imitation. La hauteur du cadre suit
-     l'echelle, sinon le contenu reduit laisserait un vide sous lui. */
+  /* The preview is an iframe carrying the REAL stylesheet. It is
+     rendered at a desktop width then scaled down geometrically: a
+     miniature of the real rendering, not an imitation. The frame's height
+     follows the scale, or the shrunk content would leave a gap. */
   .preview-frame {
     margin: 14px 18px 0;
     border-radius: 10px;
@@ -2904,67 +2909,63 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 <div class="wrap">
 
   <div class="masthead">
-    <p class="eyebrow">lightwebpres &middot; th&egrave;mes de couleurs</p>
-    <h1>Des palettes nomm&eacute;es, pr&ecirc;tes &agrave; l'emploi</h1>
+    <p class="eyebrow">lightwebpres &middot; colour themes</p>
+    <h1>Named palettes, ready to use</h1>
     <p class="dek">
-      Chaque carte applique une palette r&eacute;elle sur un vrai fragment de fiche
-      (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;, fact-box, tableau) : les six couleurs,
-      mais aussi les six propri&eacute;t&eacute;s de gras en fact-box et les neuf
-      superpositions neutres, qui suivent la polarit&eacute; du fond. L'aper&ccedil;u fait
-      correspondre chaque variable au m&ecirc;me r&ocirc;le que la vraie feuille de
-      style : ce n'est pas une capture d'&eacute;cran, mais aucune couleur n'y est fig&eacute;e.
-      Cette page est g&eacute;n&eacute;r&eacute;e depuis la table
-      <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; voir
-      specifications.md &sect;9.5.
+      Every card is a REAL card: the same parser, the same renderer and the
+      same stylesheet a build uses, in an iframe so the sheet's
+      viewport-relative sizes resolve against the preview. Each theme sets
+      twenty-one custom properties &mdash; six palette colours, six that
+      decide how bold renders inside a fact-box, and nine translucent
+      overlays that follow the background's polarity. This page is
+      generated from the <code>THEMES</code> table embedded in the
+      executable &mdash; see specifications.md &sect;9.5.
     </p>
     <p class="dek dek--note">
-      <strong>Les six variables d&eacute;signent un r&ocirc;le, pas une couleur.</strong>
-      Elles s'appelaient <code>--yellow</code>, <code>--dark</code>, <code>--grey</code>,
-      <code>--light</code> et <code>--green</code> jusqu'en v0.12.0, d'apr&egrave;s leurs
-      valeurs dans le tout premier th&egrave;me. Ces noms mentaient d&egrave;s qu'un
-      th&egrave;me s'en &eacute;loignait : sur un fond d&eacute;j&agrave; jaune,
-      <code>--yellow</code> portait un brun sombre, faute de quoi le rep&egrave;re
-      aurait &eacute;t&eacute; invisible ; sur un th&egrave;me &agrave; fond sombre,
-      <code>--light</code> portait un presque-noir pendant que <code>--dark</code>
-      portait la couleur du texte. Un nom qu'il faut d&eacute;sapprendre pour s'en
-      servir ne vaut pas mieux que pas de nom : chaque variable porte d&eacute;sormais
-      le sien. Aucun alias n'a &eacute;t&eacute; conserv&eacute; &mdash;
-      <code>audit</code> signale les anciens noms rest&eacute;s dans vos propres
-      r&egrave;gles.
+      <strong>The six palette variables name a role, not a colour.</strong>
+      They were <code>--yellow</code>, <code>--dark</code>, <code>--grey</code>,
+      <code>--light</code> and <code>--green</code> until v0.12.0, after the
+      values they happened to hold in the very first theme. Those names lied
+      as soon as a theme moved away from it: on an already-yellow page
+      <code>--yellow</code> held a dark olive, or the marker would have been
+      invisible; on a dark theme <code>--light</code> held a near-black while
+      <code>--dark</code> held the text colour. A name you have to un-learn
+      before you can use it is worth no more than no name, so each variable
+      now carries its own. No aliases were kept &mdash; <code>audit</code>
+      reports any old name left in your own rules.
     </p>
   </div>
 
-  <!-- Facettes (§9.5.3). Pass&eacute; une douzaine de palettes, cette page
-       cesse d'&ecirc;tre une chose qu'on lit pour devenir une chose qu'on
-       cherche : deux crit&egrave;res ram&egrave;nent la liste &agrave; une poign&eacute;e.
-       Filtrage en JS inline, sans d&eacute;pendance, comme tout le reste de
-       ce que produit lightwebpres. Sans JS, la barre dispara&icirc;t et
-       toutes les cartes restent affich&eacute;es : rien n'est jamais cach&eacute;
-       derri&egrave;re un script. -->
+  <!-- Facets (§9.5.3). Past a dozen palettes this page stops being
+       something you read and becomes something you search: two criteria
+       bring the list down to a handful. Filtered by inline JS, with no
+       dependency, like everything else lightwebpres produces. With no
+       JavaScript the bar stays hidden and every card remains on show:
+       nothing is ever concealed behind a script. -->
   <div class="facets" id="facets" hidden>
     <div class="facet-row">
-      <span class="facet-label">Fond</span>
-      <button type="button" class="facet on" data-facet="polarity" data-value="">Tous</button>
-      <button type="button" class="facet" data-facet="polarity" data-value="light">Clair</button>
-      <button type="button" class="facet" data-facet="polarity" data-value="dark">Sombre</button>
+      <span class="facet-label">Background</span>
+      <button type="button" class="facet on" data-facet="polarity" data-value="">All</button>
+      <button type="button" class="facet" data-facet="polarity" data-value="light">Light</button>
+      <button type="button" class="facet" data-facet="polarity" data-value="dark">Dark</button>
     </div>
     <div class="facet-row">
-      <span class="facet-label">Registre</span>
-      <button type="button" class="facet on" data-facet="intensity" data-value="">Tous</button>
-      <button type="button" class="facet" data-facet="intensity" data-value="sober">Sobre</button>
-      <button type="button" class="facet" data-facet="intensity" data-value="vivid">Marqu&eacute;</button>
+      <span class="facet-label">Register</span>
+      <button type="button" class="facet on" data-facet="intensity" data-value="">All</button>
+      <button type="button" class="facet" data-facet="intensity" data-value="sober">Sober</button>
+      <button type="button" class="facet" data-facet="intensity" data-value="vivid">Vivid</button>
       <button type="button" class="facet" data-facet="intensity" data-value="mono">Monochrome</button>
     </div>
     <div class="facet-row">
-      <span class="facet-label">Teinte du fond</span>
-      <button type="button" class="facet on" data-facet="hue" data-value="">Toutes</button>
-      <button type="button" class="facet" data-facet="hue" data-value="neutral">Neutre</button>
-      <button type="button" class="facet" data-facet="hue" data-value="red">Rouge</button>
+      <span class="facet-label">Background hue</span>
+      <button type="button" class="facet on" data-facet="hue" data-value="">All</button>
+      <button type="button" class="facet" data-facet="hue" data-value="neutral">Neutral</button>
+      <button type="button" class="facet" data-facet="hue" data-value="red">Red</button>
       <button type="button" class="facet" data-facet="hue" data-value="orange">Orange</button>
-      <button type="button" class="facet" data-facet="hue" data-value="yellow">Jaune</button>
-      <button type="button" class="facet" data-facet="hue" data-value="green">Vert</button>
+      <button type="button" class="facet" data-facet="hue" data-value="yellow">Yellow</button>
+      <button type="button" class="facet" data-facet="hue" data-value="green">Green</button>
       <button type="button" class="facet" data-facet="hue" data-value="cyan">Cyan</button>
-      <button type="button" class="facet" data-facet="hue" data-value="blue">Bleu</button>
+      <button type="button" class="facet" data-facet="hue" data-value="blue">Blue</button>
       <button type="button" class="facet" data-facet="hue" data-value="violet">Violet</button>
       <button type="button" class="facet" data-facet="hue" data-value="magenta">Magenta</button>
     </div>
@@ -3014,22 +3015,22 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
         <h2>{label}</h2>
         <p class="theme-source">{source}</p>
       </header>
-      <!-- L'apercu EST une vraie fiche : meme parseur, meme renderer,
-           meme feuille de style, dans un iframe pour que les mesures
-           relatives au viewport (clamp(..vw..), 84vw) se calculent sur
-           l'apercu et non sur la fenetre. srcdoc, donc toujours zero
-           dependance externe. -->
+      <!-- The preview IS a real card: same parser, same renderer, same
+           stylesheet, in an iframe so the sheet's viewport-relative sizes
+           (clamp(..vw..), 84vw) resolve against the preview rather than
+           the reader's window. srcdoc, so still zero external
+           dependency. -->
       <div class="preview-frame">
-        <iframe class="preview" title="Apercu du theme {label}" loading="lazy"
+        <iframe class="preview" title="Preview of the {label} theme" loading="lazy"
                 sandbox srcdoc="{preview_doc}"></iframe>
       </div>
-      <!-- Ordre de lecture : fond, puis textes, puis mobilier. Chaque
-           entr&eacute;e annonce ce que la couleur FAIT ; le nom de variable ne
-           vient qu'apr&egrave;s, car c'est ce qu'on surcharge, pas ce qui
-           d&eacute;crit la couleur. -->
+      <!-- Reading order: ground, then the two inks, then the furniture.
+           Each entry leads with what the colour DOES; the variable name
+           follows, because that is what you override, not what describes
+           the colour. -->
       <ul class="swatches">{swatches}
       </ul>
-      <p class="fact-treatment"><span>Gras en fact-box</span>{fact_treatment}</p>
+      <p class="fact-treatment"><span>Fact-box bold</span>{fact_treatment}</p>
       <p class="theme-note{note_good_class}">{note}</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme {slug}</code></p>
     </article>
@@ -3057,9 +3058,9 @@ TEMPLATE_THEMES_GALLERY_FOOT = '''
       });
       count.textContent = shown === cards.length
         ? cards.length + ' palettes'
-        : shown + ' palette' + (shown > 1 ? 's' : '') + ' sur ' + cards.length;
-      // Une facette qui ne m&egrave;nerait &agrave; rien est d&eacute;sactiv&eacute;e plut&ocirc;t que
-      // de laisser cliquer vers une page vide.
+        : shown + ' of ' + cards.length + ' palettes';
+      // A facet that would lead nowhere is disabled, rather than left
+      // clickable towards an empty page.
       [].forEach.call(bar.querySelectorAll('.facet'), function (b) {
         var k = b.getAttribute('data-facet'), v = b.getAttribute('data-value');
         b.classList.toggle('on', chosen[k] === v);
@@ -3085,11 +3086,11 @@ TEMPLATE_THEMES_GALLERY_FOOT = '''
   </script>
 
   <footer>
-    Codes v&eacute;rifi&eacute;s depuis les d&eacute;p&ocirc;ts/fichiers officiels de chaque
-    palette. G&eacute;n&eacute;r&eacute; par <code>lightwebpres themes-gallery</code> depuis la
-    table <code>THEMES</code> embarqu&eacute;e dans l'ex&eacute;cutable &mdash; une correction sur
-    un th&egrave;me se fait dans cette table, puis se r&eacute;percute ici et dans
-    <code>install --theme</code> &agrave; la prochaine r&eacute;g&eacute;n&eacute;ration.
+    Hex values checked against each palette's own official repository or
+    file. Generated by <code>lightwebpres themes-gallery</code> from the
+    <code>THEMES</code> table embedded in the executable &mdash; a fix to a theme
+    is made in that table, then reaches both this page and
+    <code>install --theme</code> on the next regeneration.
   </footer>
 
 </div>
@@ -5374,7 +5375,7 @@ def cmd_install(target_dir, args):
         print(f'  theme: {THEMES[theme_key]["label"]}')
     print(f'  articles/   — your .md files')
     print(f'  templates/  — CSS and JS (editable; put custom CSS after the')
-    print(f'              "Personnalisations locales" marker at the end of')
+    print(f'              "Local customizations" marker at the end of')
     print(f'              style.css so refresh-templates can update the rest)')
     print(f'  language/   — typography rules + interface strings (fr, en)')
     print(f'  public/     — generated HTML (build output)')
@@ -5429,10 +5430,16 @@ def cmd_refresh_templates(target_dir, args):
             marker_pos = old.find(TEMPLATE_STYLE_CUSTOM_MARKER)
             if marker_pos == -1:
                 skipped.append('templates/style.css')
-                print(f'[SKIP] templates/style.css: no marker found, cannot tell your '
-                      f'customizations apart from the built-in CSS safely. Add this exact '
-                      f'line right before your own rules, then run refresh-templates again:',
-                      file=sys.stderr)
+                if TEMPLATE_STYLE_CUSTOM_MARKER_LEGACY in old:
+                    print(f'[SKIP] templates/style.css: the personalization marker was '
+                          f'reworded in English in v0.12.1, and yours is the older French '
+                          f'one. Replace that line with this one — everything below it is '
+                          f'kept exactly as before:', file=sys.stderr)
+                else:
+                    print(f'[SKIP] templates/style.css: no marker found, cannot tell your '
+                          f'customizations apart from the built-in CSS safely. Add this exact '
+                          f'line right before your own rules, then run refresh-templates again:',
+                          file=sys.stderr)
                 print(f'  {TEMPLATE_STYLE_CUSTOM_MARKER}', file=sys.stderr)
             else:
                 custom_tail = old[marker_pos + len(TEMPLATE_STYLE_CUSTOM_MARKER):]
