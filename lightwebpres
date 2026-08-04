@@ -673,12 +673,17 @@ def fact_treatment_label(theme):
     face = ' '.join(faces) if faces else 'no change of weight'
     face = face[0].upper() + face[1:]
 
-    parts = [face, f'highlighted <code>--{role}</code>' if role else 'no highlight']
+    # Names the settings.conf property, the one an author can type — never a
+    # CSS variable the emitted sheet no longer declares. `fact_highlight`
+    # still carries the old role name in the THEMES entry, so map it.
+    ground = PROPERTY_NAME_OF_ROLE.get(role, role) if role else None
+    parts = [face, f'highlighted <code>{ground}</code>' if ground else 'no highlight']
     # Only mentioned when present: naming the absence of an underline on
     # every one of the built-in themes would bury the axes that differ.
     if theme.get('fact_decoration') == 'underline':
         colour = theme.get('fact_decoration_color')
-        parts.append(f'underlined <code>--{colour}</code>' if colour else 'underlined')
+        name = PROPERTY_NAME_OF_ROLE.get(colour, colour) if colour else None
+        parts.append(f'underlined <code>{name}</code>' if name else 'underlined')
     return ', '.join(parts)
 
 
@@ -691,8 +696,9 @@ def fact_treatment_label(theme):
 # instance tags — are plain dicts merged before emission, so what ships is
 # flat and what the author writes is data the tooling can read.
 #
-# STAGED: not yet wired into build/install. The registry below is the working
-# extract; the full inventory of TEMPLATE_STYLE replaces it as it lands.
+# The registry below is the full inventory of TEMPLATE_STYLE; build, install,
+# set-theme, refresh-templates and audit all go through it (see
+# series_style_context / compose_with and the cmd_* functions).
 
 FONT_GENERICS = ('serif', 'sans-serif', 'monospace', 'cursive', 'fantasy')
 LENGTH_UNITS = ('px', 'rem', 'em', 'ch', 'vw', 'vh', '%', 'pt')
@@ -1708,7 +1714,7 @@ def parse_settings_text(text, source='settings.conf'):
     return theme, props
 
 
-def build_settings_scaffold(theme_key=None):
+def build_settings_scaffold(theme_key=None, pinned=None):
     """The complete settings file, every property present and commented out
     at its value under the chosen theme. Complete outside, always: the
     author sees the whole surface with nothing to chase through an include,
@@ -1717,17 +1723,32 @@ def build_settings_scaffold(theme_key=None):
     Generated from the registry — the same structure that emits the CSS — so
     it cannot drift from what the engine accepts. Values are shown RAW
     (references as bare words, `tag.fg: ink-quiet`), because that is the
-    vocabulary the author writes."""
+    vocabulary the author writes.
+
+    `pinned` (a {property: raw value} dict) regenerates in place: a pinned
+    property that still exists is emitted UNCOMMENTED with the author's
+    value, so a version upgrade refreshes the commented surface — new
+    properties appear, gone ones vanish — without losing what the author
+    set. A pinned property the registry no longer knows is preserved,
+    commented, in a trailing section so it is neither silently dropped nor
+    left to break the build."""
+    pinned = pinned or {}
     raw = {k: p.default for k, p in PROPERTY_REGISTRY.items()}
     if theme_key:
         raw.update(theme_property_layer(theme_key))
 
+    def emit(prop_key):
+        if prop_key in pinned:
+            return f'{prop_key}: {pinned[prop_key]}'
+        return f'# {prop_key}: {raw[prop_key]}'
+
     lines = [
         '# lightwebpres settings — plain `key: value` properties, one per line.',
         '# lightwebpres never writes this file (set-theme rewrites only the',
-        '# theme line below). Uncomment a line to pin it: it survives every',
-        '# theme change and every version upgrade. Values shown are those of',
-        f'# the theme at generation time. CSS rules belong in {CUSTOM_CSS_FILENAME}.',
+        '# theme line below, refresh-templates --scaffold refreshes the',
+        '# commented surface and keeps your uncommented lines). Uncomment a',
+        '# line to pin it: it survives every theme change and every upgrade.',
+        f'# CSS rules belong in {CUSTOM_CSS_FILENAME}.',
         '',
         f'theme: {theme_key}' if theme_key else '# theme: <slug>   (default theme)',
         f'# scaffold-for: {theme_key or "default"}',
@@ -1735,13 +1756,53 @@ def build_settings_scaffold(theme_key=None):
         '# ── shared values ──',
     ]
     for p in THEME_SHARED_PROPS:
-        lines.append(f'# {p.key}: {raw[p.key]}')
+        lines.append(emit(p.key))
     for c in THEME_COMPONENTS:
         lines.append('')
         lines.append(f'# ── {c.key} ──')
         for p in c.props:
-            lines.append(f'# {p.key}: {raw[p.key]}')
+            lines.append(emit(p.key))
+
+    unknown = [k for k in pinned if k not in PROPERTY_REGISTRY]
+    if unknown:
+        lines.append('')
+        lines.append(SETTINGS_RETIRED_MARKER)
+        for k in unknown:
+            lines.append(f'# {k}: {pinned[k]}')
     return '\n'.join(lines) + '\n'
+
+
+SETTINGS_RETIRED_MARKER = ('# ── no longer recognized (kept for reference; '
+                           'a build would reject these) ──')
+
+
+def pinned_settings(text):
+    """Everything a scaffold regeneration must carry across: the author's
+    uncommented `key: value` pins (excluding `theme:`), AND the commented
+    entries already parked under the retired marker — so a property the
+    registry dropped survives a SECOND regeneration too. Without the
+    latter, a retired pin was preserved once, then silently lost on the
+    next run because a comment is indistinguishable from scaffold text —
+    exactly the quiet data loss this project refuses."""
+    pins = {}
+    in_retired = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line == SETTINGS_RETIRED_MARKER:
+            in_retired = True
+            continue
+        # Under the retired marker, an entry is commented; elsewhere a pin
+        # is an uncommented line. `theme:` is never a pin.
+        source = line[1:].strip() if (in_retired and line.startswith('#')) else line
+        if in_retired and not line.startswith('#'):
+            continue
+        if not source or (not in_retired and line.startswith('#')) or ':' not in source:
+            continue
+        key, value = source.split(':', 1)
+        key = key.strip()
+        if key != 'theme':
+            pins[key] = value.strip()
+    return pins
 
 
 def series_style_context(templates_dir):
@@ -6264,7 +6325,7 @@ RETIRED_VARIABLES = {
     '--sunken': 'per-component: --code-bg, --table-head-bg...',
     '--cover-bg': '--cover-bg-from / --cover-bg-to (a flat fill has equal '
                   'stops)',
-    '--cover-fg': '--cover-fg', '--cover-fg-faint': '--cover-num-fg',
+    '--cover-fg-faint': '--cover-num-fg',
     '--control': '--nav-btn-bg', '--control-soft': '--nav-btn-bg-soft',
     '--fact-strong-highlight': '--fact-strong-bg',
     '--fact-strong-ink': '--fact-strong-fg',
@@ -6449,6 +6510,13 @@ def cmd_refresh_templates(target_dir, args):
     executable, so it is always fresh by construction, and the author's
     settings.conf / custom.css are never the tool's to touch.
 
+    --scaffold is the one exception, and it is opt-in: it regenerates the
+    settings.conf commented surface for the current theme — new properties
+    appear, gone ones vanish — while keeping every uncommented line the
+    author pinned. That is the action audit points to when the commented
+    values drift from the declared theme, and the only supported way to see
+    a new version's properties without hand-merging.
+
     A legacy templates/style.css is reported, not migrated: its values are
     the author's decisions, and moving them is theirs to do — audit names
     every variable rename to make that mechanical."""
@@ -6460,6 +6528,37 @@ def cmd_refresh_templates(target_dir, args):
         sys.exit(1)
 
     refreshed, up_to_date = [], []
+    settings_path = templates_dir / SETTINGS_FILENAME
+
+    if args.get('--scaffold'):
+        if not settings_path.exists():
+            print(f'[ERROR] {settings_path} not found — nothing to regenerate. '
+                  f'Run install (or refresh-templates without --scaffold to '
+                  f'create a fresh one).', file=sys.stderr)
+            sys.exit(1)
+        old = read_text_file(settings_path)
+        theme_key, _ = parse_settings_text(old)
+        pins = pinned_settings(old)
+        new = build_settings_scaffold(theme_key, pinned=pins)
+        if new == old:
+            print(f'templates/{SETTINGS_FILENAME} is already current. '
+                  f'Nothing written.')
+            return
+        settings_path.write_text(new, encoding='utf-8')
+        kept = len(pins)
+        unknown = [k for k in pins if k not in PROPERTY_REGISTRY]
+        print(f'Regenerated templates/{SETTINGS_FILENAME} for theme '
+              f'{theme_key or "default"}: commented surface refreshed, '
+              f'{kept} pinned value(s) kept.')
+        if unknown:
+            print(f'[WARN] {len(unknown)} pinned property(ies) no longer exist '
+                  f'and were moved to the trailing section, commented out: '
+                  f'{", ".join(unknown)}. A build would reject them; delete '
+                  f'or rename them (audit names the replacements).',
+                  file=sys.stderr)
+        print()
+        print('Run build again to apply.')
+        return
 
     legacy = templates_dir / 'style.css'
     if legacy.exists():
@@ -6998,8 +7097,12 @@ COMMANDS
   lightwebpres build [directory] [--lang fr]     Builds the site (self-contained HTML)
   lightwebpres check [directory] [--lang fr]     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr]     Warns about editorial conventions (never blocking)
-  lightwebpres refresh-templates [directory]     Updates the built-in CSS/JS in templates/,
-                                                  keeping local customizations (see §9.4)
+  lightwebpres refresh-templates [directory]     Refreshes tool-owned templates/ files
+                                                  (nav.js); creates a missing settings.conf
+                                                  or custom.css (see §9.4.3)
+  lightwebpres refresh-templates … --scaffold    Regenerates settings.conf's commented
+                                                  surface for the current theme, keeping
+                                                  your pinned (uncommented) lines
   lightwebpres themes [--polarity ...]           Lists the built-in color themes, narrowed
                                                   by facet (see THEMES below, §11.9)
   lightwebpres set-theme [directory] --theme X   Changes an existing series' theme
@@ -7194,7 +7297,7 @@ _COMMAND_OPTIONS = {
     'check': {'--lang', '--output', '--language-file', '--no-typography',
               '--include-drafts'},
     'audit': {'--lang'},
-    'refresh-templates': set(),
+    'refresh-templates': {'--scaffold'},
     'themes': {'--polarity', '--intensity', '--hue'},
     'set-theme': {'--theme'},
     'themes-gallery': set(),

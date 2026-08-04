@@ -255,8 +255,8 @@ below WCAG AA (4.5:1) against `--page` on a third of the catalogue:
 | `--accent` | footnote call and definition, the "partial" verdict | 11/33 | 2.05 (tokyo-night) |
 
 **Not a stylesheet defect.** Every rule that dimmed text has been fixed
-(§9.5.5); these are the palette values themselves. The admission criteria
-in §9.5.3 promise "AA for secondary text and accents" — they were applied
+(§9.5.3); these are the palette values themselves. The admission criteria
+in §9.5.2 promise "AA for secondary text and accents" — they were applied
 to the twenty-four project-owned palettes and **never retro-applied to
 the nine borrowed ones**, which predate them. Eight of the nine failures
 in the first row are borrowed palettes.

@@ -2613,6 +2613,89 @@ class RefreshTemplates(unittest.TestCase):
             self.assertIn('OLD-CUSTOM-NAV', backup.read_text(encoding='utf-8'))
 
 
+class ScaffoldRegeneration(unittest.TestCase):
+    """refresh-templates --scaffold — the action audit points to when the
+    commented values drift from the declared theme, and the only supported
+    way to see a new version's properties without hand-merging. It refreshes
+    the commented surface for the current theme and keeps every uncommented
+    pin. Before it existed, the docs pointed at an action with no command."""
+
+    def _settings(self, root):
+        return (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
+
+    def test_it_realigns_scaffold_for_and_keeps_pins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--theme', 'evergreen', '--force')
+            root = Path(tmp)
+            conf = root / 'templates' / 'settings.conf'
+            conf.write_text(self._settings(root)
+                            .replace('# tag.fg: ink-quiet', 'tag.fg: call'),
+                            encoding='utf-8')
+            run('set-theme', tmp, '--theme', 'crimson')
+            self.assertIn('# scaffold-for: evergreen', self._settings(root))
+
+            r = run('refresh-templates', tmp, '--scaffold')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            after = self._settings(root)
+            self.assertIn('# scaffold-for: crimson', after)   # realigned
+            self.assertIn('\ntheme: crimson', after)
+            self.assertIn('\ntag.fg: call', after)            # pin kept
+            self.assertIn('2 pinned value(s) kept'
+                          if '2 pinned' in r.stdout else 'pinned value', r.stdout)
+
+    def test_the_pin_still_wins_in_the_build_after_regen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--theme', 'crimson', '--force')
+            root = Path(tmp)
+            conf = root / 'templates' / 'settings.conf'
+            conf.write_text(self._settings(root)
+                            .replace('# tag.fg: ink-quiet', 'tag.fg: call'),
+                            encoding='utf-8')
+            run('refresh-templates', tmp, '--scaffold')
+            scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
+                          '# Cover\n\nsummary: s\n')
+            self.assertEqual(run('build', tmp).returncode, 0)
+            page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--tag-fg: #B00020FF;', page)   # crimson's call
+
+    def test_a_retired_pin_survives_repeated_regenerations(self):
+        # The quiet-data-loss case: a pinned property a future version
+        # dropped is moved to the retired section commented — and must
+        # still be there after a SECOND and THIRD regen, not silently gone.
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--theme', 'nord', '--force')
+            root = Path(tmp)
+            conf = root / 'templates' / 'settings.conf'
+            conf.write_text(self._settings(root) + '\nphantom.axis: #123456\n',
+                            encoding='utf-8')
+            r = run('refresh-templates', tmp, '--scaffold')
+            self.assertIn('no longer exist', r.stderr)
+            for _ in range(3):
+                run('refresh-templates', tmp, '--scaffold')
+            after = self._settings(root)
+            self.assertIn('# phantom.axis: #123456', after)
+            self.assertIn('no longer recognized', after)
+            # and it does not break the build
+            scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
+                          '# Cover\n\nsummary: s\n')
+            self.assertEqual(run('build', tmp).returncode, 0)
+
+    def test_scaffold_regen_needs_an_existing_settings_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            (Path(tmp) / 'templates' / 'settings.conf').unlink()
+            r = run('refresh-templates', tmp, '--scaffold')
+            self.assertEqual(r.returncode, 1)
+            self.assertIn('nothing to regenerate', r.stderr)
+
+    def test_regen_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--theme', 'sage', '--force')
+            run('refresh-templates', tmp, '--scaffold')  # no pins, no drift
+            r = run('refresh-templates', tmp, '--scaffold')
+            self.assertIn('already current', r.stdout)
+
+
 class BuildStamp(unittest.TestCase):
     """§11.3.2: --build-stamp is opt-in (off by default) and, when
     passed, embeds a "Compiled at <date/time> with lightwebpres
@@ -6177,10 +6260,10 @@ class NativeUtf8EndToEnd(unittest.TestCase):
 
 
 class ThemeEngineStaged(unittest.TestCase):
-    """The property engine (§9 rewrite), staged in the executable but not yet
-    wired into build. These pin the interface itself — one cascade for every
-    property, references resolved by axis-fixed namespace, errors that name
-    their key — before the full inventory lands on top of it."""
+    """The property engine (§9 rewrite), wired through build. These pin the
+    interface itself — one cascade for every property, references resolved by
+    axis-fixed namespace, errors that name their key — under the full
+    inventory that build/install/set-theme all compose from."""
 
     @classmethod
     def setUpClass(cls):

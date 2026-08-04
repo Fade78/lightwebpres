@@ -135,8 +135,9 @@ like `#8A4B00` works anywhere a color does. A mistyped key or value is a
 **named build error** pointing at the file and key — never a silent
 no-op. This pinned `tag.fg` keeps applying after a `set-theme`, on top of
 the new palette (that's what "still apply on top" means above; `audit`
-reminds you the scaffold's *comments* now show stale values, and you can
-regenerate a fresh scaffold to compare).
+reminds you the scaffold's *comments* now show stale values;
+`refresh-templates --scaffold` realigns them to the current theme while
+keeping every pinned line).
 
 **Rules, as opposed to values, go in `templates/custom.css`** — full
 CSS, no subset, appended after the composed stylesheet so your rules win

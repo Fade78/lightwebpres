@@ -1357,8 +1357,10 @@ trois problèmes d'un coup : la découvrabilité — la surface complète est
 sous les yeux, sans documentation (il remplace ainsi le bloc de
 « recettes prêtes à coller » de l'ancienne feuille, qui ne couvrait
 qu'un seul objet et dont le compte annoncé avait dérivé) ; la mise à
-jour — un scaffold régénéré à la demande montre les propriétés apparues
-et disparues comme un diff ; et la dérive de la documentation, puisque le
+jour — `refresh-templates --scaffold` (§9.4.3) régénère à la demande la
+surface commentée pour le thème courant, en gardant les lignes
+épinglées : les propriétés apparues et disparues se lisent comme un diff
+; et la dérive de la documentation, puisque le
 fichier est **généré depuis le registre**, la structure même qui émet le
 CSS, jamais tenu à la main — sinon il deviendrait une seconde source de
 vérité.
@@ -1594,6 +1596,20 @@ déclaré) et un `custom.css` vide. Un `templates/style.css` hérité est
 les déplacer lui revient — `audit` nomme chaque renommage pour rendre le
 geste mécanique (§9.8).
 
+**`--scaffold`** est la seule exception à « l'outil ne touche jamais
+`settings.conf` », et elle est explicite. Elle régénère la surface
+commentée du `settings.conf` existant pour le thème courant — les
+propriétés apparues dans une nouvelle version apparaissent, les disparues
+disparaissent — **en conservant chaque ligne décommentée** que l'auteur a
+épinglée, et en réalignant `scaffold-for:` sur le thème déclaré. C'est
+l'action que `audit` recommande quand les deux divergent, et le seul moyen
+de voir les propriétés d'une nouvelle version sans fusion à la main. Une
+propriété épinglée que le registre ne connaît plus n'est pas perdue : elle
+passe, commentée, dans une section « no longer recognized » en fin de
+fichier — préservée d'une régénération à la suivante, jamais
+silencieusement supprimée — avec un avertissement, car un build la
+rejetterait.
+
 #### 9.4.4 `audit` (volet présentation)
 
 `audit` (§11.5) avertit, ne bloque jamais. Trois yeux sur la surface de
@@ -1608,8 +1624,9 @@ présentation, chacun vérifié :
 3. **`settings.conf`** : une erreur de syntaxe ou de propriété (mêmes
    messages qu'au build, mais non bloquants ici) ; et un
    `scaffold-for:` différent du `theme:` déclaré — décommenter une ligne
-   épinglerait une valeur du thème quitté ; l'avertissement suggère de
-   régénérer un scaffold frais pour comparer.
+   épinglerait une valeur du thème quitté ; l'avertissement renvoie à
+   `refresh-templates --scaffold` (§9.4.3), qui réaligne la surface
+   commentée sans perdre les épingles.
 
 `audit` énumère aussi, par article, les **balises d'instance** (§9.6) —
 une note informative (`[NOTE]`, pas un avertissement compté) : ce sont
@@ -2440,8 +2457,10 @@ sans quoi une palette à fond sombre s'afficherait avec les voiles d'une
 page claire — c'est-à-dire pas telle qu'elle rendra réellement.
 
 Sous chaque aperçu, une ligne « Fact-box bold » **énonce** le traitement
-du gras que le thème a choisi — « Bold, highlighted `--marker` »,
-« Bold, no highlight », « Italic, highlighted `--positive` »… La galerie
+du gras que le thème a choisi — « Bold, highlighted `color.mark` »,
+« Bold, no highlight », « Italic, highlighted `color.affirm` »… (la ligne
+nomme la propriété `settings.conf`, celle qu'un auteur peut taper, jamais
+une variable CSS que la feuille émise ne déclare plus). La galerie
 appliquait ces propriétés à sa maquette sans jamais les nommer : neuf
 combinaisons distinctes existent parmi les thèmes intégrés et aucune
 n'était lisible autrement qu'en scrutant deux lignes d'aperçu. Le
