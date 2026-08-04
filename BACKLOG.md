@@ -166,3 +166,34 @@ c'est 2, prévoir en même temps le cas colonne (`col-signal`) plutôt que
 d'y revenir séparément.
 
 Dans tous les cas : **post-1.0**. Ce n'est pas un blocage de sortie.
+
+## B3 — Les liens du corps de texte ne sont pas thémés — OUVERT
+
+Constaté pendant la relecture croisée du 2026-08-04.
+
+`TEMPLATE_STYLE` ne contient **aucune** règle colorant un `<a>` du corps
+de texte. `md_inline()` émet `<a href="…" target="_blank" rel="noopener">`
+sans classe, donc un lien prend le bleu par défaut du navigateur, sur
+tous les thèmes. Mesuré contre le fond de page :
+
+| Thème | bleu par défaut | avec `var(--accent)` |
+|---|---|---|
+| Synthwave | 1,93:1 | 5,25:1 |
+| Terminal | 2,05:1 | 5,63:1 |
+| Graphite | 1,99:1 | 18,73:1 |
+| Dread | 2,10:1 | 3,17:1 |
+| Nord | **8,15:1** | 3,55:1 |
+
+Sur les quatorze thèmes à fond sombre, un lien est donc à environ 2:1 —
+illisible. La spec, l'aide et le commentaire livré dans chaque
+`style.css` affirmaient tous que `--accent` colore les liens ; c'était
+faux, et corrigé le même jour.
+
+**Pourquoi ce n'est pas déjà fait.** Ajouter `a { color: var(--accent); }`
+répare les thèmes sombres mais dégrade Nord (8,15 → 3,55, sous le seuil
+AA) : l'accent de plusieurs thèmes clairs a été choisi comme couleur de
+signal, pas comme couleur de texte courant. Une autre piste consiste à
+garder l'encre du corps et à ne teinter que le soulignement du lien, ce
+qui garantit le contraste du texte tout en gardant l'accent comme
+signal. C'est un choix éditorial qui change l'apparence de toutes les
+pages générées — il revient au propriétaire.

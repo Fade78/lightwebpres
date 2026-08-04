@@ -188,9 +188,11 @@ lightwebpres --help
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
 
 Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR`
-ne sont honorées que par `build`, `check` et `audit` ; `install`, `demo`,
-`refresh-templates` et `set-theme` n'utilisent que leurs arguments
-explicites. `themes` et `themes-gallery` ne lisent aucun répertoire de
+sont honorées par toute commande qui opère sur un répertoire de série —
+`LWP_SERIES_DIR` est résolu une seule fois dans `main()`, avant l'aiguillage,
+donc `install`, `demo` et `set-theme` l'honorent aussi. Seules `themes` et
+`themes-gallery` y échappent : la première n'interroge que la table `THEMES`
+intégrée, la seconde ne prend qu'un chemin de sortie. `themes` et `themes-gallery` ne lisent aucun répertoire de
 série : la première n'interroge que la table `THEMES` intégrée, la
 seconde ne prend qu'un chemin de sortie.
 
@@ -1102,7 +1104,7 @@ rencontre la page :
 | `--ink` | le texte courant ; et le fond de couverture sur un thème clair |
 | `--ink-muted` | les textes secondaires : résumé, légende, source, verdict « non » |
 | `--marker` | les filets et repères : filet de fact-box, tag de couverture, soulignement d'en-tête, point de nav actif, colonne mise en avant |
-| `--accent` | liens, focus, flèche de chiffre-clé, verdict « partiel » |
+| `--accent` | appel de note (`sup`), verdict « partiel », flèche de chiffre-clé, contour de focus. **Pas les liens** : le corps de texte n'a aucune règle de lien, ils prennent donc le bleu par défaut du navigateur — voir BACKLOG B3 |
 | `--positive` | le verdict « oui » d'un tableau comparatif (§6.1) |
 
 Une couleur de palette **ne peut pas** porter un nom de composant, parce
@@ -1112,7 +1114,7 @@ variables qui, elles, appartiennent à un composant existent séparément et
 gardent leur propre nom (`--cover-bg`, `--fact-strong-*`, `--surface`,
 `--sunken`… — §9.5.2).
 
-**Renommage de la v0.15.0.** Ces six variables s'appelaient auparavant
+**Renommage de la v0.12.0.** Ces six variables s'appelaient auparavant
 `--yellow`, `--dark`, `--grey`, `--light`, `--accent` et `--green` :
 elles avaient été nommées d'après les valeurs qu'elles portaient dans le
 tout premier thème. Ces noms mentaient dès qu'un thème s'en éloignait —
@@ -1171,14 +1173,18 @@ paramétrable :
   clair, faux sur un thème sombre où `--ink` porte justement la couleur
   claire du texte — rapport de contraste mesuré à 1,00, c'est-à-dire un
   surlignage invisible. Vaut `inherit` quand il n'y a pas de fond
-  (`fact_highlight` absent) : sans marqueur, le texte garde la couleur du
+  (`fact_highlight` valant explicitement `None` — une clé *absente*, elle,
+  retombe sur le défaut du moteur, `marker`) : sans marqueur, le texte garde la couleur du
   corps.
 
 Ces six variables se personnalisent exactement comme les six
 premières : une surcharge dans `templates/style.css`, après le marqueur
-de personnalisation (§9.4). Elles sont aussi intégrées à `THEMES`
-(§9.5) — chaque thème prédéfini choisit ses propres valeurs plutôt que
-de se limiter aux couleurs, voir §9.5.
+de personnalisation (§9.4). Cinq d'entre elles sont aussi des clés de `THEMES` (§9.5) — un thème
+prédéfini choisit donc ses propres valeurs plutôt que de se limiter aux
+couleurs. `--fact-strong-ink` fait exception : elle n'est jamais déclarée
+dans une entrée, elle est **dérivée** de `fact_highlight` et de
+`dark_background`, précisément pour qu'un thème ne puisse pas se donner
+une encre illisible sur son propre marqueur.
 
 **Indépendantes veut dire indépendantes.** Les combinaisons ne sont pas
 un menu fermé : « gras sans aucun surlignage » se dit
@@ -1380,9 +1386,10 @@ personnalisation locale :
   commentaire marqueur (`/* === Personnalisations locales : ... === */`).
   Tout ce que l'auteur ajoute **après** cette ligne est sa personnalisation ;
   tout ce qui précède est la partie intégrée à l'exécutable.
-  `refresh-templates` retrouve ce marqueur (dernière occurrence dans le
-  fichier, pour rester robuste même si le marqueur apparaissait par erreur
-  plusieurs fois), reconstruit le fichier comme `CSS intégré à jour +
+  `refresh-templates` retrouve ce marqueur (**première** occurrence dans le
+  fichier : tout ce qui suit le premier marqueur appartient à l'auteur, y
+  compris un second marqueur qu'il aurait collé dans ses propres règles.
+  Chercher la dernière perdait toutes les règles situées entre les deux), reconstruit le fichier comme `CSS intégré à jour +
   marqueur + tout ce qui suivait le marqueur dans l'ancien fichier`, et
   laisse cette partie personnalisée totalement intacte.
 
@@ -1521,7 +1528,7 @@ Deux conséquences en découlent, toutes deux vérifiées par les tests :
 
 Le drapeau s'appelle `dark_background` et non `dark` parce qu'à l'époque
 cette seconde clé portait déjà la couleur foncée de la palette dans
-chaque entrée (elle s'appelle `ink` depuis la v0.15.0, §9.1) : un drapeau ainsi nommé serait lu comme une chaîne de couleur,
+chaque entrée (elle s'appelle `ink` depuis la v0.12.0, §9.1) : un drapeau ainsi nommé serait lu comme une chaîne de couleur,
 donc toujours vrai, et tous les thèmes basculeraient silencieusement en
 polarité sombre.
 
@@ -1548,7 +1555,7 @@ filtres, et la commande `themes` (§11.9) en options :
 | Facette | Valeurs | Origine |
 |---|---|---|
 | polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.2) |
-| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée |
+| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée ; absente, vaut `sober` — c'est le cas des neuf palettes d'éditeurs, reprises telles quelles |
 | hue | `neutral`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta` | **calculée** à partir du fond |
 
 Les noms de facettes et leurs valeurs sont en anglais, comme tout
@@ -1575,7 +1582,7 @@ angle, et un crème pâle occupe le même angle qu'une orange pleine — ce
 qui faisait nommer « orange » le papier de Solarized, ce qu'aucun
 lecteur ne dirait. En CIELAB on dispose en plus du **chroma** : sous un
 seuil (`NEUTRAL_CHROMA`), un fond se lit comme du papier ou de l'encre,
-jamais comme une teinte, et la facette vaut `neutre`. Les bornes
+jamais comme une teinte, et la facette vaut `neutral`. Les bornes
 d'angle ont été calibrées en mesurant des références connues plutôt que
 de mémoire : les angles CIELAB ne sont pas ceux que l'intuition RVB
 suggère — un bleu franc se situe vers 297°, pas 240°, et le cyan vers
@@ -1969,7 +1976,7 @@ compare le HTML généré à l'existant, §11.4) :
    `<meta name="description">` serait omise)
 5. Avertit si la **section personnelle** de `templates/style.css` (après
    le marqueur de §9.4) référence encore une variable de palette
-   renommée en v0.15.0, en nommant chacune et son remplaçant. Voir §9.1 :
+   renommée en v0.12.0, en nommant chacune et son remplaçant. Voir §9.1 :
    aucun alias n'a été conservé, donc une telle déclaration est
    simplement invalide et cesse de s'appliquer sans que rien ne le
    signale — c'est le seul endroit du système qui rend cette rupture

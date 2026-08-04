@@ -70,7 +70,7 @@ it is, and what hue the page itself carries.
 
 ```bash
 ./lightwebpres themes                              # all 33, with their facets
-./lightwebpres themes --polarity dark --hue green  # just the ones you mean
+./lightwebpres themes --polarity dark --intensity sober  # just the ones you mean
 ```
 
 Apply one at install time, or change your mind later:
@@ -107,7 +107,25 @@ the page/index HTML structure itself is fixed, not a template, so a
 malformed override can't break the build's structure, only its styling.
 Put your own CSS after the `Personnalisations locales` marker comment
 near the end of `style.css`; that's what lets `refresh-templates` update
-the built-in part later without touching what you added.
+the built-in part later without touching what you added. That file also
+carries a commented block of ready-to-paste recipes for the fact-box
+emphasis — bold without a highlight, underlined instead of highlighted,
+and so on.
+
+> **If you wrote custom CSS before v0.12.0**, five palette variables were
+> renamed and **no aliases were kept**, so `var(--yellow)` in your rules
+> now resolves to nothing and the declaration is silently dropped:
+>
+> | was | is now | |
+> |---|---|---|
+> | `--yellow` | `--marker` | rules, cover tag, active nav dot |
+> | `--dark` | `--ink` | body text |
+> | `--grey` | `--ink-muted` | secondary text |
+> | `--light` | `--page` | the page background |
+> | `--green` | `--positive` | the "yes" verdict |
+>
+> `--accent` did not change. Run `lightwebpres audit my-series` — it
+> names every old variable still left in your section of the file.
 
 ## 4. Writing your own articles
 

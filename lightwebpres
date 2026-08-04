@@ -46,12 +46,12 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.16.1"
+VERSION = "0.12.0"
 
 # The six palette variables, in the order a reader meets them on the page:
 # the ground, then the two inks, then the furniture (§9.1).
 #
-# These are ROLE names. They were colour names until v0.15.0 — --yellow,
+# These are ROLE names. They were colour names until v0.12.0 — --yellow,
 # --dark, --grey, --light, --green — because they were named after their
 # values in the very first theme. Those names then lied on every theme
 # that moved away from that palette: --yellow held a dark olive on Pop
@@ -77,7 +77,7 @@ PALETTE_ROLE_LABELS = {
     'positive': 'Verdict &laquo;&nbsp;oui&nbsp;&raquo;',
 }
 
-# Renamed in v0.15.0. Kept ONLY so `audit` (§11.5) can tell an author
+# Renamed in v0.12.0. Kept ONLY so `audit` (§11.5) can tell an author
 # that their own CSS still names a variable that no longer exists —
 # there are no aliases, so such a rule silently stops applying. Never
 # used to resolve anything.
@@ -655,7 +655,7 @@ TEMPLATE_STYLE_THEME_MARKER_LINE_RE = re.compile(r'^/\* lightwebpres-theme: \S+ 
 # palette: over a light page a surface is a white veil and a rule a
 # black one; over a dark page it is exactly the reverse, and a white
 # surface veil turns a card into an unreadable white block. A theme
-# therefore declares `dark_background: True` when its --light is not,
+# therefore declares `dark_background: True` when its --page is not,
 # in fact, light, and gets the second set. Nothing else changes.
 #
 # NOT named `dark`: that key already holds the palette's dark tone in
@@ -844,7 +844,12 @@ def apply_theme(css_text, theme_key):
 
     css_text = head + root + tail
     css_text = TEMPLATE_STYLE_THEME_MARKER_LINE_RE.sub('', css_text, count=1)
-    header_end = css_text.index('\n') + 1
+    # The marker goes on its own line, after the header line. A file with
+    # no newline at all — a minified stylesheet reached through --force —
+    # raised a bare ValueError from str.index() and printed a traceback
+    # at the user; it now simply gets the marker first.
+    newline = css_text.find('\n')
+    header_end = newline + 1 if newline != -1 else 0
     css_text = css_text[:header_end] + f'/* lightwebpres-theme: {theme_key} */\n' + css_text[header_end:]
     return css_text
 
@@ -960,7 +965,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
          --ink-muted  summary, caption, source, "no" verdict
          --marker     fact-box rule, cover tag, header underline,
                       active nav dot, emphasized column
-         --accent     links, focus ring, key-figure arrow, "partial"
+         --accent     footnote call, "partial", key-figure arrow, focus
          --positive   the "yes" verdict of a comparison table */
     --page: #f8f8f5;
     --ink: #1a1a2e;
@@ -989,7 +994,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
        an overlay must go depends on whether the background is light or
        dark: on a light page a surface is a white veil and a rule a black
        one, on a dark page it is the reverse. A theme declares which case
-       it is in and these seven follow — that is what makes a dark theme
+       it is in and these nine follow — that is what makes a dark theme
        possible at all. */
     --rule: rgba(0, 0, 0, 0.10);
     --rule-strong: rgba(0, 0, 0, 0.16);
@@ -997,7 +1002,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     --sunken: rgba(0, 0, 0, 0.045);
     /* The cover is the page's inverse. On a light theme that means the
        palette's dark tone; on a dark one, a deeper veil of the page
-       itself — never --dark, which is the TEXT colour there. */
+       itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
     --cover-fg-faint: rgba(255, 255, 255, 0.34);
@@ -1466,7 +1471,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
                                        la couleur du texte lui-meme
 
      Le fond et l'encre vont par paire : changer l'un sans l'autre peut
-     tomber sous le seuil de lisibilite. Trois exemples prets a coller,
+     tomber sous le seuil de lisibilite. Cinq exemples prets a coller,
      A PLACER APRES LE MARQUEUR ci-dessous -- c'est la seule section que
      refresh-templates conserve.
 
@@ -2888,7 +2893,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   .preview-cell--neutral::before { content: "\25CB"; margin-right: 5px; }
 
   /* The fact-box emphasis treatment, stated rather than merely applied
-     to the mock-up above (§9.1). Three properties a theme sets
+     to the mock-up above (§9.1). Four independent axes a theme sets
      independently, and the only place they are ever spelled out. */
   .fact-treatment {
     margin: 12px 18px 0;
@@ -3030,7 +3035,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     <p class="dek dek--note">
       <strong>Les six variables d&eacute;signent un r&ocirc;le, pas une couleur.</strong>
       Elles s'appelaient <code>--yellow</code>, <code>--dark</code>, <code>--grey</code>,
-      <code>--light</code> et <code>--green</code> jusqu'en v0.15.0, d'apr&egrave;s leurs
+      <code>--light</code> et <code>--green</code> jusqu'en v0.12.0, d'apr&egrave;s leurs
       valeurs dans le tout premier th&egrave;me. Ces noms mentaient d&egrave;s qu'un
       th&egrave;me s'en &eacute;loignait : sur un fond d&eacute;j&agrave; jaune,
       <code>--yellow</code> portait un brun sombre, faute de quoi le rep&egrave;re
@@ -5339,7 +5344,7 @@ def cmd_audit(series_dir, args):
 
 def audit_legacy_palette_names(templates_dir):
     """Warns when an author's own CSS still names a palette variable that
-    v0.15.0 renamed (§9.1). Returns the number of warnings.
+    v0.12.0 renamed (§9.1). Returns the number of warnings.
 
     There are no compatibility aliases — that was a deliberate choice —
     so `color: var(--yellow)` does not fall back to anything: the
@@ -5365,7 +5370,7 @@ def audit_legacy_palette_names(templates_dir):
 
     renames = ', '.join(f'--{old} -> --{LEGACY_PALETTE_ROLES[old]}' for old in found)
     print(f'[WARNING] templates/style.css: your own rules still use palette '
-          f'variables renamed in v0.15.0 ({renames}). They no longer exist, so '
+          f'variables renamed in v0.12.0 ({renames}). They no longer exist, so '
           f'those declarations are silently ignored — see specifications.md §9.1.')
     return 1
 
@@ -5513,6 +5518,17 @@ def cmd_refresh_templates(target_dir, args):
                 print(f'  {TEMPLATE_STYLE_CUSTOM_MARKER}', file=sys.stderr)
             else:
                 custom_tail = old[marker_pos + len(TEMPLATE_STYLE_CUSTOM_MARKER):]
+                # Drop the newline that ENDED the old marker line: the
+                # rebuilt built-in part already finishes with one. Without
+                # this the file gained a blank line on every single run —
+                # measured at +1 byte per pass, stacking indefinitely
+                # above the author's first rule, which flatly contradicts
+                # the promise that this section is left untouched (§9.4).
+                # Exactly the defect TEMPLATE_STYLE_THEME_MARKER_LINE_RE
+                # was introduced to fix for the OTHER marker; the same
+                # reasoning was never applied here.
+                if custom_tail.startswith('\n'):
+                    custom_tail = custom_tail[1:]
                 style_path.write_text(new_builtin + custom_tail, encoding='utf-8')
                 refreshed.append('templates/style.css')
 
@@ -5602,7 +5618,7 @@ def cmd_themes(args):
 
     print('Facets: polarity (light/dark), intensity (sober/vivid/mono), hue.')
     print('Narrow the list with, for example:')
-    print('  lightwebpres themes --polarity dark --hue green')
+    print('  lightwebpres themes --polarity dark --intensity sober')
     print('Apply one with `install --theme <slug>` (new series) or')
     print('`set-theme --theme <slug>` (existing one); see them rendered with')
     print('`lightwebpres themes-gallery`.')
@@ -6088,7 +6104,7 @@ THEMES ({theme_count} built in, see specifications.md §9.5)
   Themes are chosen by slug, and found by facet — polarity (light/dark),
   intensity (sober/vivid/mono), and hue, computed from the background:
     lightwebpres themes                            all {theme_count}, with their facets
-    lightwebpres themes --polarity dark --hue green   just the ones you mean
+    lightwebpres themes --polarity dark --intensity sober  just the ones you mean
   Then apply one, at scaffold time or afterwards:
     lightwebpres install my-series --theme evergreen
     lightwebpres set-theme my-series --theme evergreen
@@ -6110,7 +6126,9 @@ PALETTE AND EMPHASIS (templates/style.css, see specifications.md §9.1)
     --ink-muted   summary, caption, source, the "no" verdict
     --marker      fact-box rule, cover tag, header underline, active
                   nav dot, emphasized column
-    --accent      links, focus ring, key-figure arrow, "partial"
+    --accent      footnote call, "partial" verdict, key-figure arrow,
+                  focus ring (NOT body links -- those have no rule and
+                  take the browser default)
     --positive    the "yes" verdict of a comparison table
   Six more decide how **bold** renders INSIDE a fact-box, on four
   independent axes — a theme can be bold with no highlight, un-bold with

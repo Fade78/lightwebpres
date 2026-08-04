@@ -107,7 +107,12 @@ most common mistake in a homemade pie.
 article: apple-pie_article.md
 ```
 
-That builds into a scrollable page: a dark cover slide, a fact-card slide
+The last slide points at a **second** file, `articles/apple-pie_article.md`,
+holding the long-form text — `build` fails if it isn't there. Drop the
+`full-article` slide if you don't want one.
+
+That builds into a scrollable page: a cover slide inverted against the
+page, a fact-card slide
 with a highlighted figure, and a full long-form article appended at the
 end — plus keyboard/scroll navigation, a "copy link to this slide" button,
 and (if there's more than one article) a cross-article navigation block,
@@ -121,7 +126,7 @@ all generated automatically.
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1) |
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
-| `audit [dir]` | Non-blocking editorial warnings (e.g. "no cover slide") — never fails the build |
+| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide") and technical (palette variables renamed in v0.12.0 still used in your own CSS); never fails the build |
 | `refresh-templates [dir]` | Updates the built-in CSS/JS in `templates/` after an executable upgrade, keeping local customizations |
 | `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
 | `set-theme [dir] --theme X` | Changes an existing series' theme, reporting what it replaced; `--force` for a stylesheet whose built-in part isn't standard |
@@ -197,7 +202,7 @@ than declared, so it can't drift when a color is tweaked:
 
 ```bash
 ./lightwebpres themes                              # all 33, with their facets
-./lightwebpres themes --polarity dark --hue green  # just the ones you mean
+./lightwebpres themes --polarity dark --intensity sober  # just the ones you mean
 ```
 
 Apply one when scaffolding, or change your mind later:
@@ -234,12 +239,23 @@ Each palette variable is named for **what it does**, not for a color:
 | `--ink` | body text; also the cover ground on a light theme |
 | `--ink-muted` | summary, caption, source, the "no" verdict |
 | `--marker` | fact-box rule, cover tag, header underline, active nav dot, emphasized column |
-| `--accent` | links, focus ring, key-figure arrow, the "partial" verdict |
+| `--accent` | footnote call, the "partial" verdict, key-figure arrow, focus ring |
 | `--positive` | the "yes" verdict of a comparison table |
 
-> **Renamed in v0.15.0.** These were `--yellow --dark --grey --light
-> --accent --green`, named after the values they held in the very first
-> theme. The names then lied on every theme that moved away from it:
+> **Renamed in v0.12.0**, from names that described a colour to names
+> that describe a role. The mapping is deliberately spelled out, because
+> reading the two lists side by side gets two of them backwards:
+>
+> | was | is now |
+> |---|---|
+> | `--yellow` | `--marker` |
+> | `--dark` | `--ink` |
+> | `--grey` | `--ink-muted` |
+> | `--light` | `--page` |
+> | `--green` | `--positive` |
+> | `--accent` | `--accent` (unchanged) |
+>
+> They were named after the values they held in the very first theme. The names then lied on every theme that moved away from it:
 > `--yellow` held a dark olive on Pop Lemon (a yellow marker on a
 > yellow page is invisible), and `--light` held a near-black on every
 > dark theme while `--dark` held the text color. No compatibility
@@ -332,6 +348,14 @@ tests/                # regression suite
 ```
 
 ## Reference
+
+| Document | What it is |
+|---|---|
+| [`GUIDE.md`](GUIDE.md) | **Start here.** The walkthrough, in English: install, build, choose a look, write, verify, ship |
+| [`GLOSSARY.md`](GLOSSARY.md) | Every field, its default, and where it falls back from |
+| [`agent/skills/lightwebpres/SKILL.md`](agent/skills/lightwebpres/SKILL.md) | The exact article format — written for an agent, readable by a person |
+| [`BACKLOG.md`](BACKLOG.md) | Known gaps and deferred decisions |
+
 
 `specifications.md` is the complete, detailed specification (in French) —
 directory layout, `series.json` schema, parser edge cases, full

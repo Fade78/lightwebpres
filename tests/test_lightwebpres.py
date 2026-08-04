@@ -3201,10 +3201,18 @@ class GalleryPreviewFidelity(unittest.TestCase):
             style = Path(tmp) / 'templates' / 'style.css'
             css = style.read_text(encoding='utf-8')
 
-            builtin = css.split(self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER)[0]
-            for var in ('--fact-strong-weight', '--fact-strong-style',
-                        '--fact-strong-highlight', '--fact-strong-ink'):
-                self.assertIn(var, builtin, f'{var} not documented in the stylesheet')
+            # Scoped to the recipe COMMENT, not to the whole built-in
+            # section: :root declares every one of these names, so a
+            # search over the section passed while the comment block it
+            # exists to pin could be deleted whole.
+            recipes = re.search(r'/\* -+\n(.*?)-+ \*/', css, re.DOTALL)
+            self.assertIsNotNone(recipes, 'the recipe comment block is gone')
+            recipes = recipes.group(1)
+            for var in self.EMPHASIS_VARS:
+                self.assertIn(var, recipes, f'{var} not documented in the stylesheet')
+            for recipe in ('--fact-strong-decoration: underline',
+                           '--fact-strong-highlight: transparent'):
+                self.assertIn(recipe, recipes, recipe)
 
             # Repeated refreshes must not stack copies of the block.
             style.write_text(css + '\n:root { --fact-strong-ink: inherit; }\n',
@@ -3276,7 +3284,7 @@ class GalleryPreviewFidelity(unittest.TestCase):
 
     def test_the_default_highlight_role_names_a_role_that_exists(self):
         """A latent defect: the fallback stayed 'yellow' through the
-        v0.15.0 rename. No built-in theme trips it — every entry states
+        v0.12.0 rename. No built-in theme trips it — every entry states
         the key — so a theme omitting it would have been handed
         var(--yellow), which no longer resolves to anything."""
         default = self.lwp.theme_fact_properties({})['highlight']
@@ -3291,6 +3299,31 @@ class GalleryPreviewFidelity(unittest.TestCase):
             block = self._block(css, selector)
             self.assertIn('var(--fact-strong-decoration)', block, selector)
             self.assertIn('var(--fact-strong-decoration-color)', block, selector)
+
+    def test_an_installed_stylesheet_resolves_every_emphasis_property(self):
+        """The gap that mattered. Every other underline assertion is on a
+        pure function, on the template STRING, on --help, or on the
+        gallery's inline style. None read a real installed
+        templates/style.css — so deleting the two decoration
+        declarations from :root left `.fact-content strong` referencing
+        undefined custom properties, killed the underline on every
+        generated page of every theme, and the whole suite stayed green.
+
+        apply_theme() rewrites declarations that exist and silently
+        no-ops otherwise, which is exactly why the DECLARATION has to be
+        checked in the installed file rather than the substitution
+        checked in memory."""
+        for slug in ('monochrome', 'graphite', 'nord'):
+            with tempfile.TemporaryDirectory() as tmp:
+                self.assertEqual(run('install', tmp, '--theme', slug).returncode, 0)
+                css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
+                root = css[slice(*self.lwp.root_block_span(css))]
+                expected = self.lwp.theme_fact_properties(self.lwp.THEMES[slug])
+                for key, value in expected.items():
+                    found = re.search(r'--fact-strong-%s:\s*([^;]+);' % re.escape(key), root)
+                    self.assertIsNotNone(found, f'{slug}: --fact-strong-{key} not declared')
+                    self.assertEqual(found.group(1).strip(), value,
+                                     f'{slug}: --fact-strong-{key}')
 
     def test_the_card_supplies_every_emphasis_variable_it_styles(self):
         """The ink used to be computed, destructured into a throwaway and
@@ -3325,7 +3358,7 @@ class GalleryPreviewFidelity(unittest.TestCase):
 
 class PaletteRoleNames(unittest.TestCase):
     """§9.1: the six palette variables are named for what they DO. Until
-    v0.15.0 they were named for the values they happened to hold in the
+    v0.12.0 they were named for the values they happened to hold in the
     very first theme, so the names lied on every theme that moved away
     from it. Renamed with no compatibility aliases — a deliberate choice,
     which is what makes `audit` responsible for keeping the break
@@ -3382,7 +3415,7 @@ class PaletteRoleNames(unittest.TestCase):
             style = Path(tmp) / 'templates' / 'style.css'
 
             clean = run('audit', tmp)
-            self.assertNotIn('renamed in v0.15.0', clean.stdout)
+            self.assertNotIn('renamed in v0.12.0', clean.stdout)
 
             style.write_text(style.read_text(encoding='utf-8') +
                              '\n.mine { color: var(--yellow); border-color: var(--grey); }\n',
@@ -3405,7 +3438,7 @@ class PaletteRoleNames(unittest.TestCase):
             style.write_text(builtin + '.stale { color: var(--yellow); }\n' +
                              self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER + custom,
                              encoding='utf-8')
-            self.assertNotIn('renamed in v0.15.0', run('audit', tmp).stdout)
+            self.assertNotIn('renamed in v0.12.0', run('audit', tmp).stdout)
 
 
 class ThemesCommand(unittest.TestCase):
