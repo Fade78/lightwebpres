@@ -6,14 +6,20 @@ décision actée en discussion est reportée ici **avant** d'être
 implémentée ; l'état est resynchronisé ici après chaque étape poussée ;
 le contenu est présenté régulièrement dans les comptes rendus.
 
-Dernière mise à jour : 2026-08-03 — état du dépôt : v0.8.0 (audit de la
-spec, groupes 1 et 2 : resynchronisation de specifications.md + sept
-corrections de comportement arbitrées). Releases GitHub : v0.6.0
-(comment + gel de la nomenclature), v0.7.0 (images + légendes, axes
-1/2/3/9). Règle de processus : chaque message de release livré dans la
+Dernière mise à jour : 2026-08-04 — dernier tag du dépôt : **v0.11.0**.
+Un lot important de travail non publié s'est accumulé au-dessus (§6).
+Règle de processus : chaque message de release livré dans la
 conversation EST publié par le propriétaire — le travail qui suit part
 donc toujours dans une nouvelle version, jamais replié dans une version
 déjà annoncée.
+
+**Correction de processus (2026-08-04).** J'avais pris l'habitude de
+numéroter les versions dans les messages de commit (v0.12.0 … v0.16.1)
+sans qu'aucun tag ni release ne leur corresponde : le propriétaire seul
+publie, et il n'avait donc jamais vu passer ces numéros. Décision : plus
+aucun numéro de version dans les messages de commit. Le numéro n'existe
+qu'au moment où le propriétaire pose le tag. Voir §6 pour l'état du
+désalignement et ce qu'il reste à trancher.
 
 ## 1. Cadrage produit (décidé)
 
@@ -432,3 +438,58 @@ par fiche — non planifié à ce jour.
   comportement arbitrées D1a/D2a/D3a/D4a : sources manquantes fatales,
   CLI stricte, garde series.json de demo, contenu avant lwp:meta fatal,
   éléments décoratifs vides omis).
+
+## 6. Travail accumulé depuis le tag v0.11.0 (non publié)
+
+Treize commits, aucun tag. Décrits ici par leur contenu, sans numéro —
+c'est au propriétaire de décider quel(s) numéro(s) leur donner.
+
+**Corrections d'abord :**
+- `BACKLOG.md` créé (perenne) : B1 image en milieu de paragraphe, B2
+  verdicts de tableau.
+- Image en milieu de paragraphe avec titre : le motif ne rendait pas ;
+  le titre devient une infobulle `title=`.
+- Passe complète sur la feuille de style par défaut : plus aucune
+  couleur figée hors `:root`, blockquote/code/pre/sup stylés.
+- Verdicts de tableau : une forme en plus de la couleur (WCAG 1.4.1,
+  niveau A) — mesuré en vision deutéranope et protanope.
+- Chiffre-clé de fact-box invisible sur fond sombre (contraste 1,00).
+
+**Puis le système de thèmes :**
+- Un thème peut déclarer un fond sombre (`dark_background`) : les neuf
+  superpositions neutres suivent la polarité.
+- Catalogue porté de 9 à 33 thèmes, tous mesurés avant d'être retenus
+  (AAA texte, AA secondaires, 3:1 filets, verdicts séparables en CVD).
+- Facettes (polarité / intensité / teinte, la teinte calculée en CIELAB)
+  et filtres dans `themes-gallery`.
+- Deux commandes : `themes` (lister/filtrer) et `set-theme` (changer de
+  thème, avec garde `--force` sur un CSS non standard).
+- **Renommage des six variables de palette en noms de rôle** :
+  `--page --ink --ink-muted --marker --accent --positive`. Rupture nette
+  décidée par le propriétaire, sans alias ; `audit` signale les anciens
+  noms restés dans les règles personnelles.
+- Quatrième axe d'emphase pour le gras en fact-box : le soulignement
+  (`--fact-strong-decoration` / `-color`), démontré par `monochrome` et
+  `graphite`.
+
+**Défauts trouvés et corrigés en route** (tous reproduits avant
+correction) : aperçu de galerie qui trahissait tous les thèmes sombres ;
+filtre de facettes qui ne filtrait pas (le compteur mentait) ; encre du
+surlignage jamais transmise à la carte (1,00:1 mesuré) ; défaut de repli
+resté sur un nom mort après le renommage ; `GUIDE.md` entièrement manqué
+par le renommage ; accumulation de lignes vides à chaque changement de
+thème.
+
+### À trancher par le propriétaire
+
+1. **Numérotation.** Les tags s'arrêtent à v0.11.0. Le prochain tag
+   devrait-il être v0.12.0 couvrant tout ce lot ? Dans ce cas la
+   constante `VERSION` du code doit y être ramenée (elle a dérivé
+   jusqu'à 0.16.1), et les mentions « v0.15.0 » écrites dans le README,
+   la spec, la galerie et le message d'`audit` doivent être réécrites en
+   v0.12.0 — elles désignent aujourd'hui une version qui n'existera
+   jamais.
+2. **Réécriture d'historique.** Les neuf messages de commit portant un
+   numéro peuvent être réécrits pour l'ôter, au prix d'un push forcé sur
+   `main` (les SHA changent). À décider ; rien n'a été fait sans accord.
+3. Décision de LICENSE (les deux dépôts), toujours ouverte.

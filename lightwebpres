@@ -809,12 +809,26 @@ def apply_theme(css_text, theme_key):
     into custom CSS the author appended after the marker, even if it
     happens to redeclare one of these names.
 
+    A declaration this cannot find is left alone and REPORTED, never
+    silently skipped — see unsubstituted_declarations(), which set-theme
+    (§11.10) uses to say which values kept their old contents.
+
     Assumes theme_key is a valid THEMES key; callers validate first so
     the error message can name the invalid input directly (§9.5.1)."""
     theme = THEMES[theme_key]
+    # Scoped to the :root block (root_block_span) rather than the whole
+    # file: further down, the generated stylesheet documents these very
+    # declarations inside a comment, and confining the rewrite is what
+    # keeps documentation from being edited as if it were code.
+    span = root_block_span(css_text)
+    if span is None:
+        head, root, tail = css_text, '', ''
+    else:
+        head, root, tail = css_text[:span[0]], css_text[span[0]:span[1]], css_text[span[1]:]
+
     for var in PALETTE_ROLES:
         pattern = r'(--%s:\s*)#[0-9A-Fa-f]{3,8}(\s*;)' % var
-        css_text = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), css_text, count=1)
+        root = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), root, count=1)
 
     for var, value in (
         # Keyed by suffix, so adding an emphasis axis needs no change
@@ -826,12 +840,64 @@ def apply_theme(css_text, theme_key):
         *theme_surface_properties(theme).items(),
     ):
         pattern = r'(--%s:\s*)[^;]+(;)' % re.escape(var)
-        css_text = re.sub(pattern, lambda m, value=value: m.group(1) + value + m.group(2), css_text, count=1)
+        root = re.sub(pattern, lambda m, value=value: m.group(1) + value + m.group(2), root, count=1)
 
+    css_text = head + root + tail
     css_text = TEMPLATE_STYLE_THEME_MARKER_LINE_RE.sub('', css_text, count=1)
     header_end = css_text.index('\n') + 1
     css_text = css_text[:header_end] + f'/* lightwebpres-theme: {theme_key} */\n' + css_text[header_end:]
     return css_text
+
+
+def root_block_span(css_text):
+    """(start, end) of the first `:root { ... }` block's contents, or
+    None when there is none.
+
+    Theme substitution is confined to it. Without that confinement it
+    operated on the whole file and relied on the real :root simply coming
+    FIRST, since only the first occurrence of each declaration is
+    rewritten — an ordering assumption, not a guarantee. The generated
+    stylesheet now carries paste-ready recipes further down (§9.1) that
+    are literally `:root { --fact-strong-highlight: transparent; }` inside
+    a comment, so a file whose own :root was removed would have had its
+    documentation rewritten as if it were code."""
+    opening = css_text.find(':root')
+    if opening == -1:
+        return None
+    brace = css_text.find('{', opening)
+    close = css_text.find('}', brace)
+    if brace == -1 or close == -1:
+        return None
+    return brace + 1, close
+
+
+def unsubstituted_declarations(css_text):
+    """The theme declarations apply_theme() would NOT find in `css_text`,
+    in the order it tries them.
+
+    Substitution rewrites declarations that already exist; it never adds
+    one. On a stylesheet whose :root has been reworked, a declaration
+    that is gone, renamed, or written in another notation simply keeps
+    whatever it had — and the file still ends up stamped with the new
+    theme's marker. `set-theme --force` on a style.css with no :root at
+    all wrote a file announcing `lightwebpres-theme: nord` that contained
+    not one of Nord's values, and said only that the result "may" be
+    partly recoloured. Naming the misses turns a vague caveat into a
+    fact."""
+    span = root_block_span(css_text)
+    root = css_text[span[0]:span[1]] if span else ''
+
+    missing = []
+    for var in PALETTE_ROLES:
+        if not re.search(r'--%s:\s*#[0-9A-Fa-f]{3,8}\s*;' % var, root):
+            missing.append(f'--{var}')
+    # Any theme's mapping has the same keys, so the first entry stands
+    # for all of them — no separate list to keep in step.
+    sample = theme_fact_properties(next(iter(THEMES.values())))
+    for var in (*(f'fact-strong-{k}' for k in sample), *SURFACE_PRESETS[False]):
+        if not re.search(r'--%s:\s*[^;]+;' % re.escape(var), root):
+            missing.append(f'--{var}')
+    return missing
 
 
 def detect_theme(css_text):
@@ -5593,14 +5659,27 @@ def cmd_set_theme(target_dir, args):
         print(f'Theme unchanged: {style_path} already uses {new_slug}. Nothing written.')
         return
 
+    # Substitution rewrites declarations that exist; it never adds one.
+    # Checked BEFORE writing, so a file where nothing could be applied is
+    # refused rather than stamped with a marker it does not live up to.
+    missing = unsubstituted_declarations(old_css)
+    if len(missing) == len(unsubstituted_declarations('')):
+        print(f'[ERROR] {style_path} declares none of the theme variables, so there '
+              f'is nothing to substitute. Writing the theme marker on it would '
+              f'claim a theme the file does not carry.', file=sys.stderr)
+        print(f'        Run `lightwebpres refresh-templates` to restore the built-in '
+              f'section first.', file=sys.stderr)
+        sys.exit(1)
+
     style_path.write_text(apply_theme(old_css, new_slug), encoding='utf-8')
 
     print(f'Theme changed: {current_name} -> {new_slug}')
     print(f'  {style_path}')
+    if missing:
+        print(f'[WARN] {len(missing)} declaration(s) were not found and kept their '
+              f'previous values: {", ".join(missing)}.', file=sys.stderr)
     if not standard:
-        print(f'[WARN] Forced: {reason}. Check the result — any declaration you '
-              f'moved out of :root or rewrote in another notation kept its old '
-              f'value.', file=sys.stderr)
+        print(f'[WARN] Forced: {reason}.', file=sys.stderr)
     print()
     print('Run build again to apply the new theme.')
 
