@@ -869,17 +869,34 @@ PROP_WEIGHT = ChoiceType('normal', 'bold',
                          hint='Intermediate weights collapse on a generic family.')
 PROP_STYLE = ChoiceType('normal', 'italic')
 PROP_CASE = ChoiceType('none', 'uppercase', 'lowercase', 'small-caps')
+PROP_ALIGN = ChoiceType(
+    'left', 'center', 'right', 'justify',
+    hint='justify drags hyphens: auto along, because this product renders '
+         'columns as narrow as 45 characters and unhyphenated justification '
+         'makes rivers there.')
+# What `justify` drags along wherever an align axis is declared. Automatic
+# hyphenation needs the language, which the page templates already declare
+# as <html lang="...">, so this works without anything further.
+ALIGN_COMPANIONS = {'justify': [('hyphens', 'auto')]}
 PROP_NUMERIC = ChoiceType('normal', 'tabular-nums', 'tabular-nums lining-nums')
 PROP_DECORATION = ChoiceType('none', 'underline', 'line-through',
                              'underline line-through')
 
 
 class ThemeProp:
-    def __init__(self, key, type_, default, css=None, selector=None):
+    def __init__(self, key, type_, default, css=None, selector=None,
+                 companions=None):
         self.key = key            # 'tag.fg'
         self.type = type_
         self.default = default    # a literal, or a reference written as a word
         self.css = css            # CSS declaration it feeds, None if composite
+        # Declarations that a PARTICULAR resolved value drags along, as
+        # {value: [(css_property, value)]}. One case so far and it is not a
+        # convenience: `text-align: justify` without `hyphens: auto` produces
+        # rivers, and the narrowest column this product renders is 45
+        # characters (ETUDE-VIEWPORT.md §8). Tying them here means an author
+        # cannot ask for one and forget the other.
+        self.companions = companions or {}
         # Where the declaration lands when it is NOT the component's base
         # selector: an inner element (.fact-content inside .fact-box), a
         # context (.slide-cover h1), or a state (:hover, .active). The
@@ -947,6 +964,13 @@ THEME_COMPONENTS = [
         ThemeProp('page.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('page.shadow.blur', PROP_LENGTH, '0'),
         ThemeProp('page.shadow.dy',   PROP_LENGTH, '0'),
+        # B13 / ETUDE-VIEWPORT.md: the measure, in `ch` so that ONE declared
+        # value gives every component the right column for its own type size
+        # -- a ch length inside a custom property resolves against the
+        # CONSUMING element, not :root. 50ch renders 55-67 real characters on
+        # these stacks, centred on the 66 optimum. The proportional half of
+        # the rule is the slide's own 8vw padding, not a second cap here.
+        ThemeProp('page.content-max', PROP_LENGTH, '50ch'),
     ], composite=[('text-shadow',
                    '0 var(--page-shadow-dy) var(--page-shadow-blur) var(--page-shadow-fg)')]),
 
@@ -974,7 +998,7 @@ THEME_COMPONENTS = [
     # its size override — kept coupled, as the sheet has it.
     ThemeComponent('title1', 'h1', [
         ThemeProp('title1.font',    PROP_FONT,   'display', css='font-family'),
-        ThemeProp('title1.size',    PROP_LENGTH, 'clamp(28px, 4.5vw, 52px)',
+        ThemeProp('title1.size',    PROP_LENGTH, 'clamp(28px, 4.5vmin, 52px)',
                   css='font-size'),
         ThemeProp('title1.weight',  PROP_WEIGHT, 'bold',    css='font-weight'),
         ThemeProp('title1.leading', PROP_RATIO,  '1.15',    css='line-height'),
@@ -983,23 +1007,29 @@ THEME_COMPONENTS = [
         ThemeProp('title1.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('title1.shadow.blur', PROP_LENGTH, '0'),
         ThemeProp('title1.shadow.dy',   PROP_LENGTH, '0'),
+        ThemeProp('title1.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS),
     ], composite=[('text-shadow',
                    '0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg)')]),
     ThemeComponent('title2', 'h2', [
         ThemeProp('title2.font',    PROP_FONT,   'display', css='font-family'),
-        ThemeProp('title2.size',    PROP_LENGTH, 'clamp(24px, 3.5vw, 40px)',
+        ThemeProp('title2.size',    PROP_LENGTH, 'clamp(24px, 3.5vmin, 40px)',
                   css='font-size'),
         ThemeProp('title2.weight',  PROP_WEIGHT, 'bold',    css='font-weight'),
         ThemeProp('title2.leading', PROP_RATIO,  '1.2',     css='line-height'),
+        ThemeProp('title2.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS),
     ]),
 
     # fg is `ink`, not ink-quiet: the registry records the REAL value; the
     # four surfaces that claimed ink-muted were the CDC's debt D1.
     ThemeComponent('summary', '.summary', [
         ThemeProp('summary.fg',      PROP_COLOR,  'ink', css='color'),
-        ThemeProp('summary.size',    PROP_LENGTH, 'clamp(16px, 2vw, 22px)',
+        ThemeProp('summary.size',    PROP_LENGTH, 'clamp(16px, 2vmin, 22px)',
                   css='font-size'),
         ThemeProp('summary.leading', PROP_RATIO,  '1.55', css='line-height'),
+        ThemeProp('summary.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS),
     ]),
 
     ThemeComponent('fact', '.fact-box', [
@@ -1008,8 +1038,11 @@ THEME_COMPONENTS = [
         ThemeProp('fact.rule-width', PROP_LENGTH, '4px',       css='border-left-width'),
         ThemeProp('fact.fg',   PROP_COLOR,  'ink', css='color',
                   selector='.fact-content'),
-        ThemeProp('fact.size', PROP_LENGTH, 'clamp(15px, 1.6vw, 18px)',
+        ThemeProp('fact.size', PROP_LENGTH, 'clamp(15px, 1.6vmin, 18px)',
                   css='font-size', selector='.fact-content'),
+        ThemeProp('fact.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS,
+                  selector='.fact-content'),
     ]),
     ThemeComponent('fact-label', '.fact-label', [
         ThemeProp('fact-label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
@@ -1056,6 +1089,8 @@ THEME_COMPONENTS = [
         ThemeProp('cover.bg.to',    PROP_COLOR, 'cover.bg.from'),
         ThemeProp('cover.bg.angle', PROP_ANGLE, '180deg'),
         ThemeProp('cover.fg',       PROP_COLOR, 'page', css='color'),
+        ThemeProp('cover.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS),
     ], composite=[_gradient_decl('--cover-bg-angle', '--cover-bg-from',
                                  '--cover-bg-to')]),
     # The two measured opacities, as explicit ARGB. Calibrated to the default
@@ -1104,7 +1139,7 @@ THEME_COMPONENTS = [
     ]),
 
     ThemeComponent('table', '.comparison-table', [
-        ThemeProp('table.size', PROP_LENGTH, 'clamp(13px, 1.4vw, 16px)',
+        ThemeProp('table.size', PROP_LENGTH, 'clamp(13px, 1.4vmin, 16px)',
                   css='font-size'),
         ThemeProp('table.rule-fg',    PROP_COLOR,  '#0000001A',
                   css='border-bottom-color',
@@ -1112,6 +1147,9 @@ THEME_COMPONENTS = [
         ThemeProp('table.rule-width', PROP_LENGTH, '1px',
                   css='border-bottom-width',
                   selector='.comparison-table th, .comparison-table td'),
+        ThemeProp('table.cell.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS,
+                  selector='.comparison-table td'),
     ]),
     ThemeComponent('table.head', '.comparison-table th', [
         ThemeProp('table.head.bg',         PROP_COLOR,  '#0000000B', css='background',
@@ -1122,6 +1160,8 @@ THEME_COMPONENTS = [
         ThemeProp('table.head.weight',     PROP_WEIGHT, 'bold',      css='font-weight'),
         ThemeProp('table.head.size',       PROP_LENGTH, '13px',      css='font-size'),
         ThemeProp('table.head.tracking',   PROP_LENGTH, '0.5px',     css='letter-spacing'),
+        ThemeProp('table.head.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS),
     ]),
     # Weights: the sheet said 700/500/600; only normal and bold survive a
     # generic family, so partial rejoins yes in weight and the shape mark
@@ -1155,6 +1195,8 @@ THEME_COMPONENTS = [
     ThemeComponent('caption', '.figure-caption', [
         ThemeProp('caption.fg',   PROP_COLOR,  'ink-quiet', css='color'),
         ThemeProp('caption.size', PROP_LENGTH, '0.85em',    css='font-size'),
+        ThemeProp('caption.align', PROP_ALIGN, 'center', css='text-align',
+                  companions=ALIGN_COMPANIONS),
     ]),
 
     ThemeComponent('article', '.full-article', [
@@ -1163,6 +1205,9 @@ THEME_COMPONENTS = [
                   selector='.full-article p, .full-article ul, .full-article ol'),
         ThemeProp('article.leading', PROP_RATIO,  '1.7',  css='line-height',
                   selector='.full-article p'),
+        ThemeProp('article.align', PROP_ALIGN, 'left', css='text-align',
+                  companions=ALIGN_COMPANIONS,
+                  selector='.full-article p, .full-article ul, .full-article ol'),
         ThemeProp('article.rule-fg',    PROP_COLOR,  '#0000001A',
                   css='border-color',
                   selector='.full-article table th, .full-article table td'),
@@ -1180,7 +1225,7 @@ THEME_COMPONENTS = [
     ThemeComponent('highlight', '.highlight-figure', [
         ThemeProp('highlight.fg',       PROP_COLOR,   'ink',     css='color'),
         ThemeProp('highlight.font',     PROP_FONT,    'display', css='font-family'),
-        ThemeProp('highlight.size',     PROP_LENGTH,  'clamp(2.1rem, 8vw, 3.4rem)',
+        ThemeProp('highlight.size',     PROP_LENGTH,  'clamp(2.1rem, 8vmin, 3.4rem)',
                   css='font-size'),
         ThemeProp('highlight.weight',   PROP_WEIGHT,  'bold',    css='font-weight'),
         ThemeProp('highlight.leading',  PROP_RATIO,   '1.05',    css='line-height'),
@@ -1190,6 +1235,9 @@ THEME_COMPONENTS = [
         ThemeProp('highlight.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('highlight.shadow.blur', PROP_LENGTH, '0'),
         ThemeProp('highlight.shadow.dy',   PROP_LENGTH, '0'),
+        ThemeProp('highlight.align', PROP_ALIGN, 'center', css='text-align',
+                  companions=ALIGN_COMPANIONS,
+                  selector='.highlight'),
     ], composite=[('text-shadow',
                    '0 var(--highlight-shadow-dy) var(--highlight-shadow-blur) var(--highlight-shadow-fg)')]),
     ThemeComponent('highlight-caption', '.highlight-caption', [
@@ -1319,14 +1367,14 @@ THEME_COMPONENTS = [
     ]),
     ThemeComponent('header.title', '.header h1', [
         ThemeProp('header.title.font',    PROP_FONT,   'display', css='font-family'),
-        ThemeProp('header.title.size',    PROP_LENGTH, 'clamp(28px, 4vw, 44px)',
+        ThemeProp('header.title.size',    PROP_LENGTH, 'clamp(28px, 4vmin, 44px)',
                   css='font-size'),
         ThemeProp('header.title.weight',  PROP_WEIGHT, 'bold', css='font-weight'),
         ThemeProp('header.title.leading', PROP_RATIO,  '1.2',  css='line-height'),
     ]),
     ThemeComponent('header.subtitle', '.header .subtitle', [
         ThemeProp('header.subtitle.fg',   PROP_COLOR,  'ink-quiet', css='color'),
-        ThemeProp('header.subtitle.size', PROP_LENGTH, 'clamp(16px, 2vw, 20px)',
+        ThemeProp('header.subtitle.size', PROP_LENGTH, 'clamp(16px, 2vmin, 20px)',
                   css='font-size'),
     ]),
     # Aligned on font.mono — the sheet's own stack dropped Consolas here, the
@@ -1529,6 +1577,8 @@ def emit_theme_css(resolved):
             if p.css:
                 sel = p.selector or c.selector
                 groups.setdefault(sel, []).append(f'  {p.css}: var({p.var});')
+                for cssprop, value in p.companions.get(resolved[p.key], ()):
+                    groups[sel].append(f'  {cssprop}: {value};')
         for sel, decls in groups.items():
             lines += [f'{sel} {{', *decls, '}']
         mark = next((p for p in c.props if p.key.endswith('.mark')), None)
@@ -1758,7 +1808,6 @@ TEMPLATE_SKELETON = r'''/* LightWebPres skeleton — layout only: everything no 
 
 /* The skeleton's own layout variable: the one it declares, and the one
    var() allowed below. Every other variable comes from the engine. */
-:root { --content-max: min(84vw, 1100px); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -1766,6 +1815,7 @@ html { scroll-behavior: smooth; }
 /* --- The slide frame --- */
 .slide {
   min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1775,16 +1825,16 @@ html { scroll-behavior: smooth; }
 }
 .slide-num { position: absolute; top: 24px; right: 32px; }
 .slide-tag { display: inline-block; margin-bottom: 16px; }
-h1 { margin-bottom: 20px; max-width: var(--content-max); }
-h2 { margin-bottom: 18px; max-width: var(--content-max); }
-.summary { max-width: var(--content-max); margin-bottom: 32px; }
+h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
+h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
+.summary { max-width: var(--page-content-max); margin-bottom: 32px; }
 
 /* --- The fact box --- */
 .fact-box {
   border-left-style: solid;
   padding: 24px 28px;
   border-radius: 0 8px 8px 0;
-  max-width: var(--content-max);
+  max-width: var(--page-content-max);
   box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 .fact-label { margin-bottom: 8px; }
@@ -1819,7 +1869,7 @@ h2 { margin-bottom: 18px; max-width: var(--content-max); }
    base, i.e. well under it. */
 .slide-body h1, .slide-body h2, .slide-body h3 {
   margin: 14px 0 6px;
-  max-width: var(--content-max);
+  max-width: var(--page-content-max);
 }
 .slide-body h1:first-child,
 .slide-body h2:first-child,
@@ -1830,7 +1880,7 @@ h2 { margin-bottom: 18px; max-width: var(--content-max); }
 .slide-body h2 { font-size: 1.15em; }
 .slide-body h3 { font-size: 1.05em; }
 
-.source { margin-top: 16px; max-width: var(--content-max); }
+.source { margin-top: 16px; max-width: var(--page-content-max); }
 .page-footer { padding: 20px 8vw 28px; border-top-style: solid; }
 .page-footer .footer-byline { margin-bottom: 4px; }
 .page-footer .footer-license a { color: inherit; }
@@ -1841,7 +1891,7 @@ blockquote {
   margin: 0 0 16px;
   padding: 4px 0 4px 18px;
   border-left-style: solid;
-  max-width: var(--content-max);
+  max-width: var(--page-content-max);
 }
 blockquote p:last-child { margin-bottom: 0; }
 code { padding: 1px 5px; border-radius: 4px; }
@@ -1851,7 +1901,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--content-max);
+  max-width: var(--page-content-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -1885,13 +1935,12 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--content-max);
+  max-width: var(--page-content-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
 .comparison-table th, .comparison-table td {
   padding: 12px 16px;
-  text-align: left;
   border-bottom-style: solid;
 }
 .comparison-table th {
@@ -1928,11 +1977,11 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--content-max);
+  max-width: var(--page-content-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
-.figure-caption { margin-top: 6px; text-align: center; }
+.figure-caption { margin-top: 6px; }
 
 /* --- The full-article slide: a measure of its own, narrower than the
    deck's, because it is read as prose rather than glanced at. --- */
@@ -1940,15 +1989,15 @@ sup { vertical-align: super; line-height: 0; }
 .full-article h1 { font-size: 28px; margin-bottom: 8px; }
 .full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
 .full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
-.full-article p { margin-bottom: 14px; max-width: 800px; }
+.full-article p { margin-bottom: 14px; max-width: var(--page-content-max); }
 .full-article ul, .full-article ol {
   margin-bottom: 14px;
   padding-left: 24px;
-  max-width: 800px;
+  max-width: var(--page-content-max);
 }
 .full-article table {
   width: 100%;
-  max-width: 800px;
+  max-width: var(--page-content-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -1956,7 +2005,6 @@ sup { vertical-align: super; line-height: 0; }
 .full-article table th, .full-article table td {
   padding: 8px 12px;
   border-style: solid;
-  text-align: left;
 }
 .full-article table th { font-weight: 700; }
 .full-article strong { font-weight: 700; }
@@ -2051,7 +2099,6 @@ sup { vertical-align: super; line-height: 0; }
    Anything declared BELOW them still beats them, so check the source
    order before adding a selector here. */
 @media (max-width: 600px) {
-  :root { --content-max: calc(100vw - 48px); }
   .slide { padding: 40px 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: 16px; right: 16px; }
@@ -2065,11 +2112,10 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  text-align: center;
-  max-width: var(--content-max);
+  max-width: var(--page-content-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
-.highlight-caption { max-width: 480px; }
+.highlight-caption { max-width: var(--page-content-max); }
 
 /* --- Share popover and its QR modal --- */
 .share-popover {
@@ -2186,15 +2232,39 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-bottom-style: solid;
 }
 .header h1 { margin-bottom: 16px; }
-.header .subtitle { max-width: 700px; }
+.header .subtitle { max-width: var(--page-content-max); }
 .version-tag {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 4px;
   margin-top: 12px;
 }
-.intro { max-width: 700px; margin-bottom: 48px; }
+.intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
+
+/* --- Block alignment: the instance layer of the align axes ---
+   {align:center} in an article source wraps its blocks in one of these.
+   The descendant selector is deliberate: text-align is inherited, but a
+   component that declares its own beats what it inherits, so reaching the
+   children is the only way an author's local choice can win over the
+   theme -- which is what an instance tag is for. */
+.align-left, .align-left * { text-align: left; }
+.align-center, .align-center * { text-align: center; }
+.align-right, .align-right * { text-align: right; }
+.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+
+/* --- Short viewports: a phone held sideways ---
+   375px of height with 120px of fixed padding leaves no room for a title,
+   a summary and a fact box, and no type scale fixes that. Reclaiming the
+   padding takes the landscape phones from 6 overflowing cards in 8 down to
+   3; the rest degrades gracefully, since .slide is min-height, so a card
+   that will not fit grows and the page scrolls. Inert on every other
+   viewport -- portrait and desktop are unchanged to the pixel. */
+@media (max-height: 520px) {
+  .slide { padding: 24px 6vw; }
+  .fact-box { padding: 14px 18px; }
+  .highlight { margin: 8px 0 10px; }
+}
 '''
 
 # --- Template: nav.js ---
@@ -4154,6 +4224,15 @@ _INSTANCE_TAG_RE = re.compile(
     r'\{(color|font):([^{}]+)\}([^{}]*)\{/\1\}|\{(sc|u|strike|mono)\}([^{}]*)\{/\4\}')
 _INSTANCE_TAG_MAX_DEPTH = 32
 
+# Alignment is a property of a BLOCK container, so it gets block syntax:
+# the opener and the closer each alone on their line, wrapping whole
+# paragraphs. An inline <span> -- what every other instance tag produces --
+# cannot carry text-align at all, so the asymmetry is CSS's, not a choice.
+# A paragraph cannot be split mid-flow either, which is the other half of
+# the reason this is not an inline tag.
+_BLOCK_ALIGN_OPEN = re.compile(r'^\{align:([a-z]+)\}$')
+_BLOCK_ALIGN_CLOSE = '{/align}'
+
 
 def _apply_instance_tags(text):
     def _span(m):
@@ -4291,6 +4370,11 @@ def _is_paragraph_continuation(line, lines, idx, n):
         return False
     if _FIGURE_LINE_RE.match(line):
         return False
+    # A block alignment tag alone on its line opens or closes a container:
+    # swallowed as continuation it would land inside the paragraph it was
+    # meant to wrap, and the closer would never fire.
+    if _BLOCK_ALIGN_OPEN.match(line.strip()) or line.strip() == _BLOCK_ALIGN_CLOSE:
+        return False
     return True
 
 
@@ -4301,6 +4385,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
     in_list = None
     raw_html_depth = 0
     in_code_block = False
+    align_depth = 0
     i = 0
     n = len(lines)
 
@@ -4336,6 +4421,25 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
                 in_code_block = False
             else:
                 out.append(html_escape(raw, quote=False))
+            i += 1
+            continue
+
+        # Block alignment, the instance layer of the align axes (§9.6).
+        # An unknown value is a build error naming the tag, never a silent
+        # no-op -- the same contract as the inline tags and settings.conf.
+        stripped = line.strip()
+        m = _BLOCK_ALIGN_OPEN.match(stripped)
+        if m:
+            close_list()
+            PROP_ALIGN.check(f'block tag {{align:{m.group(1)}}}', m.group(1))
+            out.append(f'  <div class="align-{m.group(1)}">')
+            align_depth += 1
+            i += 1
+            continue
+        if stripped == _BLOCK_ALIGN_CLOSE and align_depth:
+            close_list()
+            out.append('  </div>')
+            align_depth -= 1
             i += 1
             continue
 
@@ -6510,7 +6614,8 @@ def build_theme_preview_document(theme_key):
     by hand will not be; running the real thing removes the question.
 
     Rendered inside an iframe by the caller, so the stylesheet's
-    viewport-relative sizes (clamp(.., 4.5vw, ..), 84vw) resolve against
+    viewport-relative sizes (clamp(.., 4.5vmin, ..)) and the ch measure
+    resolve against
     the preview instead of the reader's window."""
     meta, slides, _, _ = parse_markdown_extended(TEMPLATE_THEMES_GALLERY_MOCK)
     language_pack = load_language(None, 'en')

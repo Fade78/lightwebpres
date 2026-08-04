@@ -1924,6 +1924,7 @@ texte libre (corps de fiche, article de fond) :
 | `{sc}…{/sc}` | petites capitales |
 | `{u}…{/u}` | souligné |
 | `{strike}…{/strike}` | barré |
+| `{align:center}` … `{/align}` | **alignement d'un bloc** — ouvreur et fermeur chacun seul sur sa ligne |
 
 Les balises de forme nues (`sc`, `u`, `strike`, et `mono` comme
 raccourci de `{font:mono}`) sont autorisées librement : elles ne
@@ -1943,6 +1944,27 @@ s'appliquent d'elles-mêmes :
   construction — la balise suit donc les changements de thème ;
 - **`audit` les énumère** par article, en `[NOTE]` informatif, jamais
   bloquant (§9.4.4) : l'auteur qui change de thème sait où regarder.
+
+**L'alignement est la seule balise de bloc, et c'est CSS qui l'impose.**
+`text-align` est une propriété de conteneur de bloc : posée sur le
+`<span>` en ligne que produisent toutes les autres balises, elle ne fait
+rien, à aucune taille de fenêtre. Et un paragraphe ne s'ouvre pas en
+plein milieu. La règle qui se généralise n'est donc pas « toute propriété
+a une balise en ligne » mais **la portée de la balise épouse la portée de
+la propriété** : propriété en ligne, balise en ligne ; propriété de bloc,
+balise de bloc. L'ouvreur et le fermeur sont chacun seuls sur leur ligne
+et enveloppent des paragraphes entiers dans un `<div class="align-…">` ;
+une valeur inconnue est une erreur de build nommant la balise ; un
+fermeur sans ouvreur reste du texte littéral, comme un ouvreur en ligne
+non fermé.
+
+La classe atteint aussi les descendants (`.align-center *`). Ce n'est pas
+une commodité : `text-align` s'hérite, mais un composant qui déclare le
+sien bat ce qu'il hérite, donc sans le sélecteur de descendance le choix
+local d'un auteur ne pourrait jamais l'emporter sur le thème — ce qui est
+exactement la raison d'être d'une balise d'instance. Corollaire à
+connaître : tout ce qui est dans le bloc s'aligne, y compris les cellules
+d'un tableau qu'il contient.
 
 Mécanique de rendu, vérifiée : les balises s'imbriquent (résolution de
 l'intérieur vers l'extérieur), le Markdown à l'intérieur se convertit
@@ -1978,9 +2000,41 @@ divergent localement : le halo vert de `terminal` sur ses titres et son
 chiffre-clé (§9.5.1), sans toucher au corps.
 
 Le barré appartient à l'énumération de décoration (`line-through`), qui
-sert aussi aux balises d'instance (§9.6.3). L'alignement (centrer,
-justifier) est noté au BACKLOG (B7) pour une version ultérieure, sur
-décision du propriétaire.
+sert aussi aux balises d'instance (§9.6.3).
+
+**Alignement.** Une énumération `left | center | right | justify` portée
+par les composants qui portent du texte — `title1`, `title2`, `summary`,
+`fact`, `cover`, `table.head`, `table.cell`, `caption`, `article`,
+`highlight`. Les quatre premières couches se comportent comme n'importe
+quel autre axe ; la cinquième a sa syntaxe de bloc (§9.6.3). Ce que cela
+a retiré du squelette, ce sont des décisions de mise en page par décret :
+le chiffre-clé centré sans recours (B4), les cellules de tableau à
+gauche, la légende de figure centrée.
+
+`justify` **entraîne `hyphens: auto`**, et le lien est déclaré dans le
+registre, pas laissé à l'auteur. La colonne la plus étroite que ce
+produit compose mesure 45 caractères (téléphone en portrait, mesuré :
+`ETUDE-VIEWPORT.md`), et une justification sans césure y fait des
+rivières. La césure automatique a besoin de la langue, que les gabarits
+déclarent déjà en `<html lang="…">`.
+
+**Mesure.** `page.content-max` est la largeur de colonne, exprimée en
+`ch` (défaut `50ch`) et non en pixels. Une longueur en `ch` placée dans
+une propriété personnalisée se résout contre la police de l'élément
+**consommateur**, pas contre `:root` : une seule valeur déclarée donne
+donc à chaque composant la colonne juste pour son propre corps. Mesuré
+sur quinze fenêtres, le nombre de caractères par ligne devient invariant
+par fenêtre. La moitié proportionnelle de la règle n'est pas un second
+plafond mais le rembourrage de la fiche (`8vw`), qui borne déjà la boîte
+à 84vw.
+
+Les tailles fluides sont exprimées en `vmin`, non en `vw` : en portrait
+`vmin` **est** `vw`, donc rien n'y bouge, et en paysage le corps suit la
+dimension contraignante au lieu de grossir pendant que l'écran raccourcit.
+Un point de rupture en hauteur (`@media (max-height: 520px)`) récupère le
+rembourrage vertical là où l'écran est trop court ; il est déclaré **en
+dernier** dans le squelette, parce qu'à spécificité égale c'est la règle
+la plus tardive qui gagne.
 
 ### 9.8 Migration depuis `templates/style.css`
 

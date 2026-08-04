@@ -310,6 +310,25 @@ article — they are author decisions that survive every theme change.
 | `{u}…{/u}` | underline |
 | `{mono}…{/mono}` | monospace (the `font.mono` stack) |
 
+**Alignment is the one block tag**, because `text-align` is a block
+property: on the inline `<span>` every other tag produces it does nothing.
+Opener and closer each go alone on their own line, and they wrap whole
+paragraphs:
+
+```
+{align:center}
+This paragraph is centred.
+
+So is this one.
+{/align}
+```
+
+Values are `left | center | right | justify`. `justify` brings
+`hyphens: auto` with it automatically — do not add it yourself. Everything
+inside the block aligns, including table cells, which is what makes the
+tag able to override a component's own alignment. A closer with no opener
+stays literal text.
+
 Tags nest, and Markdown inside them still converts. An opener without its
 closer on the same line stays literal text — visible in the render. Inside
 `` `code` `` spans nothing is ever a tag. Prefer a `fact-variant` or a

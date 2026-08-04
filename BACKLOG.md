@@ -220,7 +220,7 @@ the typed property `link.decoration-color` (default: the body ink, which
 cannot fail), and `RETIRED_VARIABLES` maps the old name for legacy
 sheets. Nothing left to decide.
 
-## B4 — Key-figure alignment, as an option — ABSORBED BY B7
+## B4 — Key-figure alignment, as an option — DONE via B7
 
 Proposed by the owner on 2026-08-04, on noticing that the gallery preview
 showed the "180 °C" block aligned left.
@@ -356,7 +356,40 @@ default values that clear 3:1 over **both** grounds the row floats on
 ground of its own (which would now be two more properties, not a new
 mechanism). Fold into the catalogue revision pass (B9) alongside B5.
 
-## B7 — Text alignment axes (center, justify, per-component and per-block) — NOTED
+## B7 — Text alignment axes (center, justify, per-component and per-block) — DONE
+
+**Done.** Ten align axes (`title1`, `title2`, `summary`, `fact`, `cover`,
+`table.head`, `table.cell`, `caption`, `article`, `highlight`), enum
+`left | center | right | justify`, behaving like every other axis across
+layers 1–4. What left the skeleton is layout by fiat: the key figure
+centred with no recourse (**this closes B4**), table cells left, the
+figure caption centred.
+
+Two decisions worth keeping:
+
+**`justify` drags `hyphens: auto` along, declared in the registry, not
+left to the author.** The narrowest column this product renders is 45
+characters (phone in portrait, measured — `ETUDE-VIEWPORT.md`), where
+unhyphenated justification makes rivers. The tie is a new `companions`
+field on `ThemeProp`: declarations a *particular resolved value* drags
+with it. One case so far, and it is not a convenience.
+
+**The instance layer gets block syntax, and CSS forced it.** `text-align`
+on the inline `<span>` every other tag produces does nothing at any
+viewport size, and a paragraph cannot be opened mid-flow. So the rule that
+generalises is not "every property gets an inline tag" but *the tag's
+scope matches the property's scope*. `{align:center}` and `{/align}` each
+alone on their line, wrapping whole paragraphs.
+
+The emitted class reaches descendants (`.align-center *`) on purpose:
+`text-align` inherits, but a component declaring its own beats what it
+inherits, so without the descendant selector an author's local choice
+could never win over the theme — which is the whole point of an instance
+tag. Consequence to know: everything inside the block aligns, table cells
+included.
+
+Original framing follows.
+
 
 Owner's request, 2026-08-04, deliberately deferred to a later version:
 expose alignment (center / justify / left / right) as typed enum axes on
@@ -438,7 +471,43 @@ theme; it was left out of the property inventory knowingly, as depth
 rather than content. Deciding it means the same three-axis treatment as
 text shadows, per elevation-bearing component.
 
-## B13 — `--content-max` is the one themeless variable — NOTED
+## B13 — `--content-max` is the one themeless variable — DONE
+
+**Done: exposed, not exempted.** `page.content-max` is an ordinary length
+property, default **`50ch`** — a measure, not a pixel width. The old
+`min(84vw, 1100px)` rendered 106 characters per line for the card summary
+on a laptop and 127 for the article paragraph, against a WCAG 1.4.8 (AAA)
+ceiling of 80; the article was the worst offender and was not even
+governed by the variable, carrying its own `max-width: 800px`.
+
+The design rests on one verified property: **a `ch` length inside a custom
+property resolves against the CONSUMING element, not `:root`**, so one
+declared value gives every component the right column for its own type
+size. Measured across fifteen viewports, characters per line become
+viewport-invariant.
+
+Two things came with it, neither in the original entry, both found by
+measuring rather than reasoning (`ETUDE-VIEWPORT.md`):
+
+- **The fluid type clamps moved from `vw` to `vmin`.** On `vw`, rotating
+  a phone shortens the viewport *and enlarges the type*, so 6 cards in 8
+  overflowed in landscape against 1 in portrait. `vmin` alone would have
+  made the measure worse (a smaller font in a fixed pixel box is *more*
+  characters) — the two changes are a package.
+- **A height breakpoint**, `@media (max-height: 520px)`, the first in a
+  sheet whose every other breakpoint keys on width. That blind spot is
+  why landscape went unnoticed. Declared last, deliberately — see B15.
+
+Result: 45–127 characters per line before, **45–67 after**, on all
+fifteen viewports; landscape phones from 6, 6 and 5 overflowing cards out
+of 8 down to 3 each; portrait unchanged to the pixel.
+
+`100svh` was added alongside `100vh` for the mobile URL bar and is
+recorded as **untested**: headless Chromium has no browser chrome, so
+`svh`, `lvh` and `vh` are all equal in the harness.
+
+Original framing follows.
+
 
 The only CSS variable the composed sheet still declares outside the
 engine: the skeleton's own layout width (`min(84vw, 1100px)`), the single

@@ -6456,17 +6456,30 @@ class ThemeEngineStaged(unittest.TestCase):
         # bold on the bright mark ground takes the dark page ink
         self.assertEqual(r['fact.strong.fg'], r['color.page'])
 
-    def test_the_skeleton_references_no_engine_variable(self):
+    def test_the_skeleton_references_only_the_measure(self):
         # The completeness rule made mechanical. It used to run at every
         # extraction, on a sheet derived from a constant; the skeleton is
         # now the constant, so the same rule is a plain read of it. A
-        # var() here other than the skeleton's own --content-max is a
-        # visual decision the registry does not expose — B14 step 2 keeps
-        # this guard precisely because the dynamic one went away.
+        # var() here other than the measure is a visual decision the
+        # registry does not expose — B14 step 2 keeps this guard precisely
+        # because the dynamic one went away.
+        #
+        # Stronger than it was: the measure used to be --content-max, a
+        # variable the skeleton declared for itself and no layer could
+        # reach (B13's "the one themeless variable"). It is now an ordinary
+        # length property, so this test can also insist the one var it
+        # tolerates is BACKED by the registry — a typo would previously
+        # have produced a silently unset width.
         for line in self.lwp.TEMPLATE_SKELETON.splitlines():
             for var in re.findall(r'var\((--[a-z-]+)', line):
-                self.assertEqual(var, '--content-max',
+                self.assertEqual(var, '--page-content-max',
                                  f'skeleton references {var}')
+        self.assertIn('page.content-max', self.lwp.PROPERTY_REGISTRY)
+        self.assertEqual(
+            self.lwp.PROPERTY_REGISTRY['page.content-max'].var,
+            '--page-content-max')
+        # And it is declared nowhere in the skeleton: the engine owns it.
+        self.assertNotIn('--page-content-max:', self.lwp.TEMPLATE_SKELETON)
 
     def test_the_skeleton_carries_no_content_colour(self):
         # Second half of the old gap check. Layout may paint depth (the
@@ -6536,6 +6549,162 @@ class ThemeEngineStaged(unittest.TestCase):
                 if prop.css:
                     self.assertIn(f'var({prop.var})', css,
                                   f'{prop.key} declared but never consumed')
+
+
+class AlignmentAxes(unittest.TestCase):
+    """B7. Alignment is a property of a BLOCK, which is the whole reason it
+    could not simply copy the font tags: an inline <span> cannot carry
+    text-align. Layers 1-4 are identical to every other axis; only the
+    instance layer differs, and it differs in syntax, not in principle."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def _sheet(self, **over):
+        lwp = self.lwp
+        return lwp.compose_stylesheet(lwp.resolve_theme_properties(
+            lwp.theme_property_layer('nord'), over))
+
+    def _emitted(self, **over):
+        # The engine's own rules only. The skeleton's .align-justify class
+        # carries hyphens unconditionally, which is correct there and would
+        # mask what the registry did or did not emit.
+        lwp = self.lwp
+        return lwp.emit_theme_css(lwp.resolve_theme_properties(
+            lwp.theme_property_layer('nord'), over))
+
+    def test_the_layout_by_fiat_moved_into_the_registry(self):
+        # These four were hard-coded in the sheet with no recourse: the key
+        # figure centred (B4), table cells left, the caption centred. If a
+        # future edit puts text-align back in the skeleton, the collision
+        # test fires; this one checks the registry really took them over.
+        for key, default in [('highlight.align', 'center'),
+                             ('table.cell.align', 'left'),
+                             ('table.head.align', 'left'),
+                             ('caption.align', 'center')]:
+            self.assertEqual(self.lwp.PROPERTY_REGISTRY[key].default, default)
+
+    def test_the_key_figure_realigns_from_a_settings_layer(self):
+        # B4's acceptance case, per series rather than per figure.
+        self.assertIn('--highlight-align: right', self._sheet(**{
+            'highlight.align': 'right'}))
+
+    def test_justify_cannot_be_asked_for_without_hyphenation(self):
+        # The narrowest column this product renders is 45 characters, where
+        # unhyphenated justification makes rivers. Tying them in the registry
+        # means no layer can ask for one and forget the other.
+        sheet = self._emitted(**{'article.align': 'justify'})
+        block = sheet[sheet.index('.full-article p, .full-article ul'):]
+        block = block[:block.index('}')]
+        self.assertIn('text-align: var(--article-align);', block)
+        self.assertIn('hyphens: auto;', block)
+
+    def test_no_other_value_drags_hyphenation_in(self):
+        for value in ('left', 'center', 'right'):
+            self.assertNotIn('hyphens', self._emitted(**{'article.align': value}))
+
+    def test_a_misspelt_alignment_is_a_named_build_error(self):
+        with self.assertRaises(self.lwp.PropertyError) as cm:
+            self._sheet(**{'summary.align': 'centre'})
+        self.assertIn('summary.align', str(cm.exception))
+        self.assertIn('centre', str(cm.exception))
+
+    def test_the_block_tag_wraps_whole_paragraphs(self):
+        html = self.lwp.convert_markdown(
+            'Before.\n\n{align:center}\nOne.\n\nTwo.\n{/align}\n\nAfter.\n')
+        self.assertIn('<div class="align-center">', html)
+        self.assertIn('</div>', html)
+        # Both paragraphs inside, neither of the outer ones.
+        inside = html[html.index('align-center'):html.index('</div>')]
+        self.assertIn('<p>One.</p>', inside)
+        self.assertIn('<p>Two.</p>', inside)
+        self.assertNotIn('Before.', inside)
+        self.assertNotIn('After.', inside)
+
+    def test_the_closer_is_not_swallowed_by_the_paragraph_above_it(self):
+        # Found by rendering: a bare line break does not end a paragraph, so
+        # the closer was absorbed as continuation text and the <div> never
+        # closed. The regression is silent — valid-looking output, wrong
+        # container — so it gets its own test.
+        html = self.lwp.convert_markdown('{align:right}\nOnly line.\n{/align}\n')
+        self.assertNotIn('{/align}', html)
+        self.assertIn('</div>', html)
+
+    def test_an_unknown_alignment_in_the_text_is_a_named_build_error(self):
+        with self.assertRaises(self.lwp.PropertyError) as cm:
+            self.lwp.convert_markdown('{align:middle}\nx\n{/align}\n')
+        self.assertIn('block tag {align:middle}', str(cm.exception))
+
+    def test_a_stray_closer_stays_literal_like_an_unclosed_inline_tag(self):
+        html = self.lwp.convert_markdown('{/align}\n')
+        self.assertIn('{/align}', html)
+        self.assertNotIn('</div>', html)
+
+    def test_the_block_classes_reach_the_children(self):
+        # text-align is inherited, but a component that declares its own
+        # beats what it inherits — so an author's local choice could never
+        # win over the theme without the descendant selector. This is what
+        # makes {align:center} actually re-centre a .highlight block.
+        sheet = self._sheet()
+        self.assertIn('.align-center, .align-center * { text-align: center; }',
+                      sheet)
+        self.assertIn('hyphens: auto', sheet[sheet.index('.align-justify'):])
+
+
+class ContentMeasure(unittest.TestCase):
+    """B13. The measure is an ordinary length property, and the skeleton
+    consumes it at every prose site. Numbers verified in a browser across
+    fifteen viewports — see ETUDE-VIEWPORT.md."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_the_measure_is_expressed_in_characters_not_pixels(self):
+        # A pixel cap cannot be a measure for two type sizes at once: the
+        # old min(84vw, 1100px) gave the summary 106 characters per line and
+        # the article 127. A ch length resolves against the CONSUMING
+        # element, so one value fits every component.
+        self.assertEqual(
+            self.lwp.PROPERTY_REGISTRY['page.content-max'].default, '50ch')
+
+    def test_every_prose_cap_reads_the_measure(self):
+        # The article's own 800px cap was the worst offender and was not
+        # even governed by the old variable.
+        skeleton = self.lwp.TEMPLATE_SKELETON
+        for stale in ('800px', '480px', '700px', '1100px'):
+            self.assertNotIn(f'max-width: {stale}', skeleton)
+        self.assertGreater(skeleton.count('var(--page-content-max)'), 10)
+
+    def test_the_type_scale_follows_the_constraining_dimension(self):
+        # On vw, rotating a phone shortens the viewport and simultaneously
+        # ENLARGES the type. In portrait vmin is vw, so this changes nothing
+        # there and only bites where it should.
+        for key in ('title1.size', 'title2.size', 'summary.size',
+                    'fact.size', 'table.size', 'highlight.size'):
+            default = self.lwp.PROPERTY_REGISTRY[key].default
+            self.assertIn('vmin', default, key)
+            self.assertNotIn('vw', default, key)
+
+    def test_a_height_breakpoint_exists_and_comes_last(self):
+        # Every other breakpoint keys on width, which is why landscape went
+        # unnoticed. And it must sit AFTER the rules it overrides: at equal
+        # specificity the later rule wins, which is exactly how the share
+        # popover's mobile overrides became dead (B15).
+        skeleton = self.lwp.TEMPLATE_SKELETON
+        at = skeleton.index('@media (max-height: 520px)')
+        for base in ('.slide {', '.highlight {', '.fact-box {'):
+            self.assertGreater(at, skeleton.index(base), base)
+        # And it is genuinely last: nothing declares those three after it.
+        tail = skeleton[at + len('@media (max-height: 520px)'):]
+        closing = tail.index('\n}')
+        self.assertNotIn('.slide {', tail[closing:])
+
+    def test_the_small_screen_override_of_the_measure_is_gone(self):
+        # It existed to claw characters back on a narrow screen; a measure
+        # the 8vw padding already bounds does not need it.
+        self.assertNotIn('calc(100vw - 48px)', self.lwp.TEMPLATE_SKELETON)
 
 
 class ArticleStyleLayer(unittest.TestCase):

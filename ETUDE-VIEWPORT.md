@@ -1,9 +1,10 @@
 # Portrait and landscape: a measurement study
 
 Preparatory work for **B13** (`--content-max`) and **B7** (alignment
-axes). Nothing here is implemented yet — this file records what was
-measured, which hypothesis it killed, and the configuration the numbers
-support. Reproduce it with `tools/viewport_measure.py`.
+axes), now **implemented** — §7 carries the shipped numbers. This file
+records what was measured, which hypothesis it killed, and the
+configuration the numbers support. Reproduce it with
+`tools/viewport_measure.py`.
 
 ---
 
@@ -64,7 +65,7 @@ stops being a pixel count.
 
 ## 4. What `ch` does, and the property that makes it work
 
-Expressing the cap as a measure — `--content-max: 50ch` — has a property
+Expressing the cap as a measure — `page.content-max: 50ch` — has a property
 worth stating explicitly, because the whole design rests on it and it was
 verified rather than assumed:
 
@@ -98,7 +99,7 @@ different declarations:
 
 - **the proportion is the padding** — `.slide` already carries
   `padding: 60px 8vw`, so the content box is 84vw before any cap applies;
-- **the maximum is the measure** — `--content-max: 50ch`.
+- **the maximum is the measure** — `page.content-max: 50ch`.
 
 Because the padding already imposes 84vw, a `min(92vw, 50ch)` cap would
 have an inert first term inside a card. Keeping the gutter in the padding
@@ -139,39 +140,66 @@ the screen is too small to keep it.
 verified here: headless Chromium has no browser chrome, so `svh`, `lvh`
 and `vh` are all equal in this harness. It is recorded as untested.
 
-## 7. Retained configuration
+## 7. Shipped configuration, and what it measured
+
+Implemented, and re-measured on the real build rather than on an injected
+override. `tools/viewport_measure.py` reproduces both columns.
 
 | | from | to |
 |---|---|---|
-| content cap | `min(84vw, 1100px)` | `50ch`, exposed as `page.content-max` |
-| article paragraph cap | `800px` | `var(--content-max)` |
-| key-figure caption cap | `480px` | `var(--content-max)` |
-| article subtitle cap | `700px` | `var(--content-max)` |
+| content cap | `min(84vw, 1100px)`, skeleton-only | `50ch`, the `page.content-max` property |
+| article paragraph cap | `800px` | `var(--page-content-max)` |
+| key-figure caption cap | `480px` | `var(--page-content-max)` |
+| article subtitle / intro cap | `700px` | `var(--page-content-max)` |
 | fluid type clamps | `Nvw` | `Nvmin` |
 | small-screen `--content-max` override | `calc(100vw - 48px)` | removed |
-| height breakpoint | none | `@media (max-height: 520px)` |
+| card height | `min-height: 100vh` | `100vh` then `100svh` |
+| height breakpoint | none | `@media (max-height: 520px)`, declared last |
 
-Result: characters per line between 45 and 67 on all fifteen viewports,
-against 45 to 127 before; landscape phone overflow down from 6 cards in 8
-to 3.
+| viewport | summary | fact | article | cards over | worst |
+|---|---|---|---|---|---|
+| iPhone SE portrait | 45 → **45** | 38 → **38** | 52 → **52** | 3/8 → **3/8** | 225 → **225**px |
+| iPhone SE landscape | 74 → **62** | 71 → **57** | 91 → **67** | 6/8 → **3/8** | 555 → **463**px |
+| iPhone 15 portrait | 45 → **45** | 41 → **41** | 54 → **54** | 1/8 → **1/8** | 18 → **18**px |
+| iPhone 15 landscape | 93 → **62** | 93 → **57** | 117 → **67** | 6/8 → **3/8** | 512 → **445**px |
+| Pixel 8 portrait | 48 → **48** | 44 → **44** | 56 → **56** | 0/8 → **0/8** | 0 → **0**px |
+| Pixel 8 landscape | 93 → **62** | 99 → **57** | 123 → **67** | 5/8 → **3/8** | 493 → **426**px |
+| iPad mini portrait | 87 → **62** | 82 → **55** | 101 → **67** | 0/8 → **0/8** | 0 → **0**px |
+| iPad mini landscape | 93 → **62** | 106 → **55** | 127 → **67** | 3/8 → **3/8** | 161 → **186**px |
+| iPad Pro 11 portrait | 93 → **62** | 93 → **55** | 108 → **67** | 0/8 → **0/8** | 0 → **0**px |
+| iPad Pro 11 landscape | 99 → **62** | 114 → **55** | 127 → **67** | 1/8 → **1/8** | 71 → **96**px |
+| Projector 4:3 | 93 → **62** | 106 → **55** | 127 → **67** | 1/8 → **1/8** | 137 → **162**px |
+| Laptop 16:10 | 106 → **62** | 123 → **55** | 127 → **67** | 1/8 → **1/8** | 5 → **30**px |
+| Desktop 1080p | 106 → **62** | 123 → **48** | 127 → **67** | 0/8 → **0/8** | 0 → **0**px |
+| Ultrawide | 106 → **62** | 123 → **48** | 127 → **67** | 0/8 → **0/8** | 0 → **0**px |
+| Monitor portrait | 93 → **62** | 106 → **48** | 127 → **67** | 0/8 → **0/8** | 0 → **0**px |
+
+**Characters per line: 45–127 before, 45–67 after, on all fifteen.** The
+three phones in landscape go from 6, 6 and 5 overflowing cards out of 8
+down to 3 each. Portrait is unchanged to the pixel everywhere, which is
+the point: `vmin` is `vw` in portrait and the height query never matches
+there, so the fix is paid for only where the problem was.
 
 **The honest cost.** A narrower column is a taller one. On the cards that
-already overflowed on tablet landscape, projector and laptop, the count
-is unchanged but the overshoot grows — 71px to 142px on an iPad Pro in
-landscape, 5px to 90px on a laptop. Correct measure is paid for in
-vertical scroll on cards that were already too tall, and that is the
-right side of the trade.
+already overflowed on tablet landscape, projector and laptop, the count is
+unchanged but the overshoot grows — 71px to 96px on an iPad Pro, 5px to
+30px on a laptop. Less than the 142px and 90px the injected simulation
+predicted, because the height breakpoint gives some of it back. Correct
+measure is paid for in vertical scroll on cards that were already too
+tall, and that is the right side of the trade.
 
-## 8. What this implies for B7
+## 8. What this settled for B7
 
-Two constraints on the alignment axes come out of the measurements:
+Two constraints on the alignment axes came out of the measurements, and
+both are now in the code:
 
-- **`justify` must ship with `hyphens: auto`.** The narrowest measured
-  column is 45 characters on a phone in portrait, where unhyphenated
-  justification produces rivers. The templates already emit
-  `<html lang="{{lang}}">`, so automatic hyphenation has the language tag
-  it needs.
-- **Alignment is a block property and needs block syntax.** Confirmed by
-  nothing here — it is a CSS fact — but the measurements make the case
-  concrete: `text-align` on the inline `<span>` the existing instance
-  tags produce has no effect at any viewport size.
+- **`justify` ships `hyphens: auto`.** The narrowest measured column is 45
+  characters, on a phone in portrait, where unhyphenated justification
+  produces rivers. The two are tied together in the registry
+  (`ALIGN_COMPANIONS`), so no layer can ask for one and forget the other,
+  and the templates already emit `<html lang="{{lang}}">` for automatic
+  hyphenation to work from.
+- **Alignment is a block property and gets block syntax.** `text-align` on
+  the inline `<span>` the other instance tags produce has no effect at any
+  viewport size, so `{align:center}` is a block tag, its opener and closer
+  each alone on their line.
