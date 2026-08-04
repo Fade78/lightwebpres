@@ -542,3 +542,47 @@ mutation qu'une vraie erreur console fait toujours échouer le pilote.
 **Reste ouvert :** traduction de `specifications.md` (en dernier),
 décision de LICENSE, B3 (liens du corps non thémés) et B4 (option
 d'alignement du chiffre-clé), resynchronisation du GUI.
+
+---
+
+## §8 — Passe de contrôle et correctifs (après la v0.12.1)
+
+Trois agents lancés en parallèle sur autorisation du propriétaire :
+balayage de rendu réel sur les 33 thèmes, audit du skill de format dans
+les deux sens, et mesure des quatre traitements candidats pour les liens.
+
+**Ce que le balayage a établi, et qui recadre tout.** La plupart des
+échecs de contraste **échouent aussi sur la palette par défaut**. Ce
+n'était donc pas « les thèmes sont mal réglés » mais « la feuille de
+style n'avait jamais été auditée en contraste sur des pages réelles ». Le
+modèle de compositing de l'agent a été validé au pixel près contre des
+captures avant qu'on croie un seul chiffre.
+
+**Corrigé (§9.5.5) :** les liens du corps (B3, tranché par le
+propriétaire — soulignement, teinte en option), et la famille « du texte
+qui s'atténue lui-même » : la carte « en cours de lecture » (1,62:1 sur
+33/33), le verdict « non » (1,99:1 sur 32/33), et `--cover-fg-faint`, un
+rgba fixe jamais mesuré (2,37:1). Le garde-fou qui interdit `opacity` sur
+une règle portant du texte a trouvé le troisième cas tout seul, et la
+seule exception (le résumé de couverture) est recalculée sur les 33
+thèmes à chaque exécution plutôt que d'être une dispense.
+
+**Non corrigé, versé au backlog :** B5, trois rôles de palette sous AA
+contre leur propre page — c'est du ressort du propriétaire parce que la
+cause profonde est que sept des neuf palettes empruntées sont des schémas
+conçus pour fond sombre, rendus sur fond clair ; et B6, les pastilles de
+progression, dont le correctif change un rôle documenté de `--marker`.
+
+**Le skill de format** portait dix-huit manques et six affirmations
+fausses. Le correctif structurel n'est pas le contenu mais le test : il
+dérive sa liste **du code** (le motif des champs, `_SERIES_STRING_FIELDS`,
+`_SERIES_META_STRING_FIELDS`, les classes présentes dans
+`TEMPLATE_STYLE`), donc ajouter un champ à l'exécutable échoue tant que
+le skill n'a pas suivi.
+
+**Signalé par un projet utilisateur** et corrigé (§9.5.6) : `themes`
+imprimait des entités HTML. Le nettoyage ne retirait que les balises ;
+c'est le sens de conversion qui était faux, pas le nettoyage.
+
+**Reste :** traduction de `specifications.md`, B4, B5, B6, licence,
+resynchronisation du GUI.

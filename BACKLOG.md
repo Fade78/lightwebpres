@@ -167,7 +167,7 @@ choice if it is written somewhere. If it's 2, plan the column case
 
 In every case: **post-1.0**. This is not a release blocker.
 
-## B3 — Body-text links are not themed — OPEN
+## B3 — Body-text links are not themed — FIXED in v0.12.2
 
 Noticed during the cross-review of 2026-08-04.
 
@@ -189,13 +189,29 @@ On the fourteen dark-background themes a link therefore sits at roughly
 every `style.css` all claimed that `--accent` colours links; that was
 false, and was fixed the same day.
 
-**Why it isn't already done.** Adding `a { color: var(--accent); }`
-repairs the dark themes but degrades Nord (8.15 → 3.55, below the AA
-threshold): several light themes' accent was chosen as a signal colour,
-not as a running-text colour. Another route is to keep the body ink and
-tint only the link's underline, which guarantees the text contrast while
-keeping the accent as a signal. This is an editorial choice that changes
-the appearance of every generated page — it belongs to the owner.
+**What it turned out to be.** Measuring all four candidate treatments
+over the 33 themes moved the problem. The status quo is worse than the
+table above records: fifteen themes fail AA, not fourteen, and
+`pop-tangerine` is a **light** theme at 4.27:1 — a bright orange page
+sinks the blue just as a dark one does. The six saturated Pop dark themes
+sit at 1.03–1.22:1, not the ~2:1 quoted.
+
+And `var(--accent)` is disqualified twice over: it fails AA on eleven
+themes, and it **is** the "partial" verdict colour by identity (ΔE = 0)
+on all 33. `--positive` and `--ink-muted` are the other two verdict
+colours, so of the six roles only `--marker` is unspoken for — usable on
+13 themes of 33, all dark.
+
+Settled: the link keeps the ink around it and is signalled by an
+underline. `--ink` on `--page` is the one pair every theme is admitted on
+(§9.5.3), so the text is AA and AAA everywhere by construction, and
+WCAG 1.4.1 is satisfied by shape rather than colour.
+`--link-decoration-color` lets a theme tint the rule where it has
+measured one that works; it defaults to `currentColor`, which cannot
+fail. Measured on real pages after the fix: 13.92 (solarized), 13.36
+(dracula), 8.19 (pop-violet), against 1.03 before.
+
+Spec §9.5.5.
 
 ## B4 — Key-figure alignment, as an option — OPEN
 
@@ -217,3 +233,81 @@ mechanics as the other variables — overridable after the customization
 marker, and themable if wanted. To settle: a plain CSS variable, or a
 real article field (which would make it a per-figure decision rather than
 a per-series one).
+
+## B5 — Three palette roles fail AA against their own page — OPEN
+
+Found by rendering a series that exercises the whole format under all 33
+themes and measuring, 2026-08-04. This is the residue of that sweep: what
+is left once every stylesheet-level defect is fixed.
+
+Three of the six roles are used to paint real text, and three of them are
+below WCAG AA (4.5:1) against `--page` on a third of the catalogue:
+
+| Role | What it paints | Below AA | Worst |
+|---|---|---|---|
+| `--ink-muted` | summary, caption, source, tag, byline, the "no" verdict | 9/33 | 2.48 (solarized) |
+| `--positive` | the "yes" verdict | 11/33 | 1.29 (dracula) |
+| `--accent` | footnote call and definition, the "partial" verdict | 11/33 | 2.05 (tokyo-night) |
+
+**Not a stylesheet defect.** Every rule that dimmed text has been fixed
+(§9.5.5); these are the palette values themselves. The admission criteria
+in §9.5.3 promise "AA for secondary text and accents" — they were applied
+to the twenty-four project-owned palettes and **never retro-applied to
+the nine borrowed ones**, which predate them. Eight of the nine failures
+in the first row are borrowed palettes.
+
+**The root cause is deeper than a few values.** Seven of the nine
+borrowed palettes are colour schemes designed for a *dark* background,
+rendered here on a light one. Dracula's green `#50FA7B` is meant to sit
+on `#282A36`; on `#F8F8F2` it measures 1.29:1. The theme notes record the
+compromise honestly — `--page` "borrows the text-on-black here, for want
+of an official light one" — but the consequence was never measured. The
+accents keep their upstream brightness and the ground was inverted under
+them.
+
+**Options, none of them free.**
+
+1. **Flip the mis-rendered palettes to `dark_background`.** Dracula,
+   Monokai and Tokyo Night are dark schemes; giving them their real dark
+   page would be *more* faithful to upstream, not less, and every accent
+   would then measure against the ground it was designed for. Cost: those
+   themes change completely for anyone using them.
+2. **Re-tune the failing values.** Cheapest to describe, but it means
+   departing from published palettes on eight of the nine — which is the
+   one thing borrowing them was meant to avoid.
+3. **Stop painting content text with signal colours.** The verdicts
+   already carry a shape marker (WCAG 1.4.1), so the cell's text could
+   take `--ink` and leave the colour on the marker; the same applies to a
+   footnote call. Guarantees AA everywhere with no palette edit — the
+   treatment already chosen for links in B3 — at the cost of the colour
+   those cells currently carry. **Anyone with a published comparison
+   table sees it change appearance a second time.**
+4. **Declare it and scope it.** Record in §9.5.3 that the nine borrowed
+   palettes are offered for fidelity rather than measured accessibility,
+   and mark them in `themes` and the gallery.
+
+Owner's call: 1 and 2 change what a theme looks like, 3 changes what
+every article looks like, 4 changes nothing but what is promised.
+
+## B6 — The slide-progress dots are below 3:1 everywhere — OPEN
+
+Same sweep. `.nav-dots a` paints `--rule-strong`, a translucent veil, and
+it floats over two different grounds: a standard slide (the page) and a
+cover slide (the inverted cover ground). Over a cover on a light theme, a
+black veil on a dark ground is **1.00:1 on high-contrast** — the sampled
+dot pixel and the cover pixel are byte-identical. Below 1.5:1 on 19
+themes, below the 3:1 non-text threshold on all 33.
+
+The active dot is separately weak: `--marker` against `--rule-strong`
+measures 1.02:1 on high-contrast and under 1.5:1 on fourteen themes. It
+is still distinguishable, because `scale(1.3)` gives it a non-colour cue
+— which is what keeps this from being a 1.4.1 failure as well.
+
+**Not fixed because the shape of the fix is a design decision.** The dots
+need a known ground to sit on — a `--control` pill under the row would
+give them one, at the cost of a visible chip that is not there today —
+and then the active state needs a colour that works on it, which
+`--marker` is not on a light theme (it is a highlighter yellow, chosen as
+a highlight ground). Spec §9.1 currently lists "active nav dot" as a role
+of `--marker`, so changing it is a documented-contract change, not a
+tweak.
