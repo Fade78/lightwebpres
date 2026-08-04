@@ -76,14 +76,6 @@ PALETTE_ROLE_LABELS = {
     'positive': 'The &ldquo;yes&rdquo; verdict',
 }
 
-# Renamed in v0.12.0. Kept ONLY so `audit` (§11.5) can tell an author
-# that their own CSS still names a variable that no longer exists —
-# there are no aliases, so such a rule silently stops applying. Never
-# used to resolve anything.
-LEGACY_PALETTE_ROLES = {
-    'yellow': 'marker', 'dark': 'ink', 'grey': 'ink-muted',
-    'light': 'page', 'green': 'positive',
-}
 
 # --- Language pack: fr.json ---
 # A language pack has two independent parts:
@@ -221,7 +213,7 @@ LANG_EN = r'''{
 # The two decoration keys are the exception: absent means no underline,
 # which is what 'no opinion' means for an axis added after the fact.
 # This is the single source of truth for both `install --theme <name>`
-# (applies one at scaffold time, see apply_theme()) and `themes-gallery`
+# (a theme is a property layer — see theme_property_layer()) and `themes-gallery`
 # (renders every entry here into themes-gallery.html, see
 # TEMPLATE_THEMES_GALLERY_CARD) — the two can never drift apart, because
 # neither hardcodes a color or a fact-box treatment independently.
@@ -636,113 +628,6 @@ def themes_matching(filters):
     return out
 
 
-# Marks where the built-in portion of templates/style.css ends and a site's
-# own customizations begin. `install` writes it at the end of the file with
-# nothing after it; `refresh-templates` (§11.6) uses it to update the
-# built-in rules above the marker while preserving anything appended below
-# it verbatim, instead of guessing the boundary from a CSS selector that may
-# legitimately also appear in the built-in CSS (see specifications.md §9.4).
-TEMPLATE_STYLE_CUSTOM_MARKER = '/* === Local customizations: refresh-templates keeps everything below this line === */'
-
-# The French wording this marker had until v0.12.1. Recognized ONLY to
-# produce a comprehensible error: a stylesheet carrying it is NOT
-# accepted, by explicit decision — but "no marker found" on a file that
-# visibly has one would be a riddle. Same discipline as the palette
-# rename: break cleanly, and say so out loud.
-TEMPLATE_STYLE_CUSTOM_MARKER_LEGACY = '/* === Personnalisations locales : refresh-templates conserve tout ce qui suit cette ligne === */'
-
-# Records which THEMES entry (§9.5) a templates/style.css was generated
-# with, right after the file's header line — absent for the default
-# theme. refresh-templates (§9.5.4) reads it back to reapply the same
-# theme instead of silently reverting to the default when it regenerates
-# the built-in portion of the file.
-TEMPLATE_STYLE_THEME_MARKER_RE = re.compile(r'^/\* lightwebpres-theme: (\S+) \*/$', re.MULTILINE)
-
-# Same marker, but swallowing its line ending, for REMOVING it. The
-# search regex above cannot do that job: `$` stops before the newline, so
-# substituting it away leaves the blank line behind. Harmless once, but
-# `set-theme` (§11.10) rewrites the marker every time it runs, and the
-# blanks accumulate — after a few theme changes the file no longer
-# matches its standard form and set-theme starts demanding --force
-# against its own output.
-TEMPLATE_STYLE_THEME_MARKER_LINE_RE = re.compile(r'^/\* lightwebpres-theme: \S+ \*/\n', re.MULTILINE)
-
-
-# §9.5.2 — the neutral overlays and the cover, per background polarity.
-# The stylesheet expresses its rules, surfaces and recessed grounds as
-# translucent overlays so they tint whatever is underneath instead of
-# being fixed greys. Which DIRECTION they must go depends on the
-# palette: over a light page a surface is a white veil and a rule a
-# black one; over a dark page it is exactly the reverse, and a white
-# surface veil turns a card into an unreadable white block. A theme
-# therefore declares `dark_background: True` when its --page is not,
-# in fact, light, and gets the second set. Nothing else changes.
-#
-# NOT named `dark`: that key already holds the palette's dark tone in
-# every THEMES entry, so a flag by that name reads as the colour string
-# and every theme silently becomes dark-backgrounded. Caught exactly
-# that way while building this — hence the explicit name and the test
-# that pins a known light theme to the light preset.
-#
-# Until this existed, every theme was forced to be light-backgrounded —
-# which is why the nine oldest ones still are, Dracula and Tokyo Night
-# included, despite being dark schemes upstream. They were not converted
-# afterwards: they read as a light-page interpretation of those palettes,
-# and enough dark-backgrounded themes now exist that nothing is missing.
-SURFACE_PRESETS = {
-    False: {
-        'rule': 'rgba(0, 0, 0, 0.10)',
-        'rule-strong': 'rgba(0, 0, 0, 0.16)',
-        'surface': 'rgba(255, 255, 255, 0.72)',
-        'sunken': 'rgba(0, 0, 0, 0.045)',
-        # The cover inverts the page: the palette's dark tone, with its
-        # light tone as text.
-        'cover-bg': 'var(--ink)',
-        'cover-fg': 'var(--page)',
-        'cover-fg-faint': 'rgba(255, 255, 255, 0.70)',
-        # Floating round controls: near-opaque over a light page.
-        'control': 'rgba(255, 255, 255, 0.92)',
-        'control-soft': 'rgba(255, 255, 255, 0.75)',
-    },
-    True: {
-        'rule': 'rgba(255, 255, 255, 0.14)',
-        'rule-strong': 'rgba(255, 255, 255, 0.24)',
-        # Barely-there veil: on a dark ground a card reads as a slight
-        # lift, never as a pale block.
-        'surface': 'rgba(255, 255, 255, 0.055)',
-        'sunken': 'rgba(0, 0, 0, 0.30)',
-        # Not var(--ink) — on a dark theme that variable holds the TEXT
-        # colour, so using it as a background would invert the cover into
-        # a pale panel. A deeper veil of the page itself instead.
-        'cover-bg': 'rgba(0, 0, 0, 0.45)',
-        'cover-fg': 'var(--ink)',
-        'cover-fg-faint': 'rgba(255, 255, 255, 0.56)',
-        # A lift out of the dark ground, not a white pill on top of it.
-        'control': 'rgba(255, 255, 255, 0.13)',
-        'control-soft': 'rgba(255, 255, 255, 0.09)',
-    },
-}
-
-
-def theme_surface_properties(theme):
-    """The nine overlay/cover/control values for a THEMES entry, chosen
-    by its `dark_background` flag (absent = light). The two sets share
-    their keys exactly — that is what lets apply_theme() substitute one
-    for the other without knowing which polarity it is handling."""
-    return SURFACE_PRESETS[bool(theme.get('dark_background', False))]
-
-
-def theme_link_properties(theme):
-    """§9.1 — the one link property a theme may set. It defaults to
-    `currentColor`, i.e. the ink around the link, which is the value that
-    can never fail a contrast check on any theme. A theme sets it only
-    where it has measured a colour that clears 3:1 against its own page
-    AND is distinguishable from its own ink; three built-in themes cannot
-    (tokyo-night 2.05, vaporwave 2.94, dracula 2.95), which is exactly
-    why the default is not a palette colour."""
-    role = theme.get('link_decoration_color')
-    return {'link-decoration-color': f'var(--{role})' if role else 'currentColor'}
-
 
 def note_to_html(note):
     """§9.5.6 — a theme note is stored as plain text, because it has two
@@ -835,172 +720,6 @@ def fact_treatment_label(theme):
         colour = theme.get('fact_decoration_color')
         parts.append(f'underlined <code>--{colour}</code>' if colour else 'underlined')
     return ', '.join(parts)
-
-
-def apply_theme(css_text, theme_key):
-    """Rewrites the six palette declarations (PALETTE_ROLES),
-    the six --fact-strong-* ones and --link-decoration-color (§9.1),
-    and the nine overlay/cover/control ones (§9.5.2 — --rule, --rule-strong,
-    --surface, --sunken, --cover-bg, --cover-fg, --cover-fg-faint,
-    --control, --control-soft) in `css_text`'s :root block to
-    THEMES[theme_key]'s values (§9.5.1), and records theme_key in the
-    marker right after the file's header line.
-
-    The overlays are part of the substitution because a theme on a dark
-    background needs them inverted; leaving them fixed is what confined
-    every theme to a light page.
-
-    Only the FIRST occurrence of each declaration is touched (count=1) —
-    the built-in :root block always comes before a personalization
-    section (§9.4) in the file, by construction, so this can never reach
-    into custom CSS the author appended after the marker, even if it
-    happens to redeclare one of these names.
-
-    A declaration this cannot find is left alone and REPORTED, never
-    silently skipped — see unsubstituted_declarations(), which set-theme
-    (§11.10) uses to say which values kept their old contents.
-
-    Assumes theme_key is a valid THEMES key; callers validate first so
-    the error message can name the invalid input directly (§9.5.1)."""
-    theme = THEMES[theme_key]
-    # Scoped to the :root block (root_block_span) rather than the whole
-    # file: further down, the generated stylesheet documents these very
-    # declarations inside a comment, and confining the rewrite is what
-    # keeps documentation from being edited as if it were code.
-    span = root_block_span(css_text)
-    if span is None:
-        head, root, tail = css_text, '', ''
-    else:
-        head, root, tail = css_text[:span[0]], css_text[span[0]:span[1]], css_text[span[1]:]
-
-    for var in PALETTE_ROLES:
-        pattern = r'(--%s:\s*)#[0-9A-Fa-f]{3,8}(\s*;)' % var
-        root = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), root, count=1)
-
-    for var, value in (
-        # Keyed by suffix, so adding an emphasis axis needs no change
-        # here at all — which is the point of returning a mapping.
-        *((f'fact-strong-{k}', v) for k, v in theme_fact_properties(theme).items()),
-        # The overlays and the cover (§9.5.2). Substituted like the rest,
-        # so a dark-backgrounded theme gets veils that go the right way
-        # instead of a white card on a black page.
-        *theme_surface_properties(theme).items(),
-        *theme_link_properties(theme).items(),
-    ):
-        pattern = r'(--%s:\s*)[^;]+(;)' % re.escape(var)
-        root = re.sub(pattern, lambda m, value=value: m.group(1) + value + m.group(2), root, count=1)
-
-    css_text = head + root + tail
-    css_text = TEMPLATE_STYLE_THEME_MARKER_LINE_RE.sub('', css_text, count=1)
-    # The marker goes on its own line, after the header line. A file with
-    # no newline at all — a minified stylesheet reached through --force —
-    # raised a bare ValueError from str.index() and printed a traceback
-    # at the user; it now simply gets the marker first.
-    newline = css_text.find('\n')
-    header_end = newline + 1 if newline != -1 else 0
-    css_text = css_text[:header_end] + f'/* lightwebpres-theme: {theme_key} */\n' + css_text[header_end:]
-    return css_text
-
-
-def root_block_span(css_text):
-    """(start, end) of the first `:root { ... }` block's contents, or
-    None when there is none.
-
-    Theme substitution is confined to it. Without that confinement it
-    operated on the whole file and relied on the real :root simply coming
-    FIRST, since only the first occurrence of each declaration is
-    rewritten — an ordering assumption, not a guarantee. The generated
-    stylesheet now carries paste-ready recipes further down (§9.1) that
-    are literally `:root { --fact-strong-highlight: transparent; }` inside
-    a comment, so a file whose own :root was removed would have had its
-    documentation rewritten as if it were code."""
-    opening = css_text.find(':root')
-    if opening == -1:
-        return None
-    brace = css_text.find('{', opening)
-    close = css_text.find('}', brace)
-    if brace == -1 or close == -1:
-        return None
-    return brace + 1, close
-
-
-def unsubstituted_declarations(css_text):
-    """The theme declarations apply_theme() would NOT find in `css_text`,
-    in the order it tries them.
-
-    Substitution rewrites declarations that already exist; it never adds
-    one. On a stylesheet whose :root has been reworked, a declaration
-    that is gone, renamed, or written in another notation simply keeps
-    whatever it had — and the file still ends up stamped with the new
-    theme's marker. `set-theme --force` on a style.css with no :root at
-    all wrote a file announcing `lightwebpres-theme: nord` that contained
-    not one of Nord's values, and said only that the result "may" be
-    partly recoloured. Naming the misses turns a vague caveat into a
-    fact."""
-    span = root_block_span(css_text)
-    root = css_text[span[0]:span[1]] if span else ''
-
-    missing = []
-    for var in PALETTE_ROLES:
-        if not re.search(r'--%s:\s*#[0-9A-Fa-f]{3,8}\s*;' % var, root):
-            missing.append(f'--{var}')
-    # Any theme's mapping has the same keys, so the first entry stands
-    # for all of them — no separate list to keep in step.
-    sample = theme_fact_properties(next(iter(THEMES.values())))
-    for var in (*(f'fact-strong-{k}' for k in sample), *SURFACE_PRESETS[False]):
-        if not re.search(r'--%s:\s*[^;]+;' % re.escape(var), root):
-            missing.append(f'--{var}')
-    return missing
-
-
-def detect_theme(css_text):
-    """Returns the theme slug apply_theme() recorded in `css_text` (only
-    looking at the built-in portion, before the personalization marker
-    of §9.4, so a coincidentally similar comment in an author's own CSS
-    can never be mistaken for it), or None — default theme, or a file
-    that predates this feature."""
-    builtin_part = css_text.split(TEMPLATE_STYLE_CUSTOM_MARKER, 1)[0]
-    m = TEMPLATE_STYLE_THEME_MARKER_RE.search(builtin_part)
-    return m.group(1) if m else None
-
-
-def theme_state(css_text):
-    """Inspects a templates/style.css and answers the two questions
-    `set-theme` (§11.10) has to ask before touching it:
-
-      slug      which theme it currently carries — a THEMES key, or None
-                for the default theme (no marker).
-      standard  whether its built-in portion is EXACTLY what this
-                executable would generate for that theme. False means
-                someone edited the built-in CSS by hand, so substituting
-                the theme variables may leave the file half-recoloured:
-                a declaration rewritten to `rgb(...)` or moved out of
-                :root no longer matches the patterns apply_theme() looks
-                for, and would silently keep its old value.
-      reason    a short explanation when standard is False, for the
-                error message to quote; '' otherwise.
-
-    Rules the author appended AFTER the personalization marker (§9.4) are
-    none of this function's business — that is the supported way to
-    customize, and it never makes a file non-standard.
-
-    Returns (slug, standard, reason)."""
-    slug = detect_theme(css_text)
-    if slug is not None and slug not in THEMES:
-        return slug, False, f'it records theme {slug!r}, which this version does not know'
-
-    marker_pos = css_text.find(TEMPLATE_STYLE_CUSTOM_MARKER)
-    if marker_pos == -1:
-        return slug, False, ('it has no personalization marker, so the built-in CSS '
-                             'cannot be told apart from your own rules')
-
-    builtin = css_text[:marker_pos + len(TEMPLATE_STYLE_CUSTOM_MARKER)]
-    expected = apply_theme(TEMPLATE_STYLE, slug) if slug else TEMPLATE_STYLE
-    expected_end = expected.find(TEMPLATE_STYLE_CUSTOM_MARKER) + len(TEMPLATE_STYLE_CUSTOM_MARKER)
-    if builtin != expected[:expected_end]:
-        return slug, False, ('its built-in CSS differs from this version of lightwebpres '
-                             '(edited by hand, or written by another version)')
-    return slug, True, ''
 
 
 # ============================================================================
@@ -1846,6 +1565,10 @@ def _driven_declarations():
                     driven.add((s.strip(), p.css))
         if any(p.key.endswith('.mark') for p in c.props):
             driven.add((c.selector.strip() + '::before', 'content'))
+    # The measured cover-summary opacity became an explicit alpha in
+    # cover.summary.fg; leaving the opacity in the skeleton would dim the
+    # already-dimmed colour a second time.
+    driven.add(('.slide-cover .summary', 'opacity'))
     return driven
 
 
@@ -1964,6 +1687,112 @@ def compose_stylesheet(resolved):
     skeleton's @media overrides must beat the engine's base values, and they
     share specificity."""
     return emit_theme_css(resolved) + '\n' + extract_skeleton()
+
+
+# ----------------------------------------------------------------------------
+# The author's surface: templates/settings.conf (values) + custom.css (rules).
+# Neither is ever written by the tool except on explicit request — that
+# ownership split is what deleted the customization-marker apparatus.
+# ----------------------------------------------------------------------------
+
+SETTINGS_FILENAME = 'settings.conf'
+CUSTOM_CSS_FILENAME = 'custom.css'
+
+CUSTOM_CSS_STUB = '''/* Your own CSS. lightwebpres never writes this file, and appends it after
+   the generated stylesheet. Anything CSS can do, you can do here — new
+   rules, @font-face, media queries. Plain VALUES belong in settings.conf. */
+'''
+
+
+def parse_settings_text(text, source='settings.conf'):
+    """(theme_slug_or_None, {property: raw value}) from an author's settings
+    file. `key: value` lines, `#` comments, nothing else — a file that looks
+    like properties and silently accepted CSS would be the old surface back.
+    Errors name their line: the silent no-op is the failure mode this whole
+    format exists to kill."""
+    theme = None
+    props = {}
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        if ':' not in line:
+            raise PropertyError(
+                f'{source}:{lineno}: not a `key: value` line: {line!r}. '
+                f'CSS rules belong in {CUSTOM_CSS_FILENAME}.')
+        key, value = line.split(':', 1)
+        key, value = key.strip(), value.strip()
+        if key == 'theme':
+            if value not in THEMES:
+                raise PropertyError(
+                    f'{source}:{lineno}: unknown theme {value!r}. '
+                    f'Run `lightwebpres themes` for the list.')
+            theme = value
+        else:
+            props[key] = value
+    return theme, props
+
+
+def build_settings_scaffold(theme_key=None):
+    """The complete settings file, every property present and commented out
+    at its value under the chosen theme. Complete outside, always: the
+    author sees the whole surface with nothing to chase through an include,
+    and uncommenting a line pins it across every future theme change.
+
+    Generated from the registry — the same structure that emits the CSS — so
+    it cannot drift from what the engine accepts. Values are shown RAW
+    (references as bare words, `tag.fg: ink-quiet`), because that is the
+    vocabulary the author writes."""
+    raw = {k: p.default for k, p in PROPERTY_REGISTRY.items()}
+    if theme_key:
+        raw.update(theme_property_layer(theme_key))
+
+    lines = [
+        '# lightwebpres settings — plain `key: value` properties, one per line.',
+        '# lightwebpres never writes this file (set-theme rewrites only the',
+        '# theme line below). Uncomment a line to pin it: it survives every',
+        '# theme change and every version upgrade. Values shown are those of',
+        f'# the theme at generation time. CSS rules belong in {CUSTOM_CSS_FILENAME}.',
+        '',
+        f'theme: {theme_key}' if theme_key else '# theme: <slug>   (default theme)',
+        f'# scaffold-for: {theme_key or "default"}',
+        '',
+        '# ── shared values ──',
+    ]
+    for p in THEME_SHARED_PROPS:
+        lines.append(f'# {p.key}: {raw[p.key]}')
+    for c in THEME_COMPONENTS:
+        lines.append('')
+        lines.append(f'# ── {c.key} ──')
+        for p in c.props:
+            lines.append(f'# {p.key}: {raw[p.key]}')
+    return '\n'.join(lines) + '\n'
+
+
+def compose_series_stylesheet(templates_dir):
+    """The CSS for one series: defaults -> theme -> settings, composed in
+    memory, with the author's custom.css appended last so their rules win
+    every same-specificity fight. Nothing here needs the disk beyond the two
+    author-owned files."""
+    settings_file = templates_dir / SETTINGS_FILENAME
+    theme_key, props = (parse_settings_text(read_text_file(settings_file))
+                        if settings_file.exists() else (None, {}))
+
+    legacy = templates_dir / 'style.css'
+    if legacy.exists():
+        print(f'[WARN] templates/style.css is no longer read: the stylesheet '
+              f'is composed from {SETTINGS_FILENAME}. Move your values there '
+              f'(audit names the variable renames) and delete it.',
+              file=sys.stderr)
+
+    layers = [theme_property_layer(theme_key)] if theme_key else []
+    layers.append(props)
+    css = compose_stylesheet(resolve_theme_properties(*layers))
+
+    custom_file = templates_dir / CUSTOM_CSS_FILENAME
+    if custom_file.exists():
+        css += '\n' + read_text_file(custom_file)
+    return css
 
 
 # --- Template: style.css ---
@@ -2543,7 +2372,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
      sitting on the baseline is precisely what makes underlined text hard
      to read.
      -------------------------------------------------------------- */
-''' + '\n  ' + TEMPLATE_STYLE_CUSTOM_MARKER + '\n'
+'''
 
 # --- Template: nav.js ---
 # {{str_*}} placeholders are filled from the language pack's "strings" by
@@ -6000,8 +5829,7 @@ def load_build_context(series_dir, args):
     typo_engine = None if args.get('--no-typography') else TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
 
-    css_file = templates_dir / 'style.css'
-    css = read_text_file(css_file) if css_file.exists() else TEMPLATE_STYLE
+    css = compose_series_stylesheet(templates_dir)
     nav_js_file = templates_dir / 'nav.js'
     nav_js = read_text_file(nav_js_file) if nav_js_file.exists() else TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
@@ -6273,7 +6101,7 @@ def cmd_audit(series_dir, args):
                   f'have no <meta name="description">')
             warnings += 1
 
-    warnings += audit_legacy_palette_names(templates_dir)
+    warnings += audit_presentation(templates_dir)
 
     if warnings == 0:
         print('No warnings: all editorial conventions are respected.')
@@ -6281,43 +6109,104 @@ def cmd_audit(series_dir, args):
         print(f'{warnings} warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
 
 
-def audit_legacy_palette_names(templates_dir):
-    """Warns when an author's own CSS still names a palette variable that
-    v0.12.0 renamed (§9.1). Returns the number of warnings.
+# Every variable name that ever existed and no longer does, with where its
+# job went. One flat table serving one audit warning: a rename that breaks
+# quietly is the worst kind, and this is what makes it audible. The
+# --fact-strong-* and --link-decoration-color names survived the rewrite
+# unchanged, so they are not here.
+RETIRED_VARIABLES = {
+    # v0.12.0 colour-name renames (kept: an old sheet may carry them still)
+    '--yellow': '--color-mark', '--dark': '--color-ink',
+    '--grey': '--color-ink-quiet', '--light': '--color-page',
+    '--green': '--color-affirm',
+    # §9-rewrite renames: palette
+    '--page': '--color-page', '--ink': '--color-ink',
+    '--ink-muted': '--color-ink-quiet', '--marker': '--color-mark',
+    '--accent': '--color-call (or the component axis: --footnote-call-fg, '
+                '--verdict-partial-fg, --nav-btn-ring...)',
+    '--positive': '--color-affirm (or --verdict-yes-fg)',
+    # §9-rewrite: overlays dissolved into component properties
+    '--rule': 'per-component: --slide-rule-fg, --footer-rule-fg, '
+              '--table-rule-fg...',
+    '--rule-strong': 'per-component: --quote-rule-fg, --card-rule-fg, '
+                     '--nav-btn-rule-fg...',
+    '--surface': 'per-component: --fact-bg, --article-bg, --card-bg...',
+    '--sunken': 'per-component: --code-bg, --table-head-bg...',
+    '--cover-bg': '--cover-bg-from / --cover-bg-to (a flat fill has equal '
+                  'stops)',
+    '--cover-fg': '--cover-fg', '--cover-fg-faint': '--cover-num-fg',
+    '--control': '--nav-btn-bg', '--control-soft': '--nav-btn-bg-soft',
+}
 
-    There are no compatibility aliases — that was a deliberate choice —
-    so `color: var(--yellow)` does not fall back to anything: the
-    declaration is simply invalid and the property keeps its inherited
-    value. Nothing in the browser says so, and nothing in a build says so
-    either. A rename that breaks quietly is the worst kind, and this is
-    what makes it audible.
 
-    Only the author's own section is examined (after the personalization
-    marker, §9.4): the built-in part above it is regenerated by
-    refresh-templates and migrates on its own."""
-    style_path = templates_dir / 'style.css'
-    if not style_path.exists():
-        return 0
+def audit_presentation(templates_dir):
+    """The presentation-layer part of audit (§11.5): warns, never blocks.
 
-    custom = read_text_file(style_path).split(TEMPLATE_STYLE_CUSTOM_MARKER, 1)
-    if len(custom) < 2:
-        return 0
+    Three eyes. A legacy style.css, no longer read, with the rename table
+    for whatever it references. Retired variable names inside custom.css,
+    which would otherwise fail silently — a var() referencing nothing
+    paints nothing and says nothing. And a settings scaffold whose
+    commented values were generated under a different theme than the one
+    the file now declares, so an author uncommenting a line would pin a
+    value from a theme they left."""
+    warnings = 0
 
-    # Both forms. Using the variable (`color: var(--yellow)`) is the
-    # obvious one; REDECLARING it (`:root { --yellow: #ff0000; }`) was the
-    # standard way to recolour a series before the rename, and it breaks
-    # just as silently — the built-in CSS now reads var(--marker), so the
-    # override sits there applying to nothing at all.
-    found = sorted({old for old in LEGACY_PALETTE_ROLES
-                    if f'var(--{old})' in custom[1] or f'--{old}:' in custom[1]})
-    if not found:
-        return 0
+    def _retired_in(text):
+        return sorted({old for old in RETIRED_VARIABLES
+                       if f'var({old})' in text or f'{old}:' in text},
+                      key=len, reverse=True)
 
-    renames = ', '.join(f'--{old} -> --{LEGACY_PALETTE_ROLES[old]}' for old in found)
-    print(f'[WARNING] templates/style.css: your own rules still use palette '
-          f'variables renamed in v0.12.0 ({renames}). They no longer exist, so '
-          f'those declarations are silently ignored — see specifications.md §9.1.')
-    return 1
+    legacy = templates_dir / 'style.css'
+    if legacy.exists():
+        warnings += 1
+        print(f'[WARNING] templates/style.css exists but is no longer read: '
+              f'the stylesheet is composed at build time. Move your values '
+              f'to {SETTINGS_FILENAME}, your rules to {CUSTOM_CSS_FILENAME}, '
+              f'then delete it.')
+        found = _retired_in(read_text_file(legacy))
+        if found:
+            for old in found:
+                print(f'          {old} -> {RETIRED_VARIABLES[old]}')
+
+    custom_path = templates_dir / CUSTOM_CSS_FILENAME
+    if custom_path.exists():
+        found = _retired_in(read_text_file(custom_path))
+        if found:
+            warnings += 1
+            print(f'[WARNING] templates/{CUSTOM_CSS_FILENAME}: these variables '
+                  f'no longer exist, so the declarations using them are '
+                  f'silently ignored:')
+            for old in found:
+                print(f'          {old} -> {RETIRED_VARIABLES[old]}')
+
+    settings_path = templates_dir / SETTINGS_FILENAME
+    if settings_path.exists():
+        text = read_text_file(settings_path)
+        try:
+            declared, props = parse_settings_text(text)
+        except PropertyError as exc:
+            warnings += 1
+            print(f'[WARNING] templates/{SETTINGS_FILENAME}: {exc}')
+        else:
+            m = re.search(r'^# scaffold-for: (\S+)$', text, re.MULTILINE)
+            scaffold_for = m.group(1) if m else None
+            declared_name = declared or 'default'
+            if scaffold_for and scaffold_for != declared_name:
+                warnings += 1
+                print(f'[WARNING] templates/{SETTINGS_FILENAME}: the commented '
+                      f'values were generated for theme {scaffold_for!r} but '
+                      f'the file now declares {declared_name!r}. Uncommenting '
+                      f'a line would pin a value from the old theme. '
+                      f'Regenerate a fresh scaffold to compare when in doubt.')
+            try:
+                layers = [theme_property_layer(declared)] if declared else []
+                layers.append(props)
+                resolve_theme_properties(*layers)
+            except PropertyError as exc:
+                warnings += 1
+                print(f'[WARNING] templates/{SETTINGS_FILENAME}: {exc}')
+
+    return warnings
 
 
 # ============================================================================
@@ -6348,14 +6237,17 @@ def cmd_install(target_dir, args):
     (td / 'language').mkdir(exist_ok=True)
     (td / 'public').mkdir(exist_ok=True)
 
-    # Extract the templates (only the two build actually reads back —
-    # see specifications.md §9: page/index structure is fixed, not an
-    # editable template; style.css and nav.js are overridable, and an
-    # optional templates/index_extra.html is inserted as-is into the
-    # index page if the author creates one — no default content, so
-    # nothing to extract here)
-    style_css = apply_theme(TEMPLATE_STYLE, theme_key) if theme_key else TEMPLATE_STYLE
-    (td / 'templates' / 'style.css').write_text(style_css, encoding='utf-8')
+    # The author's surface (§9 rewrite): settings.conf, every property
+    # commented at its value under the chosen theme, and an empty
+    # custom.css for rules. No style.css — the stylesheet is composed in
+    # memory at build time and never owned by anyone but the tool. nav.js
+    # stays extracted and overridable as before; an optional
+    # templates/index_extra.html is inserted as-is into the index page if
+    # the author creates one (no default content, nothing to extract).
+    (td / 'templates' / SETTINGS_FILENAME).write_text(
+        build_settings_scaffold(theme_key), encoding='utf-8')
+    (td / 'templates' / CUSTOM_CSS_FILENAME).write_text(
+        CUSTOM_CSS_STUB, encoding='utf-8')
     (td / 'templates' / 'nav.js').write_text(TEMPLATE_NAV_JS, encoding='utf-8')
 
     # Extract the language packs
@@ -6400,9 +6292,8 @@ def cmd_install(target_dir, args):
     if theme_key:
         print(f'  theme: {THEMES[theme_key]["label"]}')
     print(f'  articles/   — your .md files')
-    print(f'  templates/  — CSS and JS (editable; put custom CSS after the')
-    print(f'              "Local customizations" marker at the end of')
-    print(f'              style.css so refresh-templates can update the rest)')
+    print(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
+    print(f'              {CUSTOM_CSS_FILENAME} (your own rules), nav.js')
     print(f'  language/   — typography rules + interface strings (fr, en)')
     print(f'  public/     — generated HTML (build output)')
     print(f'  series.json — article list')
@@ -6420,68 +6311,44 @@ def cmd_install(target_dir, args):
 
 
 def cmd_refresh_templates(target_dir, args):
-    """refresh-templates command — after an executable upgrade, updates the
-    built-in portion of templates/style.css and templates/nav.js (which
-    otherwise stay frozen at whatever install/refresh-templates last wrote,
-    per the override mechanism of §9) without discarding local edits."""
+    """refresh-templates command (§11.6). Under the composed-stylesheet
+    model only nav.js is a tool-owned file on disk that upgrades can
+    refresh: the stylesheet is composed at build time from the current
+    executable, so it is always fresh by construction, and the author's
+    settings.conf / custom.css are never the tool's to touch.
+
+    A legacy templates/style.css is reported, not migrated: its values are
+    the author's decisions, and moving them is theirs to do — audit names
+    every variable rename to make that mechanical."""
     td = Path(target_dir).resolve()
     templates_dir = td / 'templates'
-
     if not templates_dir.is_dir():
-        print(f'[ERROR] {templates_dir} not found. Run install first.', file=sys.stderr)
+        print(f'[ERROR] {templates_dir} not found. Run install first.',
+              file=sys.stderr)
         sys.exit(1)
 
-    refreshed = []
-    up_to_date = []
-    skipped = []
+    refreshed, up_to_date = [], []
 
-    style_path = templates_dir / 'style.css'
-    if style_path.exists():
-        old = read_text_file(style_path)
-        detected_theme = detect_theme(old)
-        if detected_theme is not None and detected_theme not in THEMES:
-            print(f'[WARN] templates/style.css was built with theme {detected_theme!r}, '
-                  f'which no longer exists. Falling back to the default theme for the '
-                  f'built-in part.', file=sys.stderr)
-            detected_theme = None
-        new_builtin = apply_theme(TEMPLATE_STYLE, detected_theme) if detected_theme else TEMPLATE_STYLE
-        if old == new_builtin:
-            up_to_date.append('templates/style.css')
-        else:
-            # First occurrence, not last (rfind): the built-in part ends
-            # with exactly one marker, so everything after the FIRST
-            # marker is the author's — including a second literal marker
-            # they may have pasted into their own CSS. rfind dropped every
-            # author rule between the two markers.
-            marker_pos = old.find(TEMPLATE_STYLE_CUSTOM_MARKER)
-            if marker_pos == -1:
-                skipped.append('templates/style.css')
-                if TEMPLATE_STYLE_CUSTOM_MARKER_LEGACY in old:
-                    print(f'[SKIP] templates/style.css: the personalization marker was '
-                          f'reworded in English in v0.12.1, and yours is the older French '
-                          f'one. Replace that line with this one — everything below it is '
-                          f'kept exactly as before:', file=sys.stderr)
-                else:
-                    print(f'[SKIP] templates/style.css: no marker found, cannot tell your '
-                          f'customizations apart from the built-in CSS safely. Add this exact '
-                          f'line right before your own rules, then run refresh-templates again:',
-                          file=sys.stderr)
-                print(f'  {TEMPLATE_STYLE_CUSTOM_MARKER}', file=sys.stderr)
-            else:
-                custom_tail = old[marker_pos + len(TEMPLATE_STYLE_CUSTOM_MARKER):]
-                # Drop the newline that ENDED the old marker line: the
-                # rebuilt built-in part already finishes with one. Without
-                # this the file gained a blank line on every single run —
-                # measured at +1 byte per pass, stacking indefinitely
-                # above the author's first rule, which flatly contradicts
-                # the promise that this section is left untouched (§9.4).
-                # Exactly the defect TEMPLATE_STYLE_THEME_MARKER_LINE_RE
-                # was introduced to fix for the OTHER marker; the same
-                # reasoning was never applied here.
-                if custom_tail.startswith('\n'):
-                    custom_tail = custom_tail[1:]
-                style_path.write_text(new_builtin + custom_tail, encoding='utf-8')
-                refreshed.append('templates/style.css')
+    legacy = templates_dir / 'style.css'
+    if legacy.exists():
+        print(f'[WARN] templates/style.css is no longer read (the stylesheet '
+              f'is composed at build time). Your values belong in '
+              f'{SETTINGS_FILENAME}, your rules in {CUSTOM_CSS_FILENAME}; '
+              f'run audit for the variable renames, then delete it.',
+              file=sys.stderr)
+
+    settings_path = templates_dir / SETTINGS_FILENAME
+    if not settings_path.exists():
+        # A series scaffolded before the rewrite: give it the new surface,
+        # default theme — writing a file that does not exist breaks no
+        # ownership promise.
+        settings_path.write_text(build_settings_scaffold(None),
+                                 encoding='utf-8')
+        refreshed.append(f'templates/{SETTINGS_FILENAME} (new, default theme)')
+    custom_path = templates_dir / CUSTOM_CSS_FILENAME
+    if not custom_path.exists():
+        custom_path.write_text(CUSTOM_CSS_STUB, encoding='utf-8')
+        refreshed.append(f'templates/{CUSTOM_CSS_FILENAME} (new, empty)')
 
     nav_path = templates_dir / 'nav.js'
     if nav_path.exists():
@@ -6494,10 +6361,6 @@ def cmd_refresh_templates(target_dir, args):
             nav_path.write_text(TEMPLATE_NAV_JS, encoding='utf-8')
             refreshed.append('templates/nav.js (previous version saved as templates/nav.js.bak)')
 
-    if not style_path.exists() and not nav_path.exists():
-        print('Nothing to refresh: no templates/style.css or templates/nav.js in this directory.')
-        return
-
     if refreshed:
         print('Refreshed:')
         for item in refreshed:
@@ -6508,9 +6371,6 @@ def cmd_refresh_templates(target_dir, args):
             print(f'  {item}')
     print()
     print('Run build again to apply the refreshed templates.')
-
-    if skipped:
-        sys.exit(1)
 
 
 # ============================================================================
@@ -6579,18 +6439,16 @@ def cmd_themes(args):
 
 
 def cmd_set_theme(target_dir, args):
-    """set-theme command (§11.10) — changes the theme of an existing
-    series by rewriting the variables in templates/style.css, instead of
-    forcing a reinstall or a hand-edit of the theme marker.
-
-    Refuses a file whose built-in CSS is not what this executable would
-    have produced (theme_state()), unless --force: on such a file the
-    substitution can silently miss a declaration and leave the page
-    half-recoloured, which is worse than not running at all."""
+    """set-theme command (§11.10) — records the theme choice by rewriting
+    the ONE line of settings.conf that is the tool's to write. Everything
+    the old implementation guarded against — half-recoloured files, markers
+    claiming themes a file does not carry, --force — existed because the
+    tool wrote into the file the author edits. It no longer does: the
+    stylesheet is composed at build time, so changing theme is changing a
+    word."""
     td = Path(target_dir).resolve()
-    style_path = td / 'templates' / 'style.css'
+    settings_path = td / 'templates' / SETTINGS_FILENAME
     new_slug = args.get('--theme')
-    force = bool(args.get('--force'))
 
     if new_slug is None:
         print(f'[ERROR] set-theme requires --theme <slug>. '
@@ -6601,55 +6459,37 @@ def cmd_set_theme(target_dir, args):
               f'Run `lightwebpres themes` to list the {len(THEMES)} valid slugs.',
               file=sys.stderr)
         sys.exit(1)
-    if not style_path.exists():
-        print(f'[ERROR] {style_path} not found. Run install first.', file=sys.stderr)
-        sys.exit(1)
 
-    old_css = read_text_file(style_path)
-    current, standard, reason = theme_state(old_css)
-
-    if not standard and not force:
-        print(f'[ERROR] {style_path} is not a standard theme file: {reason}.',
-              file=sys.stderr)
-        print(f'        Changing its theme may leave it partly recoloured. '
-              f'Pass --force to do it anyway.', file=sys.stderr)
-        sys.exit(1)
-
-    # Named for the message even when it is not a THEMES key: the point
-    # of the report is to say what is being replaced, and 'the default
-    # theme' or an unknown slug are both answers to that.
-    if current is None:
-        current_name = 'default'
-    elif current in THEMES:
-        current_name = current
-    else:
-        current_name = f'{current} (unknown)'
-
-    if current == new_slug and standard:
-        print(f'Theme unchanged: {style_path} already uses {new_slug}. Nothing written.')
+    if not settings_path.exists():
+        # Nothing to preserve: write a fresh scaffold for the chosen theme.
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        settings_path.write_text(build_settings_scaffold(new_slug),
+                                 encoding='utf-8')
+        print(f'Theme set: {new_slug} (fresh {SETTINGS_FILENAME} written)')
+        print('Run build again to apply the new theme.')
         return
 
-    # Substitution rewrites declarations that exist; it never adds one.
-    # Checked BEFORE writing, so a file where nothing could be applied is
-    # refused rather than stamped with a marker it does not live up to.
-    missing = unsubstituted_declarations(old_css)
-    if len(missing) == len(unsubstituted_declarations('')):
-        print(f'[ERROR] {style_path} declares none of the theme variables, so there '
-              f'is nothing to substitute. Writing the theme marker on it would '
-              f'claim a theme the file does not carry.', file=sys.stderr)
-        print(f'        Run `lightwebpres refresh-templates` to restore the built-in '
-              f'section first.', file=sys.stderr)
-        sys.exit(1)
+    text = read_text_file(settings_path)
+    current, _props = parse_settings_text(text)
+    if current == new_slug:
+        print(f'Theme unchanged: already {new_slug}. Nothing written.')
+        return
 
-    style_path.write_text(apply_theme(old_css, new_slug), encoding='utf-8')
+    if re.search(r'^theme:.*$', text, re.MULTILINE):
+        text = re.sub(r'^theme:.*$', f'theme: {new_slug}', text,
+                      count=1, flags=re.MULTILINE)
+    elif re.search(r'^# theme:.*$', text, re.MULTILINE):
+        # The scaffold's commented placeholder, when no theme was chosen.
+        text = re.sub(r'^# theme:.*$', f'theme: {new_slug}', text,
+                      count=1, flags=re.MULTILINE)
+    else:
+        text = f'theme: {new_slug}\n' + text
+    settings_path.write_text(text, encoding='utf-8')
 
-    print(f'Theme changed: {current_name} -> {new_slug}')
-    print(f'  {style_path}')
-    if missing:
-        print(f'[WARN] {len(missing)} declaration(s) were not found and kept their '
-              f'previous values: {", ".join(missing)}.', file=sys.stderr)
-    if not standard:
-        print(f'[WARN] Forced: {reason}.', file=sys.stderr)
+    print(f'Theme changed: {current or "default"} -> {new_slug}')
+    print(f'  {settings_path}')
+    print('  Your uncommented values are untouched and still apply on top.')
+    print('  (Commented values still show the previous theme; audit notes it.)')
     print()
     print('Run build again to apply the new theme.')
 
@@ -6685,7 +6525,7 @@ def build_theme_preview_document(theme_key):
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f'<style>{apply_theme(TEMPLATE_STYLE, theme_key)}</style>'
+        f'<style>{compose_stylesheet(resolve_theme_properties(theme_property_layer(theme_key)))}</style>'
         # The real page scrolls between slides; a static preview should
         # not, or a card would show a scrollbar it does not have.
         '<style>html,body{overflow:hidden}.slide{min-height:auto}</style>'
@@ -6702,11 +6542,10 @@ def cmd_themes_gallery(output_path, args):
     cards = []
     for slug, theme in THEMES.items():
         facets = theme_facets(theme)
-        # No variables are injected by hand any more: apply_theme() writes
-        # all twenty-one of them into the preview document's own
-        # stylesheet, exactly as it does for an installed series. Every
-        # bug this file has had in the preview came from maintaining a
-        # second copy of that wiring.
+        # No variables are injected by hand: the composed sheet carries every
+        # property into the preview document's own stylesheet, exactly as it
+        # does for an installed series. Every bug this file has had in the
+        # preview came from maintaining a second copy of that wiring.
         preview_doc = html_escape(build_theme_preview_document(slug), quote=True)
         # Built from PALETTE_ROLES rather than spelled out in the
         # template, so a role can never be renamed in one place and left
@@ -6750,8 +6589,10 @@ def cmd_demo(target_dir, args):
     td = Path(target_dir).resolve()
     lang = args.get('--lang', 'fr')
 
-    # Check that install has been run
-    if not (td / 'templates' / 'style.css').exists():
+    # Check that install has been run. settings.conf is the installed
+    # surface; nav.js keeps a pre-rewrite series recognized as installed.
+    if not ((td / 'templates' / SETTINGS_FILENAME).exists()
+            or (td / 'templates' / 'nav.js').exists()):
         print(f'[ERROR] {td} has not been installed. Run first: lightwebpres install {td}', file=sys.stderr)
         sys.exit(1)
 
