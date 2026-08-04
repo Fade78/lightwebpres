@@ -1215,7 +1215,7 @@ et le type est vérifié à la génération :
 | angle | `200deg` | unité connue (`deg rad turn grad`) |
 | pile de polices | `Georgia, serif` | **se termine par un générique CSS 2.1** (`serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`) — voir ci-dessous |
 | énumération | `bold`, `italic`, `uppercase`, `line-through` | valeur admise. Les graisses n'admettent que **`normal` et `bold`** — voir ci-dessous |
-| texte | `"\25D0"` | libre (les marqueurs de forme des verdicts) |
+| chaîne CSS | `"\25D0"`, `none` | une **seule chaîne entre guillemets doubles** (les marqueurs de forme des verdicts), échappements `\` autorisés, ni guillemet nu ni `<` ni `}` — ou le mot-clé `none`. Le type paraît anodin, mais la valeur atterrit dans le `<style>` inliné de la page : une accolade nue y fermerait la déclaration, un `</style>` littéral la feuille entière — c'est le seul axe dont une valeur voyage sans transformation, donc le seul à devoir se garder lui-même |
 
 **Pourquoi les piles finissent sur un générique.** Aucune police nommée
 n'est garantie : Arial et Times New Roman sont absents d'un Linux de base
