@@ -3,10 +3,13 @@ name: lightwebpres
 description: >
   Reference for the exact LightWebPres (LWP) Markdown syntax lightwebpres
   parses: the lwp:meta comment block, the four slide types (cover,
-  standard, series-nav, full-article) and their fields (tag, slide_title,
-  summary, highlight, fact-label, source, comment), the one-way field/free-text
-  parsing switch, series.json wiring, and automatic non-breaking-space
-  typography with its opt-outs (typo, typo-units, typo-thousands).
+  standard, series-nav, full-article) and their fields (tag, summary,
+  highlight, highlight-caption, fact-label, source, comment — the title is
+  written as a heading, there is no title field), the one-way
+  field/free-text parsing switch, the editorial and draft fields, the
+  comparison-table verdict classes, series.json wiring, and automatic
+  non-breaking-space typography with its opt-outs (typo, typo-units,
+  typo-thousands).
   Format mechanics only, not editorial writing — it doesn't decide what
   an article says, only how to encode it correctly. Use whenever someone
   writes, edits, or debugs a lightwebpres .md article or series.json
@@ -128,10 +131,37 @@ chain, cheapest to most specific:
   — `series.json` > `nav_title:`/`nav_desc:` here > resolved
   `card_title`/`card_desc`.
 
-Nothing in this chain is fatal — every field always resolves to
-*something*, `card_label` included (it just ends up empty). See
+Every field in that chain resolves to *something*, `card_label` included
+(it just ends up empty) — **except `page_dest`, which has three fatal
+cases**: a value that doesn't end in `.html`/`.htm`, a value that isn't a
+bare filename (`sub/x.html` is rejected wherever it comes from), and two
+articles resolving to the same output name (compared case-insensitively).
+Any of the three stops the build with a named error. See
 `specifications.md` §20.3.1 for the authoritative version of this
 cascade.
+
+**Editorial fields**, settable here or in `series.json`, both displayed
+and emitted as `<meta>` tags:
+
+- `author`, `license` — fall back to `series_meta`'s values for the whole
+  series. They render in the page footer as a byline and a licence line.
+- `date` — free text, no format imposed; it joins the author in the
+  byline.
+- `page_desc` — feeds `<meta name="description">`. Cascade:
+  `series.json` > here > the cover slide's `summary`. It is the one field
+  `audit` actively complains about when it resolves to nothing.
+- `draft: true` — keeps the article out of the build entirely: no page,
+  no index card, no navigation entry. Only `true` (any case) marks a
+  draft; `series.json` wins over this file even when it says `false`.
+  `build --include-drafts` builds it anyway, with a banner on the page so
+  a preview is never mistaken for a publication.
+
+**A key this block does not recognize is accepted in silence** — no
+error, no warning, and no effect. `page-title:` instead of `page_title:`
+builds cleanly and falls back as though you had written nothing. This is
+the opposite of a mistyped *slide* field, which becomes free text and is
+loud on a cover slide. Check spelling against the list above; `audit`
+will not catch it for you.
 
 `comment:` here works too, for an article-wide note — same rule as the
 per-slide one below: recognized, never read, never published.
@@ -146,11 +176,22 @@ per-slide one below: recognized, never read, never published.
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
 `tag`, `summary`, `fact-label`, `source`, `highlight`/`highlight-caption`
-are all optional — simplest to just omit the line if you don't need it
-(an empty value behaves the same as omitting it, but there's no reason
-to write it). `highlight` is a short standalone figure (a number, a
-stat, a quote) with an optional caption underneath; it renders above the
-free text, not instead of it.
+are all optional — omit the line if you don't need it. An empty value
+behaves like omitting it everywhere **except on a cover slide**, where
+the parser tests whether a field was *set*, not whether it has content:
+a bare `fact-label:` on a cover raises a warning that omitting the line
+would not. `highlight` is a short standalone figure (a number, a stat, a
+quote) with an optional caption underneath; it renders above the free
+text, not instead of it.
+
+A cover slide **accepts** `fact-label`, `source`, `highlight` and
+`highlight-caption` without failing, and then never renders them — you
+get a `[WARNING]`, exit code 0, and a page missing what you wrote. Only
+free *text* on a cover is fatal.
+
+`<!-- lwp:slide:TYPE -->` is not validated either: a misspelt type
+(`lwp:slide:standrd`) is silently treated as a standard slide. Nothing
+tells you; the slide simply isn't the type you meant.
 
 `comment` is a review note — recognized as a real field on any slide
 (and in `series.json`/the article's own meta block too), but never read
@@ -167,10 +208,12 @@ labeled fact-box (`<div class="fact-box">` / `<div class="fact-label">` /
 paragraph(s) — no box, no label. Use `fact-label:` when you want the
 highlighted-callout look, omit it for ordinary body text.
 
-That free text isn't limited to plain paragraphs — headings (`#`/`##`/
-`###`), lists and captioned images (`![alt](src "Caption")`) work too,
-headings styled smaller than the slide's own big title to fit the
-fact-box's frame. One trap to know about: a heading opening
+**That free text goes through the same Markdown converter as the
+full-article file** — everything listed under "The full-article file"
+below works here too: tables (including the verdict classes), footnotes,
+blockquotes, code spans and fenced blocks, links, raw HTML. Headings are
+styled smaller than the slide's own big title to fit the fact-box's
+frame. One trap to know about: a heading opening
 the free text directly (no paragraph before it) is still just content,
 *not* a redefinition of the slide's own title — but only the first `#`
 on a `cover` / first `##` on a non-`cover` slide is ever captured as the
@@ -178,7 +221,10 @@ slide's title at all; a second one, or the wrong level for that slide
 type, always falls through to content (§22.2 in `specifications.md`).
 
 `series-nav` and `full-article` are **at most one each** per article —
-having two is a fatal build error, not "the second one wins."
+having two is a fatal build error, not "the second one wins." Any
+unrecognized non-blank line inside either one is also fatal, not ignored:
+a `series-nav` slide takes no fields at all, and a `full-article` slide
+takes `article:` and nothing else.
 
 ## The full-article file
 
@@ -196,15 +242,36 @@ language optional and purely informational — no syntax highlighting),
 and raw HTML passed through as-is (so an author can drop in a
 hand-written `<figure>` or similar if the situation calls for it).
 
-Code is the one exception to "nothing gets escaped": text inside
-`` `...` `` or a ` ``` ` block is HTML-escaped and shown exactly as
-written, even if it looks like a tag — the opposite of how raw HTML
-elsewhere in this file passes through untouched. A `>` at the very start
+**`&` is escaped in all ordinary text**, not only in code — so an HTML
+entity you type by hand (`&rarr;`, `&nbsp;`) is published as the literal
+string `&rarr;`, not as an arrow. The only place one survives is inside a
+raw-HTML *block* (see below), which bypasses inline conversion entirely.
+Write the character itself (`→`) rather than an entity; the format is
+UTF-8 throughout.
+
+Code goes further: text inside `` `...` `` or a ` ``` ` block is fully
+HTML-escaped and shown exactly as written, even if it looks like a tag —
+the opposite of how raw HTML elsewhere in this file passes through
+untouched. A `>` at the very start
 of a line or a backtick that isn't meant to open a blockquote/code span
 can be written literally by prefixing it with `\` (`` \> ``, `` \` ``) —
 the only escaping this format supports, and only needed in that
 position; a `>` anywhere else never triggers a blockquote and needs no
 escaping.
+
+Four limits the converter does not announce:
+
+- **A Markdown link must be `http://` or `https://`.** `[text](page.html)`
+  or a `mailto:` matches nothing and is published as that literal text,
+  with no warning. Use a raw `<a href="...">` for anything else.
+- **Headings stop at `###`.** `####` and deeper are published as literal
+  paragraph text, hashes included.
+- **Blockquotes are one paragraph.** Consecutive `>` lines merge into a
+  single `<p>` inside one `<blockquote>`; multi-paragraph and nested
+  quotes are not supported.
+- **Table alignment colons are accepted and ignored.** `|:---|---:|`
+  parses, and changes nothing. Ragged rows are emitted as written, with
+  no cell-count check.
 
 Raw HTML at the start of a line is either an inline usage or a block,
 decided per line: `<strong>Word</strong> opens a sentence.` — an inline
@@ -216,11 +283,54 @@ in between is raw HTML verbatim until the matching close, even a line
 that would look like a self-contained inline usage on its own
 (`<span class="caption">...</span>` alone on its line, say).
 
+## Styling hooks you reach with raw HTML
+
+Some things the stylesheet renders have no Markdown syntax at all, and
+inline HTML is the documented way to reach them (spec §6.1). They work in
+a fact-box and in the full-article file alike.
+
+**Comparison-table verdicts.** Every generated table carries
+`class="comparison-table"`. Put one of these on a cell — or on a `<span>`
+inside a Markdown cell — and it renders with a shape marker as well as a
+colour, so the verdict survives greyscale and colour-vision deficiency:
+
+| Class | Meaning | Marker |
+|---|---|---|
+| `yes` | does / holds | ● filled circle |
+| `no` | does not | ○ empty circle |
+| `partial` | partly, with conditions | ◐ half circle |
+
+```markdown
+| Feature | A | B |
+|---|---|---|
+| Offline | <span class="yes">Yes</span> | <span class="no">No</span> |
+```
+
+Two more emphasize a whole column rather than a cell, applied to the
+`<th>`: `col-signal` (the column that carries the comparison's point) and
+`col-snap` (a column meant to be read at a glance). Reaching those means
+writing the whole table in raw HTML, since Markdown cannot put a class on
+a header cell.
+
+**`.refs`** — a small-print block for a reference list at the end of a
+full-article file: `<div class="refs">…</div>`.
+
+## Raw HTML inside a field value
+
+A field value may contain inline HTML, and `page_title` is the usual
+reason: `page_title: The apple pie<br>What pastry changes` gives the
+index card a two-line title. Where that value is used as *text* rather
+than markup — the `<title>` element, the `<meta name="description">`,
+the index card's own `title` attribute — tags are stripped and replaced
+by a space, so the same value reads correctly in both places. Nothing
+else is stripped: an unclosed tag in a field value ends up in the page.
+
 ## Typography: automatic non-breaking spaces (French only)
 
 Under `--lang fr` (the default), `build` silently upgrades certain plain
 spaces already present in the text to non-breaking ones: before
-`; : ! ?`, after an opening `«`, before `%`, between groups of 3 digits
+`; : ! ?` **and before a closing `»`**, after an opening `«`, before
+`%`, between groups of 3 digits
 in a number you've already spaced out (`170 000`), between a number and
 `million(s)`/`milliard(s)`/`dollar(s)`/`$`, and after `×`/`≈` before a
 number. Nothing to do on your end — write ordinary spaces, the build
@@ -264,9 +374,33 @@ file, e.g.:
 {"page_source": "apple-pie.md", "card_label": "Article 3 (corrected)"}
 ```
 
-Nothing here is ever a fatal build error — every field resolves to
-*something* down the cascade, `card_label` included (it just ends up
-empty if it's absent everywhere).
+Most of these resolve down the cascade and cannot fail — but four things
+here are fatal, and they are the ones worth checking before you call a
+file done:
+
+- `page_source` must end in `.md`, and the file it names must exist in
+  `articles/`.
+- an explicit `page_dest` must end in `.html` or `.htm`, and must be a
+  bare filename.
+- two entries must not resolve to the same `page_dest` (case-insensitive).
+- a `full-article` slide's `article:` target must be a bare filename too,
+  must resolve inside `articles/`, and must exist. A symlink pointing out
+  of that directory is refused.
+
+Any non-string value for one of these fields is fatal as well.
+
+`series_meta`, the object beside `articles`, holds what belongs to the
+series rather than to one article: `title`, `subtitle`, `version`,
+`intro`, `author`, `license`. The first four drive the generated index
+page and `README.md`; the last two are the fallback for every article's
+byline and licence line.
+
+```json
+{
+  "series_meta": {"title": "My series", "intro": "What it is about."},
+  "articles": [{"page_source": "apple-pie.md"}]
+}
+```
 
 `comment` also works as a `series.json` entry key, or in `series_meta`
 for a note about the series as a whole — same rule: recognized, never
@@ -300,8 +434,14 @@ as finished — don't guess at whether it would build.
   Same for a `#`/`##` heading appearing after body content has started:
   it becomes a heading rendered *inside* the fact-box, not a rewrite of
   the slide's own title.
-- A bare `---` inside body text, expecting a visual divider — it splits
-  the slide instead.
+- A bare `---` expecting a visual divider. In the LWP `.md` it **splits
+  the slide**. In the full-article `.md` it does something worse: the
+  line is **dropped silently** — no `<hr>`, no split, nothing at all.
+  Write `<hr>` in both cases.
+- Typing an HTML entity (`&rarr;`, `&nbsp;`) in body text and expecting
+  it to render — `&` is escaped, so the reader sees the source. Write the
+  character.
+- A Markdown link to anything that isn't `http(s)` — it stays literal.
 - Two `full-article` or two `series-nav` slides in one file.
 - `page_source`/`page_dest` values with a path (`articles/x.md` instead of `x.md`)
   or anything that isn't a plain filename.

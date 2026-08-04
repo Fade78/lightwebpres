@@ -15,6 +15,7 @@ Run with: python3 tests/run_tests.py
 
 import json
 import os
+import inspect
 import re
 import subprocess
 from html import escape as html_escape
@@ -3231,6 +3232,63 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             props = self.lwp.theme_fact_properties(theme)
             self.assertEqual('underlined' in label, props['decoration'] == 'underline', slug)
         self.assertGreaterEqual(len(set(stated)), 5)
+
+
+class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
+    """agent/skills/lightwebpres/SKILL.md is the only reference an agent
+    reads before writing an article. Anything reachable from the Markdown
+    that the skill does not name is unreachable in practice.
+
+    An audit found eighteen such gaps at once, the loudest being the
+    comparison-table verdict classes: the stylesheet shipped them, the
+    spec and the README documented them, and the skill never mentioned
+    them, so no agent could produce a colour-coded table. This test
+    derives its list FROM THE CODE rather than restating it, so adding a
+    field to the executable fails here until the skill catches up."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+        self.skill = (Path(__file__).resolve().parent.parent /
+                      'agent' / 'skills' / 'lightwebpres' / 'SKILL.md'
+                      ).read_text(encoding='utf-8')
+
+    def test_every_recognized_slide_field_is_named(self):
+        source = inspect.getsource(self.lwp.parse_markdown_extended)
+        names = re.search(r"\^\(([a-z|-]+)\):", source).group(1).split('|')
+        self.assertIn('highlight-caption', names, 'the field regex moved')
+        for field in names:
+            self.assertIn(field, self.skill, field)
+
+    def test_every_article_level_field_is_named(self):
+        for field in self.lwp._SERIES_STRING_FIELDS:
+            self.assertIn(field, self.skill, field)
+        for field in self.lwp._SERIES_META_STRING_FIELDS:
+            self.assertIn(field, self.skill, f'series_meta.{field}')
+        # Not just the word: --include-drafts contains it, which is
+        # how a first version of this line survived its own mutation.
+        # `true` is the only value that marks a draft, so that is what
+        # the skill has to show.
+        self.assertIn('draft: true', self.skill)
+
+    def test_every_styling_hook_reachable_only_by_hand_is_named(self):
+        """A class the stylesheet defines and the Markdown cannot
+        produce is reachable only if the skill says it exists."""
+        css = self.lwp.TEMPLATE_STYLE
+        for cls in ('yes', 'no', 'partial', 'col-signal', 'col-snap'):
+            self.assertIn(f'.{cls}', css, f'{cls} left the stylesheet')
+            self.assertIn(f'`{cls}`', self.skill, cls)
+        self.assertIn('comparison-table', self.skill)
+
+    def test_the_skill_does_not_promise_that_nothing_is_fatal(self):
+        """It said so twice, and page_dest has three fatal paths."""
+        self.assertNotIn('Nothing in this chain is fatal', self.skill)
+        self.assertNotIn('Nothing here is ever a fatal build error', self.skill)
+
+    def test_the_skill_names_no_field_the_parser_does_not_know(self):
+        """The frontmatter advertised a `slide_title:` field that has
+        never existed; an agent that skims only the description emits it,
+        and free text on a cover slide is fatal."""
+        self.assertNotIn('slide_title', self.skill)
 
 
 class ContrastFloors(unittest.TestCase):
