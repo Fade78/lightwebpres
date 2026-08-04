@@ -64,24 +64,46 @@ nominatif parce qu'il est gratuit.
 
 ## 2. Le principe organisateur
 
-**Le fond détermine l'obligation de contraste, donc le rendu s'organise par
-fond.**
+**Un réglage de couleur n'a pas de sens sans son fond, donc chaque groupe déclare
+le sien.**
 
-C'est ce qui manquait. Aujourd'hui une couleur est déclarée sans que rien ne dise
-sur quoi elle sera posée — et un rapport de contraste n'existe pas dans l'absolu,
-il existe contre un fond. Aucune vérification n'était donc possible. Trois fonds
-existent dans le format :
+C'est une donnée de composition, pas un jugement. L'information existe déjà dans
+la feuille actuelle — `--fact-strong-ink` n'existe que parce qu'un fond coloré se
+trouve sous ce texte, `--cover-fg` que parce que le sol de couverture est inversé
+— mais elle est dispersée dans les règles et illisible pour le générateur. La
+déclarer au niveau du groupe ne fait que rendre explicite ce que le CSS encode
+déjà. Trois fonds existent dans le format :
 
-| Fond | Ce qui s'y pose | Plancher |
-|---|---|---|
-| **la page** (`--page`) | l'essentiel du texte et du mobilier | texte 4,5:1 (corps 7:1), mobilier 3:1 |
-| **la couverture** (`--cover-bg`) | titre, tag, compteur, résumé | texte 4,5:1 |
-| **une surface colorée** (surlignage, colonne, pastille) | le texte posé dessus | texte 4,5:1 |
+| Fond | Ce qui s'y pose |
+|---|---|
+| **la page** (`--page`) | l'essentiel du texte et du mobilier |
+| **la couverture** (`--cover-bg`) | titre, tag, compteur, résumé |
+| **une surface colorée** (surlignage, colonne, pastille) | le texte posé dessus |
 
-Chaque groupe de réglage **déclare son fond**. La vérification devient totale et
-mécanique : le générateur connaît, pour chaque encre qu'il émet, le fond exact
-contre lequel elle sera rendue. On passe d'un système qui espère le contraste à
-un système qui le connaît.
+### Ce que le rendu fait de cette information, et ce qu'il n'en fait pas
+
+Le fond sert **au générateur, pour les valeurs qu'il calcule lui-même** — les
+encres de signal de §5.1, et elles seules. Une résolution de clarté a besoin
+d'une cible : sans plancher, « déplacer la clarté jusqu'à ce que ce soit
+lisible » n'a pas de spécification. Le seuil est donc le paramètre d'un calcul,
+pas une exigence imposée à qui que ce soit.
+
+**Il ne sert à rien d'autre.** En particulier :
+
+- **Aucun plancher ne s'applique à ce que l'auteur écrit après le marqueur.**
+  S'il veut un gris pâle illisible, il l'obtient. `audit` peut le lui signaler ;
+  le rendu ne le lui refuse jamais. Un système de personnalisation qui arbitre
+  les choix de l'auteur n'est plus un système de personnalisation.
+- **Aucun plancher ne s'applique aux valeurs qu'un thème fournit.** Qu'une
+  palette du catalogue tienne ses seuils est une question d'admission, donc une
+  propriété du thème — hors périmètre, §0.
+- **Aucun plancher ne s'applique au mobilier**, filets et voiles compris. Le
+  générateur ne les dérive pas d'une couleur de signal ; il n'a donc rien à y
+  résoudre.
+
+Le rendu ne promet pas une feuille conforme. Il promet une chose plus étroite et
+plus solide : **il ne pose jamais lui-même une couleur illisible sur un fond
+qu'il connaît.**
 
 ---
 
@@ -355,10 +377,11 @@ Cinq tests portent l'architecture. Aucun n'existe aujourd'hui.
 
 **G2 — Tout groupe déclare un fond.** Sans quoi G3 ne peut pas s'exécuter.
 
-**G3 — Chaque encre franchit le plancher de son fond déclaré, sur les 33
-thèmes.** C'est la garantie de rendu : elle porte sur ce que le générateur
-produit, jamais sur ce qu'un thème contient. Un thème mal choisi donnera un
-résultat laid ; il ne donnera pas un résultat illisible.
+**G3 — Chaque encre *dérivée* franchit le plancher du fond contre lequel elle a
+été résolue, sur les 33 thèmes.** C'est un test du solveur, pas un audit de la
+feuille : il vérifie que le calcul de §5.1 a fait son travail sur toutes les
+entrées du catalogue. Il ne porte ni sur les valeurs qu'un thème fournit, ni sur
+le mobilier, ni sur ce que l'auteur a écrit après le marqueur.
 
 **G4 — Aucune chaîne d'alias ne dépasse deux sauts.**
 
@@ -435,6 +458,10 @@ Déclassée, pas abandonnée.
   entrée en fond sombre : autant de questions réelles, et aucune n'est ici. Le
   rendu les rend seulement moins urgentes, en cessant de faire dépendre la
   lisibilité de leur réponse.
+- **Elle n'arbitre rien de ce que l'auteur écrit.** Aucun seuil ne s'applique à
+  une surcharge posée après le marqueur, et `audit` informe sans jamais refuser.
+  Le rendu ne promet pas une feuille conforme : il promet de ne pas poser
+  lui-même une couleur illisible sur un fond qu'il connaît.
 - **Elle ne rend pas `#50FA7B` lisible.** Rien ne le peut. Elle lui retire la
   charge de l'être.
 - **Elle n'ouvre pas la structure HTML** ni le format d'entrée.
