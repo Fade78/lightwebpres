@@ -2043,41 +2043,40 @@ aucune n'était lisible autrement qu'en scrutant deux lignes d'aperçu.
 Le soulignement n'est mentionné que lorsqu'il est présent — en annoncer
 l'absence sur chaque carte noierait les axes qui, eux, diffèrent.
 
-**Fidélité de l'aperçu.** L'aperçu est une *miniature*, pas une capture
-d'écran : ses tailles et ses espacements sont délibérément réduits. En
-revanche la **correspondance variable → rôle** doit être identique à
-celle de la feuille de style réelle, et aucune couleur ne doit y être
-figée :
+**L'aperçu est une vraie fiche.** Pas une imitation : `themes-gallery`
+fait passer une maquette écrite au format d'article réel (§4) par
+`parse_markdown_extended()` puis `render_slide()` — les fonctions
+qu'appelle `build` — et lui applique `apply_theme(TEMPLATE_STYLE, slug)`,
+la feuille qu'installe `install --theme`. Aucun code de rendu n'est
+dupliqué, donc aucune divergence n'est possible.
 
-| Rôle | Aperçu | Feuille réelle | Variable |
-|---|---|---|---|
-| fond de page | `.preview` | `body` | `--page` |
-| fond de couverture | `.preview-cover` | `.slide-cover` | `--cover-bg` |
-| texte de couverture | `.preview-cover-title` | `.slide-cover h1` | `--cover-fg` |
-| surface de carte | `.preview-factbox` | `.fact-box` | `--surface` |
-| fond en creux | `.preview-cell--neutral` | `.comparison-table th` | `--sunken` |
-| encre du surlignage | `.preview-factcontent strong` | `.fact-content strong` | `--fact-strong-ink` |
-| couleur du soulignement | `.preview-factcontent strong` | `.fact-content strong` | `--fact-strong-decoration-color` |
+Chaque aperçu est un `<iframe srcdoc>`. Deux raisons, l'une nécessaire :
 
-Passer les variables du thème à l'aperçu ne suffit pas si l'aperçu les
-ignore ensuite : c'est ce qui s'est produit. Le fond de couverture était
-figé à `var(--ink)` et son texte à `#fff`, la fact-box à `#fff`. Sur un
-thème à fond sombre, `--ink` porte la couleur du **texte** : Synthwave
-s'affichait donc en panneau lavande pâle surmonté de texte blanc, au-dessus
-d'une fact-box blanche dont le texte était presque invisible — exactement
-les défauts corrigés dans la feuille réelle, toujours exposés dans la page
-censée montrer ce que donnent les thèmes.
+- La feuille réelle emploie des mesures relatives au **viewport**
+  (`clamp(28px, 4.5vw, 52px)`, `84vw`). Dans la page de la galerie elles
+  se calculeraient sur la fenêtre du lecteur ; dans un iframe elles se
+  calculent sur l'aperçu, comme dans une vraie page.
+- La feuille réelle définit `body`, `h1`, `code`… L'isolement du document
+  évite d'avoir à réécrire ses 135 règles pour les confiner.
 
-Deux conséquences moins évidentes, toutes deux vérifiées par les tests :
+L'aperçu est rendu à 1100 px de large puis réduit géométriquement
+(`transform: scale()`) : une miniature du rendu réel, pas une
+approximation. `srcdoc` conserve l'autonomie de la page — aucune requête
+externe. La galerie pèse de ce fait environ 900 Ko, la feuille de 22 Ko
+étant répétée pour chacun des 33 thèmes ; c'est le prix de la garantie,
+et il a été jugé acceptable pour une page de documentation.
 
-- L'aperçu doit porter **son propre fond de page** (`var(--page)`). Les
-  neutres sont des superpositions translucides : `--cover-bg` vaut
-  `rgba(0, 0, 0, 0.45)` sur un thème sombre, destiné à assombrir la page
-  en dessous. Sans fond propre, ce voile se composait sur la carte claire
-  de la galerie et la couverture ressortait simplement grise.
-- Les cellules de verdict portent aussi leur **marqueur de forme**
-  (§6.1). Un aperçu qui n'en montrerait que la couleur annoncerait une
-  cellule que l'outil ne produit plus.
+**Ce que cette architecture a supprimé.** L'aperçu était auparavant une
+maquette faite main avec ses propres règles `.preview-*`, et une copie
+entretenue à la main ne l'est pas : elle a dérivé deux fois sans que rien
+ne le signale. Elle a peint tous les thèmes à fond sombre avec les voiles
+d'une page claire — surlignage mesuré à 1,00:1, invisible — puis elle a
+composé le chiffre-clé en ligne alignée à gauche, avec une flèche entre
+le chiffre et sa légende que `render_slide()` n'a jamais émise. Les deux
+étaient invisibles pour une suite qui vérifiait la copie contre
+elle-même. Les tests portent désormais sur l'**identité** : le document
+d'aperçu contient exactement la sortie de `render_slide()` et exactement
+la feuille de `apply_theme()`.
 
 En tête de page, une barre de **facettes** (§9.5.3) filtre les aperçus
 par polarité, intensité et teinte. Elle est produite en HTML statique

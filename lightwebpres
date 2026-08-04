@@ -2575,6 +2575,10 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 
 <style>
   :root {
+    /* L'apercu est rendu a 1100px de large puis reduit a la largeur de
+       la carte. Une seule valeur pilote la largeur du cadre et sa
+       hauteur, sinon les deux divergent. */
+    --preview-scale: 0.34;
     --ui-paper: #F6F4EF;
     --ui-ink: #1C1E24;
     --ui-muted: #6B6558;
@@ -2754,163 +2758,28 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 
   /* --- live mock-up of the real lightwebpres UI, driven entirely by --- */
   /* --- the theme's own properties, set inline per card              --- */
-  .preview {
+  /* L'apercu est un iframe portant la VRAIE feuille de style. Il est
+     rendu a une largeur de bureau puis reduit geometriquement : une
+     miniature du rendu reel, pas une imitation. La hauteur du cadre suit
+     l'echelle, sinon le contenu reduit laisserait un vide sous lui. */
+  .preview-frame {
     margin: 14px 18px 0;
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--ui-card-border);
-    /* The page ground, and it has to be here. The neutrals are
-       TRANSLUCENT overlays (§9.5.2): --cover-bg on a dark theme is
-       rgba(0,0,0,0.45), meant to deepen the page underneath it. Without
-       a ground of its own the preview composited that veil against the
-       gallery's own light card instead, and a synthwave cover came out
-       plain grey. In the real page body already carries var(--page);
-       the preview has to carry it too or every overlay lands on the
-       wrong backdrop. */
-    background: var(--page);
+    height: calc(760px * var(--preview-scale));
   }
-  /* Every rule below mirrors the ROLE MAPPING of the real stylesheet:
-     the same custom property feeds the same part of the page. Sizes and
-     spacing are deliberately miniaturized — this is a thumbnail, not a
-     screenshot — but a variable may never be swapped for another, and a
-     colour may never be hard-coded.
-
-     That is not a stylistic preference. This preview used to hard-code
-     var(--ink) as the cover ground and #fff as its text, and #fff again
-     for the fact-box. On a dark-backgrounded theme --dark holds the TEXT
-     colour, so the cover came out as a pale panel with white text on it,
-     and the fact-box as a white block on a black page — the very bugs
-     that were fixed in the real stylesheet, still on display here. The
-     gallery was misrepresenting exactly the themes a reader can least
-     judge from swatches alone. */
-  .preview-cover {
-    background: var(--cover-bg);
-    padding: 16px 15px 15px;
+  .preview {
+    width: 1100px;
+    height: 760px;
+    border: 0;
+    display: block;
+    transform: scale(var(--preview-scale));
+    transform-origin: top left;
   }
-  .preview-tag {
-    display: inline-block;
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--marker);
-  }
-  .preview-cover-title {
-    margin-top: 9px;
-    font-size: 14.5px;
-    font-weight: 800;
-    line-height: 1.25;
-    color: var(--cover-fg);
-  }
-  .preview-body {
-    background: var(--page);
-    padding: 15px;
-  }
-  .preview-tag--muted {
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-  }
-  .preview-h2 {
-    margin-top: 5px;
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--ink);
-    line-height: 1.25;
-  }
-  .preview-summary {
-    margin-top: 5px;
-    font-size: 12px;
-    color: var(--ink-muted);
-    line-height: 1.5;
-  }
-  /* Composition, pas seulement couleurs : la vraie fiche empile le
-     chiffre et sa legende en colonne CENTREE (.highlight, flex-direction
-     column + align-items center + text-align center). L'apercu les
-     alignait a gauche sur une ligne, et intercalait une fleche que le
-     moteur n'emet jamais — il montrait donc une mise en page qui
-     n'existe pas. */
-  .preview-highlight {
-    margin-top: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 4px;
-  }
-  .preview-figure {
-    font-size: 21px;
-    font-weight: 800;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .preview-caption {
-    font-size: 10.5px;
-    color: var(--ink-muted);
-  }
-  .preview-factbox {
-    margin-top: 12px;
-    background: var(--surface);
-    border-left: 4px solid var(--marker);
-    padding: 9px 11px;
-    border-radius: 0 6px 6px 0;
-  }
-  .preview-factlabel {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-  }
-  .preview-factcontent {
-    margin-top: 4px;
-    font-size: 11.5px;
-    color: var(--ink);
-    line-height: 1.4;
-  }
-  .preview-factcontent strong {
-    font-weight: var(--fact-strong-weight);
-    font-style: var(--fact-strong-style);
-    background: var(--fact-strong-highlight);
-    color: var(--fact-strong-ink);
-    text-decoration: var(--fact-strong-decoration);
-    text-decoration-color: var(--fact-strong-decoration-color);
-    text-decoration-thickness: 1.5px;
-    text-underline-offset: 2.5px;
-    padding: 1px 4px;
-    border-radius: 2px;
-  }
-  .preview-table {
-    margin-top: 12px;
-    display: flex;
-    gap: 7px;
-  }
-  .preview-cell {
-    font-size: 10.5px;
-    font-weight: 700;
-    padding: 3px 9px;
-    border-radius: 4px;
-  }
-  .preview-cell--neutral {
-    color: var(--ink-muted);
-    background: var(--sunken);
-  }
-  .preview-cell--green {
-    color: var(--positive);
-    background: var(--sunken);
-  }
-  /* The shape marker too, not just the colour. The real stylesheet
-     gained these for WCAG 1.4.1 (colour is never the sole carrier of
-     meaning); a preview that showed the colour alone would advertise a
-     verdict cell the tool no longer renders. */
-  .preview-cell--green::before { content: "\25CF"; margin-right: 5px; }
-  .preview-cell--neutral::before { content: "\25CB"; margin-right: 5px; }
-
   /* The fact-box emphasis treatment, stated rather than merely applied
-     to the mock-up above (§9.1). Four independent axes a theme sets
-     independently, and the only place they are ever spelled out. */
+     to the preview above (§9.1). Four independent axes, six properties,
+     and the only place they are ever spelled out. */
   .fact-treatment {
     margin: 12px 18px 0;
     font-size: 11.5px;
@@ -3105,34 +2974,54 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   <div class="grid">
 '''
 
+# The gallery's mock-up, written in the real article format (§4) and put
+# through the real parser and the real renderer. It is not a hand-made
+# imitation of a card any more: parse_markdown_extended() and
+# render_slide() are the same functions `build` calls, so the preview
+# cannot drift from what the tool actually produces — the class of defect
+# that let the preview show a left-aligned key figure with an arrow the
+# engine never emits.
+TEMPLATE_THEMES_GALLERY_MOCK = """<!-- lwp:meta -->
+page_title: Theme preview
+nav_title: Theme preview
+nav_desc: Theme preview
+---
+
+<!-- lwp:slide:cover -->
+tag: Chapter 1
+# Sugar is not only a matter of taste
+summary: What changes in the oven, and why the middle stays raw.
+
+---
+
+<!-- lwp:slide -->
+tag: Baking
+## Temperature changes everything
+summary: An oven that is too hot cooks the surface before the centre is ready.
+highlight: 180 °C
+highlight-caption: recommended baking temperature
+fact-label: The takeaway
+source: Baking guide, 2024 edition.
+
+Preheat before you load the oven, **it changes everything**.
+
+<table class="comparison-table"><tr><td>Static oven</td><td class="no">no</td></tr><tr><td>Fan oven</td><td class="yes">yes</td></tr></table>
+"""
+
 TEMPLATE_THEMES_GALLERY_CARD = '''
     <article class="theme-card" data-polarity="{polarity}" data-intensity="{intensity}" data-hue="{hue}" data-name="{slug} {label}">
       <header class="theme-head">
         <h2>{label}</h2>
         <p class="theme-source">{source}</p>
       </header>
-      <div class="preview" style="--marker:{marker};--ink:{ink};--ink-muted:{ink_muted};--page:{page};--accent:{accent};--positive:{positive};--fact-strong-weight:{fact_weight};--fact-strong-style:{fact_style};--fact-strong-highlight:{fact_highlight};--fact-strong-ink:{fact_ink};--fact-strong-decoration:{fact_decoration};--fact-strong-decoration-color:{fact_decoration_color};{overlay_vars}">
-        <div class="preview-cover">
-          <span class="preview-tag">Chapitre 1</span>
-          <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
-        </div>
-        <div class="preview-body">
-          <span class="preview-tag--muted">Cuisson</span>
-          <div class="preview-h2">La temp&eacute;rature change tout</div>
-          <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
-          <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span>
-            <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
-          </div>
-          <div class="preview-factbox">
-            <div class="preview-factlabel">Le rep&egrave;re</div>
-            <div class="preview-factcontent">Pr&eacute;chauffer avant d'enfourner, <strong>&ccedil;a change tout</strong>.</div>
-          </div>
-          <div class="preview-table">
-            <span class="preview-cell preview-cell--neutral">Four statique</span>
-            <span class="preview-cell preview-cell--green">Chaleur tournante</span>
-          </div>
-        </div>
+      <!-- L'apercu EST une vraie fiche : meme parseur, meme renderer,
+           meme feuille de style, dans un iframe pour que les mesures
+           relatives au viewport (clamp(..vw..), 84vw) se calculent sur
+           l'apercu et non sur la fenetre. srcdoc, donc toujours zero
+           dependance externe. -->
+      <div class="preview-frame">
+        <iframe class="preview" title="Apercu du theme {label}" loading="lazy"
+                sandbox srcdoc="{preview_doc}"></iframe>
       </div>
       <!-- Ordre de lecture : fond, puis textes, puis mobilier. Chaque
            entr&eacute;e annonce ce que la couleur FAIT ; le nom de variable ne
@@ -3366,7 +3255,14 @@ def load_language(lang_dir, lang='fr', language_file=None):
     else:
         base = json.loads(LANG_EN)
 
-    lang_file = Path(language_file) if language_file else lang_dir / f'{lang}.json'
+    if language_file:
+        lang_file = Path(language_file)
+    elif lang_dir is None:
+        # No series directory in play (themes-gallery, §11.7): the
+        # embedded pack IS the answer, there is nothing to override with.
+        return base
+    else:
+        lang_file = lang_dir / f'{lang}.json'
     if lang_file.exists():
         try:
             override = json.loads(read_text_file(lang_file))
@@ -5726,6 +5622,41 @@ def cmd_set_theme(target_dir, args):
 # THEMES-GALLERY COMMAND
 # ============================================================================
 
+def build_theme_preview_document(theme_key):
+    """A complete, standalone card document for `theme_key` — the same
+    parser, the same renderer and the same stylesheet a build uses.
+
+    This is what makes the gallery's claim true. The preview used to be a
+    hand-written imitation with its own .preview-* rules, and it drifted
+    twice without anyone noticing: once it painted every dark theme with a
+    light page's overlays, and once it laid the key figure out as a
+    left-aligned row with an arrow between figure and caption — an element
+    render_slide() has never emitted. A copy that has to be kept in step
+    by hand will not be; running the real thing removes the question.
+
+    Rendered inside an iframe by the caller, so the stylesheet's
+    viewport-relative sizes (clamp(.., 4.5vw, ..), 84vw) resolve against
+    the preview instead of the reader's window."""
+    meta, slides, _, _ = parse_markdown_extended(TEMPLATE_THEMES_GALLERY_MOCK)
+    language_pack = load_language(None, 'en')
+    typo_engine = TypoEngine(language_pack)
+    strings = language_pack.get('strings', {})
+
+    body = '\n'.join(
+        render_slide(slide, i, len(slides), typo_engine, strings)
+        for i, slide in enumerate(slides, 1)
+    )
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        f'<style>{apply_theme(TEMPLATE_STYLE, theme_key)}</style>'
+        # The real page scrolls between slides; a static preview should
+        # not, or a card would show a scrollbar it does not have.
+        '<style>html,body{overflow:hidden}.slide{min-height:auto}</style>'
+        f'</head><body>{body}</body></html>'
+    )
+
+
 def cmd_themes_gallery(output_path, args):
     """themes-gallery command — generates a self-contained HTML page
     documenting every THEMES entry (§9.5), built purely from that data so
@@ -5734,19 +5665,13 @@ def cmd_themes_gallery(output_path, args):
 
     cards = []
     for slug, theme in THEMES.items():
-        # Every emphasis property, prefixed for the inline style. The ink
-        # used to be destructured and thrown away here while the preview
-        # rule referenced var(--fact-strong-ink) — so the marker's text
-        # colour was never actually supplied and fell back to inherit.
-        # Passing the whole mapping through makes that class of omission
-        # impossible rather than merely unlikely.
-        fact = {f'fact_{k.replace("-", "_")}': v
-                for k, v in theme_fact_properties(theme).items()}
         facets = theme_facets(theme)
-        # Les voiles aussi : sans eux, un thème à fond sombre s'affiche
-        # dans la galerie avec les surfaces claires du préréglage par
-        # défaut — une carte blanche sur une page noire.
-        overlay = ''.join(f'--{k}:{v};' for k, v in theme_surface_properties(theme).items())
+        # No variables are injected by hand any more: apply_theme() writes
+        # all twenty-one of them into the preview document's own
+        # stylesheet, exactly as it does for an installed series. Every
+        # bug this file has had in the preview came from maintaining a
+        # second copy of that wiring.
+        preview_doc = html_escape(build_theme_preview_document(slug), quote=True)
         # Built from PALETTE_ROLES rather than spelled out in the
         # template, so a role can never be renamed in one place and left
         # behind in the other — which is how the swatches came to
@@ -5762,7 +5687,7 @@ def cmd_themes_gallery(output_path, args):
             for role in PALETTE_ROLES
         )
         cards.append(TEMPLATE_THEMES_GALLERY_CARD.format(
-            overlay_vars=overlay,
+            preview_doc=preview_doc,
             swatches=swatches,
             fact_treatment=fact_treatment_label(theme),
             polarity=facets['polarity'],
@@ -5770,13 +5695,6 @@ def cmd_themes_gallery(output_path, args):
             hue=facets['hue'],
             label=theme['label'],
             source=theme['source'],
-            marker=theme['marker'],
-            ink=theme['ink'],
-            ink_muted=theme['ink-muted'],
-            page=theme['page'],
-            accent=theme['accent'],
-            positive=theme['positive'],
-            **fact,
             note=theme['note'],
             note_good_class=' theme-note--good' if theme.get('note_good') else '',
             slug=slug,

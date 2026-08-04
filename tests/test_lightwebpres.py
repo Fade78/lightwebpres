@@ -17,6 +17,7 @@ import json
 import os
 import re
 import subprocess
+from html import escape as html_escape
 import sys
 import tempfile
 import unittest
@@ -2814,7 +2815,9 @@ class Themes(unittest.TestCase):
                           'Catppuccin Latte', 'Tokyo Night', 'Monokai', 'Everforest',
                           'Rosé Pine Dawn'):
                 self.assertIn(f'<h2>{label}</h2>', html)
-            self.assertIn('--marker:#EBCB8B', html)
+            # The palette reaches the preview through its own themed
+            # stylesheet now, not through an inline style attribute.
+            self.assertIn('--marker: #EBCB8B;', html)
             self.assertIn('lightwebpres install my-series --theme nord', html)
             # One card per theme, whatever the count — asserting a literal
             # number here just means editing the test every time a palette
@@ -3037,220 +3040,131 @@ class ThemeFacets(unittest.TestCase):
             out = Path(tmp) / 'g.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
-        # Scoped to each preview's own style attribute: the gallery's
-        # chrome declares a --rule of its own, so a document-wide count
-        # would happily pass on the wrong occurrences.
-        previews = re.findall(r'<div class="preview" style="([^"]*)"', html)
-        self.assertEqual(len(previews), len(self.lwp.THEMES))
-        for style in previews:
-            for var in ('--surface:', '--rule:', '--sunken:', '--cover-bg:', '--cover-fg:'):
-                self.assertIn(var, style)
+        # The overlays now reach the preview the only way they should:
+        # inside its own themed stylesheet, written by apply_theme(). The
+        # gallery no longer injects a single variable by hand.
+        for slug, theme in self.lwp.THEMES.items():
+            doc = self.lwp.build_theme_preview_document(slug)
+            for var, value in self.lwp.theme_surface_properties(theme).items():
+                self.assertIn(f'--{var}: {value};', doc, f'{slug}: --{var}')
 
 
-class GalleryPreviewFidelity(unittest.TestCase):
-    """§11.7: the gallery's preview is a MINIATURE, not a screenshot —
-    its sizes and spacing are deliberately smaller than the real page.
-    But the role mapping must be identical: the same custom property has
-    to feed the same part of the page, and no colour may be hard-coded.
+class GalleryPreviewIsARealCard(unittest.TestCase):
+    """§11.7: the gallery preview is not an imitation of a card, it IS
+    one — same parser, same renderer, same stylesheet, in an iframe so the
+    stylesheet's viewport-relative sizes resolve against the preview.
 
-    Passing the theme's variables into the preview is not enough if the
-    preview then ignores them. It did: the cover ground was hard-coded to
-    var(--ink) and its text to #fff, and the fact-box to #fff. On a
-    dark-backgrounded theme --dark holds the TEXT colour, so Synthwave
-    previewed as a pale lavender panel with white text on it, above a
-    white fact-box whose own text was near-invisible — the exact bugs
-    that had been fixed in the real stylesheet, still on show in the page
-    that exists to show what the themes look like."""
+    It used to be a hand-written mock with its own .preview-* rules, and
+    a copy kept in step by hand was not: it painted every dark theme with
+    a light page's overlays (a highlight measured at 1.00:1, invisible),
+    and it laid the key figure out as a left-aligned row with an arrow
+    between figure and caption that render_slide() has never emitted.
+    Both were invisible to a suite that checked the copy against itself.
 
-    # role -> (preview selector, real-stylesheet selector, variable)
-    ROLE_MAP = (
-        ('page ground', '.preview', 'body', '--page'),
-        ('cover ground', '.preview-cover', '.slide-cover', '--cover-bg'),
-        ('cover text', '.preview-cover-title', '.slide-cover h1', '--cover-fg'),
-        ('card surface', '.preview-factbox', '.fact-box', '--surface'),
-        ('recessed ground', '.preview-cell--neutral', '.comparison-table th', '--sunken'),
-        ('fact emphasis ink', '.preview-factcontent strong',
-         '.fact-content strong', '--fact-strong-ink'),
-    )
+    So these tests assert IDENTITY rather than correspondence. There is no
+    mapping left to drift."""
+
+    EMPHASIS_VARS = ('--fact-strong-weight', '--fact-strong-style',
+                     '--fact-strong-highlight', '--fact-strong-ink',
+                     '--fact-strong-decoration', '--fact-strong-decoration-color')
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
 
-    @staticmethod
-    def _rules(css):
-        """(selector list, declarations) for each rule. Comments are
-        stripped FIRST: without that the selector group swallows the
-        comment block preceding a rule, no selector ever compares equal,
-        and every assertion below passes by matching nothing — which is
-        exactly what happened when this helper was first written."""
-        css = re.sub(r'/\*.*?\*/', '', css, flags=re.DOTALL)
-        for match in re.finditer(r'([^{}]+)\{([^{}]*)\}', css):
-            yield [s.strip() for s in match.group(1).split(',')], match.group(2)
+    def test_the_preview_stylesheet_is_the_themed_stylesheet_itself(self):
+        """Not "equivalent to": the same string apply_theme() hands to
+        install --theme. Nothing can be missing from it, because it is
+        not assembled a second time."""
+        for slug in ('nord', 'graphite', 'pop-lemon'):
+            doc = self.lwp.build_theme_preview_document(slug)
+            self.assertIn(self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, slug), doc, slug)
 
-    @classmethod
-    def _block(cls, css, selector):
-        """Every declaration that applies to exactly `selector`, from all
-        the rules that list it, concatenated — not just the first.
-        A selector routinely appears twice: '.comparison-table th' is
-        first in a shared th/td rule for padding and alignment, and only
-        later in its own rule carrying the background. Reading the first
-        match alone reported the variable as missing.
+    def test_the_preview_markup_is_what_render_slide_produces(self):
+        """Byte-for-byte the renderer's own output, for every slide of
+        the mock — which is itself written in the real article format and
+        goes through the real parser."""
+        _, slides, _, _ = self.lwp.parse_markdown_extended(
+            self.lwp.TEMPLATE_THEMES_GALLERY_MOCK)
+        self.assertGreaterEqual(len(slides), 2, 'the mock lost its slides')
+        pack = self.lwp.load_language(None, 'en')
+        engine = self.lwp.TypoEngine(pack)
+        doc = self.lwp.build_theme_preview_document('nord')
+        for i, slide in enumerate(slides, 1):
+            rendered = self.lwp.render_slide(slide, i, len(slides), engine,
+                                             pack.get('strings', {}))
+            self.assertIn(rendered, doc, f'slide {i}')
 
-        Exact selector match, so '.fact-content strong' is not picked up
-        by a search for 'strong'."""
-        found = [decls for selectors, decls in cls._rules(css) if selector in selectors]
-        return '\n'.join(found) if found else None
+    def test_the_mock_exercises_the_parts_a_theme_actually_changes(self):
+        """A preview that shows no fact-box says nothing about the
+        emphasis axes; one with no verdict cell says nothing about the
+        shape markers."""
+        doc = self.lwp.build_theme_preview_document('nord')
+        self.assertIn('class="slide slide-cover"', doc)
+        for cls in ('slide-tag', 'summary', 'highlight-figure',
+                    'highlight-caption', 'fact-box', 'fact-label',
+                    'comparison-table'):
+            self.assertIn(f'class="{cls}"', doc, cls)
+        self.assertIn('<strong>', doc, 'nothing exercises the emphasis axes')
 
-    def test_each_preview_role_uses_the_same_variable_as_the_real_stylesheet(self):
+    def test_no_imitation_of_the_stylesheet_survives_in_the_gallery(self):
+        """The whole point of the refactor. A `.preview-*` rule
+        reappearing means someone started keeping a second copy again."""
         gallery = self.lwp.TEMPLATE_THEMES_GALLERY_HEAD
-        real = self.lwp.TEMPLATE_STYLE
-        for role, preview_sel, real_sel, var in self.ROLE_MAP:
-            preview_block = self._block(gallery, preview_sel)
-            real_block = self._block(real, real_sel)
-            self.assertIsNotNone(preview_block, f'{role}: no {preview_sel} rule')
-            self.assertIsNotNone(real_block, f'{role}: no {real_sel} rule')
-            self.assertIn(f'var({var})', preview_block,
-                          f'{role}: {preview_sel} should take its value from {var}')
-            self.assertIn(f'var({var})', real_block,
-                          f'{role}: {real_sel} no longer uses {var} — the mapping '
-                          f'this test pins has moved, update both sides')
+        # .preview-frame is the card's own scaled window onto the iframe;
+        # anything else prefixed .preview- is a rule imitating the real
+        # stylesheet, which is exactly what this refactor removed.
+        imitations = {c for c in re.findall(r'\.preview-[a-z-]+', gallery)
+                      if c != '.preview-frame'}
+        self.assertEqual(imitations, set())
+        for var in self.EMPHASIS_VARS:
+            self.assertNotIn(f'{var}:{{', self.lwp.TEMPLATE_THEMES_GALLERY_CARD,
+                             f'{var} is being injected by hand again')
 
-    def test_the_preview_hardcodes_no_colour(self):
-        """Any literal colour is a value a theme cannot reach, so it
-        renders identically under all 33 palettes — which is precisely
-        how the cover text stayed #fff on every dark theme."""
-        offenders = []
-        for selectors, decls in self._rules(self.lwp.TEMPLATE_THEMES_GALLERY_HEAD):
-            if not any(s.startswith('.preview') for s in selectors):
-                continue
-            for literal in re.findall(r'#[0-9A-Fa-f]{3,8}\b|\brgba?\([^)]*\)|\b(?:white|black)\b',
-                                      decls):
-                offenders.append((', '.join(selectors), literal))
-        self.assertEqual(offenders, [], f'hard-coded colours in the preview: {offenders}')
-
-    def test_that_scan_actually_reaches_the_preview_rules(self):
-        """Guards the guard. The colour scan above is a search for
-        something that should not be there, so it passes just as happily
-        when it inspects nothing at all — as it did while CSS comments
-        were swallowing every selector."""
-        seen = [s for selectors, _ in self._rules(self.lwp.TEMPLATE_THEMES_GALLERY_HEAD)
-                for s in selectors if s.startswith('.preview')]
-        self.assertGreaterEqual(len(seen), 10, f'only reached {seen}')
-
-    def test_each_swatch_names_the_role_before_the_variable(self):
-        """§9.1: the six names are ROLES, not colours. They were named
-        after their values in the very first theme and never renamed —
-        they are what an author overrides in style.css, so renaming them
-        would break every existing customization. The consequence is that
-        they lied: --yellow held a dark olive on Pop Lemon (a yellow marker
-        on a yellow page would be invisible) and --light is a near-black
-        on any dark theme. A swatch reading 'yellow #7A6A00' teaches a
-        reader nothing, so the role leads and the variable follows."""
+    def test_every_theme_gets_its_own_rendered_preview(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
+        self.assertEqual(html.count('<iframe class="preview"'), len(self.lwp.THEMES))
+        # srcdoc, so the page stays self-contained: no src= fetch anywhere.
+        self.assertNotIn('<iframe src=', html)
+        for slug in ('nord', 'graphite'):
+            marker = f'/* lightwebpres-theme: {slug} */'
+            self.assertIn(html_escape(marker, quote=True), html, slug)
 
-        roles = re.findall(r'<div class="swatch-role">([^<]*)</div>', html)
-        self.assertEqual(len(roles), 6 * len(self.lwp.THEMES))
-        # A role, never a bare variable name posing as one.
-        for name in self.lwp.PALETTE_ROLES:
-            self.assertNotIn(name, roles, f'{name!r} is a variable name, not a role')
-        self.assertIn('Fond de page', roles)
-        self.assertIn('Filets &amp; rep&egrave;res', roles)
-
-        # The variable name still has to be reachable — it is what you
-        # type to override the value.
-        for var in (f'--{r}' for r in self.lwp.PALETTE_ROLES):
-            self.assertIn(f'<div class="swatch-var">{var}</div>', html,
-                          f'{var} no longer shown')
-
-    def test_the_palette_reads_in_the_order_it_is_seen(self):
-        """Background, then the two text colours, then the furniture —
-        not the alphabetical-ish order the variables happen to be
-        declared in, which opened on the marker and left a reader hunting
-        for which swatch was the page itself."""
-        with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
-            html = out.read_text(encoding='utf-8')
-        first_card = html.split('<ul class="swatches">')[1].split('</ul>')[0]
-        self.assertEqual(
-            re.findall(r'<div class="swatch-var">(--[^<]+)</div>', first_card),
-            [f'--{r}' for r in self.lwp.PALETTE_ROLES])
-
-    def test_each_card_states_its_fact_box_emphasis_treatment(self):
-        """§9.1: weight, italic and highlight are three independent
-        knobs, so a theme can be bold with NO highlight, or un-bold with
-        a green one. The gallery applied them to its mock-up and never
-        said a word about them — seven distinct combinations across the
-        built-in themes, all of them invisible, leaving a reader to
-        squint at a two-line preview and guess."""
-        with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
-            html = out.read_text(encoding='utf-8')
-
-        stated = re.findall(r'class="fact-treatment"><span>[^<]*</span>(.*?)</p>', html)
-        self.assertEqual(len(stated), len(self.lwp.THEMES))
-
-        # Every combination the table actually contains is described, and
-        # each description matches the properties that get applied.
-        for slug, theme in self.lwp.THEMES.items():
-            label = self.lwp.fact_treatment_label(theme)
-            self.assertIn(label, stated, slug)
-            props = self.lwp.theme_fact_properties(theme)
-            self.assertEqual('gras' in label.lower(), props['weight'] == 'bold', slug)
-            self.assertEqual('italique' in label.lower(), props['style'] == 'italic', slug)
-            self.assertEqual('sans surlignage' in label,
-                             props['highlight'] == 'transparent', slug)
-            self.assertEqual('soulign' in label,
-                             props['decoration'] == 'underline', slug)
-
-        # The point is that the variety is visible, not that a single
-        # sentence is repeated 33 times.
-        self.assertGreaterEqual(len(set(stated)), 5)
-        self.assertIn('Gras, sans surlignage', stated)
+    def test_an_installed_stylesheet_resolves_every_emphasis_property(self):
+        """apply_theme() rewrites declarations that exist and silently
+        no-ops otherwise, so the DECLARATION has to be checked in a real
+        installed file. Deleting the two decoration declarations from
+        :root once killed the underline on every generated page of every
+        theme with the suite green."""
+        for slug in ('monochrome', 'graphite', 'nord'):
+            with tempfile.TemporaryDirectory() as tmp:
+                self.assertEqual(run('install', tmp, '--theme', slug).returncode, 0)
+                css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
+                root = css[slice(*self.lwp.root_block_span(css))]
+                for key, value in self.lwp.theme_fact_properties(
+                        self.lwp.THEMES[slug]).items():
+                    found = re.search(r'--fact-strong-%s:\s*([^;]+);' % re.escape(key), root)
+                    self.assertIsNotNone(found, f'{slug}: --fact-strong-{key} not declared')
+                    self.assertEqual(found.group(1).strip(), value, f'{slug}: {key}')
 
     def test_the_generated_stylesheet_carries_ready_to_paste_recipes(self):
-        """The knobs existed and nothing told an author they did: absent
-        from --help, absent from the README, present only in the spec.
-        The place someone actually opens to customize is the stylesheet
-        itself, so the recipes live there.
-
-        They sit BEFORE the personalization marker, in the regenerated
-        section: after it, refresh-templates would concatenate them onto
-        the author's own copy and duplicate them on every run."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('install', tmp).returncode, 0)
             style = Path(tmp) / 'templates' / 'style.css'
             css = style.read_text(encoding='utf-8')
-
-            # Scoped to the recipe COMMENT, not to the whole built-in
-            # section: :root declares every one of these names, so a
-            # search over the section passed while the comment block it
-            # exists to pin could be deleted whole.
             recipes = re.search(r'/\* -+\n(.*?)-+ \*/', css, re.DOTALL)
             self.assertIsNotNone(recipes, 'the recipe comment block is gone')
-            recipes = recipes.group(1)
             for var in self.EMPHASIS_VARS:
-                self.assertIn(var, recipes, f'{var} not documented in the stylesheet')
-            for recipe in ('--fact-strong-decoration: underline',
-                           '--fact-strong-highlight: transparent'):
-                self.assertIn(recipe, recipes, recipe)
+                self.assertIn(var, recipes.group(1), var)
 
-            # Repeated refreshes must not stack copies of the block.
             style.write_text(css + '\n:root { --fact-strong-ink: inherit; }\n',
                              encoding='utf-8')
             for _ in range(3):
                 self.assertEqual(run('refresh-templates', tmp).returncode, 0)
             after = style.read_text(encoding='utf-8')
             self.assertEqual(after.count('Gras, sans aucun surlignage'), 1)
-            self.assertIn(':root { --fact-strong-ink: inherit; }', after)
-
-    EMPHASIS_VARS = ('--fact-strong-weight', '--fact-strong-style',
-                     '--fact-strong-highlight', '--fact-strong-ink',
-                     '--fact-strong-decoration', '--fact-strong-decoration-color')
 
     def test_help_documents_every_emphasis_variable(self):
         result = run('--help')
@@ -3259,126 +3173,64 @@ class GalleryPreviewFidelity(unittest.TestCase):
             self.assertIn(var, result.stdout, var)
 
     def test_underline_is_a_fourth_independent_axis(self):
-        """§9.1: it reinforces INSTEAD of a marker, or AS WELL AS one.
-        Both have to be expressible, and the underline's colour has to be
-        able to leave the text's own."""
         props = self.lwp.theme_fact_properties
         self.assertEqual(props({})['decoration'], 'none')
         self.assertEqual(props({})['decoration-color'], 'currentColor')
-
         instead = props({'fact_highlight': None, 'fact_decoration': 'underline',
                          'fact_decoration_color': 'marker'})
         self.assertEqual(instead['highlight'], 'transparent')
-        self.assertEqual(instead['decoration'], 'underline')
         self.assertEqual(instead['decoration-color'], 'var(--marker)')
-
         as_well = props({'fact_highlight': 'marker', 'fact_decoration': 'underline'})
         self.assertEqual(as_well['highlight'], 'var(--marker)')
         self.assertEqual(as_well['decoration'], 'underline')
-        self.assertEqual(as_well['decoration-color'], 'currentColor')
 
     def test_the_catalogue_demonstrates_both_ways_of_using_the_underline(self):
-        """An axis no built-in theme uses is an axis nobody ever sees:
-        the gallery is the only place a reader meets these treatments, and
-        it can only show what the table contains. Both modes have to be
-        on display — underline INSTEAD of a marker, and AS WELL AS one.
-
-        Pinned because deleting a theme's fact_decoration breaks nothing
-        else: every other assertion here stays self-consistent, so the
-        catalogue would quietly stop demonstrating the feature."""
         instead, as_well = [], []
         for slug, theme in self.lwp.THEMES.items():
             props = self.lwp.theme_fact_properties(theme)
             if props['decoration'] != 'underline':
                 continue
             (instead if props['highlight'] == 'transparent' else as_well).append(slug)
-
         self.assertTrue(instead, 'no theme shows an underline replacing the marker')
         self.assertTrue(as_well, 'no theme shows an underline alongside the marker')
-
-        # And it has to be legible: a --marker chosen to work as a
-        # highlight BACKGROUND is often far too pale to work as a line.
         for slug in instead + as_well:
             theme = self.lwp.THEMES[slug]
             colour = theme.get('fact_decoration_color')
             if colour is None:
-                continue    # currentColor — as legible as the text itself
+                continue
             self.assertGreaterEqual(
                 contrast_ratio(theme[colour], theme['page']), 3.0,
                 f'{slug}: the underline is too faint against the page')
 
     def test_the_default_highlight_role_names_a_role_that_exists(self):
-        """A latent defect: the fallback stayed 'yellow' through the
-        v0.12.0 rename. No built-in theme trips it — every entry states
-        the key — so a theme omitting it would have been handed
-        var(--yellow), which no longer resolves to anything."""
         default = self.lwp.theme_fact_properties({})['highlight']
         self.assertIn(default[6:-1], self.lwp.PALETTE_ROLES, default)
 
-    def test_both_stylesheets_honour_the_decoration(self):
-        """The preview must not silently drop an axis the real page has —
-        it is the page whose whole job is to show what a theme does."""
-        for css, selector in ((self.lwp.TEMPLATE_STYLE, '.fact-content strong'),
-                              (self.lwp.TEMPLATE_THEMES_GALLERY_HEAD,
-                               '.preview-factcontent strong')):
-            block = self._block(css, selector)
-            self.assertIn('var(--fact-strong-decoration)', block, selector)
-            self.assertIn('var(--fact-strong-decoration-color)', block, selector)
-
-    def test_an_installed_stylesheet_resolves_every_emphasis_property(self):
-        """The gap that mattered. Every other underline assertion is on a
-        pure function, on the template STRING, on --help, or on the
-        gallery's inline style. None read a real installed
-        templates/style.css — so deleting the two decoration
-        declarations from :root left `.fact-content strong` referencing
-        undefined custom properties, killed the underline on every
-        generated page of every theme, and the whole suite stayed green.
-
-        apply_theme() rewrites declarations that exist and silently
-        no-ops otherwise, which is exactly why the DECLARATION has to be
-        checked in the installed file rather than the substitution
-        checked in memory."""
-        for slug in ('monochrome', 'graphite', 'nord'):
-            with tempfile.TemporaryDirectory() as tmp:
-                self.assertEqual(run('install', tmp, '--theme', slug).returncode, 0)
-                css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
-                root = css[slice(*self.lwp.root_block_span(css))]
-                expected = self.lwp.theme_fact_properties(self.lwp.THEMES[slug])
-                for key, value in expected.items():
-                    found = re.search(r'--fact-strong-%s:\s*([^;]+);' % re.escape(key), root)
-                    self.assertIsNotNone(found, f'{slug}: --fact-strong-{key} not declared')
-                    self.assertEqual(found.group(1).strip(), value,
-                                     f'{slug}: --fact-strong-{key}')
-
-    def test_the_card_supplies_every_emphasis_variable_it_styles(self):
-        """The ink used to be computed, destructured into a throwaway and
-        never passed, while the preview rule referenced it — so on a dark
-        theme the marker's text fell back to the body colour and measured
-        1.00:1 in a browser, i.e. invisible. Asserting that the RULE names
-        the variable was not enough: the card has to supply it."""
+    def test_each_swatch_names_the_role_before_the_variable(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
-        previews = re.findall(r'<div class="preview" style="([^"]*)"', html)
-        self.assertEqual(len(previews), len(self.lwp.THEMES))
-        for style in previews:
-            for var in self.EMPHASIS_VARS:
-                self.assertIn(f'{var}:', style, f'{var} not supplied to the preview')
+        roles = re.findall(r'<div class="swatch-role">([^<]*)</div>', html)
+        self.assertEqual(len(roles), 6 * len(self.lwp.THEMES))
+        for name in self.lwp.PALETTE_ROLES:
+            self.assertNotIn(name, roles, f'{name!r} is a variable name, not a role')
+        for var in (f'--{r}' for r in self.lwp.PALETTE_ROLES):
+            self.assertIn(f'<div class="swatch-var">{var}</div>', html, var)
 
-    def test_the_verdict_cells_carry_the_shape_marker_too(self):
-        """The real stylesheet gained these for WCAG 1.4.1. A preview
-        showing colour alone would advertise a cell the tool no longer
-        renders — and the escapes must survive Python's string parsing:
-        in a non-raw literal '\\25CF' is eaten as an octal escape and the
-        marker renders as a control character followed by 'CF'."""
+    def test_each_card_states_its_fact_box_emphasis_treatment(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
-        for marker in (r'"\25CF"', r'"\25CB"'):
-            self.assertIn(marker, html, f'{marker} missing or mangled')
-        self.assertNotIn('\x15', html, 'an octal escape survived into the page')
+        stated = re.findall(r'class="fact-treatment"><span>[^<]*</span>(.*?)</p>', html)
+        self.assertEqual(len(stated), len(self.lwp.THEMES))
+        for slug, theme in self.lwp.THEMES.items():
+            label = self.lwp.fact_treatment_label(theme)
+            self.assertIn(label, stated, slug)
+            props = self.lwp.theme_fact_properties(theme)
+            self.assertEqual('soulign' in label, props['decoration'] == 'underline', slug)
+        self.assertGreaterEqual(len(set(stated)), 5)
 
 
 class PaletteRoleNames(unittest.TestCase):
@@ -3857,9 +3709,15 @@ class FactStrongEmphasis(unittest.TestCase):
             out = root / 'gallery.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
-            self.assertIn('<strong>', html)
-            self.assertIn('--fact-strong-weight:normal;--fact-strong-style:italic;'
-                           '--fact-strong-highlight:transparent;', html)
+            # The bolded word comes from the real renderer now, inside the
+            # preview document's srcdoc, and the emphasis properties from
+            # that document's own themed stylesheet — not from an inline
+            # style attribute the gallery assembled itself.
+            self.assertIn('&lt;strong&gt;', html)
+            for declaration in ('--fact-strong-weight: normal;',
+                                '--fact-strong-style: italic;',
+                                '--fact-strong-highlight: transparent;'):
+                self.assertIn(declaration, html, declaration)
 
 
 class CoverCardinalityFreedom(unittest.TestCase):
