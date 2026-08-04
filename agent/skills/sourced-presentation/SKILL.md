@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up: half these rules cover what an edit breaks without saying so. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.5"
+  version: "0.6"
 ---
 
 # Sourced presentation — method
@@ -13,7 +13,7 @@ Two forms. A **reversal** takes a widespread belief and confronts it with what i
 
 The deck is what gets read; the article is what makes it defensible. **The article is the source of the cards, never the reverse** — a card with no backing in the article is an assertion with no file behind it.
 
-**The series sets the thresholds; this sets the method.** Audience, register, lengths, field syntax and numbering belong to the series specification: a written series rule overrides one here, and what is written nowhere is decided here.
+**The series sets the thresholds; this sets the method.** Audience, register, lengths, field syntax, numbering, the placement of hedging, what counts as one fact: these and their like belong to the series specification. A written series rule overrides one here, and what is written nowhere is decided here.
 
 *What follows is what had to be discovered — not general craft, which you already have. Rules that look deducible from a stated principle mostly are not: they look that way once known. Compressing them out is the standing temptation here.*
 
@@ -37,7 +37,7 @@ Each step writes to disk before the next. **Steps 6 and 7 each catch defects the
 
 ## The file of facts
 
-**No fact enters the article without a dated verdict** — confirmed, qualified, alleged, rejected. Record rejections, or they come back next session. Date them, or a fact checked six months ago enters as though it were current.
+**No fact enters the article without a dated verdict** — confirmed, qualified, alleged, rejected. *What counts as one fact rather than two is the series' to fix, and everything downstream depends on it: a card carries one, a deck announces how many.* Record rejections, or they come back next session. Date them, or a fact checked six months ago enters as though it were current.
 
 **A commissioned synthesis is a list of leads, not a file.** It invents specifics — venue, year, sample size — and contradicts itself between body and notes, on central claims. Re-check every figure at the source.
 
@@ -91,7 +91,7 @@ Written before searching. It carries:
 
 **Two placements for hedging, and the series chooses.** *Distributed*: every claim carries its degree of certainty where it stands, and a limits section consolidates only what cuts across the file. *Concentrated*: the body states plainly and one section holds every reservation — which suits a series whose cards must not moderate one another, since a card carrying its own hedge moderates the deck.
 
-**Under either placement, a limits section never walks back what the body overstated**, and the status of a claim — alleged, measured, declared — is not hedging: it travels with the claim, always. *Hedging every sentence asserts nothing; hedging only at the end asserts too much, and takes it back where fewer readers go.*
+**Under either placement, a limits section never walks back what the body overstated**, and the status of a claim — alleged, measured, declared — is not hedging: it travels with the claim, always. *The boundary is operational: a card says « a complaint alleges », never « though this rests on one study ». The first is what the fact is; the second is what the article thinks of it.* *Hedging every sentence asserts nothing; hedging only at the end asserts too much, and takes it back where fewer readers go.*
 
 **The article's scope clearly exceeds the deck's**, and it develops every fact a card will carry. An article that merely expands its cards gives them nothing to stand on.
 
@@ -151,9 +151,9 @@ The reader **enters anywhere**: skims, skips, returns. **A card assumes nothing 
 
 **Between the opening and the close, the cards escalate by default**: what the reader lives, then the mechanism behind it, then what has been measured, then what is structural. Order carries the argument — a deck sorted by how strong each fact is reads as a list. **When the subject imposes another order** — a legal threshold before the mechanism it governs — that order prevails.
 
-**The deck closes on agency, never on a threat.** That last card carries a fact: a real right, a setting that exists, a check within the reader's reach — never an exhortation, which cannot be verified, and which the reader can only obey or refuse. *When no lever exists, saying so beats inventing one.*
+**The last card that carries a fact is one of agency, never a threat.** *Apparatus may follow it — a series index, the long-form article itself — and that is fine: the reader who scans stops at the last card that says something.* It carries a fact: a real right, a setting that exists, a check within the reader's reach — never an exhortation, which cannot be verified, and which the reader can only obey or refuse. *When no lever exists, saying so beats inventing one.*
 
-**An announced count is exact or absent.** Recount at every addition, and write down what counts as a fact.
+**An announced count is exact, and says what it counts.** A tool may display a second count of its own, over a different set — apparatus included — and the two will never coincide. Recount at every addition.
 
 ## The re-readings
 
@@ -161,11 +161,11 @@ Four passes, none replacing another.
 
 **The article alone**, read continuously, after any series of edits including purely lexical ones. Pattern checks skim usefully; **what the reading catches is not locally detectable** — a duplicate, a broken sequence, a reference gone stale after a title changed elsewhere. Editing by successive replacement produces duplicates mechanically, each insertion ignoring its neighbour.
 
-**The cards, one by one**, against the card rules and the deck composition.
+**The cards, one by one**, against the card rules and the deck composition — and the article against the list of what it never does, self-certification first, since that one reforms despite its rule.
 
-**At least one pass runs without the draft in view, from the sources alone.** Re-reading one's own text recognises what it meant to say; reading from the sources finds what it failed to say.
+**At least one pass runs without the draft in view, from the sources alone.** Re-reading one's own text recognises what it meant to say; reading from the sources finds what it failed to say. *This is not step 6 of the chain: that one asks whether each written claim matches its source, this one asks what the sources hold that the article never used. Verifying and finding an omission are different operations, and doing one does not do the other.*
 
-**The cross-check.** Three questions. Is every figure in a card found in the article? Is every card as cautious as the article, given that shortening a fact hardens it? Is every claim a card repeats actually sourced in the article? Unsourced claims surface here; in the article alone they blend into referenced text.
+**The cross-check.** Three questions. Is every figure in a card found in the article? Does any card assert more than the article does, limits included — shortening a fact hardens it? Is every claim a card repeats actually sourced in the article? Unsourced claims surface here; in the article alone they blend into referenced text.
 
 ## What breaks silently
 
