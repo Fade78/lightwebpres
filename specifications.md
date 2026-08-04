@@ -1617,6 +1617,38 @@ Avant de reconstruire la partie intégrée du fichier (§9.4),
 - Marqueur absent : comportement inchangé, thème par défaut (cas déjà
   couvert par §9.4).
 
+#### 9.5.5 Le champ `note` d'un thème est du texte nu
+
+Chaque entrée de `THEMES` porte une `note`, et elle a **deux
+consommateurs aux besoins opposés** : `themes` (§11.9) l'imprime dans un
+terminal, `themes-gallery` (§11.7) la place dans une page HTML.
+
+Elle est stockée **en texte nu**, en UTF-8, et c'est la galerie qui
+convertit — jamais l'inverse. Le sens de conversion n'est pas
+indifférent : un terminal ne sait pas rendre du balisage, alors qu'on
+peut toujours produire du HTML à partir de texte. Le stockage prend donc
+la forme qui se dégrade le mieux.
+
+Jusqu'à la v0.12.1 c'était l'inverse — la note était écrite en HTML de
+galerie et nettoyée à la volée pour le terminal. Le nettoyage ne retirait
+que les balises, et les entités caractères, qui sont l'autre moitié du
+balisage, arrivaient telles quelles à l'écran sur huit thèmes. Un
+nettoyage énumère ce qu'il connaît déjà : le balisage ajouté ensuite
+serait reparti à l'écran de la même façon. Signalé depuis un projet
+utilisateur.
+
+Une note peut contenir **une seule** forme de balisage, l'apostrophe
+inverse autour d'un nom de variable — la syntaxe de code en ligne du
+format lui-même (§6.1) —, et `note_to_html()` l'y convertit après avoir
+échappé `&`, `<` et `>`. L'ordre est normatif : échapper d'abord, puis
+convertir. Une note est du contenu, jamais du balisage, et le seul élément
+qu'elle peut produire est le `<code>` que ses propres apostrophes
+demandent.
+
+Verrouillé par test **à la source** — aucune note ne contient `<`, `>`
+ni d'entité — et non sur l'affichage : c'est le stockage qui est la
+règle, l'affichage n'en est que la conséquence.
+
 ---
 
 ## 10. Pipeline GitLab CI

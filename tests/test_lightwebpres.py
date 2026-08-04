@@ -3343,6 +3343,50 @@ class ThemesCommand(unittest.TestCase):
     def setUp(self):
         self.lwp = load_lightwebpres_module()
 
+    def test_a_note_is_plain_text_at_the_source(self):
+        """Reported from the field: `themes` printed &ldquo; at the reader
+        on eight themes. The notes were stored as gallery HTML and cleaned
+        on the way to the terminal, and the cleaning stripped tags only —
+        entities were the other half of the markup and went straight
+        through. Cleaning enumerates what it already knows about, so the
+        next markup added would have leaked too. Storage is plain text
+        now and the conversion happens where markup is wanted, so this
+        test guards the SOURCE, not the printout."""
+        for slug, theme in self.lwp.THEMES.items():
+            note = theme['note']
+            self.assertNotIn('<', note, slug)
+            self.assertNotIn('>', note, slug)
+            self.assertNotRegex(note, r'&[a-zA-Z]+;|&#\d+;', slug)
+
+    def test_the_terminal_listing_shows_no_markup_of_any_kind(self):
+        result = run('themes')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotRegex(result.stdout, r'&[a-zA-Z]+;|&#\d+;')
+        self.assertNotIn('<code>', result.stdout)
+        # The variable names a note quotes must survive, or stripping the
+        # markup would have taken the content with it.
+        self.assertIn('--page', result.stdout)
+
+    def test_the_gallery_still_gets_the_markup_the_page_needs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+        self.assertIn('<code>--ink</code>', html)
+        self.assertIn('<code>--page</code>', html)
+
+    def test_a_note_cannot_smuggle_html_into_the_gallery(self):
+        """note_to_html escapes before it converts, so a note is content
+        and never markup — the only tag it can produce is the <code> its
+        own backticks ask for."""
+        f = self.lwp.note_to_html
+        self.assertEqual(f('a < b & c > d'), 'a &lt; b &amp; c &gt; d')
+        self.assertEqual(f('<script>x</script>'),
+                         '&lt;script&gt;x&lt;/script&gt;')
+        self.assertEqual(f('set `--page` first'),
+                         'set <code>--page</code> first')
+        self.assertEqual(f('`<b>`'), '<code>&lt;b&gt;</code>')
+
     def test_bare_listing_names_every_theme_with_its_facets(self):
         result = run('themes')
         self.assertEqual(result.returncode, 0, result.stderr)

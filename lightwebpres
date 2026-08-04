@@ -234,7 +234,7 @@ THEMES = {
         'marker': '#EBCB8B', 'ink': '#2E3440', 'ink-muted': '#4C566A',
         'page': '#ECEFF4', 'accent': '#BF616A', 'positive': '#A3BE8C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "A deliberately desaturated &ldquo;arctic&rdquo; palette — the yellow (nord13) stays mustard, never fluorescent.",
+        'note': "A deliberately desaturated “arctic” palette — the yellow (nord13) stays mustard, never fluorescent.",
         'note_good': False,
     },
     'dracula': {
@@ -242,7 +242,7 @@ THEMES = {
         'marker': '#F1FA8C', 'ink': '#282A36', 'ink-muted': '#6272A4',
         'page': '#F8F8F2', 'accent': '#FF5555', 'positive': '#50FA7B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': "A palette designed for a dark background — <code>--page</code> borrows Dracula&rsquo;s text-on-black here, for want of an official light one.",
+        'note': "A palette designed for a dark background — `--page` borrows Dracula’s text-on-black here, for want of an official light one.",
         'note_good': False,
     },
     'solarized': {
@@ -266,7 +266,7 @@ THEMES = {
         'marker': '#DF8E1D', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
         'page': '#EFF1F5', 'accent': '#D20F39', 'positive': '#40A02B',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'marker',
-        'note': "The only light-background-first palette here with a true green — <code>--ink</code> is a slate blue, not a pure black (a less striking cover slide).",
+        'note': "The only light-background-first palette here with a true green — `--ink` is a slate blue, not a pure black (a less striking cover slide).",
         'note_good': False,
     },
     'tokyo-night': {
@@ -274,7 +274,7 @@ THEMES = {
         'marker': '#E0AF68', 'ink': '#1A1B26', 'ink-muted': '#565F89',
         'page': '#E1E2E7', 'accent': '#F7768E', 'positive': '#9ECE6A',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
-        'note': "Tokyo Night is nocturnal by nature — <code>--page</code> is borrowed from its official sister variant &ldquo;Day&rdquo;, not from the Night palette itself.",
+        'note': "Tokyo Night is nocturnal by nature — `--page` is borrowed from its official sister variant “Day”, not from the Night palette itself.",
         'note_good': False,
     },
     'monokai': {
@@ -282,7 +282,7 @@ THEMES = {
         'marker': '#E6DB74', 'ink': '#272822', 'ink-muted': '#75715E',
         'page': '#F8F8F2', 'accent': '#F92672', 'positive': '#A6E22E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "Among the most vivid greens and yellows here. No official light variant — <code>--page</code> reuses the text-on-black, like Dracula.",
+        'note': "Among the most vivid greens and yellows here. No official light variant — `--page` reuses the text-on-black, like Dracula.",
         'note_good': False,
     },
     'everforest': {
@@ -290,7 +290,7 @@ THEMES = {
         'marker': '#DFA000', 'ink': '#2D353B', 'ink-muted': '#859289',
         'page': '#FDF6E3', 'accent': '#F85552', 'positive': '#A7C080',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': "Sage green is the palette&rsquo;s signature colour — the strongest semantic anchor here for the <code>--positive</code> role. Official light+dark pairing.",
+        'note': "Sage green is the palette’s signature colour — the strongest semantic anchor here for the `--positive` role. Official light+dark pairing.",
         'note_good': True,
     },
     'rose-pine': {
@@ -298,7 +298,7 @@ THEMES = {
         'marker': '#EA9D34', 'ink': '#464261', 'ink-muted': '#797593',
         'page': '#FAF4ED', 'accent': '#B4637A', 'positive': '#6D8F89',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
-        'note': "The softest of the set — <code>--ink</code> is a muted plum rather than a true black, and <code>--positive</code> (&ldquo;leaf&rdquo;) leans teal.",
+        'note': "The softest of the set — `--ink` is a muted plum rather than a true black, and `--positive` (“leaf”) leans teal.",
         'note_good': False,
     },
     # --- Original palettes: higher-contrast, monochrome, or pop ---
@@ -342,7 +342,7 @@ THEMES = {
         # independent. The line stays in currentColor: on a theme that
         # rules out hue, detaching it by colour would make no sense.
         'fact_decoration': 'underline',
-        'note': "No colour anywhere. A table&rsquo;s verdicts then rest on weight, opacity and shape markers — and it works. Fact-box bold combines highlight and underline: when hue is ruled out, emphasis goes through shape.",
+        'note': "No colour anywhere. A table’s verdicts then rest on weight, opacity and shape markers — and it works. Fact-box bold combines highlight and underline: when hue is ruled out, emphasis goes through shape.",
         'note_good': True,
     },
     'graphite': {
@@ -730,6 +730,21 @@ def theme_surface_properties(theme):
     their keys exactly — that is what lets apply_theme() substitute one
     for the other without knowing which polarity it is handling."""
     return SURFACE_PRESETS[bool(theme.get('dark_background', False))]
+
+
+def note_to_html(note):
+    """§9.5.5 — a theme note is stored as plain text, because it has two
+    consumers with opposite needs: `themes` prints it to a terminal, and
+    themes-gallery puts it in a page. Plain text is the safe default of
+    the two — a terminal cannot render markup, while HTML can always be
+    produced from text. The reverse arrangement shipped until v0.12.1 and
+    leaked `&ldquo;` to the terminal on eight themes.
+
+    So: escape what HTML reserves, then honour the one piece of markup a
+    note needs, `backticks` for a variable name, in the format's own
+    inline-code syntax."""
+    out = (note.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
+    return re.sub(r'`([^`]+)`', r'<code>\1</code>', out)
 
 
 def theme_fact_properties(theme):
@@ -5534,10 +5549,13 @@ def cmd_themes(args):
     for slug, theme, facets in matches:
         trio = '/'.join((facets['polarity'], facets['intensity'], facets['hue']))
         print(f'  {slug}  [{trio}]')
-        # The notes are written for the gallery, so they carry <code>
-        # markup. Strip it rather than print angle brackets at someone.
-        note = re.sub(r'<[^<>]+>', '', theme['note'])
-        for line in textwrap.wrap(f'{theme["label"]} — {note}', width=72):
+        # A note is stored as plain text, so it prints as-is. It used to
+        # be stored as gallery HTML and cleaned here, which leaked every
+        # character entity to the terminal — cleaning enumerates what it
+        # already knows about, so the next markup added would have leaked
+        # too. The conversion now lives at the one place that needs
+        # markup (§9.5.5).
+        for line in textwrap.wrap(f'{theme["label"]} — {theme["note"]}', width=72):
             print(f'      {line}')
         print()
 
@@ -5702,7 +5720,7 @@ def cmd_themes_gallery(output_path, args):
             hue=facets['hue'],
             label=theme['label'],
             source=theme['source'],
-            note=theme['note'],
+            note=note_to_html(theme['note']),
             note_good_class=' theme-note--good' if theme.get('note_good') else '',
             slug=slug,
         ))
