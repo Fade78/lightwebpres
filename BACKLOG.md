@@ -317,6 +317,20 @@ removes the objection the entry was weighing against option 3.
 
 ## B6 — The slide-progress dots are below 3:1 everywhere — OPEN
 
+**Narrowed by measurement (B9, 2026-08-04): there is no single-value fix,
+for either dot.** The revision proposed one opaque grey (`#7A7A7A`) for
+the resting dots, reported as clearing 3:1 on 31 themes of 33. Re-measured
+against every theme's real page and cover ground, compositing the
+translucent cover overlays properly, it **fails on 12 of 33**, worst
+1.79:1 on `pop-lagoon`. The cause is structural and is the same one that
+governs the borrowed accents: a mid-grey cannot clear 3:1 against a
+*mid-luminance* ground, and the whole `pop` family has saturated
+mid-luminance grounds. The active dot was already known to be insoluble
+this way. So the only real fix is the one below — give the row a ground of
+its own (`nav-dots.bg`, `nav-dots.rule-fg`, `nav-dots.pad`) — and the
+alternative of one hand-picked value per theme is a 33-line patch that
+would have to be re-derived every time a ground changes.
+
 Same sweep. `.nav-dots a` paints `--rule-strong`, a translucent veil, and
 it floats over two different grounds: a standard slide (the page) and a
 cover slide (the inverted cover ground). Over a cover on a light theme, a
@@ -371,7 +385,17 @@ order, and its audit story. Do not build before the external-theme-format
 question (out of scope of the §9 refactor by decision) is opened on its
 own.
 
-## B9 — Typographic revision of the 33-theme catalogue — OPEN
+## B9 — Typographic revision of the 33-theme catalogue — REPORTED
+
+**Report delivered and verified** (`c4156e8`): `REVISION-THEMES.md`, with
+31 validated property layers in `themes-revision/`. Nothing applied. Three
+decisions are the owner's before any of it lands — flipping four borrowed
+themes to dark grounds, dropping `pop-lagoon` and `pop-fuchsia`, and
+adopting the serif-text / sans-UI default split. The report also indicts
+spec §9.5.2: five project themes miss the AA floor it promises they meet,
+and three entry notes are factually false. Original framing follows.
+
+
 
 The engine gave themes fonts, shadows and per-component axes; only
 `terminal` uses them (fixed pitch plus phosphor halo, the owner's
@@ -424,7 +448,31 @@ expose it as a length property (`page.content-max`) like everything else,
 or record the exemption as permanent — today the exemption lives only in
 a code comment and the gap-check test.
 
-## B14 — Literalize the skeleton; retire TEMPLATE_STYLE — OPEN
+## B14 — Literalize the skeleton; retire TEMPLATE_STYLE — DONE
+
+**Done** (`19188d6`). `TEMPLATE_SKELETON` is the frozen extraction result,
+450 lines, 113 rules; `extract_skeleton`, `_strip_driven`,
+`_driven_declarations` and `SkeletonGapError` are gone. The composed sheet
+was verified equivalent on all 33 themes plus the bare defaults, comments
+and whitespace normalised. 442 tests.
+
+Two things the freeze made visible, worth recording. **Twenty-one rules
+had no representation at all in the shipped sheet** — `body`, all five
+`.slide-cover*` rules, the verdict colour and `::before` rules, the three
+`.series-status` rules, and the hover rules of the share chrome — so
+editing them in the old constant was a pure no-op, forever. And
+`_driven_declarations()` carried **a hand-written exemption for
+`.slide-cover .summary`'s opacity**, sitting inside a function that
+claimed to compute the driven set structurally; the fade it protected is
+now measured per theme by a real test.
+
+**Cost accepted:** the sheet grew 4.3 KB per page, of which 4.1 KB is the
+re-authored comments, which now ship. Stripping them at composition would
+re-introduce the very "the constant is not what ships" property this entry
+existed to kill, so they were kept. Revisit only if page weight becomes a
+real constraint.
+
+The original analysis follows.
 
 Audit finding (2026-08-04): about two thirds of the old sheet's 577 lines
 are dead at runtime — 142 lines of comments, the 23-declaration :root, and
@@ -447,3 +495,25 @@ Plan, in order (the order matters — doing step 2 first is churn):
 3. Delete `extract_skeleton`, `_strip_driven`, `_driven_declarations`,
    `SkeletonGapError` — optionally keeping a driven-declaration collision
    test between skeleton and registry.
+
+## B15 — The share popover's mobile overrides never apply — NOTED
+
+Found by B14 while freezing the skeleton, pre-existing and untouched
+there because fixing it is a visual change. The `@media (max-width: 600px)`
+block sits **before** the `.share-popover` base rule in source order, and
+both have specificity `(0,1,0)`. So on a narrow viewport the later base
+rule wins and `bottom: 72px; right: 16px; max-width: calc(100vw - 32px)`
+never take effect. The other four selectors in that media query
+(`:root`, `.slide`, `.nav-dots`, `.nav-buttons`) are all declared above it
+and work correctly, which is why this went unnoticed.
+
+Now that the skeleton is a literal, the ordering is visible to whoever
+reads it, and a comment above the block warns that anything declared below
+still beats it. The fix is to move the media query after the rules it
+overrides — one relocation, no new properties — but it changes what a
+narrow viewport renders, so it wants a look before it lands.
+
+Related, same family, also pre-existing: `.share-cell-head-disabled`'s
+`opacity: 0.35` slips past the anti-fade guard because the opacity sits in
+a different rule from the `font-size: 11px` it dims. A hole in that
+heuristic, not in the seam.
