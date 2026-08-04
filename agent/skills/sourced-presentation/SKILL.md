@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up: half these rules cover what an edit breaks without saying so. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.6"
+  version: "0.7"
 ---
 
 # Sourced presentation — method
@@ -47,7 +47,11 @@ Each step writes to disk before the next. **Steps 6 and 7 each catch defects the
 
 **A report of a source is not that source.** A news piece citing a study, a summary citing a ruling: the chain is followed to its end, and where it cannot be, say which link you stopped at.
 
+**A quotation attributed to a named person is traced to where they said it** — an interview, a talk, a text — and a quotation carrying a figure most of all. *These travel alone: each repetition cites another repetition, and a striking phrase can circulate for years without a first utterance. If no primary source is found, say what the person is documented as having said instead, and say why the other phrase is not used.*
+
 **For a study, verification reads the body and the method, not the abstract alone.** An abstract states an association the body restricts to one condition — the figure is right and the claim is not.
+
+**A fact the article leans on is checked for replication.** Has anyone repeated the study, and what did they find? A single experiment can be sound and still not generalise: failed replications outside its original conditions do not refute it, they **bound** it, and the bound is usually more useful than the effect. *Ask this of every load-bearing fact, not of the striking ones.*
 
 **Record what funds a source and what ties it has.** Industry funding does not disqualify peer-reviewed work; it changes its weight, and the reader decides only if told.
 
@@ -102,6 +106,8 @@ Written before searching. It carries:
 **A wording that alarms wrongly is as false as one that reassures wrongly.** Denying a specific protection makes the reader conclude none exists. Find the axis that describes the situation rather than the one that negates it: rarely "protected or not", usually "protected against what, and by whom".
 
 **An absence is reported, and never upgraded.** A control that doesn't exist, a figure an actor publishes on everything but one point: these are findings. But "we did not find" is not "it does not exist" — saying so changes the claim's status.
+
+**A decimal is information when it comes from a count or a declaration, decoration when it comes from a model, a median or a projection.** Reporting a modelled figure to two decimals while its stated range spans an order of magnitude does not measure anything: it reassures. Give the order of magnitude and say it is one.
 
 **Check that a result applies to the case at hand.** A rate obtained under given conditions does not transfer elsewhere unsaid. Extrapolation is the hardest defect to see from the position that writes it, because the figure is exact and the source real.
 
@@ -159,6 +165,8 @@ The reader **enters anywhere**: skims, skips, returns. **A card assumes nothing 
 
 Four passes, none replacing another.
 
+**A check that needs judgement runs from a list, not from a pattern.** Enumerate first what must be examined — every load-bearing fact, every named quotation, every claim resting on one study — then walk the list. *Pattern checks finish; judgement checks stop at the salient cases and feel finished. The result is that what is greppable gets done in full and what matters gets done in part.*
+
 **The article alone**, read continuously, after any series of edits including purely lexical ones. Pattern checks skim usefully; **what the reading catches is not locally detectable** — a duplicate, a broken sequence, a reference gone stale after a title changed elsewhere. Editing by successive replacement produces duplicates mechanically, each insertion ignoring its neighbour.
 
 **The cards, one by one**, against the card rules and the deck composition — and the article against the list of what it never does, self-certification first, since that one reforms despite its rule.
@@ -169,7 +177,9 @@ Four passes, none replacing another.
 
 ## What breaks silently
 
-**A bulk operation reports its successes, never its misses, and a check narrower than what it checks passes silently.** Renumbering after an insertion is the type case: the pattern matches one written form and leaves the other untouched, and two items end up sharing a number. Verify the result — the whole sequence, the whole set — not the operation's report, and prefer a broad pattern you read to a narrow one that skims.
+**A bulk operation reports its successes, never its misses, and a check narrower than what it checks passes silently.** Renumbering after an insertion is the type case: the pattern matches one written form and leaves the other untouched, and two items end up sharing a number. Verify the result — the whole sequence, the whole set — not the operation's report, and prefer a broad pattern you read to a narrow one that skims. **Read what the operation produced, not merely that its target is gone**: a substitution can remove every occurrence of what you searched for and leave malformed text where it struck.
+
+**A correction applied to one half of a page leaves the other wrong.** Deck and article are audited together and corrected together, or they drift: a term fixed in the cards survives in the article for months, and nothing signals it, because each audit looks at one half. *The article is the larger half and the less often examined.*
 
 **An insertion stales the pages describing the series**: lists, counts, numbered references, reading paths, recommendations citing comparable cases. They don't announce themselves.
 
