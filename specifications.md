@@ -1299,14 +1299,18 @@ ligne, donc par la cascade. La couture est là, entre « par page » et
 2. les règles pilotées, dérivées du registre — chaque règle ne lit que
    des variables de composant, jamais une valeur partagée directement
    (un seul saut jusqu'à une valeur, le CSS reste lisible tel quel) ;
-3. le **squelette** statique — la mise en page seule, extraite de
-   l'ancienne feuille : tout ce qu'aucune propriété ne pilote. Ses
-   `@media` passent **après** les règles du moteur : à spécificité
-   égale, l'ordre les fait gagner, ce qui est exactement leur raison
-   d'être. Un garde-fou vérifie à l'extraction qu'aucune déclaration non
-   pilotée ne référence encore une variable — un tel reste serait une
-   décision visuelle que le registre n'expose pas, donc une décision
-   confisquée (§9.1), et l'extraction refuse de l'embarquer morte.
+3. le **squelette** statique — la mise en page seule : tout ce qu'aucune
+   propriété ne pilote. C'est un **littéral** (`TEMPLATE_SKELETON`), et
+   non plus une extraction faite au vol sur l'ancienne feuille : ce qu'on
+   y lit est exactement ce qu'une page reçoit, éditer une ligne n'y est
+   jamais un no-op silencieux. Ses `@media` passent **après** les règles
+   du moteur : à spécificité égale, l'ordre les fait gagner, ce qui est
+   exactement leur raison d'être. Deux invariants, tenus par des tests
+   plutôt que par un garde-fou d'extraction : aucune déclaration n'est
+   pilotée des deux côtés à la fois (le littéral périmé gagnerait
+   silencieusement, venant après), et aucune ne référence de variable
+   hors `--content-max` — un tel reste serait une décision visuelle que
+   le registre n'expose pas, donc une décision confisquée (§9.1).
 
 `templates/custom.css` (§9.3.2) est ajouté **en dernier**, après la
 feuille composée. Rien de tout cela n'atteint le disque : la feuille

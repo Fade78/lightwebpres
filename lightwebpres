@@ -696,9 +696,11 @@ def fact_treatment_label(theme):
 # instance tags — are plain dicts merged before emission, so what ships is
 # flat and what the author writes is data the tooling can read.
 #
-# The registry below is the full inventory of TEMPLATE_STYLE; build, install,
-# set-theme, refresh-templates and audit all go through it (see
-# series_style_context / compose_with and the cmd_* functions).
+# The registry below is the full inventory of what the sheet paints; build,
+# install, set-theme, refresh-templates and audit all go through it (see
+# series_style_context / compose_with and the cmd_* functions). What it does
+# NOT drive is the skeleton (TEMPLATE_SKELETON), and the two sets are
+# disjoint by construction — a test pins that.
 
 FONT_GENERICS = ('serif', 'sans-serif', 'monospace', 'cursive', 'fantasy')
 LENGTH_UNITS = ('px', 'rem', 'em', 'ch', 'vw', 'vh', '%', 'pt')
@@ -924,12 +926,13 @@ THEME_SHARED_PROPS = [
     ThemeProp('font.mono',    PROP_FONT, "'SF Mono', Menlo, Consolas, monospace"),
 ]
 
-# Full inventory of TEMPLATE_STYLE (v0.12.2), one entry per component the
-# format names. Defaults are the sheet's current values — the registry is
-# derived FROM the sheet, so landing it changes nothing (E2); wiring emission
-# into build replaces the sheet later. Alpha conversions: the two measured
-# opacities (cover summary 0.78, cover-fg-faint 0.70) became explicit ARGB;
-# state opacities on chrome glyphs stayed in the skeleton.
+# Full inventory of the painted surface (v0.12.2), one entry per component
+# the format names. Defaults are the values the pre-engine sheet shipped —
+# the registry was derived FROM it, so landing it changed nothing (E2), and
+# everything it drives has since been removed from the skeleton. Alpha
+# conversions: the two measured opacities (cover summary 0.78, cover-fg-faint
+# 0.70) became explicit ARGB; state opacities on chrome glyphs stayed in the
+# skeleton.
 #
 # text-shadow is inherited, so page-level shadow axes tint every glyph on the
 # site at once; components carrying their own shadow axes override locally.
@@ -1535,139 +1538,17 @@ def emit_theme_css(resolved):
     return '\n'.join(lines)
 
 
-def _driven_declarations():
-    """(simple selector, css property) pairs the engine emits — the set the
-    skeleton must NOT also contain, or a stale literal would fight the
-    engine's value across the cascade."""
-    driven = set()
-    for c in THEME_COMPONENTS:
-        for cssprop, _value in c.composite:
-            for s in c.selector.split(','):
-                driven.add((s.strip(), cssprop))
-        for p in c.props:
-            if p.css:
-                for s in (p.selector or c.selector).split(','):
-                    driven.add((s.strip(), p.css))
-        if any(p.key.endswith('.mark') for p in c.props):
-            driven.add((c.selector.strip() + '::before', 'content'))
-    # The measured cover-summary opacity became an explicit alpha in
-    # cover.summary.fg; leaving the opacity in the skeleton would dim the
-    # already-dimmed colour a second time.
-    driven.add(('.slide-cover .summary', 'opacity'))
-    return driven
-
-
-class SkeletonGapError(Exception):
-    """A declaration in TEMPLATE_STYLE still references a CSS variable after
-    every engine-driven declaration was removed. Each gap is a visual
-    decision the registry does not expose — the completeness rule says that
-    is a decision confiscated from the theme, so extraction refuses to ship
-    it silently dead instead."""
-
-
-def extract_skeleton(css_text=None):
-    """The static, layout-only part of TEMPLATE_STYLE: everything the
-    property registry does not drive.
-
-    Derived at runtime from the same constant the old system ships, so there
-    is exactly one source sheet during the transition. Drops the :root block
-    (the engine emits its own) and every declaration the engine drives; keeps
-    layout verbatim. --content-max stays: it is the skeleton's own layout
-    variable, declared in the minimal :root this returns, and the one var()
-    the gap check tolerates."""
-    css_text = css_text if css_text is not None else TEMPLATE_STYLE
-    driven = _driven_declarations()
-
-    # Comments go first: the sheet's documentation contains braces and even
-    # literal `:root { ... }` recipes, which wreck brace counting — and the
-    # skeleton is an artifact nobody reads for prose. Stripping them also
-    # removes the recipes block and the customization marker, both replaced
-    # by the settings scaffold.
-    css_text = re.sub(r'/\*.*?\*/', '', css_text, flags=re.S)
-
-    out = [':root {\n    --content-max: min(84vw, 1100px);\n  }']
-    gaps = []
-    pos = 0
-    depth = 0
-    block_start = None
-    i = 0
-    # One linear pass. The sheet is machine-written and regular: top-level
-    # `selector { decls }` blocks, plus one @media containing the same shape.
-    while i < len(css_text):
-        ch = css_text[i]
-        if ch == '{':
-            if depth == 0:
-                block_start = pos
-                header = css_text[pos:i].strip()
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0:
-                block = css_text[block_start:i + 1]
-                header = css_text[block_start:css_text.index('{', block_start)].strip()
-                if header.startswith('@'):
-                    # Media overrides must survive: engine rules are emitted
-                    # BEFORE the skeleton, so anything here wins by order —
-                    # removal would break exactly what the query exists for.
-                    out.append(block.strip())
-                elif header == ':root':
-                    pass                        # replaced by the engine's
-                else:
-                    kept = _strip_driven(header, block, driven, gaps)
-                    if kept:
-                        out.append(kept)
-                pos = i + 1
-        i += 1
-
-    for line in out:
-        for m in re.finditer(r'var\((--[a-z-]+)', line):
-            if m.group(1) != '--content-max':
-                gaps.append(m.group(0))
-    if gaps:
-        raise SkeletonGapError(
-            'declarations the registry does not drive still reference '
-            'variables: ' + ', '.join(sorted(set(gaps))))
-    return '\n  '.join(out)
-
-
-# CSS shorthands carrying colour, width AND style in one declaration. The
-# engine drives colour and width as longhands; when it does, the skeleton
-# keeps only the style the shorthand carried.
-_SHORTHAND_STYLES = ('border', 'border-top', 'border-bottom', 'border-left',
-                     'border-right', 'outline')
-
-
-def _strip_driven(header, block, driven, gaps):
-    """One block with its engine-driven declarations removed; '' if nothing
-    is left worth keeping."""
-    simples = [s.strip() for s in header.split(',')]
-    body = block[block.index('{') + 1:block.rindex('}')]
-    kept = []
-    for decl in body.split(';'):
-        decl = decl.strip()
-        if not decl:
-            continue
-        prop = decl.split(':', 1)[0].strip()
-        if any((s, prop) in driven for s in simples):
-            continue
-        if (prop in _SHORTHAND_STYLES
-                and any((s, prop + '-color') in driven for s in simples)):
-            # `border-bottom: 1px solid var(--rule)` -> the engine owns
-            # colour and width; the style token is all that stays here.
-            kept.append(f'{prop}-style: solid')
-            continue
-        kept.append(decl)
-    if not kept:
-        return ''
-    return header + ' { ' + '; '.join(kept) + '; }'
-
-
 def compose_stylesheet(resolved):
     """The full sheet for one resolved property set: the engine's :root and
     rules first, then the static skeleton — order matters, because the
     skeleton's @media overrides must beat the engine's base values, and they
-    share specificity."""
-    return emit_theme_css(resolved) + '\n' + extract_skeleton()
+    share specificity.
+
+    The skeleton is a literal (TEMPLATE_SKELETON), not something derived at
+    build time: what a reader edits there is what a page gets. The two
+    invariants extraction used to enforce dynamically — no declaration driven
+    on both sides, no var() but --content-max — are pinned by tests."""
+    return emit_theme_css(resolved) + '\n' + TEMPLATE_SKELETON
 
 
 # ----------------------------------------------------------------------------
@@ -1856,583 +1737,464 @@ def page_style_properties(meta, source_name):
     return props
 
 
-# --- Legacy sheet: the skeleton source (see extract_skeleton) ---
-TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
-:root {
-    /* The palette, by role (§9.1). Ground first, then the two inks,
-       then the furniture — the order the page is read in.
-         --page       the page background
-         --ink        body text; also the cover ground on a light theme
-         --ink-muted  summary, caption, source, "no" verdict
-         --marker     fact-box rule, cover tag, header underline,
-                      active nav dot, emphasized column
-         --accent     footnote call, "partial" verdict, focus ring
-         --positive   the "yes" verdict of a comparison table */
-    --page: #f8f8f5;
-    --ink: #1a1a2e;
-    --ink-muted: #6b6b7d;
-    --marker: #FFFC00;
-    --accent: #ff4757;
-    --positive: #3aa55c;
-    --fact-strong-weight: bold;
-    --fact-strong-style: normal;
-    --fact-strong-highlight: var(--marker);
-    --fact-strong-ink: var(--ink);
-    /* Underline as a fourth, independent axis: reinforce instead of a
-       marker, or as well as one. Its thickness and offset are fixed in
-       the rule rather than exposed — a hairline underline sitting on the
-       baseline is what makes underlined text hard to read, and that is
-       not a choice worth offering. */
-    --fact-strong-decoration: none;
-    --fact-strong-decoration-color: currentColor;
-    --content-max: min(84vw, 1100px);
-    /* Neutrals as translucent overlays rather than fixed greys, so they
-       tint whatever is actually underneath and the page follows the
-       palette. Hard-coded values here used to survive theming entirely:
-       a warm palette like Solarized ended up with cool grey furniture.
+# ----------------------------------------------------------------------------
+# The skeleton (§9): the static half of every composed sheet, frozen as
+# source. It used to be derived at runtime from the old full stylesheet by
+# stripping the declarations the registry drives — which meant two thirds of
+# that constant was dead, and editing a driven line in it was a silent no-op.
+# What follows is that extraction's result, kept verbatim and re-prettified:
+# what you read here is what a page gets.
+# ----------------------------------------------------------------------------
+TEMPLATE_SKELETON = r'''/* LightWebPres skeleton — layout only: everything no theme property
+   drives. Composed AFTER the engine's rules, so the @media block below
+   wins at equal specificity. Two rules when editing:
+     - a declaration here must not also be driven by PROPERTY_REGISTRY,
+       or a stale literal fights the engine across the cascade;
+     - no colour literal, and no var() but --content-max — a colour here
+       would survive theming, the exact defect the registry kills.
+   These comments ship: the sheet is inlined into every page. Keep them
+   short, and never spell a markup tag out literally — anything scanning
+   the output would read it as markup. */
 
-       These are substituted by a theme too (§9.5.2), because which way
-       an overlay must go depends on whether the background is light or
-       dark: on a light page a surface is a white veil and a rule a black
-       one, on a dark page it is the reverse. A theme declares which case
-       it is in and these nine follow — that is what makes a dark theme
-       possible at all. */
-    --rule: rgba(0, 0, 0, 0.10);
-    --rule-strong: rgba(0, 0, 0, 0.16);
-    --surface: rgba(255, 255, 255, 0.72);
-    --sunken: rgba(0, 0, 0, 0.045);
-    /* The cover is the page's inverse. On a light theme that means the
-       palette's dark tone; on a dark one, a deeper veil of the page
-       itself — never --ink, which is the TEXT colour there. */
-    --cover-bg: var(--ink);
-    --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.70);
-    --link-decoration-color: currentColor;
-    --control: rgba(255, 255, 255, 0.92);
-    --control-soft: rgba(255, 255, 255, 0.75);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    background: var(--page);
-    color: var(--ink);
-    line-height: 1.6;
-  }
-  .slide {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 60px 8vw;
-    border-bottom: 1px solid var(--rule);
-    position: relative;
-  }
-  .slide-num {
-    position: absolute;
-    top: 24px;
-    right: 32px;
-    font-size: 13px;
-    color: var(--ink-muted);
-    letter-spacing: 1px;
-  }
-  .slide-tag {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-    margin-bottom: 16px;
-  }
-  h1 {
-    font-size: clamp(28px, 4.5vw, 52px);
-    font-weight: 800;
-    line-height: 1.15;
-    margin-bottom: 20px;
-    max-width: var(--content-max);
-  }
-  h2 {
-    font-size: clamp(24px, 3.5vw, 40px);
-    font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 18px;
-    max-width: var(--content-max);
-  }
-  .summary {
-    font-size: clamp(16px, 2vw, 22px);
-    color: var(--ink);
-    max-width: var(--content-max);
-    margin-bottom: 32px;
-    line-height: 1.55;
-  }
-  .fact-box {
-    background: var(--surface);
-    border-left: 4px solid var(--marker);
-    padding: 24px 28px;
-    border-radius: 0 8px 8px 0;
-    max-width: var(--content-max);
-    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-  }
-  .fact-label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-    margin-bottom: 8px;
-  }
-  .fact-content {
-    font-size: clamp(15px, 1.6vw, 18px);
-    color: var(--ink);
-  }
-  .fact-content strong {
-    font-weight: var(--fact-strong-weight);
-    font-style: var(--fact-strong-style);
-    background: var(--fact-strong-highlight);
-    color: var(--fact-strong-ink);
-    text-decoration: var(--fact-strong-decoration);
-    text-decoration-color: var(--fact-strong-decoration-color);
-    /* Measured, not guessed: at the default offset the rule collides
-       with the descenders, and inside a highlight it runs into the
-       marker's lower edge. Both properties degrade silently on an old
-       engine — the underline simply falls back to its default position
-       rather than disappearing. */
-    text-decoration-thickness: 2px;
-    text-underline-offset: 3px;
-    padding: 1px 4px;
-    border-radius: 2px;
-  }
-  .fact-content h1, .fact-content h2, .fact-content h3 {
-    color: var(--ink);
-    font-weight: 700;
-    line-height: 1.3;
-    margin: 14px 0 6px;
-  }
-  .fact-content h1:first-child, .fact-content h2:first-child, .fact-content h3:first-child {
-    margin-top: 0;
-  }
-  .fact-content h1 { font-size: 1.3em; }
-  .fact-content h2 { font-size: 1.15em; }
-  .fact-content h3 { font-size: 1.05em; }
-  .fact-content ul, .fact-content ol {
-    padding-left: 20px;
-    margin-bottom: 10px;
-  }
-  .fact-content li { margin-bottom: 4px; }
-  /* Free-form standard-slide body (no fact-label). A heading here is
-     body content (§22.2), never the slide's own title, so it must render
-     smaller than the slide's `##` title (h2, clamp(24px,…,40px)) — the
-     same scoping fact-content applies. The 1.3em/1.15em/1.05em resolve
-     against the inherited ~16px base, i.e. well under the title size. */
-  .slide-body h1, .slide-body h2, .slide-body h3 {
-    color: var(--ink);
-    font-weight: 700;
-    line-height: 1.3;
-    margin: 14px 0 6px;
-    max-width: var(--content-max);
-  }
-  .slide-body h1:first-child, .slide-body h2:first-child, .slide-body h3:first-child {
-    margin-top: 0;
-  }
-  .slide-body h1 { font-size: 1.3em; }
-  .slide-body h2 { font-size: 1.15em; }
-  .slide-body h3 { font-size: 1.05em; }
-  .source {
-    font-size: 12px;
-    color: var(--ink-muted);
-    margin-top: 16px;
-    max-width: var(--content-max);
-  }
-  .page-footer {
-    padding: 20px 8vw 28px;
-    font-size: 12px;
-    color: var(--ink-muted);
-    border-top: 1px solid var(--rule);
-  }
-  .page-footer .footer-byline { margin-bottom: 4px; }
-  .page-footer .footer-license a { color: inherit; }
-  .slide-cover { background: var(--cover-bg); color: var(--cover-fg); }
-  .slide-cover h1 { color: var(--cover-fg); }
-  .slide-cover .summary { color: var(--cover-fg); opacity: 0.78; }
-  .slide-cover .slide-tag { color: var(--marker); }
-  .slide-cover .slide-num { color: var(--cover-fg-faint); }
-  /* Markdown constructs the converter has always emitted but that had
-     NO rule at all until this stylesheet was audited: a blockquote read
-     exactly like a paragraph, code kept the body font with no ground of
-     its own, and a footnote marker was indistinguishable from ordinary
-     text. Every colour here comes from the palette, so they follow a
-     theme like the rest. */
-  blockquote {
-    margin: 0 0 16px;
-    padding: 4px 0 4px 18px;
-    border-left: 3px solid var(--rule-strong);
-    color: var(--ink-muted);
-    font-style: italic;
-    max-width: var(--content-max);
-  }
-  blockquote p:last-child { margin-bottom: 0; }
-  code {
-    font-family: 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.88em;
-    background: var(--sunken);
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
-  pre {
-    margin: 0 0 16px;
-    padding: 14px 16px;
-    background: var(--sunken);
-    border: 1px solid var(--rule);
-    border-radius: 8px;
-    overflow-x: auto;
-    max-width: var(--content-max);
-  }
-  /* Inside a block, the ground belongs to the block itself: a second one
-     would double up and the rounded corners would show through. No tag
-     names spelled out literally in these comments — the stylesheet is
-     inlined into every page, so one would read as markup to anything
-     scanning the output (a test caught exactly that here). */
-  pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
-  sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+/* The skeleton's own layout variable: the one it declares, and the one
+   var() allowed below. Every other variable comes from the engine. */
+:root { --content-max: min(84vw, 1100px); }
 
-  /* §9.1 — a body link keeps the ink around it, and is signalled by an
-     underline rather than by a colour.
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
-     Measured across all 33 themes before choosing. The browser default
-     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
-     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
-     one. And no palette colour can replace it: --accent is below AA on
-     eleven themes and IS the "partial" verdict colour by identity, while
-     --positive and --ink-muted are the other two verdict colours. Ink on
-     page is the one pair every theme is admitted on, so a link is AA and
-     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
-     underline, which is not a colour.
+/* --- The slide frame --- */
+.slide {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 8vw;
+  border-bottom-style: solid;
+  position: relative;
+}
+.slide-num { position: absolute; top: 24px; right: 32px; }
+.slide-tag { display: inline-block; margin-bottom: 16px; }
+h1 { margin-bottom: 20px; max-width: var(--content-max); }
+h2 { margin-bottom: 18px; max-width: var(--content-max); }
+.summary { max-width: var(--content-max); margin-bottom: 32px; }
 
-     A theme may tint the rule where it has measured a colour that works
-     there; the default keeps the ink, which can never fail. Same grammar
-     as --fact-strong-decoration-color. */
-  .fact-content a,
-  .full-article a {
-    color: inherit;
-    text-decoration: underline;
-    text-decoration-color: var(--link-decoration-color);
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
-  }
-  .full-article blockquote, .full-article pre { font-size: 15px; }
+/* --- The fact box --- */
+.fact-box {
+  border-left-style: solid;
+  padding: 24px 28px;
+  border-radius: 0 8px 8px 0;
+  max-width: var(--content-max);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.fact-label { margin-bottom: 8px; }
+/* Measured, not guessed: at the default offset the underline collides
+   with the descenders, and inside a highlight it runs into the mark's
+   lower edge. Both properties degrade silently on an old engine — the
+   rule falls back to its default position rather than disappearing. */
+.fact-content strong {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
+.fact-content h1:first-child,
+.fact-content h2:first-child,
+.fact-content h3:first-child {
+  margin-top: 0;
+}
+.fact-content h1 { font-size: 1.3em; }
+.fact-content h2 { font-size: 1.15em; }
+.fact-content h3 { font-size: 1.05em; }
+.fact-content ul, .fact-content ol {
+  padding-left: 20px;
+  margin-bottom: 10px;
+}
+.fact-content li { margin-bottom: 4px; }
 
-  .comparison-table {
-    width: 100%;
-    max-width: var(--content-max);
-    border-collapse: collapse;
-    margin: 20px 0;
-    font-size: clamp(13px, 1.4vw, 16px);
-  }
-  .comparison-table th, .comparison-table td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--rule);
-  }
-  .comparison-table th {
-    background: var(--sunken);
-    color: var(--ink);
-    border-bottom: 2px solid var(--ink);
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color-adjust: exact;
-  }
-  /* Verdict cells (§6.1). Markdown has no syntax for these — write the
-     cell as raw HTML: <td class="yes">Oui</td>. Three verdicts, three
-     DISTINCT appearances: .yes and .partial used to be byte-identical
-     (both grey/500), so a three-way comparison only ever showed two
-     states, and .no was the one picked out in bold green — the reverse
-     of how anyone reads those words. Colours come from the palette, so
-     a theme restyles them like everything else. print-color-adjust
-     keeps the distinction on paper, where colour is often dropped. */
-  .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
-  .comparison-table .partial { color: var(--accent); font-weight: 600; }
-  /* A shape as well as a colour, and this is not decoration. Red/green
-     colour-vision deficiency affects roughly one man in twelve, and a
-     simulation over the built-in palettes put "yes" and "partial" at a
-     perceptual distance of under 12 for three of the nine themes —
-     literally the same colour to those readers. Weight alone (700 vs
-     600) is too fine a cue to carry the distinction. Filled / half /
-     empty is language-independent, survives greyscale printing, and
-     works in a cell that holds nothing else. WCAG 1.4.1 (level A) asks
-     exactly this: never let colour be the only carrier of meaning. */
-  .comparison-table .yes::before,
-  .comparison-table .partial::before,
-  .comparison-table .no::before {
-    margin-right: 0.4em;
-    font-size: 0.95em;
-  }
-  .comparison-table .yes::before { content: "\25CF"; }
-  .comparison-table .partial::before { content: "\25D0"; }
-  .comparison-table .no::before { content: "\25CB"; }
-  .comparison-table .yes, .comparison-table .no, .comparison-table .partial {
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  /* Column emphasis, same idea at column scale: put the class on every
-     cell of the column you want to stand out. */
-  .comparison-table .col-signal { background: var(--sunken); font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .comparison-table .col-snap { background: var(--sunken); box-shadow: inset 3px 0 0 var(--marker); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .figure {
-    margin: 20px auto;
-    max-width: var(--content-max);
-    text-align: center;
-  }
-  .figure img { max-width: 100%; height: auto; }
-  .figure-caption {
-    margin-top: 6px;
-    font-size: 0.85em;
-    color: var(--ink-muted);
-    text-align: center;
-  }
-  .full-article {
-    background: var(--surface);
-    padding: 60px 8vw 80px 8vw;
-  }
-  .full-article h1 { font-size: 28px; margin-bottom: 8px; }
-  .full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
-  .full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
-  .full-article p { font-size: 15px; margin-bottom: 14px; max-width: 800px; line-height: 1.7; }
-  .full-article ul, .full-article ol { font-size: 15px; margin-bottom: 14px; padding-left: 24px; max-width: 800px; }
-  .full-article table { width: 100%; max-width: 800px; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
-  .full-article table th, .full-article table td { padding: 8px 12px; border: 1px solid var(--rule); text-align: left; }
-  .full-article table th { background: var(--sunken); font-weight: 700; }
-  .full-article strong { font-weight: 700; }
-  .full-article em { font-style: italic; }
-  .full-article .refs { font-size: 13px; color: var(--ink-muted); }
-  .full-article .refs p { font-size: 13px; line-height: 1.5; margin-bottom: 6px; }
-  .series-list { max-width: 680px; }
-  .series-item {
-    display: block;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    border-radius: 8px;
-    text-decoration: none;
-    color: inherit;
-  }
-  /* No opacity here. Dimming the whole card to signal "you are here"
-     dimmed its three lines of text with it, and they land at 1.62:1 on
-     the worst theme and fail AA on all 33, the default palette included.
-     The sunken ground, the 2px border and the status glyph carry the
-     same signal without touching a contrast ratio. */
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
-  .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
-  .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
-  .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  .series-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 4px; }
-  .series-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-  .series-desc { font-size: 14px; color: var(--ink-muted); margin-bottom: 8px; }
-  .series-status { font-size: 13px; font-weight: 600; }
-  .series-current .series-status { color: var(--ink-muted); }
-  .series-link .series-status { color: var(--ink); }
-  .nav-buttons {
-    position: fixed;
-    bottom: 24px;
-    right: 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 200;
-  }
-  .nav-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 1px solid var(--rule-strong);
-    background: var(--control);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 20px;
-    color: var(--ink);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-    transition: opacity 0.2s, transform 0.15s, box-shadow 0.15s;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .nav-btn:hover { transform: scale(1.08); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
-  .nav-btn:active { transform: scale(0.96); }
-  .nav-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
-  .nav-btn-home { font-size: 17px; background: var(--control-soft); }
-  .nav-dots {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 6px;
-    z-index: 150;
-  }
-  .nav-dots a {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--rule-strong);
-    display: block;
-    transition: background 0.2s, transform 0.2s;
-  }
-  .nav-dots a:hover { background: var(--ink-muted); transform: scale(1.3); }
-  .nav-dots a.active { background: var(--marker); transform: scale(1.3); }
-  @media (max-width: 600px) {
-    :root { --content-max: calc(100vw - 48px); }
-    .slide { padding: 40px 24px; }
-    .nav-dots { display: none; }
-    .nav-buttons { bottom: 16px; right: 16px; }
-    .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
-  }
-  .highlight { display: flex; flex-direction: column; align-items: center;
-    gap: 6px; margin: 18px 0 22px; text-align: center; max-width: var(--content-max); }
-  .highlight-figure { font-size: clamp(2.1rem, 8vw, 3.4rem); font-weight: 800;
-    line-height: 1.05; color: var(--ink); letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .highlight-caption { font-size: 0.9rem; color: var(--ink-muted); max-width: 480px; }
-  .share-popover {
-    position: fixed;
-    bottom: 80px;
-    right: 28px;
-    z-index: 250;
-    background: var(--page);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-    padding: 14px;
-    display: none;
-    max-width: calc(100vw - 40px);
-  }
-  .share-popover.open { display: block; }
-  .share-matrix {
-    display: grid;
-    grid-template-columns: auto repeat(3, 1fr);
-    gap: 6px 10px;
-    align-items: center;
-  }
-  .share-cell { font-size: 13px; }
-  .share-cell-head {
-    font-weight: 700; text-align: center; color: var(--ink-muted);
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .share-cell-head-disabled { opacity: 0.35; }
-  .share-cell-label { color: var(--ink); white-space: nowrap; padding-right: 10px; }
-  button.share-action {
-    width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule-strong);
-    background: var(--page); cursor: pointer; font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto; font-family: inherit; color: var(--ink);
-    transition: border-color 0.15s, background 0.15s;
-  }
-  button.share-action:hover:not(:disabled) { border-color: var(--ink); background: var(--surface); }
-  button.share-action:disabled { opacity: 0.25; cursor: default; }
-  .share-qr-modal {
-    position: fixed; inset: 0; z-index: 300;
-    background: rgba(0, 0, 0, 0.55);
-    display: none; align-items: center; justify-content: center;
-    padding: 24px;
-  }
-  .share-qr-modal.open { display: flex; }
-  .share-qr-modal-content {
-    background: var(--page); border-radius: 12px; padding: 24px;
-    /* 400px, not 320: longer URLs bump the QR to a higher version (more
-       modules), and a small on-screen code is the most likely reason a
-       phone's native camera fails to focus/detect it even though the
-       code itself decodes fine (dedicated scanner apps tolerate this
-       better) — give it more room to stay legible. */
-    max-width: 400px; width: 100%; text-align: center;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-  }
-  .share-qr-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
-  .share-qr-modal-content svg { width: 100%; height: auto; display: block; margin-bottom: 12px; }
-  .share-qr-modal-url { font-size: 12px; color: var(--ink-muted); word-break: break-all; margin-bottom: 16px; }
-  .share-qr-close {
-    border: 1px solid var(--rule-strong); background: var(--page); border-radius: 8px;
-    padding: 8px 20px; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--ink);
-  }
-  .share-qr-close:hover { border-color: var(--ink); }
-  .article-card {
-    display: block;
-    padding: 24px 28px;
-    margin-bottom: 20px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: inherit;
-    background: var(--surface);
-    border: 2px solid var(--rule-strong);
-    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-  }
-  .article-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
-    border-color: var(--marker);
-  }
-  .article-number { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 6px; }
-  .article-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-  .article-desc { font-size: 15px; color: var(--ink-muted); margin-bottom: 8px; }
-  .article-cta { font-size: 14px; font-weight: 600; color: var(--ink); }
-  .header { margin-bottom: 48px; padding-bottom: 32px; border-bottom: 2px solid var(--marker); }
-  .header h1 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
-  .header .subtitle { font-size: clamp(16px, 2vw, 20px); color: var(--ink-muted); max-width: 700px; }
-  .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--ink-muted); background: var(--sunken); padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
-  .intro { font-size: 17px; line-height: 1.7; max-width: 700px; margin-bottom: 48px; }
-  .intro p { margin-bottom: 16px; }
+/* Free-form standard-slide body (no fact-label). A heading here is body
+   content (§22.2), never the slide's own title, so it must render
+   smaller than that title. These em sizes resolve against the inherited
+   base, i.e. well under it. */
+.slide-body h1, .slide-body h2, .slide-body h3 {
+  margin: 14px 0 6px;
+  max-width: var(--content-max);
+}
+.slide-body h1:first-child,
+.slide-body h2:first-child,
+.slide-body h3:first-child {
+  margin-top: 0;
+}
+.slide-body h1 { font-size: 1.3em; }
+.slide-body h2 { font-size: 1.15em; }
+.slide-body h3 { font-size: 1.05em; }
 
-  /* --------------------------------------------------------------
-     Markdown bold INSIDE a fact-box is controlled by six independent
-     variables (specifications.md 9.1), on four axes: a theme can be bold
-     with NO highlight, un-bold WITH a green one, or underlined and
-     nothing else.
+.source { margin-top: 16px; max-width: var(--content-max); }
+.page-footer { padding: 20px 8vw 28px; border-top-style: solid; }
+.page-footer .footer-byline { margin-bottom: 4px; }
+.page-footer .footer-license a { color: inherit; }
 
-       --fact-strong-weight            bold | normal
-       --fact-strong-style             normal | italic
-       --fact-strong-highlight         var(--role) for a coloured ground,
-                                       or transparent for none
-       --fact-strong-ink               the colour of the text ON that ground
-       --fact-strong-decoration        underline | none
-       --fact-strong-decoration-color  var(--role), or currentColor to
-                                       reuse the text's own colour
+/* --- Markdown constructs the converter has always emitted. Their ground,
+   ink and rule colours are registry properties; the geometry is here. --- */
+blockquote {
+  margin: 0 0 16px;
+  padding: 4px 0 4px 18px;
+  border-left-style: solid;
+  max-width: var(--content-max);
+}
+blockquote p:last-child { margin-bottom: 0; }
+code { padding: 1px 5px; border-radius: 4px; }
+pre {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-style: solid;
+  border-radius: 8px;
+  overflow-x: auto;
+  max-width: var(--content-max);
+}
+/* Inside a block, the ground belongs to the block itself: a second one
+   would double up and the rounded corners would show through. */
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+sup { vertical-align: super; line-height: 0; }
 
-     Ground and ink go together: changing one without the other can drop
-     the pair below readable contrast. Five ready-to-paste examples, TO BE
-     PLACED AFTER THE MARKER below -- that is the only section
-     refresh-templates preserves.
+/* A body link keeps the ink around it and is signalled by an underline
+   rather than by a colour. The browser default blue measures 1.03:1 on
+   pop-violet and fails AA on fifteen themes, and no palette colour can
+   replace it — each is already a verdict colour or below AA somewhere.
+   Ink on page is the one pair every theme is admitted on, so a link is
+   AA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+   underline, which is not a colour. Only the rule's tint is exposed
+   (link.decoration-color); thickness and offset stay here, because a
+   hairline sitting on the baseline is what makes underlined text hard
+   to read. The scope is load-bearing: widen this selector and every
+   navigation card in the site gets underlined too. */
+.fact-content a, .full-article a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.full-article blockquote, .full-article pre { font-size: 15px; }
 
-     Bold, with no highlight at all:
-       :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }
+/* --- Comparison table --- */
+.comparison-table {
+  width: 100%;
+  max-width: var(--content-max);
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+.comparison-table th, .comparison-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom-style: solid;
+}
+.comparison-table th {
+  border-bottom-style: solid;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+/* Verdict cells (§6.1) carry a shape as well as a colour. Red/green
+   colour-vision deficiency affects roughly one man in twelve, and weight
+   alone is too fine a cue; the marks are registry properties, their
+   spacing is here. print-color-adjust keeps the distinction on paper,
+   where colour is often dropped — same reason on the emphasized
+   columns below. */
+.comparison-table .yes::before,
+.comparison-table .partial::before,
+.comparison-table .no::before {
+  margin-right: 0.4em;
+  font-size: 0.95em;
+}
+.comparison-table .yes, .comparison-table .no, .comparison-table .partial {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.comparison-table .col-signal {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.comparison-table .col-snap {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
-     Un-bold, highlighted green, light ink on top:
-       :root { --fact-strong-weight: normal; --fact-strong-highlight: var(--positive);
-               --fact-strong-ink: var(--page); }
+/* --- Figures --- */
+.figure {
+  margin: 20px auto;
+  max-width: var(--content-max);
+  text-align: center;
+}
+.figure img { max-width: 100%; height: auto; }
+.figure-caption { margin-top: 6px; text-align: center; }
 
-     Italic alone, no ground -- the quietest register:
-       :root { --fact-strong-weight: normal; --fact-strong-style: italic;
-               --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }
+/* --- The full-article slide: a measure of its own, narrower than the
+   deck's, because it is read as prose rather than glanced at. --- */
+.full-article { padding: 60px 8vw 80px 8vw; }
+.full-article h1 { font-size: 28px; margin-bottom: 8px; }
+.full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
+.full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+.full-article p { margin-bottom: 14px; max-width: 800px; }
+.full-article ul, .full-article ol {
+  margin-bottom: 14px;
+  padding-left: 24px;
+  max-width: 800px;
+}
+.full-article table {
+  width: 100%;
+  max-width: 800px;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.full-article table th, .full-article table td {
+  padding: 8px 12px;
+  border-style: solid;
+  text-align: left;
+}
+.full-article table th { font-weight: 700; }
+.full-article strong { font-weight: 700; }
+.full-article em { font-style: italic; }
+.full-article .refs p { font-size: 13px; margin-bottom: 6px; }
 
-     Bold underlined, no ground -- the rule takes the marker's colour:
-       :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
-               --fact-strong-decoration: underline;
-               --fact-strong-decoration-color: var(--marker); }
+/* --- Series navigation --- */
+.series-list { max-width: 680px; }
+.series-item {
+  display: block;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+/* No opacity on the current card. Dimming it to signal "you are here"
+   dimmed its three lines of text with it: 1.62:1 on the worst theme, and
+   below AA on all 33. Its sunken ground, its border and the status glyph
+   carry the same signal without touching a contrast ratio. */
+.series-current { border-style: solid; }
+.series-link {
+  border-style: solid;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.series-link:hover, .series-link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.series-link:focus-visible { outline-style: solid; outline-offset: 2px; }
+.series-label { margin-bottom: 4px; }
+.series-title { margin-bottom: 4px; }
+.series-desc { margin-bottom: 8px; }
 
-     Tint the underline under a body link. Measure first: this must clear
-     3:1 against --page, or the rule is fainter than the one it replaces.
-       :root { --link-decoration-color: var(--accent); }
+/* --- Navigation chrome. The opacities below fade a control's glyph, not
+   running text, which is why they are allowed to stay literal. --- */
+.nav-buttons {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+.nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border-style: solid;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+.nav-btn:active { transform: scale(0.96); }
+.nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
+.nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+.nav-btn-home { font-size: 17px; }
+.nav-dots {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 150;
+}
+.nav-dots a {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: block;
+  transition: background 0.2s, transform 0.2s;
+}
+.nav-dots a:hover { transform: scale(1.3); }
+.nav-dots a.active { transform: scale(1.3); }
 
-     Underlined AS WELL AS highlighted, to stress it twice:
-       :root { --fact-strong-decoration: underline; }
+/* Responsive overrides. Their placement is load-bearing: they come after
+   the engine's rules, which is what lets them win at equal specificity.
+   Anything declared BELOW them still beats them, so check the source
+   order before adding a selector here. */
+@media (max-width: 600px) {
+  :root { --content-max: calc(100vw - 48px); }
+  .slide { padding: 40px 24px; }
+  .nav-dots { display: none; }
+  .nav-buttons { bottom: 16px; right: 16px; }
+  .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
+}
 
-     The rule's thickness and offset are not configurable: a hairline
-     sitting on the baseline is precisely what makes underlined text hard
-     to read.
-     -------------------------------------------------------------- */
+/* --- The highlight block --- */
+.highlight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 18px 0 22px;
+  text-align: center;
+  max-width: var(--content-max);
+}
+.highlight-figure { overflow-wrap: anywhere; }
+.highlight-caption { max-width: 480px; }
+
+/* --- Share popover and its QR modal --- */
+.share-popover {
+  position: fixed;
+  bottom: 80px;
+  right: 28px;
+  z-index: 250;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 14px;
+  display: none;
+  max-width: calc(100vw - 40px);
+}
+.share-popover.open { display: block; }
+.share-matrix {
+  display: grid;
+  grid-template-columns: auto repeat(3, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+}
+.share-cell-head {
+  font-weight: 700;
+  text-align: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.share-cell-head-disabled { opacity: 0.35; }
+.share-cell-label { white-space: nowrap; padding-right: 10px; }
+button.share-action {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border-style: solid;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+button.share-action:disabled { opacity: 0.25; cursor: default; }
+.share-qr-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.share-qr-modal.open { display: flex; }
+/* 400px, not 320: a longer URL bumps the code to a higher version (more
+   modules), and a small on-screen code is the likeliest reason a phone's
+   native camera fails to detect one that decodes fine in a dedicated
+   scanner. Give it room to stay legible. */
+.share-qr-modal-content {
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.share-qr-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.share-qr-modal-content svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 12px;
+}
+.share-qr-modal-url {
+  font-size: 12px;
+  word-break: break-all;
+  margin-bottom: 16px;
+}
+.share-qr-close {
+  border-style: solid;
+  border-radius: 8px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+/* --- The index page: article cards, masthead, intro --- */
+.article-card {
+  display: block;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  border-style: solid;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.article-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+}
+.article-number { margin-bottom: 6px; }
+.article-title { margin-bottom: 6px; }
+.article-desc { margin-bottom: 8px; }
+.header {
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom-style: solid;
+}
+.header h1 { margin-bottom: 16px; }
+.header .subtitle { max-width: 700px; }
+.version-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-top: 12px;
+}
+.intro { max-width: 700px; margin-bottom: 48px; }
+.intro p { margin-bottom: 16px; }
 '''
 
 # --- Template: nav.js ---
@@ -3481,7 +3243,7 @@ build:
 # French, not localized by --lang: it documents THEMES itself, an
 # editorial choice for this one reference page, not a limitation of the
 # slide-rendering engine (specifications.md §11.7).
-# Raw, like TEMPLATE_STYLE: the CSS below carries \\25CF-style escapes for
+# Raw, like the skeleton: the CSS below carries \\25CF-style escapes for
 # the verdict shape markers, and in a plain string Python eats them as
 # octal before CSS ever sees them (\\25 becomes one control character, and
 # the marker renders as literal "CF").

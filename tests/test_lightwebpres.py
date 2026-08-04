@@ -3424,8 +3424,13 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
 
     def test_every_styling_hook_reachable_only_by_hand_is_named(self):
         """A class the stylesheet defines and the Markdown cannot
-        produce is reachable only if the skill says it exists."""
-        css = self.lwp.TEMPLATE_STYLE
+        produce is reachable only if the skill says it exists.
+
+        Read off the COMPOSED sheet — the only one a page gets. The old
+        anchor was the source constant, which could name a class the
+        composition never shipped."""
+        css = self.lwp.compose_stylesheet(
+            self.lwp.resolve_theme_properties({}))
         for cls in ('yes', 'no', 'partial', 'col-signal', 'col-snap'):
             self.assertIn(f'.{cls}', css, f'{cls} left the stylesheet')
             self.assertIn(f'`{cls}`', self.skill, cls)
@@ -3506,30 +3511,42 @@ class ContrastFloors(unittest.TestCase):
             self.assertGreaterEqual(round(ratio, 2), 4.5, f'{slug}: {ratio:.2f}:1')
 
     # A text rule may fade itself only if the faded result has been
-    # measured against the ground it actually sits on. Each entry names
-    # what that ground is; the test below computes the worst case across
-    # all 33 themes and fails if it ever drops under AA, so an allowance
-    # cannot quietly rot into the defect it was carved out of.
-    MEASURED_FADES = {'.slide-cover .summary': 'cover'}
+    # measured against the ground it actually sits on. Each entry would
+    # name what that ground is. It is EMPTY on purpose: the one allowance
+    # that ever existed (.slide-cover .summary, measured at 0.78) is now
+    # carried by the alpha of cover.summary.fg, which
+    # test_the_cover_summary_alpha_clears_aa_on_every_theme re-measures on
+    # all 33 themes. The dict stays as the only door a future fade may
+    # come through.
+    MEASURED_FADES = {}
 
     def test_a_text_rule_fades_itself_only_where_it_was_measured(self):
         """The two worst failures in the render sweep were both an
         `opacity` on a block of text: the 'currently reading' card at
         1.62:1 on 33/33 themes, and the 'no' verdict at 1.99:1 on 32/33.
         Both read as a style choice and were a contrast failure. An
-        opacity on a text-bearing rule now has to be justified here."""
-        css = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_STYLE, flags=re.DOTALL)
+        opacity on a text-bearing rule now has to be justified here.
+
+        Scanned on the COMPOSED sheet of every theme, not on a source
+        constant: an opacity can now arrive from the skeleton OR from an
+        emitted rule, and only the composition sees both."""
         offenders = []
-        for block in re.finditer(r'([^{}]+)\{([^{}]*)\}', css):
-            selector, body = block.group(1).strip(), block.group(2)
-            m = re.search(r'(?<![-\w])opacity:\s*([\d.]+)', body)
-            if not m or float(m.group(1)) >= 1:
-                continue
-            if not re.search(r'(?<![-\w])(color|font-size|font-weight):', body):
-                continue          # paints a ground or a glyph, not running text
-            if selector in self.MEASURED_FADES:
-                continue
-            offenders.append(f'{selector} (opacity {m.group(1)})')
+        for slug in (None, *self.lwp.THEMES):
+            layer = {} if slug is None else self.lwp.theme_property_layer(slug)
+            sheet = self.lwp.compose_stylesheet(
+                self.lwp.resolve_theme_properties(layer))
+            css = re.sub(r'/\*.*?\*/', '', sheet, flags=re.DOTALL)
+            for block in re.finditer(r'([^{}]+)\{([^{}]*)\}', css):
+                selector, body = block.group(1).strip(), block.group(2)
+                m = re.search(r'(?<![-\w])opacity:\s*([\d.]+)', body)
+                if not m or float(m.group(1)) >= 1:
+                    continue
+                if not re.search(r'(?<![-\w])(color|font-size|font-weight):', body):
+                    continue      # paints a ground or a glyph, not running text
+                if selector in self.MEASURED_FADES:
+                    continue
+                offenders.append(
+                    f'{selector} (opacity {m.group(1)}) on {slug or "defaults"}')
         self.assertEqual(offenders, [], 'a text rule may not fade itself unmeasured')
 
     def test_the_cover_summary_alpha_clears_aa_on_every_theme(self):
@@ -3550,15 +3567,31 @@ class ContrastFloors(unittest.TestCase):
             self.assertGreaterEqual(round(ratio, 2), 4.5,
                                     f'cover summary on {slug}: {ratio:.2f}:1')
 
+    # A body link's treatment is now split across the seam: `color:
+    # inherit` and the underline itself are skeleton (architecture, B3),
+    # its tint is a registry property. Only the composed sheet sees both.
+    LINK_SELECTOR = frozenset({'.fact-content a', '.full-article a'})
+
+    def _link_declarations(self, css):
+        """Every declaration the composed sheet lands on the body-link
+        selector, skeleton rule and emitted rule alike."""
+        bodies = []
+        css = re.sub(r'/\*.*?\*/', '', css, flags=re.DOTALL)
+        for block in re.finditer(r'([^{}]+)\{([^{}]*)\}', css):
+            parts = {p.strip() for p in block.group(1).split(',') if p.strip()}
+            if parts == self.LINK_SELECTOR:
+                bodies.append(block.group(2))
+        return ' '.join(bodies)
+
     def test_a_body_link_keeps_the_ink_around_it(self):
         """§9.1/BACKLOG B3. The link had no rule at all and took the
         browser blue, measured at 1.03:1 on pop-violet and below AA on
         fifteen themes. Ink-on-page is the pair every theme is admitted
         on, so inheriting is the only treatment that cannot fail."""
-        css = self.lwp.TEMPLATE_STYLE
-        block = re.search(r'\.fact-content a,\s*\.full-article a \{([^}]*)\}', css)
-        self.assertIsNotNone(block, 'the body-link rule is gone')
-        body = block.group(1)
+        css = self.lwp.compose_stylesheet(
+            self.lwp.resolve_theme_properties({}))
+        body = self._link_declarations(css)
+        self.assertTrue(body, 'the body-link rule is gone')
         self.assertRegex(body, r'color:\s*inherit')
         self.assertRegex(body, r'text-decoration:\s*underline')
         self.assertIn('var(--link-decoration-color)', body)
@@ -3568,21 +3601,42 @@ class ContrastFloors(unittest.TestCase):
         cards, the index cards and the slide-progress dots. The rule is
         scoped to the two containers the Markdown converter writes into,
         and nothing else."""
-        css = self.lwp.TEMPLATE_STYLE
-        # Comments first: a comment sitting above the rule lands inside
-        # any [^{}]* that reaches back for the selector.
-        selector = re.search(r'([^{}]*)\{[^}]*text-decoration-color: var\(--link-decoration-color\)',
-                             re.sub(r'/\*.*?\*/', '', css, flags=re.DOTALL)).group(1)
+        css = re.sub(r'/\*.*?\*/', '', self.lwp.compose_stylesheet(
+            self.lwp.resolve_theme_properties({})), flags=re.DOTALL)
+        # Both halves of the treatment, wherever the seam put them: the
+        # underline itself (skeleton) and its tint (emitted from the
+        # registry). Either selector widening is the defect.
+        selectors = [m.group(1) for m in re.finditer(
+            r'([^{}]*)\{[^{}]*(?:text-decoration:\s*underline'
+            r'|text-decoration-color:\s*var\(--link-decoration-color\))', css)]
+        self.assertEqual(len(selectors), 2,
+                         'the body-link treatment moved: ' + repr(selectors))
         # Checked part by part, not by looking for names that must be
         # absent: a bare `a` reaches every one of those containers
         # without naming any of them, which is how the first version of
         # this guard passed its own mutation.
-        parts = [p.strip() for p in selector.strip().split(',') if p.strip()]
-        self.assertTrue(parts)
         allowed = ('.fact-content ', '.full-article ')
-        for part in parts:
-            self.assertTrue(part.startswith(allowed),
-                            f'{part!r} is not scoped to a prose container')
+        for selector in selectors:
+            for part in (p.strip() for p in selector.split(',')):
+                if not part:
+                    continue
+                self.assertTrue(part.startswith(allowed),
+                                f'{part!r} is not scoped to a prose container')
+
+    def test_the_registered_link_component_is_scoped_to_prose(self):
+        """The same guard on the registry side of the seam. The tint is
+        now a registry property, so widening `link`'s selector — to a
+        bare `a`, say — would put the underline's colour on every
+        navigation card in the site, and the sheet-side guard above
+        would pass, because the skeleton's own selector never moved."""
+        comp = next(c for c in self.lwp.THEME_COMPONENTS if c.key == 'link')
+        selectors = [comp.selector] + [p.selector for p in comp.props
+                                       if p.selector]
+        for selector in selectors:
+            for part in (p.strip() for p in selector.split(',')):
+                self.assertTrue(part.startswith(('.fact-content ',
+                                                 '.full-article ')),
+                                f'{part!r} is not scoped to a prose container')
 
     def test_the_underline_tint_defaults_to_the_ink_and_is_theme_settable(self):
         """§9.1/BACKLOG B3: the body link inherits the ink around it and
@@ -4042,7 +4096,7 @@ class DefaultStylesheetCoverage(unittest.TestCase):
                          + ', '.join(sorted(set(leftovers))))
         self.assertNotIn('rgba(', rules)
         self.assertNotIn(': white', rules)
-        skeleton = re.sub(r'/\*.*?\*/', '', self.lwp.extract_skeleton(), flags=re.S)
+        skeleton = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_SKELETON, flags=re.S)
         self.assertEqual(re.findall(r'#[0-9a-fA-F]{3,8}\b', skeleton), [],
                          'the skeleton is layout-only and may not carry a content colour')
 
@@ -6402,21 +6456,64 @@ class ThemeEngineStaged(unittest.TestCase):
         # bold on the bright mark ground takes the dark page ink
         self.assertEqual(r['fact.strong.fg'], r['color.page'])
 
-    def test_skeleton_extraction_leaves_no_variable_behind(self):
-        # The gap check is the completeness rule made mechanical: after the
-        # driven declarations are removed, any surviving var() is a visual
-        # decision the registry does not expose. It found four real registry
-        # gaps on its first run; this pins that it now finds none.
-        skeleton = self.lwp.extract_skeleton()
-        for line in skeleton.splitlines():
+    def test_the_skeleton_references_no_engine_variable(self):
+        # The completeness rule made mechanical. It used to run at every
+        # extraction, on a sheet derived from a constant; the skeleton is
+        # now the constant, so the same rule is a plain read of it. A
+        # var() here other than the skeleton's own --content-max is a
+        # visual decision the registry does not expose — B14 step 2 keeps
+        # this guard precisely because the dynamic one went away.
+        for line in self.lwp.TEMPLATE_SKELETON.splitlines():
             for var in re.findall(r'var\((--[a-z-]+)', line):
                 self.assertEqual(var, '--content-max',
-                                 f'skeleton still references {var}')
+                                 f'skeleton references {var}')
+
+    def test_the_skeleton_carries_no_content_colour(self):
+        # Second half of the old gap check. Layout may paint depth (the
+        # rgba box-shadows); a colour that content is read against would
+        # survive theming, which is the whole defect the registry kills.
+        css = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_SKELETON, flags=re.S)
+        self.assertEqual(re.findall(r'#[0-9a-fA-F]{3,8}\b', css), [])
+        for decl in re.findall(r'(?<![-\w])(?:color|background)'
+                               r'(?:-color)?\s*:\s*([^;}]+)', css):
+            self.assertIn(decl.strip(), ('inherit', 'none'), decl)
+
+    def test_the_skeleton_and_the_registry_never_drive_the_same_thing(self):
+        # The collision check that replaces extraction. Extraction removed
+        # driven declarations mechanically, so a duplicate was impossible
+        # by construction; the skeleton is hand-edited now, and a literal
+        # re-added on a driven (selector, property) pair would fight the
+        # engine across the cascade — the engine's rule comes FIRST, so at
+        # equal specificity the stale literal silently wins.
+        driven = set()
+        for comp in self.lwp.THEME_COMPONENTS:
+            for cssprop, _value in comp.composite:
+                for sel in comp.selector.split(','):
+                    driven.add((sel.strip(), cssprop))
+            for prop in comp.props:
+                if prop.css:
+                    for sel in (prop.selector or comp.selector).split(','):
+                        driven.add((sel.strip(), prop.css))
+            if any(p.key.endswith('.mark') for p in comp.props):
+                driven.add((comp.selector.strip() + '::before', 'content'))
+        css = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_SKELETON, flags=re.S)
+        collisions = []
+        for block in re.finditer(r'([^{}@]+)\{([^{}]*)\}', css):
+            selectors = [s.strip() for s in block.group(1).split(',')]
+            for decl in block.group(2).split(';'):
+                if ':' not in decl:
+                    continue
+                prop = decl.split(':', 1)[0].strip()
+                for sel in selectors:
+                    if (sel, prop) in driven:
+                        collisions.append(f'{sel} {{ {prop} }}')
+        self.assertEqual(collisions, [],
+                         'the skeleton restates a declaration the engine drives')
 
     def test_skeleton_keeps_media_overrides_and_shorthand_styles(self):
-        skeleton = self.lwp.extract_skeleton()
+        skeleton = self.lwp.TEMPLATE_SKELETON
         self.assertIn('@media (max-width: 600px)', skeleton)
-        # border shorthands lose colour and width to the engine but keep
+        # border shorthands lost colour and width to the engine but keep
         # their style token, or every rule would silently vanish
         self.assertIn('border-bottom-style: solid', skeleton)
         self.assertIn('outline-style: solid', skeleton)
