@@ -14,7 +14,7 @@ Usage:
   lightwebpres audit [directory] [--lang fr]
   lightwebpres refresh-templates [directory]
   lightwebpres themes [--polarity light|dark] [--intensity name] [--hue name]
-  lightwebpres set-theme [directory] --theme name [--force]
+  lightwebpres set-theme [directory] --theme name
   lightwebpres themes-gallery [path]
   lightwebpres --help
 """
@@ -65,6 +65,14 @@ VERSION = "0.12.2"
 # component-scoped variables are separate and keep their own names
 # (--cover-bg, --fact-strong-*, --surface, --sunken...).
 PALETTE_ROLES = ('page', 'ink', 'ink-muted', 'marker', 'accent', 'positive')
+
+# The settings.conf property each old role name corresponds to — what the
+# gallery shows under a swatch, because that is the name an author can
+# actually type.
+PROPERTY_NAME_OF_ROLE = {
+    'page': 'color.page', 'ink': 'color.ink', 'ink-muted': 'color.ink-quiet',
+    'marker': 'color.mark', 'accent': 'color.call', 'positive': 'color.affirm',
+}
 
 # What each one does, for themes-gallery (§11.7).
 PALETTE_ROLE_LABELS = {
@@ -234,7 +242,7 @@ THEMES = {
         'marker': '#F1FA8C', 'ink': '#282A36', 'ink-muted': '#6272A4',
         'page': '#F8F8F2', 'accent': '#FF5555', 'positive': '#50FA7B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': "A palette designed for a dark background — `--page` borrows Dracula’s text-on-black here, for want of an official light one.",
+        'note': "A palette designed for a dark background — `color.page` borrows Dracula’s text-on-black here, for want of an official light one.",
         'note_good': False,
     },
     'solarized': {
@@ -258,7 +266,7 @@ THEMES = {
         'marker': '#DF8E1D', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
         'page': '#EFF1F5', 'accent': '#D20F39', 'positive': '#40A02B',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'marker',
-        'note': "The only light-background-first palette here with a true green — `--ink` is a slate blue, not a pure black (a less striking cover slide).",
+        'note': "The only light-background-first palette here with a true green — `color.ink` is a slate blue, not a pure black (a less striking cover slide).",
         'note_good': False,
     },
     'tokyo-night': {
@@ -266,7 +274,7 @@ THEMES = {
         'marker': '#E0AF68', 'ink': '#1A1B26', 'ink-muted': '#565F89',
         'page': '#E1E2E7', 'accent': '#F7768E', 'positive': '#9ECE6A',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
-        'note': "Tokyo Night is nocturnal by nature — `--page` is borrowed from its official sister variant “Day”, not from the Night palette itself.",
+        'note': "Tokyo Night is nocturnal by nature — `color.page` is borrowed from its official sister variant “Day”, not from the Night palette itself.",
         'note_good': False,
     },
     'monokai': {
@@ -274,7 +282,7 @@ THEMES = {
         'marker': '#E6DB74', 'ink': '#272822', 'ink-muted': '#75715E',
         'page': '#F8F8F2', 'accent': '#F92672', 'positive': '#A6E22E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "Among the most vivid greens and yellows here. No official light variant — `--page` reuses the text-on-black, like Dracula.",
+        'note': "Among the most vivid greens and yellows here. No official light variant — `color.page` reuses the text-on-black, like Dracula.",
         'note_good': False,
     },
     'everforest': {
@@ -282,7 +290,7 @@ THEMES = {
         'marker': '#DFA000', 'ink': '#2D353B', 'ink-muted': '#859289',
         'page': '#FDF6E3', 'accent': '#F85552', 'positive': '#A7C080',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': "Sage green is the palette’s signature colour — the strongest semantic anchor here for the `--positive` role. Official light+dark pairing.",
+        'note': "Sage green is the palette’s signature colour — the strongest semantic anchor here for the `color.affirm` role. Official light+dark pairing.",
         'note_good': True,
     },
     'rose-pine': {
@@ -290,7 +298,7 @@ THEMES = {
         'marker': '#EA9D34', 'ink': '#464261', 'ink-muted': '#797593',
         'page': '#FAF4ED', 'accent': '#B4637A', 'positive': '#6D8F89',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
-        'note': "The softest of the set — `--ink` is a muted plum rather than a true black, and `--positive` (“leaf”) leans teal.",
+        'note': "The softest of the set — `color.ink` is a muted plum rather than a true black, and `color.affirm` (“leaf”) leans teal.",
         'note_good': False,
     },
     # --- Original palettes: higher-contrast, monochrome, or pop ---
@@ -6111,9 +6119,11 @@ def cmd_audit(series_dir, args):
 
 # Every variable name that ever existed and no longer does, with where its
 # job went. One flat table serving one audit warning: a rename that breaks
-# quietly is the worst kind, and this is what makes it audible. The
-# --fact-strong-* and --link-decoration-color names survived the rewrite
-# unchanged, so they are not here.
+# quietly is the worst kind, and this is what makes it audible. Most
+# --fact-strong-* names and --link-decoration-color survived the rewrite
+# unchanged; the two that did not are listed. (An earlier version of this
+# comment claimed they all survived — the silent failure the table exists
+# to kill, caught in test review.)
 RETIRED_VARIABLES = {
     # v0.12.0 colour-name renames (kept: an old sheet may carry them still)
     '--yellow': '--color-mark', '--dark': '--color-ink',
@@ -6136,6 +6146,8 @@ RETIRED_VARIABLES = {
                   'stops)',
     '--cover-fg': '--cover-fg', '--cover-fg-faint': '--cover-num-fg',
     '--control': '--nav-btn-bg', '--control-soft': '--nav-btn-bg-soft',
+    '--fact-strong-highlight': '--fact-strong-bg',
+    '--fact-strong-ink': '--fact-strong-fg',
 }
 
 
@@ -6562,7 +6574,7 @@ def cmd_themes_gallery(output_path, args):
             f'<span class="swatch-chip" style="background:{theme[role]}"></span>'
             f'<span class="swatch-text">'
             f'<div class="swatch-role">{PALETTE_ROLE_LABELS[role]}</div>'
-            f'<div class="swatch-var">--{role}</div>'
+            f'<div class="swatch-var">{PROPERTY_NAME_OF_ROLE[role]}</div>'
             f'<div class="swatch-hex">{theme[role]}</div>'
             f'</span></li>'
             for role in PALETTE_ROLES
@@ -6857,6 +6869,7 @@ def print_help():
     # facets exist to solve, only relocated into the terminal. Point at
     # the two commands that can actually answer "which one do I want".
     theme_count = len(THEMES)
+    property_count = len(PROPERTY_REGISTRY)
     print(f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
 
 COMMANDS
@@ -6931,51 +6944,39 @@ THEMES ({theme_count} built in, see specifications.md §9.5)
   Then apply one, at scaffold time or afterwards:
     lightwebpres install my-series --theme evergreen
     lightwebpres set-theme my-series --theme evergreen
-  set-theme refuses a templates/style.css whose built-in part is not what
-  this executable would have written (hand-edited, or from another
-  version), because the substitution could leave it half-recoloured;
-  --force overrides that and warns. Rules you added after the
-  personalization marker are always preserved either way.
+  set-theme rewrites the one `theme:` line of templates/settings.conf and
+  nothing else: your uncommented values are untouched and still apply on
+  top of the new theme. The stylesheet is composed at build time, so
+  upgrading the executable never silently reverts anything.
   Preview every theme rendered against real slide content, with facet
   filters, at:
     lightwebpres themes-gallery
-  refresh-templates automatically reapplies a chosen theme to the up-to-date
-  built-in CSS, so upgrading the executable never silently reverts it.
 
-PALETTE AND EMPHASIS (templates/style.css, see specifications.md §9.1)
-  Six colors, each named for its role, not for a hue:
-    --page        the page background
-    --ink         body text; also the cover ground on a light theme
-    --ink-muted   summary, caption, source, the "no" verdict
-    --marker      fact-box rule, cover tag, header underline, active
-                  nav dot, emphasized column
-    --accent      footnote call, "partial" verdict, focus ring
-    --positive    the "yes" verdict of a comparison table
-  A body link is NOT one of these. It keeps the ink around it and is
-  signalled by an underline, because a link is running text and every
-  palette colour that could carry it is either below AA on a third of the
-  catalogue or is already a verdict colour. One variable tints the rule:
-    --link-decoration-color         var(--<role>), or currentColor
-  Six more decide how **bold** renders INSIDE a fact-box, on four
-  independent axes — a theme can be bold with no highlight, un-bold with
-  a green one, or underlined and nothing else:
-    --fact-strong-weight            bold | normal
-    --fact-strong-style             normal | italic
-    --fact-strong-highlight         var(--<role>), or transparent
-    --fact-strong-ink               the text ON that marker; set it
-                                    whenever you change the highlight, or
-                                    the pair can land below readable
-                                    contrast
-    --fact-strong-decoration        underline | none
-    --fact-strong-decoration-color  var(--<role>), or currentColor
-  The underline's thickness and offset are fixed, not exposed: a hairline
-  sitting on the baseline is what makes underlined text hard to read.
-  Override any of them in templates/style.css, AFTER the personalization
-  marker — that section survives refresh-templates. For example, keeping
-  the bold and dropping the marker:
-    :root {{ --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }}
-  Each built-in theme picks its own combination; `themes-gallery` states
-  the one every theme uses, under its preview.
+SETTINGS (templates/settings.conf, see specifications.md §9)
+  Every visual decision is a typed property, `component.axis: value`, and
+  settings.conf lists ALL of them, commented out at the current theme's
+  values. Uncomment a line to pin it: it survives every theme change and
+  every executable upgrade, and lightwebpres never rewrites your file
+  (set-theme touches only the `theme:` line).
+  Shared values themes provide, referenced by bare words:
+    color.page    the page background
+    color.ink     body text          color.ink-quiet   secondary text
+    color.mark    what marks         color.call        what calls attention
+    color.affirm  what affirms       (never posed as text by the engine)
+    font.text / font.display / font.ui / font.mono
+                  four stacks; each must end on a CSS generic family
+  Component properties name what they paint — a few of the {property_count}:
+    verdict.partial.fg: #8a4b00     one verdict, nothing else moves
+    tag.transform: none             tags stop being uppercase
+    cover.bg.to: #44475A            the cover becomes a gradient
+    title1.shadow.fg: #33FF8866     a halo (a shadow with no offset)
+    fact.strong.weight: normal      un-bold the fact-box emphasis
+  A bare word is looked up in its type's namespace (`tag.fg: ink-quiet`);
+  a dotted word references another property (`title1.fg: cover.fg`).
+  Errors name their key and line — a mistyped property is a build error,
+  never a silent no-op. CSS rules (new selectors, @font-face, media
+  queries) belong in templates/custom.css, appended after the composed
+  stylesheet so your rules win ties.
 
 ENVIRONMENT VARIABLES
   LWP_ARTICLES_DIR    Articles directory (default: $LWP_SERIES_DIR/articles)
@@ -7077,7 +7078,7 @@ _COMMAND_OPTIONS = {
     'audit': {'--lang'},
     'refresh-templates': set(),
     'themes': {'--polarity', '--intensity', '--hue'},
-    'set-theme': {'--theme', '--force'},
+    'set-theme': {'--theme'},
     'themes-gallery': set(),
 }
 

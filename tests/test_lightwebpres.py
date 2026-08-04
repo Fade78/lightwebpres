@@ -332,6 +332,41 @@ class AuditCommand(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('is not a cover', result.stdout)
 
+    def test_audit_names_the_scaffold_theme_drift_after_a_set_theme(self):
+        """§9 rewrite: set-theme changes the theme line and leaves the
+        commented values showing the OLD theme — by design, since the
+        file is the author's. The remedy for that aging is to SAY it, and
+        audit is where it is said: uncommenting a line would pin a value
+        from a theme the series has left."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('demo', tmp).returncode, 0)
+            clean = run('audit', tmp)
+            self.assertNotIn('scaffold', clean.stdout.lower())
+
+            self.assertEqual(run('set-theme', tmp, '--theme', 'evergreen').returncode, 0)
+            result = run('audit', tmp)
+            self.assertEqual(result.returncode, 0, 'audit must never block')
+            self.assertIn("generated for theme 'nord'", result.stdout)
+            self.assertIn("declares 'evergreen'", result.stdout)
+
+    def test_audit_reports_invalid_settings_without_blocking(self):
+        """A mistyped key in settings.conf is a named error at build
+        time; audit surfaces the same message without failing, so the
+        author hears about it before the next build does. The silent
+        no-op this replaces was the most expensive failure of the CSS
+        surface."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('demo', tmp).returncode, 0)
+            settings = Path(tmp) / 'templates' / 'settings.conf'
+            settings.write_text(settings.read_text(encoding='utf-8')
+                                + 'summary.color: #000000\n', encoding='utf-8')
+            result = run('audit', tmp)
+            self.assertEqual(result.returncode, 0, 'audit must never block')
+            self.assertIn('summary.color', result.stdout)
+            self.assertIn('unknown property', result.stdout)
+
     def test_audit_does_not_crash_when_series_json_omits_file(self):
         """§20.3.1: series.json needs only `source` — audit must resolve
         `file` (resolve_article_fields()) before reading entry['file'],
@@ -552,24 +587,9 @@ class PlaceholderNotSubstitutedInAuthorContent(unittest.TestCase):
             self.assertIn('T{{cards}}X', html)
 
 
-class RefreshTemplatesDuplicateMarker(unittest.TestCase):
-    """A second copy of the customization marker pasted into the author's
-    own CSS must not cause refresh-templates to drop the author rules
-    between the two markers (rfind -> find)."""
-
-    def test_author_css_between_duplicate_markers_is_kept(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / 's'
-            self.assertEqual(run('install', str(root), '--lang', 'en').returncode, 0)
-            marker = ('/* === Local customizations: refresh-templates '
-                      'keeps everything below this line === */')
-            style = root / 'templates' / 'style.css'
-            style.write_text(style.read_text(encoding='utf-8') +
-                             f'\n/*BLOCK_A*/\n{marker}\n/*BLOCK_B*/\n', encoding='utf-8')
-            self.assertEqual(run('refresh-templates', str(root)).returncode, 0)
-            kept = style.read_text(encoding='utf-8')
-            self.assertIn('BLOCK_A', kept)
-            self.assertIn('BLOCK_B', kept)
+# RefreshTemplatesDuplicateMarker was retired with the customization marker
+# itself: refresh-templates no longer writes author-owned files, so there is
+# no marker to duplicate and no rfind/find split to defend.
 
 
 class SlideCounter(unittest.TestCase):
@@ -1408,9 +1428,11 @@ class ImageFiguresAndCaptions(unittest.TestCase):
         self.assertIn('<figcaption class="figure-caption">In a fact box</figcaption>', html)
 
     def test_figure_css_present_in_default_stylesheet(self):
+        # The caption's ink is a component property now (caption.fg,
+        # defaulting to the quiet ink) — the page must carry its rule.
         html = self._build_article_html('![p](img/p.png "Cap")\n')
         self.assertIn('.figure-caption', html)
-        self.assertIn('color: var(--ink-muted)', html)
+        self.assertIn('color: var(--caption-fg)', html)
 
 
 class MarkdownConversion(unittest.TestCase):
@@ -1952,7 +1974,12 @@ class InstallContent(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'series.json').exists())
             self.assertTrue((root / 'articles').is_dir())
-            self.assertTrue((root / 'templates' / 'style.css').exists())
+            # The author surface: values, rules, behaviour. No style.css —
+            # the stylesheet is composed at build time and owns no file.
+            self.assertTrue((root / 'templates' / 'settings.conf').exists())
+            self.assertTrue((root / 'templates' / 'custom.css').exists())
+            self.assertTrue((root / 'templates' / 'nav.js').exists())
+            self.assertFalse((root / 'templates' / 'style.css').exists())
             self.assertTrue((root / 'language' / 'fr.json').exists())
             self.assertTrue((root / 'language' / 'en.json').exists())
             fr_pack = json.loads((root / 'language' / 'fr.json').read_text(encoding='utf-8'))
@@ -2388,10 +2415,14 @@ class TypographyDisableSwitches(unittest.TestCase):
 
 
 class TemplateOverride(unittest.TestCase):
-    """§12/§18: a templates/style.css or templates/nav.js placed by the
-    author must be used instead of the built-in default."""
+    """§9/§12/§18: the author's surface must actually reach the page —
+    values through templates/settings.conf, rules through
+    templates/custom.css, behaviour through templates/nav.js. The old
+    whole-file style.css override is gone (the sheet is composed in
+    memory); its guarantee splits into the two tests below, one per
+    author file."""
 
-    def test_custom_style_css_is_used(self):
+    def test_custom_css_rules_are_appended_after_the_composed_sheet(self):
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
@@ -2399,12 +2430,33 @@ class TemplateOverride(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             (root / 'templates').mkdir()
-            (root / 'templates' / 'style.css').write_text(
-                '/* CUSTOM-MARKER-CSS */', encoding='utf-8',
+            (root / 'templates' / 'custom.css').write_text(
+                '/* CUSTOM-MARKER-CSS */\n.mine { color: red; }\n', encoding='utf-8',
             )
             run('build', str(root), '--output', str(root / 'public'))
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('/* CUSTOM-MARKER-CSS */', html)
+            # Order is the author's win condition: their rules come after
+            # the composed sheet, so they beat it at equal specificity.
+            self.assertGreater(html.index('/* CUSTOM-MARKER-CSS */'),
+                               html.index('--color-page:'))
+
+    def test_settings_conf_values_reach_the_page(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'templates').mkdir()
+            # A hand-written settings file, not a scaffold: the surface is
+            # plain `key: value`, so a file of one line is legitimate.
+            (root / 'templates' / 'settings.conf').write_text(
+                'color.mark: #123456\n', encoding='utf-8',
+            )
+            run('build', str(root), '--output', str(root / 'public'))
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--color-mark: #123456FF;', html)
 
     def test_custom_nav_js_is_used(self):
         md = (
@@ -2461,11 +2513,12 @@ class TemplateOverride(unittest.TestCase):
 
 
 class RefreshTemplates(unittest.TestCase):
-    """§9.4/§11.6: refresh-templates updates the built-in portion of
-    templates/style.css and templates/nav.js after an executable upgrade,
-    without discarding local customizations."""
-
-    MARKER = '/* === Local customizations: refresh-templates keeps everything below this line === */'
+    """§11.6 under the §9 rewrite: only nav.js is a tool-owned file on
+    disk that an upgrade can refresh — the stylesheet is composed at
+    build time, so it is always fresh by construction, and the author's
+    settings.conf / custom.css are never the tool's to touch. The marker
+    machinery (and its [SKIP]/exit-1 paths) is gone with the shared
+    file that required it."""
 
     def test_requires_install_first(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2478,44 +2531,68 @@ class RefreshTemplates(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('install', str(root)).returncode, 0)
-            before_style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            before_nav = (root / 'templates' / 'nav.js').read_text(encoding='utf-8')
+            before = {name: (root / 'templates' / name).read_text(encoding='utf-8')
+                      for name in ('settings.conf', 'custom.css', 'nav.js')}
             result = run('refresh-templates', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('up to date', result.stdout.lower())
-            self.assertEqual((root / 'templates' / 'style.css').read_text(encoding='utf-8'), before_style)
-            self.assertEqual((root / 'templates' / 'nav.js').read_text(encoding='utf-8'), before_nav)
+            self.assertIn('Already up to date', result.stdout)
+            for name, text in before.items():
+                self.assertEqual((root / 'templates' / name).read_text(encoding='utf-8'),
+                                 text, name)
 
-    def test_style_css_refreshes_builtin_part_and_keeps_customization_after_marker(self):
+    def test_missing_settings_and_custom_are_created_and_reported(self):
+        """A series scaffolded before the rewrite has neither file:
+        writing a file that does not exist breaks no ownership promise,
+        and each creation is named so the author knows the surface
+        appeared."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('install', str(root)).returncode, 0)
-            style_path = root / 'templates' / 'style.css'
-            stale = style_path.read_text(encoding='utf-8').replace(
-                ':root {', '/* STALE-BUILTIN-RULE */\n:root {', 1,
-            )
-            stale += '\n  .my-custom { color: red; }\n'
-            style_path.write_text(stale, encoding='utf-8')
+            (root / 'templates' / 'settings.conf').unlink()
+            (root / 'templates' / 'custom.css').unlink()
 
             result = run('refresh-templates', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('settings.conf (new, default theme)', result.stdout)
+            self.assertIn('custom.css (new, empty)', result.stdout)
+            settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
+            self.assertIn('# theme: <slug>', settings)
+            self.assertTrue((root / 'templates' / 'custom.css').exists())
 
-            refreshed = style_path.read_text(encoding='utf-8')
-            self.assertNotIn('STALE-BUILTIN-RULE', refreshed)
-            self.assertIn('.my-custom { color: red; }', refreshed)
-            self.assertIn(self.MARKER, refreshed)
+    def test_an_edited_settings_conf_is_never_rewritten(self):
+        """The ownership rule itself, on a file that LOOKS stale: an
+        author's uncommented value and their own comment must survive
+        refresh byte for byte — signalling drift is audit's job, not an
+        excuse to write."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            settings = root / 'templates' / 'settings.conf'
+            edited = settings.read_text(encoding='utf-8').replace(
+                '# color.mark: #EBCB8B', 'color.mark: #EBCB8B', 1,
+            ) + '# my own note\n'
+            settings.write_text(edited, encoding='utf-8')
 
-    def test_style_css_without_marker_is_skipped_not_guessed(self):
+            result = run('refresh-templates', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(settings.read_text(encoding='utf-8'), edited)
+
+    def test_a_legacy_style_css_warns_but_never_fails(self):
+        """The pre-rewrite exit-1-without-marker path is gone: a leftover
+        style.css is the author's file holding the author's values, so it
+        is reported (it is silently unread otherwise) and left exactly in
+        place — refresh must still succeed at its own job."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('install', str(root)).returncode, 0)
+            legacy = '/* old scaffold */\n.old-custom { color: blue; }\n'
             style_path = root / 'templates' / 'style.css'
-            legacy = '/* old scaffold, predates the marker */\n.old-custom { color: blue; }\n'
             style_path.write_text(legacy, encoding='utf-8')
 
             result = run('refresh-templates', str(root))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn(self.MARKER, result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[WARN]', result.stderr)
+            self.assertIn('style.css is no longer read', result.stderr)
             self.assertEqual(style_path.read_text(encoding='utf-8'), legacy)
 
     def test_nav_js_is_replaced_and_previous_version_backed_up(self):
@@ -2713,41 +2790,42 @@ class BuildStamp(unittest.TestCase):
 
 
 class Themes(unittest.TestCase):
-    """§9.5/§11.1/§11.6/§11.7: install --theme substitutes the six palette
-    variables from THEMES, records which theme was applied in a marker
-    refresh-templates can read back, and themes-gallery documents every
-    entry purely from that same table."""
+    """§9/§11.1/§11.7: install --theme writes a settings.conf scaffold that
+    DECLARES the theme (`theme: <slug>` plus every property commented at
+    that theme's value), and build composes the themed stylesheet in memory
+    into every page. The substituted style.css, its theme marker and the
+    marker-reading upgrade path are gone: a theme is one line in a file the
+    author owns, so there is nothing left to re-substitute or misread."""
 
-    THEME_MARKER_RE = re.compile(r'^/\* lightwebpres-theme: (\S+) \*/$', re.MULTILINE)
-
-    def test_install_without_theme_uses_default_and_no_marker(self):
+    def test_install_without_theme_leaves_the_theme_line_commented(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('install', str(root)).returncode, 0)
-            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--marker: #FFFC00;', style)
-            self.assertIsNone(self.THEME_MARKER_RE.search(style))
+            settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
+            # No theme chosen is a state, not an omission: the placeholder
+            # stays commented and the scaffold says whose values it shows.
+            self.assertIn('# theme: <slug>', settings)
+            self.assertIn('# scaffold-for: default', settings)
+            self.assertIn('# color.mark: #FFFC00', settings)
+            self.assertNotRegex(settings, re.compile(r'^theme:', re.MULTILINE))
 
-    def test_install_with_valid_theme_substitutes_colors_and_records_marker(self):
+    def test_install_with_valid_theme_declares_it_in_the_scaffold(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             result = run('install', str(root), '--theme', 'nord')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Nord', result.stdout)
-            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--marker: #EBCB8B;', style)
-            self.assertIn('--ink: #2E3440;', style)
-            self.assertNotIn('#FFFC00', style)
-            m = self.THEME_MARKER_RE.search(style)
-            self.assertIsNotNone(m)
-            self.assertEqual(m.group(1), 'nord')
-
-    def test_install_with_valid_theme_keeps_the_personalization_marker(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
-            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn(RefreshTemplates.MARKER, style)
+            settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
+            self.assertIn('\ntheme: nord\n', settings)
+            self.assertIn('# scaffold-for: nord', settings)
+            # Commented values show the CHOSEN theme's palette, so the
+            # author uncomments what they see, not the default's leftovers.
+            self.assertIn('# color.mark: #EBCB8B', settings)
+            self.assertNotIn('#FFFC00', settings)
+            # The author surface ships whole even with a theme: custom.css
+            # is where rules go, and no style.css exists to be edited.
+            self.assertTrue((root / 'templates' / 'custom.css').exists())
+            self.assertFalse((root / 'templates' / 'style.css').exists())
 
     def test_install_with_unknown_theme_is_a_fatal_error_listing_valid_names(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2758,44 +2836,19 @@ class Themes(unittest.TestCase):
             self.assertIn('nord', result.stderr)
             self.assertFalse((root / 'templates').exists())
 
-    def test_refresh_templates_reapplies_known_theme_after_upgrade(self):
+    def test_refresh_templates_never_touches_the_declared_theme(self):
+        """What the marker-reapply tests protected — an upgrade must not
+        lose the theme choice — holds by construction now: the choice
+        lives in settings.conf and refresh-templates never writes an
+        existing settings.conf. Pinned on bytes, not on re-derivation."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
-            style_path = root / 'templates' / 'style.css'
-            stale = style_path.read_text(encoding='utf-8').replace(
-                '--marker: #F1FA8C;', '--marker: #F1FA8C;\n  /* STALE-BUILTIN-RULE */', 1,
-            )
-            style_path.write_text(stale, encoding='utf-8')
-
+            settings_path = root / 'templates' / 'settings.conf'
+            before = settings_path.read_text(encoding='utf-8')
             result = run('refresh-templates', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-
-            refreshed = style_path.read_text(encoding='utf-8')
-            self.assertNotIn('STALE-BUILTIN-RULE', refreshed)
-            self.assertIn('--marker: #F1FA8C;', refreshed)
-            self.assertIn('--ink: #282A36;', refreshed)
-            m = self.THEME_MARKER_RE.search(refreshed)
-            self.assertIsNotNone(m)
-            self.assertEqual(m.group(1), 'dracula')
-
-    def test_refresh_templates_falls_back_to_default_with_warning_for_unknown_marker(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
-            style_path = root / 'templates' / 'style.css'
-            edited = style_path.read_text(encoding='utf-8').replace(
-                '/* lightwebpres-theme: nord */', '/* lightwebpres-theme: retired-theme */', 1,
-            )
-            style_path.write_text(edited, encoding='utf-8')
-
-            result = run('refresh-templates', str(root))
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('retired-theme', result.stderr)
-
-            refreshed = style_path.read_text(encoding='utf-8')
-            self.assertIn('--marker: #FFFC00;', refreshed)
-            self.assertIsNone(self.THEME_MARKER_RE.search(refreshed))
+            self.assertEqual(settings_path.read_text(encoding='utf-8'), before)
 
     def test_themes_gallery_default_path(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2816,9 +2869,10 @@ class Themes(unittest.TestCase):
                           'Catppuccin Latte', 'Tokyo Night', 'Monokai', 'Everforest',
                           'Rosé Pine Dawn'):
                 self.assertIn(f'<h2>{label}</h2>', html)
-            # The palette reaches the preview through its own themed
-            # stylesheet now, not through an inline style attribute.
-            self.assertIn('--marker: #EBCB8B;', html)
+            # The palette reaches the preview through its own composed
+            # stylesheet (ARGB-normalised), not through an inline style
+            # attribute the gallery assembled itself.
+            self.assertIn('--color-mark: #EBCB8BFF;', html)
             self.assertIn('lightwebpres install my-series --theme nord', html)
             # One card per theme, whatever the count — asserting a literal
             # number here just means editing the test every time a palette
@@ -2835,14 +2889,19 @@ class Themes(unittest.TestCase):
             for facet in ('data-polarity=', 'data-intensity=', 'data-hue='):
                 self.assertEqual(html.count(facet), expected)
 
-    def test_themed_build_actually_uses_the_substituted_colors(self):
+    def test_themed_build_actually_uses_the_declared_theme(self):
+        """Declaring a theme and painting with it are two different code
+        paths; only the built page proves they are connected. Both the
+        article page and the index carry the composed sheet inline."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'gruvbox').returncode, 0)
-            self.assertEqual(run('demo', str(root)).returncode, 0)
-            self.assertEqual(run('build', str(root)).returncode, 0)
-            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('--marker: #D79921;', index_html)
+            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for page in ('a.html', 'index.html'):
+                html = (root / 'public' / page).read_text(encoding='utf-8')
+                self.assertIn('--color-mark: #EBCB8BFF;', html, page)
 
 
 def load_lightwebpres_module():
@@ -2859,108 +2918,89 @@ def load_lightwebpres_module():
 
 
 class DarkBackgroundThemes(unittest.TestCase):
-    """§9.5.2: a theme can declare a dark background and get its neutral
-    overlays inverted. Until that existed, every theme was forced to be
-    light-backgrounded — a white surface veil turns a card into an
-    unreadable pale block over a dark page, which is exactly what a
-    green-on-black candidate produced. No built-in theme uses the flag
-    yet, so this exercises the mechanism directly rather than through
-    one, and would otherwise be shipping untested."""
-
-    OVERLAY_VARS = ('rule', 'rule-strong', 'surface', 'sunken',
-                    'cover-bg', 'cover-fg', 'cover-fg-faint',
-                    'control', 'control-soft')
+    """§9.5.2 -> §9 rewrite: what dark_background used to switch behind
+    the theme's back (SURFACE_PRESETS) is now stated by the theme's own
+    property layer — DARK_FURNITURE_PROPS is the ex-preset dissolved into
+    ordinary component colours. The guarantee is unchanged: a white
+    surface veil turns a card into an unreadable pale block over a dark
+    page, which is exactly what a green-on-black candidate produced
+    before the mechanism existed."""
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
 
-    def test_each_theme_resolves_to_the_preset_its_flag_asks_for(self):
-        """The assertion that matters, and the one that caught a real
-        bug: the flag was first called `dark`, which is ALSO the palette
-        key holding each theme's dark tone. `theme.get('dark')` therefore
-        returned a colour string — truthy — and every theme silently
-        switched to the dark overlays. Nothing else in the suite noticed,
-        because those overlays are rgba and the colour checks look for
-        hex. Stated as a mapping rather than 'all are light', so it keeps
-        holding as dark palettes ship."""
-        self.assertEqual(
-            self.lwp.theme_surface_properties({}),
-            self.lwp.SURFACE_PRESETS[False],
-        )
-        for key, theme in self.lwp.THEMES.items():
-            wanted = self.lwp.SURFACE_PRESETS[bool(theme.get('dark_background'))]
-            self.assertIs(
-                self.lwp.theme_surface_properties(theme), wanted,
-                f'{key} does not get the overlays its dark_background flag asks for',
-            )
-        # Both cases must actually be represented, or the mapping above
-        # is only ever exercised in one direction.
+    def test_a_dark_layer_carries_the_furniture_a_light_layer_does_not(self):
+        """The flag/preset mapping, restated as layers. This mapping once
+        caught a real bug (the flag was first called `dark`, ALSO a
+        palette key, so theme.get('dark') was a truthy colour string and
+        every theme silently went dark), so it stays pinned per slug
+        rather than as 'all are light'."""
+        dark_items = self.lwp.DARK_FURNITURE_PROPS.items()
+        for slug, theme in self.lwp.THEMES.items():
+            layer = self.lwp.theme_property_layer(slug)
+            if theme.get('dark_background'):
+                self.assertTrue(dark_items <= layer.items(),
+                                f'{slug} is dark but its layer lacks the dark furniture')
+            else:
+                for key in self.lwp.DARK_FURNITURE_PROPS:
+                    self.assertNotIn(key, layer,
+                                     f'{slug} is light but its layer overrides {key}')
+        # Both polarities must actually be represented, or the mapping
+        # above is only ever exercised in one direction.
         polarities = {bool(t.get('dark_background')) for t in self.lwp.THEMES.values()}
         self.assertEqual(polarities, {True, False})
+        # The one that actually broke: a dark surface must stay a white
+        # veil, only a faint one (alpha 0E = 5.5%), never a heavy wash.
+        self.assertEqual(self.lwp.DARK_FURNITURE_PROPS['fact.bg'], '#FFFFFF0E')
 
-    def test_a_dark_theme_inverts_every_overlay(self):
-        light = self.lwp.SURFACE_PRESETS[False]
-        dark = self.lwp.SURFACE_PRESETS[True]
-        self.assertEqual(sorted(light), sorted(dark), 'both presets must define the same variables')
-        for var in self.OVERLAY_VARS:
-            self.assertIn(var, light)
-            self.assertNotEqual(
-                light[var], dark[var],
-                f'--{var} is identical in both presets, so it does not adapt',
-            )
-        # The two that actually broke: a surface must not be a heavy white
-        # veil on a dark page, and the cover must not use --dark as its
-        # background there (that variable holds the TEXT colour).
-        self.assertNotIn('var(--ink)', dark['cover-bg'])
-        white_veil = re.search(r'rgba\(255,\s*255,\s*255,\s*([0-9.]+)\)', dark['surface'])
-        self.assertIsNotNone(white_veil, 'dark surface should still be a white veil, only a faint one')
-        self.assertLess(float(white_veil.group(1)), 0.2)
+    def test_a_dark_themed_build_paints_the_dark_furniture(self):
+        """End to end through the real install/build path: the inverted
+        veil reaches the page a reader loads, not just the layer dict."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'terminal').returncode, 0)
+            scaffold(tmp, _MINIMAL_MD)
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--fact-bg: #FFFFFF0E;', html)
+
+    def test_a_light_themed_build_keeps_the_light_furniture(self):
+        """The registry defaults ARE the light set — a light theme must
+        not drag the dark veils in, which is the inverse silent failure
+        of the `dark` flag bug."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            scaffold(tmp, _MINIMAL_MD)
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--fact-bg: #FFFFFFB8;', html)
 
     def test_the_fact_highlight_gets_readable_ink_on_a_dark_theme(self):
         """The fact-box marker sets a BACKGROUND from the palette's
-        bright tone. Setting no colour alongside it silently assumes the
+        bright tone. Setting no ink alongside it silently assumes the
         text over it is dark — true on a light theme, false on a dark
-        one, where --dark is the LIGHT text colour. Measured in a browser
-        on a real dark build before this: contrast ratio 1.00, i.e. the
-        figure was invisible. On a dark theme --light IS the dark page
-        ground, so it is the ink this needs."""
-        dark = self.lwp.theme_fact_properties(
-            {'dark_background': True, 'fact_highlight': 'marker'})
-        self.assertEqual(dark['highlight'], 'var(--marker)')
-        self.assertEqual(dark['ink'], 'var(--page)')
+        one, where the ink is the LIGHT text colour. Measured in a
+        browser on a real dark build before this: contrast ratio 1.00,
+        i.e. the figure was invisible. On a dark theme the page IS the
+        dark ground, so it is the ink this needs."""
+        dark = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('terminal'))
+        self.assertEqual(dark['fact.strong.bg'], dark['color.mark'])
+        self.assertEqual(dark['fact.strong.fg'], dark['color.page'])
 
-        light = self.lwp.theme_fact_properties({'fact_highlight': 'marker'})
-        self.assertEqual(light['ink'], 'var(--ink)')
+        light = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('nord'))
+        self.assertEqual(light['fact.strong.fg'], light['color.ink'])
 
-        # No marker means no marker to sit on: the text must keep the
-        # body colour, or a dark theme would paint it dark-on-dark.
-        bare = self.lwp.theme_fact_properties(
-            {'dark_background': True, 'fact_highlight': None})
-        self.assertEqual(bare['highlight'], 'transparent')
-        self.assertEqual(bare['ink'], 'inherit')
-
-    def test_install_with_a_dark_theme_writes_the_inverted_overlays(self):
-        """End to end through the real install path, with a dark theme
-        injected into THEMES for the duration of the test."""
-        self.lwp.THEMES['test-dark'] = {
-            'label': 'Test Dark', 'source': 'tests',
-            'dark_background': True,
-            'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#5F8C6A',
-            'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
-        }
-        try:
-            styled = self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, 'test-dark')
-        finally:
-            del self.lwp.THEMES['test-dark']
-        self.assertIn('--page: #0B0F0C;', styled)
-        dark = self.lwp.SURFACE_PRESETS[True]
-        for var in self.OVERLAY_VARS:
-            m = re.search(r'--' + re.escape(var) + r':\s*([^;]+);', styled)
-            self.assertIsNotNone(m, f'--{var} missing from the themed stylesheet')
-            self.assertEqual(
-                m.group(1).strip(), dark[var],
-                f'--{var} kept its light value in a dark-backgrounded theme',
-            )
+        # No marker means no marker to sit on: the text keeps the body
+        # ink, or a dark theme would paint it dark-on-dark. `fact_highlight:
+        # None` is a stated absence — the first port run turned those five
+        # themes yellow by treating it as 'nothing said'.
+        bare = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('solarized'))
+        self.assertEqual(bare['fact.strong.bg'], '#00000000')
+        self.assertEqual(bare['fact.strong.fg'], bare['color.ink'])
 
 
 class ThemeFacets(unittest.TestCase):
@@ -3024,30 +3064,28 @@ class ThemeFacets(unittest.TestCase):
             self.assertIn(facets['intensity'], ('sober', 'vivid', 'mono'), key)
             self.assertIsInstance(facets['hue'], str)
 
-    def test_polarity_facet_agrees_with_the_overlays_actually_applied(self):
-        """The facet is a label; the flag drives real CSS. If they ever
-        disagreed the gallery would file a theme under the wrong heading
-        while rendering it the other way."""
+    def test_polarity_facet_agrees_with_the_furniture_actually_applied(self):
+        """The facet is a label; the property layer drives real CSS. If
+        they ever disagreed the gallery would file a theme under the
+        wrong heading while rendering it the other way."""
+        dark_items = self.lwp.DARK_FURNITURE_PROPS.items()
         for key, theme in self.lwp.THEMES.items():
             dark_facet = self.lwp.theme_facets(theme)['polarity'] == 'dark'
-            dark_css = self.lwp.theme_surface_properties(theme) is self.lwp.SURFACE_PRESETS[True]
+            dark_css = dark_items <= self.lwp.theme_property_layer(key).items()
             self.assertEqual(dark_facet, dark_css, key)
 
-    def test_the_gallery_preview_receives_the_overlay_variables(self):
-        """Without them a dark-backgrounded theme previews with the light
-        preset's surfaces — a white card on a black page — so the gallery
-        would misrepresent exactly the themes hardest to judge."""
-        with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
-            html = out.read_text(encoding='utf-8')
-        # The overlays now reach the preview the only way they should:
-        # inside its own themed stylesheet, written by apply_theme(). The
-        # gallery no longer injects a single variable by hand.
+    def test_the_gallery_preview_receives_the_dark_furniture(self):
+        """Without it a dark-backgrounded theme previews with the light
+        defaults' surfaces — a white card on a black page — so the
+        gallery would misrepresent exactly the themes hardest to judge.
+        The furniture reaches the preview the only way it should: inside
+        the preview document's own composed stylesheet; the gallery no
+        longer injects a single variable by hand."""
         for slug, theme in self.lwp.THEMES.items():
             doc = self.lwp.build_theme_preview_document(slug)
-            for var, value in self.lwp.theme_surface_properties(theme).items():
-                self.assertIn(f'--{var}: {value};', doc, f'{slug}: --{var}')
+            expected = ('#FFFFFF0E' if theme.get('dark_background')
+                        else '#FFFFFFB8')
+            self.assertIn(f'--fact-bg: {expected};', doc, slug)
 
 
 class GalleryPreviewIsARealCard(unittest.TestCase):
@@ -3073,12 +3111,15 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         self.lwp = load_lightwebpres_module()
 
     def test_the_preview_stylesheet_is_the_themed_stylesheet_itself(self):
-        """Not "equivalent to": the same string apply_theme() hands to
-        install --theme. Nothing can be missing from it, because it is
-        not assembled a second time."""
+        """Not "equivalent to": the exact string a real series on that
+        theme gets composed at build time. Nothing can be missing from
+        it, because it is not assembled a second time."""
         for slug in ('nord', 'graphite', 'pop-lemon'):
             doc = self.lwp.build_theme_preview_document(slug)
-            self.assertIn(self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, slug), doc, slug)
+            sheet = self.lwp.compose_stylesheet(
+                self.lwp.resolve_theme_properties(
+                    self.lwp.theme_property_layer(slug)))
+            self.assertIn(sheet, doc, slug)
 
     def test_the_preview_markup_is_what_render_slide_produces(self):
         """Byte-for-byte the renderer's own output, for every slide of
@@ -3129,49 +3170,64 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         self.assertEqual(html.count('<iframe class="preview"'), len(self.lwp.THEMES))
         # srcdoc, so the page stays self-contained: no src= fetch anywhere.
         self.assertNotIn('<iframe src=', html)
+        # The theme marker is gone; each preview is told apart by its own
+        # palette instead — the one thing two themes cannot share.
         for slug in ('nord', 'graphite'):
-            marker = f'/* lightwebpres-theme: {slug} */'
-            self.assertIn(html_escape(marker, quote=True), html, slug)
+            page = self.lwp.THEMES[slug]['page'].upper() + 'FF'
+            self.assertIn(f'--color-page: {page};', html, slug)
 
-    def test_an_installed_stylesheet_resolves_every_emphasis_property(self):
-        """apply_theme() rewrites declarations that exist and silently
-        no-ops otherwise, so the DECLARATION has to be checked in a real
-        installed file. Deleting the two decoration declarations from
-        :root once killed the underline on every generated page of every
-        theme with the suite green."""
+    def test_the_composed_stylesheet_resolves_every_emphasis_property(self):
+        """The DECLARATION has to be checked in the sheet a page actually
+        gets. Deleting the two decoration declarations from :root once
+        killed the underline on every generated page of every theme with
+        the suite green — under the engine the :root block is derived
+        from the registry, and this pins that each of the six emphasis
+        axes lands there at its theme-resolved value."""
+        axes = ('weight', 'style', 'bg', 'fg', 'decoration', 'decoration-color')
         for slug in ('monochrome', 'graphite', 'nord'):
-            with tempfile.TemporaryDirectory() as tmp:
-                self.assertEqual(run('install', tmp, '--theme', slug).returncode, 0)
-                css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
-                root = css[slice(*self.lwp.root_block_span(css))]
-                for key, value in self.lwp.theme_fact_properties(
-                        self.lwp.THEMES[slug]).items():
-                    found = re.search(r'--fact-strong-%s:\s*([^;]+);' % re.escape(key), root)
-                    self.assertIsNotNone(found, f'{slug}: --fact-strong-{key} not declared')
-                    self.assertEqual(found.group(1).strip(), value, f'{slug}: {key}')
+            resolved = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug))
+            css = self.lwp.emit_theme_css(resolved)
+            root = css[:css.index('\n}')]
+            for axis in axes:
+                value = resolved[f'fact.strong.{axis}']
+                self.assertIn(f'--fact-strong-{axis}: {value};', root,
+                              f'{slug}: fact.strong.{axis}')
 
-    def test_the_generated_stylesheet_carries_ready_to_paste_recipes(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            css = style.read_text(encoding='utf-8')
-            recipes = re.search(r'/\* -+\n(.*?)-+ \*/', css, re.DOTALL)
-            self.assertIsNotNone(recipes, 'the recipe comment block is gone')
-            for var in self.EMPHASIS_VARS:
-                self.assertIn(var, recipes.group(1), var)
+    def test_the_settings_scaffold_is_the_complete_property_surface(self):
+        """Replaces the recipe comment block: the scaffold is where an
+        author now discovers what can be set, so it must show EVERY
+        registry key (a missing line is a decision confiscated from the
+        series), and any line they uncomment must be a valid pin — the
+        scaffold is generated from the registry precisely so its values
+        cannot drift into something the type checker rejects."""
+        scaffolded = self.lwp.build_settings_scaffold('nord')
+        uncommented = []
+        for key in self.lwp.PROPERTY_REGISTRY:
+            self.assertIn(f'\n# {key}: ', scaffolded, key)
+        for line in scaffolded.splitlines():
+            m = re.match(r'# ([a-z][\w.-]*): (.*)$', line)
+            if m and m.group(1) in self.lwp.PROPERTY_REGISTRY:
+                uncommented.append(f'{m.group(1)}: {m.group(2)}')
+        theme, props = self.lwp.parse_settings_text(
+            'theme: nord\n' + '\n'.join(uncommented))
+        self.assertEqual(len(props), len(self.lwp.PROPERTY_REGISTRY))
+        # Every scaffolded value goes through the real cascade and type
+        # check without an error — uncommenting can never be a trap.
+        self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer(theme), props)
 
-            style.write_text(css + '\n:root { --fact-strong-ink: inherit; }\n',
-                             encoding='utf-8')
-            for _ in range(3):
-                self.assertEqual(run('refresh-templates', tmp).returncode, 0)
-            after = style.read_text(encoding='utf-8')
-            self.assertEqual(after.count('Bold, with no highlight at all'), 1)
-
-    def test_help_documents_every_emphasis_variable(self):
+    def test_help_documents_the_emphasis_property_and_derived_count(self):
         result = run('--help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        for var in self.EMPHASIS_VARS:
-            self.assertIn(var, result.stdout, var)
+        # The help speaks the settings vocabulary now; the dead CSS names
+        # must not be advertised (--fact-strong-highlight/-ink were renamed
+        # to -bg/-fg, and audit maps them).
+        self.assertIn('fact.strong.weight', result.stdout)
+        self.assertNotIn('--fact-strong-highlight', result.stdout)
+        # The property count shown is derived from the registry (G6), so
+        # the twenty-one-variables drift can never recur.
+        self.assertIn(str(len(self.lwp.PROPERTY_REGISTRY)), result.stdout)
 
     def test_underline_is_a_fourth_independent_axis(self):
         props = self.lwp.theme_fact_properties
@@ -3216,8 +3272,11 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         self.assertEqual(len(roles), 6 * len(self.lwp.THEMES))
         for name in self.lwp.PALETTE_ROLES:
             self.assertNotIn(name, roles, f'{name!r} is a variable name, not a role')
-        for var in (f'--{r}' for r in self.lwp.PALETTE_ROLES):
-            self.assertIn(f'<div class="swatch-var">{var}</div>', html, var)
+        # The swatch shows the settings.conf property name — the one an
+        # author can actually type — never a CSS variable that no longer
+        # exists in the emitted sheet.
+        for prop in self.lwp.PROPERTY_NAME_OF_ROLE.values():
+            self.assertIn(f'<div class="swatch-var">{prop}</div>', html, prop)
 
     def test_each_card_states_its_fact_box_emphasis_treatment(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3329,23 +3388,28 @@ class ContrastFloors(unittest.TestCase):
 
     def _cover_ground(self, theme):
         """What the cover slide actually paints under its own text: the
-        ink itself on a light theme, a 45% black veil over the page on a
-        dark one (§9.5.2)."""
+        ink itself on a light theme, the #00000073 veil (the measured 45%
+        black, as the layer's explicit ARGB) over the page on a dark
+        one."""
         if theme.get('dark_background'):
-            return self._over((0, 0, 0), 0.45, self._rgb(theme['page']))
+            return self._over((0, 0, 0), 0x73 / 255, self._rgb(theme['page']))
         return self._rgb(theme['ink'])
 
     def test_the_cover_slide_counter_is_readable_on_every_theme(self):
-        """--cover-fg-faint was a fixed rgba(255,255,255,.34) that had
-        never been measured against the ground it sits on: 2.37:1 at
-        worst, and below AA on all 33 themes AND on the default palette.
-        'Faint' is a look, not a licence to be unreadable."""
+        """The counter's colour (cover.num.fg, ex --cover-fg-faint) was
+        once a fixed rgba(255,255,255,.34) that had never been measured
+        against the ground it sits on: 2.37:1 at worst, and below AA on
+        all 33 themes AND on the default palette. 'Faint' is a look, not
+        a licence to be unreadable. Now an explicit ARGB in the resolved
+        layer, so the alpha is read from the value the engine emits."""
         for slug, theme in self.lwp.THEMES.items():
-            surfaces = self.lwp.theme_surface_properties(theme)
-            faint = surfaces['cover-fg-faint']
-            alpha = float(re.search(r'rgba\(255, 255, 255, ([\d.]+)\)', faint).group(1))
+            resolved = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug))
+            faint = resolved['cover.num.fg']
+            self.assertRegex(faint, r'^#[0-9A-F]{8}$', slug)
+            fg, alpha = self._rgb(faint[:7]), int(faint[7:9], 16) / 255
             ground = self._cover_ground(theme)
-            ratio = self._ratio(self._over((255, 255, 255), alpha, ground), ground)
+            ratio = self._ratio(self._over(fg, alpha, ground), ground)
             self.assertGreaterEqual(round(ratio, 2), 4.5, f'{slug}: {ratio:.2f}:1')
 
     # A text rule may fade itself only if the faded result has been
@@ -3432,14 +3496,20 @@ class ContrastFloors(unittest.TestCase):
                             f'{part!r} is not scoped to a prose container')
 
     def test_the_underline_tint_defaults_to_the_ink_and_is_theme_settable(self):
-        props = self.lwp.theme_link_properties
-        self.assertEqual(props({})['link-decoration-color'], 'currentColor')
-        self.assertEqual(props({'link_decoration_color': 'accent'})['link-decoration-color'],
-                         'var(--accent)')
-        # An installed stylesheet must resolve it, whatever the theme.
+        """§9.1/BACKLOG B3: the body link inherits the ink around it and
+        only its underline's tint is exposed. The default must BE the ink
+        (currentColor's replacement under the engine — a reference, so it
+        follows the theme), and a layer must be able to move it without
+        touching the link colour itself."""
+        r = self.lwp.resolve_theme_properties({})
+        self.assertEqual(r['link.decoration-color'], r['color.ink'])
+        tinted = self.lwp.resolve_theme_properties({'link.decoration-color': 'call'})
+        self.assertEqual(tinted['link.decoration-color'], tinted['color.call'])
+        # The composed sheet must resolve it, whatever the theme.
         for slug in list(self.lwp.THEMES)[:4]:
-            themed = self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, slug)
-            self.assertRegex(themed, r'--link-decoration-color:\s*[^;]+;', slug)
+            themed = self.lwp.emit_theme_css(self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug)))
+            self.assertRegex(themed, r'--link-decoration-color:\s*#[0-9A-F]{8};', slug)
 
 
 class PaletteRoleNames(unittest.TestCase):
@@ -3481,66 +3551,78 @@ class PaletteRoleNames(unittest.TestCase):
             if role is not None:
                 self.assertIn(role, self.lwp.PALETTE_ROLES, slug)
 
-    def test_the_generated_stylesheet_declares_every_role_and_no_old_name(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
-            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
-        for role in self.lwp.PALETTE_ROLES:
-            self.assertIn(f'--{role}: ', css, role)
-        for old in self.lwp.LEGACY_PALETTE_ROLES:
-            self.assertNotIn(f'var(--{old})', css, f'--{old} survived the rename')
+    def test_the_composed_stylesheet_declares_every_role_and_no_old_name(self):
+        """The sheet a page gets declares the six --color-* roles and not
+        one of the retired names. Substring traps abound here: --page: is
+        a suffix of --color-page:, so absence is asserted on the start of
+        a declaration line (regex anchored MULTILINE), and consumption on
+        the exact var(--old) form."""
+        css = self.lwp.compose_stylesheet(self.lwp.resolve_theme_properties({}))
+        for new in ('--color-page', '--color-ink', '--color-ink-quiet',
+                    '--color-mark', '--color-call', '--color-affirm'):
+            self.assertIn(f'{new}: ', css, new)
+        for old in ('--page', '--ink', '--ink-muted', '--marker', '--accent',
+                    '--positive', '--rule', '--rule-strong', '--surface',
+                    '--sunken', '--cover-bg', '--control', '--control-soft'):
+            self.assertNotRegex(
+                css, re.compile(r'^\s*' + re.escape(old) + r':', re.MULTILINE),
+                f'{old} is still declared')
+            self.assertNotIn(f'var({old})', css, f'{old} is still consumed')
 
     def test_audit_reports_old_names_left_in_the_authors_own_rules(self):
         """There are no aliases, so var(--yellow) does not fall back to
         anything: the declaration is invalid and the property keeps its
         inherited value. Neither the browser nor the build says a word.
-        This is what stops the rename from breaking in silence."""
+        This is what stops the rename from breaking in silence — the
+        author's own rules live in custom.css now, and that is the file
+        audit reads."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('install', tmp).returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
+            custom = Path(tmp) / 'templates' / 'custom.css'
 
             clean = run('audit', tmp)
-            self.assertNotIn('renamed in v0.12.0', clean.stdout)
+            self.assertNotIn('no longer exist', clean.stdout)
 
-            style.write_text(style.read_text(encoding='utf-8') +
-                             '\n.mine { color: var(--yellow); border-color: var(--grey); }\n',
-                             encoding='utf-8')
+            custom.write_text(custom.read_text(encoding='utf-8') +
+                              '\n.mine { color: var(--yellow); border-color: var(--grey); }\n',
+                              encoding='utf-8')
             flagged = run('audit', tmp)
             self.assertEqual(flagged.returncode, 0, 'audit must never block')
-            self.assertIn('--yellow -> --marker', flagged.stdout)
-            self.assertIn('--grey -> --ink-muted', flagged.stdout)
+            self.assertIn('--yellow -> --color-mark', flagged.stdout)
+            self.assertIn('--grey -> --color-ink-quiet', flagged.stdout)
 
     def test_audit_catches_a_redeclared_legacy_variable_too(self):
-        """Redeclaring the palette in the personalization section was the
-        standard way to recolour a series before the rename. It breaks as
-        silently as a use does — the built-in CSS reads var(--marker) now,
-        so the override applies to nothing — and the check looked only for
-        uses."""
+        """Redeclaring the palette was the standard way to recolour a
+        series before the renames. It breaks as silently as a use does —
+        the composed CSS reads var(--color-call) now, so the override
+        applies to nothing — and the check once looked only for uses.
+        --accent is also the §9-rewrite generation of rename, so this
+        doubles as the guard that the new table entries are served."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('install', tmp).returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            style.write_text(style.read_text(encoding='utf-8') +
-                             '\n:root { --yellow: #ff0000; }\n', encoding='utf-8')
+            custom = Path(tmp) / 'templates' / 'custom.css'
+            custom.write_text(custom.read_text(encoding='utf-8') +
+                              '\n:root { --accent: #ff0000; }\n', encoding='utf-8')
             result = run('audit', tmp)
             self.assertEqual(result.returncode, 0, 'audit must never block')
-            self.assertIn('--yellow -> --marker', result.stdout)
+            self.assertIn('--accent -> --color-call', result.stdout)
 
-    def test_audit_ignores_old_names_in_the_builtin_part(self):
-        """The section above the marker is regenerated by
-        refresh-templates, so it migrates on its own — warning about it
-        would send an author editing a file they must not edit."""
+    def test_audit_flags_a_legacy_style_css_with_the_rename_table(self):
+        """style.css is no longer read at all, which fails even more
+        silently than a retired name: every value in it is ignored. audit
+        must say so, and name the replacement for each old variable the
+        file still touches so the move to settings.conf is mechanical."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('install', tmp).returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            builtin, custom = style.read_text(encoding='utf-8').split(
-                self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER, 1)
-            style.write_text(builtin + '.stale { color: var(--yellow); }\n' +
-                             self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER + custom,
-                             encoding='utf-8')
-            self.assertNotIn('renamed in v0.12.0', run('audit', tmp).stdout)
+            (Path(tmp) / 'templates' / 'style.css').write_text(
+                ':root { --marker: #ff0000; }\n', encoding='utf-8')
+            result = run('audit', tmp)
+            self.assertEqual(result.returncode, 0, 'audit must never block')
+            self.assertIn('no longer read', result.stdout)
+            self.assertIn('--marker -> --color-mark', result.stdout)
 
 
 class ThemesCommand(unittest.TestCase):
@@ -3572,17 +3654,17 @@ class ThemesCommand(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotRegex(result.stdout, r'&[a-zA-Z]+;|&#\d+;')
         self.assertNotIn('<code>', result.stdout)
-        # The variable names a note quotes must survive, or stripping the
+        # The property names a note quotes must survive, or stripping the
         # markup would have taken the content with it.
-        self.assertIn('--page', result.stdout)
+        self.assertIn('color.page', result.stdout)
 
     def test_the_gallery_still_gets_the_markup_the_page_needs(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
-        self.assertIn('<code>--ink</code>', html)
-        self.assertIn('<code>--page</code>', html)
+        self.assertIn('<code>color.ink</code>', html)
+        self.assertIn('<code>color.page</code>', html)
 
     def test_a_note_cannot_smuggle_html_into_the_gallery(self):
         """note_to_html escapes before it converts, so a note is content
@@ -3665,136 +3747,73 @@ class ThemesCommand(unittest.TestCase):
 
 
 class SetThemeCommand(unittest.TestCase):
-    """§11.10: a theme must be changeable after install. Until this
-    existed the only routes were reinstalling the series or hand-editing
-    the theme marker and running refresh-templates — an undocumented side
-    effect of the upgrade mechanism that nobody would guess."""
+    """§11.10 under the §9 rewrite: changing theme is changing one word.
+    set-theme rewrites THE `theme:` line of settings.conf and nothing
+    else. Everything the old implementation guarded against — half
+    recoloured files, markers claiming themes a file does not carry,
+    --force — existed only because the tool wrote into the file the
+    author edits; those tests are retired with the mechanisms, and what
+    they ultimately protected (never destroy the author's work) is now
+    asserted directly, byte for byte."""
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
 
-    def test_changing_a_theme_names_the_one_being_replaced_and_the_new_one(self):
+    def _uncomment(self, settings_path, commented, uncommented):
+        """Author gesture: pin a value by uncommenting (or editing) a
+        scaffold line."""
+        text = settings_path.read_text(encoding='utf-8')
+        self.assertIn(commented, text)
+        settings_path.write_text(text.replace(commented, uncommented, 1),
+                                 encoding='utf-8')
+
+    def test_set_theme_rewrites_the_theme_line_and_nothing_else(self):
+        """The one write the tool is allowed in an author-owned file.
+        Asserted line by line on a file carrying an author's uncommented
+        value: everything but the `theme:` line must survive byte for
+        byte — including that pinned line."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            settings = Path(tmp) / 'templates' / 'settings.conf'
+            self._uncomment(settings, '# color.mark: #EBCB8B', 'color.mark: #EBCB8B')
+            before = settings.read_text(encoding='utf-8').splitlines()
+
             result = run('set-theme', tmp, '--theme', 'evergreen')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Theme changed: nord -> evergreen', result.stdout)
-            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertEqual(self.lwp.detect_theme(css), 'evergreen')
-            self.assertIn(self.lwp.THEMES['evergreen']['page'], css)
 
-    def test_the_default_theme_is_named_default_in_that_message(self):
-        """A file with no marker is on the default theme, which is an
-        answer to "replaced by what" — not a missing value to elide."""
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
-            result = run('set-theme', tmp, '--theme', 'crimson')
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('Theme changed: default -> crimson', result.stdout)
+            after = settings.read_text(encoding='utf-8').splitlines()
+            self.assertEqual(len(before), len(after))
+            changed = [(a, b) for a, b in zip(before, after) if a != b]
+            self.assertEqual(changed, [('theme: nord', 'theme: evergreen')])
 
-    def test_the_result_is_byte_identical_to_installing_with_that_theme(self):
-        """Two routes to the same state must not produce two different
-        files, or `check` would report drift on a series whose theme was
-        changed rather than reinstalled."""
-        with tempfile.TemporaryDirectory() as tmp:
-            switched, fresh = Path(tmp) / 'switched', Path(tmp) / 'fresh'
-            self.assertEqual(run('install', str(switched), '--theme', 'nord').returncode, 0)
-            self.assertEqual(run('set-theme', str(switched), '--theme', 'synthwave').returncode, 0)
-            self.assertEqual(run('install', str(fresh), '--theme', 'synthwave').returncode, 0)
-            self.assertEqual(
-                (switched / 'templates' / 'style.css').read_text(encoding='utf-8'),
-                (fresh / 'templates' / 'style.css').read_text(encoding='utf-8'),
-            )
-
-    def test_repeated_theme_changes_do_not_accumulate_blank_lines(self):
-        """The marker is rewritten on every run. Removing it with the
-        search regex leaves its blank line behind, so after a few changes
-        the file drifts from its standard form and set-theme starts
-        demanding --force against its own output."""
+    def test_setting_the_theme_already_in_place_writes_nothing(self):
+        """Idempotence is a promise about the disk, not the message, so
+        both are pinned: bytes and mtime untouched."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            settings = Path(tmp) / 'templates' / 'settings.conf'
+            before_text = settings.read_text(encoding='utf-8')
+            before_mtime = settings.stat().st_mtime_ns
+            result = run('set-theme', tmp, '--theme', 'nord')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Theme unchanged: already nord. Nothing written.', result.stdout)
+            self.assertEqual(settings.read_text(encoding='utf-8'), before_text)
+            self.assertEqual(settings.stat().st_mtime_ns, before_mtime)
+
+    def test_repeated_theme_changes_keep_the_file_stable(self):
+        """The old rewrite accumulated a blank line per run until
+        set-theme demanded --force against its own output. The new one
+        replaces a line in place, so any number of round trips must come
+        back to the exact installed file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            settings = Path(tmp) / 'templates' / 'settings.conf'
+            original = settings.read_text(encoding='utf-8')
             for slug in ('synthwave', 'crimson', 'sage', 'nord'):
                 result = run('set-theme', tmp, '--theme', slug)
                 self.assertEqual(result.returncode, 0, result.stderr)
-            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertEqual(css, self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, 'nord'))
-
-    def test_rules_added_after_the_personalization_marker_survive_untouched(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            style.write_text(style.read_text(encoding='utf-8') + '\n.mine { color: red; }\n',
-                             encoding='utf-8')
-            result = run('set-theme', tmp, '--theme', 'crimson')
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('.mine { color: red; }', style.read_text(encoding='utf-8'))
-
-    def test_a_hand_edited_builtin_stylesheet_is_refused_without_force(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            style.write_text(style.read_text(encoding='utf-8').replace(
-                '    --ink-muted: ', '    --ink-muted:'), encoding='utf-8')
-            edited = style.read_text(encoding='utf-8')
-
-            result = run('set-theme', tmp, '--theme', 'crimson')
-            self.assertEqual(result.returncode, 1)
-            self.assertIn('not a standard theme file', result.stderr)
-            self.assertIn('--force', result.stderr)
-            self.assertEqual(style.read_text(encoding='utf-8'), edited,
-                             'a refused set-theme must not have written anything')
-
-            forced = run('set-theme', tmp, '--theme', 'crimson', '--force')
-            self.assertEqual(forced.returncode, 0, forced.stderr)
-            self.assertIn('Theme changed: nord -> crimson', forced.stdout)
-            self.assertIn('[WARN]', forced.stderr)
-            self.assertEqual(self.lwp.detect_theme(style.read_text(encoding='utf-8')), 'crimson')
-
-    def test_a_stylesheet_with_no_personalization_marker_needs_force(self):
-        """Without the marker the built-in CSS cannot be told apart from
-        the author's own rules — the same reason refresh-templates
-        refuses such a file."""
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            style.write_text(style.read_text(encoding='utf-8').replace(
-                self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER, ''), encoding='utf-8')
-            result = run('set-theme', tmp, '--theme', 'nord')
-            self.assertEqual(result.returncode, 1)
-            self.assertIn('no personalization marker', result.stderr)
-
-    def test_a_marker_naming_an_unknown_theme_needs_force_and_is_named_as_unknown(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            style.write_text(style.read_text(encoding='utf-8').replace(
-                'lightwebpres-theme: nord', 'lightwebpres-theme: from-the-future'),
-                encoding='utf-8')
-
-            self.assertEqual(run('set-theme', tmp, '--theme', 'nord').returncode, 1)
-            forced = run('set-theme', tmp, '--theme', 'nord', '--force')
-            self.assertEqual(forced.returncode, 0, forced.stderr)
-            self.assertIn('Theme changed: from-the-future (unknown) -> nord', forced.stdout)
-
-    def test_setting_the_theme_already_in_place_writes_nothing(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
-            style = Path(tmp) / 'templates' / 'style.css'
-            before = style.stat().st_mtime_ns
-            result = run('set-theme', tmp, '--theme', 'nord')
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('Theme unchanged', result.stdout)
-            self.assertEqual(style.stat().st_mtime_ns, before)
-
-    def test_an_unknown_slug_and_a_missing_theme_option_are_both_fatal(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
-            unknown = run('set-theme', tmp, '--theme', 'nope')
-            self.assertEqual(unknown.returncode, 1)
-            self.assertIn('Unknown theme', unknown.stderr)
-            missing = run('set-theme', tmp)
-            self.assertEqual(missing.returncode, 1)
-            self.assertIn('requires --theme', missing.stderr)
+            self.assertEqual(settings.read_text(encoding='utf-8'), original)
 
     def test_a_series_that_was_never_installed_is_a_clean_error(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3802,159 +3821,241 @@ class SetThemeCommand(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertIn('Run install first', result.stderr)
 
-    def test_refresh_templates_keeps_the_theme_set_this_way(self):
-        """set-theme writes the same marker install does, so the upgrade
-        path (§9.5.4) cannot tell the two apart — which is the point."""
+    def test_templates_without_settings_gets_a_fresh_scaffold(self):
+        """A series installed before the rewrite has templates/ but no
+        settings.conf: nothing to preserve, so a full scaffold for the
+        chosen theme is written — the same file install --theme writes."""
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'templates').mkdir()
+            result = run('set-theme', tmp, '--theme', 'nord')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('fresh settings.conf written', result.stdout)
+            written = (Path(tmp) / 'templates' / 'settings.conf').read_text(encoding='utf-8')
+            self.assertEqual(written, self.lwp.build_settings_scaffold('nord'))
+
+    def test_a_missing_theme_option_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            missing = run('set-theme', tmp)
+            self.assertEqual(missing.returncode, 1)
+            self.assertIn('requires --theme', missing.stderr)
+
+    def test_an_unknown_slug_is_fatal_and_names_the_catalogue_count(self):
+        """The count is derived from THEMES (G6): an error message that
+        says how many valid slugs exist cannot drift from the table."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            unknown = run('set-theme', tmp, '--theme', 'nope')
+            self.assertEqual(unknown.returncode, 1)
+            self.assertIn('Unknown theme', unknown.stderr)
+            self.assertIn(f'{len(self.lwp.THEMES)} valid slugs', unknown.stderr)
+
+    def test_the_default_theme_is_named_default_in_that_message(self):
+        """A file with no theme line is on the default theme, which is an
+        answer to "replaced by what" — not a missing value to elide."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            result = run('set-theme', tmp, '--theme', 'crimson')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Theme changed: default -> crimson', result.stdout)
+
+    def test_the_commented_placeholder_is_uncommented_in_place(self):
+        """On a default install the scaffold carries `# theme: <slug>`.
+        set-theme must turn THAT line into the declaration rather than
+        prepend a second one — otherwise the file grows a line per first
+        change and the placeholder keeps advertising a choice already
+        made. Line-diffed against the scaffold, same discipline as the
+        themed case."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            settings = Path(tmp) / 'templates' / 'settings.conf'
+            before = settings.read_text(encoding='utf-8').splitlines()
+            self.assertEqual(run('set-theme', tmp, '--theme', 'crimson').returncode, 0)
+            after = settings.read_text(encoding='utf-8').splitlines()
+            self.assertEqual(len(before), len(after))
+            changed = [(a, b) for a, b in zip(before, after) if a != b]
+            self.assertEqual(len(changed), 1)
+            self.assertTrue(changed[0][0].startswith('# theme: <slug>'), changed)
+            self.assertEqual(changed[0][1], 'theme: crimson')
+
+    def test_build_after_set_theme_emits_the_new_palette(self):
+        """Changing the word must change the pages: the sheet is composed
+        at build time from the declared theme, so no refresh step exists
+        between set-theme and the new colours."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            scaffold(tmp, _MINIMAL_MD)
+            self.assertEqual(run('set-theme', tmp, '--theme', 'gruvbox').returncode, 0)
+            self.assertEqual(run('build', tmp).returncode, 0)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--color-mark: #D79921FF;', html)
+            self.assertNotIn('#EBCB8B', html)
+
+    def test_uncommented_values_survive_a_theme_change_and_still_win(self):
+        """The CDC's dracula->nord scenario, correct by construction now:
+        an author pins dracula's yellow-green mark, later moves the
+        series to nord, and the pinned value still applies on top of the
+        new theme — kept semantics, no longer silent (audit names it)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
+            settings = root / 'templates' / 'settings.conf'
+            self._uncomment(settings, '# color.mark: #F1FA8C', 'color.mark: #F1FA8C')
+            scaffold(tmp, _MINIMAL_MD)
+            self.assertEqual(run('set-theme', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('build', tmp).returncode, 0)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--color-mark: #F1FA8CFF;', html,
+                          'the pinned value must beat the new theme')
+            self.assertNotIn('#EBCB8B', html)
+
+    def test_the_change_message_says_commented_values_show_the_old_theme(self):
+        """The scaffold's comments age when the theme changes, and the
+        remedy is to SAY so, never to rewrite the author's file — the
+        message is that promise, made audible at the moment it starts
+        being true."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
-            self.assertEqual(run('set-theme', tmp, '--theme', 'terminal').returncode, 0)
-            self.assertEqual(run('refresh-templates', tmp).returncode, 0)
-            css = (Path(tmp) / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertEqual(self.lwp.detect_theme(css), 'terminal')
+            result = run('set-theme', tmp, '--theme', 'evergreen')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Commented values still show the previous theme', result.stdout)
+            self.assertIn('uncommented values are untouched', result.stdout.lower())
 
 
 class DefaultStylesheetCoverage(unittest.TestCase):
-    """§9/§9.5: the default templates/style.css is a maintained artifact,
-    not a leftover of the article it was first extracted from. Three
-    properties, none of which held before the stylesheet was audited."""
+    """§9/§9.5: the composed stylesheet is a maintained artifact, not a
+    leftover of the article the first sheet was extracted from. Three
+    properties, none of which held before the sheet was audited — ported
+    from the installed style.css to the engine's own emission, which is
+    what every page now inlines."""
 
-    PALETTE_VARS = tuple(f'--{r}' for r in load_lightwebpres_module().PALETTE_ROLES)
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
 
-    def _installed_style(self, tmp, *extra):
-        root = Path(tmp)
-        self.assertEqual(run('install', str(root), *extra).returncode, 0)
-        return (root / 'templates' / 'style.css').read_text(encoding='utf-8')
+    def resolve(self, *layers):
+        return self.lwp.resolve_theme_properties(*layers)
 
-    def test_a_theme_leaves_no_default_colour_behind(self):
-        """A theme substitutes the six palette variables and nothing
-        else, so any OTHER fixed colour in the sheet silently survives
-        it. That is how rules, table headers, card backgrounds and the
+    def test_the_engine_emits_no_literal_content_colour(self):
+        """Any fixed colour in an emitted rule silently survives theming.
+        That is how rules, table headers, card backgrounds and the
         cover's greys used to keep a default-palette cast on every one of
-        the nine themes. Everything outside :root must therefore be
-        expressed through the palette (or as a translucent overlay of
-        it), never as a literal colour."""
-        with tempfile.TemporaryDirectory() as tmp:
-            style = self._installed_style(tmp, '--theme', 'solarized')
-        # Strip comments first: prose about colours is not styling.
-        body = re.sub(r'/\*.*?\*/', '', style, flags=re.S)
-        root_block = body[body.index(':root'):body.index('}', body.index(':root'))]
-        outside_root = body.replace(root_block, '')
-        leftovers = re.findall(r'#[0-9a-fA-F]{3,8}\b', outside_root)
-        self.assertEqual(
-            leftovers, [],
-            'Fixed colours outside :root survive theming, so these stay '
-            'default-palette on all nine themes: ' + ', '.join(sorted(set(leftovers))),
-        )
-        self.assertNotIn(': white', outside_root)
+        the nine themes. Under the engine every rule must read a var();
+        colours live only in :root. The skeleton is layout by definition
+        (its rgba box-shadows paint depth, not content) and is guarded
+        separately: no hex there either."""
+        css = self.lwp.emit_theme_css(self.resolve(self.lwp.theme_property_layer('solarized')))
+        rules = css[css.index('\n}') + 2:]        # everything after :root
+        leftovers = re.findall(r'#[0-9a-fA-F]{3,8}\b', rules)
+        self.assertEqual(leftovers, [],
+                         'fixed colours in emitted rules survive theming: '
+                         + ', '.join(sorted(set(leftovers))))
+        self.assertNotIn('rgba(', rules)
+        self.assertNotIn(': white', rules)
+        skeleton = re.sub(r'/\*.*?\*/', '', self.lwp.extract_skeleton(), flags=re.S)
+        self.assertEqual(re.findall(r'#[0-9a-fA-F]{3,8}\b', skeleton), [],
+                         'the skeleton is layout-only and may not carry a content colour')
 
     def test_the_three_verdict_classes_look_different(self):
         """.yes/.no/.partial are the documented hook for a comparison
         table's verdict cells (§6.1). .yes and .partial used to carry
         byte-identical declarations, so a three-way comparison only ever
         showed two states — which defeats the entire point of colouring
-        them."""
-        with tempfile.TemporaryDirectory() as tmp:
-            style = self._installed_style(tmp)
-        decls = {}
+        them. Under the engine the difference is two-channel by design:
+        distinct inks AND distinct shape marks (the marks alone must
+        differ too, because weight no longer separates partial from yes —
+        only normal/bold survive a generic family)."""
+        r = self.resolve({})
+        fgs = {name: r[f'verdict.{name}.fg'] for name in ('yes', 'no', 'partial')}
+        self.assertEqual(len(set(fgs.values())), 3, fgs)
+        marks = {name: r[f'verdict.{name}.mark'] for name in ('yes', 'no', 'partial')}
+        self.assertEqual(marks, {'yes': '"\\25CF"', 'partial': '"\\25D0"',
+                                 'no': '"\\25CB"'})
+        # And the emission actually consumes them: an ink on the cell, a
+        # mark generated before it.
+        css = self.lwp.emit_theme_css(r)
         for name in ('yes', 'no', 'partial'):
-            m = re.search(r'\.comparison-table \.' + name + r'\s*\{([^}]*)\}', style)
-            self.assertIsNotNone(m, f'.{name} has no rule in the default stylesheet')
-            decls[name] = ' '.join(m.group(1).split())
-        self.assertNotEqual(decls['yes'], decls['partial'])
-        self.assertNotEqual(decls['yes'], decls['no'])
-        self.assertNotEqual(decls['no'], decls['partial'])
-        # Whatever the exact design, they must be told apart by colour,
-        # and that colour must come from the palette so a theme restyles
-        # them like everything else.
-        for name, decl in decls.items():
-            self.assertIn('var(--', decl, f'.{name} does not use the palette')
+            self.assertIn(f'.comparison-table .{name}::before {{ '
+                          f'content: var(--verdict-{name}-mark); }}', css, name)
+            self.assertIn(f'var(--verdict-{name}-fg)', css, name)
 
     def test_every_markdown_construct_the_converter_emits_is_styled(self):
         """The converter has always produced blockquotes, code spans,
         fenced code blocks and footnote markers, and the stylesheet had
         no rule for any of them: a quotation rendered exactly like a
-        paragraph. A feature added without touching the default template
-        ships invisible, so this pins the tags rather than the look."""
-        with tempfile.TemporaryDirectory() as tmp:
-            style = self._installed_style(tmp)
+        paragraph. A feature added without a registry component ships
+        invisible, so this pins the tags rather than the look — on the
+        composed sheet, the only one a page gets."""
+        css = self.lwp.compose_stylesheet(self.resolve({}))
         for selector in ('blockquote', 'code', 'pre', 'sup'):
             self.assertRegex(
-                style, r'(^|[\s,])' + selector + r'\s*[,{]',
+                css, r'(^|[\s,])' + selector + r'\s*[,{]',
                 f'{selector} is emitted by the converter but has no rule',
             )
 
 
 class FactStrongEmphasis(unittest.TestCase):
-    """§9.1/§9.5: --fact-strong-weight/--fact-strong-style/--fact-strong-
-    highlight independently control a fact-box's Markdown **bold**
-    rendering (weight, italic, and mark-style background), decoupled
-    from each other and from the semantic <strong> markup itself."""
+    """§9.1 -> §9 rewrite: fact.strong.weight/style/bg/fg independently
+    control a fact-box's Markdown **bold** rendering (weight, italic, and
+    mark-style ground with its own ink), decoupled from each other and
+    from the semantic <strong> markup itself. The refresh-templates
+    reapply test is retired with its mechanism: the sheet is composed at
+    build time, so there is no stale on-disk copy left to reapply a
+    theme's emphasis into."""
 
-    def test_default_install_has_the_three_properties_matching_prior_look(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
-            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--fact-strong-weight: bold;', style)
-            self.assertIn('--fact-strong-style: normal;', style)
-            self.assertIn('--fact-strong-highlight: var(--marker);', style)
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def resolve(self, *layers):
+        return self.lwp.resolve_theme_properties(*layers)
+
+    def test_engine_defaults_match_the_prior_look(self):
+        r = self.resolve({})
+        self.assertEqual(r['fact.strong.weight'], 'bold')
+        self.assertEqual(r['fact.strong.style'], 'normal')
+        self.assertEqual(r['fact.strong.bg'], '#FFFC00FF')     # the mark
+        self.assertEqual(r['fact.strong.fg'], '#1A1A2EFF')     # the ink
 
     def test_themes_set_distinct_fact_strong_treatments(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'solarized').returncode, 0)
-            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--fact-strong-weight: bold;', style)
-            self.assertIn('--fact-strong-style: italic;', style)
-            self.assertIn('--fact-strong-highlight: transparent;', style)
+        """The same three catalogue witnesses as before the rewrite, read
+        through their property layers. Solarized also pins the None
+        highlight: `fact_highlight: None` means NO ground (#00000000) and
+        the body ink — not 'nothing said'; the first port run turned the
+        five highlight-less themes yellow by conflating the two."""
+        sol = self.resolve(self.lwp.theme_property_layer('solarized'))
+        self.assertEqual(sol['fact.strong.weight'], 'bold')
+        self.assertEqual(sol['fact.strong.style'], 'italic')
+        self.assertEqual(sol['fact.strong.bg'], '#00000000')
+        self.assertEqual(sol['fact.strong.fg'], sol['color.ink'])
 
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
-            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--fact-strong-highlight: var(--positive);', style)
+        dra = self.resolve(self.lwp.theme_property_layer('dracula'))
+        self.assertEqual(dra['fact.strong.bg'], dra['color.affirm'])
 
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'catppuccin').returncode, 0)
-            style = (root / 'templates' / 'style.css').read_text(encoding='utf-8')
-            self.assertIn('--fact-strong-weight: normal;', style)
-            self.assertIn('--fact-strong-style: italic;', style)
+        cat = self.resolve(self.lwp.theme_property_layer('catppuccin'))
+        self.assertEqual(cat['fact.strong.weight'], 'normal')
+        self.assertEqual(cat['fact.strong.style'], 'italic')
 
-    def test_refresh_templates_reapplies_fact_strong_properties_for_a_theme(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'solarized').returncode, 0)
-            style_path = root / 'templates' / 'style.css'
-            stale = style_path.read_text(encoding='utf-8').replace(
-                '--fact-strong-style: italic;', '--fact-strong-style: italic; /* STALE */', 1,
-            )
-            style_path.write_text(stale, encoding='utf-8')
-
-            result = run('refresh-templates', str(root))
-            self.assertEqual(result.returncode, 0, result.stderr)
-
-            refreshed = style_path.read_text(encoding='utf-8')
-            self.assertNotIn('STALE', refreshed)
-            self.assertIn('--fact-strong-style: italic;', refreshed)
-            self.assertIn('--fact-strong-highlight: transparent;', refreshed)
-
-    def test_user_can_keep_highlight_and_drop_bold_via_override(self):
+    def test_user_can_keep_highlight_and_drop_bold_via_settings(self):
         """The exact motivating use case: highlight kept, bold dropped,
-        without hand-writing a full replacement rule."""
+        without hand-writing a full replacement rule — one uncommented
+        line in settings.conf of a real series, verified in the page a
+        reader loads."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('install', str(root)).returncode, 0)
-            style_path = root / 'templates' / 'style.css'
-            custom = (style_path.read_text(encoding='utf-8') + '\n'
-                      ':root { --fact-strong-weight: normal; }\n')
-            style_path.write_text(custom, encoding='utf-8')
-
-            result = run('refresh-templates', str(root))
-            self.assertEqual(result.returncode, 0, result.stderr)
-            refreshed = style_path.read_text(encoding='utf-8')
-            self.assertIn(':root { --fact-strong-weight: normal; }', refreshed)
-            self.assertIn('--fact-strong-highlight: var(--marker);', refreshed)
+            settings = root / 'templates' / 'settings.conf'
+            text = settings.read_text(encoding='utf-8')
+            settings.write_text(text.replace('# fact.strong.weight: bold',
+                                             'fact.strong.weight: normal', 1),
+                                encoding='utf-8')
+            scaffold(tmp, _MINIMAL_MD)
+            self.assertEqual(run('build', tmp).returncode, 0)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--fact-strong-weight: normal;', html)
+            self.assertIn('--fact-strong-bg: #FFFC00FF;', html,
+                          'the highlight must survive the weight override')
 
     def test_themes_gallery_shows_a_bolded_word_styled_per_theme(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3962,14 +4063,14 @@ class FactStrongEmphasis(unittest.TestCase):
             out = root / 'gallery.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
-            # The bolded word comes from the real renderer now, inside the
+            # The bolded word comes from the real renderer, inside the
             # preview document's srcdoc, and the emphasis properties from
-            # that document's own themed stylesheet — not from an inline
+            # that document's own composed stylesheet — not from an inline
             # style attribute the gallery assembled itself.
             self.assertIn('&lt;strong&gt;', html)
             for declaration in ('--fact-strong-weight: normal;',
                                 '--fact-strong-style: italic;',
-                                '--fact-strong-highlight: transparent;'):
+                                '--fact-strong-bg: #00000000;'):
                 self.assertIn(declaration, html, declaration)
 
 
