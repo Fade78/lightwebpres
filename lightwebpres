@@ -6460,9 +6460,15 @@ def cmd_set_theme(target_dir, args):
               file=sys.stderr)
         sys.exit(1)
 
+    if not settings_path.parent.is_dir():
+        # A directory that was never installed stays a clean error, as it
+        # always was — set-theme configures a series, it does not create one.
+        print(f'[ERROR] {settings_path.parent} not found. Run install first.',
+              file=sys.stderr)
+        sys.exit(1)
     if not settings_path.exists():
-        # Nothing to preserve: write a fresh scaffold for the chosen theme.
-        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        # Installed before the rewrite: nothing to preserve, write a fresh
+        # scaffold for the chosen theme.
         settings_path.write_text(build_settings_scaffold(new_slug),
                                  encoding='utf-8')
         print(f'Theme set: {new_slug} (fresh {SETTINGS_FILENAME} written)')
