@@ -289,6 +289,26 @@ them.
 Owner's call: 1 and 2 change what a theme looks like, 3 changes what
 every article looks like, 4 changes nothing but what is promised.
 
+**One user's input, recorded because it is the only one we have from
+someone who actually uses the verdicts.** The team that reported B2 —
+twenty-eight `yes`/`no` cells in a published series — was told option 3
+would change those cells a second time, and answered that it suits them,
+for a reason worth keeping:
+
+> If the shape carries the information, the colour no longer has to
+> carry it alone, and it stops having to clear a contrast threshold that
+> a borrowed palette cannot guarantee.
+
+That reframes option 3. It is not a loss of colour bolted on to fix a
+number: it is the conclusion of the change already shipped when the
+verdicts gained their shape markers for WCAG 1.4.1. Once meaning rests
+on shape, a palette colour on that cell is decoration, and decoration is
+not held to 4.5:1.
+
+They also note the change costs them nothing, since their cells are
+regenerated at every build. That is one user, not a mandate — but it
+removes the objection the entry was weighing against option 3.
+
 ## B6 — The slide-progress dots are below 3:1 everywhere — OPEN
 
 Same sweep. `.nav-dots a` paints `--rule-strong`, a translucent veil, and
