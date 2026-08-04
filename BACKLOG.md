@@ -197,3 +197,24 @@ garder l'encre du corps et à ne teinter que le soulignement du lien, ce
 qui garantit le contraste du texte tout en gardant l'accent comme
 signal. C'est un choix éditorial qui change l'apparence de toutes les
 pages générées — il revient au propriétaire.
+
+## B4 — Alignement du chiffre-clé, en option — OUVERT
+
+Proposé par le propriétaire le 2026-08-04, en constatant que l'aperçu de
+la galerie affichait le bloc « 180 °C » aligné à gauche.
+
+Le constat était juste, et pire que prévu : la vraie fiche empile le
+chiffre et sa légende en **colonne centrée** (`.highlight` :
+`flex-direction: column`, `align-items: center`, `text-align: center`),
+alors que l'aperçu les mettait en ligne, alignés à gauche, avec une
+flèche entre les deux que le moteur n'émet jamais — `.highlight-arrow`
+était une règle morte, livrée dans chaque page générée. Corrigé le même
+jour : l'aperçu adopte la composition réelle, la règle morte est retirée.
+
+**Reste à décider** : faut-il une option d'alignement pour ce bloc ?
+Aujourd'hui il est centré, sans recours. Une variable
+`--highlight-align` (`center` par défaut, `start` possible) suffirait, et
+suivrait la mécanique des autres variables — surchargeable après le
+marqueur de personnalisation, et thémable si on le souhaite. À trancher :
+simple variable CSS, ou véritable champ de fiche (ce qui en ferait une
+décision par chiffre-clé et non par série).

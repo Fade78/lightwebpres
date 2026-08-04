@@ -1104,7 +1104,7 @@ rencontre la page :
 | `--ink` | le texte courant ; et le fond de couverture sur un thème clair |
 | `--ink-muted` | les textes secondaires : résumé, légende, source, verdict « non » |
 | `--marker` | les filets et repères : filet de fact-box, tag de couverture, soulignement d'en-tête, point de nav actif, colonne mise en avant |
-| `--accent` | appel de note (`sup`), verdict « partiel », flèche de chiffre-clé, contour de focus. **Pas les liens** : le corps de texte n'a aucune règle de lien, ils prennent donc le bleu par défaut du navigateur — voir BACKLOG B3 |
+| `--accent` | appel de note (`sup`), verdict « partiel », contour de focus. **Pas les liens** : le corps de texte n'a aucune règle de lien, ils prennent donc le bleu par défaut du navigateur — voir BACKLOG B3 |
 | `--positive` | le verdict « oui » d'un tableau comparatif (§6.1) |
 
 Une couleur de palette **ne peut pas** porter un nom de composant, parce

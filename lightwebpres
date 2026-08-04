@@ -231,7 +231,7 @@ LANG_EN = r'''{
 # page), not a claim about the palette in general.
 THEMES = {
     'nord': {
-        'label': 'Nord', 'source': 'nordtheme.com',
+        'label': 'Nord', 'source': 'nordtheme.com', 'intensity': 'sober',
         'marker': '#EBCB8B', 'ink': '#2E3440', 'ink-muted': '#4C566A',
         'page': '#ECEFF4', 'accent': '#BF616A', 'positive': '#A3BE8C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -239,7 +239,7 @@ THEMES = {
         'note_good': False,
     },
     'dracula': {
-        'label': 'Dracula', 'source': 'draculatheme.com',
+        'label': 'Dracula', 'source': 'draculatheme.com', 'intensity': 'vivid',
         'marker': '#F1FA8C', 'ink': '#282A36', 'ink-muted': '#6272A4',
         'page': '#F8F8F2', 'accent': '#FF5555', 'positive': '#50FA7B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
@@ -247,7 +247,7 @@ THEMES = {
         'note_good': False,
     },
     'solarized': {
-        'label': 'Solarized Light', 'source': 'ethanschoonover.com',
+        'label': 'Solarized Light', 'source': 'ethanschoonover.com', 'intensity': 'sober',
         'marker': '#B58900', 'ink': '#002B36', 'ink-muted': '#93A1A1',
         'page': '#FDF6E3', 'accent': '#DC322F', 'positive': '#859900',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': None,
@@ -255,7 +255,7 @@ THEMES = {
         'note_good': False,
     },
     'gruvbox': {
-        'label': 'Gruvbox Light', 'source': 'github.com/morhetz',
+        'label': 'Gruvbox Light', 'source': 'github.com/morhetz', 'intensity': 'vivid',
         'marker': '#D79921', 'ink': '#282828', 'ink-muted': '#928374',
         'page': '#FBF1C7', 'accent': '#CC241D', 'positive': '#98971A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -263,7 +263,7 @@ THEMES = {
         'note_good': True,
     },
     'catppuccin': {
-        'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin',
+        'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin', 'intensity': 'sober',
         'marker': '#DF8E1D', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
         'page': '#EFF1F5', 'accent': '#D20F39', 'positive': '#40A02B',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'marker',
@@ -271,7 +271,7 @@ THEMES = {
         'note_good': False,
     },
     'tokyo-night': {
-        'label': 'Tokyo Night', 'source': 'github.com/folke',
+        'label': 'Tokyo Night', 'source': 'github.com/folke', 'intensity': 'sober',
         'marker': '#E0AF68', 'ink': '#1A1B26', 'ink-muted': '#565F89',
         'page': '#E1E2E7', 'accent': '#F7768E', 'positive': '#9ECE6A',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
@@ -279,7 +279,7 @@ THEMES = {
         'note_good': False,
     },
     'monokai': {
-        'label': 'Monokai', 'source': 'classique, Sublime Text',
+        'label': 'Monokai', 'source': 'classique, Sublime Text', 'intensity': 'vivid',
         'marker': '#E6DB74', 'ink': '#272822', 'ink-muted': '#75715E',
         'page': '#F8F8F2', 'accent': '#F92672', 'positive': '#A6E22E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -287,7 +287,7 @@ THEMES = {
         'note_good': False,
     },
     'everforest': {
-        'label': 'Everforest', 'source': 'github.com/sainnhe',
+        'label': 'Everforest', 'source': 'github.com/sainnhe', 'intensity': 'sober',
         'marker': '#DFA000', 'ink': '#2D353B', 'ink-muted': '#859289',
         'page': '#FDF6E3', 'accent': '#F85552', 'positive': '#A7C080',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
@@ -295,7 +295,7 @@ THEMES = {
         'note_good': True,
     },
     'rose-pine': {
-        'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com',
+        'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com', 'intensity': 'sober',
         'marker': '#EA9D34', 'ink': '#464261', 'ink-muted': '#797593',
         'page': '#FAF4ED', 'accent': '#B4637A', 'positive': '#6D8F89',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
@@ -558,7 +558,22 @@ HUE_NAMES = (
     (262, 'cyan'), (303, 'blue'), (330, 'violet'), (358, 'magenta'), (360, 'red'),
 )
 # Below this chroma a background reads as paper or ink, never as a hue.
-NEUTRAL_CHROMA = 18.0
+#
+# The threshold follows LIGHTNESS. A fixed one is wrong at both ends: a
+# pale cream carries real chroma and still reads as paper (Gruvbox's
+# #FBF1C7 sits at C=21.8 and was filed under `yellow`, while the docstring
+# below uses "a pale cream" as its example of what must come out neutral),
+# and a near-black keeps its hue identity at very low chroma (Blueprint
+# Night's navy #0A1626, C=12.6, was filed `neutral`). Chroma is compressed
+# towards black and inflated towards white, so the bar rises with L — with
+# a floor, because at L~3 a chroma of 0.9 is noise, not a colour.
+NEUTRAL_CHROMA_FLOOR = 4.0
+NEUTRAL_CHROMA_SLOPE = 0.25
+
+
+def neutral_chroma_threshold(lightness):
+    """Chroma below which a background of this lightness reads neutral."""
+    return max(NEUTRAL_CHROMA_FLOOR, NEUTRAL_CHROMA_SLOPE * lightness)
 
 # Every value each facet can take, in the order a listing should show
 # them (hue follows the colour wheel, not the alphabet). Single source of
@@ -590,8 +605,8 @@ def theme_hue_family(theme):
     the answer matches perception: a pale cream has a hue ANGLE like a
     full orange but almost no chroma, and is called 'neutral'."""
     import math
-    _, a, b = _lab(theme['page'])
-    if math.hypot(a, b) < NEUTRAL_CHROMA:
+    lightness, a, b = _lab(theme['page'])
+    if math.hypot(a, b) < neutral_chroma_threshold(lightness):
         return 'neutral'
     angle = math.degrees(math.atan2(b, a)) % 360
     for bound, name in HUE_NAMES:
@@ -965,7 +980,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
          --ink-muted  summary, caption, source, "no" verdict
          --marker     fact-box rule, cover tag, header underline,
                       active nav dot, emphasized column
-         --accent     footnote call, "partial", key-figure arrow, focus
+         --accent     footnote call, "partial" verdict, focus ring
          --positive   the "yes" verdict of a comparison table */
     --page: #f8f8f5;
     --ink: #1a1a2e;
@@ -1365,7 +1380,6 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .highlight-figure { font-size: clamp(2.1rem, 8vw, 3.4rem); font-weight: 800;
     line-height: 1.05; color: var(--ink); letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .highlight-arrow { color: var(--accent); font-weight: 700; }
   .highlight-caption { font-size: 0.9rem; color: var(--ink-muted); max-width: 480px; }
   .share-popover {
     position: fixed;
@@ -2812,23 +2826,25 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     color: var(--ink-muted);
     line-height: 1.5;
   }
+  /* Composition, pas seulement couleurs : la vraie fiche empile le
+     chiffre et sa legende en colonne CENTREE (.highlight, flex-direction
+     column + align-items center + text-align center). L'apercu les
+     alignait a gauche sur une ligne, et intercalait une fleche que le
+     moteur n'emet jamais — il montrait donc une mise en page qui
+     n'existe pas. */
   .preview-highlight {
     margin-top: 12px;
     display: flex;
-    align-items: baseline;
-    gap: 7px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
   }
   .preview-figure {
     font-size: 21px;
     font-weight: 800;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
-  }
-  .preview-arrow {
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 15px;
   }
   .preview-caption {
     font-size: 10.5px;
@@ -3105,7 +3121,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -5364,7 +5380,13 @@ def audit_legacy_palette_names(templates_dir):
     if len(custom) < 2:
         return 0
 
-    found = sorted({old for old in LEGACY_PALETTE_ROLES if f'var(--{old})' in custom[1]})
+    # Both forms. Using the variable (`color: var(--yellow)`) is the
+    # obvious one; REDECLARING it (`:root { --yellow: #ff0000; }`) was the
+    # standard way to recolour a series before the rename, and it breaks
+    # just as silently — the built-in CSS now reads var(--marker), so the
+    # override sits there applying to nothing at all.
+    found = sorted({old for old in LEGACY_PALETTE_ROLES
+                    if f'var(--{old})' in custom[1] or f'--{old}:' in custom[1]})
     if not found:
         return 0
 
@@ -6126,9 +6148,8 @@ PALETTE AND EMPHASIS (templates/style.css, see specifications.md §9.1)
     --ink-muted   summary, caption, source, the "no" verdict
     --marker      fact-box rule, cover tag, header underline, active
                   nav dot, emphasized column
-    --accent      footnote call, "partial" verdict, key-figure arrow,
-                  focus ring (NOT body links -- those have no rule and
-                  take the browser default)
+    --accent      footnote call, "partial" verdict, focus ring (NOT body
+                  links -- those have no rule and take the browser default)
     --positive    the "yes" verdict of a comparison table
   Six more decide how **bold** renders INSIDE a fact-box, on four
   independent axes — a theme can be bold with no highlight, un-bold with

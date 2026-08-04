@@ -260,23 +260,25 @@
     color: var(--ink-muted);
     line-height: 1.5;
   }
+  /* Composition, pas seulement couleurs : la vraie fiche empile le
+     chiffre et sa legende en colonne CENTREE (.highlight, flex-direction
+     column + align-items center + text-align center). L'apercu les
+     alignait a gauche sur une ligne, et intercalait une fleche que le
+     moteur n'emet jamais — il montrait donc une mise en page qui
+     n'existe pas. */
   .preview-highlight {
     margin-top: 12px;
     display: flex;
-    align-items: baseline;
-    gap: 7px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
   }
   .preview-figure {
     font-size: 21px;
     font-weight: 800;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
-  }
-  .preview-arrow {
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 15px;
   }
   .preview-caption {
     font-size: 10.5px;
@@ -551,7 +553,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -581,7 +583,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme nord</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="dracula Dracula">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="neutral" data-name="dracula Dracula">
       <header class="theme-head">
         <h2>Dracula</h2>
         <p class="theme-source">draculatheme.com</p>
@@ -596,7 +598,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -641,7 +643,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -671,7 +673,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme solarized</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="yellow" data-name="gruvbox Gruvbox Light">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="neutral" data-name="gruvbox Gruvbox Light">
       <header class="theme-head">
         <h2>Gruvbox Light</h2>
         <p class="theme-source">github.com/morhetz</p>
@@ -686,7 +688,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -731,7 +733,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -776,7 +778,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -806,7 +808,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme tokyo-night</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="light" data-intensity="sober" data-hue="neutral" data-name="monokai Monokai">
+    <article class="theme-card" data-polarity="light" data-intensity="vivid" data-hue="neutral" data-name="monokai Monokai">
       <header class="theme-head">
         <h2>Monokai</h2>
         <p class="theme-source">classique, Sublime Text</p>
@@ -821,7 +823,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -866,7 +868,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -911,7 +913,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -956,7 +958,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1001,7 +1003,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1031,7 +1033,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme blueprint</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="dark" data-intensity="sober" data-hue="neutral" data-name="blueprint-night Blueprint Night">
+    <article class="theme-card" data-polarity="dark" data-intensity="sober" data-hue="blue" data-name="blueprint-night Blueprint Night">
       <header class="theme-head">
         <h2>Blueprint Night</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1046,7 +1048,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1091,7 +1093,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1136,7 +1138,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1181,7 +1183,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1226,7 +1228,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1271,7 +1273,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1316,7 +1318,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1361,7 +1363,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1406,7 +1408,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1436,7 +1438,7 @@
       <p class="install-hint"><code>lightwebpres install my-series --theme sage</code></p>
     </article>
 
-    <article class="theme-card" data-polarity="dark" data-intensity="sober" data-hue="neutral" data-name="evergreen Evergreen">
+    <article class="theme-card" data-polarity="dark" data-intensity="sober" data-hue="green" data-name="evergreen Evergreen">
       <header class="theme-head">
         <h2>Evergreen</h2>
         <p class="theme-source">lightwebpres</p>
@@ -1451,7 +1453,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1496,7 +1498,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1541,7 +1543,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1586,7 +1588,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1631,7 +1633,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1676,7 +1678,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1721,7 +1723,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1766,7 +1768,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1811,7 +1813,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1856,7 +1858,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1901,7 +1903,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1946,7 +1948,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
@@ -1991,7 +1993,7 @@
           <div class="preview-h2">La temp&eacute;rature change tout</div>
           <p class="preview-summary">Un four trop chaud cuit la surface avant que le centre ne soit pr&ecirc;t.</p>
           <div class="preview-highlight">
-            <span class="preview-figure">180&nbsp;&deg;C</span><span class="preview-arrow">&rarr;</span>
+            <span class="preview-figure">180&nbsp;&deg;C</span>
             <span class="preview-caption">temp&eacute;rature recommand&eacute;e</span>
           </div>
           <div class="preview-factbox">
