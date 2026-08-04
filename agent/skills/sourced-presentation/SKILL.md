@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up: half these rules cover what an edit breaks without saying so. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.7"
+  version: "0.8"
 ---
 
 # Sourced presentation — method
@@ -16,6 +16,8 @@ The deck is what gets read; the article is what makes it defensible. **The artic
 **The series sets the thresholds; this sets the method.** Audience, register, lengths, field syntax, numbering, the placement of hedging, what counts as one fact: these and their like belong to the series specification. A written series rule overrides one here, and what is written nowhere is decided here.
 
 *What follows is what had to be discovered — not general craft, which you already have. Rules that look deducible from a stated principle mostly are not: they look that way once known. Compressing them out is the standing temptation here.*
+
+**Verification is asymmetric, and that is why none of it is skimmable.** Fifty facts confirmed do not offset one quotation that turns out to have no source. A reader who catches a single error is right to doubt everything else — they cannot check the rest, and they have just learned that they should. What that costs is not one fact: it is the standing of the piece, of whoever signs it, and of whoever did the checking. *And a check reported as done is itself a claim. Never report one you skimmed; say instead what you did not verify, which is information the reader can use.*
 
 ## The chain
 
