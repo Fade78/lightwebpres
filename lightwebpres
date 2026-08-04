@@ -826,7 +826,26 @@ class ChoiceType(PropType):
 
 
 class FreeTextType(PropType):
-    name = 'text'
+    """A CSS string token — the verdicts' shape marks. NOT free text,
+    despite the historical name: the value lands inside the page's
+    inlined <style>, where an unquoted `}` escapes the declaration and a
+    literal `</style>` escapes the sheet itself — the audit's stored-XSS
+    vector, reachable from an ARTICLE's style.* meta, the one trust level
+    the rewrite hardened everywhere else. So: exactly one double-quoted
+    CSS string (backslash escapes allowed, no raw quote and no `<`), or
+    the keyword `none`."""
+    name = 'CSS string'
+    STRING = re.compile(r'^"(?:[^"\\<\n]|\\[0-9A-Fa-f]{1,6} ?|\\["\\])*"$')
+
+    def check(self, key, value):
+        if value == 'none':
+            return value
+        if not self.STRING.match(value):
+            raise PropertyError(
+                f'{key}: {value!r} is not a CSS string (one double-quoted '
+                f'string, e.g. "\\25CF", or none). Raw }} < or an unpaired '
+                f'quote would let a value escape the inlined stylesheet.')
+        return value
 
 
 PROP_COLOR = ColourType()
@@ -4234,7 +4253,13 @@ def md_inline(text):
     def _md_link(m):
         label = m.group(1)
         href = m.group(2).replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-        return f'<a href="{href}" target="_blank" rel="noopener">{label}</a>'
+        # The opening tag goes into a placeholder so nothing that runs
+        # after this — the instance tags — can rewrite the inside of the
+        # href attribute (the audit showed a tag in a URL truncating it).
+        # The label stays inline: tags inside link TEXT keep working, and
+        # the bare </a> is inert to every later substitution.
+        code_spans.append(f'<a href="{href}" target="_blank" rel="noopener">')
+        return f'\x00{len(code_spans) - 1}\x00{label}</a>'
 
     # Label class excludes '[' as well as ']': a run of "["×N would
     # otherwise make each '[' rescan the whole line for a closing ']('
@@ -4297,8 +4322,14 @@ def _instance_style(name, value):
     }[name]
 
 
+# Content classes exclude braces: an inner tag makes the outer NOT match
+# until the inner has been rewritten to a <span> (brace-free), which is
+# what makes resolution innermost-first — and what bounds backtracking,
+# an unclosed opener failing at the next brace instead of rescanning to
+# the end of the text (measured quadratic before: 29 s on 40k openers).
 _INSTANCE_TAG_RE = re.compile(
-    r'\{(color|font):([^{}]+)\}(.*?)\{/\1\}|\{(sc|u|strike|mono)\}(.*?)\{/\4\}')
+    r'\{(color|font):([^{}]+)\}([^{}]*)\{/\1\}|\{(sc|u|strike|mono)\}([^{}]*)\{/\4\}')
+_INSTANCE_TAG_MAX_DEPTH = 32
 
 
 def _apply_instance_tags(text):
@@ -4310,12 +4341,15 @@ def _apply_instance_tags(text):
         return (f'<span style="{_instance_style(name, value)}">'
                 f'{content}</span>')
     # Innermost-first, so {color:...}{sc}x{/sc}{/color} nests: each pass
-    # rewrites tags whose content holds no other tag, until none is left.
-    while True:
+    # rewrites tags whose content holds no other tag, until none is left
+    # or the depth cap is hit — beyond it the leftovers stay visible
+    # literal text, the same fate as an unclosed opener.
+    for _ in range(_INSTANCE_TAG_MAX_DEPTH):
         new = _INSTANCE_TAG_RE.sub(_span, text)
         if new == text:
-            return new
+            break
         text = new
+    return text
 
 
 def parse_table_row(line):

@@ -99,8 +99,8 @@ Run build again to apply the new theme.
 ```
 
 Asking for the theme already in place writes nothing and says so
-(`Theme unchanged`). There is no `--force` anymore: nothing the tool
-writes can collide with anything you wrote.
+(`Theme unchanged`). `set-theme` has no `--force` anymore: nothing the
+tool writes can collide with anything you wrote.
 
 Preview every theme, rendered against real slide content and filterable
 by those same facets, with:
@@ -231,7 +231,9 @@ lightwebpres audit my-series   # editorial warnings, never blocks
 lightwebpres check my-series   # rebuilds in memory, diffs against public/
 ```
 
-`audit` flags things worth a second look — no cover slide, that kind of
+`audit` flags things worth a second look — no cover slide, a
+`settings.conf` scaffold whose comments predate your current theme, a
+retired CSS variable still referenced in `custom.css`, that kind of
 thing — but never fails; it's a nudge, not a gate. `check` is the
 opposite: it rebuilds every article in memory and compares it byte-for-
 byte against what's already in `public/`, exiting non-zero the moment

@@ -6484,6 +6484,77 @@ class InstanceTags(unittest.TestCase):
             self.assertIn('[NOTE] a.md: 2 instance tag(s)', result.stdout)
 
 
+class InstanceAndArticleLayerSecurity(unittest.TestCase):
+    """The audit's boundary findings, pinned. The article style.* layer and
+    the instance tags are the one trust level the rewrite hardened; a value
+    must never escape the inlined <style> or the href it sits in."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def _build(self, tmp, body='', meta_extra=''):
+        run('install', tmp, '--force')
+        scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n' + meta_extra +
+                 '---\n\n# Cover\n\nsummary: s\n\n---\n\n'
+                 '## S\n\nfact-label: F\n\n' + body + '\n')
+        return run('build', tmp)
+
+    def test_a_verdict_mark_cannot_escape_the_inlined_style(self):
+        # The only untyped axis was FreeTextType; a style.* meta key reached
+        # it and shipped a raw </style><script> into the page.
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._build(tmp, meta_extra=(
+                'style.verdict.yes.mark: "\\25CF"; } </style><script>'
+                'alert(1)</script><style>{\n'))
+            self.assertEqual(r.returncode, 1)
+            self.assertIn('is not a CSS string', r.stderr)
+
+    def test_a_well_formed_mark_still_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._build(tmp, meta_extra='style.verdict.yes.mark: "\\2714"\n')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            page = (Path(tmp) / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('--verdict-yes-mark: "\\2714";', page)
+
+    def test_a_settings_mark_is_validated_too(self):
+        r = self.lwp.PROP_TEXT
+        with self.assertRaises(self.lwp.PropertyError):
+            r.check('verdict.yes.mark', '"x"; } body { display: none } "')
+        self.assertEqual(r.check('verdict.yes.mark', '"\\25CF"'), '"\\25CF"')
+        self.assertEqual(r.check('verdict.yes.mark', 'none'), 'none')
+
+    def test_an_instance_tag_in_a_link_url_cannot_inject_an_attribute(self):
+        # The opening <a> is placeholder-protected, so a tag inside the URL
+        # stays literal in the quoted href instead of becoming a <span> that
+        # closes the attribute.
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._build(tmp, 'A [x](https://e.com/{color:#FFF} '
+                                 'onload=alert(1) y{/color}) here.')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            page = (Path(tmp) / 'public' / 'a.html').read_text(encoding='utf-8')
+            anchor = page.split('<a ')[1].split('</a>')[0]
+            # the tag stays literal inside the quoted href — no span closing
+            # the attribute, no onload leaking out as its own attribute
+            self.assertNotIn('<span', anchor)
+            self.assertNotIn('onload="', anchor)
+
+    def test_a_tag_in_link_text_still_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._build(tmp, 'A [{sc}styled{/sc} label](https://e.com/p).')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            page = (Path(tmp) / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('font-variant:small-caps', page)
+
+    def test_a_pathological_tag_run_does_not_hang(self):
+        # Brace-free content classes plus the depth cap bound what was a
+        # measured 29 s on 40k unclosed openers.
+        html = self.lwp.md_inline('{sc}' * 5000 + ' end')
+        self.assertIn('{sc}', html)          # leftovers stay literal
+        deep = self.lwp.md_inline('{color:call}' * 40 + 'x' + '{/color}' * 40)
+        self.assertIn('x', deep)
+
+
 class FactVariant(unittest.TestCase):
     """fact-variant names a MEANING in the source; what it looks like is the
     theme's or the author's to define (a .fact--<name> rule in custom.css),

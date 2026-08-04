@@ -98,11 +98,11 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 |---|---|---|
 | `article` | None — required on this slide type | External `.md` file included as the article's long-form body |
 
-## Presentation vocabulary (§9 rewrite)
+## Presentation vocabulary
 
-The theme engine's terms of art. Seeded here because this file is the shared
-vocabulary contract with lightwebpres-gui and was empty on the whole
-presentation layer; the full set lands with the §9 documentation.
+The theme engine's terms of art — the shared vocabulary contract with
+lightwebpres-gui. `specifications.md` §9 is the authoritative behavioral
+description; the terms are fixed here, in English.
 
 | Term | Meaning |
 |---|---|
@@ -110,10 +110,17 @@ presentation layer; the full set lands with the §9 documentation.
 | **component** | A thing the format names that the page renders — `tag`, `summary`, `verdict.partial`. Properties belong to components; there is no intermediate semantic layer. |
 | **axis** | The last segment of a property key: what it sets (`fg`, `size`, `weight`, `shadow.blur`). The axis fixes the type; the type fixes where a bare-word reference is looked up. |
 | **shared value** | A palette colour (`color.*`) or font stack (`font.*`) themes provide and properties reference. Never read by an emitted rule directly. |
+| **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`tag.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
+| **layer** | One dictionary of properties in the cascade (§9.3): built-in defaults, theme, settings, article, instance — merged in that order before emission. |
 | **theme** | A named layer of properties applied over the built-in defaults. |
-| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Never written by the tool except on explicit request. |
+| **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Never written by the tool except on explicit request (`set-theme` rewrites only the `theme:` line). |
+| **scaffold** | The generated form of `settings.conf`: every property present, commented out, at the chosen theme's values (§9.3.1). Generated once from the registry, never rewritten on the tool's initiative; `# scaffold-for:` records the theme it was generated under. |
+| **pin** | Uncommenting a scaffold line (or writing one): the value now overrides every theme and survives theme changes and upgrades (§9.3.1). |
 | **override** | The relation between layers: a value in a later layer covering an earlier one. |
 | **customization** | The author's act of overriding — via settings, per-article properties, instance tags, or `custom.css`. |
+| **article properties** | `style.<property>: value` lines in an article's meta block — the same vocabulary, scoped to that page alone (§9.6.1). |
+| **instance tag** | A format-defined tag in free text (`{color:mark}…{/color}`, `{sc}…{/sc}`) — the instance-scoped fifth layer, same types as everywhere, enumerated by `audit` (§9.6.3). |
+| **variant** | A named look for a component instance (`fact-variant: warning` → class `fact--warning`), defined once per series in `custom.css` — the source carries meaning, not visual values (§9.6.2). |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
 | **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |
 

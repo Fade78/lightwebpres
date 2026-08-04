@@ -308,6 +308,7 @@ article — they are author decisions that survive every theme change.
 | `{sc}…{/sc}` | small caps |
 | `{strike}…{/strike}` | strikethrough |
 | `{u}…{/u}` | underline |
+| `{mono}…{/mono}` | monospace (the `font.mono` stack) |
 
 Tags nest, and Markdown inside them still converts. An opener without its
 closer on the same line stays literal text — visible in the render. Inside

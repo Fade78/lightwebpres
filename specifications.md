@@ -681,7 +681,8 @@ Markdown standard après le chemin — `![alt](src "Légende")` — ajoute
 `<figcaption class="figure-caption">Légende</figcaption>` sous l'image ;
 la légende passe par le rendu inline (gras, liens...) et par la
 typographie, et le style par défaut l'affiche petite, centrée et grise
-(`var(--ink-muted)`, donc adaptée à chaque thème). Une image **au milieu d'un
+(propriétés `caption.*`, l'encre à `ink-quiet` par défaut — donc adaptée
+à chaque thème, §9.1). Une image **au milieu d'un
 paragraphe** devient un simple `<img>` inline, **sans légende** : une
 légende est un élément de bloc et cette image-là est au fil de la
 phrase. Le titre y est malgré tout accepté et devient un attribut
@@ -3027,8 +3028,9 @@ Demandées le 2026-07-31 :
     http(s)) — c'est le cas d'usage `articles/img/` → `public/img/`.
 21. **Légendes pour les images** — IMPLÉMENTÉ (voir §6.1) : le titre
     Markdown standard `![alt](src "Légende")` devient un `<figcaption>`
-    affiché petit, centré et gris (`var(--ink-muted)`) sous l'image — le style
-    par défaut suit donc automatiquement chacun des 9 thèmes. Les légendes
+    affiché petit, centré et gris (propriétés `caption.*`, encre
+    `ink-quiet` par défaut, §9.1) sous l'image — le style par défaut suit
+    donc automatiquement chaque thème. Les légendes
     de **tableaux** restent non planifiées.
 22. **Images cliquables** — pas de comportement par défaut aujourd'hui (ex.
     lien vers l'image en taille réelle, ou lightbox JS) ; à ajouter dans

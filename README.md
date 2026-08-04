@@ -32,9 +32,11 @@ one `.html` file, opens straight from disk or any static host.
 - **A simple, three-level structure.** Series → article → slide. Nothing
   to design: pick a slide type (cover, standard, cross-article nav, full
   article), fill in the fields.
-- **Styled by template, not by page.** One `templates/style.css`/`nav.js`
-  pair drives the whole series — change the look once, every article
-  picks it up.
+- **Styled by typed properties, not by CSS.** Every visual decision is a
+  named, typed property (`component.axis: value`) in one plain-text
+  settings file that drives the whole series — the stylesheet is composed
+  at build time, and a mistyped key or value is a named build error,
+  never a silent no-op.
 - **Every page stands alone, yet belongs to its series.** Each article is
   one self-contained HTML file — but it carries its own cross-article
   navigation block, generated from the series, so a reader can always get
@@ -128,10 +130,10 @@ all generated automatically.
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1) |
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
-| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide") and technical (palette variables renamed in v0.12.0 still used in your own CSS); never fails the build |
-| `refresh-templates [dir]` | Updates the built-in CSS/JS in `templates/` after an executable upgrade, keeping local customizations |
+| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide") and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build |
+| `refresh-templates [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
-| `set-theme [dir] --theme X` | Changes an existing series' theme, reporting what it replaced; `--force` for a stylesheet whose built-in part isn't standard |
+| `set-theme [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme, with facet filters (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
@@ -180,12 +182,31 @@ off` (every rule, that article's page only), and the CLI flag
 `--no-typography` on `build`/`check` (every rule, the whole run). See
 `--help` or specifications.md §4.5/§7.5/§19.6 for the full list.
 
-## Templates
+## Theming & customization
 
-`templates/style.css` and `templates/nav.js` are read back on every build
-if present, replacing the built-in defaults — the page/index HTML
-structure itself is fixed, not a template, so a build can't be broken by
-a malformed structural override.
+Every visual decision is a **typed property**, `component.axis: value`.
+`templates/settings.conf`, written once at install, lists **all** of
+them commented out at your theme's values — the complete surface under
+your eyes, no docs needed (the exact count is derived from the tool's
+own registry; `--help` shows it live). Uncomment a line to pin it: it
+survives every theme change and every executable upgrade, because the
+tool never writes in your file. The stylesheet itself is composed in
+memory at every build; a mistyped key or value is a named build error,
+never a silent no-op. Three one-liners that used to be friction:
+
+```conf
+verdict.partial.fg: #8A4B00   # recolor one verdict — footnote calls and focus rings don't move
+summary.fg: #10151B           # darken card summaries — the "no" verdict stays put
+link.decoration-color: mark   # tint link underlines — the text itself keeps the ink around it
+```
+
+Rules, as opposed to values, go in `templates/custom.css` — full CSS,
+appended last so it wins ties. Effects are properties too: a halo is a
+shadow with no offset, which is how the `terminal` theme gets its
+phosphor glow (`title1.shadow.fg: #33FF8866`) on an all-monospace page —
+three font lines and a halo in its theme layer, no special case in the
+engine. The page/index HTML structure itself is fixed, not a template,
+so a build can't be broken by a malformed structural override.
 
 Thirty-three named color themes ship pre-configured. Nine borrow known
 editor palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo
@@ -195,7 +216,11 @@ palettes, and an eight-strong Pop family whose backgrounds carry the
 color themselves. Every project-owned palette was measured before being
 kept: AAA contrast for body text, AA for secondary text and accents, 3:1
 for rules, and comparison verdicts checked for separability under
-simulated deuteranopia and protanopia.
+simulated deuteranopia and protanopia. The nine borrowed palettes are
+offered for **fidelity**, as their editors ship them: those criteria
+were never retro-applied to them, and measured today several of their
+accents miss AA on a light page — whether to correct, repolarize or
+leave them is an open call (`BACKLOG.md` B5).
 
 Thirty-three is too many to pick from a list, so themes are found by
 facet — **polarity** (light or dark background), **intensity** (sober,
@@ -214,66 +239,37 @@ Apply one when scaffolding, or change your mind later:
 ./lightwebpres set-theme my-series --theme crimson
 ```
 
-`set-theme` reports what it replaced (`Theme changed: evergreen ->
-crimson`) and refuses a `templates/style.css` whose built-in part isn't
-what this executable would have written — hand-edited, or from another
-version — because the substitution could leave it half-recolored;
-`--force` overrides that and warns. Rules you appended after the
-personalization marker are preserved either way.
+`set-theme` is one word in a data file: it rewrites the `theme:` line of
+`templates/settings.conf` and nothing else, reports what it replaced
+(`Theme changed: evergreen -> crimson`), and your pinned values stay in
+place and apply on top of the new palette. No CSS is rewritten, so there
+is nothing to force and no half-recolored file to fear.
 
-A theme substitutes twenty-one CSS custom properties: six palette colors,
-six fact-box emphasis properties, and nine translucent overlays for
-rules, surfaces and floating controls. The emphasis properties are four
-independent axes — weight, italic, highlight, underline — so a theme can
-be bold with no highlight, un-bold with a green one, or underlined and
-nothing else. Those overlays are what makes a
-dark-background theme possible at all — over a dark page a surface veil
-has to be white on dark instead of the reverse. Nothing else in the CSS
-changes, and the substitution survives an executable upgrade:
-`refresh-templates` reapplies the same theme to the refreshed built-in
-CSS instead of silently reverting to the default.
+A theme provides six shared colors and four font stacks — `color.page`,
+`color.ink`, `color.ink-quiet`, `color.mark`, `color.call`,
+`color.affirm`; `font.text`/`display`/`ui`/`mono` — named for what they
+do, not for a color. Every component property *defaults* to one of them,
+so a theme restyles everything at once; but each use is its own
+property, so overriding one sense never drags the others along (the
+`verdict.partial.fg` line above moves the "partly" verdict and nothing
+else, even though its default shares `color.call` with footnote calls
+and focus rings).
 
-Each palette variable is named for **what it does**, not for a color:
+A body link deliberately has no palette colour of its own. It keeps the
+ink around it and is signalled by an underline, whose tint is the one
+exposed axis (`link.decoration-color`, defaulting to the text ink —
+the only pairing that passes AA and AAA on all 33 themes). Measured
+across the catalogue before choosing: the browser default blue fails AA
+on fifteen themes, and every palette colour that could replace it is
+either below AA on a third of the catalogue or already one of the three
+comparison-table verdict colours.
 
-| Variable | Role |
-|---|---|
-| `--page` | the page background |
-| `--ink` | body text; also the cover ground on a light theme |
-| `--ink-muted` | summary, caption, source, the "no" verdict |
-| `--marker` | fact-box rule, cover tag, header underline, active nav dot, emphasized column |
-| `--accent` | footnote call, the "partial" verdict, focus ring |
-| `--positive` | the "yes" verdict of a comparison table |
-
-A body link is deliberately **not** in that table. It keeps the ink
-around it and is signalled by an underline, whose colour a theme may tint
-through `--link-decoration-color` (`currentColor` by default). Measured
-across all 33 themes: the browser default blue fails AA on fifteen of
-them and is invisible on six, while every palette colour that could
-replace it is either below AA on a third of the catalogue or is already
-one of the three comparison-table verdict colours.
-
-> **Renamed in v0.12.0**, from names that described a colour to names
-> that describe a role. The mapping is deliberately spelled out, because
-> reading the two lists side by side gets two of them backwards:
->
-> | was | is now |
-> |---|---|
-> | `--yellow` | `--marker` |
-> | `--dark` | `--ink` |
-> | `--grey` | `--ink-muted` |
-> | `--light` | `--page` |
-> | `--green` | `--positive` |
-> | `--accent` | `--accent` (unchanged) |
->
-> They were named after the values they held in the very first theme. The names then lied on every theme that moved away from it:
-> `--yellow` held a dark olive on Pop Lemon (a yellow marker on a
-> yellow page is invisible), and `--light` held a near-black on every
-> dark theme while `--dark` held the text color. No compatibility
-> aliases were kept, so `var(--yellow)` in your own rules no longer
-> resolves to anything — `lightwebpres audit` names every old variable
-> still left in your section of `templates/style.css`, with its
-> replacement. The built-in part above the personalization marker
-> migrates by itself on the next `refresh-templates`.
+> **Coming from a series built before the typed-properties engine?**
+> `templates/style.css` is no longer read: values move to
+> `settings.conf`, rules to `custom.css`, and no variable aliases were
+> kept — `lightwebpres audit` names every retired variable still
+> referenced, each with its replacement, and `refresh-templates` creates
+> the new files if they're missing.
 
 ![Preview of the built-in color themes](themes-gallery.png)
 
