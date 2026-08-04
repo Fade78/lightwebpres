@@ -699,7 +699,7 @@ SURFACE_PRESETS = {
         # light tone as text.
         'cover-bg': 'var(--ink)',
         'cover-fg': 'var(--page)',
-        'cover-fg-faint': 'rgba(255, 255, 255, 0.34)',
+        'cover-fg-faint': 'rgba(255, 255, 255, 0.70)',
         # Floating round controls: near-opaque over a light page.
         'control': 'rgba(255, 255, 255, 0.92)',
         'control-soft': 'rgba(255, 255, 255, 0.75)',
@@ -716,7 +716,7 @@ SURFACE_PRESETS = {
         # a pale panel. A deeper veil of the page itself instead.
         'cover-bg': 'rgba(0, 0, 0, 0.45)',
         'cover-fg': 'var(--ink)',
-        'cover-fg-faint': 'rgba(255, 255, 255, 0.30)',
+        'cover-fg-faint': 'rgba(255, 255, 255, 0.56)',
         # A lift out of the dark ground, not a white pill on top of it.
         'control': 'rgba(255, 255, 255, 0.13)',
         'control-soft': 'rgba(255, 255, 255, 0.09)',
@@ -732,8 +732,20 @@ def theme_surface_properties(theme):
     return SURFACE_PRESETS[bool(theme.get('dark_background', False))]
 
 
+def theme_link_properties(theme):
+    """§9.1 — the one link property a theme may set. It defaults to
+    `currentColor`, i.e. the ink around the link, which is the value that
+    can never fail a contrast check on any theme. A theme sets it only
+    where it has measured a colour that clears 3:1 against its own page
+    AND is distinguishable from its own ink; three built-in themes cannot
+    (tokyo-night 2.05, vaporwave 2.94, dracula 2.95), which is exactly
+    why the default is not a palette colour."""
+    role = theme.get('link_decoration_color')
+    return {'link-decoration-color': f'var(--{role})' if role else 'currentColor'}
+
+
 def note_to_html(note):
-    """§9.5.5 — a theme note is stored as plain text, because it has two
+    """§9.5.6 — a theme note is stored as plain text, because it has two
     consumers with opposite needs: `themes` prints it to a terminal, and
     themes-gallery puts it in a page. Plain text is the safe default of
     the two — a terminal cannot render markup, while HTML can always be
@@ -827,8 +839,8 @@ def fact_treatment_label(theme):
 
 def apply_theme(css_text, theme_key):
     """Rewrites the six palette declarations (PALETTE_ROLES),
-    the six --fact-strong-* ones (§9.1), and the nine
-    overlay/cover/control ones (§9.5.2 — --rule, --rule-strong,
+    the six --fact-strong-* ones and --link-decoration-color (§9.1),
+    and the nine overlay/cover/control ones (§9.5.2 — --rule, --rule-strong,
     --surface, --sunken, --cover-bg, --cover-fg, --cover-fg-faint,
     --control, --control-soft) in `css_text`'s :root block to
     THEMES[theme_key]'s values (§9.5.1), and records theme_key in the
@@ -873,6 +885,7 @@ def apply_theme(css_text, theme_key):
         # so a dark-backgrounded theme gets veils that go the right way
         # instead of a white card on a black page.
         *theme_surface_properties(theme).items(),
+        *theme_link_properties(theme).items(),
     ):
         pattern = r'(--%s:\s*)[^;]+(;)' % re.escape(var)
         root = re.sub(pattern, lambda m, value=value: m.group(1) + value + m.group(2), root, count=1)
@@ -1040,7 +1053,8 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -1228,6 +1242,31 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the "partial" verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -1262,7 +1301,7 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -1326,7 +1365,12 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal "you are here"
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -1524,6 +1568,10 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -5554,7 +5602,7 @@ def cmd_themes(args):
         # character entity to the terminal — cleaning enumerates what it
         # already knows about, so the next markup added would have leaked
         # too. The conversion now lives at the one place that needs
-        # markup (§9.5.5).
+        # markup (§9.5.6).
         for line in textwrap.wrap(f'{theme["label"]} — {theme["note"]}', width=72):
             print(f'      {line}')
         print()
@@ -6091,9 +6139,13 @@ PALETTE AND EMPHASIS (templates/style.css, see specifications.md §9.1)
     --ink-muted   summary, caption, source, the "no" verdict
     --marker      fact-box rule, cover tag, header underline, active
                   nav dot, emphasized column
-    --accent      footnote call, "partial" verdict, focus ring (NOT body
-                  links -- those have no rule and take the browser default)
+    --accent      footnote call, "partial" verdict, focus ring
     --positive    the "yes" verdict of a comparison table
+  A body link is NOT one of these. It keeps the ink around it and is
+  signalled by an underline, because a link is running text and every
+  palette colour that could carry it is either below AA on a third of the
+  catalogue or is already a verdict colour. One variable tints the rule:
+    --link-decoration-color         var(--<role>), or currentColor
   Six more decide how **bold** renders INSIDE a fact-box, on four
   independent axes — a theme can be bold with no highlight, un-bold with
   a green one, or underlined and nothing else:

@@ -241,8 +241,16 @@ Each palette variable is named for **what it does**, not for a color:
 | `--ink` | body text; also the cover ground on a light theme |
 | `--ink-muted` | summary, caption, source, the "no" verdict |
 | `--marker` | fact-box rule, cover tag, header underline, active nav dot, emphasized column |
-| `--accent` | footnote call, the "partial" verdict, key-figure arrow, focus ring |
+| `--accent` | footnote call, the "partial" verdict, focus ring |
 | `--positive` | the "yes" verdict of a comparison table |
+
+A body link is deliberately **not** in that table. It keeps the ink
+around it and is signalled by an underline, whose colour a theme may tint
+through `--link-decoration-color` (`currentColor` by default). Measured
+across all 33 themes: the browser default blue fails AA on fifteen of
+them and is invisible on six, while every palette colour that could
+replace it is either below AA on a third of the catalogue or is already
+one of the three comparison-table verdict colours.
 
 > **Renamed in v0.12.0**, from names that described a colour to names
 > that describe a role. The mapping is deliberately spelled out, because

@@ -3233,6 +3233,157 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         self.assertGreaterEqual(len(set(stated)), 5)
 
 
+class ContrastFloors(unittest.TestCase):
+    """Every one of these was found by rendering real pages under all 33
+    themes and MEASURING, after two earlier defects survived a check that
+    looked at the gallery preview instead. They are grouped here because
+    they share one cause: a rule that dims text — by an opacity, or by a
+    fixed alpha nobody re-measured — reads as a style choice and is a
+    contrast failure. Each test pins the value at its source, not its
+    rendering, because the rendering is the consequence."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    @staticmethod
+    def _lin(c):
+        c = c / 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    @classmethod
+    def _lum(cls, rgb):
+        r, g, b = rgb
+        return 0.2126 * cls._lin(r) + 0.7152 * cls._lin(g) + 0.0722 * cls._lin(b)
+
+    @classmethod
+    def _ratio(cls, a, b):
+        la, lb = cls._lum(a), cls._lum(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    @staticmethod
+    def _rgb(hex_colour):
+        h = hex_colour.lstrip('#')
+        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+    @staticmethod
+    def _over(fg, alpha, bg):
+        return tuple(fg[i] * alpha + bg[i] * (1 - alpha) for i in range(3))
+
+    def _cover_ground(self, theme):
+        """What the cover slide actually paints under its own text: the
+        ink itself on a light theme, a 45% black veil over the page on a
+        dark one (§9.5.2)."""
+        if theme.get('dark_background'):
+            return self._over((0, 0, 0), 0.45, self._rgb(theme['page']))
+        return self._rgb(theme['ink'])
+
+    def test_the_cover_slide_counter_is_readable_on_every_theme(self):
+        """--cover-fg-faint was a fixed rgba(255,255,255,.34) that had
+        never been measured against the ground it sits on: 2.37:1 at
+        worst, and below AA on all 33 themes AND on the default palette.
+        'Faint' is a look, not a licence to be unreadable."""
+        for slug, theme in self.lwp.THEMES.items():
+            surfaces = self.lwp.theme_surface_properties(theme)
+            faint = surfaces['cover-fg-faint']
+            alpha = float(re.search(r'rgba\(255, 255, 255, ([\d.]+)\)', faint).group(1))
+            ground = self._cover_ground(theme)
+            ratio = self._ratio(self._over((255, 255, 255), alpha, ground), ground)
+            self.assertGreaterEqual(round(ratio, 2), 4.5, f'{slug}: {ratio:.2f}:1')
+
+    # A text rule may fade itself only if the faded result has been
+    # measured against the ground it actually sits on. Each entry names
+    # what that ground is; the test below computes the worst case across
+    # all 33 themes and fails if it ever drops under AA, so an allowance
+    # cannot quietly rot into the defect it was carved out of.
+    MEASURED_FADES = {'.slide-cover .summary': 'cover'}
+
+    def test_a_text_rule_fades_itself_only_where_it_was_measured(self):
+        """The two worst failures in the render sweep were both an
+        `opacity` on a block of text: the 'currently reading' card at
+        1.62:1 on 33/33 themes, and the 'no' verdict at 1.99:1 on 32/33.
+        Both read as a style choice and were a contrast failure. An
+        opacity on a text-bearing rule now has to be justified here."""
+        css = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_STYLE, flags=re.DOTALL)
+        offenders = []
+        for block in re.finditer(r'([^{}]+)\{([^{}]*)\}', css):
+            selector, body = block.group(1).strip(), block.group(2)
+            m = re.search(r'(?<![-\w])opacity:\s*([\d.]+)', body)
+            if not m or float(m.group(1)) >= 1:
+                continue
+            if not re.search(r'(?<![-\w])(color|font-size|font-weight):', body):
+                continue          # paints a ground or a glyph, not running text
+            if selector in self.MEASURED_FADES:
+                continue
+            offenders.append(f'{selector} (opacity {m.group(1)})')
+        self.assertEqual(offenders, [], 'a text rule may not fade itself unmeasured')
+
+    def test_every_allowed_fade_still_clears_aa_on_every_theme(self):
+        """Guards the exemption above. The cover summary paints
+        --cover-fg at 78% over the cover ground; that is fine today
+        (worst 5.05:1, catppuccin) and would stop being fine if either
+        the alpha or a palette moved."""
+        css = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_STYLE, flags=re.DOTALL)
+        for selector, ground_kind in self.MEASURED_FADES.items():
+            self.assertEqual(ground_kind, 'cover')
+            block = re.search(re.escape(selector) + r'\s*\{([^}]*)\}', css)
+            self.assertIsNotNone(block, selector)
+            alpha = float(re.search(r'opacity:\s*([\d.]+)', block.group(1)).group(1))
+            for slug, theme in self.lwp.THEMES.items():
+                ground = self._cover_ground(theme)
+                # --cover-fg is the page colour on a light theme, the ink
+                # on a dark one (§9.5.2) — the cover inverts the page.
+                fg = self._rgb(theme['page'] if not theme.get('dark_background')
+                               else theme['ink'])
+                ratio = self._ratio(self._over(fg, alpha, ground), ground)
+                self.assertGreaterEqual(round(ratio, 2), 4.5,
+                                        f'{selector} on {slug}: {ratio:.2f}:1')
+
+    def test_a_body_link_keeps_the_ink_around_it(self):
+        """§9.1/BACKLOG B3. The link had no rule at all and took the
+        browser blue, measured at 1.03:1 on pop-violet and below AA on
+        fifteen themes. Ink-on-page is the pair every theme is admitted
+        on, so inheriting is the only treatment that cannot fail."""
+        css = self.lwp.TEMPLATE_STYLE
+        block = re.search(r'\.fact-content a,\s*\.full-article a \{([^}]*)\}', css)
+        self.assertIsNotNone(block, 'the body-link rule is gone')
+        body = block.group(1)
+        self.assertRegex(body, r'color:\s*inherit')
+        self.assertRegex(body, r'text-decoration:\s*underline')
+        self.assertIn('var(--link-decoration-color)', body)
+        self.assertIn('--link-decoration-color: currentColor;', css)
+
+    def test_the_link_rule_never_reaches_navigation(self):
+        """Underlining every <a> would have underlined the series-nav
+        cards, the index cards and the slide-progress dots. The rule is
+        scoped to the two containers the Markdown converter writes into,
+        and nothing else."""
+        css = self.lwp.TEMPLATE_STYLE
+        # Comments first: a comment sitting above the rule lands inside
+        # any [^{}]* that reaches back for the selector.
+        selector = re.search(r'([^{}]*)\{[^}]*text-decoration-color: var\(--link-decoration-color\)',
+                             re.sub(r'/\*.*?\*/', '', css, flags=re.DOTALL)).group(1)
+        # Checked part by part, not by looking for names that must be
+        # absent: a bare `a` reaches every one of those containers
+        # without naming any of them, which is how the first version of
+        # this guard passed its own mutation.
+        parts = [p.strip() for p in selector.strip().split(',') if p.strip()]
+        self.assertTrue(parts)
+        allowed = ('.fact-content ', '.full-article ')
+        for part in parts:
+            self.assertTrue(part.startswith(allowed),
+                            f'{part!r} is not scoped to a prose container')
+
+    def test_the_underline_tint_defaults_to_the_ink_and_is_theme_settable(self):
+        props = self.lwp.theme_link_properties
+        self.assertEqual(props({})['link-decoration-color'], 'currentColor')
+        self.assertEqual(props({'link_decoration_color': 'accent'})['link-decoration-color'],
+                         'var(--accent)')
+        # An installed stylesheet must resolve it, whatever the theme.
+        for slug in list(self.lwp.THEMES)[:4]:
+            themed = self.lwp.apply_theme(self.lwp.TEMPLATE_STYLE, slug)
+            self.assertRegex(themed, r'--link-decoration-color:\s*[^;]+;', slug)
+
+
 class PaletteRoleNames(unittest.TestCase):
     """§9.1: the six palette variables are named for what they DO. Until
     v0.12.0 they were named for the values they happened to hold in the

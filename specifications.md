@@ -1617,7 +1617,51 @@ Avant de reconstruire la partie intégrée du fichier (§9.4),
 - Marqueur absent : comportement inchangé, thème par défaut (cas déjà
   couvert par §9.4).
 
-#### 9.5.5 Le champ `note` d'un thème est du texte nu
+#### 9.5.5 Les liens du corps de texte, et le plancher de contraste
+
+**Un lien du corps de texte n'a pas de couleur de palette.** Il hérite de
+l'encre qui l'entoure (`color: inherit`) et se signale par un
+**soulignement**, dont un thème peut teinter le trait via
+`--link-decoration-color` (`currentColor` par défaut).
+
+La règle est portée par `.fact-content a, .full-article a` — les deux
+seuls conteneurs dans lesquels le convertisseur Markdown écrit. Elle ne
+doit jamais viser `a` nu : cela souligne aussi les pastilles de
+progression, les cartes de la navigation entre articles et celles de
+l'index.
+
+Mesuré sur les 33 thèmes avant de choisir, et c'est ce qui a écarté les
+autres options :
+
+- Le bleu par défaut du navigateur, livré jusqu'à la v0.12.1, échoue AA
+  sur **quinze** thèmes et tombe à 1,03:1 sur `pop-violet`. Contrairement
+  à ce que BACKLOG B3 supposait, ce ne sont pas seulement les thèmes
+  sombres : `pop-tangerine` est un thème clair à 4,27:1.
+- `var(--accent)` échoue AA sur onze thèmes **et** est la couleur du
+  verdict « partiellement », par identité (ΔE = 0) sur les 33.
+- `--positive` et `--ink-muted` sont les deux autres couleurs de verdict.
+  Aucun rôle de palette n'est donc libre, sauf `--marker`, utilisable sur
+  13 thèmes sur 33.
+- `--ink` sur `--page` est le seul couple sur lequel **tout** thème est
+  admis (§9.5.3). Un lien est donc AA et AAA partout par construction, et
+  WCAG 1.4.1 est satisfait par le soulignement, qui n'est pas une
+  couleur.
+
+**Plancher général.** Aucune règle portant du texte courant ne s'atténue
+par `opacity`. Deux le faisaient et échouaient : la carte « en cours de
+lecture » du bloc de navigation (1,62:1, sur les 33 thèmes et sur la
+palette par défaut) et le verdict « non » (1,99:1, sur 32). Une exception
+n'est recevable que **mesurée** : le résumé de couverture garde son
+`opacity: 0.78` parce que le résultat composité vaut 5,05:1 au pire
+(catppuccin), et un test recalcule cette valeur sur les 33 thèmes à
+chaque exécution. Atténuer le fond ne coûte aucun contraste ; atténuer le
+texte en coûte toujours.
+
+`--cover-fg-faint` suit la même règle : c'était un `rgba` fixe jamais
+mesuré, à 2,37:1 au pire. Les alphas sont désormais calculés pour tenir
+AA sur les deux polarités (0,70 en clair, 0,56 en sombre).
+
+#### 9.5.6 Le champ `note` d'un thème est du texte nu
 
 Chaque entrée de `THEMES` porte une `note`, et elle a **deux
 consommateurs aux besoins opposés** : `themes` (§11.9) l'imprime dans un
