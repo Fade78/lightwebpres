@@ -1626,6 +1626,102 @@ for _c in THEME_COMPONENTS:
         PROPERTY_REGISTRY[_p.key] = _p
 
 
+# ----------------------------------------------------------------------------
+# Catalogue port: THEMES entries expressed as property layers.
+#
+# Factored INSIDE, complete OUTSIDE — the owner's rule. Here, the dark
+# furniture is one shared table instead of fourteen copies and a converter
+# maps the old entry shape; but every user-facing file (the settings
+# scaffold, a theme shown to an author) is always written complete, with
+# nothing to chase through an include. The one legitimate include already
+# exists and is the cascade itself: a settings file sits ON a theme.
+# ----------------------------------------------------------------------------
+
+# The old SURFACE_PRESETS[True], dissolved into ordinary component colours
+# (alphas kept: .14->24, .24->3D, .055->0E, .30->4D, .13->21, .09->17).
+# Light themes need no counterpart: the registry defaults ARE the light set.
+DARK_FURNITURE_PROPS = {
+    'slide.rule-fg': '#FFFFFF24', 'footer.rule-fg': '#FFFFFF24',
+    'table.rule-fg': '#FFFFFF24', 'code.rule-fg': '#FFFFFF24',
+    'quote.rule-fg': '#FFFFFF3D',
+    'series-nav.current.rule-fg': '#FFFFFF3D',
+    'card.rule-fg': '#FFFFFF3D', 'nav-btn.rule-fg': '#FFFFFF3D',
+    'nav-dot.bg': '#FFFFFF3D',
+    'fact.bg': '#FFFFFF0E', 'article.bg': '#FFFFFF0E',
+    'series-nav.link.bg': '#FFFFFF0E', 'card.bg': '#FFFFFF0E',
+    'code.bg': '#0000004D', 'table.head.bg': '#0000004D',
+    'table.col-signal.bg': '#0000004D', 'table.col-snap.bg': '#0000004D',
+    'series-nav.current.bg': '#0000004D', 'version-tag.bg': '#0000004D',
+    'nav-btn.bg': '#FFFFFF21', 'nav-btn.bg-soft': '#FFFFFF17',
+}
+
+_ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
+                  'ink': 'ink', 'ink-muted': 'ink-quiet', 'page': 'page'}
+
+# Per-slug property additions beyond what the old entry shape can say.
+# terminal's register is the owner's decision (fixed pitch is what the theme
+# is named for) plus its phosphor halo on display text.
+THEME_PROPERTY_OVERRIDES = {
+    'terminal': {
+        'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
+        'title1.shadow.fg': '#33FF8866', 'title1.shadow.blur': '10px',
+        'highlight.shadow.fg': '#33FF8859', 'highlight.shadow.blur': '8px',
+    },
+}
+
+
+def theme_property_layer(theme_key):
+    """A THEMES entry as a property layer for the engine.
+
+    What dark_background used to switch behind the theme's back, the layer
+    now says: the furniture veils invert, the cover stops inverting (its
+    ground is a deeper veil of the page, its ink the pale text colour), and
+    the two measured cover opacities are restated against the actual palette
+    instead of assuming the default one."""
+    t = THEMES[theme_key]
+    dark = bool(t.get('dark_background'))
+    layer = {
+        'color.page': t['page'], 'color.ink': t['ink'],
+        'color.ink-quiet': t['ink-muted'], 'color.mark': t['marker'],
+        'color.call': t['accent'], 'color.affirm': t['positive'],
+    }
+    if dark:
+        layer.update(DARK_FURNITURE_PROPS)
+        layer.update({
+            'cover.bg.from': '#00000073',        # rgba(0,0,0,.45) over the page
+            'cover.fg': 'ink',
+            'cover.summary.fg': t['ink'] + 'C7',   # the measured 0.78
+            'cover.num.fg': '#FFFFFF8F',           # the measured 0.56
+        })
+    else:
+        # The default literal assumes the default palette; restate it
+        # against this theme's page so the 0.78 measurement follows.
+        layer['cover.summary.fg'] = t['page'] + 'C7'
+
+    layer['fact.strong.weight'] = t.get('fact_weight', 'bold')
+    layer['fact.strong.style'] = t.get('fact_style', 'normal')
+    # An entry may say `fact_highlight: None` — no ground at all, which is
+    # not the same as saying nothing (the default is the mark ground). Five
+    # catalogue themes use it; the first port run turned them yellow.
+    highlight = t.get('fact_highlight', 'marker')
+    if highlight in (None, 'transparent'):
+        layer['fact.strong.bg'] = 'transparent'
+        layer['fact.strong.fg'] = 'ink'
+    else:
+        layer['fact.strong.bg'] = _ROLE_TO_COLOR[highlight]
+        # Text on a bright ground takes the dark tone: page on a dark
+        # theme IS the dark tone, ink on a light one.
+        layer['fact.strong.fg'] = 'page' if dark else 'ink'
+    if t.get('fact_decoration'):
+        layer['fact.strong.decoration'] = t['fact_decoration']
+        if t.get('fact_decoration_color'):
+            layer['fact.strong.decoration-color'] = (
+                _ROLE_TO_COLOR[t['fact_decoration_color']])
+
+    layer.update(THEME_PROPERTY_OVERRIDES.get(theme_key, {}))
+    return layer
+
+
 def _reference_target(prop, value):
     """The property `value` points at, or None if it is a literal.
 

@@ -6184,6 +6184,34 @@ class ThemeEngineStaged(unittest.TestCase):
         self.assertNotIn('var(--color-', rules)
         self.assertNotIn('var(--font-', rules)
 
+    def test_every_catalogue_theme_resolves_and_emits(self):
+        # The whole catalogue goes through the converter, the cascade and
+        # emission without an error — 33 themes, no exception is the test.
+        for slug in self.lwp.THEMES:
+            layer = self.lwp.theme_property_layer(slug)
+            self.lwp.emit_theme_css(self.resolve(layer))
+
+    def test_dark_theme_inverts_furniture_light_theme_keeps_defaults(self):
+        # What dark_background switched behind the theme's back, the layer
+        # now says: white veils on terminal, registry defaults on nord.
+        dark = self.resolve(self.lwp.theme_property_layer('terminal'))
+        light = self.resolve(self.lwp.theme_property_layer('nord'))
+        self.assertEqual(dark['fact.bg'], '#FFFFFF0E')
+        self.assertEqual(light['fact.bg'], '#FFFFFFB8')
+        self.assertEqual(dark['cover.fg'], dark['color.ink'])
+        self.assertEqual(light['cover.fg'], light['color.page'])
+        # the measured 0.78 follows the actual palette on both polarities
+        self.assertEqual(dark['cover.summary.fg'], dark['color.ink'][:7] + 'C7')
+        self.assertEqual(light['cover.summary.fg'], light['color.page'][:7] + 'C7')
+
+    def test_terminal_port_carries_register_and_halo(self):
+        r = self.resolve(self.lwp.theme_property_layer('terminal'))
+        self.assertIn('monospace', r['page.font'])
+        self.assertIn('monospace', r['title1.font'])
+        self.assertEqual(r['title1.shadow.fg'], '#33FF8866')
+        # bold on the bright mark ground takes the dark page ink
+        self.assertEqual(r['fact.strong.fg'], r['color.page'])
+
     def test_emission_consumes_every_registered_component_property(self):
         # Completeness is structural: everything with a css= target appears
         # exactly as a var() consumer in the rules.
