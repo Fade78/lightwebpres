@@ -16,16 +16,17 @@ scaffold a project, generate demo content, build, verify, and keep
 templates current.
 
 **This guide is written for a person working from a terminal — but you
-don't have to be the one typing every command.** LightWebPres ships two
-packaged skills under `agent/skills/`: `lightwebpres` teaches an
-LLM/agent the article format directly, and `sourced-presentation` teaches
-the editorial method the format was shaped around — a deck of short
-cards backed by a fully referenced article. Every command in this guide
+don't have to be the one typing every command.** LightWebPres ships a
+packaged skill (`SKILL.md`, in `agent/skills/lightwebpres/`) that teaches
+an LLM/agent the article format directly, and every command in this guide
 runs unattended — nothing here ever blocks on an interactive prompt. So
 if you'd rather describe what you want and have an agent write the
 Markdown and run the build, that works from minute one: point your agent
-at both skills and skip to [section 4](#4-writing-your-own-articles). If
-you're doing this yourself, keep reading from the top.
+at `SKILL.md` and skip to [section 4](#4-writing-your-own-articles). If
+you're doing this yourself, keep reading from the top. A second skill,
+`sourced-presentation`, ships alongside it — a method for one kind of
+content rather than a rule about the format, described in
+[section 9](#9-going-further); take it or leave it.
 
 ## 2. Install & your first build
 
@@ -269,16 +270,17 @@ step before it if you want drift caught before it merges (see section 6).
   the field/free-text parsing switch, typography rules and their
   opt-outs, `series.json` wiring. Read this before writing or debugging
   an article by hand, or point an agent at it to do the same.
-- **`SKILL.md`** (`agent/skills/sourced-presentation/`) — the other half:
-  not how to write the format, but what to put in it. The method for a
-  **sourced presentation** — a deck of short cards, each readable on its
-  own, backed by a fully referenced long-form article — covering the
+- **`SKILL.md`** (`agent/skills/sourced-presentation/`) — a method for
+  one kind of content, not a requirement of the format. A **sourced
+  presentation** is a deck of short cards, each readable on its own,
+  backed by a fully referenced long-form article; the skill covers that
   whole chain, from commissioning the research to verifying every fact at
   its source and cross-checking the deck against the article. It's the
-  content type this tool was shaped around, so it's the fastest way to
-  start a series that has something to say; the format skill above tells
-  you how to type it. Series-specific settings (audience, lengths,
-  numbering) stay in your own series specification and override it.
+  content type LightWebPres was originally shaped around, so it's a fast
+  start if that's what you're writing — and entirely ignorable if it
+  isn't. The format takes whatever you put in it. Series-specific
+  settings (audience, lengths, numbering) stay in your own series
+  specification and override the skill.
 - **`specifications.md`** — the complete, authoritative reference:
   exact algorithms, every parser edge case, the full `series.json` and
   language-file schemas, the browser-based tool's internals. Consult it for

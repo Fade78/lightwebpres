@@ -50,11 +50,11 @@ one `.html` file, opens straight from disk or any static host.
   tab.
 - **Agent friendly, without being agent-only.** Written and run by hand
   just as naturally as it's scripted: articles are plain Markdown, the
-  CLI never blocks on an interactive prompt, and two bundled skills teach
-  a skill-aware agent both halves of the job — `lightwebpres` for the
-  article format, `sourced-presentation` for the editorial method that
-  fills it — so a person with an editor and an agent driving a pipeline
-  get the same tool, not two different ones.
+  CLI never blocks on an interactive prompt, and a bundled skill teaches
+  the format to any skill-aware agent — so a person with an editor and an
+  agent driving a pipeline get the same tool, not two different ones. A
+  second skill ships alongside it for one editorial method the format
+  suits well; the format doesn't require it, or any other.
 
 ## Quickstart
 
@@ -346,7 +346,7 @@ specifications.md     # full reference specification (French)
 themes-gallery.html   # preview of every built-in color theme (generated, see below)
 themes-gallery.png    # a rendered snapshot of the above, for this README
 web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
-agent/skills/         # two packaged skills: the article format, and the editorial method
+agent/skills/         # two packaged skills: the article format, and one optional editorial method
 tools/                # maintenance scripts (regenerating the gallery snapshot above)
 tests/                # regression suite
 ```
@@ -358,7 +358,7 @@ tests/                # regression suite
 | [`GUIDE.md`](GUIDE.md) | **Start here.** The walkthrough, in English: install, build, choose a look, write, verify, ship |
 | [`GLOSSARY.md`](GLOSSARY.md) | Every field, its default, and where it falls back from |
 | [`agent/skills/lightwebpres/SKILL.md`](agent/skills/lightwebpres/SKILL.md) | The exact article format — written for an agent, readable by a person |
-| [`agent/skills/sourced-presentation/SKILL.md`](agent/skills/sourced-presentation/SKILL.md) | What to *put* in that format — the method for a sourced deck backed by a fully referenced article |
+| [`agent/skills/sourced-presentation/SKILL.md`](agent/skills/sourced-presentation/SKILL.md) | One method the format suits — a sourced deck backed by a fully referenced article. Optional: nothing here is required to use LightWebPres |
 | [`BACKLOG.md`](BACKLOG.md) | Known gaps and deferred decisions |
 
 
