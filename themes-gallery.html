@@ -336,6 +336,33 @@
   .preview-cell--green::before { content: "\25CF"; margin-right: 5px; }
   .preview-cell--neutral::before { content: "\25CB"; margin-right: 5px; }
 
+  /* The fact-box emphasis treatment, stated rather than merely applied
+     to the mock-up above (§9.1). Three properties a theme sets
+     independently, and the only place they are ever spelled out. */
+  .fact-treatment {
+    margin: 12px 18px 0;
+    font-size: 11.5px;
+    color: var(--ui-muted);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .fact-treatment > span {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ui-muted);
+    opacity: 0.75;
+  }
+  .fact-treatment code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    color: var(--ui-structural);
+    white-space: nowrap;
+  }
+
   /* --- swatch strip + metadata (artifact chrome, not the mock-up) ---
      Two columns, not three: each entry now leads with what the colour
      DOES, and a role needs room to be named. */
@@ -545,6 +572,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#BF616A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#BF616A</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#A3BE8C"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A3BE8C</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Palette « arctique » volontairement peu saturée — le jaune (nord13) reste moutarde, jamais criard.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme nord</code></p>
     </article>
@@ -589,6 +617,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FF5555"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF5555</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#50FA7B"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#50FA7B</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--positive</code></p>
       <p class="theme-note">Palette pensée pour un fond sombre — <code>--page</code> reprend ici le texte-sur-noir de Dracula, faute de fond clair officiel.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme dracula</code></p>
     </article>
@@ -633,6 +662,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#DC322F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#DC322F</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#859900"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#859900</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras italique, sans surlignage</p>
       <p class="theme-note">Accents volontairement peu contrastés (calibrage CIELAB d'origine) — le jaune reste doré sourd, jamais surligneur.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme solarized</code></p>
     </article>
@@ -677,6 +707,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#CC241D"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#CC241D</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#98971A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#98971A</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note theme-note--good">Fond et texte pensés ensemble pour un fond clair — aucune couleur empruntée à une autre variante.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme gruvbox</code></p>
     </article>
@@ -721,6 +752,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#D20F39"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D20F39</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#40A02B"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#40A02B</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Italique, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">La seule palette pensée fond-clair-en-premier du lot avec un vert franc — <code>--ink</code> est un bleu ardoise, pas un noir pur (fiche de couverture moins spectaculaire).</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme catppuccin</code></p>
     </article>
@@ -765,6 +797,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#F7768E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F7768E</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#9ECE6A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9ECE6A</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras italique, surlign&eacute; <code>--accent</code></p>
       <p class="theme-note">Tokyo Night est nocturne par nature — <code>--page</code> est emprunté à sa variante sœur officielle « Day », pas à la palette Night elle-même.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme tokyo-night</code></p>
     </article>
@@ -809,6 +842,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#F92672"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F92672</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#A6E22E"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A6E22E</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Vert et jaune parmi les plus vifs du lot. Pas de variante claire officielle — <code>--page</code> reprend le texte-sur-noir, comme Dracula.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme monokai</code></p>
     </article>
@@ -853,6 +887,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#F85552"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F85552</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#A7C080"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A7C080</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--positive</code></p>
       <p class="theme-note theme-note--good">Le vert sauge est la couleur signature de la palette — le plus fort ancrage sémantique du lot pour le rôle <code>--positive</code>. Assemblage clair+sombre officiels.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme everforest</code></p>
     </article>
@@ -897,6 +932,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#B4637A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#B4637A</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#6D8F89"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#6D8F89</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Italique, sans surlignage</p>
       <p class="theme-note">La plus douce du lot — <code>--ink</code> est un prune assourdi, pas un noir franc, et <code>--positive</code> (« leaf ») penche vers le sarcelle.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme rose-pine</code></p>
     </article>
@@ -941,6 +977,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#D00000"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D00000</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#006B2C"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#006B2C</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note theme-note--good">Noir pur sur blanc pur, un seul rouge. Visée AAA : lisible en plein soleil, en vidéoprojection, et en basse vision.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme high-contrast</code></p>
     </article>
@@ -985,6 +1022,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#D64045"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D64045</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#136F63"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#136F63</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Encre bleu-nuit sur papier calque — registre notice technique, plan, documentation.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme blueprint</code></p>
     </article>
@@ -1029,6 +1067,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FF8A5B"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF8A5B</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#5BC0A8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#5BC0A8</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Le pendant sombre de Blueprint : table traçante rétroéclairée. L'accent est orangé, un rouge s'y éteindrait.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme blueprint-night</code></p>
     </article>
@@ -1073,6 +1112,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#2B2B2B"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#2B2B2B</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#000000"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#000000</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note theme-note--good">Aucune couleur nulle part. Les verdicts d'un tableau tiennent alors sur la graisse, l'opacité et les marqueurs de forme — et ça fonctionne.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme monochrome</code></p>
     </article>
@@ -1117,6 +1157,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FFFFFF"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFFFFF</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#B8B8B8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#B8B8B8</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note theme-note--good">Le pendant sombre de Monochrome : tout repose sur la clarté et la forme, jamais sur la teinte.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme graphite</code></p>
     </article>
@@ -1161,6 +1202,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#8C2F1E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#8C2F1E</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#3E5641"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#3E5641</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Monochrome chaud avec une seule encre rouge en réserve — la grammaire d'un quotidien imprimé.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme newsprint</code></p>
     </article>
@@ -1205,6 +1247,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#D4AF37"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#D4AF37</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#A8B26A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#A8B26A</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Noir et or : encre crème sur noir profond, filets et surlignage dorés. Registre rapport annuel, invitation, édition soignée.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme gold-leaf</code></p>
     </article>
@@ -1249,6 +1292,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#B00020"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#B00020</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#5C7A3F"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#5C7A3F</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Carmin profond sur crème rosée — registre lettre, opéra, grand récit intime.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme crimson</code></p>
     </article>
@@ -1293,6 +1337,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#F4622E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#F4622E</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#8CBF5A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#8CBF5A</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note theme-note--good">Braise sur charbon. Le vermillon est choisi parce qu'il reste lumineux même en vision protanope, là où un rouge profond s'éteint.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme ember</code></p>
     </article>
@@ -1337,6 +1382,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#C1121F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#C1121F</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#7F9440"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#7F9440</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Noir profond, encre os désaturée, sang, et un vert maladif pour le positif — la grammaire du giallo et du thriller.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme dread</code></p>
     </article>
@@ -1381,6 +1427,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#B4652A"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#B4652A</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#4F7A52"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#4F7A52</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Vert de gris apaisé sur lin. L'accent terre cuite évite le piège du tout-vert et garde les verdicts distincts.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme sage</code></p>
     </article>
@@ -1425,6 +1472,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#E0A32E"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#E0A32E</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#6FBF73"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#6FBF73</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Nuit en sous-bois. L'ambre remplace le rouge en accent : sur un fond vert sombre, un rouge deviendrait illisible.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme evergreen</code></p>
     </article>
@@ -1469,6 +1517,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#6D28D9"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#6D28D9</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#3F8F29"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#3F8F29</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note theme-note--good">Vert de pousse sur blanc cassé. L'accent violet est un choix mesuré : une terre cuite se confondait avec le vert.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme sprout</code></p>
     </article>
@@ -1513,6 +1562,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FF2FB9"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF2FB9</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#00C2A8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#00C2A8</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Violet profond, magenta, cyan acide — le registre cyber en version fond clair, lisible en salle éclairée.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme vaporwave</code></p>
     </article>
@@ -1557,6 +1607,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FF3C6F"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF3C6F</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#33FF88"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#33FF88</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Phosphore vert sur noir — le registre terminal, tel quel.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme terminal</code></p>
     </article>
@@ -1601,6 +1652,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FF2E97"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FF2E97</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#2DE2C5"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#2DE2C5</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Nuit violette, magenta et cyan — le rétro-futurisme, celui qui profite le plus du fond sombre.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme synthwave</code></p>
     </article>
@@ -1645,6 +1697,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFD400</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#86EFAC"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#86EFAC</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Rouge plein sur toute la page, accent jaune. Premier de la famille Pop, où la couleur est le fond et non un détail.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-red</code></p>
     </article>
@@ -1689,6 +1742,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#4C1D95"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#4C1D95</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#0F3D21"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#0F3D21</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, sans surlignage</p>
       <p class="theme-note">Orange vif à encre sombre, accent violet profond. Le surlignage du fait est désactivé : un jaune sur un aplat orange ne se verrait pas.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-tangerine</code></p>
     </article>
@@ -1733,6 +1787,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#8F0049"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#8F0049</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#0D5C2A"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#0D5C2A</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, sans surlignage</p>
       <p class="theme-note theme-note--good">Jaune plein, encre presque noire — le plus lumineux de la série, à 12:1 de contraste.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lemon</code></p>
     </article>
@@ -1777,6 +1832,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFD400</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#C7F9CC"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#C7F9CC</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Vert franc et profond, encre blanc verdi. Le vert des verdicts vire au menthe pour rester détaché du fond.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lime</code></p>
     </article>
@@ -1821,6 +1877,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FFC2D8"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFC2D8</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9BF6C8</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Bleu-vert lagon, accent rose — le plus doux de la famille Pop sans cesser d'être un aplat plein.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-lagoon</code></p>
     </article>
@@ -1865,6 +1922,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FFD400"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FFD400</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#8CF2AE"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#8CF2AE</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Bleu cobalt saturé, accent jaune — registre affiche et signalétique.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-cobalt</code></p>
     </article>
@@ -1909,6 +1967,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FDE047"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FDE047</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9BF6C8</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note theme-note--good">Violet plein et vif, accent jaune citron — le plus contrasté de la famille Pop.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-violet</code></p>
     </article>
@@ -1953,6 +2012,7 @@
         <li class="swatch"><span class="swatch-chip" style="background:#FDE047"></span><span class="swatch-text"><div class="swatch-role">Accent &amp; liens</div><div class="swatch-var">--accent</div><div class="swatch-hex">#FDE047</div></span></li>
         <li class="swatch"><span class="swatch-chip" style="background:#9BF6C8"></span><span class="swatch-text"><div class="swatch-role">Verdict &laquo;&nbsp;oui&nbsp;&raquo;</div><div class="swatch-var">--positive</div><div class="swatch-hex">#9BF6C8</div></span></li>
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>Gras, surlign&eacute; <code>--marker</code></p>
       <p class="theme-note">Fuchsia profond, accent jaune, verdicts en menthe — assumé, éditorial.</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme pop-fuchsia</code></p>
     </article>

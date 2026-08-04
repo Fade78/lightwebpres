@@ -46,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.15.0"
+VERSION = "0.15.1"
 
 # The six palette variables, in the order a reader meets them on the page:
 # the ground, then the two inks, then the furniture (§9.1).
@@ -726,6 +726,32 @@ def theme_fact_properties(theme):
     return weight, style, highlight, ink
 
 
+def fact_treatment_label(theme):
+    """One French sentence saying how a theme renders **bold** inside a
+    fact-box (§9.1), for themes-gallery (§11.7).
+
+    The gallery applied these three properties to its mock-up and never
+    said a word about them, so nothing anywhere told a reader that a
+    theme can be bold WITHOUT a highlight, or un-bold WITH a coloured
+    one. Seven distinct combinations exist across the built-in themes and
+    all seven were invisible: you had to squint at a two-line preview and
+    guess."""
+    weight = theme.get('fact_weight', 'bold')
+    style = theme.get('fact_style', 'normal')
+    role = theme.get('fact_highlight', 'marker')
+
+    faces = []
+    if weight == 'bold':
+        faces.append('gras')
+    if style == 'italic':
+        faces.append('italique')
+    face = ' '.join(faces) if faces else 'sans changement de graisse'
+    face = face[0].upper() + face[1:]
+
+    mark = f'surlign&eacute; <code>--{role}</code>' if role else 'sans surlignage'
+    return f'{face}, {mark}'
+
+
 def apply_theme(css_text, theme_key):
     """Rewrites the six palette declarations (PALETTE_ROLES),
     the four --fact-strong-* ones (§9.1), and the nine
@@ -1305,6 +1331,34 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .version-tag { display: inline-block; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--ink-muted); background: var(--sunken); padding: 3px 8px; border-radius: 4px; margin-top: 12px; }
   .intro { font-size: 17px; line-height: 1.7; max-width: 700px; margin-bottom: 48px; }
   .intro p { margin-bottom: 16px; }
+
+  /* --------------------------------------------------------------
+     Le gras Markdown a l'interieur d'une fact-box se regle par quatre
+     variables independantes (specifications.md 9.1) : un theme peut
+     etre gras SANS surlignage, ou non gras AVEC un surlignage vert.
+
+       --fact-strong-weight      bold | normal
+       --fact-strong-style       normal | italic
+       --fact-strong-highlight   var(--role) pour un fond colore,
+                                 ou transparent pour aucun fond
+       --fact-strong-ink         la couleur du texte POSE sur ce fond
+
+     Le fond et l'encre vont par paire : changer l'un sans l'autre peut
+     tomber sous le seuil de lisibilite. Trois exemples prets a coller,
+     A PLACER APRES LE MARQUEUR ci-dessous -- c'est la seule section que
+     refresh-templates conserve.
+
+     Gras, sans aucun surlignage :
+       :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }
+
+     Non gras, surligne en vert, encre claire par-dessus :
+       :root { --fact-strong-weight: normal; --fact-strong-highlight: var(--positive);
+               --fact-strong-ink: var(--page); }
+
+     Italique seul, sans fond -- le registre le plus discret :
+       :root { --fact-strong-weight: normal; --fact-strong-style: italic;
+               --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }
+     -------------------------------------------------------------- */
 ''' + '\n  ' + TEMPLATE_STYLE_CUSTOM_MARKER + '\n'
 
 # --- Template: nav.js ---
@@ -2695,6 +2749,33 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   .preview-cell--green::before { content: "\25CF"; margin-right: 5px; }
   .preview-cell--neutral::before { content: "\25CB"; margin-right: 5px; }
 
+  /* The fact-box emphasis treatment, stated rather than merely applied
+     to the mock-up above (§9.1). Three properties a theme sets
+     independently, and the only place they are ever spelled out. */
+  .fact-treatment {
+    margin: 12px 18px 0;
+    font-size: 11.5px;
+    color: var(--ui-muted);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .fact-treatment > span {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ui-muted);
+    opacity: 0.75;
+  }
+  .fact-treatment code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    color: var(--ui-structural);
+    white-space: nowrap;
+  }
+
   /* --- swatch strip + metadata (artifact chrome, not the mock-up) ---
      Two columns, not three: each entry now leads with what the colour
      DOES, and a role needs room to be named. */
@@ -2900,6 +2981,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
            d&eacute;crit la couleur. -->
       <ul class="swatches">{swatches}
       </ul>
+      <p class="fact-treatment"><span>Gras en fact-box</span>{fact_treatment}</p>
       <p class="theme-note{note_good_class}">{note}</p>
       <p class="install-hint"><code>lightwebpres install my-series --theme {slug}</code></p>
     </article>
@@ -5486,6 +5568,7 @@ def cmd_themes_gallery(output_path, args):
         cards.append(TEMPLATE_THEMES_GALLERY_CARD.format(
             overlay_vars=overlay,
             swatches=swatches,
+            fact_treatment=fact_treatment_label(theme),
             polarity=facets['polarity'],
             intensity=facets['intensity'],
             hue=facets['hue'],
@@ -5863,6 +5946,31 @@ THEMES ({theme_count} built in, see specifications.md §9.5)
     lightwebpres themes-gallery
   refresh-templates automatically reapplies a chosen theme to the up-to-date
   built-in CSS, so upgrading the executable never silently reverts it.
+
+PALETTE AND EMPHASIS (templates/style.css, see specifications.md §9.1)
+  Six colors, each named for its role, not for a hue:
+    --page        the page background
+    --ink         body text; also the cover ground on a light theme
+    --ink-muted   summary, caption, source, the "no" verdict
+    --marker      fact-box rule, cover tag, header underline, active
+                  nav dot, emphasized column
+    --accent      links, focus ring, key-figure arrow, "partial"
+    --positive    the "yes" verdict of a comparison table
+  Four more decide how **bold** renders INSIDE a fact-box, independently
+  of one another — a theme can be bold with no highlight, or un-bold with
+  a green one:
+    --fact-strong-weight      bold | normal
+    --fact-strong-style       normal | italic
+    --fact-strong-highlight   var(--<role>) for a marker, or transparent
+    --fact-strong-ink         the text ON that marker; set it whenever
+                              you change the highlight, or the pair can
+                              land below readable contrast
+  Override any of them in templates/style.css, AFTER the personalization
+  marker — that section survives refresh-templates. For example, keeping
+  the bold and dropping the marker:
+    :root {{ --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }}
+  Each built-in theme picks its own combination; `themes-gallery` states
+  the one every theme uses, under its preview.
 
 ENVIRONMENT VARIABLES
   LWP_ARTICLES_DIR    Articles directory (default: $LWP_SERIES_DIR/articles)

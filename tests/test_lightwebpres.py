@@ -3138,6 +3138,71 @@ class GalleryPreviewFidelity(unittest.TestCase):
             re.findall(r'<div class="swatch-var">(--[^<]+)</div>', first_card),
             [f'--{r}' for r in self.lwp.PALETTE_ROLES])
 
+    def test_each_card_states_its_fact_box_emphasis_treatment(self):
+        """§9.1: weight, italic and highlight are three independent
+        knobs, so a theme can be bold with NO highlight, or un-bold with
+        a green one. The gallery applied them to its mock-up and never
+        said a word about them — seven distinct combinations across the
+        built-in themes, all of them invisible, leaving a reader to
+        squint at a two-line preview and guess."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+
+        stated = re.findall(r'class="fact-treatment"><span>[^<]*</span>(.*?)</p>', html)
+        self.assertEqual(len(stated), len(self.lwp.THEMES))
+
+        # Every combination the table actually contains is described, and
+        # each description matches the properties that get applied.
+        for slug, theme in self.lwp.THEMES.items():
+            label = self.lwp.fact_treatment_label(theme)
+            self.assertIn(label, stated, slug)
+            weight, style, highlight, _ink = self.lwp.theme_fact_properties(theme)
+            self.assertEqual('gras' in label.lower(), weight == 'bold', slug)
+            self.assertEqual('italique' in label.lower(), style == 'italic', slug)
+            self.assertEqual('sans surlignage' in label, highlight == 'transparent', slug)
+
+        # The point is that the variety is visible, not that a single
+        # sentence is repeated 33 times.
+        self.assertGreaterEqual(len(set(stated)), 5)
+        self.assertIn('Gras, sans surlignage', stated)
+
+    def test_the_generated_stylesheet_carries_ready_to_paste_recipes(self):
+        """The knobs existed and nothing told an author they did: absent
+        from --help, absent from the README, present only in the spec.
+        The place someone actually opens to customize is the stylesheet
+        itself, so the recipes live there.
+
+        They sit BEFORE the personalization marker, in the regenerated
+        section: after it, refresh-templates would concatenate them onto
+        the author's own copy and duplicate them on every run."""
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run('install', tmp).returncode, 0)
+            style = Path(tmp) / 'templates' / 'style.css'
+            css = style.read_text(encoding='utf-8')
+
+            builtin = css.split(self.lwp.TEMPLATE_STYLE_CUSTOM_MARKER)[0]
+            for var in ('--fact-strong-weight', '--fact-strong-style',
+                        '--fact-strong-highlight', '--fact-strong-ink'):
+                self.assertIn(var, builtin, f'{var} not documented in the stylesheet')
+
+            # Repeated refreshes must not stack copies of the block.
+            style.write_text(css + '\n:root { --fact-strong-ink: inherit; }\n',
+                             encoding='utf-8')
+            for _ in range(3):
+                self.assertEqual(run('refresh-templates', tmp).returncode, 0)
+            after = style.read_text(encoding='utf-8')
+            self.assertEqual(after.count('Gras, sans aucun surlignage'), 1)
+            self.assertIn(':root { --fact-strong-ink: inherit; }', after)
+
+    def test_help_documents_the_four_emphasis_variables(self):
+        result = run('--help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for var in ('--fact-strong-weight', '--fact-strong-style',
+                    '--fact-strong-highlight', '--fact-strong-ink'):
+            self.assertIn(var, result.stdout, var)
+
     def test_the_verdict_cells_carry_the_shape_marker_too(self):
         """The real stylesheet gained these for WCAG 1.4.1. A preview
         showing colour alone would advertise a cell the tool no longer

@@ -1169,6 +1169,34 @@ de personnalisation (§9.4). Elles sont aussi intégrées à `THEMES`
 (§9.5) — chaque thème prédéfini choisit ses propres valeurs plutôt que
 de se limiter aux couleurs, voir §9.5.
 
+**Indépendantes veut dire indépendantes.** Les combinaisons ne sont pas
+un menu fermé : « gras sans aucun surlignage » se dit
+`--fact-strong-highlight: transparent`, et « non gras avec un
+surlignage vert » se dit `--fact-strong-weight: normal` +
+`--fact-strong-highlight: var(--positive)`. Sept combinaisons distinctes
+existent d'ailleurs parmi les thèmes intégrés.
+
+Deux conséquences pratiques, apprises en constatant que rien ne les
+disait :
+
+- **Le fond et l'encre vont par paire.** Changer
+  `--fact-strong-highlight` sans revoir `--fact-strong-ink` peut tomber
+  sous le seuil de lisibilité : un vert `--positive` sous l'encre par
+  défaut mesure 3,14:1 sur High Contrast et 2,14:1 sur Pop Lemon, deux
+  échecs AA. La règle ne pose pas seulement un fond, elle pose aussi le
+  texte — c'est exactement pourquoi `--fact-strong-ink` existe (§9.5.2).
+- **Le mécanisme doit être trouvable.** Il ne l'était pas : absent de
+  `--help`, absent du README, présent seulement ici. Trois choses le
+  disent désormais — la section PALETTE AND EMPHASIS de `--help`, un
+  bloc de commentaire avec trois recettes prêtes à coller dans le
+  `templates/style.css` généré, et la ligne « Gras en fact-box » de
+  chaque carte de `themes-gallery` (§11.7).
+
+Le bloc de recettes est placé **avant** le marqueur de personnalisation,
+donc dans la partie régénérée : après le marqueur, `refresh-templates`
+le concaténerait à la copie de l'auteur et le dupliquerait à chaque
+passage.
+
 ### 9.2 JS (`nav.js`)
 
 Le JavaScript de navigation gère :
@@ -1967,6 +1995,14 @@ rien.
 L'aperçu reçoit aussi les superpositions neutres du thème (§9.5.2), sans
 quoi une palette à fond sombre s'afficherait avec les voiles d'une page
 claire — c'est-à-dire pas telle qu'elle rendra réellement.
+
+Sous chaque aperçu, une ligne « Gras en fact-box » **énonce** le
+traitement du gras que le thème a choisi (§9.1) — « Gras, surligné
+`--marker` », « Gras, sans surlignage », « Italique, surligné
+`--positive` »… La galerie appliquait ces trois propriétés à sa maquette
+sans jamais les nommer : sept combinaisons distinctes existent parmi les
+thèmes intégrés et aucune n'était lisible autrement qu'en scrutant deux
+lignes d'aperçu.
 
 **Fidélité de l'aperçu.** L'aperçu est une *miniature*, pas une capture
 d'écran : ses tailles et ses espacements sont délibérément réduits. En
