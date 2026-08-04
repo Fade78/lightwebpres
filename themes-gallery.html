@@ -365,7 +365,7 @@
     </p>
   </div>
 
-  <!-- Facets (§9.5.3). Past a dozen palettes this page stops being
+  <!-- Facets (§9.5.2). Past a dozen palettes this page stops being
        something you read and becomes something you search: two criteria
        bring the list down to a handful. Filtered by inline JS, with no
        dependency, like everything else lightwebpres produces. With no
@@ -436,6 +436,7 @@
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -1057,7 +1058,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -1158,7 +1159,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -1192,7 +1193,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -1234,7 +1235,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -1254,7 +1255,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -1369,7 +1370,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -1504,11 +1505,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -1592,6 +1603,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -2213,7 +2225,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -2314,7 +2326,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -2348,7 +2360,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -2390,7 +2402,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -2410,7 +2422,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -2525,7 +2537,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -2660,11 +2672,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -2748,6 +2770,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -3369,7 +3392,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -3470,7 +3493,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -3504,7 +3527,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -3546,7 +3569,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -3566,7 +3589,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -3681,7 +3704,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -3816,11 +3839,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -3904,6 +3937,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -4525,7 +4559,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -4626,7 +4660,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -4660,7 +4694,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -4702,7 +4736,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -4722,7 +4756,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -4837,7 +4871,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -4972,11 +5006,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -5060,6 +5104,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -5681,7 +5726,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -5782,7 +5827,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -5816,7 +5861,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -5858,7 +5903,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -5878,7 +5923,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -5993,7 +6038,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -6128,11 +6173,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -6216,6 +6271,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -6837,7 +6893,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -6938,7 +6994,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -6972,7 +7028,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -7014,7 +7070,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -7034,7 +7090,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -7149,7 +7205,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -7284,11 +7340,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -7372,6 +7438,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -7993,7 +8060,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -8094,7 +8161,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -8128,7 +8195,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -8170,7 +8237,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -8190,7 +8257,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -8305,7 +8372,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -8440,11 +8507,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -8528,6 +8605,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -9149,7 +9227,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -9250,7 +9328,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -9284,7 +9362,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -9326,7 +9404,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -9346,7 +9424,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -9461,7 +9539,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -9596,11 +9674,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -9684,6 +9772,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -10305,7 +10394,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -10406,7 +10495,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -10440,7 +10529,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -10482,7 +10571,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -10502,7 +10591,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -10617,7 +10706,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -10752,11 +10841,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -10840,6 +10939,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -11461,7 +11561,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -11562,7 +11662,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -11596,7 +11696,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -11638,7 +11738,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -11658,7 +11758,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -11773,7 +11873,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -11908,11 +12008,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -11996,6 +12106,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -12617,7 +12728,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -12718,7 +12829,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -12752,7 +12863,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -12794,7 +12905,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -12814,7 +12925,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -12929,7 +13040,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -13064,11 +13175,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -13152,6 +13273,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -13773,7 +13895,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -13874,7 +13996,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -13908,7 +14030,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -13950,7 +14072,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -13970,7 +14092,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -14085,7 +14207,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -14220,11 +14342,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -14308,6 +14440,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -14929,7 +15062,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -15030,7 +15163,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -15064,7 +15197,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -15106,7 +15239,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -15126,7 +15259,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -15241,7 +15374,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -15376,11 +15509,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -15464,6 +15607,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -16085,7 +16229,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -16186,7 +16330,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -16220,7 +16364,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -16262,7 +16406,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -16282,7 +16426,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -16397,7 +16541,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -16532,11 +16676,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -16620,6 +16774,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -17241,7 +17396,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -17342,7 +17497,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -17376,7 +17531,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -17418,7 +17573,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -17438,7 +17593,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -17553,7 +17708,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -17688,11 +17843,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -17776,6 +17941,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -18397,7 +18563,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -18498,7 +18664,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -18532,7 +18698,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -18574,7 +18740,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -18594,7 +18760,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -18709,7 +18875,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -18844,11 +19010,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -18932,6 +19108,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -19553,7 +19730,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -19654,7 +19831,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -19688,7 +19865,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -19730,7 +19907,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -19750,7 +19927,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -19865,7 +20042,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -20000,11 +20177,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -20088,6 +20275,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -20709,7 +20897,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -20810,7 +20998,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -20844,7 +21032,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -20886,7 +21074,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -20906,7 +21094,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -21021,7 +21209,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -21156,11 +21344,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -21244,6 +21442,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -21865,7 +22064,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -21966,7 +22165,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -22000,7 +22199,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -22042,7 +22241,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -22062,7 +22261,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -22177,7 +22376,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -22312,11 +22511,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -22400,6 +22609,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -23021,7 +23231,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -23122,7 +23332,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -23156,7 +23366,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -23198,7 +23408,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -23218,7 +23428,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -23333,7 +23543,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -23468,11 +23678,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -23556,6 +23776,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -24177,7 +24398,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -24278,7 +24499,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -24312,7 +24533,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -24354,7 +24575,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -24374,7 +24595,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -24489,7 +24710,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -24624,11 +24845,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -24712,6 +24943,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -25333,7 +25565,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -25434,7 +25666,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -25468,7 +25700,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -25510,7 +25742,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -25530,7 +25762,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -25645,7 +25877,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -25780,11 +26012,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -25868,6 +26110,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -26489,7 +26732,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -26590,7 +26833,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -26624,7 +26867,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -26666,7 +26909,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -26686,7 +26929,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -26801,7 +27044,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -26936,11 +27179,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -27024,6 +27277,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -27645,7 +27899,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -27746,7 +28000,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -27780,7 +28034,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -27822,7 +28076,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -27842,7 +28096,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -27957,7 +28211,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -28092,11 +28346,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -28180,6 +28444,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -28801,7 +29066,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -28902,7 +29167,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -28936,7 +29201,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -28978,7 +29243,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -28998,7 +29263,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -29113,7 +29378,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -29248,11 +29513,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -29336,6 +29611,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -29957,7 +30233,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -30058,7 +30334,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -30092,7 +30368,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -30134,7 +30410,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -30154,7 +30430,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -30269,7 +30545,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -30404,11 +30680,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -30492,6 +30778,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -31113,7 +31400,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -31214,7 +31501,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -31248,7 +31535,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -31290,7 +31577,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -31310,7 +31597,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -31425,7 +31712,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -31560,11 +31847,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -31648,6 +31945,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -32269,7 +32567,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -32370,7 +32668,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -32404,7 +32702,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -32446,7 +32744,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -32466,7 +32764,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -32581,7 +32879,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -32716,11 +33014,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -32804,6 +33112,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -33425,7 +33734,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -33526,7 +33835,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -33560,7 +33869,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -33602,7 +33911,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -33622,7 +33931,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -33737,7 +34046,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -33872,11 +34181,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -33960,6 +34279,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -34581,7 +34901,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -34682,7 +35002,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -34716,7 +35036,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -34758,7 +35078,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -34778,7 +35098,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -34893,7 +35213,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -35028,11 +35348,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -35116,6 +35446,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -35737,7 +36068,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -35838,7 +36169,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -35872,7 +36203,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -35914,7 +36245,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -35934,7 +36265,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -36049,7 +36380,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -36184,11 +36515,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -36272,6 +36613,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -36893,7 +37235,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -36994,7 +37336,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -37028,7 +37370,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -37070,7 +37412,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -37090,7 +37432,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -37205,7 +37547,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -37340,11 +37682,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -37428,6 +37780,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -38049,7 +38402,7 @@ button.share-action:hover:not(:disabled) {
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -38150,7 +38503,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -38184,7 +38537,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -38226,7 +38579,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -38246,7 +38599,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -38361,7 +38714,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -38496,11 +38849,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author&#x27;s local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,

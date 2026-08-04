@@ -642,7 +642,7 @@ def themes_matching(filters):
 
 
 def note_to_html(note):
-    """§9.5.6 — a theme note is stored as plain text, because it has two
+    """§9.5.4 — a theme note is stored as plain text, because it has two
     consumers with opposite needs: `themes` prints it to a terminal, and
     themes-gallery puts it in a page. Plain text is the safe default of
     the two — a terminal cannot render markup, while HTML can always be
@@ -707,12 +707,16 @@ def fact_treatment_label(theme):
 # disjoint by construction — a test pins that.
 
 FONT_GENERICS = ('serif', 'sans-serif', 'monospace', 'cursive', 'fantasy')
-LENGTH_UNITS = ('px', 'rem', 'em', 'ch', 'vw', 'vh', '%', 'pt')
+# vmin/vmax and the small/large/dynamic viewport units are here because
+# the engine's own defaults use them (B13): a type that rejects the unit
+# its defaults ship is a trap for the first author who restates one.
+LENGTH_UNITS = ('px', 'rem', 'em', 'ch', 'vw', 'vh', 'vmin', 'vmax',
+                'svh', 'svw', 'lvh', 'lvw', 'dvh', 'dvw', '%', 'pt')
 LENGTH_FUNCS = ('clamp', 'calc', 'min', 'max')
 
 # Reference chains are resolved at generation time and never reach the CSS,
 # so this cap protects only the reader of a settings file. Two hops proved too
-# tight the day the catalogue's own `terminal` needed summary.font ->
+# tight the day the catalogue's own `terminal` needed page.font ->
 # font.text -> font.mono: an ordinary theme sat exactly at the limit, leaving
 # a series no room to add one indirection of its own.
 MAX_REFERENCE_HOPS = 3
@@ -993,6 +997,12 @@ THEME_COMPONENTS = [
         # these stacks, centred on the 66 optimum. The proportional half of
         # the rule is the slide's own 8vw padding, not a second cap here.
         ThemeProp('page.content-max', PROP_LENGTH, '50ch'),
+        # And the width of things that are NOT running text. A table, a code
+        # block or a figure is sized by what it contains, not by a count of
+        # characters in its own font: B13 pointed all seventeen consumers at
+        # the measure, which put a five-column table in 350px on a 1440px
+        # desktop. Measured in a browser, which is how it was found.
+        ThemeProp('page.block-max', PROP_LENGTH, 'min(84vw, 1100px)'),
     ], composite=[('text-shadow',
                    '0 var(--page-shadow-dy) var(--page-shadow-blur) var(--page-shadow-fg)')]),
 
@@ -1635,7 +1645,7 @@ def compose_stylesheet(resolved):
     The skeleton is a literal (TEMPLATE_SKELETON), not something derived at
     build time: what a reader edits there is what a page gets. The two
     invariants extraction used to enforce dynamically — no declaration driven
-    on both sides, no var() but --content-max — are pinned by tests."""
+    on both sides, no var() but --page-content-max — are pinned by tests."""
     return emit_theme_css(resolved) + '\n' + TEMPLATE_SKELETON
 
 
@@ -1838,7 +1848,7 @@ TEMPLATE_SKELETON = r'''/* LightWebPres skeleton — layout only: everything no 
    wins at equal specificity. Two rules when editing:
      - a declaration here must not also be driven by PROPERTY_REGISTRY,
        or a stale literal fights the engine across the cascade;
-     - no colour literal, and no var() but --content-max — a colour here
+     - no colour literal, and no var() but --page-content-max — a colour here
        would survive theming, the exact defect the registry kills.
    These comments ship: the sheet is inlined into every page. Keep them
    short, and never spell a markup tag out literally — anything scanning
@@ -1939,7 +1949,7 @@ pre {
   border-style: solid;
   border-radius: 8px;
   overflow-x: auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 /* Inside a block, the ground belongs to the block itself: a second one
    would double up and the rounded corners would show through. */
@@ -1973,7 +1983,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Comparison table --- */
 .comparison-table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 20px 0;
 }
@@ -2015,7 +2025,7 @@ sup { vertical-align: super; line-height: 0; }
 /* --- Figures --- */
 .figure {
   margin: 20px auto;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   text-align: center;
 }
 .figure img { max-width: 100%; height: auto; }
@@ -2035,7 +2045,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 .full-article table {
   width: 100%;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
   font-size: 14px;
@@ -2150,7 +2160,7 @@ sup { vertical-align: super; line-height: 0; }
   align-items: center;
   gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-content-max);
+  max-width: var(--page-block-max);
 }
 .highlight-figure { overflow-wrap: anywhere; }
 .highlight-caption { max-width: var(--page-content-max); }
@@ -2285,11 +2295,21 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    The descendant selector is deliberate: text-align is inherited, but a
    component that declares its own beats what it inherits, so reaching the
    children is the only way an author's local choice can win over the
-   theme -- which is what an instance tag is for. */
-.align-left, .align-left * { text-align: left; }
-.align-center, .align-center * { text-align: center; }
-.align-right, .align-right * { text-align: right; }
-.align-justify, .align-justify * { text-align: justify; hyphens: auto; }
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   Hyphenation is restated on every arm for the same reason: leaving it
+   unset would let a theme's `justify` keep hyphenating text an author has
+   just re-aligned. */
+.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
+.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
+.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
+.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -3046,7 +3066,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }, { passive: true });
 
   // --- Share button: popover with a copy-link / QR-code matrix, scoped to
-  // the series index, this article, or the current slide. §9.2.1.
+  // the series index, this article, or the current slide. §9.3.4.
   // The slide scope is decided by TYPE, not position: disabled on cover
   // slides (they identify the article itself, wherever they sit — slide
   // order is free, §4.4) and on the series-nav slide (its id is not
@@ -3722,7 +3742,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     </p>
   </div>
 
-  <!-- Facets (§9.5.3). Past a dozen palettes this page stops being
+  <!-- Facets (§9.5.2). Past a dozen palettes this page stops being
        something you read and becomes something you search: two criteria
        bring the list down to a handful. Filtered by inline JS, with no
        dependency, like everything else lightwebpres produces. With no
@@ -4268,7 +4288,11 @@ _INSTANCE_TAG_MAX_DEPTH = 32
 # cannot carry text-align at all, so the asymmetry is CSS's, not a choice.
 # A paragraph cannot be split mid-flow either, which is the other half of
 # the reason this is not an inline tag.
-_BLOCK_ALIGN_OPEN = re.compile(r'^\{align:([a-z]+)\}$')
+# `[^{}]*`, not `[a-z]+`: the TYPE decides whether a value is allowed,
+# never the regex. Matching only lowercase made `{align:CENTER}` fail to
+# match at all, so it rendered as literal text instead of naming itself
+# as an error -- the opposite of what the inline tags do with a bad value.
+_BLOCK_ALIGN_OPEN = re.compile(r'^\{align:([^{}]*)\}$')
 _BLOCK_ALIGN_CLOSE = '{/align}'
 
 
@@ -4469,8 +4493,9 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
         m = _BLOCK_ALIGN_OPEN.match(stripped)
         if m:
             close_list()
-            PROP_ALIGN.check(f'block tag {{align:{m.group(1)}}}', m.group(1))
-            out.append(f'  <div class="align-{m.group(1)}">')
+            value = m.group(1).strip()
+            PROP_ALIGN.check(f'block tag {{align:{m.group(1)}}}', value)
+            out.append(f'  <div class="align-{value}">')
             align_depth += 1
             i += 1
             continue
@@ -4623,6 +4648,15 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
         out.append(f'  <p>{md_inline(" ".join(para_lines))}</p>')
 
     close_list()
+    # An unclosed BLOCK tag is not the same defect as an unclosed inline one.
+    # The inline case stays literal text and the HTML remains valid; this one
+    # leaves a <div> open. The §13 balance check does catch it, but it reports
+    # a mismatched <div> to an author who wrote no raw HTML at all -- so name
+    # the real cause here instead.
+    if align_depth:
+        raise PropertyError(
+            f'{align_depth} unclosed {{align:...}} block(s): every opener '
+            f'needs a {{/align}} alone on its own line')
     html = '\n'.join(out)
     html = apply_typo(typo_engine, html, disabled)
 
@@ -6230,6 +6264,10 @@ def cmd_audit(series_dir, args):
 # comment claimed they all survived — the silent failure the table exists
 # to kill, caught in test review.)
 RETIRED_VARIABLES = {
+    # The skeleton's own layout width, retired when the measure became an
+    # ordinary property (B13). Reachable from any author's custom.css, so
+    # its absence here meant a width that silently stopped applying.
+    '--content-max': '--page-content-max',
     # v0.12.0 colour-name renames (kept: an old sheet may carry them still)
     '--yellow': '--color-mark', '--dark': '--color-ink',
     '--grey': '--color-ink-quiet', '--light': '--color-page',
@@ -6580,7 +6618,7 @@ def cmd_themes(args):
         # character entity to the terminal — cleaning enumerates what it
         # already knows about, so the next markup added would have leaked
         # too. The conversion now lives at the one place that needs
-        # markup (§9.5.6).
+        # markup (§9.5.4).
         for line in textwrap.wrap(f'{theme["label"]} — {theme["note"]}', width=72):
             print(f'      {line}')
         print()
@@ -7107,7 +7145,7 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
     color.page    the page background
     color.ink     body text          color.ink-quiet   secondary text
     color.mark    what marks         color.call        what calls attention
-    color.affirm  what affirms       (never posed as text by the engine)
+    color.affirm  what affirms       (the "yes" verdict — posed as text)
     font.text / font.display / font.ui / font.mono
                   four stacks; each must end on a CSS generic family
   Component properties name what they paint — a few of the {property_count}:

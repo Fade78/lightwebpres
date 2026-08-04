@@ -6470,16 +6470,20 @@ class ThemeEngineStaged(unittest.TestCase):
         # length property, so this test can also insist the one var it
         # tolerates is BACKED by the registry — a typo would previously
         # have produced a silently unset width.
+        # Two layout tokens, and only two: the prose measure and the width
+        # of the boxes that are not prose. Both must be registry-backed —
+        # before B13 the skeleton declared its own, which no layer could
+        # reach and no audit could see retire.
+        allowed = {'--page-content-max', '--page-block-max'}
         for line in self.lwp.TEMPLATE_SKELETON.splitlines():
             for var in re.findall(r'var\((--[a-z-]+)', line):
-                self.assertEqual(var, '--page-content-max',
-                                 f'skeleton references {var}')
-        self.assertIn('page.content-max', self.lwp.PROPERTY_REGISTRY)
-        self.assertEqual(
-            self.lwp.PROPERTY_REGISTRY['page.content-max'].var,
-            '--page-content-max')
-        # And it is declared nowhere in the skeleton: the engine owns it.
-        self.assertNotIn('--page-content-max:', self.lwp.TEMPLATE_SKELETON)
+                self.assertIn(var, allowed, f'skeleton references {var}')
+        for key in ('page.content-max', 'page.block-max'):
+            self.assertIn(key, self.lwp.PROPERTY_REGISTRY)
+            self.assertIn(self.lwp.PROPERTY_REGISTRY[key].var, allowed)
+            # And declared nowhere in the skeleton: the engine owns them.
+            self.assertNotIn(self.lwp.PROPERTY_REGISTRY[key].var + ':',
+                             self.lwp.TEMPLATE_SKELETON)
 
     def test_the_skeleton_carries_no_content_colour(self):
         # Second half of the old gap check. Layout may paint depth (the
@@ -6644,12 +6648,124 @@ class AlignmentAxes(unittest.TestCase):
     def test_the_block_classes_reach_the_children(self):
         # text-align is inherited, but a component that declares its own
         # beats what it inherits — so an author's local choice could never
-        # win over the theme without the descendant selector. This is what
-        # makes {align:center} actually re-centre a .highlight block.
+        # win over the theme without the descendant selector. Whether that
+        # selector actually WINS is AlignmentReachesWhatItWraps' job; this
+        # only checks the arm exists at all.
         sheet = self._sheet()
-        self.assertIn('.align-center, .align-center * { text-align: center; }',
-                      sheet)
-        self.assertIn('hyphens: auto', sheet[sheet.index('.align-justify'):])
+        self.assertIn('.align-center.align-center *', sheet)
+        self.assertIn('text-align: center;',
+                      sheet[sheet.index('.align-center,'):])
+
+
+class AlignmentReachesWhatItWraps(unittest.TestCase):
+    """The instance layer has to WIN, not merely be emitted. Shipped once
+    with a losing selector: the tag was inert on long-form prose -- the one
+    place it exists for -- while its hyphens companion still landed, so a
+    paragraph came out left-aligned and hyphenated. Measured in a browser."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+        cls.sheet = cls.lwp.compose_stylesheet(
+            cls.lwp.resolve_theme_properties(cls.lwp.theme_property_layer('nord')))
+
+    @staticmethod
+    def _specificity(selector):
+        """(ids, classes+attrs+pseudo-classes, elements) — enough for this
+        sheet, which uses no ids and no pseudo-elements in these rules."""
+        ids = selector.count('#')
+        classes = selector.count('.') + selector.count('[') + selector.count(':')
+        elements = len([p for p in re.split(r'[\s>+~]+', selector.strip())
+                        if p and not p[0] in '.#[:'])
+        return (ids, classes, elements)
+
+    def test_the_instance_arm_outranks_every_engine_rule_it_must_beat(self):
+        # The engine's rules come first, so ties go to the skeleton -- but
+        # `.full-article p` is (0,1,1) and beat a plain `.align-x *` at
+        # (0,1,0). Compare against every selector the registry drives
+        # text-align on, so a new align axis on a compound selector cannot
+        # silently re-open the hole.
+        driven = [p.selector or c.selector
+                  for c in self.lwp.THEME_COMPONENTS for p in c.props
+                  if p.css == 'text-align']
+        self.assertTrue(driven)
+        arm = self._specificity('.align-center.align-center *')
+        for sel in driven:
+            for simple in sel.split(','):
+                self.assertGreater(
+                    arm, self._specificity(simple),
+                    f'.align-* would lose to {simple.strip()}')
+
+    def test_every_arm_restates_hyphenation(self):
+        # Leaving it unset lets a theme's `justify` keep hyphenating text the
+        # author has just re-aligned -- the asymmetry that produced the
+        # left-and-hyphenated paragraph.
+        for value in ('left', 'center', 'right'):
+            block = self.sheet[self.sheet.index(f'.align-{value},'):]
+            self.assertIn('hyphens: manual', block[:block.index('}')])
+        block = self.sheet[self.sheet.index('.align-justify,'):]
+        self.assertIn('hyphens: auto', block[:block.index('}')])
+
+
+class BlockWidthIsNotAMeasure(unittest.TestCase):
+    """A table, a code block or a figure is sized by what it holds, not by a
+    count of characters in its own font. Pointing all seventeen consumers at
+    the measure put a five-column table in 350px on a 1440px desktop."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def _rule(self, selector):
+        sk = self.lwp.TEMPLATE_SKELETON
+        i = sk.index(selector + ' {')
+        return sk[i:sk.index('}', i)]
+
+    def test_boxes_read_the_block_width_and_prose_reads_the_measure(self):
+        self.assertEqual(
+            self.lwp.PROPERTY_REGISTRY['page.block-max'].default,
+            'min(84vw, 1100px)')
+        for box in ('pre', '.comparison-table', '.figure',
+                    '.full-article table', '.highlight'):
+            self.assertIn('var(--page-block-max)', self._rule(box), box)
+        for prose in ('.summary', '.full-article p', '.intro'):
+            self.assertIn('var(--page-content-max)', self._rule(prose), prose)
+
+
+class BlockTagErrorContract(unittest.TestCase):
+    """A well-formed tag with a bad value names itself; an unclosed one names
+    itself too, because unlike an inline tag it leaves invalid HTML behind."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_the_type_decides_the_value_not_the_regex(self):
+        # Matching only [a-z]+ made {align:CENTER} fail to match at all, so it
+        # rendered as literal text instead of naming itself — the opposite of
+        # what the inline tags do with a bad value.
+        with self.assertRaises(self.lwp.PropertyError) as cm:
+            self.lwp.convert_markdown('{align:CENTER}\nx\n{/align}\n')
+        self.assertIn('CENTER', str(cm.exception))
+
+    def test_surrounding_space_in_the_value_is_tolerated(self):
+        html = self.lwp.convert_markdown('{align: center }\nx\n{/align}\n')
+        self.assertIn('<div class="align-center">', html)
+
+    def test_an_unclosed_opener_names_the_real_cause(self):
+        # The §13 balance check does catch it, but it reports a mismatched
+        # <div> to an author who wrote no raw HTML at all.
+        with self.assertRaises(self.lwp.PropertyError) as cm:
+            self.lwp.convert_markdown('{align:center}\nx\n')
+        self.assertIn('unclosed', str(cm.exception))
+        self.assertIn('{/align}', str(cm.exception))
+
+    def test_the_length_type_accepts_the_units_the_engine_ships(self):
+        # The defaults use vmin and svh; a type rejecting its own defaults'
+        # units traps the first author who restates one.
+        for unit in ('4vmin', '3vmax', '100svh', '50dvh'):
+            self.assertEqual(self.lwp.PROP_LENGTH.check('title1.size', unit),
+                             unit)
 
 
 class ContentMeasure(unittest.TestCase):
