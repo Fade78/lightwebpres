@@ -38,7 +38,8 @@ open my-series/public/index.html
 ```
 
 `install` scaffolds a working project — `articles/` (empty, for your
-`.md` files), `templates/` (default CSS/JS, editable), `language/` (both
+`.md` files), `templates/` (your customization surface: `settings.conf`,
+`custom.css`, `nav.js` — see section 3), `language/` (both
 the French and English packs — typography rules + interface strings), a
 starter `series.json` (series-wide metadata, empty article list), and a
 copy of the `lightwebpres` executable itself, so the project directory is
@@ -83,18 +84,23 @@ Apply one at install time, or change your mind later:
 ./lightwebpres set-theme my-series --theme crimson
 ```
 
-`set-theme` reports what it replaced, and refuses a `style.css` whose
-built-in part isn't what this version would have written — `--force`
-overrides that. Either way your own rules are kept.
+A theme is just a word in a data file: `set-theme` rewrites the one
+`theme:` line of `templates/settings.conf` and nothing else. No CSS is
+touched — the stylesheet is composed in memory at every build. What it
+prints (real output):
 
-A theme substitutes twenty-one CSS custom properties: six palette colors,
-six that decide how **bold** renders inside a fact-box, and nine
-translucent overlays for rules, surfaces and floating controls. Each
-palette variable is named for what it does — `--page`, `--ink`,
-`--ink-muted`, `--marker`, `--accent`, `--positive` — and `--help` lists
-them all with their roles. The choice survives an executable upgrade:
-`refresh-templates` (section 7) reapplies the same theme instead of
-silently reverting to default.
+```
+Theme changed: evergreen -> crimson
+  my-series/templates/settings.conf
+  Your uncommented values are untouched and still apply on top.
+  (Commented values still show the previous theme; audit notes it.)
+
+Run build again to apply the new theme.
+```
+
+Asking for the theme already in place writes nothing and says so
+(`Theme unchanged`). There is no `--force` anymore: nothing the tool
+writes can collide with anything you wrote.
 
 Preview every theme, rendered against real slide content and filterable
 by those same facets, with:
@@ -104,31 +110,53 @@ by those same facets, with:
 open themes-gallery.html
 ```
 
-Beyond the presets, `templates/style.css` and `templates/nav.js` are
-read back on every build if present, replacing the built-in defaults —
-the page/index HTML structure itself is fixed, not a template, so a
-malformed override can't break the build's structure, only its styling.
-Put your own CSS after the `Local customizations` marker comment
-near the end of `style.css`; that's what lets `refresh-templates` update
-the built-in part later without touching what you added. That file also
-carries a commented block of ready-to-paste recipes for the fact-box
-emphasis — bold without a highlight, underlined instead of highlighted,
-and so on.
+**Beyond the presets: typed properties.** Every visual decision is a
+typed property, `component.axis: value`, and `templates/settings.conf`
+lists **all** of them, commented out, at the values of the theme you
+chose — the complete surface is under your eyes, no documentation
+needed. Uncomment a line to **pin** it: it survives every theme change
+and every executable upgrade, because `lightwebpres` never rewrites your
+file. For example, to paint the slide tags in the theme's
+attention-calling color, change:
 
-> **If you wrote custom CSS before v0.12.0**, five palette variables were
-> renamed and **no aliases were kept**, so `var(--yellow)` in your rules
-> now resolves to nothing and the declaration is silently dropped:
->
-> | was | is now | |
-> |---|---|---|
-> | `--yellow` | `--marker` | rules, cover tag, active nav dot |
-> | `--dark` | `--ink` | body text |
-> | `--grey` | `--ink-muted` | secondary text |
-> | `--light` | `--page` | the page background |
-> | `--green` | `--positive` | the "yes" verdict |
->
-> `--accent` did not change. Run `lightwebpres audit my-series` — it
-> names every old variable still left in your section of the file.
+```
+# tag.fg: ink-quiet
+```
+
+to:
+
+```
+tag.fg: call
+```
+
+and rebuild. A bare word like `call` is looked up among the theme's
+shared values (`color.call` here, since `fg` is a color axis); a literal
+like `#8A4B00` works anywhere a color does. A mistyped key or value is a
+**named build error** pointing at the file and key — never a silent
+no-op. This pinned `tag.fg` keeps applying after a `set-theme`, on top of
+the new palette (that's what "still apply on top" means above; `audit`
+reminds you the scaffold's *comments* now show stale values, and you can
+regenerate a fresh scaffold to compare).
+
+**Rules, as opposed to values, go in `templates/custom.css`** — full
+CSS, no subset, appended after the composed stylesheet so your rules win
+ties. New selectors, media queries, `@font-face` (name the family at the
+head of a stack in `settings.conf`, declare the face here). The composed
+sheet's `--component-axis` variables are usable in it
+(`border-color: var(--color-mark)`), and that's the recommended way to
+follow the theme. `templates/nav.js` still overrides the navigation
+behavior wholesale; the page/index HTML structure itself is fixed, not a
+template.
+
+> **If your series predates the typed-properties engine**, its
+> `templates/style.css` is **no longer read** — values belong in
+> `settings.conf`, rules in `custom.css`, and no variable aliases were
+> kept. Run `lightwebpres audit my-series`: it names every retired
+> variable still referenced (in the legacy file or in your
+> `custom.css`), each with its replacement — e.g. `--yellow` and
+> `--marker` both became `--color-mark`. `refresh-templates` (section 7)
+> creates the missing `settings.conf`/`custom.css` for such a series;
+> moving your values into them is yours to do, then delete `style.css`.
 
 ## 4. Writing your own articles
 
@@ -222,20 +250,21 @@ own — run:
 lightwebpres refresh-templates my-series
 ```
 
-For `style.css`, this updates only the built-in part and leaves anything
-you wrote after the `Local customizations` marker untouched — and if
-you'd picked a theme (section 3), that theme is reapplied to the
-refreshed CSS automatically — all twenty-one of its properties, not just
-its colors — so an upgrade never quietly reverts you to the default
-look. If the marker is missing (a file that predates it,
-or one where it was removed by accident), `refresh-templates` refuses to
-guess: it leaves the file alone and tells you the exact line to add
-first. **The marker text itself was reworded in English in v0.12.1** —
-if yours still reads `Personnalisations locales`, `refresh-templates`
-recognizes it, skips the file, and prints the replacement line to paste
-in; everything below it is kept exactly as it was. `nav.js` has no such split-and-preserve mechanism — it gets fully
-replaced, with the previous version saved as `nav.js.bak` in case you'd
-customized it.
+There is less to refresh than there used to be: the stylesheet is
+composed in memory from the current executable at every build, so it is
+always fresh by construction, and your `settings.conf`/`custom.css` are
+yours — never touched. The one tool-owned file on disk is `nav.js`:
+`refresh-templates` replaces it if it differs from the built-in version
+(saving the old one as `templates/nav.js.bak` in case you'd customized
+it) and reports `already up to date` otherwise. On a series installed
+before the typed-properties engine, it also creates the missing author
+surface — a default `settings.conf` scaffold and an empty `custom.css` —
+and warns if a legacy `templates/style.css` is still around: that file
+is no longer read and is never migrated automatically (its values are
+your decisions); `audit` names each retired variable with its
+replacement to make the move mechanical. Your theme choice needs no
+reapplying — it's the `theme:` line of `settings.conf`, which an upgrade
+cannot revert.
 
 ## 8. Beyond the CLI
 

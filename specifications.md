@@ -97,8 +97,10 @@ system-wide (`/usr/local/bin/lightwebpres`) ou utilisé localement
 L'exécutable contient en interne :
 
 1. La logique de build (parseur, convertisseur, moteur d'inclusion)
-2. Les templates par défaut (CSS, JS, HTML) — écrits en string Python, extraits
-   par la commande `install`
+2. Le moteur de thèmes (registre de propriétés typées, §9) et les templates
+   par défaut (JS de navigation, HTML) — le scaffold de `settings.conf` et
+   `nav.js` sont extraits par la commande `install` ; la feuille de style,
+   elle, est composée en mémoire à chaque build, jamais installée (§9.3)
 3. Les règles typographiques par défaut (`fr` et `en`) — écrites en string
    Python, extraites par la commande `install`
 4. Le générateur de démo (crée des articles d'exemple)
@@ -123,9 +125,10 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   ├── instagram.md
 │   ├── instagram_article.md
 │   └── ...
-├── templates/                     # style.css et nav.js de cette série (override, §9)
-│   ├── style.css                  # Le CSS (le look)
-│   └── nav.js                     # Le JS de navigation
+├── templates/                     # La surface de personnalisation de cette série (§9)
+│   ├── settings.conf              # Les propriétés typées (le look) — scaffold complet commenté
+│   ├── custom.css                 # Les règles CSS libres de l'auteur (ajoutées en dernier)
+│   └── nav.js                     # Le JS de navigation (override)
 ├── language/                       # Règles typographiques + vocabulaire d'interface (override)
 │   ├── fr.json
 │   └── en.json
@@ -168,7 +171,7 @@ lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file
 lightwebpres audit [répertoire] [--lang fr]
 lightwebpres refresh-templates [répertoire]
 lightwebpres themes [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
-lightwebpres set-theme [répertoire] --theme nom [--force]
+lightwebpres set-theme [répertoire] --theme nom
 lightwebpres themes-gallery [chemin]
 lightwebpres --help
 ```
@@ -177,9 +180,9 @@ lightwebpres --help
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
 - `--output` : le répertoire de sortie (défaut : `public/`, ou `$LWP_OUTPUT_DIR`)
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
-- `--force` : `install` — procède même si le répertoire cible n'est pas vide ; `set-theme` — rethème un `style.css` non standard, au risque d'un résultat partiellement recoloré (§11.10)
+- `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide (`set-theme` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
 - `--theme` : `install`/`set-theme` — applique une palette prédéfinie (§9.5)
-- `--polarity` / `--intensity` / `--hue` : `themes` seulement — restreint la liste par facette (§9.5.3, §11.9)
+- `--polarity` / `--intensity` / `--hue` : `themes` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `install` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`check` seulement — construit aussi les articles marqués `draft: true` (§20.6), avec bandeau « Brouillon »
@@ -589,13 +592,16 @@ fichier. C'est ce que fait `article: snapchat_article.md` : on ne donne pas le
 contenu de l'article dans le fichier source, on donne le nom du fichier qui le
 contient.
 
-Ce principe s'applique aussi au CSS, au JS de navigation et à la typographie :
-ce sont des fichiers séparés, référencés par nom (§9, §7), pas inline dans
-l'exécutable au moment du build.
+Ce principe s'applique aussi à la surface de personnalisation et à la
+typographie : ce sont des fichiers séparés, référencés par nom (§9, §7),
+pas inline dans l'exécutable au moment du build.
 
-### 5.3 Inclusion de fichiers CSS, JS
+### 5.3 Inclusion des fichiers de présentation
 
-- **CSS** : lu depuis `templates/style.css` s'il existe, inséré dans `<style>` dans le `<head>`
+- **CSS** : la feuille est **composée en mémoire** (§9.3) — défauts,
+  thème et propriétés lus depuis `templates/settings.conf`, règles libres
+  de `templates/custom.css` ajoutées en dernier — puis insérée dans
+  `<style>` dans le `<head>` de chaque page
 - **JS** : lu depuis `templates/nav.js` s'il existe, inséré dans `<script>` à la fin du `<body>`
 - La structure HTML elle-même n'est pas lue depuis un fichier : elle est
   fixe, intégrée à l'exécutable (§9), seuls ses placeholders sont remplacés
@@ -648,17 +654,18 @@ des classes que la feuille par défaut style déjà —
 
 | Classe | Usage | Rendu par défaut |
 |---|---|---|
-| `yes` | le critère est rempli | `--positive`, gras |
-| `no` | il ne l'est pas | `--ink-muted`, atténué |
-| `partial` | partiellement | `--accent`, demi-gras |
-| `col-signal` | mettre en valeur toute une colonne | fond creusé, demi-gras |
-| `col-snap` | une seconde colonne à distinguer | fond creusé + filet `--marker` |
+| `yes` | le critère est rempli | `verdict.yes.*` — `affirm`, gras |
+| `no` | il ne l'est pas | `verdict.no.*` — `ink-quiet`, non gras |
+| `partial` | partiellement | `verdict.partial.*` — `call`, gras |
+| `col-signal` | mettre en valeur toute une colonne | `table.col-signal.*` — fond creusé, gras |
+| `col-snap` | une seconde colonne à distinguer | `table.col-snap.*` — fond creusé + filet `mark` |
 
 soit `<td class="yes">Oui</td>`, ou `<span class="yes">Oui</span>` à
-l'intérieur d'une cellule Markdown. Les couleurs viennent de la palette,
-donc un thème (§9.5) les restyle comme le reste, et
-`print-color-adjust` conserve la distinction à l'impression, où la
-couleur saute souvent.
+l'intérieur d'une cellule Markdown. Chaque verdict a ses propres
+propriétés (encre, graisse, marqueur de forme — §9.1), dont les défauts
+pointent vers la palette : un thème (§9.5) les restyle comme le reste
+sans les confondre, et `print-color-adjust` conserve la distinction à
+l'impression, où la couleur saute souvent.
 
 Ces classes existaient dans la feuille par défaut depuis l'origine sans
 être documentées **ni atteignables autrement** : `lightwebpres` livrait
@@ -1069,185 +1076,338 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 
 ---
 
-## 9. Templates personnalisables
+## 9. Thèmes et personnalisation : les propriétés typées
 
 La structure HTML des pages (page d'article, page d'index, bloc de
 navigation de série) est **fixe** — ce n'est pas un template éditable. Ce
 qui se personnalise :
 
-- Le **vocabulaire et les libellés** de l'interface (boutons de navigation,
-  matrice de partage, etc.) : via le fichier de langue, pas via du HTML —
-  voir §7.
-- **L'apparence** (`style.css`) et le **comportement de navigation**
-  (`nav.js`) : deux des trois fichiers du répertoire `templates/` que
-  `build` relit réellement s'ils existent, en remplacement des versions
-  intégrées à l'exécutable.
-- **Un point d'extension libre pour la page d'index** (`index_extra.html`),
-  le troisième fichier — voir §9.3.
+- Le **vocabulaire et les libellés** de l'interface (boutons de
+  navigation, matrice de partage, etc.) : via le fichier de langue, pas
+  via du HTML — voir §7.
+- **L'apparence** : par des **propriétés typées**, écrites dans
+  `templates/settings.conf` (des valeurs, §9.3.1), complétées par
+  `templates/custom.css` (des règles CSS libres, §9.3.2), par des
+  propriétés d'article et par des balises d'instance (§9.6). Il n'y a
+  **plus de `templates/style.css`** : la feuille de style est composée en
+  mémoire à chaque build et inlinée dans chaque page via `{{css}}`
+  (§18.1). Voir §9.8 pour la migration.
+- **Le comportement de navigation** (`templates/nav.js`) — inchangé par
+  la refonte des thèmes, §9.3.3.
+- **Un point d'extension libre pour la page d'index**
+  (`templates/index_extra.html`) — §9.3.6.
 
-### 9.1 CSS (`style.css`)
+### 9.1 Le principe et le vocabulaire
 
-Le CSS par défaut est le look actuel de la série. Il est éditable par
-l'utilisateur ; `build` le relit depuis `templates/style.css` s'il existe,
-sinon utilise la version intégrée à l'exécutable.
+**Le vocabulaire d'écriture est une liste plate de propriétés typées ; le
+CSS n'est qu'un format d'émission.** Personne n'écrit de CSS pour
+paramétrer, personne ne lit le CSS produit pour savoir ce qui existe.
+Trois conséquences, et ce sont elles qui justifient tout le reste :
 
-Le CSS par défaut expose six variables CSS qui pilotent son apparence.
-`install --theme <nom>` en substitue les valeurs par une palette
-prédéfinie au moment de la création du site — voir §9.5.
+- **La sortie cesse d'être une interface.** L'ancien `style.css` était à
+  moitié source, à moitié sortie — d'où tout un appareillage (marqueur de
+  personnalisation, marqueur de thème, vérification d'identité octet pour
+  octet, `--force` de `set-theme`), et d'où le gel de sa forme, puisque
+  des auteurs l'éditaient. La feuille émise n'étant plus qu'un artefact,
+  sa structure est libre de changer à chaque version : renommer une
+  classe ou réorganiser des règles n'est plus un changement de contrat.
+- **Une erreur devient nommée au lieu d'être silencieuse.** Une clé
+  inconnue, une valeur hors énumération, une unité inconnue : autant
+  d'erreurs localisées à la génération, avec le fichier (et la ligne
+  quand elle est connue) dans le message. Le scénario le plus coûteux de
+  l'ancienne surface — une variable mal choisie qui ne fait rien, sans un
+  mot — devient impossible.
+- **Il n'y a plus qu'un seul niveau dans ce qui circule.** La
+  superposition existe à l'écriture (cinq couches, §9.3), la fusion la
+  résout, et le CSS émis est plat : ce qui peut être résolu à la
+  construction l'est ; seul ce qui vise une instance reste dans la page
+  sous forme de cascade (§9.6).
 
-**Chacune porte le nom de son rôle**, dans l'ordre où un lecteur
-rencontre la page :
+Le vocabulaire — fixé aussi, en anglais, par `GLOSSARY.md`
+(« Presentation vocabulary »), qui est le contrat de vocabulaire partagé
+avec le projet GUI :
 
-| Variable | Rôle |
+| Terme | Définition |
 |---|---|
-| `--page` | le fond de page |
-| `--ink` | le texte courant ; et le fond de couverture sur un thème clair |
-| `--ink-muted` | les textes secondaires : résumé, légende, source, verdict « non » |
-| `--marker` | les filets et repères : filet de fact-box, tag de couverture, soulignement d'en-tête, point de nav actif, colonne mise en avant |
-| `--accent` | appel de note (`sup`), verdict « partiel », contour de focus. **Pas les liens** : le corps de texte n'a aucune règle de lien, ils prennent donc le bleu par défaut du navigateur — voir BACKLOG B3 |
-| `--positive` | le verdict « oui » d'un tableau comparatif (§6.1) |
+| **propriété** | Un réglage typé, nommé `composant.axe` (`tag.fg`, `cover.bg.angle`). Le seul vocabulaire qu'un auteur écrit. |
+| **composant** | Une chose que le format nomme et que la page rend — `tag`, `summary`, `verdict.partial`. Les propriétés appartiennent aux composants. |
+| **axe** | Le dernier segment d'une clé : ce qu'elle règle (`fg`, `size`, `weight`, `shadow.blur`). L'axe fixe le type, le type fixe l'espace de recherche des renvois (§9.2). |
+| **valeur partagée** | Une couleur (`color.*`) ou une pile de polices (`font.*`) fournie par le thème et référencée par les propriétés. Jamais lue directement par une règle émise. |
+| **couche** | Un dictionnaire de propriétés dans la cascade (§9.3) : défauts, thème, settings, article, instance. |
+| **mobilier** | Famille descriptive, pas un mécanisme : les propriétés qui peignent l'appareil de la page plutôt que son contenu — filets, voiles de surface, fonds en creux, pastilles de contrôle, voile de modale. Des propriétés ordinaires ; le mot permet seulement d'en parler collectivement. |
+| **squelette** | Le CSS statique de mise en page qu'aucune propriété ne pilote : flex, grid, espacements, media queries. Pas une surface éditable. |
 
-Une couleur de palette **ne peut pas** porter un nom de composant, parce
-qu'elle en sert plusieurs : `--marker` dessine à la fois le filet d'une
-fact-box, le tag d'une couverture et le point de navigation actif. Les
-variables qui, elles, appartiennent à un composant existent séparément et
-gardent leur propre nom (`--cover-bg`, `--fact-strong-*`, `--surface`,
-`--sunken`… — §9.5.2).
+**Pas de couche sémantique.** Une propriété porte le nom du **composant**
+qu'elle peint, repris du vocabulaire que le format fixe déjà — `tag`,
+`summary`, `highlight`, `fact-label`, `source`, les verdicts, la
+couverture. Ce sont des faits, pas des jugements : on peut pointer la
+chose du doigt. Aucune catégorie intermédiaire n'est inventée : le seul
+groupement de l'ancien système — `--accent` pour l'appel de note, le
+verdict « partiellement » et l'anneau de focus — était un accident, pas
+un besoin. La coordination ne disparaît pas pour autant : elle se loge
+dans le **défaut** de chaque propriété, qui pointe vers une valeur
+partagée du thème. Le piège inverse — un jeton par occurrence
+(`footnote-marker-hover-color`) — est écarté par une raison solide : la
+liste des composants est close et déjà spécifiée ailleurs.
 
-**Renommage de la v0.12.0.** Ces six variables s'appelaient auparavant
-`--yellow`, `--dark`, `--grey`, `--light`, `--accent` et `--green` :
-elles avaient été nommées d'après les valeurs qu'elles portaient dans le
-tout premier thème. Ces noms mentaient dès qu'un thème s'en éloignait —
-`--yellow` portait un brun-olive sur Pop Lemon, faute de quoi le repère
-aurait été invisible sur un fond déjà jaune ; `--light` portait un
-presque-noir sur tout thème sombre, pendant que `--dark` y portait la
-couleur du texte. Un nom qu'il faut désapprendre pour s'en servir ne vaut
-pas mieux que pas de nom.
+**Les valeurs partagées.** Six couleurs et quatre piles de polices,
+fournies par un thème et consommées par les défauts des propriétés de
+composant :
 
-**Aucun alias n'a été conservé.** `var(--yellow)` ne se replie donc sur
-rien : la déclaration est invalide et la propriété garde sa valeur
-héritée, sans que ni le navigateur ni le build ne le signalent. C'est la
-commande `audit` (§11.5) qui rend la rupture audible : elle inspecte la
-section personnelle de `templates/style.css` (après le marqueur de §9.4)
-et nomme chaque ancienne variable encore référencée, avec son
-remplaçant. La partie intégrée au-dessus du marqueur, elle, migre seule
-au premier `refresh-templates` — l'y signaler enverrait un auteur éditer
-un fichier qu'il ne doit pas éditer.
+| Valeur | Sert de défaut à (entre autres) |
+|---|---|
+| `color.page` | fond de page (`page.bg`), encre de couverture sur thème clair (`cover.fg`), fond des contrôles de partage |
+| `color.ink` | texte courant (`page.fg`), **résumé de fiche (`summary.fg`)**, contenu d'encadré, titres du corps, tête de tableau, trait des liens (`link.decoration-color`) |
+| `color.ink-quiet` | tag, numéro de fiche, étiquette d'encadré, source, pied de page, citation, légende, références, verdict « non », libellés et descriptions de cartes |
+| `color.mark` | filet d'encadré (`fact.rule-fg`), tag de couverture, fond du gras d'encadré (`fact.strong.bg`), filet d'en-tête d'index, point de navigation actif, colonne `col-snap` |
+| `color.call` | appel de note, verdict « partiellement », anneaux de focus |
+| `color.affirm` | verdict « oui » |
+| `font.text` | le corps (`page.font`) ; `font.display` et `font.ui` y renvoient par défaut |
+| `font.display` | titres (`title1.font`, `title2.font`), chiffre-clé, en-tête d'index |
+| `font.ui` | tags, étiquettes, sources, pieds de page — le petit appareil textuel |
+| `font.mono` | code, pastille de version — la seule pile monospace correcte, écrite une fois |
 
-`themes-gallery` (§11.7) présente chaque pastille par son **rôle**
-d'abord et son nom de variable ensuite : lire « yellow · #7A6A00 » sans
-autre indication n'apprenait rien à personne.
+Deux précisions, chacune corrigeant une erreur qui a coûté cher :
 
-Six variables supplémentaires pilotent, sur quatre axes indépendants
-les uns des autres, le rendu visuel du gras Markdown (`**texte**` → `<strong>`)
-**à l'intérieur d'une fact-box** (`.fact-content strong`) — le marquage
-sémantique ne change pas, seule sa présentation par défaut devient
-paramétrable :
+- **Le résumé de fiche (`summary.fg`) est peint par `ink`, pas par
+  `ink-quiet`.** Quatre surfaces de documentation ont affirmé le
+  contraire pendant plusieurs versions ; qui suivait la doc pour foncer
+  ses résumés redéclarait `--ink-muted` et obtenait zéro effet sur sa
+  cible et vingt effets hors cible, dont le verdict « non ». La table
+  ci-dessus est dérivée du registre, pas rédigée de mémoire.
+- **Chaque emploi est une propriété distincte dont la valeur partagée
+  n'est que le défaut.** Modifier un sens ne déplace plus les autres :
+  `verdict.partial.fg: #8A4B00` recolore le verdict « partiellement »
+  sans toucher à l'appel de note ni aux anneaux de focus, qui ne
+  partagent avec lui qu'un défaut, pas une variable.
 
-- `--fact-strong-weight` (`bold` par défaut) — la graisse : `bold` ou
-  `normal`.
-- `--fact-strong-style` (`normal` par défaut) — l'italique : `normal` ou
-  `italic`. Combinable librement avec la graisse (gras, italique,
-  gras+italique, ou ni l'un ni l'autre).
-- `--fact-strong-highlight` (`var(--marker)` par défaut) — le fond
-  coloré façon `<mark>` (à ne pas confondre avec un `overline`, un axe
-  visuel différent) : n'importe quelle couleur CSS, ou `transparent`
-  pour le désactiver entièrement. Référencer une des six variables
-  ci-dessus (`var(--accent)`, `var(--positive)`...) plutôt qu'une couleur
-  en dur permet à une surcharge ultérieure de cette variable de continuer
-  à s'appliquer.
-- `--fact-strong-decoration` (`none` par défaut) — le soulignement :
-  `underline` ou `none`. Quatrième axe, indépendant des trois autres :
-  il renforce *à la place* d'un surlignage, ou *en plus*.
-- `--fact-strong-decoration-color` (`currentColor` par défaut) — la
-  couleur du trait ; `currentColor` reprend celle du texte, une
-  `var(--rôle)` la détache. L'épaisseur et le décalage, eux, ne sont
-  **pas** paramétrables : ils sont fixés dans la règle, parce qu'un trait
-  fin collé à la ligne de base est précisément ce qui rend un texte
-  souligné pénible à lire, et que ce n'est pas un choix qui mérite d'être
-  offert. Attention au registre : un texte souligné, non gras et en
-  `var(--accent)` se lit comme un lien.
-- `--fact-strong-ink` (`var(--ink)` par défaut) — la couleur du **texte
-  posé sur ce fond**. Sans elle, la règle ne posait qu'un fond, ce qui
-  présupposait un texte foncé sur un marqueur vif : vrai sur un thème
-  clair, faux sur un thème sombre où `--ink` porte justement la couleur
-  claire du texte — rapport de contraste mesuré à 1,00, c'est-à-dire un
-  surlignage invisible. Vaut `inherit` quand il n'y a pas de fond
-  (`fact_highlight` valant explicitement `None` — une clé *absente*, elle,
-  retombe sur le défaut du moteur, `marker`) : sans marqueur, le texte garde la couleur du
-  corps.
+**La règle de complétude.** *Une propriété non exposée est une décision
+confisquée au thème.* C'est le critère de qualité du système, vérifié
+par construction : l'émission du CSS est dérivée du registre des
+propriétés, donc toute valeur qu'une règle émise consomme est une
+propriété, et réciproquement. Le coût assumé est une surface large — une
+cinquantaine de composants sur une dizaine d'axes ; une liste longue
+reste lisible là où une hiérarchie profonde ne l'est plus. Le **nombre**
+de propriétés n'est jamais écrit à la main dans une surface de
+documentation : il est **dérivé du registre** (`len(PROPERTY_REGISTRY)`)
+et affiché par `--help` — le décompte de l'ancien système a dérivé
+(« vingt et une variables » pour vingt-deux substituées) précisément
+parce qu'il était rédigé.
 
-Ces six variables se personnalisent exactement comme les six
-premières : une surcharge dans `templates/style.css`, après le marqueur
-de personnalisation (§9.4). Cinq d'entre elles sont aussi des clés de `THEMES` (§9.5) — un thème
-prédéfini choisit donc ses propres valeurs plutôt que de se limiter aux
-couleurs. `--fact-strong-ink` fait exception : elle n'est jamais déclarée
-dans une entrée, elle est **dérivée** de `fact_highlight` et de
-`dark_background`, précisément pour qu'un thème ne puisse pas se donner
-une encre illisible sur son propre marqueur.
+La contrepartie de la complétude est la **rigidité** : l'auteur ne peut
+exprimer que ce que le vocabulaire admet. Elle est bornée par
+`custom.css` (§9.3.2), qui est du CSS complet et sans sous-ensemble. La
+rigidité n'est jamais un mur, seulement un aiguillage — soit c'est un
+réglage et il est typé, soit c'est une règle et elle est libre.
 
-**Indépendantes veut dire indépendantes.** Les combinaisons ne sont pas
-un menu fermé : « gras sans aucun surlignage » se dit
-`--fact-strong-highlight: transparent`, et « non gras avec un
-surlignage vert » se dit `--fact-strong-weight: normal` +
-`--fact-strong-highlight: var(--positive)`, et « souligné et rien
-d'autre » se dit `--fact-strong-decoration: underline` avec un
-`--fact-strong-highlight: transparent`. Neuf combinaisons distinctes
-existent d'ailleurs parmi les thèmes intégrés.
+### 9.2 Les types et les renvois
 
-Les deux thèmes qui emploient le soulignement sont `monochrome` et
-`graphite`, et ce n'est pas un choix arbitraire : ce sont les deux
-palettes qui s'interdisent la teinte (« tout repose sur la clarté et la
-forme »), et un soulignement est justement une forme, pas une teinte.
-Elles couvrent les deux façons d'employer l'axe — `monochrome` cumule
-surlignage **et** soulignement, `graphite` souligne **à la place** d'un
-surlignage — sur les deux polarités de fond.
+Une propriété s'écrit `composant.axe: valeur`, dans l'idiome
+`clé: valeur` que le format d'article emploie déjà. Chaque axe a un type,
+et le type est vérifié à la génération :
 
-Un `--marker` fait pour servir de fond de surlignage est souvent trop
-pâle pour servir de trait : mesuré à 1,23:1 contre le fond de page sur
-`newsprint` et 1,49:1 sur `blueprint`. D'où le trait en `currentColor`
-sur `monochrome`, et en `var(--marker)` sur `graphite` seulement parce
-que ce thème est sombre, où le même gris ressort à 11,3:1.
+| Type | Exemple | Vérifié |
+|---|---|---|
+| couleur | `#E8A33D`, `#E8A33DFF`, `transparent` | forme hexadécimale `#RGB`/`#RGBA`/`#RRGGBB`/`#RRGGBBAA`, normalisée en **ARGB huit chiffres** majuscules (`#RRGGBBAA`) ; `transparent` ≡ `#00000000` |
+| longueur | `4px`, `1.5rem`, `0`, `auto`, `clamp(1rem, 2vw, 1.375rem)` | unité connue (`px rem em ch vw vh % pt`) ; les fonctions `clamp`/`calc`/`min`/`max` passent telles quelles |
+| ratio | `1.5` | nombre **sans unité**. Délibérément distinct d'une longueur : un `line-height` sans unité est hérité comme facteur et remultiplié par la taille de chaque descendant ; `1.5rem` est hérité comme longueur figée et casse dès qu'un enfant change de taille — invisible jusqu'au jour où ça mord, ce qui est exactement ce que le typage existe à prévenir |
+| angle | `200deg` | unité connue (`deg rad turn grad`) |
+| pile de polices | `Georgia, serif` | **se termine par un générique CSS 2.1** (`serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`) — voir ci-dessous |
+| énumération | `bold`, `italic`, `uppercase`, `line-through` | valeur admise. Les graisses n'admettent que **`normal` et `bold`** — voir ci-dessous |
+| texte | `"\25D0"` | libre (les marqueurs de forme des verdicts) |
 
-Deux conséquences pratiques, apprises en constatant que rien ne les
-disait :
+**Pourquoi les piles finissent sur un générique.** Aucune police nommée
+n'est garantie : Arial et Times New Roman sont absents d'un Linux de base
+et de la plupart des Android — nommer une police est un vœu. Le seul
+plancher réel est celui des génériques CSS 2.1, que le moteur du
+navigateur **doit** résoudre vers une police réelle. Tout ce qui précède
+le générique est une chance ; le générique est la promesse. La règle est
+vérifiable en une ligne et n'interdit rien. Le message d'erreur la
+rappelle. (Les familles `ui-*` sont propres à Safari : utiles en tête de
+pile, jamais en ancre.)
 
-- **Le fond et l'encre vont par paire.** Changer
-  `--fact-strong-highlight` sans revoir `--fact-strong-ink` peut tomber
-  sous le seuil de lisibilité : un vert `--positive` sous l'encre par
-  défaut mesure 3,14:1 sur High Contrast et 2,14:1 sur Pop Lemon, deux
-  échecs AA. La règle ne pose pas seulement un fond, elle pose aussi le
-  texte — c'est exactement pourquoi `--fact-strong-ink` existe (§9.5.2).
-- **Le mécanisme doit être trouvable.** Il ne l'était pas : absent de
-  `--help`, absent du README, présent seulement ici. Trois choses le
-  disent désormais — la section PALETTE AND EMPHASIS de `--help`, un
-  bloc de commentaire avec cinq recettes prêtes à coller dans le
-  `templates/style.css` généré, et la ligne « Gras en fact-box » de
-  chaque carte de `themes-gallery` (§11.7).
+**Pourquoi deux graisses seulement.** Sur une famille à deux graisses —
+le cas courant d'un générique — l'algorithme d'appariement CSS rend 400
+pour 500 et 700 pour 600 comme pour 700 : trois graisses déclarées
+s'effondrent en deux, et « partiellement » redevient indistinguable de
+« oui ». Seules `normal` et `bold` sont fiables, parce que ce sont les
+seules que CSS garantit de produire, au besoin par synthèse. Le motif
+figure dans le message d'erreur. (C'est aussi ce qui justifie, après
+coup, le marqueur de forme des verdicts, mieux que l'argument
+d'accessibilité qui l'avait motivé — §6.1.) De même, le piège de taille
+de `font-family: monospace` ne peut plus mordre : la complétude impose
+une taille explicite à chaque composant portant du texte, donc le défaut
+divergent des moteurs n'est jamais consulté et le contournement
+historique `monospace, monospace` devient inutile.
 
-Le bloc de recettes est placé **avant** le marqueur de personnalisation,
-donc dans la partie régénérée : après le marqueur, `refresh-templates`
-le concaténerait à la copie de l'auteur et le dupliquerait à chaque
-passage.
+**Les renvois.** Un renvoi est un mot, pas une fonction, et il est résolu
+à la fusion — il ne survit jamais dans la sortie :
 
-### 9.2 JS (`nav.js`)
+- **Un mot nu est cherché dans l'espace de son type** : l'axe fixe le
+  type, le type fixe l'espace. `tag.fg: ink-quiet` se lit
+  `color.ink-quiet` parce que `fg` est une couleur ;
+  `summary.font: mono` se lirait `font.mono`. C'est toute la règle — le
+  moteur ne devine jamais si une valeur « ressemble » à une clé : un
+  littéral se reconnaît à sa forme (une couleur commence par `#`, une
+  pile contient une virgule ou est un générique).
+- **Un mot pointé référence une autre propriété**, qualifiée :
+  `title1.fg: cover.fg`, `cover.bg.to: cover.bg.from`.
+- **Profondeur maximale : 3 sauts.** Les chaînes étant résolues à la
+  génération, la limite ne protège que le lecteur d'un fichier de
+  settings. Deux sauts se sont avérés trop courts le jour où le thème
+  `terminal` du catalogue a eu besoin de `summary.font → font.text →
+  font.mono` : un thème ordinaire saturait la limite et ne laissait à
+  une série aucune indirection propre.
+- **Les cycles sont détectés et nommés** : `tag.fg: reference cycle
+  tag.fg -> summary.fg -> tag.fg`, jamais une boucle infinie ni un
+  plantage obscur.
+- **Une clé inconnue est une erreur** qui suggère la clé voisine quand
+  l'axe correspond (`did you mean …?`) ; un renvoi vers une propriété
+  inexistante est une erreur qui rappelle la règle de l'espace de
+  recherche.
+
+### 9.3 La cascade à cinq couches et les trois fichiers
+
+```
+   défauts intégrés  →  thème  →  templates/settings.conf  →  propriétés d'article
+        └────────── fusion, résolution des renvois, typage ──────────┘
+                                   ↓
+                        CSS composé en mémoire, par page
+                                   ↓
+              inliné dans la page ({{css}})   +   templates/custom.css
+                                   ↓
+                      balises d'instance (§9.6)  →  cascade
+```
+
+**La chaîne n'est pas homogène, et la couture doit être vue.** Les quatre
+premières couches se résolvent **avant l'émission** : le moteur fusionne
+des dictionnaires — rien à arbitrer, pas d'ordre de règles, pas de
+spécificité. Le CSS est composé **par page** (il est inliné dans chaque
+page via `{{css}}`, §18.1), donc la personnalisation par article (§9.6)
+ne coûte qu'un jeu de propriétés différent pour cette page. La cinquième
+couche — les balises d'instance — ne **peut pas** fonctionner ainsi :
+elle vise une instance, pas une page (deux passages balisés dans le même
+article doivent pouvoir différer) ; elle passe donc par des styles en
+ligne, donc par la cascade. La couture est là, entre « par page » et
+« par instance ».
+
+**La feuille composée** est faite de trois parts, dans cet ordre :
+
+1. le bloc `:root` — une variable CSS par propriété
+   (`tag.fg` → `--tag-fg`), toutes valeurs résolues ;
+2. les règles pilotées, dérivées du registre — chaque règle ne lit que
+   des variables de composant, jamais une valeur partagée directement
+   (un seul saut jusqu'à une valeur, le CSS reste lisible tel quel) ;
+3. le **squelette** statique — la mise en page seule, extraite de
+   l'ancienne feuille : tout ce qu'aucune propriété ne pilote. Ses
+   `@media` passent **après** les règles du moteur : à spécificité
+   égale, l'ordre les fait gagner, ce qui est exactement leur raison
+   d'être. Un garde-fou vérifie à l'extraction qu'aucune déclaration non
+   pilotée ne référence encore une variable — un tel reste serait une
+   décision visuelle que le registre n'expose pas, donc une décision
+   confisquée (§9.1), et l'extraction refuse de l'embarquer morte.
+
+`templates/custom.css` (§9.3.2) est ajouté **en dernier**, après la
+feuille composée. Rien de tout cela n'atteint le disque : la feuille
+peut n'exister qu'en mémoire et reste intégralement consultable — elle
+est inlinée dans chaque page, il suffit d'en afficher la source.
+
+**Les trois fichiers, un propriétaire chacun :**
+
+| Fichier | Propriétaire | Écrit par le système |
+|---|---|---|
+| feuille émise | le système | régénérée à chaque build, jamais sur disque |
+| `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite (`set-theme` réécrit la seule ligne `theme:`, §9.4.2) |
+| `templates/custom.css` | l'auteur | **jamais** (créé vide à l'install) |
+| `templates/nav.js` | l'outil | remplacé par `refresh-templates`, sauvegarde `.bak` (§9.4.3) |
+
+**C'est ce partage qui supprime l'appareillage.** Le marqueur de
+personnalisation, sa variante héritée, la recherche de sa première
+occurrence, la vérification d'identité octet pour octet, le `--force` de
+`set-theme`, le `[SKIP]` sans marqueur : une dizaine de mécanismes dont
+l'unique raison d'être était que le système écrivait dans le fichier que
+l'auteur édite. La bonne façon de ne pas détruire le travail de
+quelqu'un n'est pas de le détecter, c'est de ne pas écrire là où il est.
+
+#### 9.3.1 `templates/settings.conf` : les valeurs, et le scaffold
+
+Le format est celui du bloc meta d'un article : des lignes
+`clé: valeur`, des commentaires `#`, rien d'autre. Deux clés spéciales :
+`theme: <slug>` choisit le thème de la série (absente, la série est sur
+les défauts intégrés), et `# scaffold-for: <slug>` — un commentaire —
+enregistre le thème sous lequel le fichier a été généré, ce qui permet à
+`audit` de signaler un scaffold désaccordé (§9.4.4).
+
+**Les erreurs sont nommées.** Une ligne qui n'est pas `clé: valeur` est
+une erreur qui donne le fichier et la ligne, et rappelle que les règles
+CSS vont dans `custom.css` — un fichier qui ressemble à des propriétés
+et avalerait du CSS en silence serait l'ancienne surface de retour. Une
+clé inconnue, une valeur mal typée, un renvoi cassé sont des erreurs de
+`build` qui nomment la clé (§9.2). Un `theme:` inconnu nomme la ligne et
+renvoie vers `lightwebpres themes`.
+
+**Le scaffold.** Le fichier est généré **une fois** (à l'install, §9.4.1)
+avec **toutes** les propriétés présentes, en commentaire, à la valeur du
+thème choisi — les renvois montrés comme des mots
+(`# tag.fg: ink-quiet`), parce que c'est le vocabulaire que l'auteur
+écrit. Décommenter une ligne l'**épingle** : elle survit à tout
+changement de thème et à toute montée de version. Le scaffold règle
+trois problèmes d'un coup : la découvrabilité — la surface complète est
+sous les yeux, sans documentation (il remplace ainsi le bloc de
+« recettes prêtes à coller » de l'ancienne feuille, qui ne couvrait
+qu'un seul objet et dont le compte annoncé avait dérivé) ; la mise à
+jour — un scaffold régénéré à la demande montre les propriétés apparues
+et disparues comme un diff ; et la dérive de la documentation, puisque le
+fichier est **généré depuis le registre**, la structure même qui émet le
+CSS, jamais tenu à la main — sinon il deviendrait une seconde source de
+vérité.
+
+**Il n'est jamais réécrit d'initiative.** Ses commentaires vieillissent
+quand le thème change ; le remède est de le **signaler** (`audit`
+compare `scaffold-for` au `theme:` déclaré, §9.4.4), pas de l'écraser —
+le fichier appartient à l'auteur. Les valeurs épinglées, elles, restent
+volontairement en place à travers un changement de thème : le système
+sait quelles clés sont épinglées et depuis quel thème ; il ne les touche
+pas, il peut le dire.
+
+#### 9.3.2 `templates/custom.css` : les règles
+
+Du CSS complet, sans sous-ensemble, jamais écrit par l'outil (installé
+vide, avec un commentaire d'usage). Il est ajouté **après** la feuille
+composée, donc ses règles gagnent tout arbitrage à spécificité égale.
+C'est la borne de la rigidité du vocabulaire (§9.1) : tout ce que les
+propriétés ne savent pas dire — une règle nouvelle, un sélecteur
+d'exception, une media query, un `@font-face`.
+
+Les variables `--composant-axe` de la feuille composée y sont utilisables
+(`border-color: var(--color-mark)`), et c'est la façon recommandée d'y
+référencer la palette : la règle suit alors le thème. `audit` signale
+tout nom de variable **retiré** encore référencé (§9.8) — une
+déclaration `var()` qui ne résout rien ne peint rien et ne dit rien.
+
+Aucune police n'est embarquée par l'exécutable — ce serait 300 Ko de
+binaire dans un fichier unique. Mais l'auteur peut le faire lui-même : un
+`@font-face` dans `custom.css`, la famille nommée en tête de pile dans
+`settings.conf`. Le moteur n'a rien à en savoir ; c'est une raison de
+plus de garder `custom.css`.
+
+#### 9.3.3 JS (`nav.js`)
 
 Le JavaScript de navigation gère :
 - Le scroll entre slides (flèches, PageUp/PageDown)
 - Les boutons prev/next/home
 - Les nav-dots (points de navigation)
 - La détection de la slide courante au scroll
-- Le bouton de partage et sa matrice (§9.2.1)
+- Le bouton de partage et sa matrice (§9.3.4)
 - Le parcours clavier complet (flèches Haut/Bas) : fiche par fiche, puis
   carte par carte sur la fiche series-nav, puis défilement par
-  incréments sur une fiche plus grande que l'écran (§9.2.2)
+  incréments sur une fiche plus grande que l'écran (§9.3.5)
 
-Éditable de la même façon que `style.css`, via `templates/nav.js` — un
-override remplace `nav.js` **en bloc**, y compris le bouton de partage : il
-n'y a pas de mécanisme pour ne remplacer qu'une partie du comportement de
-navigation.
+Éditable via `templates/nav.js` — un override remplace `nav.js` **en
+bloc**, y compris le bouton de partage : il n'y a pas de mécanisme pour
+ne remplacer qu'une partie du comportement de navigation.
 
-#### 9.2.1 Bouton de partage
+#### 9.3.4 Bouton de partage
 
 Un bouton unique (icône) dans le cluster `.nav-buttons`, à côté de
 prev/home/next — **page d'article uniquement**, absent de l'index (« Série »
@@ -1262,7 +1422,7 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
 | **Afficher le QR code**| idem  | idem    | idem  |
 
 - « Fiche » désigne la slide actuellement affichée (même détection que les
-  nav-dots, §9.2). Elle n'a de sens que pour une slide standard ou
+  nav-dots, §9.3.3). Elle n'a de sens que pour une slide standard ou
   `full-article` munie d'un ancrage propre (`id="sN"`) — pas pour la
   slide `cover` (qui se confond avec l'article lui-même) ni pour la slide
   `series-nav` (dont l'ancrage `sN-series` n'identifie pas un point de
@@ -1287,7 +1447,7 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
   d'image, cohérent avec la contrainte d'autonomie du §13.4 (aucune
   dépendance réseau au runtime).
 
-#### 9.2.2 Parcours clavier (flèches Haut/Bas)
+#### 9.3.5 Parcours clavier (flèches Haut/Bas)
 
 Un appui sur une flèche avance ou recule dans un parcours naturel à
 trois niveaux, chacun ne s'activant qu'une fois le niveau précédent
@@ -1358,186 +1518,194 @@ cartes), épuisement des cartes sur la dernière fiche (reste en place,
 focus nettoyé), saut réel vers l'article via Entrée sur une carte
 focalisée, et non-régression du cooldown sous rafale de pressions.
 
-### 9.3 Extension de la page d'index (`index_extra.html`)
+#### 9.3.6 Extension de la page d'index (`index_extra.html`)
 
 La structure de la page d'index reste fixe, mais un site migré ou une
 fonctionnalité maison (bouton, modale, script tiers...) peut avoir besoin
-d'un point d'ancrage que `style.css`/`nav.js` ne couvrent pas (`nav.js` ne
-s'applique qu'aux pages d'article, pas à l'index). Si
-`templates/index_extra.html` existe, son contenu est inséré tel quel
-(HTML, CSS inline, `<script>`... — aucune transformation) juste avant
-`</body>` de la page d'index générée. Absent par défaut : `install` ne
-crée pas ce fichier, contrairement à `style.css`/`nav.js`.
+d'un point d'ancrage que `settings.conf`/`custom.css`/`nav.js` ne
+couvrent pas (`nav.js` ne s'applique qu'aux pages d'article, pas à
+l'index). Si `templates/index_extra.html` existe, son contenu est inséré
+tel quel (HTML, CSS inline, `<script>`... — aucune transformation) juste
+avant `</body>` de la page d'index générée. Absent par défaut : `install`
+ne crée pas ce fichier, contrairement à `settings.conf`/`custom.css`/
+`nav.js`.
 
-### 9.4 Mettre à jour `style.css`/`nav.js` après une mise à jour de l'exécutable
+### 9.4 Les commandes
 
-Un override (§9.1/§9.2) remplace le fichier **en bloc** : une fois
-`templates/style.css` ou `templates/nav.js` créé (par `install`, ou copié à
-la main), `build` ne lit plus jamais la version intégrée à l'exécutable
-pour ce fichier — y compris après une mise à jour de l'exécutable qui
-change le CSS/JS par défaut. Un site déjà installé reste donc figé sur
-l'ancien rendu tant que ces fichiers ne sont pas rafraîchis à la main, même
-si l'exécutable a évolué.
+Le détail CLI (options, codes de sortie) est en §11 ; cette section fixe
+le **comportement** de chaque commande vis-à-vis des trois fichiers.
+`build` lui-même n'a pas de sous-section : il lit `settings.conf` (et
+avertit si un `templates/style.css` hérité traîne encore, §9.8), compose
+la feuille (§9.3), la recompose pour toute page portant des propriétés
+d'article (§9.6), et échoue avec une erreur nommée sur la première
+propriété invalide.
 
-`refresh-templates` (§11.6) automatise ce rafraîchissement sans écraser une
-personnalisation locale :
+#### 9.4.1 `install --theme`
 
-- **`style.css`** : le fichier installé par défaut se termine par un
-  commentaire marqueur (`/* === Personnalisations locales : ... === */`).
-  Tout ce que l'auteur ajoute **après** cette ligne est sa personnalisation ;
-  tout ce qui précède est la partie intégrée à l'exécutable.
-  `refresh-templates` retrouve ce marqueur (**première** occurrence dans le
-  fichier : tout ce qui suit le premier marqueur appartient à l'auteur, y
-  compris un second marqueur qu'il aurait collé dans ses propres règles.
-  Chercher la dernière perdait toutes les règles situées entre les deux), reconstruit le fichier comme `CSS intégré à jour +
-  marqueur + tout ce qui suivait le marqueur dans l'ancien fichier`, et
-  laisse cette partie personnalisée totalement intacte.
+`install` écrit les trois fichiers : `settings.conf` — le scaffold
+complet du thème choisi, avec sa ligne `theme: <slug>` et son
+`# scaffold-for: <slug>` (sans `--theme` : pas de ligne `theme:` active,
+scaffold aux défauts intégrés) —, `custom.css` (le gabarit commenté,
+vide de règles) et `nav.js`. Aucune substitution dans du CSS : choisir
+un thème à l'install, c'est écrire un mot dans un fichier de données. Un
+slug inconnu est une erreur fatale qui liste les slugs valides.
 
-  Le marqueur délimite la coupure par une ligne dédiée plutôt que par le
-  nom d'une règle CSS reconnaissable (ex. deviner où commence le
-  personnalisé en cherchant la première occurrence d'un sélecteur qu'on
-  sait avoir été ajouté par l'auteur) : un sélecteur ajouté par l'auteur à
-  une version de l'outil peut légitimement être repris tel quel dans le CSS
-  par défaut d'une version ultérieure, ce qui rendrait cette
-  reconnaissance ambiguë.
+#### 9.4.2 `set-theme`
 
-  Si le marqueur est absent (fichier antérieur à cette fonctionnalité, ou
-  marqueur supprimé par erreur), `refresh-templates` ne devine pas où
-  couper : il laisse le fichier inchangé, signale l'absence du marqueur
-  (code de sortie non nul) et indique la ligne exacte à ajouter à la main
-  avant la personnalisation existante, pour que le prochain passage puisse
-  s'appuyer dessus.
+`set-theme [répertoire] --theme <slug>` réécrit **la seule ligne du
+fichier qui soit à l'outil** : la ligne `theme:` de `settings.conf` (ou
+le placeholder commenté `# theme:` du scaffold, ou en tête de fichier si
+ni l'un ni l'autre n'existe). Tout ce que l'ancienne implémentation
+gardait — fichiers à moitié recolorés, marqueurs mentant sur le thème,
+`--force` — existait parce que l'outil écrivait dans le fichier que
+l'auteur édite ; il n'y a plus rien à garder, et **`--force` n'existe
+plus**. Comportements, tous vérifiés :
 
-- **`nav.js`** : pas de mécanisme de coupure équivalent (le JS n'est pas
-  conçu pour être personnalisé par ajout en fin de fichier).
-  `refresh-templates` sauvegarde l'ancien fichier en
-  `templates/nav.js.bak` puis le remplace intégralement par la version
-  intégrée à l'exécutable — à charge pour l'auteur de reporter à la main
-  une éventuelle personnalisation depuis la sauvegarde.
+- répertoire jamais installé (pas de `templates/`) : erreur propre
+  renvoyant vers `install` — `set-theme` configure une série, il n'en
+  crée pas ;
+- `templates/` présent mais pas de `settings.conf` (série d'avant la
+  refonte) : un scaffold neuf est écrit pour le thème demandé — écrire
+  un fichier qui n'existe pas ne trahit aucune promesse de propriété ;
+- thème déjà en place : `Theme unchanged`, rien n'est écrit ;
+- sinon : `Theme changed: <ancien|default> -> <nouveau>`, et le message
+  rappelle que les valeurs décommentées restent en place et s'appliquent
+  par-dessus le nouveau thème, et que les commentaires du scaffold
+  montrent encore l'ancien (ce que `audit` signale, §9.4.4).
 
-Dans les deux cas, un fichier déjà identique à la version intégrée à
-l'exécutable est laissé tel quel (rapporté « already up to date »), sans
-réécriture inutile.
+Les valeurs épinglées survivent **volontairement** : elles sont la
+sémantique voulue par l'auteur. Le risque résiduel — des valeurs
+calibrées pour l'ancienne palette — est rendu **visible** (`audit`),
+jamais corrigé d'office.
+
+#### 9.4.3 `refresh-templates`
+
+Sous le modèle de feuille composée, la feuille est toujours fraîche par
+construction : elle vient de l'exécutable courant à chaque build. Le seul
+fichier de l'outil restant sur disque est `nav.js` — remplacé s'il
+diffère de la version intégrée, l'ancien sauvegardé en
+`templates/nav.js.bak` ; rapporté « already up to date » sinon. Plus de
+marqueur, plus de `[SKIP]`. En complément, la commande **crée** les
+fichiers de la surface auteur s'ils manquent (série d'avant la
+refonte) : un `settings.conf` neuf (scaffold aux défauts, aucun thème
+déclaré) et un `custom.css` vide. Un `templates/style.css` hérité est
+**signalé, jamais migré** : ses valeurs sont les décisions de l'auteur,
+les déplacer lui revient — `audit` nomme chaque renommage pour rendre le
+geste mécanique (§9.8).
+
+#### 9.4.4 `audit` (volet présentation)
+
+`audit` (§11.5) avertit, ne bloque jamais. Trois yeux sur la surface de
+présentation, chacun vérifié :
+
+1. **`templates/style.css` hérité** : le fichier n'est plus lu ;
+   l'avertissement le dit et énumère chaque variable retirée qu'il
+   référence encore, avec son remplaçant (table de §9.8).
+2. **Noms retirés dans `custom.css`** : une déclaration `var(--marker)`
+   ne résout plus rien — elle ne peint rien et ne dit rien ;
+   l'avertissement la nomme, avec le remplaçant.
+3. **`settings.conf`** : une erreur de syntaxe ou de propriété (mêmes
+   messages qu'au build, mais non bloquants ici) ; et un
+   `scaffold-for:` différent du `theme:` déclaré — décommenter une ligne
+   épinglerait une valeur du thème quitté ; l'avertissement suggère de
+   régénérer un scaffold frais pour comparer.
+
+`audit` énumère aussi, par article, les **balises d'instance** (§9.6) —
+une note informative (`[NOTE]`, pas un avertissement compté) : ce sont
+des interventions d'auteur qui survivent à tout changement de thème, et
+cette visibilité est ce qui rend les littéraux dans le texte acceptables.
 
 ### 9.5 Thèmes de couleurs prédéfinis
 
-Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
-(« slug ») à une palette complète : les six couleurs de §9.1 (`--page
---ink --ink-muted --marker --accent --positive`), plus les propriétés de
-rendu du gras en fact-box (`fact_weight`/`fact_style`/`fact_highlight`/
-`fact_decoration`/`fact_decoration_color`, §9.1) — un thème n'est donc pas qu'une recoloration, il peut aussi
-choisir un traitement typographique différent (ex. italique sans fond
-coloré plutôt que gras surligné) — plus un drapeau de polarité
-(`dark_background`, §9.5.2) et une intensité déclarée (`intensity`,
-§9.5.3), et enfin des métadonnées purement
-éditoriales (étiquette affichable, source, remarque) qui ne servent qu'à
-`themes-gallery` (§11.7) — jamais à `install --theme`. `fact_highlight`
-vaut le nom d'un des six rôles de couleur ci-dessus (résolu en
-`var(--rôle)`) ou `None` pour aucun fond ; `fact_weight`, `fact_style` et
-`fact_highlight` sont toujours explicites dans chaque entrée, y compris
-quand la valeur choisie est celle par défaut du moteur
-(`bold`/`normal`/`marker`) — un choix délibéré consigné, pas un oubli.
-Les deux clés de soulignement font exception : absentes, elles valent
-« pas de soulignement », ce qui est le sens de « pas d'avis » pour un axe
-ajouté après coup.
+#### 9.5.1 Le catalogue, et sa conversion en couche de propriétés
 
-Les neuf premières entrées reprenaient des palettes d'éditeurs de code
+Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
+(« slug ») à une entrée : six couleurs de rôle (`page`, `ink`,
+`ink-muted`, `marker`, `accent`, `positive`), les propriétés de rendu du
+gras en encadré (`fact_weight`/`fact_style`/`fact_highlight`/
+`fact_decoration`/`fact_decoration_color`), un drapeau de polarité
+(`dark_background`), une intensité déclarée (`intensity`, §9.5.2), et des
+métadonnées purement éditoriales (étiquette affichable, source,
+remarque — §9.5.4) qui ne servent qu'à `themes-gallery` (§11.7).
+`fact_weight`, `fact_style` et `fact_highlight` sont toujours explicites
+dans chaque entrée, même à la valeur par défaut — un choix délibéré
+consigné, pas un oubli ; les deux clés de soulignement font exception :
+absentes, elles valent « pas de soulignement », le sens de « pas
+d'avis » pour un axe ajouté après coup. `THEMES` est la **seule** source
+de vérité : la couche appliquée par `install --theme`/`set-theme` et les
+aperçus de `themes-gallery` viennent de la même donnée et ne peuvent pas
+diverger par construction.
+
+Les neuf premières entrées reprennent des palettes d'éditeurs de code
 connues (`nord`, `dracula`, `solarized`, `gruvbox`, `catppuccin`,
 `tokyo-night`, `monokai`, `everforest`, `rose-pine`) ; le catalogue
-s'est ensuite élargi à des thèmes propres au projet (`source:
-'lightwebpres'`), notamment une famille à fond sombre et une famille
-« pop » à fond franchement coloré. Le nombre exact d'entrées n'est pas
-figé par cette spécification — c'est justement pourquoi §9.5.3 existe :
-au-delà d'une trentaine de thèmes, une liste plate n'est plus un moyen
-de choisir.
+s'est ensuite élargi à des thèmes propres au projet
+(`source: 'lightwebpres'`). Le nombre exact d'entrées n'est pas figé par
+cette spécification — c'est justement pourquoi les facettes (§9.5.2)
+existent : au-delà d'une trentaine de thèmes, une liste plate n'est plus
+un moyen de choisir.
 
-`THEMES` est la **seule** source de vérité pour ces couleurs : la
-palette appliquée par `install --theme` et celle affichée par
-`themes-gallery` viennent de la même donnée, elles ne peuvent pas diverger
-l'une de l'autre par construction — contrairement au premier jet de
-`themes-gallery.html` (une page écrite à la main), désormais remplacé par
-un fichier généré depuis cette table (§11.7).
+**La conversion.** Une entrée `THEMES` devient une couche de propriétés
+(`theme_property_layer()`), et ce que `dark_background` faisait basculer
+en douce derrière le dos du thème, la couche le **dit** :
 
-#### 9.5.1 Appliquer un thème à l'installation (`install --theme`)
+- les six rôles deviennent les six valeurs partagées (`page` →
+  `color.page`, `ink-muted` → `color.ink-quiet`, `marker` →
+  `color.mark`, `accent` → `color.call`, `positive` → `color.affirm`) ;
+- sur un thème **sombre**, le **mobilier** s'inverse par une table
+  partagée unique (`DARK_FURNITURE_PROPS`) : les voiles noirs des filets
+  deviennent des voiles blancs, les surfaces claires des voiles blancs
+  faibles, les creux des voiles noirs profonds — des couleurs ARGB
+  ordinaires, plus un jeu caché substitué hors de la vue du thème. Les
+  thèmes clairs n'ont pas de table : les défauts du registre **sont** le
+  jeu clair ;
+- la **couverture** cesse de s'inverser sur un thème sombre : son fond
+  est un voile noir posé sur la page (`cover.bg.from: #00000073`) —
+  jamais `ink`, qui y porte la couleur du **texte** — et son encre est
+  `ink` ; les deux opacités mesurées du résumé et du numéro de
+  couverture sont réénoncées en ARGB **contre la palette réelle** (alpha
+  `C7`, le 0,78 mesuré ; `8F`, le 0,56) au lieu de présupposer la
+  palette par défaut. Sur un thème clair, seule `cover.summary.fg` est
+  réénoncée (`page` du thème + alpha `C7`) pour que la mesure suive ;
+- les clés `fact_*` deviennent `fact.strong.*`. Deux axes y vont **par
+  paire**, et la paire est la règle : `fact.strong.bg` (le fond façon
+  `<mark>`) avec `fact.strong.fg` (l'encre posée dessus), et
+  `fact.strong.decoration` avec `fact.strong.decoration-color`. L'encre
+  est **dérivée**, jamais déclarée dans une entrée : `page` sur un thème
+  sombre (où c'est le ton foncé), `ink` sur un clair — pour qu'un thème
+  ne puisse pas se donner une encre illisible sur son propre marqueur
+  (le contraste avait été mesuré à 1,00 avant que l'axe existe). Un
+  `fact_highlight` valant explicitement `None` — cinq thèmes du
+  catalogue — donne `transparent` + encre héritée : pas de fond du tout,
+  ce qui n'est pas la même chose que ne rien dire (l'absence de clé
+  retombe sur le défaut, le fond `mark`). Changer le fond sans revoir
+  l'encre peut tomber sous le seuil de lisibilité — un vert `affirm`
+  sous l'encre par défaut mesure 3,14:1 sur High Contrast et 2,14:1 sur
+  Pop Lemon, deux échecs AA — c'est exactement pourquoi l'axe `fg`
+  existe et pourquoi la paire est documentée ici ;
+- enfin, des **surcharges par slug** (`THEME_PROPERTY_OVERRIDES`)
+  portent ce que l'ancienne forme d'entrée ne savait pas dire. Une
+  seule aujourd'hui : `terminal` passe tout le texte en chasse fixe
+  (`font.text`/`font.display`/`font.ui: mono` — trois lignes, c'est ce
+  que le nom du thème promet) et pose un halo phosphore sur ses titres
+  et son chiffre-clé (`title1.shadow.*`, `highlight.shadow.*`, §9.7).
 
-`install [répertoire] --theme <slug>` (§11.1) substitue les vingt et une
-variables du fichier `templates/style.css` généré par celles du thème
-choisi — six couleurs, six propriétés de gras en fact-box (§9.1), et
-neuf superpositions neutres (§9.5.2). Rien
-d'autre dans le CSS par défaut n'est modifié. Le fichier obtenu se termine
-toujours par le marqueur de personnalisation (§9.4), donc
-`refresh-templates` continue de fonctionner normalement dessus ensuite.
+Les deux thèmes qui emploient le soulignement du gras d'encadré sont
+`monochrome` et `graphite`, et ce n'est pas arbitraire : ce sont les
+deux palettes qui s'interdisent la teinte, et un soulignement est une
+forme, pas une teinte. Elles couvrent les deux emplois de l'axe —
+`monochrome` cumule surlignage **et** soulignement, `graphite` souligne
+**à la place** — sur les deux polarités de fond. Un `mark` fait pour
+servir de fond est souvent trop pâle pour servir de trait (mesuré à
+1,23:1 sur `newsprint`, 1,49:1 sur `blueprint`) : d'où le trait laissé à
+l'encre du texte sur `monochrome`, et en `mark` sur `graphite` seulement
+parce que ce thème est sombre, où le même gris ressort à 11,3:1.
 
-Le slug appliqué est enregistré dans un second marqueur, dédié, en tout
-début de fichier (juste après le commentaire d'en-tête) :
+#### 9.5.2 Critères d'admission d'un thème, et facettes
 
-```css
-/* lightwebpres-theme: nord */
-```
-
-Absent du CSS par défaut (aucun `--theme` fourni) ; toujours présent dès
-qu'un thème a été appliqué — c'est ce qui permet à `refresh-templates`
-(§9.5.4) de savoir quel thème réappliquer après une mise à jour de
-l'exécutable, sans avoir à comparer des couleurs pour le deviner.
-
-Un slug inconnu est une erreur fatale (code de sortie non nul), qui
-liste les slugs valides.
-
-#### 9.5.2 Polarité de fond et superpositions neutres
-
-Les six couleurs de §9.1 ne suffisent pas à décrire une page. Entre
-elles, la feuille de style a besoin de neutres : le filet sous un titre,
-le fond légèrement décalé d'une carte, le creux d'un bloc de code, la
-pastille ronde d'un bouton de navigation. Ces neutres ne sont pas des
-gris fixes — ce sont des **superpositions translucides**, donc ils
-teintent ce qui se trouve dessous et suivent la palette au lieu de la
-contredire :
-
-| Variable | Rôle |
-|---|---|
-| `--rule` | filet fin, séparateurs |
-| `--rule-strong` | filet appuyé, bordure de carte |
-| `--surface` | fond d'une carte, posé sur la page |
-| `--sunken` | fond en creux (bloc de code, cellule d'en-tête) |
-| `--cover-bg` | fond de la fiche de couverture |
-| `--cover-fg` | texte de la couverture |
-| `--cover-fg-faint` | texte secondaire de la couverture |
-| `--control` | pastille d'un bouton flottant |
-| `--control-soft` | même pastille, état discret |
-
-Le **sens** de ces superpositions dépend du fond. Sur une page claire,
-une surface est un voile blanc et un filet un voile noir ; sur une page
-sombre c'est exactement l'inverse, et le même voile blanc transforme une
-carte en bloc illisible. Un thème déclare donc `dark_background: True`
-quand son `--page` n'est, de fait, pas clair, et reçoit le second des
-deux jeux de valeurs — deux dictionnaires aux **clés identiques**, ce
-qui permet de substituer l'un pour l'autre sans que le reste du code ait
-à connaître la polarité.
-
-Deux conséquences en découlent, toutes deux vérifiées par les tests :
-
-- La couverture ne peut pas se contenter de `var(--ink)` comme fond. Sur
-  un thème sombre cette variable porte la couleur du **texte** : l'utiliser
-  en fond retournerait la couverture en panneau pâle. Le jeu sombre
-  utilise un voile noir sur la page elle-même.
-- Le surlignage du gras en fact-box a besoin d'une encre explicite,
-  `--fact-strong-ink` (§9.1). La règle ne posait qu'un fond, ce qui
-  présupposait un texte foncé sur un marqueur vif : vrai sur un thème
-  clair, faux sur un thème sombre, où le rapport de contraste mesuré
-  tombait à 1,00 — c'est-à-dire invisible.
-
-Le drapeau s'appelle `dark_background` et non `dark` parce qu'à l'époque
-cette seconde clé portait déjà la couleur foncée de la palette dans
-chaque entrée (elle s'appelle `ink` depuis la v0.12.0, §9.1) : un drapeau ainsi nommé serait lu comme une chaîne de couleur,
-donc toujours vrai, et tous les thèmes basculeraient silencieusement en
-polarité sombre.
-
-#### 9.5.3 Critères d'admission d'un thème, et facettes
-
-**Admission.** Les neuf premières entrées citent leur origine ; celles
-propres au projet (`source: 'lightwebpres'`) sont dessinées puis
-**mesurées** avant d'être retenues, jamais retenues sur l'impression
-qu'elles font :
+**Admission.** Les thèmes propres au projet (`source: 'lightwebpres'`)
+sont dessinés puis **mesurés** avant d'être retenus, jamais retenus sur
+l'impression qu'ils font :
 
 - texte courant sur le fond : niveau AAA (rapport ≥ 7) ;
 - textes secondaires et accents : niveau AA (≥ 4,5) ;
@@ -1547,6 +1715,17 @@ qu'elles font :
   seul porteur de l'information, puisque chaque verdict porte aussi son
   marqueur de forme (WCAG 1.4.1).
 
+**Ces critères n'ont jamais été rétro-appliqués aux neuf palettes
+empruntées**, reprises telles quelles de leur source pour la fidélité —
+et la mesure faite depuis montre que plusieurs de leurs accents échouent
+AA sur fond clair (aucun accent de ces palettes n'atteint 4,5:1 sur
+clair ; le pire mesuré descend à 1,29:1). Le choix d'issue — corriger
+ces palettes, les basculer en polarité sombre, ou les déclarer offertes
+pour la fidélité et non pour la mesure — est un choix éditorial **ouvert
+au BACKLOG (B5)** ; cette spécification ne le tranche pas. En attendant,
+la promesse est scopée honnêtement : les critères ci-dessus décrivent
+les palettes du projet, pas le catalogue entier.
+
 **Facettes.** Passé une douzaine de palettes, une galerie cesse d'être
 un moyen de choisir et devient une chose à faire défiler. Trois facettes
 décrivent donc chaque entrée ; `themes-gallery` (§11.7) les expose en
@@ -1554,16 +1733,16 @@ filtres, et la commande `themes` (§11.9) en options :
 
 | Facette | Valeurs | Origine |
 |---|---|---|
-| polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.2) |
+| polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.1) |
 | intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée ; absente, vaut `sober` — c'est le cas des neuf palettes d'éditeurs, reprises telles quelles |
 | hue | `neutral`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta` | **calculée** à partir du fond |
 
 Les noms de facettes et leurs valeurs sont en anglais, comme tout
-identifiant que la ligne de commande accepte. La galerie est une page
-française et affiche « Clair », « Sobre », « Teinte du fond » : elle
-garde ses libellés d'affichage séparés des valeurs sur lesquelles elle
-filtre. Une chaîne affichée et une clé ne sont pas la même chose, et les
-confondre rendrait la CLI intraduisible.
+identifiant que la ligne de commande accepte — et comme la galerie
+elle-même, page anglaise depuis la v0.12.1 (ses libellés d'affichage,
+« Light », « Sober », restent séparés des valeurs sur lesquelles elle
+filtre : une chaîne affichée et une clé ne sont pas la même chose, et
+les confondre rendrait la CLI intraduisible).
 
 Une même fonction, `theme_facets()`, alimente les deux surfaces. Un
 sélecteur dans un terminal et un sélecteur dans un navigateur ne peuvent
@@ -1588,45 +1767,30 @@ de mémoire : les angles CIELAB ne sont pas ceux que l'intuition RVB
 suggère — un bleu franc se situe vers 297°, pas 240°, et le cyan vers
 227°.
 
-La teinte est prise sur `--page`, c'est-à-dire **le fond de la page** :
-c'est ce qu'un lecteur voit en premier, et ce qu'il désigne en disant
-« un thème vert ». Sur un thème à polarité sombre, `--page` porte le
-fond sombre, donc la même règle continue de s'appliquer sans cas
-particulier.
+La teinte est prise sur `color.page`, c'est-à-dire **le fond de la
+page** : c'est ce qu'un lecteur voit en premier, et ce qu'il désigne en
+disant « un thème vert ». Sur un thème à polarité sombre, `color.page`
+porte le fond sombre, donc la même règle continue de s'appliquer sans
+cas particulier.
 
 Ces facettes ne changent rien au rendu : elles ne servent qu'à
 présenter et à choisir. `install --theme` continue de ne connaître que
 des slugs.
 
-#### 9.5.4 Interaction avec `refresh-templates`
-
-Avant de reconstruire la partie intégrée du fichier (§9.4),
-`refresh-templates` cherche le marqueur de thème (§9.5.1) dans l'ancien
-`templates/style.css` :
-
-- Marqueur présent et slug toujours connu de `THEMES` : les variables de
-  ce thème (§9.5.1) sont réappliquées au CSS par défaut à jour avant écriture —
-  une mise à jour de l'exécutable ne fait donc jamais revenir
-  silencieusement un site à la palette par défaut. Le marqueur de thème
-  est réécrit à l'identique, pour survivre aux rafraîchissements suivants
-  aussi.
-- Marqueur présent mais slug disparu d'une version ultérieure de
-  `THEMES` : repli sur le thème par défaut pour la partie intégrée,
-  avec un avertissement (pas une erreur fatale — un nettoyage de
-  catalogue de thèmes ne doit pas bloquer un build).
-- Marqueur absent : comportement inchangé, thème par défaut (cas déjà
-  couvert par §9.4).
-
-#### 9.5.5 Les liens du corps de texte, et le plancher de contraste
+#### 9.5.3 Les liens du corps de texte, et le plancher de contraste
 
 **Un lien du corps de texte n'a pas de couleur de palette.** Il hérite de
 l'encre qui l'entoure (`color: inherit`) et se signale par un
-**soulignement**, dont un thème peut teinter le trait via
-`--link-decoration-color` (`currentColor` par défaut).
+**soulignement**, dont la teinte est le seul axe exposé :
+`link.decoration-color`, à défaut `ink` — le trait a la couleur du texte,
+qui ne peut jamais échouer ; un thème ou une série peut le teinter là où
+il a mesuré une couleur qui tient. L'héritage et le soulignement
+eux-mêmes sont de l'architecture (correctif B3), pas des réglages : ils
+ne sont pas exposés.
 
 La règle est portée par `.fact-content a, .full-article a` — les deux
 seuls conteneurs dans lesquels le convertisseur Markdown écrit. Elle ne
-doit jamais viser `a` nu : cela souligne aussi les pastilles de
+doit jamais viser `a` nu : cela soulignerait aussi les pastilles de
 progression, les cartes de la navigation entre articles et celles de
 l'index.
 
@@ -1637,31 +1801,32 @@ autres options :
   sur **quinze** thèmes et tombe à 1,03:1 sur `pop-violet`. Contrairement
   à ce que BACKLOG B3 supposait, ce ne sont pas seulement les thèmes
   sombres : `pop-tangerine` est un thème clair à 4,27:1.
-- `var(--accent)` échoue AA sur onze thèmes **et** est la couleur du
-  verdict « partiellement », par identité (ΔE = 0) sur les 33.
-- `--positive` et `--ink-muted` sont les deux autres couleurs de verdict.
-  Aucun rôle de palette n'est donc libre, sauf `--marker`, utilisable sur
+- `call` échoue AA sur onze thèmes **et** est la couleur du verdict
+  « partiellement », par identité (ΔE = 0) sur les 33.
+- `affirm` et `ink-quiet` sont les deux autres couleurs de verdict.
+  Aucune valeur partagée n'est donc libre, sauf `mark`, utilisable sur
   13 thèmes sur 33.
-- `--ink` sur `--page` est le seul couple sur lequel **tout** thème est
-  admis (§9.5.3). Un lien est donc AA et AAA partout par construction, et
+- `ink` sur `page` est le seul couple sur lequel **tout** thème est
+  admis (§9.5.2). Un lien est donc AA et AAA partout par construction, et
   WCAG 1.4.1 est satisfait par le soulignement, qui n'est pas une
   couleur.
 
 **Plancher général.** Aucune règle portant du texte courant ne s'atténue
 par `opacity`. Deux le faisaient et échouaient : la carte « en cours de
-lecture » du bloc de navigation (1,62:1, sur les 33 thèmes et sur la
-palette par défaut) et le verdict « non » (1,99:1, sur 32). Une exception
-n'est recevable que **mesurée** : le résumé de couverture garde son
-`opacity: 0.78` parce que le résultat composité vaut 5,05:1 au pire
-(catppuccin), et un test recalcule cette valeur sur les 33 thèmes à
-chaque exécution. Atténuer le fond ne coûte aucun contraste ; atténuer le
-texte en coûte toujours.
+lecture » du bloc de navigation (1,62:1) et le verdict « non » (1,99:1).
+Une exception n'est recevable que **mesurée** : le résumé de couverture
+garde son atténuation de 0,78 parce que le résultat composité vaut
+5,05:1 au pire (catppuccin) — mais elle est désormais portée par l'alpha
+de la couleur elle-même (`cover.summary.fg`, alpha `C7`), pas par une
+`opacity` du squelette, et la conversion de thème la réénonce contre la
+palette réelle (§9.5.1) ; un test recalcule cette valeur sur les 33
+thèmes à chaque exécution. Le texte secondaire de couverture
+(`cover.num.fg`) suit la même règle : c'était un `rgba` fixe jamais
+mesuré, à 2,37:1 au pire ; ses alphas sont calculés pour tenir AA sur
+les deux polarités (0,70 en clair, 0,56 en sombre). Atténuer le fond ne
+coûte aucun contraste ; atténuer le texte en coûte toujours.
 
-`--cover-fg-faint` suit la même règle : c'était un `rgba` fixe jamais
-mesuré, à 2,37:1 au pire. Les alphas sont désormais calculés pour tenir
-AA sur les deux polarités (0,70 en clair, 0,56 en sombre).
-
-#### 9.5.6 Le champ `note` d'un thème est du texte nu
+#### 9.5.4 Le champ `note` d'un thème est du texte nu
 
 Chaque entrée de `THEMES` porte une `note`, et elle a **deux
 consommateurs aux besoins opposés** : `themes` (§11.9) l'imprime dans un
@@ -1692,6 +1857,146 @@ demandent.
 Verrouillé par test **à la source** — aucune note ne contient `<`, `>`
 ni d'entité — et non sur l'affichage : c'est le stockage qui est la
 règle, l'affichage n'en est que la conséquence.
+
+### 9.6 La couche article, et les balises d'instance
+
+#### 9.6.1 Propriétés d'article (`style.*` dans le bloc meta)
+
+Toute ligne `style.<propriété>: valeur` du bloc `lwp:meta` d'un article
+restyle **cette page seule**, par-dessus le thème et les settings de la
+série — quatrième couche de la cascade (§9.3). Même vocabulaire, mêmes
+types, mêmes renvois, mêmes erreurs que `settings.conf` :
+`style.verdict.partial.fg: #8A4B00`, `style.cover.bg.angle: 90deg`. La
+feuille étant composée par page, la recomposition ne coûte qu'une fusion
+de plus. Une clé ou une valeur invalide est une erreur fatale du build
+qui **nomme le fichier** — une faute de propriété dans un article ne
+doit jamais se lire comme un mystère de build.
+
+#### 9.6.2 Variantes de composant (`fact-variant`)
+
+Un auteur qui veut un encadré différent **désigne une variante**, il ne
+fixe pas des valeurs : `fact-variant: warning` sur une fiche standard
+ajoute la classe `fact--warning` à son encadré. La source porte du sens
+(« ceci est un avertissement »), pas une décision visuelle (« ceci est
+rouge ») — ce que ça donne à l'écran se définit une fois par série (une
+règle `.fact--warning` dans `custom.css`), donc un changement de thème
+emporte la variante avec lui. Le nom devient une classe CSS et est
+validé comme telle (`[a-z][a-z0-9-]*`, sinon erreur fatale nommant la
+valeur). Sans `fact-label:` il n'y a pas d'encadré, donc pas de classe à
+accrocher. Le format a un précédent assumé pour ce geste : les classes
+de verdict sur une cellule (§6.1) sont déjà un point de personnalisation
+documenté.
+
+#### 9.6.3 Balises d'instance
+
+La cinquième couche de la cascade — portée **instance** au lieu de
+portée page — avec le même vocabulaire et les mêmes types que les quatre
+autres. Des balises **définies par le format**, utilisables dans tout
+texte libre (corps de fiche, article de fond) :
+
+| Balise | Effet |
+|---|---|
+| `{color:#E8A33D}…{/color}` | couleur littérale (hex 3/4/6/8 chiffres, normalisée ARGB) |
+| `{color:mark}…{/color}` | une valeur partagée par son nom (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`) |
+| `{font:mono}…{/font}` | une pile partagée par son nom (`text`, `display`, `ui`, `mono`), ou une pile littérale finissant sur un générique |
+| `{sc}…{/sc}` | petites capitales |
+| `{u}…{/u}` | souligné |
+| `{strike}…{/strike}` | barré |
+
+Les balises de forme nues (`sc`, `u`, `strike`, et `mono` comme
+raccourci de `{font:mono}`) sont autorisées librement : elles ne
+composent avec rien, ne dépendent d'aucun thème et ne peuvent pas
+produire un résultat illisible. Les **littéraux** dans le texte sont
+admis parce que la balise passe par le compilateur, donc trois garanties
+s'appliquent d'elles-mêmes :
+
+- **les mêmes types partout** — une couleur y est un ARGB valide, une
+  pile finit sur un générique, sinon erreur fatale du build nommant la
+  balise et l'article. La position antérieure — variantes seulement —
+  visait le bon danger au mauvais endroit : le risque n'était pas le
+  littéral, c'était l'invisibilité d'une intervention écrite en CSS
+  libre que rien ne lit ;
+- **un nom partagé est émis en `var()`** (`{color:call}` →
+  `var(--color-call)`), que le `:root` de toute page définit par
+  construction — la balise suit donc les changements de thème ;
+- **`audit` les énumère** par article, en `[NOTE]` informatif, jamais
+  bloquant (§9.4.4) : l'auteur qui change de thème sait où regarder.
+
+Mécanique de rendu, vérifiée : les balises s'imbriquent (résolution de
+l'intérieur vers l'extérieur), le Markdown à l'intérieur se convertit
+toujours ; un ouvreur sans son fermeur sur la même ligne reste du texte
+littéral — visible dans le rendu, là où l'auteur regarde déjà ; à
+l'intérieur d'un span de `` `code` ``, rien n'est jamais une balise. La
+**variante reste le geste recommandé** pour ce qui se répète ; la balise
+est l'outil de l'intervention ponctuelle d'un auteur qui sait ce qu'il
+fait.
+
+### 9.7 Effets et dégradés
+
+**Fond dégradable.** Un fond qui sait se dégrader se paramètre en trois
+axes — `bg.from`, `bg.to`, `bg.angle` (aujourd'hui : la couverture,
+`cover.bg.*`) — et **un aplat est un dégradé dont les deux bornes sont
+égales** : `bg.to` renvoie par défaut à `bg.from`, pas de branche, pas
+de cas particulier, et les thèmes du catalogue restent des aplats sans
+rien dire. Deux réserves : un dégradé est une `background-image`, donc
+`print-color-adjust: exact` est nécessaire à l'impression ; et un
+dégradé **sur du texte** exigerait `background-clip: text` — hors
+périmètre, les dégradés sont réservés aux fonds.
+
+**Ombres et halos.** Ombre et halo passent par `text-shadow`, en trois
+axes par composant porteur : `shadow.fg`, `shadow.blur`, `shadow.dy`.
+**Un halo est une ombre sans décalage** — même mécanisme, pas de
+branche, comme l'aplat est un dégradé à bornes égales. Le défaut est
+`transparent` : aucun effet tant qu'un thème n'en demande pas. Trois
+composants portent les axes : `page`, `title1` et `highlight`.
+`text-shadow` étant une propriété **héritée**, les axes posés sur `page`
+teintent tout le texte du site d'un coup — l'effet « aérien » global est
+trois lignes — et les composants qui portent leurs propres axes
+divergent localement : le halo vert de `terminal` sur ses titres et son
+chiffre-clé (§9.5.1), sans toucher au corps.
+
+Le barré appartient à l'énumération de décoration (`line-through`), qui
+sert aussi aux balises d'instance (§9.6.3). L'alignement (centrer,
+justifier) est noté au BACKLOG (B7) pour une version ultérieure, sur
+décision du propriétaire.
+
+### 9.8 Migration depuis `templates/style.css`
+
+**Rupture nette, sans alias.** Un `var(--yellow)` ou un `var(--marker)`
+ne se replie sur rien : la déclaration est invalide et la propriété
+garde sa valeur héritée, sans que le navigateur ne dise mot. La
+politique maison — rupture annoncée à voix haute, casse silencieuse
+rendue audible — s'applique par trois canaux, tous vérifiés :
+
+- **`build`** avertit (`[WARN]`) si `templates/style.css` existe
+  encore : le fichier n'est plus lu, la feuille est composée depuis
+  `settings.conf` ; les valeurs vont dans `settings.conf`, les règles
+  dans `custom.css`, puis le fichier se supprime.
+- **`refresh-templates`** répète l'avertissement et **crée** la surface
+  neuve manquante (scaffold + `custom.css` vides) sans jamais migrer les
+  valeurs : ce sont les décisions de l'auteur, les déplacer lui revient
+  (§9.4.3).
+- **`audit`** rend le geste mécanique : une table plate embarquée,
+  `RETIRED_VARIABLES`, associe **chaque nom de variable ayant existé et
+  n'existant plus** à son remplaçant, et `audit` nomme chaque occurrence
+  trouvée — dans un `style.css` hérité comme dans `custom.css`
+  (§9.4.4). Elle couvre les renommages de la v0.12.0 (`--yellow` →
+  `--color-mark`…) comme ceux de la refonte (`--page` → `--color-page`,
+  `--fact-strong-highlight` → `--fact-strong-bg`…). L'avertissement est
+  d'autant plus utile qu'un ancien nom se scinde parfois en plusieurs
+  remplaçants selon l'emploi — `--accent` devient `--color-call` ou
+  l'axe du composant visé (`--footnote-call-fg`, `--verdict-partial-fg`,
+  `--nav-btn-ring`…), `--rule` se dissout par composant
+  (`--slide-rule-fg`, `--footer-rule-fg`…) — c'est précisément le cas où
+  un alias serait faux et où un message est juste.
+
+Une série d'avant la refonte reste constructible sans rien faire (la
+feuille composée part des défauts intégrés) ; elle récupère la surface
+neuve au premier `refresh-templates`, ou directement le thème voulu par
+`set-theme` (qui écrit un scaffold frais quand `settings.conf` manque,
+§9.4.2). L'hypothèse de travail est assumée : un seul utilisateur,
+capable de tout régénérer — l'architecture est conçue pour être juste,
+pas compatible.
 
 ---
 
@@ -1741,12 +2046,15 @@ Crée la structure de travail dans `[répertoire]` :
 1. Crée le répertoire s'il n'existe pas
 2. Crée les sous-répertoires : `articles/`, `templates/`, `language/`,
    `public/`
-3. Extrait les templates par défaut depuis l'exécutable (§9) :
-   - `templates/style.css` — avec les couleurs du thème par défaut, sauf
-     si `--theme <nom>` est fourni, auquel cas les vingt et une variables
-     de ce thème sont substituées (§9.5.1) ; `<nom>` inconnu de `THEMES` est une
-     erreur fatale, qui liste les noms valides
+3. Écrit la surface de personnalisation (§9.3, §9.4.1) :
+   - `templates/settings.conf` — le scaffold complet : toutes les
+     propriétés en commentaire à la valeur du thème choisi, avec la ligne
+     `theme: <nom>` si `--theme <nom>` est fourni (sinon, scaffold aux
+     défauts intégrés, sans ligne `theme:` active) ; `<nom>` inconnu de
+     `THEMES` est une erreur fatale, qui liste les noms valides
+   - `templates/custom.css` — le gabarit commenté, vide de règles
    - `templates/nav.js`
+   (pas de `templates/style.css` : la feuille est composée au build, §9.3)
 4. Extrait les packs de langue par défaut depuis l'exécutable :
    - `language/fr.json`
    - `language/en.json`
@@ -1781,8 +2089,10 @@ attendant une entrée qui ne viendra jamais.
 lightwebpres demo [répertoire] [--lang fr]
 ```
 
-Vérifie que `install` a été fait (présence de `templates/style.css`). Si
-non, erreur fatale invitant à lancer `install` d'abord.
+Vérifie que `install` a été fait (présence de `templates/settings.conf`,
+ou de `templates/nav.js` pour qu'une série installée avant la refonte §9
+reste reconnue). Si non, erreur fatale invitant à lancer `install`
+d'abord.
 
 Refuse de s'exécuter si l'un des 7 fichiers de démo (6 `.md` +
 `img/demo-figure.svg`) existe déjà dans `articles/`, **ou si
@@ -1827,8 +2137,8 @@ Construit le site :
    « Brouillon » (clé `draft_banner` du fichier de langue) affiché au
    centre de l'en-tête de page, entre l'éventuel build stamp (§11.3.2) et
    le numéro de fiche — un aperçu ne doit jamais être confondu avec une
-   publication (style inline, comme le stamp, pour ne pas dépendre d'un
-   `templates/style.css` antérieur à la fonctionnalité).
+   publication (style inline, comme le stamp, pour ne dépendre d'aucune
+   règle de la feuille composée ni d'un `custom.css` de série).
 2. Pour chaque article dans `series.json` :
    a. Lit le fichier `.md` source depuis `articles/`
    b. Parse le Markdown étendu (découpe les slides, extrait les métadonnées)
@@ -1842,7 +2152,9 @@ Construit le site :
       aucun article de ce build, §4.5/§19.6) ou pour un article dont le
       bloc meta porte `typo: off` (même effet, mais pour cet article
       seul, §4.5)
-   e. Assemble le HTML avec la structure de page fixe (§9), le CSS et le JS
+   e. Assemble le HTML avec la structure de page fixe (§9), la feuille
+      composée (§9.3 — recomposée pour cette page si le bloc meta porte
+      des propriétés `style.*`, §9.6.1) et le JS
    f. Écrit le fichier HTML dans `public/`
 3. Génère la page d'index (`public/index.html`)
 4. Génère le `README.md` à la racine du répertoire de série (§8.3)
@@ -1972,23 +2284,25 @@ que le seul élément que `lightwebpres` génère lui-même
 (`<div class="build-stamp" style="...">...</div>`), jamais un contenu
 d'auteur.
 
-**Style entièrement en ligne, jamais dans `style.css`** — bug réel trouvé
-en testant à la main juste après la première version : une série avec
-son propre `templates/style.css` (personnalisé, ou simplement scaffoldé
-avant l'existence de cette option) n'a aucun moyen de récupérer une
-nouvelle règle intégrée sans passer par `refresh-templates` (§9.4). La
-première version du marqueur dépendait d'une règle `.build-stamp` dans
-la feuille de style partagée — absente de ce genre de série, la `<div>`
-se retrouvait sans style du tout : un bloc pleine largeur, texte de
-couleur par défaut, poussant la première fiche vers le bas au lieu de se
-superposer discrètement dans le coin (repéré visuellement, capture
-d'écran à l'appui, avant d'être corrigé). Le style (couleur, taille,
-`pointer-events: none`, positionnement) est maintenant entièrement porté
-par l'attribut `style=""` de la `<div>` elle-même, jamais dépendant d'une
-règle externe — y compris la couleur grise, qui utilise une valeur
-hexadécimale fixe plutôt que `var(--ink-muted)` (même risque : une propriété
-personnalisée définie dans le `style.css` intégré peut, elle aussi, être
-absente d'un `style.css` ancien ou personnalisé).
+**Style entièrement en ligne, jamais dans la feuille de style** — bug
+réel trouvé en testant à la main juste après la première version : à
+l'époque du `templates/style.css` éditable, une série au fichier
+personnalisé (ou simplement scaffoldé avant l'existence de cette option)
+n'avait aucun moyen de récupérer une nouvelle règle intégrée sans passer
+par `refresh-templates`. La première version du marqueur dépendait d'une
+règle `.build-stamp` dans la feuille partagée — absente de ce genre de
+série, la `<div>` se retrouvait sans style du tout : un bloc pleine
+largeur, texte de couleur par défaut, poussant la première fiche vers le
+bas au lieu de se superposer discrètement dans le coin (repéré
+visuellement, capture d'écran à l'appui, avant d'être corrigé). Le style
+(couleur, taille, `pointer-events: none`, positionnement) est
+entièrement porté par l'attribut `style=""` de la `<div>` elle-même,
+jamais dépendant d'une règle externe — y compris la couleur grise, en
+valeur hexadécimale fixe plutôt qu'en `var()`. La règle survit à la
+feuille composée (§9.3), qui est pourtant toujours fraîche : un
+`custom.css` de série peut légitimement écraser ou omettre n'importe
+quelle règle, et un outillage interne ne doit jamais dépendre de la
+surface que l'auteur possède.
 
 **`position: absolute`, pas `fixed`** — deuxième itération, retour
 explicite après la première version livrée : le marqueur doit apparaître
@@ -2045,22 +2359,26 @@ Vérifie des **conventions éditoriales non bloquantes**, sans jamais faire
 compare le HTML généré à l'existant, §11.4) :
 
 1. Pour chaque article, lit et parse le `.md` source
-2. Avertit si l'article ne contient **aucune** fiche `cover`
-3. Avertit si la **première** fiche de l'article n'est pas une `cover`
-4. Avertit si l'article n'a de description **nulle part** (`page_desc`
+2. Note (`[NOTE]`, informatif, non compté comme avertissement) les
+   **balises d'instance** que l'article contient, avec leur décompte par
+   type — des interventions d'auteur qui survivent aux changements de
+   thème (§9.6.3), que l'auteur doit savoir localiser
+3. Avertit si l'article ne contient **aucune** fiche `cover`
+4. Avertit si la **première** fiche de l'article n'est pas une `cover`
+5. Avertit si l'article n'a de description **nulle part** (`page_desc`
    vide à tous les niveaux de la cascade §20.3.1 — la balise
    `<meta name="description">` serait omise)
-5. Avertit si la **section personnelle** de `templates/style.css` (après
-   le marqueur de §9.4) référence encore une variable de palette
-   renommée en v0.12.0, en nommant chacune et son remplaçant. Voir §9.1 :
-   aucun alias n'a été conservé, donc une telle déclaration est
-   simplement invalide et cesse de s'appliquer sans que rien ne le
-   signale — c'est le seul endroit du système qui rend cette rupture
-   audible. La partie intégrée au-dessus du marqueur n'est pas
-   inspectée : elle migre seule au premier `refresh-templates`, et la
-   signaler enverrait un auteur éditer un fichier qu'il ne doit pas
-   éditer.
-6. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+6. Volet présentation (§9.4.4) : avertit si un `templates/style.css`
+   hérité existe encore (plus lu — avec, pour lui comme pour
+   `custom.css`, chaque variable **retirée** encore référencée, nommée
+   avec son remplaçant, table `RETIRED_VARIABLES` de §9.8 — aucun alias
+   n'a été conservé, une telle déclaration cesse de s'appliquer sans que
+   rien ne le signale, et c'est ici que la rupture devient audible) ; si
+   `settings.conf` contient une erreur de syntaxe ou de propriété (mêmes
+   messages qu'au build, non bloquants ici) ; et si son `scaffold-for:`
+   ne correspond plus au `theme:` déclaré (décommenter une ligne
+   épinglerait une valeur du thème quitté)
+7. Affiche un résumé (en anglais, non localisé) : « No warnings: all
    editorial conventions are respected. » ou « N warning(s). Reminder:
    audit never blocks... »
 
@@ -2074,20 +2392,29 @@ Le nombre et la position des fiches `cover` restent libres (§4.4, §22.13) :
 lightwebpres refresh-templates [répertoire]
 ```
 
-Met à jour la partie intégrée à l'exécutable de `templates/style.css` et
-`templates/nav.js` sans écraser une personnalisation locale — voir §9.4
-pour le mécanisme exact (marqueur pour `style.css`, sauvegarde
-`nav.js.bak` pour `nav.js`). Si `style.css` porte le marqueur de thème de
-§9.5.1, le thème identifié est réappliqué à la partie intégrée à jour
-plutôt que de revenir au thème par défaut — voir §9.5.4 pour le détail.
+Met à jour ce qui, dans `templates/`, appartient à l'outil — voir §9.4.3
+pour le raisonnement. Sous le modèle de feuille composée, la feuille est
+toujours fraîche par construction (elle vient de l'exécutable courant à
+chaque build) ; le seul fichier de l'outil restant sur disque est
+`nav.js`.
 
 1. Erreur fatale si `templates/` n'existe pas (`install` pas encore fait)
-2. Pour chaque fichier présent, affiche s'il a été rafraîchi ou était déjà
-   à jour
-3. Pour `style.css` sans marqueur trouvé, affiche `[SKIP]` avec la ligne à
-   ajouter à la main, et laisse le fichier inchangé
-4. Code de sortie non nul si au moins un fichier a été « skipped » faute de
-   marqueur ; 0 sinon
+2. `templates/nav.js` : remplacé s'il diffère de la version intégrée
+   (l'ancien est sauvegardé en `templates/nav.js.bak`), rapporté
+   « already up to date » sinon
+3. Crée les fichiers de la surface auteur s'ils **manquent** (série
+   installée avant la refonte §9) : `templates/settings.conf` (scaffold
+   aux défauts, aucun thème déclaré) et `templates/custom.css` (vide) —
+   écrire un fichier qui n'existe pas ne trahit aucune promesse de
+   propriété ; un fichier présent n'est **jamais** touché
+4. Avertit (`[WARN]`) si un `templates/style.css` hérité existe encore :
+   il n'est plus lu et n'est **jamais migré** — ses valeurs sont les
+   décisions de l'auteur ; `audit` nomme chaque renommage de variable
+   pour rendre le déplacement mécanique (§9.8)
+
+Plus de marqueur, plus de `[SKIP]` : l'ancien mécanisme de coupure
+n'existait que parce que l'outil écrivait dans un fichier que l'auteur
+éditait, ce que le partage de propriété de §9.3 a supprimé.
 
 Ne relance pas `build` automatiquement : les fichiers HTML déjà générés
 dans `public/` restent inchangés tant que `build` n'est pas relancé à la
@@ -2101,30 +2428,33 @@ lightwebpres themes-gallery [chemin]
 
 Génère une page HTML autonome (aucune dépendance) documentant chaque
 entrée de `THEMES` (§9.5) — un aperçu de son rendu sur un fragment de
-fiche réel, ses six valeurs, et sa remarque éditoriale. Ne modifie aucun
+fiche réel, ses six couleurs de rôle (chaque pastille donne le rôle, puis
+le nom de propriété qu'un auteur peut réellement taper — `color.mark` —
+puis la valeur), et sa remarque éditoriale. Ne modifie aucun
 `series.json` ni `templates/` : cette commande documente, elle n'installe
 rien.
 
-L'aperçu reçoit aussi les superpositions neutres du thème (§9.5.2), sans
-quoi une palette à fond sombre s'afficherait avec les voiles d'une page
-claire — c'est-à-dire pas telle qu'elle rendra réellement.
+L'aperçu reçoit la couche complète du thème, mobilier compris (§9.5.1),
+sans quoi une palette à fond sombre s'afficherait avec les voiles d'une
+page claire — c'est-à-dire pas telle qu'elle rendra réellement.
 
-Sous chaque aperçu, une ligne « Gras en fact-box » **énonce** le
-traitement du gras que le thème a choisi (§9.1) — « Gras, surligné
-`--marker` », « Gras, sans surlignage », « Italique, surligné
-`--positive` », « Gras, sans surlignage, souligné `--marker` »… La
-galerie appliquait ces propriétés à sa maquette sans jamais les nommer :
-neuf combinaisons distinctes existent parmi les thèmes intégrés et
-aucune n'était lisible autrement qu'en scrutant deux lignes d'aperçu.
-Le soulignement n'est mentionné que lorsqu'il est présent — en annoncer
+Sous chaque aperçu, une ligne « Fact-box bold » **énonce** le traitement
+du gras que le thème a choisi — « Bold, highlighted `--marker` »,
+« Bold, no highlight », « Italic, highlighted `--positive` »… La galerie
+appliquait ces propriétés à sa maquette sans jamais les nommer : neuf
+combinaisons distinctes existent parmi les thèmes intégrés et aucune
+n'était lisible autrement qu'en scrutant deux lignes d'aperçu. Le
+soulignement n'est mentionné que lorsqu'il est présent — en annoncer
 l'absence sur chaque carte noierait les axes qui, eux, diffèrent.
 
 **L'aperçu est une vraie fiche.** Pas une imitation : `themes-gallery`
 fait passer une maquette écrite au format d'article réel (§4) par
 `parse_markdown_extended()` puis `render_slide()` — les fonctions
-qu'appelle `build` — et lui applique `apply_theme(TEMPLATE_STYLE, slug)`,
-la feuille qu'installe `install --theme`. Aucun code de rendu n'est
-dupliqué, donc aucune divergence n'est possible.
+qu'appelle `build` — et lui applique la feuille composée pour ce thème
+(`compose_stylesheet()` sur la couche de `theme_property_layer()`,
+§9.3/§9.5.1), exactement ce qu'un build produit pour une série sur ce
+thème. Aucun code de rendu n'est dupliqué, donc aucune divergence n'est
+possible.
 
 Chaque aperçu est un `<iframe srcdoc>`. Deux raisons, l'une nécessaire :
 
@@ -2138,9 +2468,10 @@ Chaque aperçu est un `<iframe srcdoc>`. Deux raisons, l'une nécessaire :
 L'aperçu est rendu à 1100 px de large puis réduit géométriquement
 (`transform: scale()`) : une miniature du rendu réel, pas une
 approximation. `srcdoc` conserve l'autonomie de la page — aucune requête
-externe. La galerie pèse de ce fait environ 900 Ko, la feuille de 22 Ko
-étant répétée pour chacun des 33 thèmes ; c'est le prix de la garantie,
-et il a été jugé acceptable pour une page de documentation.
+externe. La galerie pèse de ce fait environ 1 Mo, la feuille composée
+(~29 Ko par document d'aperçu) étant répétée pour chacun des thèmes ;
+c'est le prix de la garantie, et il a été jugé acceptable pour une page
+de documentation.
 
 **Ce que cette architecture a supprimé.** L'aperçu était auparavant une
 maquette faite main avec ses propres règles `.preview-*`, et une copie
@@ -2152,9 +2483,9 @@ le chiffre et sa légende que `render_slide()` n'a jamais émise. Les deux
 étaient invisibles pour une suite qui vérifiait la copie contre
 elle-même. Les tests portent désormais sur l'**identité** : le document
 d'aperçu contient exactement la sortie de `render_slide()` et exactement
-la feuille de `apply_theme()`.
+la feuille composée pour ce thème.
 
-En tête de page, une barre de **facettes** (§9.5.3) filtre les aperçus
+En tête de page, une barre de **facettes** (§9.5.2) filtre les aperçus
 par polarité, intensité et teinte. Elle est produite en HTML statique
 mais masquée par défaut, et révélée par le script inline de la page :
 sans JavaScript, la galerie reste une liste complète et lisible plutôt
@@ -2169,10 +2500,13 @@ lui-même est produit, et il n'a plus vocation à être modifié à la main
 (§9.5) : toute correction sur un thème (couleur, remarque) se fait dans
 `THEMES`, puis `themes-gallery` régénère le fichier.
 
-Le texte d'exemple de chaque aperçu (« Chapitre 1 », « La température
-change tout », etc.) est fixe, en français, non localisé par `--lang` —
-c'est un choix éditorial pour cette page de référence, pas une limite du
-moteur de fiches lui-même.
+Le texte d'exemple de chaque aperçu (« Chapter 1 », « Temperature
+changes everything », etc.) est fixe, non localisé par `--lang` — la
+galerie est une page anglaise depuis la v0.12.1, comme ses libellés
+d'interface ; c'est un choix éditorial pour cette page de référence, pas
+une limite du moteur de fiches lui-même. Le point de fond demeure : une
+chaîne affichée et une clé de facette sont deux choses distinctes
+(§9.5.2).
 
 ### 11.8 `--help`
 
@@ -2192,7 +2526,7 @@ lightwebpres themes [--polarity light|dark] [--intensity sober|vivid|mono] [--hu
 ```
 
 Liste les thèmes intégrés depuis le terminal, avec pour chacun son slug,
-ses trois facettes (§9.5.3), son étiquette et sa remarque éditoriale.
+ses trois facettes (§9.5.2), son étiquette et sa remarque éditoriale.
 Sans option, les liste tous ; chaque option restreint la liste, et les
 options se combinent.
 
@@ -2220,62 +2554,46 @@ Deux cas se distinguent volontairement :
 ### 11.10 `set-theme`
 
 ```bash
-lightwebpres set-theme [répertoire] --theme <slug> [--force]
+lightwebpres set-theme [répertoire] --theme <slug>
 ```
 
-Change le thème d'une série existante, en réécrivant les variables de
-`templates/style.css` (§9.5.1). Avant cette commande, les seules voies
-étaient de réinstaller la série ou d'éditer à la main le marqueur de
-thème puis de lancer `refresh-templates` — un effet de bord du mécanisme
-de survie aux mises à jour (§9.5.4), que rien ne documentait et que
-personne ne devinerait.
+Change le thème d'une série existante en réécrivant **la seule ligne de
+`templates/settings.conf` qui soit à l'outil** : la ligne `theme:` (ou le
+placeholder commenté `# theme: <slug>` du scaffold, ou en tête de fichier
+si ni l'un ni l'autre n'existe) — voir §9.4.2 pour le raisonnement.
+Aucun CSS n'est réécrit : la feuille est composée au prochain `build`
+depuis la couche du nouveau thème (§9.3), et les valeurs décommentées par
+l'auteur restent en place et s'appliquent par-dessus (§9.4.2).
 
-Le fichier produit est **identique octet pour octet** à celui
-qu'`install --theme <slug>` aurait écrit. Deux chemins vers le même état
-ne doivent pas donner deux fichiers différents, sans quoi `check`
-signalerait une dérive sur une série dont on a simplement changé le
-thème.
+Comportements, tous vérifiés :
 
-**Le message nomme les deux thèmes**, celui qui part et celui qui
-arrive :
+- **Répertoire jamais installé** (pas de `templates/`) : erreur fatale
+  (code de sortie non nul) renvoyant vers `install` — `set-theme`
+  configure une série existante, il n'en crée pas.
+- **`templates/` présent mais pas de `settings.conf`** (série installée
+  avant la refonte §9) : un scaffold neuf est écrit pour le thème
+  demandé — écrire un fichier qui n'existe pas ne trahit aucune
+  promesse de propriété (§9.4.2).
+- **Thème déjà en place** : `Theme unchanged: already <slug>. Nothing
+  written.` — rien n'est écrit, plutôt que de mettre à jour une date de
+  modification pour rien.
+- **Sinon** : `Theme changed: <ancien> -> <nouveau>`, l'ancien étant
+  `default` si aucune ligne `theme:` n'était active — une réponse à
+  « remplacé par quoi », pas une valeur manquante. Le message rappelle
+  que les valeurs décommentées restent en place et s'appliquent
+  par-dessus le nouveau thème, que les commentaires du scaffold montrent
+  encore l'ancien (`audit` le signale, §9.4.4), et qu'un `build` doit
+  être relancé pour que le changement atteigne `public/`.
+- **`<slug>` inconnu de `THEMES`** : erreur fatale qui renvoie vers
+  `lightwebpres themes` (avec le compte des slugs valides).
 
-```
-Theme changed: nord -> evergreen
-```
-
-Un fichier sans marqueur est sur le thème par défaut, ce qui est une
-réponse à « remplacé par quoi » et non une valeur manquante : il
-s'affiche `default -> <slug>`. Un marqueur nommant un thème que cette
-version ne connaît pas s'affiche `<slug> (unknown) -> <slug>`.
-
-**`--force` et la notion de fichier standard.** La commande refuse un
-`templates/style.css` dont la partie intégrée n'est pas exactement celle
-que cet exécutable aurait écrite pour le thème qu'il porte. Trois cas
-la rendent non standard :
-
-1. la partie intégrée diffère (éditée à la main, ou écrite par une autre
-   version de l'exécutable) ;
-2. le marqueur de personnalisation (§9.4) est absent, donc le CSS
-   intégré ne peut pas être distingué des règles de l'auteur ;
-3. le marqueur de thème nomme un slug inconnu de `THEMES`.
-
-Le motif du refus n'est pas la prudence de principe : la substitution
-opère sur des motifs précis (`--<nom>: <valeur>;` dans `:root`). Une
-déclaration réécrite en `rgb(...)`, ou déplacée hors de `:root`, ne
-correspond plus au motif et **garderait silencieusement son ancienne
-valeur** — une page à moitié recolorée, pire que pas de commande du
-tout. `--force` passe outre, applique quand même, et **avertit** en
-nommant le motif.
-
-Un refus n'écrit rien.
-
-Les règles ajoutées **après** le marqueur de personnalisation (§9.4) sont
-préservées dans tous les cas et ne rendent jamais un fichier non
-standard : c'est la façon prévue de personnaliser.
-
-Enfin, demander le thème déjà en place n'écrit pas le fichier et le dit
-(`Theme unchanged`), plutôt que de mettre à jour une date de
-modification pour rien.
+**`--force` n'existe plus** (le passer est une erreur fatale
+`Unknown option`, §2.4) : il ne protégeait que la réécriture partielle
+d'un `templates/style.css` à moitié personnalisé — un fichier que plus
+rien n'écrit ni ne lit (§9.4.2, §9.8). De même, plus de notion de
+« fichier standard », plus de marqueur de thème, plus de refus : la
+commande n'écrit que dans un fichier de données, sur une ligne qui lui
+appartient.
 
 ---
 
@@ -2288,7 +2606,9 @@ build(répertoire):
   1. series = read_json(répertoire/series.json)
   2. lang = --lang OU $LWP_LANG OU "fr" (défaut)
   3. language = load_language(lang, --language-file)  # rules + strings, §19.5 pour l'ordre de priorité complet
-  4. css = read_file(répertoire/templates/style.css) OR built-in default
+  4. settings = parse_settings(répertoire/templates/settings.conf)  # §9.3.1 ; absent = couche vide
+     css = compose_stylesheet(défauts ← thème(settings.theme) ← settings)  # §9.3 — en mémoire, jamais sur disque
+           + read_file(répertoire/templates/custom.css)  # ajouté en dernier (§9.3.2)
   5. js = read_file(répertoire/templates/nav.js) OR built-in default
   # La structure de page (page_template) et d'index (index_template) est
   # fixe, intégrée à l'exécutable — pas lue depuis templates/ (§9)
@@ -2320,7 +2640,7 @@ build(répertoire):
      h. html = fill_page_template({
           "lang": lang,
           "title": title,
-          "css": css,
+          "css": css,  # recomposée pour cette page si le bloc meta porte des propriétés style.* (§9.6.1)
           "js_nav": js,
           "slides": "\n".join(html_slides)
         })  # fill_page_template uses the fixed, built-in page structure (§18.1)
@@ -2743,8 +3063,9 @@ tranchés — à spécifier avant implémentation.
 
 - **`.md`** : inclus, converti en HTML, typographié ✓
 - **`.html`** : structure de page fixe (§9), pas un template lu depuis un
-  fichier — seuls `.css` et `.js` le sont
-- **`.css`** : inclus dans `<style>` ✓
+  fichier — seuls `custom.css` et `nav.js` le sont
+- **`.css`** : `templates/custom.css` ajouté après la feuille composée
+  (§9.3.2), le tout inliné dans `<style>` ✓
 - **`.js`** : inclus dans `<script>` ✓
 - **`.json`** : `series.json` et `language/*.json` lus et parsés ✓
 
@@ -2766,8 +3087,9 @@ tranchés — à spécifier avant implémentation.
 - **Exécutable unique** : un seul fichier Python, pas de dépendance externe ✓
 - **Install / Demo / Build / Check / Audit / Refresh-templates / Themes-gallery** : commandes séparées ✓
 - **Variables d'environnement** : `LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, etc. ✓
-- **Override** : `style.css`/`nav.js` et le fichier de langue sont éditables
-  (§9, §7) ; la structure HTML des pages ne l'est pas ✓ (délibérément, §9)
+- **Override** : `settings.conf`/`custom.css`/`nav.js` et le fichier de
+  langue sont éditables (§9, §7) ; la structure HTML des pages ne l'est
+  pas ✓ (délibérément, §9)
 
 ### 17.6 Ce qui n'est PAS couvert (volontairement)
 
@@ -2818,11 +3140,11 @@ les templates. Le remplacement est fait par `str.replace()` en Python.
 </div>
 
 <div class="share-popover" id="sharePopover">
-  <!-- matrice 2×3 : copier le lien / afficher le QR code × série / article / fiche, §9.2.1 -->
+  <!-- matrice 2×3 : copier le lien / afficher le QR code × série / article / fiche, §9.3.4 -->
 </div>
 
 <div class="share-qr-modal" id="shareQrModal">
-  <!-- QR code SVG généré côté client, §9.2.1 -->
+  <!-- QR code SVG généré côté client, §9.3.4 -->
 </div>
 
 {{slides}}
@@ -2841,7 +3163,7 @@ Placeholders :
 |-------------|--------|-------------|
 | `{{lang}}` | `LWP_LANG` ou `--lang` | Langue de la page (ex. `fr`) |
 | `{{title}}` | `page_title` résolu (§20.3.1, sans balises HTML) | Titre de la page |
-| `{{css}}` | `templates/style.css` | Le CSS inline |
+| `{{css}}` | Feuille composée en mémoire (§9.3) + `templates/custom.css` | Le CSS inline |
 | `{{slides}}` | Généré par le build | Toutes les `<section class="slide">` |
 | `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, bouton de partage, encodeur QR) |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Chaîne d'interface (voir §7.3), remplacée dans `page.html` **et** dans `js_nav` une fois celui-ci chargé |
@@ -2862,7 +3184,7 @@ sont des `<div class="nav-btn">` porteurs de `role="button"`,
 activation clavier Entrée/Espace équivalente au clic — sans quoi le
 bouton de partage, qui n'a pas d'autre point d'entrée clavier, serait
 inatteignable au clavier. Le parcours de lecture lui-même reste piloté
-par les flèches au niveau document (§9.2.2).
+par les flèches au niveau document (§9.3.5).
 
 ### 18.2 Template `index.html`
 
@@ -2913,7 +3235,7 @@ Placeholders supplémentaires :
 | `{{series_intro}}` | `series_meta.intro` (seule source) | Paragraphe d'intro de l'index |
 | `{{cards}}` | Généré depuis `series.json` | Les cartes d'articles |
 | `{{index_footer}}` | `series_meta.author`/`series_meta.license` (§20.3.1) | Pied de page éditorial de la série — tout absent = rien d'émis |
-| `{{js_index}}` | Généré, intégré à l'exécutable | Le JS spécifique à l'index (scroll) — pas overridable (§9). Pas de bouton de partage sur l'index (§9.2.1) |
+| `{{js_index}}` | Généré, intégré à l'exécutable | Le JS spécifique à l'index (scroll) — pas overridable (§9). Pas de bouton de partage sur l'index (§9.3.4) |
 | `{{index_extra}}` | `templates/index_extra.html` s'il existe | Fragment HTML libre inséré tel quel en fin de `<body>` |
 | `{{build_stamp}}` | `--build-stamp`/`--build-stamp-minimal` (§11.3.2) | Marqueur de fraîcheur du build, vide par défaut |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Infobulles `index_nav_up`/`index_nav_home`/`index_nav_down`, voir §7.3 |

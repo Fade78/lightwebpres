@@ -423,3 +423,27 @@ recorded it as outside the colour apparatus by nature. To settle someday:
 expose it as a length property (`page.content-max`) like everything else,
 or record the exemption as permanent — today the exemption lives only in
 a code comment and the gap-check test.
+
+## B14 — Literalize the skeleton; retire TEMPLATE_STYLE — OPEN
+
+Audit finding (2026-08-04): about two thirds of the old sheet's 577 lines
+are dead at runtime — 142 lines of comments, the 23-declaration :root, and
+~180 engine-driven declarations, all stripped by `extract_skeleton()` on
+every composition. The constant lies to its reader: editing a driven
+declaration is a silent no-op, exactly the defect class this project kills
+elsewhere. The extraction gap-check only protects against additions to the
+OLD sheet, and the place where additions happen now is the registry.
+
+Plan, in order (the order matters — doing step 2 first is churn):
+1. Retarget the remaining tests that read `TEMPLATE_STYLE` directly onto
+   the composed sheet or resolved properties: the anti-opacity scan
+   (MEASURED_FADES — its `.slide-cover .summary` exemption is already
+   vestigial, the declaration no longer ships), the body-link selector
+   guard (duplicate it on the registry's `link` component, where a
+   selector widening would today pass unseen), and the styling-hooks
+   anchor.
+2. Replace the constant with the frozen, re-prettified skeleton; keep the
+   gap-check as a plain test (no var() but --content-max, no content hex).
+3. Delete `extract_skeleton`, `_strip_driven`, `_driven_declarations`,
+   `SkeletonGapError` — optionally keeping a driven-declaration collision
+   test between skeleton and registry.

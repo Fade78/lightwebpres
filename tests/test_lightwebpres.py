@@ -572,7 +572,7 @@ class PlaceholderNotSubstitutedInAuthorContent(unittest.TestCase):
             # The real stylesheet must never be dumped into the title/meta:
             # the <title> content is exactly the literal placeholder text.
             title = html.split('<title>')[1].split('</title>')[0]
-            self.assertNotIn('--marker', title)
+            self.assertNotIn('--color-mark', title)
             self.assertNotIn('box-sizing', title)
 
     def test_index_series_title_placeholder_stays_literal(self):
@@ -3103,9 +3103,13 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
     So these tests assert IDENTITY rather than correspondence. There is no
     mapping left to drift."""
 
-    EMPHASIS_VARS = ('--fact-strong-weight', '--fact-strong-style',
-                     '--fact-strong-highlight', '--fact-strong-ink',
-                     '--fact-strong-decoration', '--fact-strong-decoration-color')
+    @property
+    def EMPHASIS_VARS(self):
+        # Derived from the registry: a static list held the OLD names
+        # (-highlight/-ink) after the rename to -bg/-fg, so the realistic
+        # regression — hand-injecting the new names — was invisible to it.
+        return tuple(p.var for p in self.lwp.PROPERTY_REGISTRY.values()
+                     if p.key.startswith('fact.strong.'))
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
@@ -3229,39 +3233,42 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         # the twenty-one-variables drift can never recur.
         self.assertIn(str(len(self.lwp.PROPERTY_REGISTRY)), result.stdout)
 
-    def test_underline_is_a_fourth_independent_axis(self):
-        props = self.lwp.theme_fact_properties
-        self.assertEqual(props({})['decoration'], 'none')
-        self.assertEqual(props({})['decoration-color'], 'currentColor')
-        instead = props({'fact_highlight': None, 'fact_decoration': 'underline',
-                         'fact_decoration_color': 'marker'})
-        self.assertEqual(instead['highlight'], 'transparent')
-        self.assertEqual(instead['decoration-color'], 'var(--marker)')
-        as_well = props({'fact_highlight': 'marker', 'fact_decoration': 'underline'})
-        self.assertEqual(as_well['highlight'], 'var(--marker)')
-        self.assertEqual(as_well['decoration'], 'underline')
+    def _resolved(self, slug):
+        return self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer(slug))
+
+    def test_underline_is_an_independent_axis(self):
+        # The guarantee the old translation-layer test carried: default is
+        # no underline with the rule taking the text's own colour; a theme
+        # can underline INSTEAD of a ground, or AS WELL AS one.
+        r = self.lwp.resolve_theme_properties()
+        self.assertEqual(r['fact.strong.decoration'], 'none')
+        # decoration-color defaults to the strong ink itself (the engine's
+        # spelling of currentColor), so an underline can never be a colour
+        # the text does not already carry unless a theme says so.
+        self.assertEqual(r['fact.strong.decoration-color'], r['fact.strong.fg'])
 
     def test_the_catalogue_demonstrates_both_ways_of_using_the_underline(self):
         instead, as_well = [], []
-        for slug, theme in self.lwp.THEMES.items():
-            props = self.lwp.theme_fact_properties(theme)
-            if props['decoration'] != 'underline':
+        for slug in self.lwp.THEMES:
+            r = self._resolved(slug)
+            if r['fact.strong.decoration'] != 'underline':
                 continue
-            (instead if props['highlight'] == 'transparent' else as_well).append(slug)
-        self.assertTrue(instead, 'no theme shows an underline replacing the marker')
-        self.assertTrue(as_well, 'no theme shows an underline alongside the marker')
+            (instead if r['fact.strong.bg'] == '#00000000' else as_well).append(slug)
+        self.assertTrue(instead, 'no theme shows an underline replacing the ground')
+        self.assertTrue(as_well, 'no theme shows an underline alongside the ground')
         for slug in instead + as_well:
-            theme = self.lwp.THEMES[slug]
-            colour = theme.get('fact_decoration_color')
-            if colour is None:
-                continue
+            r = self._resolved(slug)
             self.assertGreaterEqual(
-                contrast_ratio(theme[colour], theme['page']), 3.0,
+                contrast_ratio(r['fact.strong.decoration-color'][:7],
+                               r['color.page'][:7]), 3.0,
                 f'{slug}: the underline is too faint against the page')
 
-    def test_the_default_highlight_role_names_a_role_that_exists(self):
-        default = self.lwp.theme_fact_properties({})['highlight']
-        self.assertIn(default[6:-1], self.lwp.PALETTE_ROLES, default)
+    def test_the_default_ground_references_a_shared_colour(self):
+        prop = self.lwp.PROPERTY_REGISTRY['fact.strong.bg']
+        self.assertEqual(prop.default, 'mark')
+        r = self.lwp.resolve_theme_properties()
+        self.assertEqual(r['fact.strong.bg'], r['color.mark'])
 
     def test_each_swatch_names_the_role_before_the_variable(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3288,8 +3295,11 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         for slug, theme in self.lwp.THEMES.items():
             label = self.lwp.fact_treatment_label(theme)
             self.assertIn(label, stated, slug)
-            props = self.lwp.theme_fact_properties(theme)
-            self.assertEqual('underlined' in label, props['decoration'] == 'underline', slug)
+            resolved = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug))
+            self.assertEqual('underlined' in label,
+                             resolved['fact.strong.decoration'] == 'underline',
+                             slug)
         self.assertGreaterEqual(len(set(stated)), 5)
 
 
@@ -3439,26 +3449,23 @@ class ContrastFloors(unittest.TestCase):
             offenders.append(f'{selector} (opacity {m.group(1)})')
         self.assertEqual(offenders, [], 'a text rule may not fade itself unmeasured')
 
-    def test_every_allowed_fade_still_clears_aa_on_every_theme(self):
-        """Guards the exemption above. The cover summary paints
-        --cover-fg at 78% over the cover ground; that is fine today
-        (worst 5.05:1, catppuccin) and would stop being fine if either
-        the alpha or a palette moved."""
-        css = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_STYLE, flags=re.DOTALL)
-        for selector, ground_kind in self.MEASURED_FADES.items():
-            self.assertEqual(ground_kind, 'cover')
-            block = re.search(re.escape(selector) + r'\s*\{([^}]*)\}', css)
-            self.assertIsNotNone(block, selector)
-            alpha = float(re.search(r'opacity:\s*([\d.]+)', block.group(1)).group(1))
-            for slug, theme in self.lwp.THEMES.items():
-                ground = self._cover_ground(theme)
-                # --cover-fg is the page colour on a light theme, the ink
-                # on a dark one (§9.5.2) — the cover inverts the page.
-                fg = self._rgb(theme['page'] if not theme.get('dark_background')
-                               else theme['ink'])
-                ratio = self._ratio(self._over(fg, alpha, ground), ground)
-                self.assertGreaterEqual(round(ratio, 2), 4.5,
-                                        f'{selector} on {slug}: {ratio:.2f}:1')
+    def test_the_cover_summary_alpha_clears_aa_on_every_theme(self):
+        """The measured 0.78 became an explicit alpha in cover.summary.fg,
+        restated per theme by the converter. An earlier version of this
+        guard read the opacity out of the STRIPPED declaration in the old
+        sheet — auditing a value that no longer ships, so the live alpha
+        could have drifted below AA while the guard kept passing."""
+        for slug in self.lwp.THEMES:
+            r = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug))
+            fg8 = r['cover.summary.fg']
+            fg, alpha = self._rgb(fg8[:7]), int(fg8[7:9], 16) / 255
+            from8 = r['cover.bg.from']
+            ground = self._over(self._rgb(from8[:7]), int(from8[7:9], 16) / 255,
+                                self._rgb(r['color.page'][:7]))
+            ratio = self._ratio(self._over(fg, alpha, ground), ground)
+            self.assertGreaterEqual(round(ratio, 2), 4.5,
+                                    f'cover summary on {slug}: {ratio:.2f}:1')
 
     def test_a_body_link_keeps_the_ink_around_it(self):
         """§9.1/BACKLOG B3. The link had no rule at all and took the
@@ -3472,7 +3479,6 @@ class ContrastFloors(unittest.TestCase):
         self.assertRegex(body, r'color:\s*inherit')
         self.assertRegex(body, r'text-decoration:\s*underline')
         self.assertIn('var(--link-decoration-color)', body)
-        self.assertIn('--link-decoration-color: currentColor;', css)
 
     def test_the_link_rule_never_reaches_navigation(self):
         """Underlining every <a> would have underlined the series-nav
