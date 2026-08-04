@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up: half these rules cover what an edit breaks without saying so. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.4"
+  version: "0.5"
 ---
 
 # Sourced presentation — method
@@ -89,7 +89,9 @@ Written before searching. It carries:
 
 ## The article
 
-**Every claim carries its own degree of certainty, where it stands.** A limits section consolidates what cuts across the file; it does not walk back what the body overstated. *Hedging every sentence asserts nothing; hedging only at the end asserts too much, and takes it back where fewer readers go.*
+**Two placements for hedging, and the series chooses.** *Distributed*: every claim carries its degree of certainty where it stands, and a limits section consolidates only what cuts across the file. *Concentrated*: the body states plainly and one section holds every reservation — which suits a series whose cards must not moderate one another, since a card carrying its own hedge moderates the deck.
+
+**Under either placement, a limits section never walks back what the body overstated**, and the status of a claim — alleged, measured, declared — is not hedging: it travels with the claim, always. *Hedging every sentence asserts nothing; hedging only at the end asserts too much, and takes it back where fewer readers go.*
 
 **The article's scope clearly exceeds the deck's**, and it develops every fact a card will carry. An article that merely expands its cards gives them nothing to stand on.
 
