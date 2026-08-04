@@ -1003,6 +1003,374 @@ def theme_state(css_text):
     return slug, True, ''
 
 
+# ============================================================================
+# THEME ENGINE (§9 rewrite) — typed properties in, CSS out
+# ============================================================================
+# The authoring surface is a flat list of typed properties named after the
+# components the format already names (GLOSSARY.md); CSS is only the emission
+# format. Layers — built-in defaults, theme, series settings, article,
+# instance tags — are plain dicts merged before emission, so what ships is
+# flat and what the author writes is data the tooling can read.
+#
+# STAGED: not yet wired into build/install. The registry below is the working
+# extract; the full inventory of TEMPLATE_STYLE replaces it as it lands.
+
+FONT_GENERICS = ('serif', 'sans-serif', 'monospace', 'cursive', 'fantasy')
+LENGTH_UNITS = ('px', 'rem', 'em', 'ch', 'vw', 'vh', '%', 'pt')
+LENGTH_FUNCS = ('clamp', 'calc', 'min', 'max')
+
+# Reference chains are resolved at generation time and never reach the CSS,
+# so this cap protects only the reader of a settings file. Two hops proved too
+# tight the day the catalogue's own `terminal` needed summary.font ->
+# font.text -> font.mono: an ordinary theme sat exactly at the limit, leaving
+# a series no room to add one indirection of its own.
+MAX_REFERENCE_HOPS = 3
+
+
+class PropertyError(Exception):
+    """A property value that does not match its type, or a reference that
+    leads nowhere. Always names the offending key: the silent no-op — a
+    mistyped variable doing nothing, wordlessly — was the single most
+    expensive failure of the CSS surface this engine replaces."""
+
+
+class PropType:
+    """Base property type. `namespace` is where a bare-word reference is
+    looked up (the axis fixes the type, the type fixes the namespace); None
+    means the axis takes literals only."""
+    name = 'value'
+    namespace = None
+
+    def is_literal(self, value):
+        return True
+
+    def check(self, key, value):
+        return value
+
+
+class ColourType(PropType):
+    name = 'colour'
+    namespace = 'color'
+    HEX = re.compile(r'^#(?:[0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$')
+
+    def is_literal(self, value):
+        # Unambiguous by construction: a literal colour always starts with #.
+        return value.startswith('#') or value == 'transparent'
+
+    def check(self, key, value):
+        if value == 'transparent':
+            return '#00000000'
+        if not self.HEX.match(value):
+            raise PropertyError(f'{key}: {value!r} is not a colour '
+                                f'(expected #RGB, #RRGGBB or #RRGGBBAA)')
+        h = value.lstrip('#')
+        if len(h) in (3, 4):
+            h = ''.join(c * 2 for c in h)
+        if len(h) == 6:
+            h += 'FF'
+        return '#' + h.upper()
+
+
+class LengthType(PropType):
+    name = 'length'
+
+    def check(self, key, value):
+        if any(value.startswith(f + '(') for f in LENGTH_FUNCS):
+            return value                     # a CSS function, passed through
+        if value in ('0', 'auto'):
+            return value
+        m = re.match(r'^-?[\d.]+([a-z%]+)$', value)
+        if not m or m.group(1) not in LENGTH_UNITS:
+            raise PropertyError(f'{key}: {value!r} is not a length '
+                                f'(units: {", ".join(LENGTH_UNITS)})')
+        return value
+
+
+class RatioType(PropType):
+    """Unitless, and deliberately not a Length. A unitless line-height is
+    inherited as a factor and re-multiplied by each child's own font-size;
+    `1.5rem` is inherited as a fixed length and breaks the moment a child
+    changes size. Invisible until it bites — which is what typing is for."""
+    name = 'ratio'
+
+    def check(self, key, value):
+        if not re.match(r'^[\d.]+$', value):
+            raise PropertyError(f'{key}: {value!r} is not a ratio '
+                                f'(a unitless number, e.g. 1.5)')
+        return value
+
+
+class AngleType(PropType):
+    name = 'angle'
+
+    def check(self, key, value):
+        if not re.match(r'^-?[\d.]+(deg|rad|turn|grad)$', value):
+            raise PropertyError(f'{key}: {value!r} is not an angle '
+                                f'(deg, rad, turn, grad)')
+        return value
+
+
+class FontStackType(PropType):
+    """A stack must end on a CSS 2.1 generic: that is the only guarantee a
+    browser owes us. Everything before the generic is a chance; the generic
+    is the promise."""
+    name = 'font stack'
+    namespace = 'font'
+
+    def is_literal(self, value):
+        # A real stack ends on a generic (so it has a comma) or IS a bare
+        # generic. Anything else without a comma is a reference.
+        return ',' in value or value in FONT_GENERICS
+
+    def check(self, key, value):
+        last = [p.strip().strip('"\'') for p in value.split(',')][-1]
+        if last not in FONT_GENERICS:
+            raise PropertyError(
+                f'{key}: font stack must end on a generic family '
+                f'({", ".join(FONT_GENERICS)}), found {last!r}. '
+                f'No named font is guaranteed to be installed.')
+        return value
+
+
+class ChoiceType(PropType):
+    def __init__(self, *values, hint=''):
+        self.values = values
+        self.hint = hint
+        self.name = 'one of ' + '|'.join(values)
+
+    def check(self, key, value):
+        if value not in self.values:
+            msg = (f'{key}: {value!r} not allowed '
+                   f'(expected {"|".join(self.values)})')
+            raise PropertyError(msg + (f'. {self.hint}' if self.hint else ''))
+        return value
+
+
+class FreeTextType(PropType):
+    name = 'text'
+
+
+PROP_COLOR = ColourType()
+PROP_LENGTH = LengthType()
+PROP_RATIO = RatioType()
+PROP_ANGLE = AngleType()
+PROP_FONT = FontStackType()
+PROP_TEXT = FreeTextType()
+# Only normal and bold survive a generic family: asked for 600 a two-weight
+# font renders 700, and 500 renders 400 — three declared weights collapse
+# into two, and "partial" stops being distinguishable from "yes".
+PROP_WEIGHT = ChoiceType('normal', 'bold',
+                         hint='Intermediate weights collapse on a generic family.')
+PROP_STYLE = ChoiceType('normal', 'italic')
+PROP_CASE = ChoiceType('none', 'uppercase', 'lowercase', 'small-caps')
+PROP_NUMERIC = ChoiceType('normal', 'tabular-nums', 'tabular-nums lining-nums')
+
+
+class ThemeProp:
+    def __init__(self, key, type_, default, css=None):
+        self.key = key            # 'tag.fg'
+        self.type = type_
+        self.default = default    # a literal, or a reference written as a word
+        self.css = css            # CSS declaration it feeds, None if composite
+
+    @property
+    def var(self):
+        return '--' + self.key.replace('.', '-')
+
+
+class ThemeComponent:
+    def __init__(self, key, selector, props, composite=None):
+        self.key = key
+        self.selector = selector
+        self.props = props
+        self.composite = composite   # declarations built from several props
+
+
+def _gradient_decl(v_angle, v_from, v_to):
+    """A flat fill is a gradient whose two stops are equal — one mechanism,
+    no branch, and a flat theme stays flat without saying anything."""
+    return ('background',
+            f'linear-gradient(var({v_angle}), var({v_from}), var({v_to}))')
+
+
+THEME_SHARED_PROPS = [
+    ThemeProp('color.page',      PROP_COLOR, '#F8F8F5'),
+    ThemeProp('color.ink',       PROP_COLOR, '#1A1A2E'),
+    ThemeProp('color.ink-quiet', PROP_COLOR, '#6B6B7D'),
+    ThemeProp('color.mark',      PROP_COLOR, '#FFFC00'),
+    ThemeProp('color.call',      PROP_COLOR, '#FF4757'),
+    ThemeProp('color.affirm',    PROP_COLOR, '#3AA55C'),
+    # Defaults keep today's faces; a real typographic stance is catalogue
+    # work, not engine work.
+    ThemeProp('font.text', PROP_FONT,
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"),
+    ThemeProp('font.display', PROP_FONT, 'text'),
+    ThemeProp('font.ui',      PROP_FONT, 'text'),
+    ThemeProp('font.mono',    PROP_FONT, "'SF Mono', Menlo, Consolas, monospace"),
+]
+
+THEME_COMPONENTS = [
+    ThemeComponent('cover', '.slide-cover', [
+        ThemeProp('cover.bg.from',  PROP_COLOR, 'ink'),
+        ThemeProp('cover.bg.to',    PROP_COLOR, 'cover.bg.from'),
+        ThemeProp('cover.bg.angle', PROP_ANGLE, '160deg'),
+        ThemeProp('cover.fg',       PROP_COLOR, 'page', css='color'),
+    ], composite=lambda: _gradient_decl('--cover-bg-angle', '--cover-bg-from',
+                                        '--cover-bg-to')),
+
+    ThemeComponent('title1', '.slide-cover h1', [
+        ThemeProp('title1.fg',      PROP_COLOR,  'cover.fg', css='color'),
+        ThemeProp('title1.font',    PROP_FONT,   'display',  css='font-family'),
+        ThemeProp('title1.weight',  PROP_WEIGHT, 'bold',     css='font-weight'),
+        ThemeProp('title1.size',    PROP_LENGTH, 'clamp(2rem, 6vw, 3.5rem)',
+                  css='font-size'),
+        ThemeProp('title1.leading', PROP_RATIO,  '1.1',      css='line-height'),
+    ]),
+
+    ThemeComponent('tag', '.slide-tag', [
+        ThemeProp('tag.fg',        PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('tag.font',      PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('tag.weight',    PROP_WEIGHT, 'normal',    css='font-weight'),
+        ThemeProp('tag.size',      PROP_LENGTH, '0.8125rem', css='font-size'),
+        ThemeProp('tag.transform', PROP_CASE,   'uppercase', css='text-transform'),
+        ThemeProp('tag.tracking',  PROP_LENGTH, '0.08em',    css='letter-spacing'),
+    ]),
+
+    ThemeComponent('summary', '.summary', [
+        ThemeProp('summary.fg',      PROP_COLOR,  'ink',  css='color'),
+        ThemeProp('summary.font',    PROP_FONT,   'text', css='font-family'),
+        ThemeProp('summary.size',    PROP_LENGTH, 'clamp(1rem, 2vw, 1.375rem)',
+                  css='font-size'),
+        ThemeProp('summary.leading', PROP_RATIO,  '1.5',  css='line-height'),
+    ]),
+
+    ThemeComponent('highlight', '.highlight', [
+        ThemeProp('highlight.fg',      PROP_COLOR,   'mark',    css='color'),
+        ThemeProp('highlight.font',    PROP_FONT,    'display', css='font-family'),
+        ThemeProp('highlight.size',    PROP_LENGTH,  'clamp(2.5rem, 8vw, 5rem)',
+                  css='font-size'),
+        ThemeProp('highlight.numeric', PROP_NUMERIC, 'tabular-nums lining-nums',
+                  css='font-variant-numeric'),
+    ]),
+
+    ThemeComponent('fact.strong', '.fact-content strong', [
+        ThemeProp('fact.strong.bg',     PROP_COLOR,  'mark',   css='background'),
+        ThemeProp('fact.strong.fg',     PROP_COLOR,  'ink',    css='color'),
+        ThemeProp('fact.strong.weight', PROP_WEIGHT, 'bold',   css='font-weight'),
+        ThemeProp('fact.strong.style',  PROP_STYLE,  'normal', css='font-style'),
+    ]),
+
+    ThemeComponent('verdict.yes', '.comparison-table .yes', [
+        ThemeProp('verdict.yes.fg',     PROP_COLOR,  'affirm', css='color'),
+        ThemeProp('verdict.yes.weight', PROP_WEIGHT, 'bold',   css='font-weight'),
+        ThemeProp('verdict.yes.mark',   PROP_TEXT,   '"\\25CF"'),
+    ]),
+    ThemeComponent('verdict.partial', '.comparison-table .partial', [
+        ThemeProp('verdict.partial.fg',     PROP_COLOR,  'call', css='color'),
+        ThemeProp('verdict.partial.weight', PROP_WEIGHT, 'bold', css='font-weight'),
+        ThemeProp('verdict.partial.mark',   PROP_TEXT,   '"\\25D0"'),
+    ]),
+    ThemeComponent('verdict.no', '.comparison-table .no', [
+        ThemeProp('verdict.no.fg',     PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('verdict.no.weight', PROP_WEIGHT, 'normal',    css='font-weight'),
+        ThemeProp('verdict.no.mark',   PROP_TEXT,   '"\\25CB"'),
+    ]),
+]
+
+PROPERTY_REGISTRY = {p.key: p for p in THEME_SHARED_PROPS}
+for _c in THEME_COMPONENTS:
+    for _p in _c.props:
+        PROPERTY_REGISTRY[_p.key] = _p
+
+
+def _reference_target(prop, value):
+    """The property `value` points at, or None if it is a literal.
+
+    The axis fixes the type, the type fixes the namespace. A bare word is
+    looked up there; a dotted word is a qualified reference. That is the
+    whole rule — no guessing whether a value 'looks like' a key."""
+    if prop.type.is_literal(value):
+        return None
+    if '.' in value:
+        return value                  # qualified: title1.fg, cover.bg.from
+    if prop.type.namespace:
+        return f'{prop.type.namespace}.{value}'
+    return None
+
+
+def resolve_theme_properties(*layers):
+    """built-in defaults -> theme -> series settings -> article. Later wins.
+
+    Unknown keys are errors, not silence — that is the point of typing the
+    surface. References are followed here and never reach the CSS."""
+    raw = {k: p.default for k, p in PROPERTY_REGISTRY.items()}
+    for layer in layers:
+        for key, value in layer.items():
+            if key not in PROPERTY_REGISTRY:
+                tail = key.split('.')[-1]
+                near = [k for k in PROPERTY_REGISTRY
+                        if k.split('.')[-1] == tail]
+                raise PropertyError(
+                    f'{key}: unknown property'
+                    + (f' (did you mean {near[0]}?)' if near else ''))
+            raw[key] = value
+
+    out = {}
+    for key, prop in PROPERTY_REGISTRY.items():
+        value, chain = raw[key], [key]
+        while True:
+            target = _reference_target(prop, value)
+            if target is None:
+                break
+            if target not in PROPERTY_REGISTRY:
+                raise PropertyError(
+                    f'{key}: refers to unknown property {target!r}. '
+                    f'A bare word is looked up in {prop.type.namespace}.*; '
+                    f'a literal {prop.type.name} does not go through the '
+                    f'namespace.')
+            if target in chain:
+                raise PropertyError(f'{key}: reference cycle '
+                                    f'{" -> ".join(chain + [target])}')
+            if len(chain) - 1 >= MAX_REFERENCE_HOPS:
+                raise PropertyError(
+                    f'{key}: reference chain deeper than '
+                    f'{MAX_REFERENCE_HOPS} hops '
+                    f'({" -> ".join(chain + [target])})')
+            chain.append(target)
+            value = raw[target]
+        out[key] = prop.type.check(key, value)
+    return out
+
+
+def emit_theme_css(resolved):
+    """The resolved property set becomes the :root block plus the rules that
+    read it. Emission is derived from the registry, so completeness is
+    structural: every property is consumed by construction, and nothing a
+    rule consumes escapes the registry."""
+    lines = [':root {', '  /* shared */']
+    for p in THEME_SHARED_PROPS:
+        lines.append(f'  {p.var}: {resolved[p.key]};')
+    for c in THEME_COMPONENTS:
+        lines.append(f'  /* {c.key} */')
+        for p in c.props:
+            lines.append(f'  {p.var}: {resolved[p.key]};')
+    lines.append('}')
+
+    for c in THEME_COMPONENTS:
+        decls = []
+        if c.composite:
+            prop, value = c.composite()
+            decls.append(f'  {prop}: {value};')
+        decls += [f'  {p.css}: var({p.var});' for p in c.props if p.css]
+        if decls:
+            lines += [f'{c.selector} {{', *decls, '}']
+        mark = next((p for p in c.props if p.key.endswith('.mark')), None)
+        if mark:
+            lines.append(
+                f'{c.selector}::before {{ content: var({mark.var}); }}')
+    return '\n'.join(lines)
+
+
 # --- Template: style.css ---
 TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
 :root {

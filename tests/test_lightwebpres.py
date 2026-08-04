@@ -6069,5 +6069,110 @@ class NativeUtf8EndToEnd(unittest.TestCase):
 
 
 
+class ThemeEngineStaged(unittest.TestCase):
+    """The property engine (§9 rewrite), staged in the executable but not yet
+    wired into build. These pin the interface itself — one cascade for every
+    property, references resolved by axis-fixed namespace, errors that name
+    their key — before the full inventory lands on top of it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def resolve(self, *layers):
+        return self.lwp.resolve_theme_properties(*layers)
+
+    def test_later_layer_wins_and_bare_words_resolve_in_namespace(self):
+        r = self.resolve({'color.ink': '#112233'},
+                         {'summary.fg': 'ink-quiet'})
+        self.assertEqual(r['color.ink'], '#112233FF')
+        # summary.fg said a bare word: looked up in color.*, one hop.
+        self.assertEqual(r['summary.fg'], r['color.ink-quiet'])
+
+    def test_qualified_reference_reaches_another_component(self):
+        r = self.resolve({'highlight.fg': 'summary.fg'})
+        self.assertEqual(r['highlight.fg'], r['summary.fg'])
+
+    def test_terminal_style_theme_is_fonts_plus_colours(self):
+        # The catalogue's `terminal` in the new vocabulary: fixed pitch is
+        # three lines, and the 2-hop chain summary.font -> font.text ->
+        # font.mono must fit under the cap.
+        r = self.resolve({
+            'color.page': '#0B0F0C', 'color.ink': '#D7FFE0',
+            'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
+            'cover.fg': 'ink',
+        })
+        self.assertIn('monospace', r['summary.font'])
+        self.assertIn('monospace', r['title1.font'])
+        # title1.fg -> cover.fg -> color.ink, the second ordinary 2-hop chain.
+        self.assertEqual(r['title1.fg'], '#D7FFE0FF')
+
+    def test_flat_fill_is_a_gradient_with_equal_stops(self):
+        r = self.resolve({})
+        self.assertEqual(r['cover.bg.from'], r['cover.bg.to'])
+
+    def test_unknown_key_is_a_named_error_with_a_suggestion(self):
+        with self.assertRaises(self.lwp.PropertyError) as ctx:
+            self.resolve({'summary.color': '#000000'})
+        self.assertIn('summary.color', str(ctx.exception))
+
+    def test_weight_beyond_normal_and_bold_is_rejected_with_the_reason(self):
+        with self.assertRaises(self.lwp.PropertyError) as ctx:
+            self.resolve({'tag.weight': '600'})
+        self.assertIn('normal|bold', str(ctx.exception))
+        self.assertIn('generic', str(ctx.exception))
+
+    def test_font_stack_must_end_on_a_generic(self):
+        with self.assertRaises(self.lwp.PropertyError) as ctx:
+            self.resolve({'font.text': '"Helvetica Neue", Helvetica'})
+        self.assertIn('generic family', str(ctx.exception))
+
+    def test_line_height_rejects_a_length(self):
+        # 1.5 inherits as a factor; 1.5rem inherits as a fixed length and
+        # breaks when a child changes font-size. The type says so.
+        with self.assertRaises(self.lwp.PropertyError):
+            self.resolve({'summary.leading': '1.5rem'})
+
+    def test_reference_cycle_is_named_with_its_chain(self):
+        with self.assertRaises(self.lwp.PropertyError) as ctx:
+            self.resolve({'tag.fg': 'summary.fg', 'summary.fg': 'tag.fg'})
+        self.assertIn('cycle', str(ctx.exception))
+        self.assertIn('tag.fg -> summary.fg -> tag.fg', str(ctx.exception))
+
+    def test_reference_chain_capped_at_three_hops(self):
+        layer = {'tag.fg': 'summary.fg', 'summary.fg': 'highlight.fg',
+                 'highlight.fg': 'ink-quiet', 'color.ink-quiet': 'ink'}
+        with self.assertRaises(self.lwp.PropertyError) as ctx:
+            self.resolve(layer)
+        self.assertIn('3 hops', str(ctx.exception))
+
+    def test_colours_normalise_to_argb(self):
+        r = self.resolve({'color.page': '#abc',
+                          'summary.fg': '#11223344',
+                          'tag.fg': 'transparent'})
+        self.assertEqual(r['color.page'], '#AABBCCFF')
+        self.assertEqual(r['summary.fg'], '#11223344')
+        self.assertEqual(r['tag.fg'], '#00000000')
+
+    def test_emitted_rules_read_only_component_properties(self):
+        # G1: outside :root, no rule touches a shared value directly — the
+        # 61 direct palette bindings are what this forbids.
+        css = self.lwp.emit_theme_css(self.resolve({}))
+        rules = css[css.index('}') + 1:]
+        self.assertNotIn('var(--color-', rules)
+        self.assertNotIn('var(--font-', rules)
+
+    def test_emission_consumes_every_registered_component_property(self):
+        # Completeness is structural: everything with a css= target appears
+        # exactly as a var() consumer in the rules.
+        resolved = self.resolve({})
+        css = self.lwp.emit_theme_css(resolved)
+        for comp in self.lwp.THEME_COMPONENTS:
+            for prop in comp.props:
+                if prop.css:
+                    self.assertIn(f'var({prop.var})', css,
+                                  f'{prop.key} declared but never consumed')
+
+
 if __name__ == '__main__':
     unittest.main()

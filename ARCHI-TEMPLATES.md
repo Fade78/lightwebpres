@@ -107,7 +107,7 @@ d'en afficher la source.
 | Fichier | Propriétaire | Écrit par le système |
 |---|---|---|
 | feuille émise | le système | régénérée à volonté, éventuellement jamais sur disque |
-| `templates/settings` | l'auteur | **jamais**, sauf demande explicite |
+| `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite |
 | `templates/custom.css` | l'auteur | **jamais** |
 
 **C'est ce partage qui supprime l'appareillage.** Le marqueur de personnalisation,
@@ -247,10 +247,29 @@ un fichier unique. Mais l'auteur peut le faire lui-même : un `@font-face` dans
 `custom.css`, la famille nommée en tête de pile dans `settings`. Le moteur n'a
 rien à en savoir. C'est une raison de plus de garder `custom.css`.
 
-### 6.4 Ce qui reste à décider
+### 6.4 Décisions prises
 
-Le nombre de piles partagées que porte un thème, leur nom, et ce que chaque
-composant prend par défaut. Voir la note de décision jointe.
+**Quatre piles partagées** — `font.text`, `font.display`, `font.ui`,
+`font.mono`. Les trois premières passent le test « plusieurs composants en
+dépendent » ; la quatrième a une justification différente et nommée comme
+telle : c'est une valeur de bibliothèque, la seule pile monospace correcte,
+écrite une fois. `display` reprend une distinction que le HTML émis fait déjà
+(`slide_title` rend `<h1>`/`<h2>`) : on ne fabrique pas de catégorie, on laisse
+une balise existante porter sa typographie.
+
+**Les thèmes touchent aux polices.** Un thème « Terminal » en chasse fixe est
+trois lignes (`font.text/display/ui: mono`). Les 33 entrées du catalogue sont à
+revoir sous cet angle — travail de construction de thèmes, hors de ce document.
+
+**Deux graisses, `normal` et `bold`**, vérifiées par type, avec le motif dans le
+message d'erreur.
+
+**Ancrage souple** : toute pile finit sur un générique CSS 2.1, sans exiger que
+`font.mono` finisse sur `monospace`. Le catalogue publié, lui, est tenu plus
+strictement — c'est la répartition habituelle entre le moteur et ses entrées.
+
+**Défauts livrés : l'aspect actuel.** Le vrai parti typographique appartient à
+la révision du catalogue.
 
 ---
 
@@ -268,12 +287,22 @@ documenté.
 souligné : autorisés librement — ils ne composent avec rien, ne dépendent d'aucun
 thème, et ne peuvent pas produire un résultat illisible.
 
-**La couleur littérale dans le texte est le seul point dangereux du système.** Une
-couleur écrite dans un article survit à tous les changements de thème, n'est pas
-auditée, et rend l'article non transportable. Une balise locale doit **référencer**
-une variante, jamais poser une valeur. Si le littéral devait être admis, il
-faudrait qu'`audit` lise les sources d'articles — ce qu'il ne fait pas — sous
-peine de créer le seul angle mort du système au seul endroit où il fait mal.
+**Les littéraux dans le texte sont admis, par balise du format.** La position
+antérieure — variantes seulement — visait le bon danger au mauvais endroit : le
+risque n'était pas le littéral, c'était l'invisibilité d'une intervention
+écrite en CSS libre que rien ne lit. Une balise **définie par le format** passe
+par le compilateur, donc trois garanties s'appliquent d'elles-mêmes :
+
+- **les mêmes types partout** — une couleur y est un ARGB valide, une pile de
+  polices y finit sur un générique, sinon erreur nommée à la génération ;
+- **`audit` les énumère** — « fiche 4 : couleur littérale, fiche 7 : police » —
+  informatif, jamais bloquant : l'auteur qui change de thème sait où regarder ;
+- **la variante reste le geste recommandé** pour ce qui se répète ; le littéral
+  est l'outil de l'intervention ponctuelle d'un auteur qui sait ce qu'il fait.
+
+La balise locale est ainsi la **cinquième couche de la cascade** — portée
+instance au lieu de portée page — avec le même vocabulaire et les mêmes types
+que les quatre autres.
 
 ---
 
