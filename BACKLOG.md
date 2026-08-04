@@ -111,9 +111,13 @@ touch the input contract):
 
 **Still open, post-1.0**: option 2, an in-cell marker syntax (`| +yes |`)
 to reach those classes without HTML. That is an addition to the input
-contract, so a minor version, never a fix. If it is adopted, handle the
-column case in the same pass. The analysis of the three options is kept
-below.
+contract, so a minor version, never a fix. The §9 rewrite changed the
+styling side, not this: the `.yes`/`.no`/`.partial` hooks are kept as a
+documented contract, and each verdict is now painted by its own typed
+properties (`verdict.yes.fg`, `verdict.yes.mark`, ...), so a marker syntax
+would bind to components that already exist — the parsing question is all
+that remains. If it is adopted, handle the column case in the same pass.
+The analysis of the three options is kept below.
 
 ### The need
 
@@ -211,9 +215,12 @@ measured one that works; it defaults to `currentColor`, which cannot
 fail. Measured on real pages after the fix: 13.92 (solarized), 13.36
 (dracula), 8.19 (pop-violet), against 1.03 before.
 
-Spec §9.5.5.
+**Carried into the §9 engine unchanged**: the underline treatment is now
+the typed property `link.decoration-color` (default: the body ink, which
+cannot fail), and `RETIRED_VARIABLES` maps the old name for legacy
+sheets. Nothing left to decide.
 
-## B4 — Key-figure alignment, as an option — OPEN
+## B4 — Key-figure alignment, as an option — ABSORBED BY B7
 
 Proposed by the owner on 2026-08-04, on noticing that the gallery preview
 showed the "180 °C" block aligned left.
@@ -226,13 +233,11 @@ between them that the engine never emits — `.highlight-arrow` was a dead
 rule, shipped in every generated page. Fixed the same day: the preview
 adopts the real composition, the dead rule is gone.
 
-**Still to decide**: should this block have an alignment option? Today it
-is centred, with no recourse. A `--highlight-align` variable (`center` by
-default, `start` possible) would be enough, and would follow the same
-mechanics as the other variables — overridable after the customization
-marker, and themable if wanted. To settle: a plain CSS variable, or a
-real article field (which would make it a per-figure decision rather than
-a per-series one).
+**Absorbed by B7** (2026-08-04). Under the §9 engine, `highlight.align`
+would be one enum axis in the registry and an alignment instance tag the
+per-figure form — the exact per-series / per-figure pair this entry was
+weighing. Alignment as a whole was deferred by owner decision; this entry
+survives only as B7's first concrete case. See B7.
 
 ## B5 — Three palette roles fail AA against their own page — OPEN
 
@@ -265,29 +270,30 @@ of an official light one" — but the consequence was never measured. The
 accents keep their upstream brightness and the ground was inverted under
 them.
 
-**Options, none of them free.**
+**What the §9 rewrite changed (2026-08-04).** The finding still stands:
+the default registry paints the verdicts and the footnote call with the
+shared palette colours (`verdict.yes.fg: affirm`, `verdict.partial.fg:
+call`, `verdict.no.fg: ink-quiet`, `footnote-call.fg: call`), so on the
+borrowed palettes the measured ratios above are unchanged. What changed
+is the cost and the blast radius of every option. Each verdict is its own
+component now (E1): retinting one moves nothing else. Option 3 — text
+takes the body ink, colour stays on the shape mark — is a **one-line
+property** (`verdict.yes.fg: ink`), settable per theme, per series
+(`settings.conf`) or as the shipped default, instead of a stylesheet
+change forced on everyone at once. And the engine's own weight rule (only
+`normal`/`bold` survive a generic family) means the shape mark already
+carries the yes/partial distinction alone — the user's argument below is
+now an architectural fact, not an opinion.
 
-1. **Flip the mis-rendered palettes to `dark_background`.** Dracula,
-   Monokai and Tokyo Night are dark schemes; giving them their real dark
-   page would be *more* faithful to upstream, not less, and every accent
-   would then measure against the ground it was designed for. Cost: those
-   themes change completely for anyone using them.
-2. **Re-tune the failing values.** Cheapest to describe, but it means
-   departing from published palettes on eight of the nine — which is the
-   one thing borrowing them was meant to avoid.
-3. **Stop painting content text with signal colours.** The verdicts
-   already carry a shape marker (WCAG 1.4.1), so the cell's text could
-   take `--ink` and leave the colour on the marker; the same applies to a
-   footnote call. Guarantees AA everywhere with no palette edit — the
-   treatment already chosen for links in B3 — at the cost of the colour
-   those cells currently carry. **Anyone with a published comparison
-   table sees it change appearance a second time.**
-4. **Declare it and scope it.** Record in §9.5.3 that the nine borrowed
-   palettes are offered for fidelity rather than measured accessibility,
-   and mark them in `themes` and the gallery.
-
-Owner's call: 1 and 2 change what a theme looks like, 3 changes what
-every article looks like, 4 changes nothing but what is promised.
+**What remains is editorial, not mechanical**: revise the nine borrowed
+catalogue entries. Per entry, the coherent outcomes are unchanged — flip
+the dark-designed schemes to `dark_background` (which CDC §6.3
+established is a *restoration* of fidelity, not a loss), set their
+verdict/footnote inks to `ink`, retune the values, or declare-and-mark
+them (D6, still undone: nothing in `themes` or the gallery distinguishes
+the nine borrowed palettes from the twenty-four measured ones). Owner's
+call, one line per theme once made. The catalogue revision pass (B9) is
+the natural vehicle.
 
 **One user's input, recorded because it is the only one we have from
 someone who actually uses the verdicts.** The team that reported B2 —
@@ -323,19 +329,97 @@ measures 1.02:1 on high-contrast and under 1.5:1 on fourteen themes. It
 is still distinguishable, because `scale(1.3)` gives it a non-colour cue
 — which is what keeps this from being a 1.4.1 failure as well.
 
-**Not fixed because the shape of the fix is a design decision.** The dots
-need a known ground to sit on — a `--control` pill under the row would
-give them one, at the cost of a visible chip that is not there today —
-and then the active state needs a colour that works on it, which
-`--marker` is not on a light theme (it is a highlighter yellow, chosen as
-a highlight ground). Spec §9.1 currently lists "active nav dot" as a role
-of `--marker`, so changing it is a documented-contract change, not a
-tweak.
+**The contract blocker is gone; the value choice remains.** Under the §9
+engine the dots are ordinary typed properties — `nav-dot.bg`,
+`nav-dot.bg-hover`, `nav-dot.bg-active` — with defaults transposed from
+the old veils, so the measurements above still describe what ships.
+`--marker` no longer exists as a documented role (its jobs were split per
+component; `RETIRED_VARIABLES` maps it), so changing the active dot's
+colour is no longer a documented-contract change: it is one default plus,
+where needed, one line per theme. What remains to decide is pure design:
+default values that clear 3:1 over **both** grounds the row floats on
+(page and cover), and whether that requires giving the row a declared
+ground of its own (which would now be two more properties, not a new
+mechanism). Fold into the catalogue revision pass (B9) alongside B5.
 
 ## B7 — Text alignment axes (center, justify, per-component and per-block) — NOTED
 
-Owner's request, 2026-08-04, deliberately deferred to a later version: expose
-alignment (center / justify / left / right) as typed axes on text-bearing
-components, plus a block-level instance tag in article sources. Depends on the
-§9 rewrite landing first (typed properties, instance-tag layer). Not designed
-yet — recorded so the intent survives the session.
+Owner's request, 2026-08-04, deliberately deferred to a later version:
+expose alignment (center / justify / left / right) as typed enum axes on
+text-bearing components, plus a block-level instance tag in article
+sources. The §9 rewrite it depended on has landed, and everything it
+needs now exists — enum property types, per-property selector overrides,
+and the instance-tag layer of the cascade. What the work amounts to:
+moving today's fixed `text-align` decisions out of the static skeleton
+(where they are layout by fiat — the `.highlight` block is centred, table
+cells are left-aligned) into registry axes, and adding one block-scoped
+tag. Not designed yet — recorded so the intent survives.
+
+Absorbs B4: `highlight.align` (the key-figure block, today centred with
+no recourse) is the first concrete case and the acceptance test —
+per-series via `settings.conf`, per-figure via the instance tag.
+
+## B8 — `extends` for external theme files — NOTED
+
+Recorded at the catalogue port (2026-08-04): the scaffold is generated
+complete and no user-facing include mechanism exists — the one legitimate
+include is the cascade itself, a settings file sitting on a theme. An
+`extends` line stays a possibility **for the day external theme files
+exist**, noted and not built. A theme already *being* a property layer,
+nothing structural is missing; the work is a file format, its resolution
+order, and its audit story. Do not build before the external-theme-format
+question (out of scope of the §9 refactor by decision) is opened on its
+own.
+
+## B9 — Typographic revision of the 33-theme catalogue — OPEN
+
+The engine gave themes fonts, shadows and per-component axes; only
+`terminal` uses them (fixed pitch plus phosphor halo, the owner's
+decision). The architecture records that all 33 entries are to be
+reviewed under this light — theme-construction work, out of the engine's
+scope. Natural vehicle for the per-theme value choices of B5 (verdict
+inks on borrowed palettes) and B6 (nav-dot values), and for D6 (mark the
+nine borrowed palettes as offered for fidelity, not measured
+accessibility). 32 entries remaining.
+
+## B10 — Gamut mapping for lightness-shifted inks — NOTED
+
+The ink solver (kept as a prototype in `tools/ink_solver_prototype.py`;
+the shipped engine deliberately computes no colour) shifts OKLCh
+lightness at constant chroma and hue, and the shift sometimes leaves the
+sRGB gamut, where per-channel clipping distorts chroma — `#008500` is the
+recorded case. A real gamut map would reduce chroma instead. Only
+relevant if a derivation/measurement pass is ever built for the catalogue
+revision (B9); acceptable as clipping until then. Recorded here because
+its previous home (a pre-rewrite section of ARCHI-TEMPLATES.md) no longer
+exists.
+
+## B11 — Dichromat separability is not verified — NOTED
+
+The architecture explicitly does not guarantee separability under
+dichromat vision; the verdicts' shape marks already serve it (and are now
+load-bearing, since weight no longer separates partial from yes), but no
+simulation exists and nothing measures the palettes. Assumed gap,
+recorded at the owner's level: a check would belong to theme construction
+(the catalogue side), never to the renderer.
+
+## B12 — Box drop-shadow (elevation) axes — NOTED
+
+Text shadows are properties (`shadow.fg/blur/dy`); the box shadows that
+paint depth — cards, nav buttons, the share modal, series links — stay
+fixed `rgba` values in the static skeleton, guarded as layout, so a theme
+cannot tune its elevation (flatten it, tint it, or push it). By the
+completeness rule this is a decision currently confiscated from the
+theme; it was left out of the property inventory knowingly, as depth
+rather than content. Deciding it means the same three-axis treatment as
+text shadows, per elevation-bearing component.
+
+## B13 — `--content-max` is the one themeless variable — NOTED
+
+The only CSS variable the composed sheet still declares outside the
+engine: the skeleton's own layout width (`min(84vw, 1100px)`), the single
+`var()` the extraction gap-check tolerates. Pre-rewrite architecture
+recorded it as outside the colour apparatus by nature. To settle someday:
+expose it as a length property (`page.content-max`) like everything else,
+or record the exemption as permanent — today the exemption lives only in
+a code comment and the gap-check test.

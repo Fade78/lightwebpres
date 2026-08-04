@@ -584,5 +584,12 @@ le skill n'a pas suivi.
 imprimait des entités HTML. Le nettoyage ne retirait que les balises ;
 c'est le sens de conversion qui était faux, pas le nettoyage.
 
-**Reste :** traduction de `specifications.md`, B4, B5, B6, licence,
-resynchronisation du GUI.
+**Reste :** traduction de `specifications.md` (le §9 réécrit part en
+français avec le reste) ; fusion de `CDC-TEMPLATES.md` et
+`ARCHI-TEMPLATES.md` dans le §9 (faite), puis leurs bandeaux
+d'archivage ; révision éditoriale du catalogue — B5 et B6 ne sont plus
+des chantiers de mécanique mais des choix de valeurs par thème (une
+ligne chacun), à mener avec la révision typographique des 32 entrées
+restantes (B9) ; licence ; resynchronisation du GUI. B4 est absorbé par
+B7 (axes d'alignement, différés volontairement — le moteur a maintenant
+tout ce qu'il leur faut).
