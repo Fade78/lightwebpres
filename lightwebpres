@@ -46,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.12.1"
+VERSION = "0.12.2"
 
 # The six palette variables, in the order a reader meets them on the page:
 # the ground, then the two inks, then the furniture (§9.1).

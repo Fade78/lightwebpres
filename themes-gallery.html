@@ -465,7 +465,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -653,6 +654,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -687,7 +713,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -751,7 +777,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -949,6 +980,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -1058,7 +1093,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -1246,6 +1282,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -1280,7 +1341,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -1344,7 +1405,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -1542,6 +1608,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -1651,7 +1721,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -1839,6 +1910,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -1873,7 +1969,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -1937,7 +2033,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -2135,6 +2236,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -2244,7 +2349,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -2432,6 +2538,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -2466,7 +2597,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -2530,7 +2661,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -2728,6 +2864,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -2837,7 +2977,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -3025,6 +3166,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -3059,7 +3225,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -3123,7 +3289,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -3321,6 +3492,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -3430,7 +3605,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -3618,6 +3794,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -3652,7 +3853,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -3716,7 +3917,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -3914,6 +4120,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -4023,7 +4233,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -4211,6 +4422,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -4245,7 +4481,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -4309,7 +4545,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -4507,6 +4748,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -4616,7 +4861,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -4804,6 +5050,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -4838,7 +5109,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -4902,7 +5173,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -5100,6 +5376,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -5209,7 +5489,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -5397,6 +5678,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -5431,7 +5737,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -5495,7 +5801,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -5693,6 +6004,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -5802,7 +6117,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -5990,6 +6306,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -6024,7 +6365,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -6088,7 +6429,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -6286,6 +6632,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -6395,7 +6745,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -6583,6 +6934,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -6617,7 +6993,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -6681,7 +7057,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -6879,6 +7260,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -6988,7 +7373,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -7176,6 +7562,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -7210,7 +7621,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -7274,7 +7685,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -7472,6 +7888,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -7581,7 +8001,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -7769,6 +8190,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -7803,7 +8249,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -7867,7 +8313,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -8065,6 +8516,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -8174,7 +8629,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -8362,6 +8818,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -8396,7 +8877,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -8460,7 +8941,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -8658,6 +9144,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -8767,7 +9257,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -8955,6 +9446,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -8989,7 +9505,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -9053,7 +9569,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -9251,6 +9772,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -9360,7 +9885,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -9548,6 +10074,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -9582,7 +10133,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -9646,7 +10197,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -9844,6 +10400,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -9953,7 +10513,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -10141,6 +10702,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -10175,7 +10761,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -10239,7 +10825,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -10437,6 +11028,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -10546,7 +11141,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -10734,6 +11330,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -10768,7 +11389,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -10832,7 +11453,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -11030,6 +11656,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -11139,7 +11769,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -11327,6 +11958,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -11361,7 +12017,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -11425,7 +12081,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -11623,6 +12284,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -11732,7 +12397,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -11920,6 +12586,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -11954,7 +12645,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -12018,7 +12709,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -12216,6 +12912,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -12325,7 +13025,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -12513,6 +13214,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -12547,7 +13273,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -12611,7 +13337,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -12809,6 +13540,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -12918,7 +13653,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -13106,6 +13842,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -13140,7 +13901,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -13204,7 +13965,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -13402,6 +14168,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -13511,7 +14281,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -13699,6 +14470,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -13733,7 +14529,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -13797,7 +14593,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -13995,6 +14796,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -14104,7 +14909,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -14292,6 +15098,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -14326,7 +15157,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -14390,7 +15221,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -14588,6 +15424,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -14697,7 +15537,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -14885,6 +15726,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -14919,7 +15785,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -14983,7 +15849,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -15181,6 +16052,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -15290,7 +16165,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -15478,6 +16354,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -15512,7 +16413,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -15576,7 +16477,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -15774,6 +16680,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -15883,7 +16793,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -16071,6 +16982,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -16105,7 +17041,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -16169,7 +17105,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -16367,6 +17308,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -16476,7 +17421,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: var(--ink);
     --cover-fg: var(--page);
-    --cover-fg-faint: rgba(255, 255, 255, 0.34);
+    --cover-fg-faint: rgba(255, 255, 255, 0.70);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.92);
     --control-soft: rgba(255, 255, 255, 0.75);
   }
@@ -16664,6 +17610,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -16698,7 +17669,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -16762,7 +17733,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -16960,6 +17936,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -17069,7 +18049,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -17257,6 +18238,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -17291,7 +18297,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -17355,7 +18361,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -17553,6 +18564,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -17662,7 +18677,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -17850,6 +18866,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -17884,7 +18925,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -17948,7 +18989,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -18146,6 +19192,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -18255,7 +19305,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -18443,6 +19494,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -18477,7 +19553,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -18541,7 +19617,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -18739,6 +19820,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -18848,7 +19933,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -19036,6 +20122,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -19070,7 +20181,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -19134,7 +20245,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -19332,6 +20448,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
@@ -19441,7 +20561,8 @@
        itself — never --ink, which is the TEXT colour there. */
     --cover-bg: rgba(0, 0, 0, 0.45);
     --cover-fg: var(--ink);
-    --cover-fg-faint: rgba(255, 255, 255, 0.30);
+    --cover-fg-faint: rgba(255, 255, 255, 0.56);
+    --link-decoration-color: currentColor;
     --control: rgba(255, 255, 255, 0.13);
     --control-soft: rgba(255, 255, 255, 0.09);
   }
@@ -19629,6 +20750,31 @@
      scanning the output (a test caught exactly that here). */
   pre code { background: none; padding: 0; font-size: 0.85em; line-height: 1.55; }
   sup { font-size: 0.72em; vertical-align: super; line-height: 0; color: var(--accent); }
+
+  /* §9.1 — a body link keeps the ink around it, and is signalled by an
+     underline rather than by a colour.
+
+     Measured across all 33 themes before choosing. The browser default
+     blue, which is what shipped until now, lands at 1.03:1 on pop-violet
+     and fails AA on fifteen themes — including pop-tangerine, a LIGHT
+     one. And no palette colour can replace it: --accent is below AA on
+     eleven themes and IS the &quot;partial&quot; verdict colour by identity, while
+     --positive and --ink-muted are the other two verdict colours. Ink on
+     page is the one pair every theme is admitted on, so a link is AA and
+     AAA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+     underline, which is not a colour.
+
+     A theme may tint the rule where it has measured a colour that works
+     there; the default keeps the ink, which can never fail. Same grammar
+     as --fact-strong-decoration-color. */
+  .fact-content a,
+  .full-article a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-decoration-color);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .full-article blockquote, .full-article pre { font-size: 15px; }
 
   .comparison-table {
@@ -19663,7 +20809,7 @@
      a theme restyles them like everything else. print-color-adjust
      keeps the distinction on paper, where colour is often dropped. */
   .comparison-table .yes { color: var(--positive); font-weight: 700; }
-  .comparison-table .no { color: var(--ink-muted); font-weight: 500; opacity: 0.75; }
+  .comparison-table .no { color: var(--ink-muted); font-weight: 500; }
   .comparison-table .partial { color: var(--accent); font-weight: 600; }
   /* A shape as well as a colour, and this is not decoration. Red/green
      colour-vision deficiency affects roughly one man in twelve, and a
@@ -19727,7 +20873,12 @@
     text-decoration: none;
     color: inherit;
   }
-  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); opacity: 0.6; }
+  /* No opacity here. Dimming the whole card to signal &quot;you are here&quot;
+     dimmed its three lines of text with it, and they land at 1.62:1 on
+     the worst theme and fail AA on all 33, the default palette included.
+     The sunken ground, the 2px border and the status glyph carry the
+     same signal without touching a contrast ratio. */
+  .series-current { background: var(--sunken); border: 2px solid var(--rule-strong); }
   .series-link { background: var(--surface); border: 2px solid var(--marker); box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; }
   .series-link:hover, .series-link:focus-visible { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .series-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -19925,6 +21076,10 @@
        :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
                --fact-strong-decoration: underline;
                --fact-strong-decoration-color: var(--marker); }
+
+     Tint the underline under a body link. Measure first: this must clear
+     3:1 against --page, or the rule is fainter than the one it replaces.
+       :root { --link-decoration-color: var(--accent); }
 
      Underlined AS WELL AS highlighted, to stress it twice:
        :root { --fact-strong-decoration: underline; }
