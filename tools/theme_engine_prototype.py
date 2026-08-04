@@ -374,17 +374,58 @@ def emit(resolved):
 # DEMO
 # ============================================================================
 
+def contrast(a, b):
+    """WCAG 2 relative luminance. Present only for the theme-construction
+    readout at the end — the renderer never calls it."""
+    def lum(h):
+        v = [int(h[1:][i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        v = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in v]
+        return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+    la, lb = lum(a), lum(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
 DRACULA = {
     'color.page': '#282A36', 'color.ink': '#F8F8F2', 'color.ink-quiet': '#6272A4',
     'color.mark': '#F1FA8C', 'color.call': '#FF5555', 'color.affirm': '#50FA7B',
 }
 
-# A theme may set fonts — "Terminal" in fixed pitch is three lines, and it is
-# `font.mono` earning its place: not as a coordination point (it has a single
-# consumer) but as the one correct monospace stack, written once.
-TERMINAL = dict(DRACULA, **{
-    'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
-})
+# The catalogue's `terminal`, ported whole. Fonts are three lines of it; the
+# rest is what a theme has always had to say, plus the two things the old
+# engine decided behind its back (see below).
+TERMINAL = {
+    # green phosphor on black
+    'color.page':      '#0B0F0C',
+    'color.ink':       '#D7FFE0',
+    'color.ink-quiet': '#6E9C7A',
+    'color.mark':      '#F4FF52',
+    'color.call':      '#FF3C6F',
+    'color.affirm':    '#33FF88',
+
+    # fixed pitch throughout — the register the theme is named for
+    'font.text':    'mono',
+    'font.display': 'mono',
+    'font.ui':      'mono',
+
+    # A dark ground does NOT invert to the ink: `cover.bg.from: ink` would put
+    # pale green behind the title. The old engine handled this with a
+    # dark_background flag switching a hidden preset table; here the theme
+    # says it, because the theme is where the engineering lives.
+    'cover.bg.from':  '#000000',
+    'cover.bg.to':    'page',
+    'cover.bg.angle': '180deg',
+    # And its ink follows: the default `cover.fg: page` assumes the cover
+    # inverts, which is true only on a light theme. Here the cover ground IS
+    # the page, so page-on-page would be 1.00:1 — an invisible title. Caught
+    # by the check below on the first run, which is the whole argument for
+    # having one.
+    'cover.fg': 'ink',
+
+    # Same reason, and this one the old engine got right only by computing it:
+    # bold inside a fact-box sits on the bright `mark` ground, so its ink is
+    # the dark page, never the pale body ink.
+    'fact.strong.fg': 'page',
+}
 
 SERIES_SETTINGS = {                      # what the author uncommented
     'font.mono': '"Berkeley Mono", ui-monospace, Menlo, monospace',
@@ -403,10 +444,26 @@ def main():
     print(f'{len(REGISTRY)} properties, {len(COMPONENTS)} components '
           f'(extract — the full inventory is larger)')
 
-    r = resolve(TERMINAL, SERIES_SETTINGS)
-    print(f'\nTerminal theme, three lines: font.text/display/ui -> mono')
-    print(f'  summary.font  -> {r["summary.font"]}')
-    print(f'  title1.font   -> {r["title1.font"]}')
+    print('=' * 70)
+    print('\n\n' + '#' * 70)
+    print('# THEME `terminal`, WHOLE — no series settings, no article override')
+    print('#' * 70 + '\n')
+    print(emit(resolve(TERMINAL)))
+
+    # Belongs to the OTHER document — building a coherent theme, not rendering
+    # one. Shown here only to demonstrate that the boundary is real: the
+    # renderer emitted the sheet above without consulting any of this.
+    print('\n--- theme-construction check (not the renderer\'s job) ---')
+    t = resolve(TERMINAL)
+    for label, fg, bg in [
+        ('body ink on page',    'color.ink',           'color.page'),
+        ('quiet ink on page',   'color.ink-quiet',     'color.page'),
+        ('yes verdict on page', 'verdict.yes.fg',      'color.page'),
+        ('partial on page',     'verdict.partial.fg',  'color.page'),
+        ('bold on fact ground', 'fact.strong.fg',      'fact.strong.bg'),
+        ('cover title on cover', 'title1.fg',          'cover.bg.to'),
+    ]:
+        print(f'  {label:22} {t[fg]} on {t[bg]}   {contrast(t[fg], t[bg]):5.2f}:1')
     print('=' * 70 + '\n')
 
     for label, layer in [
