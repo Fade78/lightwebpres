@@ -6095,17 +6095,39 @@ class ThemeEngineStaged(unittest.TestCase):
 
     def test_terminal_style_theme_is_fonts_plus_colours(self):
         # The catalogue's `terminal` in the new vocabulary: fixed pitch is
-        # three lines, and the 2-hop chain summary.font -> font.text ->
-        # font.mono must fit under the cap.
+        # three lines. title1.font -> font.display -> font.text -> font.mono
+        # is a 3-hop chain — an ordinary theme sitting exactly at the cap,
+        # which is why the cap is three and not two.
         r = self.resolve({
             'color.page': '#0B0F0C', 'color.ink': '#D7FFE0',
             'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
             'cover.fg': 'ink',
+            # the green halo around the cover title: a shadow with no offset
+            'title1.shadow.fg': '#33FF8880', 'title1.shadow.blur': '8px',
         })
-        self.assertIn('monospace', r['summary.font'])
+        self.assertIn('monospace', r['page.font'])
         self.assertIn('monospace', r['title1.font'])
-        # title1.fg -> cover.fg -> color.ink, the second ordinary 2-hop chain.
+        self.assertIn('monospace', r['tag.font'])
+        # title1.fg -> cover.fg -> color.ink, an ordinary 2-hop chain.
         self.assertEqual(r['title1.fg'], '#D7FFE0FF')
+        self.assertEqual(r['title1.shadow.fg'], '#33FF8880')
+
+    def test_shadow_defaults_are_invisible_and_emitted_once(self):
+        # A halo is a shadow with no offset; the transparent default means
+        # the composite is present but paints nothing until a theme asks.
+        r = self.resolve({})
+        self.assertEqual(r['page.shadow.fg'], '#00000000')
+        css = self.lwp.emit_theme_css(r)
+        self.assertIn('text-shadow: 0 var(--page-shadow-dy) '
+                      'var(--page-shadow-blur) var(--page-shadow-fg);', css)
+
+    def test_selector_overrides_land_on_their_own_selector(self):
+        # One component, several selectors: the fact ground on .fact-box, its
+        # ink on .fact-content; states and contexts likewise.
+        css = self.lwp.emit_theme_css(self.resolve({}))
+        self.assertIn('.fact-content {\n  color: var(--fact-fg);', css)
+        self.assertIn('.nav-dots a.active {\n  background: var(--nav-dot-bg-active);', css)
+        self.assertIn('.slide-cover h1 {\n  color: var(--title1-fg);', css)
 
     def test_flat_fill_is_a_gradient_with_equal_stops(self):
         r = self.resolve({})

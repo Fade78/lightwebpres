@@ -1164,14 +1164,22 @@ PROP_WEIGHT = ChoiceType('normal', 'bold',
 PROP_STYLE = ChoiceType('normal', 'italic')
 PROP_CASE = ChoiceType('none', 'uppercase', 'lowercase', 'small-caps')
 PROP_NUMERIC = ChoiceType('normal', 'tabular-nums', 'tabular-nums lining-nums')
+PROP_DECORATION = ChoiceType('none', 'underline', 'line-through',
+                             'underline line-through')
 
 
 class ThemeProp:
-    def __init__(self, key, type_, default, css=None):
+    def __init__(self, key, type_, default, css=None, selector=None):
         self.key = key            # 'tag.fg'
         self.type = type_
         self.default = default    # a literal, or a reference written as a word
         self.css = css            # CSS declaration it feeds, None if composite
+        # Where the declaration lands when it is NOT the component's base
+        # selector: an inner element (.fact-content inside .fact-box), a
+        # context (.slide-cover h1), or a state (:hover, .active). The
+        # inventory showed one selector per component is a fiction the real
+        # sheet does not honour.
+        self.selector = selector
 
     @property
     def var(self):
@@ -1183,7 +1191,9 @@ class ThemeComponent:
         self.key = key
         self.selector = selector
         self.props = props
-        self.composite = composite   # declarations built from several props
+        # Declarations built from several properties at once — a gradient, an
+        # inset box-shadow bar. List of (css_property, value_expression).
+        self.composite = composite or []
 
 
 def _gradient_decl(v_angle, v_from, v_to):
@@ -1194,14 +1204,15 @@ def _gradient_decl(v_angle, v_from, v_to):
 
 
 THEME_SHARED_PROPS = [
-    ThemeProp('color.page',      PROP_COLOR, '#F8F8F5'),
-    ThemeProp('color.ink',       PROP_COLOR, '#1A1A2E'),
-    ThemeProp('color.ink-quiet', PROP_COLOR, '#6B6B7D'),
-    ThemeProp('color.mark',      PROP_COLOR, '#FFFC00'),
-    ThemeProp('color.call',      PROP_COLOR, '#FF4757'),
-    ThemeProp('color.affirm',    PROP_COLOR, '#3AA55C'),
+    ThemeProp('color.page',      PROP_COLOR, '#F8F8F5FF'),
+    ThemeProp('color.ink',       PROP_COLOR, '#1A1A2EFF'),
+    ThemeProp('color.ink-quiet', PROP_COLOR, '#6B6B7DFF'),
+    ThemeProp('color.mark',      PROP_COLOR, '#FFFC00FF'),
+    ThemeProp('color.call',      PROP_COLOR, '#FF4757FF'),
+    ThemeProp('color.affirm',    PROP_COLOR, '#3AA55CFF'),
     # Defaults keep today's faces; a real typographic stance is catalogue
-    # work, not engine work.
+    # work, not engine work. The sheet has only two real stacks today —
+    # display and ui alias text until a theme says otherwise.
     ThemeProp('font.text', PROP_FONT,
               "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"),
     ThemeProp('font.display', PROP_FONT, 'text'),
@@ -1209,71 +1220,403 @@ THEME_SHARED_PROPS = [
     ThemeProp('font.mono',    PROP_FONT, "'SF Mono', Menlo, Consolas, monospace"),
 ]
 
+# Full inventory of TEMPLATE_STYLE (v0.12.2), one entry per component the
+# format names. Defaults are the sheet's current values — the registry is
+# derived FROM the sheet, so landing it changes nothing (E2); wiring emission
+# into build replaces the sheet later. Alpha conversions: the two measured
+# opacities (cover summary 0.78, cover-fg-faint 0.70) became explicit ARGB;
+# state opacities on chrome glyphs stayed in the skeleton.
+#
+# text-shadow is inherited, so page-level shadow axes tint every glyph on the
+# site at once; components carrying their own shadow axes override locally.
+# A halo is a shadow with no offset — same mechanism, no branch, and the
+# transparent default means no effect until a theme asks for one.
 THEME_COMPONENTS = [
-    ThemeComponent('cover', '.slide-cover', [
-        ThemeProp('cover.bg.from',  PROP_COLOR, 'ink'),
-        ThemeProp('cover.bg.to',    PROP_COLOR, 'cover.bg.from'),
-        ThemeProp('cover.bg.angle', PROP_ANGLE, '160deg'),
-        ThemeProp('cover.fg',       PROP_COLOR, 'page', css='color'),
-    ], composite=lambda: _gradient_decl('--cover-bg-angle', '--cover-bg-from',
-                                        '--cover-bg-to')),
+    ThemeComponent('page', 'body', [
+        ThemeProp('page.font',        PROP_FONT,   'text',       css='font-family'),
+        ThemeProp('page.bg',          PROP_COLOR,  'page',       css='background'),
+        ThemeProp('page.fg',          PROP_COLOR,  'ink',        css='color'),
+        ThemeProp('page.leading',     PROP_RATIO,  '1.6',        css='line-height'),
+        ThemeProp('page.shadow.fg',   PROP_COLOR,  'transparent'),
+        ThemeProp('page.shadow.blur', PROP_LENGTH, '0'),
+        ThemeProp('page.shadow.dy',   PROP_LENGTH, '0'),
+    ], composite=[('text-shadow',
+                   '0 var(--page-shadow-dy) var(--page-shadow-blur) var(--page-shadow-fg)')]),
 
-    ThemeComponent('title1', '.slide-cover h1', [
-        ThemeProp('title1.fg',      PROP_COLOR,  'cover.fg', css='color'),
-        ThemeProp('title1.font',    PROP_FONT,   'display',  css='font-family'),
-        ThemeProp('title1.weight',  PROP_WEIGHT, 'bold',     css='font-weight'),
-        ThemeProp('title1.size',    PROP_LENGTH, 'clamp(2rem, 6vw, 3.5rem)',
-                  css='font-size'),
-        ThemeProp('title1.leading', PROP_RATIO,  '1.1',      css='line-height'),
+    ThemeComponent('slide', '.slide', [
+        ThemeProp('slide.rule-fg',    PROP_COLOR,  '#0000001A', css='border-bottom-color'),
+        ThemeProp('slide.rule-width', PROP_LENGTH, '1px',       css='border-bottom-width'),
+    ]),
+    ThemeComponent('slide.num', '.slide-num', [
+        ThemeProp('slide.num.fg',       PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('slide.num.font',     PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('slide.num.size',     PROP_LENGTH, '13px',      css='font-size'),
+        ThemeProp('slide.num.tracking', PROP_LENGTH, '1px',       css='letter-spacing'),
     ]),
 
     ThemeComponent('tag', '.slide-tag', [
         ThemeProp('tag.fg',        PROP_COLOR,  'ink-quiet', css='color'),
         ThemeProp('tag.font',      PROP_FONT,   'ui',        css='font-family'),
-        ThemeProp('tag.weight',    PROP_WEIGHT, 'normal',    css='font-weight'),
-        ThemeProp('tag.size',      PROP_LENGTH, '0.8125rem', css='font-size'),
+        ThemeProp('tag.size',      PROP_LENGTH, '12px',      css='font-size'),
+        ThemeProp('tag.weight',    PROP_WEIGHT, 'bold',      css='font-weight'),
+        ThemeProp('tag.tracking',  PROP_LENGTH, '2px',       css='letter-spacing'),
         ThemeProp('tag.transform', PROP_CASE,   'uppercase', css='text-transform'),
-        ThemeProp('tag.tracking',  PROP_LENGTH, '0.08em',    css='letter-spacing'),
     ]),
 
+    # The generic h1 also seeds the full-article h1 (weight, leading) before
+    # its size override — kept coupled, as the sheet has it.
+    ThemeComponent('title1', 'h1', [
+        ThemeProp('title1.font',    PROP_FONT,   'display', css='font-family'),
+        ThemeProp('title1.size',    PROP_LENGTH, 'clamp(28px, 4.5vw, 52px)',
+                  css='font-size'),
+        ThemeProp('title1.weight',  PROP_WEIGHT, 'bold',    css='font-weight'),
+        ThemeProp('title1.leading', PROP_RATIO,  '1.15',    css='line-height'),
+        ThemeProp('title1.fg',      PROP_COLOR,  'cover.fg', css='color',
+                  selector='.slide-cover h1'),
+        ThemeProp('title1.shadow.fg',   PROP_COLOR,  'transparent'),
+        ThemeProp('title1.shadow.blur', PROP_LENGTH, '0'),
+        ThemeProp('title1.shadow.dy',   PROP_LENGTH, '0'),
+    ], composite=[('text-shadow',
+                   '0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg)')]),
+    ThemeComponent('title2', 'h2', [
+        ThemeProp('title2.font',    PROP_FONT,   'display', css='font-family'),
+        ThemeProp('title2.size',    PROP_LENGTH, 'clamp(24px, 3.5vw, 40px)',
+                  css='font-size'),
+        ThemeProp('title2.weight',  PROP_WEIGHT, 'bold',    css='font-weight'),
+        ThemeProp('title2.leading', PROP_RATIO,  '1.2',     css='line-height'),
+    ]),
+
+    # fg is `ink`, not ink-quiet: the registry records the REAL value; the
+    # four surfaces that claimed ink-muted were the CDC's debt D1.
     ThemeComponent('summary', '.summary', [
-        ThemeProp('summary.fg',      PROP_COLOR,  'ink',  css='color'),
-        ThemeProp('summary.font',    PROP_FONT,   'text', css='font-family'),
-        ThemeProp('summary.size',    PROP_LENGTH, 'clamp(1rem, 2vw, 1.375rem)',
+        ThemeProp('summary.fg',      PROP_COLOR,  'ink', css='color'),
+        ThemeProp('summary.size',    PROP_LENGTH, 'clamp(16px, 2vw, 22px)',
                   css='font-size'),
-        ThemeProp('summary.leading', PROP_RATIO,  '1.5',  css='line-height'),
+        ThemeProp('summary.leading', PROP_RATIO,  '1.55', css='line-height'),
     ]),
 
-    ThemeComponent('highlight', '.highlight', [
-        ThemeProp('highlight.fg',      PROP_COLOR,   'mark',    css='color'),
-        ThemeProp('highlight.font',    PROP_FONT,    'display', css='font-family'),
-        ThemeProp('highlight.size',    PROP_LENGTH,  'clamp(2.5rem, 8vw, 5rem)',
-                  css='font-size'),
-        ThemeProp('highlight.numeric', PROP_NUMERIC, 'tabular-nums lining-nums',
-                  css='font-variant-numeric'),
+    ThemeComponent('fact', '.fact-box', [
+        ThemeProp('fact.bg',         PROP_COLOR,  '#FFFFFFB8', css='background'),
+        ThemeProp('fact.rule-fg',    PROP_COLOR,  'mark',      css='border-left-color'),
+        ThemeProp('fact.rule-width', PROP_LENGTH, '4px',       css='border-left-width'),
+        ThemeProp('fact.fg',   PROP_COLOR,  'ink', css='color',
+                  selector='.fact-content'),
+        ThemeProp('fact.size', PROP_LENGTH, 'clamp(15px, 1.6vw, 18px)',
+                  css='font-size', selector='.fact-content'),
     ]),
-
+    ThemeComponent('fact-label', '.fact-label', [
+        ThemeProp('fact-label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('fact-label.font',      PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('fact-label.size',      PROP_LENGTH, '12px',      css='font-size'),
+        ThemeProp('fact-label.weight',    PROP_WEIGHT, 'bold',      css='font-weight'),
+        ThemeProp('fact-label.tracking',  PROP_LENGTH, '1.5px',     css='letter-spacing'),
+        ThemeProp('fact-label.transform', PROP_CASE,   'uppercase', css='text-transform'),
+    ]),
     ThemeComponent('fact.strong', '.fact-content strong', [
-        ThemeProp('fact.strong.bg',     PROP_COLOR,  'mark',   css='background'),
-        ThemeProp('fact.strong.fg',     PROP_COLOR,  'ink',    css='color'),
         ThemeProp('fact.strong.weight', PROP_WEIGHT, 'bold',   css='font-weight'),
         ThemeProp('fact.strong.style',  PROP_STYLE,  'normal', css='font-style'),
+        ThemeProp('fact.strong.bg',     PROP_COLOR,  'mark',   css='background'),
+        ThemeProp('fact.strong.fg',     PROP_COLOR,  'ink',    css='color'),
+        ThemeProp('fact.strong.decoration', PROP_DECORATION, 'none',
+                  css='text-decoration'),
+        ThemeProp('fact.strong.decoration-color', PROP_COLOR, 'fact.strong.fg',
+                  css='text-decoration-color'),
     ]),
 
+    ThemeComponent('body-heading',
+                   '.fact-content h1, .fact-content h2, .fact-content h3, '
+                   '.slide-body h1, .slide-body h2, .slide-body h3', [
+        ThemeProp('body-heading.fg',      PROP_COLOR,  'ink',  css='color'),
+        ThemeProp('body-heading.weight',  PROP_WEIGHT, 'bold', css='font-weight'),
+        ThemeProp('body-heading.leading', PROP_RATIO,  '1.3',  css='line-height'),
+    ]),
+
+    ThemeComponent('source', '.source', [
+        ThemeProp('source.fg',   PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('source.font', PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('source.size', PROP_LENGTH, '12px',      css='font-size'),
+    ]),
+    ThemeComponent('footer', '.page-footer', [
+        ThemeProp('footer.fg',         PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('footer.font',       PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('footer.size',       PROP_LENGTH, '12px',      css='font-size'),
+        ThemeProp('footer.rule-fg',    PROP_COLOR,  '#0000001A', css='border-top-color'),
+        ThemeProp('footer.rule-width', PROP_LENGTH, '1px',       css='border-top-width'),
+    ]),
+
+    ThemeComponent('cover', '.slide-cover', [
+        ThemeProp('cover.bg.from',  PROP_COLOR, 'ink'),
+        ThemeProp('cover.bg.to',    PROP_COLOR, 'cover.bg.from'),
+        ThemeProp('cover.bg.angle', PROP_ANGLE, '180deg'),
+        ThemeProp('cover.fg',       PROP_COLOR, 'page', css='color'),
+    ], composite=[_gradient_decl('--cover-bg-angle', '--cover-bg-from',
+                                 '--cover-bg-to')]),
+    # The two measured opacities, as explicit ARGB. Calibrated to the default
+    # palette: a theme changing color.page re-states them — the template
+    # carries the engineering.
+    ThemeComponent('cover.summary', '.slide-cover .summary', [
+        ThemeProp('cover.summary.fg', PROP_COLOR, '#F8F8F5C7', css='color'),
+    ]),
+    ThemeComponent('cover.tag', '.slide-cover .slide-tag', [
+        ThemeProp('cover.tag.fg', PROP_COLOR, 'mark', css='color'),
+    ]),
+    ThemeComponent('cover.num', '.slide-cover .slide-num', [
+        ThemeProp('cover.num.fg', PROP_COLOR, '#FFFFFFB3', css='color'),
+    ]),
+
+    ThemeComponent('quote', 'blockquote', [
+        ThemeProp('quote.fg',         PROP_COLOR,  'ink-quiet',  css='color'),
+        ThemeProp('quote.style',      PROP_STYLE,  'italic',     css='font-style'),
+        ThemeProp('quote.rule-fg',    PROP_COLOR,  '#00000029',  css='border-left-color'),
+        ThemeProp('quote.rule-width', PROP_LENGTH, '3px',        css='border-left-width'),
+    ]),
+
+    ThemeComponent('code', 'code', [
+        ThemeProp('code.font',       PROP_FONT,   'mono',      css='font-family'),
+        ThemeProp('code.size',       PROP_LENGTH, '0.88em',    css='font-size'),
+        ThemeProp('code.bg',         PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('code.rule-fg',    PROP_COLOR,  '#0000001A', css='border-color',
+                  selector='pre'),
+        ThemeProp('code.rule-width', PROP_LENGTH, '1px',       css='border-width',
+                  selector='pre'),
+        ThemeProp('code.leading',    PROP_RATIO,  '1.55',      css='line-height',
+                  selector='pre'),
+    ]),
+
+    ThemeComponent('footnote-call', 'sup', [
+        ThemeProp('footnote-call.fg',   PROP_COLOR,  'call',   css='color'),
+        ThemeProp('footnote-call.size', PROP_LENGTH, '0.72em', css='font-size'),
+    ]),
+
+    # color:inherit and the underline itself are architecture (B3), not
+    # settings; only the rule's tint is exposed.
+    ThemeComponent('link', '.fact-content a, .full-article a', [
+        ThemeProp('link.decoration-color', PROP_COLOR, 'ink',
+                  css='text-decoration-color'),
+    ]),
+
+    ThemeComponent('table', '.comparison-table', [
+        ThemeProp('table.size', PROP_LENGTH, 'clamp(13px, 1.4vw, 16px)',
+                  css='font-size'),
+        ThemeProp('table.rule-fg',    PROP_COLOR,  '#0000001A',
+                  css='border-bottom-color',
+                  selector='.comparison-table th, .comparison-table td'),
+        ThemeProp('table.rule-width', PROP_LENGTH, '1px',
+                  css='border-bottom-width',
+                  selector='.comparison-table th, .comparison-table td'),
+    ]),
+    ThemeComponent('table.head', '.comparison-table th', [
+        ThemeProp('table.head.bg',         PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('table.head.fg',         PROP_COLOR,  'ink',       css='color'),
+        ThemeProp('table.head.rule-fg',    PROP_COLOR,  'ink',       css='border-bottom-color'),
+        ThemeProp('table.head.rule-width', PROP_LENGTH, '2px',       css='border-bottom-width'),
+        ThemeProp('table.head.weight',     PROP_WEIGHT, 'bold',      css='font-weight'),
+        ThemeProp('table.head.size',       PROP_LENGTH, '13px',      css='font-size'),
+        ThemeProp('table.head.tracking',   PROP_LENGTH, '0.5px',     css='letter-spacing'),
+    ]),
+    # Weights: the sheet said 700/500/600; only normal and bold survive a
+    # generic family, so partial rejoins yes in weight and the shape mark
+    # alone distinguishes them — assumed explicitly by the architecture.
     ThemeComponent('verdict.yes', '.comparison-table .yes', [
         ThemeProp('verdict.yes.fg',     PROP_COLOR,  'affirm', css='color'),
         ThemeProp('verdict.yes.weight', PROP_WEIGHT, 'bold',   css='font-weight'),
         ThemeProp('verdict.yes.mark',   PROP_TEXT,   '"\\25CF"'),
+    ]),
+    ThemeComponent('verdict.no', '.comparison-table .no', [
+        ThemeProp('verdict.no.fg',     PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('verdict.no.weight', PROP_WEIGHT, 'normal',    css='font-weight'),
+        ThemeProp('verdict.no.mark',   PROP_TEXT,   '"\\25CB"'),
     ]),
     ThemeComponent('verdict.partial', '.comparison-table .partial', [
         ThemeProp('verdict.partial.fg',     PROP_COLOR,  'call', css='color'),
         ThemeProp('verdict.partial.weight', PROP_WEIGHT, 'bold', css='font-weight'),
         ThemeProp('verdict.partial.mark',   PROP_TEXT,   '"\\25D0"'),
     ]),
-    ThemeComponent('verdict.no', '.comparison-table .no', [
-        ThemeProp('verdict.no.fg',     PROP_COLOR,  'ink-quiet', css='color'),
-        ThemeProp('verdict.no.weight', PROP_WEIGHT, 'normal',    css='font-weight'),
-        ThemeProp('verdict.no.mark',   PROP_TEXT,   '"\\25CB"'),
+    ThemeComponent('table.col-signal', '.comparison-table .col-signal', [
+        ThemeProp('table.col-signal.bg',     PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('table.col-signal.weight', PROP_WEIGHT, 'bold',      css='font-weight'),
+    ]),
+    ThemeComponent('table.col-snap', '.comparison-table .col-snap', [
+        ThemeProp('table.col-snap.bg',         PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('table.col-snap.rule-fg',    PROP_COLOR,  'mark'),
+        ThemeProp('table.col-snap.rule-width', PROP_LENGTH, '3px'),
+    ], composite=[('box-shadow',
+                   'inset var(--table-col-snap-rule-width) 0 0 var(--table-col-snap-rule-fg)')]),
+
+    ThemeComponent('caption', '.figure-caption', [
+        ThemeProp('caption.fg',   PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('caption.size', PROP_LENGTH, '0.85em',    css='font-size'),
+    ]),
+
+    ThemeComponent('article', '.full-article', [
+        ThemeProp('article.bg',      PROP_COLOR,  '#FFFFFFB8', css='background'),
+        ThemeProp('article.size',    PROP_LENGTH, '15px', css='font-size',
+                  selector='.full-article p, .full-article ul, .full-article ol'),
+        ThemeProp('article.leading', PROP_RATIO,  '1.7',  css='line-height',
+                  selector='.full-article p'),
+    ]),
+    ThemeComponent('refs', '.full-article .refs', [
+        ThemeProp('refs.fg',      PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('refs.size',    PROP_LENGTH, '13px',      css='font-size'),
+        ThemeProp('refs.leading', PROP_RATIO,  '1.5',       css='line-height',
+                  selector='.full-article .refs p'),
+    ]),
+
+    ThemeComponent('highlight', '.highlight-figure', [
+        ThemeProp('highlight.fg',       PROP_COLOR,   'ink',     css='color'),
+        ThemeProp('highlight.font',     PROP_FONT,    'display', css='font-family'),
+        ThemeProp('highlight.size',     PROP_LENGTH,  'clamp(2.1rem, 8vw, 3.4rem)',
+                  css='font-size'),
+        ThemeProp('highlight.weight',   PROP_WEIGHT,  'bold',    css='font-weight'),
+        ThemeProp('highlight.leading',  PROP_RATIO,   '1.05',    css='line-height'),
+        ThemeProp('highlight.tracking', PROP_LENGTH,  '-0.01em', css='letter-spacing'),
+        ThemeProp('highlight.numeric',  PROP_NUMERIC, 'tabular-nums',
+                  css='font-variant-numeric'),
+        ThemeProp('highlight.shadow.fg',   PROP_COLOR,  'transparent'),
+        ThemeProp('highlight.shadow.blur', PROP_LENGTH, '0'),
+        ThemeProp('highlight.shadow.dy',   PROP_LENGTH, '0'),
+    ], composite=[('text-shadow',
+                   '0 var(--highlight-shadow-dy) var(--highlight-shadow-blur) var(--highlight-shadow-fg)')]),
+    ThemeComponent('highlight-caption', '.highlight-caption', [
+        ThemeProp('highlight-caption.fg',   PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('highlight-caption.size', PROP_LENGTH, '0.9rem',    css='font-size'),
+    ]),
+
+    ThemeComponent('series-nav.current', '.series-current', [
+        ThemeProp('series-nav.current.bg',         PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('series-nav.current.rule-fg',    PROP_COLOR,  '#00000029', css='border-color'),
+        ThemeProp('series-nav.current.rule-width', PROP_LENGTH, '2px',       css='border-width'),
+    ]),
+    ThemeComponent('series-nav.link', '.series-link', [
+        ThemeProp('series-nav.link.bg',         PROP_COLOR,  '#FFFFFFB8', css='background'),
+        ThemeProp('series-nav.link.rule-fg',    PROP_COLOR,  'mark',      css='border-color'),
+        ThemeProp('series-nav.link.rule-width', PROP_LENGTH, '2px',       css='border-width'),
+        ThemeProp('series-nav.link.ring',       PROP_COLOR,  'call',      css='outline-color',
+                  selector='.series-link:focus-visible'),
+        ThemeProp('series-nav.link.ring-width', PROP_LENGTH, '3px',       css='outline-width',
+                  selector='.series-link:focus-visible'),
+    ]),
+    ThemeComponent('series-nav.label', '.series-label', [
+        ThemeProp('series-nav.label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('series-nav.label.font',      PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('series-nav.label.size',      PROP_LENGTH, '12px',      css='font-size'),
+        ThemeProp('series-nav.label.weight',    PROP_WEIGHT, 'bold',      css='font-weight'),
+        ThemeProp('series-nav.label.tracking',  PROP_LENGTH, '1.5px',     css='letter-spacing'),
+        ThemeProp('series-nav.label.transform', PROP_CASE,   'uppercase', css='text-transform'),
+    ]),
+    ThemeComponent('series-nav.title', '.series-title', [
+        ThemeProp('series-nav.title.size',   PROP_LENGTH, '18px', css='font-size'),
+        ThemeProp('series-nav.title.weight', PROP_WEIGHT, 'bold', css='font-weight'),
+    ]),
+    ThemeComponent('series-nav.desc', '.series-desc', [
+        ThemeProp('series-nav.desc.fg',   PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('series-nav.desc.size', PROP_LENGTH, '14px',      css='font-size'),
+    ]),
+    ThemeComponent('series-nav.status', '.series-status', [
+        ThemeProp('series-nav.status.size',   PROP_LENGTH, '13px', css='font-size'),
+        ThemeProp('series-nav.status.weight', PROP_WEIGHT, 'bold', css='font-weight'),
+        ThemeProp('series-nav.status.fg-current', PROP_COLOR, 'ink-quiet',
+                  css='color', selector='.series-current .series-status'),
+        ThemeProp('series-nav.status.fg-link',    PROP_COLOR, 'ink',
+                  css='color', selector='.series-link .series-status'),
+    ]),
+
+    ThemeComponent('nav-btn', '.nav-btn', [
+        ThemeProp('nav-btn.bg',         PROP_COLOR,  '#FFFFFFEB', css='background'),
+        ThemeProp('nav-btn.bg-soft',    PROP_COLOR,  '#FFFFFFBF', css='background',
+                  selector='.nav-btn-home'),
+        ThemeProp('nav-btn.fg',         PROP_COLOR,  'ink',       css='color'),
+        ThemeProp('nav-btn.rule-fg',    PROP_COLOR,  '#00000029', css='border-color'),
+        ThemeProp('nav-btn.rule-width', PROP_LENGTH, '1px',       css='border-width'),
+        ThemeProp('nav-btn.size',       PROP_LENGTH, '20px',      css='font-size'),
+        ThemeProp('nav-btn.ring',       PROP_COLOR,  'call',      css='outline-color',
+                  selector='.nav-btn:focus-visible'),
+        ThemeProp('nav-btn.ring-width', PROP_LENGTH, '3px',       css='outline-width',
+                  selector='.nav-btn:focus-visible'),
+    ]),
+    ThemeComponent('nav-dot', '.nav-dots a', [
+        ThemeProp('nav-dot.bg',        PROP_COLOR, '#00000029', css='background'),
+        ThemeProp('nav-dot.bg-hover',  PROP_COLOR, 'ink-quiet', css='background',
+                  selector='.nav-dots a:hover'),
+        ThemeProp('nav-dot.bg-active', PROP_COLOR, 'mark',      css='background',
+                  selector='.nav-dots a.active'),
+    ]),
+
+    # Share chrome, deliberately compact: matrix-head sizes and button
+    # geometry stay in the skeleton.
+    ThemeComponent('share', '.share-popover', [
+        ThemeProp('share.bg', PROP_COLOR, 'page', css='background',
+                  selector='.share-popover, .share-qr-modal-content'),
+        ThemeProp('share.fg', PROP_COLOR, 'ink', css='color',
+                  selector='.share-popover, .share-qr-modal-content'),
+        ThemeProp('share.quiet-fg', PROP_COLOR, 'ink-quiet', css='color',
+                  selector='.share-cell-head, .share-qr-modal-url'),
+        ThemeProp('share.size', PROP_LENGTH, '13px', css='font-size',
+                  selector='.share-cell'),
+        ThemeProp('share.rule-fg', PROP_COLOR, '#00000029', css='border-color',
+                  selector='button.share-action, .share-qr-close'),
+        ThemeProp('share.rule-width', PROP_LENGTH, '1px', css='border-width',
+                  selector='button.share-action, .share-qr-close'),
+        ThemeProp('share.scrim', PROP_COLOR, '#0000008C', css='background',
+                  selector='.share-qr-modal'),
+    ]),
+
+    ThemeComponent('card', '.article-card', [
+        ThemeProp('card.bg',            PROP_COLOR,  '#FFFFFFB8', css='background'),
+        ThemeProp('card.rule-fg',       PROP_COLOR,  '#00000029', css='border-color'),
+        ThemeProp('card.rule-width',    PROP_LENGTH, '2px',       css='border-width'),
+        ThemeProp('card.rule-fg-hover', PROP_COLOR,  'mark',      css='border-color',
+                  selector='.article-card:hover'),
+    ]),
+    ThemeComponent('card.label', '.article-number', [
+        ThemeProp('card.label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('card.label.font',      PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('card.label.size',      PROP_LENGTH, '13px',      css='font-size'),
+        ThemeProp('card.label.weight',    PROP_WEIGHT, 'bold',      css='font-weight'),
+        ThemeProp('card.label.tracking',  PROP_LENGTH, '2px',       css='letter-spacing'),
+        ThemeProp('card.label.transform', PROP_CASE,   'uppercase', css='text-transform'),
+    ]),
+    ThemeComponent('card.title', '.article-title', [
+        ThemeProp('card.title.size',   PROP_LENGTH, '20px', css='font-size'),
+        ThemeProp('card.title.weight', PROP_WEIGHT, 'bold', css='font-weight'),
+    ]),
+    ThemeComponent('card.desc', '.article-desc', [
+        ThemeProp('card.desc.fg',   PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('card.desc.size', PROP_LENGTH, '15px',      css='font-size'),
+    ]),
+    ThemeComponent('card.cta', '.article-cta', [
+        ThemeProp('card.cta.fg',     PROP_COLOR,  'ink',  css='color'),
+        ThemeProp('card.cta.size',   PROP_LENGTH, '14px', css='font-size'),
+        ThemeProp('card.cta.weight', PROP_WEIGHT, 'bold', css='font-weight'),
+    ]),
+
+    ThemeComponent('header', '.header', [
+        ThemeProp('header.rule-fg',    PROP_COLOR,  'mark', css='border-bottom-color'),
+        ThemeProp('header.rule-width', PROP_LENGTH, '2px',  css='border-bottom-width'),
+    ]),
+    ThemeComponent('header.title', '.header h1', [
+        ThemeProp('header.title.font',    PROP_FONT,   'display', css='font-family'),
+        ThemeProp('header.title.size',    PROP_LENGTH, 'clamp(28px, 4vw, 44px)',
+                  css='font-size'),
+        ThemeProp('header.title.weight',  PROP_WEIGHT, 'bold', css='font-weight'),
+        ThemeProp('header.title.leading', PROP_RATIO,  '1.2',  css='line-height'),
+    ]),
+    ThemeComponent('header.subtitle', '.header .subtitle', [
+        ThemeProp('header.subtitle.fg',   PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('header.subtitle.size', PROP_LENGTH, 'clamp(16px, 2vw, 20px)',
+                  css='font-size'),
+    ]),
+    # Aligned on font.mono — the sheet's own stack dropped Consolas here, the
+    # registry's single one-byte departure from current values.
+    ThemeComponent('version-tag', '.version-tag', [
+        ThemeProp('version-tag.font', PROP_FONT,   'mono',      css='font-family'),
+        ThemeProp('version-tag.fg',   PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('version-tag.bg',   PROP_COLOR,  '#0000000B', css='background'),
+        ThemeProp('version-tag.size', PROP_LENGTH, '12px',      css='font-size'),
+    ]),
+    ThemeComponent('intro', '.intro', [
+        ThemeProp('intro.size',    PROP_LENGTH, '17px', css='font-size'),
+        ThemeProp('intro.leading', PROP_RATIO,  '1.7',  css='line-height'),
     ]),
 ]
 
@@ -1357,13 +1700,18 @@ def emit_theme_css(resolved):
     lines.append('}')
 
     for c in THEME_COMPONENTS:
-        decls = []
-        if c.composite:
-            prop, value = c.composite()
-            decls.append(f'  {prop}: {value};')
-        decls += [f'  {p.css}: var({p.var});' for p in c.props if p.css]
-        if decls:
-            lines += [f'{c.selector} {{', *decls, '}']
+        # Grouped by effective selector: a component's properties may land on
+        # an inner element, a context, or a state — the base selector first,
+        # overrides after it in declaration order.
+        groups = {}
+        for cssprop, value in c.composite:
+            groups.setdefault(c.selector, []).append(f'  {cssprop}: {value};')
+        for p in c.props:
+            if p.css:
+                sel = p.selector or c.selector
+                groups.setdefault(sel, []).append(f'  {p.css}: var({p.var});')
+        for sel, decls in groups.items():
+            lines += [f'{sel} {{', *decls, '}']
         mark = next((p for p in c.props if p.key.endswith('.mark')), None)
         if mark:
             lines.append(

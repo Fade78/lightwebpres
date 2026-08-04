@@ -331,3 +331,11 @@ and then the active state needs a colour that works on it, which
 a highlight ground). Spec §9.1 currently lists "active nav dot" as a role
 of `--marker`, so changing it is a documented-contract change, not a
 tweak.
+
+## B7 — Text alignment axes (center, justify, per-component and per-block) — NOTED
+
+Owner's request, 2026-08-04, deliberately deferred to a later version: expose
+alignment (center / justify / left / right) as typed axes on text-bearing
+components, plus a block-level instance tag in article sources. Depends on the
+§9 rewrite landing first (typed properties, instance-tag layer). Not designed
+yet — recorded so the intent survives the session.

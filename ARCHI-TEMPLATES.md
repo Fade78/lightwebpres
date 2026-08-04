@@ -271,6 +271,24 @@ strictement — c'est la répartition habituelle entre le moteur et ses entrées
 **Défauts livrés : l'aspect actuel.** Le vrai parti typographique appartient à
 la révision du catalogue.
 
+### 6.5 Effets de texte
+
+Ombre et halo passent par `text-shadow`, en trois axes par composant porteur :
+`shadow.fg`, `shadow.blur`, `shadow.dy`. **Un halo est une ombre sans
+décalage** — même mécanisme, pas de branche, comme l'aplat est un dégradé à
+bornes égales. Le défaut est transparent : aucun effet tant qu'un thème n'en
+demande pas.
+
+`text-shadow` étant une propriété **héritée**, les axes posés sur `page`
+teintent tout le texte du site d'un coup — l'effet « aérien » global est trois
+lignes — et les composants qui portent leurs propres axes (`title1`,
+`highlight`) divergent localement : le halo vert de Terminal sur ses titres,
+sans toucher au corps.
+
+Le barré rejoint l'énumération de décoration (`line-through`), qui sert aussi
+aux balises d'instance. **L'alignement (centrer, justifier) est noté au backlog
+pour une version ultérieure**, sur décision du propriétaire.
+
 ---
 
 ## 7. Variantes et balises locales
