@@ -418,15 +418,38 @@ order, and its audit story. Do not build before the external-theme-format
 question (out of scope of the §9 refactor by decision) is opened on its
 own.
 
-## B9 — Typographic revision of the 33-theme catalogue — REPORTED
+## B9 — Typographic revision of the 33-theme catalogue — PARTLY APPLIED
 
 **Report delivered and verified** (`c4156e8`): `REVISION-THEMES.md`, with
-31 validated property layers in `themes-revision/`. Nothing applied. Three
-decisions are the owner's before any of it lands — flipping four borrowed
-themes to dark grounds, dropping `pop-lagoon` and `pop-fuchsia`, and
-adopting the serif-text / sans-UI default split. The report also indicts
-spec §9.5.2: five project themes miss the AA floor it promises they meet,
-and three entry notes are factually false. Original framing follows.
+31 validated property layers in `themes-revision/`.
+
+**Two of the three decisions applied.** The catalogue keeps **33 themes**.
+
+1. **Four borrowed palettes returned to their own ground.** `dracula`,
+   `tokyo-night`, `monokai` and `everforest` are `dark_background`.
+   Measured after: **zero text roles below AA on all four**, against
+   1.29:1 and 1.41:1 before. `monokai` keeps its pink on rules and rings
+   only (3.93:1), which its slug override enforces. Three entry notes
+   that were factually false are rewritten.
+2. **The serif-text / sans-UI default split adopted.** Verified the `ch`
+   measure is font-independent as designed: characters per line are
+   unchanged at 62 and 67 wherever the measure binds, and stay in band
+   (48, 56) on the narrow phone where the padding binds instead.
+3. **Dropping `pop-lagoon` and `pop-fuchsia`: rejected, and the report was
+   wrong.** Its case was that lagoon is crowded between lime and cobalt.
+   Measured on the hue wheel, lagoon's neighbours are *further away than
+   average* — 36° and 49° — while the closest pair in the family is
+   tangerine→lemon at **15°**, which reads as two plainly different
+   colours. The criterion does not survive its own application. `fuchsia`
+   and `red` are the closest dark pair at 26°, with different `mark` and
+   `affirm`: not a duplicate. Nothing measured supports a removal.
+
+**Still open from the report:** the per-theme typographic blocks (named
+display faces, tracking, cover gradients, the two extra halos) and the
+five project themes that miss the AA floor spec §9.5.2 promises. The
+blocks are in `themes-revision/`, all 31 verified to resolve.
+
+Original framing follows.
 
 
 

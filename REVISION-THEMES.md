@@ -5,9 +5,10 @@ machine-readable output is in `themes-revision/`: one `.conf` per theme
 (31 files, complete property layers) plus `blocks.txt` (the same content
 grouped, with the shared defaults block first).
 
-**Nothing here is applied.** The catalogue in the executable is
-untouched. Three decisions in §5 are the owner's to make before any of it
-lands.
+**Two of the three decisions in §5 are applied** (the dark flips and the
+default font split); the third — dropping two `pop` themes — was rejected
+after measurement, and the catalogue keeps 33. The per-theme typographic
+blocks are **not** applied; they remain in `themes-revision/`.
 
 ---
 
@@ -269,7 +270,10 @@ lines each, described as the best return on investment in the catalogue.
 
 ---
 
-## 5. Three decisions for the owner
+## 5. Three decisions — outcome
+
+**1 and 3 applied, 2 rejected.** The catalogue keeps 33 themes. See
+BACKLOG B9 for what was measured on each. The decisions as they were put:
 
 1. **Flip four borrowed themes to dark** (`dracula`, `tokyo-night`,
    `monokai`, `everforest`). Restores fidelity and fixes the contrast in

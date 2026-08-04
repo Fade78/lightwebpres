@@ -1706,11 +1706,44 @@ en douce derrière le dos du thème, la couche le **dit** :
   Pop Lemon, deux échecs AA — c'est exactement pourquoi l'axe `fg`
   existe et pourquoi la paire est documentée ici ;
 - enfin, des **surcharges par slug** (`THEME_PROPERTY_OVERRIDES`)
-  portent ce que l'ancienne forme d'entrée ne savait pas dire. Une
-  seule aujourd'hui : `terminal` passe tout le texte en chasse fixe
+  portent ce que l'ancienne forme d'entrée ne savait pas dire :
+  `terminal` passe tout le texte en chasse fixe
   (`font.text`/`font.display`/`font.ui: mono` — trois lignes, c'est ce
   que le nom du thème promet) et pose un halo phosphore sur ses titres
-  et son chiffre-clé (`title1.shadow.*`, `highlight.shadow.*`, §9.7).
+  et son chiffre-clé (`title1.shadow.*`, `highlight.shadow.*`, §9.7) ;
+  `dracula` et `tokyo-night` passent leur seul **appareil** en chasse
+  fixe (`font.ui`), le corps restant sur la serif de lecture ; `monokai`
+  y passe tout, et sort son rose du texte (`verdict.partial.fg`,
+  `footnote-call.fg`) parce qu'il franchit 3:1 sans franchir 4,5:1 ;
+  `everforest` élargit ses interlignes.
+
+**Défauts typographiques (B9).** Une serif pour lire, une sans pour
+l'appareil. La pile système unique d'avant donnait la même voix au
+corps, aux titres, aux tags et aux tableaux, et rendait le produit
+identique à n'importe quelle page web. Le petit appareil textuel — tags,
+numéros de fiche, étiquettes d'encadré, sources, pieds de page — est de
+la signalétique, pas de la prose. `font.display` renvoie à `text` : le
+contraste titre/corps est déjà porté par la taille et la graisse, et une
+troisième famille par défaut serait un pari ne tenant sur aucune
+plateforme sans les polices nommées — c'est aux **thèmes** de diverger
+sur `display`. Toutes les piles finissent sur un générique CSS 2.1,
+seule chose réellement garantie ; les noms sont un bonus là où ils
+existent. `font.ui` n'est délibérément **pas** menée par `system-ui`,
+qui rendrait la police de l'OS, c'est-à-dire l'absence de choix qu'on
+quitte.
+
+**Quatre palettes empruntées rendues à leur propre fond (B9).** Une
+palette de coloration syntaxique distribue la *teinte* à clarté quasi
+constante — c'est son cahier des charges, pour qu'aucun token ne hurle
+plus fort qu'un autre — donc elle ne peut pas, par construction, peindre
+du texte sur un papier clair. Ce n'était pas une affaire de valeurs à
+retoucher : `dracula`, `tokyo-night`, `monokai` et `everforest` sont
+désormais `dark_background`, sur les fonds pour lesquels elles ont été
+dessinées. Mesuré, **aucun de leurs rôles de texte n'est plus sous AA**,
+là où `dracula` affichait 1,29:1 et `tokyo-night` 1,41:1. C'est une
+restauration de fidélité autant qu'une correction de lisibilité : le
+catalogue rendait Tokyo Night avec les accents *Night* posés sur le fond
+*Day*, ce qui n'est ni l'un ni l'autre.
 
 Les deux thèmes qui emploient le soulignement du gras d'encadré sont
 `monochrome` et `graphite`, et ce n'est pas arbitraire : ce sont les

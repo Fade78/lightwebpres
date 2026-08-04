@@ -239,11 +239,12 @@ THEMES = {
     },
     'dracula': {
         'label': 'Dracula', 'source': 'draculatheme.com', 'intensity': 'vivid',
-        'marker': '#F1FA8C', 'ink': '#282A36', 'ink-muted': '#6272A4',
-        'page': '#F8F8F2', 'accent': '#FF5555', 'positive': '#50FA7B',
+        'dark_background': True,
+        'marker': '#F1FA8C', 'ink': '#F8F8F2', 'ink-muted': '#8B9CC7',
+        'page': '#282A36', 'accent': '#FF5555', 'positive': '#50FA7B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': "A palette designed for a dark background — `color.page` borrows Dracula’s text-on-black here, for want of an official light one.",
-        'note_good': False,
+        'note': "`color.page` is Dracula’s own ground again. Rendered on a light page its accents measured 1.29:1 — a syntax palette spreads hue at near-constant lightness by design, so it cannot paint text on paper. The muted tone is the official comment blue lightened two steps: Dracula means its comments to recede, a card summary must not.",
+        'note_good': True,
     },
     'solarized': {
         'label': 'Solarized Light', 'source': 'ethanschoonover.com', 'intensity': 'sober',
@@ -271,26 +272,29 @@ THEMES = {
     },
     'tokyo-night': {
         'label': 'Tokyo Night', 'source': 'github.com/folke', 'intensity': 'sober',
-        'marker': '#E0AF68', 'ink': '#1A1B26', 'ink-muted': '#565F89',
-        'page': '#E1E2E7', 'accent': '#F7768E', 'positive': '#9ECE6A',
+        'dark_background': True,
+        'marker': '#E0AF68', 'ink': '#C0CAF5', 'ink-muted': '#8C94BC',
+        'page': '#1A1B26', 'accent': '#F7768E', 'positive': '#9ECE6A',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
-        'note': "Tokyo Night is nocturnal by nature — `color.page` is borrowed from its official sister variant “Day”, not from the Night palette itself.",
-        'note_good': False,
+        'note': "Night, whole — `color.page` included. It used to be a chimera — the ground from “Day”, the accents from “Night” — which is neither palette and measured 1.41:1 on the affirm role. On its own ground every accent clears AA without a single value being retouched.",
+        'note_good': True,
     },
     'monokai': {
         'label': 'Monokai', 'source': 'classique, Sublime Text', 'intensity': 'vivid',
-        'marker': '#E6DB74', 'ink': '#272822', 'ink-muted': '#75715E',
-        'page': '#F8F8F2', 'accent': '#F92672', 'positive': '#A6E22E',
+        'dark_background': True,
+        'marker': '#E6DB74', 'ink': '#F8F8F2', 'ink-muted': '#9B9483',
+        'page': '#272822', 'accent': '#F92672', 'positive': '#A6E22E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "Among the most vivid greens and yellows here. No official light variant — `color.page` reuses the text-on-black, like Dracula.",
-        'note_good': False,
+        'note': "Twenty years without a light variant is not an oversight, and it is why this now renders on Monokai’s own ground. The pink stays — it *is* Monokai — but at 3.93:1 it paints rules and rings, not text.",
+        'note_good': True,
     },
     'everforest': {
         'label': 'Everforest', 'source': 'github.com/sainnhe', 'intensity': 'sober',
-        'marker': '#DFA000', 'ink': '#2D353B', 'ink-muted': '#859289',
-        'page': '#FDF6E3', 'accent': '#F85552', 'positive': '#A7C080',
+        'dark_background': True,
+        'marker': '#DBBC7F', 'ink': '#D3C6AA', 'ink-muted': '#9DA9A0',
+        'page': '#2D353B', 'accent': '#E67E80', 'positive': '#A7C080',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
-        'note': "Sage green is the palette’s signature colour — the strongest semantic anchor here for the `color.affirm` role. Official light+dark pairing.",
+        'note': "Sage green is the palette’s signature and the strongest anchor here for `color.affirm`. This used to mix three values from the dark variant into the light one; soft contrast is Everforest’s declared project, so rendering it light meant either betraying that or shipping something unreadable. On its own dark ground every role clears AA, ink at AAA.",
         'note_good': True,
     },
     'rose-pine': {
@@ -933,14 +937,32 @@ THEME_SHARED_PROPS = [
     ThemeProp('color.mark',      PROP_COLOR, '#FFFC00FF'),
     ThemeProp('color.call',      PROP_COLOR, '#FF4757FF'),
     ThemeProp('color.affirm',    PROP_COLOR, '#3AA55CFF'),
-    # Defaults keep today's faces; a real typographic stance is catalogue
-    # work, not engine work. The sheet has only two real stacks today —
-    # display and ui alias text until a theme says otherwise.
+    # A serif for reading, a sans for the apparatus (B9). The old single
+    # system stack made every page look like any generic web page and gave
+    # body, titles, tags and tables the same voice. The product sells a long
+    # sourced article: a serif says "this is to be read", a system sans says
+    # "this is an application", and the small textual apparatus -- tags, card
+    # numbers, fact labels, sources, footers -- is signage, not prose. The
+    # structural difference does the hierarchy work unaided, which matters
+    # where only normal and bold survive a generic family.
+    #
+    # No third family for display: the title/body contrast is already carried
+    # by size and weight, and a third default would be a bet holding on no
+    # platform without the named fonts. Divergence on display is a THEME's
+    # business. Every stack ends on a CSS 2.1 generic, which is the only
+    # thing actually guaranteed -- the names are a bonus where they exist.
     ThemeProp('font.text', PROP_FONT,
-              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"),
+              "Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"),
     ThemeProp('font.display', PROP_FONT, 'text'),
-    ThemeProp('font.ui',      PROP_FONT, 'text'),
-    ThemeProp('font.mono',    PROP_FONT, "'SF Mono', Menlo, Consolas, monospace"),
+    # Deliberately NOT led by system-ui, which would hand back the OS font,
+    # i.e. the absence of choice this is leaving behind.
+    ThemeProp('font.ui', PROP_FONT,
+              "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', "
+              "Arial, sans-serif"),
+    # ui-monospace first for Safari, never as the anchor: it is Safari-only.
+    ThemeProp('font.mono', PROP_FONT,
+              "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, "
+              "Consolas, 'DejaVu Sans Mono', monospace"),
 ]
 
 # Full inventory of the painted surface (v0.12.2), one entry per component
@@ -1433,6 +1455,22 @@ _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
 # terminal's register is the owner's decision (fixed pitch is what the theme
 # is named for) plus its phosphor halo on display text.
 THEME_PROPERTY_OVERRIDES = {
+    # Two editor palettes that say so: the apparatus in fixed pitch, the body
+    # still in the reading serif. The gesture reads "this came from a
+    # terminal" without making the article hard to read.
+    'dracula': {'font.ui': 'mono'},
+    'tokyo-night': {'font.ui': 'mono'},
+    # Monokai is the archetype of the 2010s editor -- all of it in fixed
+    # pitch. Two monospace themes in the catalogue, each for its own reason.
+    'monokai': {
+        'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
+        # The pink clears 3:1 but not 4.5:1 on this ground: it keeps the
+        # rules and the rings, the text takes the ink.
+        'verdict.partial.fg': 'ink', 'footnote-call.fg': 'ink',
+    },
+    # The undergrowth: generous leading, no named face. Everforest is a
+    # palette, not a voice.
+    'everforest': {'page.leading': '1.7', 'article.leading': '1.75'},
     'terminal': {
         'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
         'title1.shadow.fg': '#33FF8866', 'title1.shadow.blur': '10px',
