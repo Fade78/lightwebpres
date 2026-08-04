@@ -171,7 +171,7 @@ per-slide one below: recognized, never read, never published.
 | Type | Fields | Cardinality |
 |---|---|---|
 | `cover` | `tag`, `# Title`, `summary`, `comment` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `source`, `comment`, then free Markdown text | As many as you want |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
@@ -282,6 +282,46 @@ a multi-line card, closed by `</a>` several lines later) and every line
 in between is raw HTML verbatim until the matching close, even a line
 that would look like a self-contained inline usage on its own
 (`<span class="caption">...</span>` alone on its line, say).
+
+## Per-slide look: `fact-variant`
+
+`fact-variant: warning` on a standard slide adds `fact--warning` to that
+slide's fact-box classes. The source names a *meaning*; what it looks like
+is defined by the series (a `.fact--warning` rule in
+`templates/custom.css`), so changing themes carries the variant along.
+The name must match `[a-z][a-z0-9-]*` — anything else is a fatal build
+error naming the file. Only meaningful together with `fact-label:` (no
+fact-box, no class to hook).
+
+## Instance tags: character-level styling beyond Markdown
+
+Format-defined tags for one-off interventions inside any free text (slide
+bodies and the full-article file). They go through the compiler: a bad
+value is a fatal build error naming the file, and `audit` counts them per
+article — they are author decisions that survive every theme change.
+
+| Tag | Effect |
+|---|---|
+| `{color:#E8A33D}…{/color}` | colour literal (3/4/6/8-digit hex, normalized to ARGB) |
+| `{color:mark}…{/color}` | a shared colour by name (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`) |
+| `{font:mono}…{/font}` | a shared stack by name (`text`, `display`, `ui`, `mono`), or a literal stack ending on a CSS generic |
+| `{sc}…{/sc}` | small caps |
+| `{strike}…{/strike}` | strikethrough |
+| `{u}…{/u}` | underline |
+
+Tags nest, and Markdown inside them still converts. An opener without its
+closer on the same line stays literal text — visible in the render. Inside
+`` `code` `` spans nothing is ever a tag. Prefer a `fact-variant` or a
+settings.conf property for anything that repeats; the tag is the tool for
+the one place that needs it.
+
+## Per-article style: `style.*` meta keys
+
+Any `style.<property>: value` line in the lwp:meta block restyles that
+page only, over the series' theme and settings — same vocabulary and
+types as `templates/settings.conf` (e.g. `style.verdict.partial.fg:
+#8A4B00`, `style.cover.bg.angle: 90deg`). A bad key or value is a fatal
+build error naming the file.
 
 ## Styling hooks you reach with raw HTML
 

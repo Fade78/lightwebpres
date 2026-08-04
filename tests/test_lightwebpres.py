@@ -6352,5 +6352,159 @@ class ThemeEngineStaged(unittest.TestCase):
                                   f'{prop.key} declared but never consumed')
 
 
+class ArticleStyleLayer(unittest.TestCase):
+    """style.* meta keys — the article layer of the cascade (§9). One page
+    recomposes over the same series layers; every other page and the index
+    keep the series sheet. Same vocabulary, same types, same errors as
+    settings.conf, named with the file they came from."""
+
+    ARTICLE = ('<!-- lwp:meta -->\n'
+               'page_title: A\n'
+               '{style_lines}'
+               '---\n\n'
+               '# Cover\n\nsummary: s\n')
+
+    def _series(self, tmp, style_lines=''):
+        # install first: it writes its own empty series.json, which would
+        # bury the scaffold's article list if run second.
+        run('install', tmp, '--force')
+        return scaffold(tmp, self.ARTICLE.format(style_lines=style_lines))
+
+    def test_style_meta_restyles_its_page_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'style.verdict.partial.fg: #8A4B00\n')
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('--verdict-partial-fg: #8A4B00FF;', page)
+            self.assertNotIn('#8A4B00', index)
+
+    def test_page_layer_sits_on_top_of_theme_and_settings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'style.color.mark: #101010\n')
+            run('set-theme', str(root), '--theme', 'nord')
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # the page pins the mark; everything else is still nord
+            self.assertIn('--color-mark: #101010FF;', page)
+            self.assertIn('--color-page: #ECEFF4FF;', page)
+
+    def test_a_bad_value_is_a_build_error_naming_the_article(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'style.tag.weight: 600\n')
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('a.md', result.stderr)
+            self.assertIn('normal|bold', result.stderr)
+
+    def test_an_unknown_property_is_a_build_error_naming_the_article(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'style.tag.color: #000000\n')
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('a.md', result.stderr)
+            self.assertIn('unknown property', result.stderr)
+
+
+class InstanceTags(unittest.TestCase):
+    """The fifth layer of the cascade: format-defined tags in article text,
+    instance-scoped, same types as everywhere else. The compiler sees them,
+    so a bad value is a named build error and audit can enumerate them —
+    the visibility that makes literals acceptable at all."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_colour_literal_normalises_to_argb_inline(self):
+        html = self.lwp.md_inline('a {color:#e8a33d}word{/color} b')
+        self.assertIn('<span style="color:#E8A33DFF">word</span>', html)
+
+    def test_bare_word_references_emit_the_guaranteed_var(self):
+        html = self.lwp.md_inline('{color:mark}x{/color} {font:mono}y{/font}')
+        self.assertIn('<span style="color:var(--color-mark)">x</span>', html)
+        self.assertIn('<span style="font-family:var(--font-mono)">y</span>', html)
+
+    def test_valueless_tags_cover_the_non_composing_axes(self):
+        html = self.lwp.md_inline('{sc}a{/sc} {strike}b{/strike} {u}c{/u} {mono}d{/mono}')
+        self.assertIn('font-variant:small-caps', html)
+        self.assertIn('text-decoration:line-through', html)
+        self.assertIn('text-decoration:underline', html)
+        self.assertIn('font-family:var(--font-mono)', html)
+
+    def test_tags_nest_and_keep_markdown_inside(self):
+        html = self.lwp.md_inline('{color:call}**bold** and {sc}caps{/sc}{/color}')
+        self.assertIn('<strong>bold</strong>', html)
+        self.assertIn('font-variant:small-caps', html)
+        self.assertIn('color:var(--color-call)', html)
+
+    def test_a_bad_literal_is_a_named_error(self):
+        with self.assertRaises(self.lwp.PropertyError) as ctx:
+            self.lwp.md_inline('{color:dark-grey}x{/color}')
+        self.assertIn('{color:dark-grey}', str(ctx.exception))
+        with self.assertRaises(self.lwp.PropertyError) as ctx:
+            self.lwp.md_inline('{font:Comic Sans}x{/font}')
+        self.assertIn('generic', str(ctx.exception))
+
+    def test_an_unclosed_tag_stays_visible_literal_text(self):
+        html = self.lwp.md_inline('a {color:#fff}forgot to close')
+        self.assertIn('{color:#fff}', html)
+        self.assertNotIn('<span', html)
+
+    def test_a_code_span_is_never_a_tag(self):
+        html = self.lwp.md_inline('`{color:#fff}not a tag{/color}`')
+        self.assertNotIn('<span', html)
+
+    def test_a_bad_tag_in_a_real_article_names_its_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
+                                 '# Cover\n\nsummary: s\n\n---\n\n'
+                                 '## S\n\nfact-label: F\n\n'
+                                 'Un fait {color:rouge}mal{/color} balisé.\n')
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('a.md', result.stderr)
+            self.assertIn('{color:rouge}', result.stderr)
+
+    def test_audit_enumerates_instance_tags_without_blocking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
+                                 '# Cover\n\nsummary: {color:#333}s{/color} '
+                                 'et {sc}x{/sc}\n')
+            result = run('audit', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[NOTE] a.md: 2 instance tag(s)', result.stdout)
+
+
+class FactVariant(unittest.TestCase):
+    """fact-variant names a MEANING in the source; what it looks like is the
+    theme's or the author's to define (a .fact--<name> rule in custom.css),
+    so a theme change carries the variant with it — the same contract as
+    class="yes" on a table cell."""
+
+    ARTICLE = ('<!-- lwp:meta -->\npage_title: A\n---\n\n'
+               '# Cover\n\nsummary: s\n\n---\n\n'
+               '## S\n\nfact-label: F\nfact-variant: {variant}\n\nBody.\n')
+
+    def test_variant_becomes_a_class_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            root = scaffold(tmp, self.ARTICLE.format(variant='warning'))
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('class="fact-box fact--warning"', page)
+
+    def test_an_invalid_variant_name_is_a_named_build_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            root = scaffold(tmp, self.ARTICLE.format(variant='Bad Name!'))
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('a.md', result.stderr)
+            self.assertIn('fact-variant', result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

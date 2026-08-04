@@ -1777,11 +1777,10 @@ def build_settings_scaffold(theme_key=None):
     return '\n'.join(lines) + '\n'
 
 
-def compose_series_stylesheet(templates_dir):
-    """The CSS for one series: defaults -> theme -> settings, composed in
-    memory, with the author's custom.css appended last so their rules win
-    every same-specificity fight. Nothing here needs the disk beyond the two
-    author-owned files."""
+def series_style_context(templates_dir):
+    """(layers, custom_css_text) for one series: the resolved-once part of
+    composition, so a page carrying its own style.* properties can be
+    recomposed without re-reading anything."""
     settings_file = templates_dir / SETTINGS_FILENAME
     theme_key, props = (parse_settings_text(read_text_file(settings_file))
                         if settings_file.exists() else (None, {}))
@@ -1795,12 +1794,44 @@ def compose_series_stylesheet(templates_dir):
 
     layers = [theme_property_layer(theme_key)] if theme_key else []
     layers.append(props)
-    css = compose_stylesheet(resolve_theme_properties(*layers))
 
     custom_file = templates_dir / CUSTOM_CSS_FILENAME
-    if custom_file.exists():
-        css += '\n' + read_text_file(custom_file)
+    custom = read_text_file(custom_file) if custom_file.exists() else ''
+    return layers, custom
+
+
+def compose_with(style_context, page_props=None):
+    """The CSS for one page: series layers, then the page's own properties
+    (the article layer of the cascade), then the author's custom.css last so
+    their rules win every same-specificity fight."""
+    layers, custom = style_context
+    if page_props:
+        layers = [*layers, page_props]
+    css = compose_stylesheet(resolve_theme_properties(*layers))
+    if custom:
+        css += '\n' + custom
     return css
+
+
+def compose_series_stylesheet(templates_dir):
+    """The series-wide CSS, composed in memory — defaults -> theme ->
+    settings -> custom.css."""
+    return compose_with(series_style_context(templates_dir))
+
+
+def page_style_properties(meta, source_name):
+    """The article layer: every `style.<property>` key of an lwp:meta block,
+    stripped of its prefix. `style.verdict.partial.fg: #8a4b00` restyles one
+    page without touching the series — same vocabulary, same types, same
+    errors as settings.conf, named with the file they came from."""
+    props = {}
+    for key, value in meta.items():
+        if key.startswith('style.'):
+            prop = key[len('style.'):].strip()
+            if not prop:
+                raise PropertyError(f'{source_name}: empty style.* key')
+            props[prop] = value
+    return props
 
 
 # --- Template: style.css ---
@@ -4278,10 +4309,71 @@ def md_inline(text):
     text = text.replace('\\`', '`')
     text = text.replace('\\>', '>')
 
+    # Instance tags — the fifth layer of the cascade, instance-scoped
+    # (specifications.md §9, ARCHI §7). Same types as everywhere else: a
+    # colour literal is a valid ARGB, a font stack ends on a generic, and a
+    # bare word is looked up in its type's namespace and emitted as the
+    # var() the :root is guaranteed to define. Processed after every other
+    # substitution so bold/italic inside a tagged span survive; an opener
+    # without its closer on the same line stays literal text — visible in
+    # the render, where the author is already looking. Applied last, this
+    # runs before placeholders are restored, so code spans stay untouchable.
+    text = _apply_instance_tags(text)
+
     for idx, html in enumerate(code_spans):
         text = text.replace(f'\x00{idx}\x00', html)
 
     return text
+
+
+def _instance_style(name, value):
+    """The CSS declaration for one instance tag, its value type-checked.
+    Raises PropertyError with the tag spelled out — a bad value is a build
+    error naming its article, never a silent no-op."""
+    where = f'inline tag {{{name}:{value}}}' if value else f'inline tag {{{name}}}'
+    if name == 'color':
+        if PROP_COLOR.is_literal(value):
+            return f'color:{PROP_COLOR.check(where, value)}'
+        if f'color.{value}' in PROPERTY_REGISTRY:
+            return f'color:var(--color-{value})'
+        raise PropertyError(
+            f'{where}: neither a colour literal nor a color.* name')
+    if name == 'font':
+        if PROP_FONT.is_literal(value):
+            checked = PROP_FONT.check(where, value).replace('"', '&quot;')
+            return f'font-family:{checked}'
+        if f'font.{value}' in PROPERTY_REGISTRY:
+            return f'font-family:var(--font-{value})'
+        raise PropertyError(
+            f'{where}: neither a font stack (ending on a generic) nor a '
+            f'font.* name')
+    return {
+        'sc': 'font-variant:small-caps',
+        'u': 'text-decoration:underline',
+        'strike': 'text-decoration:line-through',
+        'mono': 'font-family:var(--font-mono)',
+    }[name]
+
+
+_INSTANCE_TAG_RE = re.compile(
+    r'\{(color|font):([^{}]+)\}(.*?)\{/\1\}|\{(sc|u|strike|mono)\}(.*?)\{/\4\}')
+
+
+def _apply_instance_tags(text):
+    def _span(m):
+        if m.group(1):
+            name, value, content = m.group(1), m.group(2).strip(), m.group(3)
+        else:
+            name, value, content = m.group(4), '', m.group(5)
+        return (f'<span style="{_instance_style(name, value)}">'
+                f'{content}</span>')
+    # Innermost-first, so {color:...}{sc}x{/sc}{/color} nests: each pass
+    # rewrites tags whose content holds no other tag, until none is left.
+    while True:
+        new = _INSTANCE_TAG_RE.sub(_span, text)
+        if new == text:
+            return new
+        text = new
 
 
 def parse_table_row(line):
@@ -4609,6 +4701,7 @@ class Slide:
         self.summary = None
         self.fact_label = None
         self.fact_content = None
+        self.fact_variant = None  # optional look, defined by the theme/author (§9)
         self.source = None
         self.highlight = None
         self.highlight_caption = None
@@ -4729,7 +4822,7 @@ def parse_markdown_extended(md_text):
             # which would swallow a non-breaking space right after the
             # ':' instead of preserving it as the value's first character
             # (§7.6).
-            field_match = re.match(r'^(tag|summary|fact-label|source|highlight|highlight-caption|comment):[ \t]*(.*)', stripped)
+            field_match = re.match(r'^(tag|summary|fact-label|fact-variant|source|highlight|highlight-caption|comment):[ \t]*(.*)', stripped)
             if field_match and not in_content:
                 key = field_match.group(1)
                 value = field_match.group(2)
@@ -4739,6 +4832,8 @@ def parse_markdown_extended(md_text):
                     slide.summary = value
                 elif key == 'fact-label':
                     slide.fact_label = value
+                elif key == 'fact-variant':
+                    slide.fact_variant = value
                 elif key == 'source':
                     slide.source = value
                 elif key == 'highlight':
@@ -4971,7 +5066,19 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
             content_html = convert_markdown(slide.fact_content, typo_engine, disabled)
             if slide.fact_label:
                 label = apply_typo(typo_engine, slide.fact_label, disabled)
-                parts.append(f'  <div class="fact-box">')
+                fact_classes = 'fact-box'
+                if slide.fact_variant:
+                    # The source names a MEANING (`fact-variant: warning`);
+                    # what it looks like is the theme's or the author's to
+                    # define, as a .fact--warning rule in custom.css — so a
+                    # theme change carries the variant with it. The name
+                    # becomes a CSS class, and is validated as one.
+                    if not re.fullmatch(r'[a-z][a-z0-9-]*', slide.fact_variant):
+                        raise PropertyError(
+                            f'fact-variant: {slide.fact_variant!r} is not a '
+                            f'valid variant name ([a-z][a-z0-9-]*)')
+                    fact_classes += f' fact--{slide.fact_variant}'
+                parts.append(f'  <div class="{fact_classes}">')
                 parts.append(f'    <div class="fact-label">{label}</div>')
                 # A single wrapping <div> (not a <p>) around the converted
                 # content, regardless of what it starts with: fact-box body
@@ -5260,11 +5367,24 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp=''):
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
     validate_slides(slides, source_path.name, has_meta_block, content_before_meta)
+
+    # The article layer of the cascade: style.* meta keys restyle THIS page,
+    # recomposed over the same series layers. Same vocabulary, same types,
+    # same errors as settings.conf — and the error names the file, because a
+    # property mistake in one article must never read as a build mystery.
+    try:
+        page_props = page_style_properties(meta, source_path.name)
+        if page_props and style_context is not None:
+            css = compose_with(style_context, page_props)
+    except PropertyError as exc:
+        print(f'[ERROR] {source_path.name}: {exc}', file=sys.stderr)
+        sys.exit(1)
+
     disabled_rules = typo_disabled_rules(meta)
     # typo: off (§4.5) is this article's own --no-typography: skip the
     # engine entirely for its page, the same `None` the CLI flag passes
@@ -5274,9 +5394,16 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     total_slides = len(slides)
     slide_htmls = []
 
-    for i, slide in enumerate(slides, 1):
-        html = render_slide(slide, i, total_slides, article_typo_engine, strings, disabled_rules)
-        slide_htmls.append(html)
+    # Instance tags and fact variants are validated during rendering; their
+    # errors carry the article's name for the same reason the style.* ones
+    # do above.
+    try:
+        for i, slide in enumerate(slides, 1):
+            html = render_slide(slide, i, total_slides, article_typo_engine, strings, disabled_rules)
+            slide_htmls.append(html)
+    except PropertyError as exc:
+        print(f'[ERROR] {source_path.name}: {exc}', file=sys.stderr)
+        sys.exit(1)
 
     # Join the slides
     slides_html = '\n\n'.join(slide_htmls)
@@ -5837,7 +5964,12 @@ def load_build_context(series_dir, args):
     typo_engine = None if args.get('--no-typography') else TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
 
-    css = compose_series_stylesheet(templates_dir)
+    try:
+        style_context = series_style_context(templates_dir)
+        css = compose_with(style_context)
+    except PropertyError as exc:
+        print(f'[ERROR] templates/{SETTINGS_FILENAME}: {exc}', file=sys.stderr)
+        sys.exit(1)
     nav_js_file = templates_dir / 'nav.js'
     nav_js = read_text_file(nav_js_file) if nav_js_file.exists() else TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
@@ -5881,7 +6013,7 @@ def load_build_context(series_dir, args):
         lang_dir=lang_dir, output_dir=output_dir, lang=lang,
         language_file=language_file, typo_engine=typo_engine,
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
-        articles=articles,
+        articles=articles, style_context=style_context,
     )
 
 
@@ -5905,7 +6037,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp)
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context)
     (ctx.output_dir / entry['page_dest']).write_text(html, encoding='utf-8')
 
     index_extra_file = ctx.templates_dir / 'index_extra.html'
@@ -5974,7 +6106,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.articles_dir / source_file
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp)
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context)
 
         output_path = ctx.output_dir / output_file
         output_path.write_text(html, encoding='utf-8')
@@ -6034,7 +6166,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang)
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     index_extra_file = ctx.templates_dir / 'index_extra.html'
@@ -6088,6 +6220,18 @@ def cmd_audit(series_dir, args):
             continue
 
         md_text = read_text_file(source_path)
+        # Instance tags are author interventions that survive every theme
+        # change; audit enumerates them (never blocks) so an author changing
+        # themes knows where to look. The visibility is what makes literals
+        # in article text acceptable at all (§9).
+        instance_tags = re.findall(r'\{(color|font|sc|u|strike|mono)[:}]',
+                                   md_text)
+        if instance_tags:
+            counts = ', '.join(f'{instance_tags.count(t)} {t}'
+                               for t in sorted(set(instance_tags)))
+            print(f"[NOTE] {entry['page_source']}: "
+                  f"{len(instance_tags)} instance tag(s) ({counts}) — "
+                  f"author interventions that survive theme changes.")
         meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
