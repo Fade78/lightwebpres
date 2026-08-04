@@ -769,9 +769,19 @@ class ColourType(PropType):
 class LengthType(PropType):
     name = 'length'
 
+    # What may appear inside a CSS length function. No <, >, }, ; or quotes:
+    # inspecting only the five-character prefix let `calc(0px)} </style>
+    # <script>...` out of the declaration and out of the sheet.
+    FUNC_BODY = re.compile(r'^[0-9a-zA-Z.,%+*/()\- ]*$')
+
     def check(self, key, value):
         if any(value.startswith(f + '(') for f in LENGTH_FUNCS):
-            return value                     # a CSS function, passed through
+            if not self.FUNC_BODY.match(value) or value.count('(') != value.count(')'):
+                raise PropertyError(
+                    f'{key}: {value!r} is not a well-formed CSS length '
+                    f'function (balanced parentheses, no punctuation that '
+                    f'could leave the declaration)')
+            return value
         if value in ('0', 'auto'):
             return value
         m = re.match(r'^-?[\d.]+([a-z%]+)$', value)
@@ -817,8 +827,22 @@ class FontStackType(PropType):
         # generic. Anything else without a comma is a reference.
         return ',' in value or value in FONT_GENERICS
 
+    # A family name, quoted or not. Deliberately narrow: this value is
+    # emitted into the page's inlined <style> without further transformation,
+    # so anything outside this shape is a way out of the declaration. Checking
+    # only the last component let `</style><script>x</script><style>y, serif`
+    # through, because it ends on a generic.
+    FAMILY = re.compile(r'''^(?:"[A-Za-z0-9 _-]+"|'[A-Za-z0-9 _-]+'|[A-Za-z][A-Za-z0-9 _-]*)$''')
+
     def check(self, key, value):
-        last = [p.strip().strip('"\'') for p in value.split(',')][-1]
+        parts = [p.strip() for p in value.split(',')]
+        for part in parts:
+            if not self.FAMILY.match(part):
+                raise PropertyError(
+                    f'{key}: {part!r} is not a font family name. A stack is '
+                    f'comma-separated names, letters/digits/space/-/_ only, '
+                    f'optionally quoted.')
+        last = parts[-1].strip('"\'')
         if last not in FONT_GENERICS:
             raise PropertyError(
                 f'{key}: font stack must end on a generic family '
@@ -1788,9 +1812,15 @@ def series_style_context(templates_dir):
     """(layers, custom_css_text) for one series: the resolved-once part of
     composition, so a page carrying its own style.* properties can be
     recomposed without re-reading anything."""
-    settings_file = templates_dir / SETTINGS_FILENAME
+    # Realpath containment, the same guard articles/img/ and the `article:`
+    # field already carry. Both files are read and shipped -- custom.css
+    # verbatim into every page's <style> -- so a symlink here turns a build
+    # into a read primitive on anything the build user can open: a CI env
+    # file, an ssh key, .git-credentials.
+    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
     theme_key, props = (parse_settings_text(read_text_file(settings_file))
-                        if settings_file.exists() else (None, {}))
+                        if settings_file is not None and settings_file.exists()
+                        else (None, {}))
 
     legacy = templates_dir / 'style.css'
     if legacy.exists():
@@ -1802,8 +1832,14 @@ def series_style_context(templates_dir):
     layers = [theme_property_layer(theme_key)] if theme_key else []
     layers.append(props)
 
-    custom_file = templates_dir / CUSTOM_CSS_FILENAME
-    custom = read_text_file(custom_file) if custom_file.exists() else ''
+    custom_file = _resolve_contained(templates_dir, CUSTOM_CSS_FILENAME)
+    if custom_file is None and (templates_dir / CUSTOM_CSS_FILENAME).exists():
+        print(f'[ERROR] templates/{CUSTOM_CSS_FILENAME} resolves outside '
+              f'templates/ (symlink); its contents would be published '
+              f'verbatim into every page.', file=sys.stderr)
+        sys.exit(1)
+    custom = (read_text_file(custom_file)
+              if custom_file is not None and custom_file.exists() else '')
     return layers, custom
 
 
@@ -4188,7 +4224,11 @@ def md_inline(text):
     # page, and the typography engine then read the "!" of "![alt]" as
     # high punctuation and put a non-breaking space in front of it.
     # Bounded quantifiers only: no ReDoS window.
-    text = re.sub(r'!\[([^\]]*)\]\(([^)\s"]+)(?:\s+"([^"]*)")?\)', _inline_img, text)
+    # `(` and `[` are excluded from both classes, not for syntax but for
+    # cost: without them a run of `![a](x` rescans to end-of-paragraph from
+    # every opener -- measured 16s on 60kB, 4x per doubling.
+    text = re.sub(r'!\[([^\]\[]*)\]\(([^)\s"\[(]+)(?:\s+"([^"]*)")?\)',
+                  _inline_img, text)
     # Bold before italic
     text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<em>\1</em>', text)
@@ -4216,7 +4256,9 @@ def md_inline(text):
     # otherwise make each '[' rescan the whole line for a closing ']('
     # (O(n²)). A real link label doesn't contain a bare '[', so this
     # doesn't change normal parsing.
-    text = re.sub(r'\[([^\]\[]+)\]\((https?://[^\)]+)\)', _md_link, text)
+    # `[` excluded from the URL class for the same reason as the image
+    # pattern above: quadratic on a run of unterminated openers.
+    text = re.sub(r'\[([^\]\[]+)\]\((https?://[^\)\[]+)\)', _md_link, text)
     # Inline footnotes
     text = re.sub(r'\[\^([\w]+)\]', r'<sup>[^\1]</sup>', text)
     # A backslash-escaped backtick that never became part of a span
@@ -4719,13 +4761,22 @@ def parse_markdown_extended(md_text):
     meta = {}
     has_meta_block = False
     content_before_meta = ''
-    meta_match = re.search(r'<!--\s*lwp:meta\s*-->(.*?)(?:^|\n)---', md_text, re.DOTALL)
-    if meta_match:
+    # Two anchored searches, not one lazy DOTALL span: with `.*?` every
+    # `<!-- lwp:meta -->` occurrence rescanned the rest of the file when no
+    # terminator followed, and the cost was paid BEFORE the file was rejected
+    # (measured: 14s on 230kB, 4x per doubling). Semantics differ only when
+    # the first marker has no `---`, which §22.7 already makes fatal.
+    marker = re.search(r'<!--\s*lwp:meta\s*-->', md_text)
+    terminator = (re.search(r'(?:^|\n)---', md_text[marker.end():])
+                  if marker else None)
+    if terminator:
         has_meta_block = True
-        content_before_meta = md_text[:meta_match.start()].strip()
-        meta = parse_metadata_block(meta_match.group(1))
+        content_before_meta = md_text[:marker.start()].strip()
+        body_start = marker.end()
+        meta = parse_metadata_block(
+            md_text[body_start:body_start + terminator.start()])
         # Strip the meta block from the text
-        md_text = md_text[meta_match.end():]
+        md_text = md_text[body_start + terminator.end():]
 
     # Split into slides on --- (alone on its own line, surrounded by blank lines)
     # Uses a regex that captures the separators
@@ -5984,8 +6035,13 @@ def load_build_context(series_dir, args):
     # index card, series-nav entries and README line pointing at a page
     # that was never built — dead links shipped with exit code 0. Failing
     # here, before anything is written, also means no partial output.
+    # _resolve_contained, not a bare join: the name-shape check at parse time
+    # rejects `..` and separators, but a plain name that IS a symlink out of
+    # articles/ passes it and gets read and published. §22.9 already promises
+    # this pairing for articles/; page_source was the one field without it.
     missing = [e['page_source'] for e in articles
-               if not (articles_dir / e['page_source']).exists()]
+               if _resolve_contained(articles_dir, e['page_source']) is None
+               or not (articles_dir / e['page_source']).exists()]
     if missing:
         for name in missing:
             print(f'[ERROR] Source not found: {articles_dir / name} '

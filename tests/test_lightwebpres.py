@@ -13,6 +13,7 @@ regression that must never break again.
 Run with: python3 tests/run_tests.py
 """
 
+import time
 import json
 import os
 import inspect
@@ -6655,6 +6656,134 @@ class AlignmentAxes(unittest.TestCase):
         self.assertIn('.align-center.align-center *', sheet)
         self.assertIn('text-align: center;',
                       sheet[sheet.index('.align-center,'):])
+
+
+class TypedSurfaceCannotLeaveItsDeclaration(unittest.TestCase):
+    """§9 claims the CSS-string axis is "the only one whose value travels
+    untransformed, so the only one that must guard itself". That was false:
+    two other types passed values through verbatim, and both reached the
+    page's inlined <style> from an ARTICLE's meta block — the trust level
+    the rewrite hardened everywhere else."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_a_font_stack_cannot_carry_anything_but_family_names(self):
+        # Checking only the LAST component let a payload ending on a generic
+        # through: `</style><script>x</script><style>y, sans-serif`.
+        for bad in ('</style><script>alert(1)</script><style>x, sans-serif',
+                    'Charter, "Bad;Font", serif',
+                    'a{}, serif',
+                    'a/*, serif'):
+            with self.assertRaises(self.lwp.PropertyError, msg=bad):
+                self.lwp.PROP_FONT.check('font.text', bad)
+
+    def test_a_length_function_body_is_validated_not_just_its_prefix(self):
+        # Inspecting the five-character prefix let `calc(0px)} </style>…` out
+        # of the declaration and out of the sheet.
+        for bad in ('calc(0px)} </style><script>x</script><style>z{q:r',
+                    'clamp(1px, 2vw"3px)',
+                    'min(1px'):
+            with self.assertRaises(self.lwp.PropertyError, msg=bad):
+                self.lwp.PROP_LENGTH.check('page.content-max', bad)
+
+    def test_the_values_the_engine_itself_ships_still_pass(self):
+        # A guard that rejects the defaults would be caught by every other
+        # test; a guard that rejects an author's legitimate stack would not.
+        for good in ("Charter, 'Bitstream Charter', Georgia, serif",
+                     'ui-monospace, Menlo, monospace', 'serif'):
+            self.assertEqual(self.lwp.PROP_FONT.check('font.text', good), good)
+        for good in ('clamp(28px, 4.5vmin, 52px)', 'min(84vw, 1100px)', '50ch'):
+            self.assertEqual(self.lwp.PROP_LENGTH.check('x', good), good)
+
+    def test_a_poisoned_article_property_stops_the_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run('install', tmp, '--force')
+            root = scaffold(tmp,
+                '<!-- lwp:meta -->\npage_title: A\n'
+                'style.font.text: </style><script>alert(1)</script>'
+                '<style>x, sans-serif\n---\n\n# Cover\n\nsummary: s\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+
+class QuadraticInputIsNotAcceptedAsSlow(unittest.TestCase):
+    """Three patterns fed by article text were O(n²) — measured 4x per
+    doubling, 16s on 60kB, and in the browser GUI that freezes the tab. The
+    meta one billed its cost BEFORE deciding the file was invalid."""
+
+    BUDGET = 2.0   # generous: the fixed versions run in milliseconds
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def _under_budget(self, fn, label):
+        start = time.time()
+        fn()
+        elapsed = time.time() - start
+        self.assertLess(elapsed, self.BUDGET, f'{label}: {elapsed:.1f}s')
+
+    def test_unterminated_image_openers(self):
+        self._under_budget(lambda: self.lwp.md_inline('![a](x' * 10000),
+                           'inline image')
+
+    def test_unterminated_link_openers(self):
+        self._under_budget(lambda: self.lwp.md_inline('[a](https://' * 10000),
+                           'markdown link')
+
+    def test_repeated_meta_markers_with_no_terminator(self):
+        text = '<!-- lwp:meta -->\n' * 4000 + 'x' * 160000
+        self._under_budget(
+            lambda: self.lwp.parse_markdown_extended(text), 'meta block')
+
+
+class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
+    """A symlink is not a path traversal, and the name-shape check does not
+    see it. custom.css is published verbatim into every page, so a link
+    there turns a build into a read primitive on anything the build user can
+    open — a CI env file, an ssh key, .git-credentials."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_a_symlinked_custom_css_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = Path(tmp) / 'hostsecret.txt'
+            secret.write_text('HOSTSECRET=hunter2', encoding='utf-8')
+            run('install', tmp, '--force')
+            root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
+                                 '# Cover\n\nsummary: s\n')
+            custom = root / 'templates' / 'custom.css'
+            custom.unlink(missing_ok=True)
+            custom.symlink_to(secret)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('custom.css', result.stderr)
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+    def test_a_symlinked_page_source_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outside = Path(tmp) / 'outside'
+            outside.mkdir()
+            (outside / 'secret.md').write_text(
+                '<!-- lwp:meta -->\npage_title: S\n---\n\n'
+                '# Cover\n\nsummary: sk-live-LEAKED\n', encoding='utf-8')
+            run('install', tmp, '--force')
+            root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
+                                 '# Cover\n\nsummary: s\n')
+            (root / 'articles' / 'leak.md').symlink_to(outside / 'secret.md')
+            data = json.loads((root / 'series.json').read_text())
+            data['articles'].append({'page_dest': 'leak.html',
+                                     'page_source': 'leak.md',
+                                     'nav_title': 'L', 'nav_desc': 'L'})
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertFalse((root / 'public' / 'leak.html').exists())
 
 
 class AlignmentReachesWhatItWraps(unittest.TestCase):
