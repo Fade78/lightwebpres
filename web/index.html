@@ -606,8 +606,10 @@
       // Test hook only (tests/git_sync_e2e.cjs): lets the E2E test remove a
       // local file between build and push, to verify push() never turns
       // that into a delete action against the remote (§23.12).
-      window.__lwp_pyodide = pyodideReady;
-      window.__lwp_series_dir = seriesDir;
+      if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+        window.__lwp_pyodide = pyodideReady;
+        window.__lwp_series_dir = seriesDir;
+      }
       setStatus('Pulled. Ready to build.', 'ok');
       gitBuildBtn.disabled = false;
     } catch (err) {

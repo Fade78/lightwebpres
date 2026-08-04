@@ -13,7 +13,7 @@
 // "articles/old.md") to delete from the local working directory after
 // Build and before Push, so the test can verify push() never turns that
 // into a "delete" action against a file that still exists remotely
-// (spec §24.4 — push only ever creates/updates, never deletes).
+// (spec §23.12 — push only ever creates/updates, never deletes).
 
 const { chromium } = require('playwright');
 

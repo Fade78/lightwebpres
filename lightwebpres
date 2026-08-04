@@ -5376,7 +5376,16 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                       file=sys.stderr)
                 sys.exit(1)
             article_md = read_text_file(article_path)
-            article_html = convert_markdown(article_md, article_typo_engine, disabled_rules)
+            # Name the file the author has to open. The deck's own text is
+            # already covered upstream; without this the long-form file --
+            # where most of the prose lives -- surfaced a bad instance or
+            # block tag as a bare Python traceback naming no source at all.
+            try:
+                article_html = convert_markdown(article_md, article_typo_engine,
+                                                disabled_rules)
+            except PropertyError as exc:
+                print(f'[ERROR] {slide.article_file}: {exc}', file=sys.stderr)
+                sys.exit(1)
             slides_html = slides_html.replace('{FULL_ARTICLE_PLACEHOLDER}', article_html)
 
     # Page title — the already-resolved page_title (series.json > article
@@ -6165,8 +6174,19 @@ def cmd_audit(series_dir, args):
         # change; audit enumerates them (never blocks) so an author changing
         # themes knows where to look. The visibility is what makes literals
         # in article text acceptable at all (§9).
-        instance_tags = re.findall(r'\{(color|font|sc|u|strike|mono)[:}]',
-                                   md_text)
+        #
+        # Scanned over the deck AND every long-form file it pulls in: the
+        # census used to read page_source alone, so the file holding most of
+        # the prose was the one place it never looked. `align` is in the
+        # alternation for the same reason — a census that silently omits a
+        # tag family is worse than no census.
+        census_text = md_text
+        for name in re.findall(r'^\s*article:\s*(\S+)\s*$', md_text, re.M):
+            extra = _resolve_contained(articles_dir, name)
+            if extra is not None and extra.exists():
+                census_text += '\n' + read_text_file(extra)
+        instance_tags = re.findall(
+            r'\{(color|font|align|sc|u|strike|mono)[:}]', census_text)
         if instance_tags:
             counts = ', '.join(f'{instance_tags.count(t)} {t}'
                                for t in sorted(set(instance_tags)))

@@ -155,6 +155,11 @@ async def _remote_paths(base_url, token, project_id, branch):
     return paths
 
 
+# Mirrors default_nav_cache_path() in the generator. Declared rather than
+# imported: under Pyodide the generator is a loaded script, not a package.
+BUILD_CACHE_DIR = '.lwp-cache'
+
+
 async def push(base_url, token, project_id, branch, series_dir, commit_message):
     """Commits every file under series_dir (sources + public/) that is new
     or differs by path from what's remote. Returns (ok, summary_text).
@@ -168,6 +173,11 @@ async def push(base_url, token, project_id, branch, series_dir, commit_message):
         if not f.is_file():
             continue
         rel = f.relative_to(root).as_posix()
+        # rglob matches dotfiles, so the build's own cache lands here and
+        # would be committed to the user's repository. It is derived state,
+        # rebuilt on every build: never content.
+        if f.relative_to(root).parts[0] == BUILD_CACHE_DIR:
+            continue
         action = 'update' if rel in remote_paths else 'create'
         actions.append({
             'action': action,

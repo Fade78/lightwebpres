@@ -6822,6 +6822,44 @@ class InstanceTags(unittest.TestCase):
             self.assertIn('a.md', result.stderr)
             self.assertIn('{color:rouge}', result.stderr)
 
+    def _series_with_long_form(self, tmp, article_body):
+        """A deck whose full-article slide pulls in a long-form file — the
+        surface both guards below used to miss."""
+        run('install', tmp, '--force')
+        root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
+                             '# Cover\n\nsummary: s\n\n---\n\n'
+                             '<!-- lwp:slide:full-article -->\n'
+                             'article: a_article.md\n')
+        (root / 'articles' / 'a_article.md').write_text(
+            article_body, encoding='utf-8')
+        return root
+
+    def test_a_bad_tag_in_the_long_form_file_names_that_file(self):
+        # The deck path already named its source; the long-form file did not,
+        # and it is where most of the prose lives. A bad tag there surfaced as
+        # a bare Python traceback naming nothing the author could open.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with_long_form(
+                tmp, '## H\n\n{align:centre}\nx\n{/align}\n')
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn('Traceback', result.stderr)
+            self.assertIn('a_article.md', result.stderr)
+            self.assertIn('{align:centre}', result.stderr)
+
+    def test_the_census_counts_the_long_form_file_and_the_align_tag(self):
+        # Two holes, one cause: the census read page_source only, and its
+        # alternation omitted `align`. Its stated purpose is telling an author
+        # changing themes where to look, so both omissions defeated it.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series_with_long_form(
+                tmp, '## H\n\n{align:center}\nx\n{/align}\n\n'
+                     'Un {sc}mot{/sc} et {color:mark}un autre{/color}.\n')
+            result = run('audit', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('3 instance tag(s)', result.stdout)
+            self.assertIn('1 align', result.stdout)
+
     def test_audit_enumerates_instance_tags_without_blocking(self):
         with tempfile.TemporaryDirectory() as tmp:
             run('install', tmp, '--force')

@@ -74,7 +74,7 @@ def _make_archive_zip():
     """A GitLab-shaped archive.zip: everything wrapped in one top-level
     folder, as the real endpoint produces. Includes articles/old.md, an
     already-remote file the "never deletes" test removes locally before
-    pushing (spec §24.4)."""
+    pushing (spec §23.12)."""
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         prefix = 'series-main-abc1234/'
@@ -213,7 +213,7 @@ class GitSync(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
         commits = _MockGitLabHandler.received_commits
-        self.assertEqual(len(commits), 1, 'expected exactly one commit (all 4 files fit in one chunk)')
+        self.assertEqual(len(commits), 1, 'expected exactly one commit (the whole series fits in one chunk)')
         commit = commits[0]
         self.assertEqual(commit['branch'], BRANCH)
 
@@ -233,7 +233,7 @@ class GitSync(unittest.TestCase):
         self.assertIn('<div class="highlight">', pushed_html)
 
     def test_push_never_deletes_a_file_removed_locally(self):
-        """Spec §24.4: a file removed locally after pull (here,
+        """Spec §23.12: a file removed locally after pull (here,
         articles/old.md, which still exists in the mock's remote_tree)
         must never turn into a 'delete' action — push() only ever
         create/updates the files it finds locally."""

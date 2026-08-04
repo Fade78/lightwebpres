@@ -197,6 +197,7 @@ class MissingSiblingExecutableGuard(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
+@unittest.skipUnless(AVAILABLE, 'node/playwright unavailable: %s' % NPM_ROOT_OR_REASON)
 class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
     """§23.8: when lightwebpres is copied alongside web/'s own contents
     (the "flat" layout, so a site can serve web/ itself as its own URL
