@@ -367,12 +367,18 @@ figure caption centred.
 
 Two decisions worth keeping:
 
-**`justify` drags `hyphens: auto` along, declared in the registry, not
-left to the author.** The narrowest column this product renders is 45
-characters (phone in portrait, measured — `ETUDE-VIEWPORT.md`), where
-unhyphenated justification makes rivers. The tie is a new `companions`
-field on `ThemeProp`: declarations a *particular resolved value* drags
-with it. One case so far, and it is not a convenience.
+**Alignment sets alignment and nothing else.** It shipped once with
+`justify` dragging `hyphens: auto` along, through a `companions` field on
+`ThemeProp` — so choosing an alignment silently turned word-breaking on, a
+typographic decision arriving as the side effect of another. Owner's call,
+and the right one: breaking words at end of line is now its own axis,
+`page.hyphens` (`manual | auto`, default `manual` — CSS's own initial
+value), inherited, never set for you. The `companions` mechanism had that
+single user and went with it; if a second case ever appears it is three
+lines. Guarded by a sweep over all 33 themes × five align axes asserting
+`hyphens: auto` appears nowhere unasked — a spot check on the defaults
+would not have caught the original defect, since only one value of one
+axis enabled it.
 
 **The instance layer gets block syntax, and CSS forced it.** `text-align`
 on the inline `<span>` every other tag produces does nothing at any

@@ -2044,12 +2044,16 @@ a retiré du squelette, ce sont des décisions de mise en page par décret :
 le chiffre-clé centré sans recours (B4), les cellules de tableau à
 gauche, la légende de figure centrée.
 
-`justify` **entraîne `hyphens: auto`**, et le lien est déclaré dans le
-registre, pas laissé à l'auteur. La colonne la plus étroite que ce
-produit compose mesure 45 caractères (téléphone en portrait, mesuré :
-`ETUDE-VIEWPORT.md`), et une justification sans césure y fait des
-rivières. La césure automatique a besoin de la langue, que les gabarits
-déclarent déjà en `<html lang="…">`.
+**La coupure des mots en fin de ligne ne se fait jamais d'elle-même.**
+C'est un axe à part, `page.hyphens` (`manual | auto`, défaut `manual`,
+qui est la valeur initiale de CSS : un mot ne se coupe que là où
+l'auteur a mis un tiret conditionnel). Elle a été livrée une fois liée à
+`justify` — choisir un alignement allumait donc la coupure en silence,
+une décision typographique arrivant comme l'effet de bord d'une autre.
+Les deux sont indépendantes : réaligner un bloc ne change jamais si ses
+mots se coupent. L'axe est hérité, donc une seule déclaration gouverne
+toute la page ; et la coupure automatique a besoin de la langue, que les
+gabarits déclarent déjà en `<html lang="…">`.
 
 **Mesure.** `page.content-max` est la largeur de colonne, exprimée en
 `ch` (défaut `50ch`) et non en pixels. Une longueur en `ch` placée dans

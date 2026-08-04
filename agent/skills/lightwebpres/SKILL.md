@@ -323,11 +323,12 @@ So is this one.
 {/align}
 ```
 
-Values are `left | center | right | justify`. `justify` brings
-`hyphens: auto` with it automatically — do not add it yourself. Everything
-inside the block aligns, including table cells, which is what makes the
-tag able to override a component's own alignment. A closer with no opener
-stays literal text.
+Values are `left | center | right | justify`. Alignment sets alignment and
+nothing else: breaking words at end of line is a separate axis,
+`page.hyphens` (`manual | auto`, default `manual`), and it is never turned
+on for you. Everything inside the block aligns, including table cells,
+which is what makes the tag able to override a component's own alignment.
+A closer with no opener stays literal text.
 
 Tags nest, and Markdown inside them still converts. An opener without its
 closer on the same line stays literal text — visible in the render. Inside

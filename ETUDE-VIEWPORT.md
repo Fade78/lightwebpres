@@ -193,12 +193,12 @@ tall, and that is the right side of the trade.
 Two constraints on the alignment axes came out of the measurements, and
 both are now in the code:
 
-- **`justify` ships `hyphens: auto`.** The narrowest measured column is 45
-  characters, on a phone in portrait, where unhyphenated justification
-  produces rivers. The two are tied together in the registry
-  (`ALIGN_COMPANIONS`), so no layer can ask for one and forget the other,
-  and the templates already emit `<html lang="{{lang}}">` for automatic
-  hyphenation to work from.
+- **Breaking words at end of line is never automatic.** It shipped once
+  tied to `justify` — so choosing an alignment turned it on silently, a
+  typographic decision arriving as the side effect of another. It is now
+  its own axis, `page.hyphens`, defaulting to CSS's own `manual`. The
+  measured 45-character column is why justification is a real risk here;
+  it is not a reason to take the decision out of the author's hands.
 - **Alignment is a block property and gets block syntax.** `text-align` on
   the inline `<span>` the other instance tags produce has no effect at any
   viewport size, so `{align:center}` is a block tag, its opener and closer

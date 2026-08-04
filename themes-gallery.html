@@ -437,6 +437,7 @@
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -699,6 +700,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -1513,13 +1515,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -1604,6 +1606,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -1866,6 +1869,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -2680,13 +2684,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -2771,6 +2775,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -3033,6 +3038,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -3847,13 +3853,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -3938,6 +3944,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -4200,6 +4207,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -5014,13 +5022,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -5105,6 +5113,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -5367,6 +5376,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -6181,13 +6191,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -6272,6 +6282,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -6534,6 +6545,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -7348,13 +7360,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -7439,6 +7451,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -7701,6 +7714,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -8515,13 +8529,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -8606,6 +8620,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -8868,6 +8883,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -9682,13 +9698,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -9773,6 +9789,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -10035,6 +10052,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -10849,13 +10867,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -10940,6 +10958,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -11202,6 +11221,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -12016,13 +12036,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -12107,6 +12127,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -12369,6 +12390,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -13183,13 +13205,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -13274,6 +13296,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -13536,6 +13559,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -14350,13 +14374,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -14441,6 +14465,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -14703,6 +14728,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -15517,13 +15543,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -15608,6 +15634,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -15870,6 +15897,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -16684,13 +16712,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -16775,6 +16803,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -17037,6 +17066,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -17851,13 +17881,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -17942,6 +17972,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -18204,6 +18235,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -19018,13 +19050,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -19109,6 +19141,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -19371,6 +19404,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -20185,13 +20219,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -20276,6 +20310,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -20538,6 +20573,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -21352,13 +21388,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -21443,6 +21479,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -21705,6 +21742,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -22519,13 +22557,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -22610,6 +22648,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -22872,6 +22911,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -23686,13 +23726,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -23777,6 +23817,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -24039,6 +24080,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -24853,13 +24895,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -24944,6 +24986,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -25206,6 +25249,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -26020,13 +26064,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -26111,6 +26155,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -26373,6 +26418,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -27187,13 +27233,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -27278,6 +27324,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -27540,6 +27587,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -28354,13 +28402,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -28445,6 +28493,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -28707,6 +28756,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -29521,13 +29571,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -29612,6 +29662,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -29874,6 +29925,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -30688,13 +30740,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -30779,6 +30831,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -31041,6 +31094,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -31855,13 +31909,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -31946,6 +32000,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
@@ -32208,6 +32263,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -33022,13 +33078,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -33113,6 +33169,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -33375,6 +33432,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -34189,13 +34247,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -34280,6 +34338,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -34542,6 +34601,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -35356,13 +35416,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -35447,6 +35507,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -35709,6 +35770,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -36523,13 +36585,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -36614,6 +36676,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -36876,6 +36939,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -37690,13 +37754,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -37781,6 +37845,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --page-shadow-dy: 0;
   --page-content-max: 50ch;
   --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #FFFFFF24;
   --slide-rule-width: 1px;
@@ -38043,6 +38108,7 @@ body {
   background: var(--page-bg);
   color: var(--page-fg);
   line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
 }
 .slide {
   border-bottom-color: var(--slide-rule-fg);
@@ -38857,13 +38923,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme&#x27;s `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,

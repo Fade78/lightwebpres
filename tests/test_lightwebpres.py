@@ -6595,19 +6595,15 @@ class AlignmentAxes(unittest.TestCase):
         self.assertIn('--highlight-align: right', self._sheet(**{
             'highlight.align': 'right'}))
 
-    def test_justify_cannot_be_asked_for_without_hyphenation(self):
-        # The narrowest column this product renders is 45 characters, where
-        # unhyphenated justification makes rivers. Tying them in the registry
-        # means no layer can ask for one and forget the other.
+    def test_alignment_sets_alignment_and_nothing_else(self):
+        # `justify` used to drag `hyphens: auto` along. Breaking words at end
+        # of line is a typographic decision of its own; it must not arrive as
+        # a side effect of choosing an alignment.
         sheet = self._emitted(**{'article.align': 'justify'})
         block = sheet[sheet.index('.full-article p, .full-article ul'):]
         block = block[:block.index('}')]
         self.assertIn('text-align: var(--article-align);', block)
-        self.assertIn('hyphens: auto;', block)
-
-    def test_no_other_value_drags_hyphenation_in(self):
-        for value in ('left', 'center', 'right'):
-            self.assertNotIn('hyphens', self._emitted(**{'article.align': value}))
+        self.assertNotIn('hyphens', block)
 
     def test_a_misspelt_alignment_is_a_named_build_error(self):
         with self.assertRaises(self.lwp.PropertyError) as cm:
@@ -6825,15 +6821,49 @@ class AlignmentReachesWhatItWraps(unittest.TestCase):
                     arm, self._specificity(simple),
                     f'.align-* would lose to {simple.strip()}')
 
-    def test_every_arm_restates_hyphenation(self):
-        # Leaving it unset lets a theme's `justify` keep hyphenating text the
-        # author has just re-aligned -- the asymmetry that produced the
-        # left-and-hyphenated paragraph.
-        for value in ('left', 'center', 'right'):
+    def test_no_arm_touches_hyphenation(self):
+        # Re-aligning a block must not change whether its words break: that
+        # is page.hyphens' business, and it is off unless asked for.
+        for value in ('left', 'center', 'right', 'justify'):
             block = self.sheet[self.sheet.index(f'.align-{value},'):]
-            self.assertIn('hyphens: manual', block[:block.index('}')])
-        block = self.sheet[self.sheet.index('.align-justify,'):]
-        self.assertIn('hyphens: auto', block[:block.index('}')])
+            self.assertNotIn('hyphens', block[:block.index('}')])
+
+
+class WordsAreNeverBrokenUnlessAsked(unittest.TestCase):
+    """Breaking words at end of line is off unless a layer names it. It
+    shipped once tied to `justify`, so choosing an alignment silently turned
+    it on — a typographic decision arriving as the side effect of another."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_no_theme_at_any_alignment_turns_word_breaking_on(self):
+        # Swept over the whole catalogue rather than spot-checked: the defect
+        # was that ONE value of ONE axis enabled it, which a spot check on
+        # the defaults would never have seen.
+        lwp = self.lwp
+        for key in list(lwp.THEMES) + [None]:
+            base = lwp.theme_property_layer(key) if key else {}
+            for axis in ('article.align', 'summary.align', 'title1.align',
+                         'highlight.align', 'table.cell.align'):
+                sheet = lwp.compose_stylesheet(
+                    lwp.resolve_theme_properties(base, {axis: 'justify'}))
+                self.assertNotIn('hyphens: auto', sheet,
+                                 f'{key or "defaults"} / {axis}')
+
+    def test_the_axis_defaults_to_off_and_is_reachable(self):
+        lwp = self.lwp
+        self.assertEqual(lwp.PROPERTY_REGISTRY['page.hyphens'].default, 'manual')
+        sheet = lwp.compose_stylesheet(
+            lwp.resolve_theme_properties({}, {'page.hyphens': 'auto'}))
+        self.assertIn('--page-hyphens: auto;', sheet)
+        self.assertIn('hyphens: var(--page-hyphens);', sheet)
+
+    def test_a_bad_value_is_a_named_error(self):
+        with self.assertRaises(self.lwp.PropertyError) as cm:
+            self.lwp.resolve_theme_properties({}, {'page.hyphens': 'oui'})
+        self.assertIn('page.hyphens', str(cm.exception))
 
 
 class BlockWidthIsNotAMeasure(unittest.TestCase):

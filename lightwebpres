@@ -901,34 +901,24 @@ PROP_WEIGHT = ChoiceType('normal', 'bold',
                          hint='Intermediate weights collapse on a generic family.')
 PROP_STYLE = ChoiceType('normal', 'italic')
 PROP_CASE = ChoiceType('none', 'uppercase', 'lowercase', 'small-caps')
-PROP_ALIGN = ChoiceType(
-    'left', 'center', 'right', 'justify',
-    hint='justify drags hyphens: auto along, because this product renders '
-         'columns as narrow as 45 characters and unhyphenated justification '
-         'makes rivers there.')
-# What `justify` drags along wherever an align axis is declared. Automatic
-# hyphenation needs the language, which the page templates already declare
-# as <html lang="...">, so this works without anything further.
-ALIGN_COMPANIONS = {'justify': [('hyphens', 'auto')]}
+PROP_ALIGN = ChoiceType('left', 'center', 'right', 'justify')
+# Breaking words at end of line is never done unless it is asked for, by
+# name. `manual` is CSS's own initial value: words break only where the
+# author put a soft hyphen. This shipped once tied to `justify`, which meant
+# choosing an alignment silently turned word-breaking on -- a typographic
+# decision arriving as a side effect of a different one.
+PROP_HYPHENS = ChoiceType('manual', 'auto')
 PROP_NUMERIC = ChoiceType('normal', 'tabular-nums', 'tabular-nums lining-nums')
 PROP_DECORATION = ChoiceType('none', 'underline', 'line-through',
                              'underline line-through')
 
 
 class ThemeProp:
-    def __init__(self, key, type_, default, css=None, selector=None,
-                 companions=None):
+    def __init__(self, key, type_, default, css=None, selector=None):
         self.key = key            # 'tag.fg'
         self.type = type_
         self.default = default    # a literal, or a reference written as a word
         self.css = css            # CSS declaration it feeds, None if composite
-        # Declarations that a PARTICULAR resolved value drags along, as
-        # {value: [(css_property, value)]}. One case so far and it is not a
-        # convenience: `text-align: justify` without `hyphens: auto` produces
-        # rivers, and the narrowest column this product renders is 45
-        # characters (ETUDE-VIEWPORT.md §8). Tying them here means an author
-        # cannot ask for one and forget the other.
-        self.companions = companions or {}
         # Where the declaration lands when it is NOT the component's base
         # selector: an inner element (.fact-content inside .fact-box), a
         # context (.slide-cover h1), or a state (:hover, .active). The
@@ -1027,6 +1017,10 @@ THEME_COMPONENTS = [
         # the measure, which put a five-column table in 350px on a 1440px
         # desktop. Measured in a browser, which is how it was found.
         ThemeProp('page.block-max', PROP_LENGTH, 'min(84vw, 1100px)'),
+        # Inherited, so one declaration governs the whole page. Automatic
+        # hyphenation also needs the language, which the templates already
+        # declare as <html lang="...">; setting `auto` without it is inert.
+        ThemeProp('page.hyphens', PROP_HYPHENS, 'manual', css='hyphens'),
     ], composite=[('text-shadow',
                    '0 var(--page-shadow-dy) var(--page-shadow-blur) var(--page-shadow-fg)')]),
 
@@ -1063,8 +1057,7 @@ THEME_COMPONENTS = [
         ThemeProp('title1.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('title1.shadow.blur', PROP_LENGTH, '0'),
         ThemeProp('title1.shadow.dy',   PROP_LENGTH, '0'),
-        ThemeProp('title1.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS),
+        ThemeProp('title1.align', PROP_ALIGN, 'left', css='text-align'),
     ], composite=[('text-shadow',
                    '0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg)')]),
     ThemeComponent('title2', 'h2', [
@@ -1073,8 +1066,7 @@ THEME_COMPONENTS = [
                   css='font-size'),
         ThemeProp('title2.weight',  PROP_WEIGHT, 'bold',    css='font-weight'),
         ThemeProp('title2.leading', PROP_RATIO,  '1.2',     css='line-height'),
-        ThemeProp('title2.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS),
+        ThemeProp('title2.align', PROP_ALIGN, 'left', css='text-align'),
     ]),
 
     # fg is `ink`, not ink-quiet: the registry records the REAL value; the
@@ -1084,8 +1076,7 @@ THEME_COMPONENTS = [
         ThemeProp('summary.size',    PROP_LENGTH, 'clamp(16px, 2vmin, 22px)',
                   css='font-size'),
         ThemeProp('summary.leading', PROP_RATIO,  '1.55', css='line-height'),
-        ThemeProp('summary.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS),
+        ThemeProp('summary.align', PROP_ALIGN, 'left', css='text-align'),
     ]),
 
     ThemeComponent('fact', '.fact-box', [
@@ -1097,7 +1088,6 @@ THEME_COMPONENTS = [
         ThemeProp('fact.size', PROP_LENGTH, 'clamp(15px, 1.6vmin, 18px)',
                   css='font-size', selector='.fact-content'),
         ThemeProp('fact.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS,
                   selector='.fact-content'),
     ]),
     ThemeComponent('fact-label', '.fact-label', [
@@ -1145,8 +1135,7 @@ THEME_COMPONENTS = [
         ThemeProp('cover.bg.to',    PROP_COLOR, 'cover.bg.from'),
         ThemeProp('cover.bg.angle', PROP_ANGLE, '180deg'),
         ThemeProp('cover.fg',       PROP_COLOR, 'page', css='color'),
-        ThemeProp('cover.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS),
+        ThemeProp('cover.align', PROP_ALIGN, 'left', css='text-align'),
     ], composite=[_gradient_decl('--cover-bg-angle', '--cover-bg-from',
                                  '--cover-bg-to')]),
     # The two measured opacities, as explicit ARGB. Calibrated to the default
@@ -1204,7 +1193,6 @@ THEME_COMPONENTS = [
                   css='border-bottom-width',
                   selector='.comparison-table th, .comparison-table td'),
         ThemeProp('table.cell.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS,
                   selector='.comparison-table td'),
     ]),
     ThemeComponent('table.head', '.comparison-table th', [
@@ -1216,8 +1204,7 @@ THEME_COMPONENTS = [
         ThemeProp('table.head.weight',     PROP_WEIGHT, 'bold',      css='font-weight'),
         ThemeProp('table.head.size',       PROP_LENGTH, '13px',      css='font-size'),
         ThemeProp('table.head.tracking',   PROP_LENGTH, '0.5px',     css='letter-spacing'),
-        ThemeProp('table.head.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS),
+        ThemeProp('table.head.align', PROP_ALIGN, 'left', css='text-align'),
     ]),
     # Weights: the sheet said 700/500/600; only normal and bold survive a
     # generic family, so partial rejoins yes in weight and the shape mark
@@ -1251,8 +1238,7 @@ THEME_COMPONENTS = [
     ThemeComponent('caption', '.figure-caption', [
         ThemeProp('caption.fg',   PROP_COLOR,  'ink-quiet', css='color'),
         ThemeProp('caption.size', PROP_LENGTH, '0.85em',    css='font-size'),
-        ThemeProp('caption.align', PROP_ALIGN, 'center', css='text-align',
-                  companions=ALIGN_COMPANIONS),
+        ThemeProp('caption.align', PROP_ALIGN, 'center', css='text-align'),
     ]),
 
     ThemeComponent('article', '.full-article', [
@@ -1262,7 +1248,6 @@ THEME_COMPONENTS = [
         ThemeProp('article.leading', PROP_RATIO,  '1.7',  css='line-height',
                   selector='.full-article p'),
         ThemeProp('article.align', PROP_ALIGN, 'left', css='text-align',
-                  companions=ALIGN_COMPANIONS,
                   selector='.full-article p, .full-article ul, .full-article ol'),
         ThemeProp('article.rule-fg',    PROP_COLOR,  '#0000001A',
                   css='border-color',
@@ -1292,7 +1277,6 @@ THEME_COMPONENTS = [
         ThemeProp('highlight.shadow.blur', PROP_LENGTH, '0'),
         ThemeProp('highlight.shadow.dy',   PROP_LENGTH, '0'),
         ThemeProp('highlight.align', PROP_ALIGN, 'center', css='text-align',
-                  companions=ALIGN_COMPANIONS,
                   selector='.highlight'),
     ], composite=[('text-shadow',
                    '0 var(--highlight-shadow-dy) var(--highlight-shadow-blur) var(--highlight-shadow-fg)')]),
@@ -1649,8 +1633,6 @@ def emit_theme_css(resolved):
             if p.css:
                 sel = p.selector or c.selector
                 groups.setdefault(sel, []).append(f'  {p.css}: var({p.var});')
-                for cssprop, value in p.companions.get(resolved[p.key], ()):
-                    groups[sel].append(f'  {cssprop}: {value};')
         for sel, decls in groups.items():
             lines += [f'{sel} {{', *decls, '}']
         mark = next((p for p in c.props if p.key.endswith('.mark')), None)
@@ -2339,13 +2321,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    long-form prose it exists for, while its `hyphens` companion (which had
    no competitor) still landed: a paragraph came out left-aligned AND
    hyphenated, which no layer asked for. Doubling reaches (0,2,0).
-   Hyphenation is restated on every arm for the same reason: leaving it
-   unset would let a theme's `justify` keep hyphenating text an author has
-   just re-aligned. */
-.align-left,    .align-left.align-left *       { text-align: left;    hyphens: manual; }
-.align-center,  .align-center.align-center *   { text-align: center;  hyphens: manual; }
-.align-right,   .align-right.align-right *     { text-align: right;   hyphens: manual; }
-.align-justify, .align-justify.align-justify * { text-align: justify; hyphens: auto; }
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
