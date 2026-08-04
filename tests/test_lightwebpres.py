@@ -34,6 +34,22 @@ def run(*args, cwd=None, env=None):
     )
 
 
+def contrast_ratio(hex_a, hex_b):
+    """WCAG relative-luminance contrast between two sRGB hex colours.
+
+    Used to assert that a palette choice is legible rather than merely
+    present — "the variable is set" has passed several times over a
+    result nobody could actually read."""
+    def luminance(value):
+        channels = [int(value.lstrip('#')[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        channels = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                    for c in channels]
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+    lighter, darker = sorted((luminance(hex_a), luminance(hex_b)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
 def scaffold(tmp, article_md, series_extra=None, source_name='a.md', file_name='a.html'):
     """Creates a minimal single-article series and returns its path."""
     root = Path(tmp)
@@ -3228,6 +3244,36 @@ class GalleryPreviewFidelity(unittest.TestCase):
         self.assertEqual(as_well['decoration'], 'underline')
         self.assertEqual(as_well['decoration-color'], 'currentColor')
 
+    def test_the_catalogue_demonstrates_both_ways_of_using_the_underline(self):
+        """An axis no built-in theme uses is an axis nobody ever sees:
+        the gallery is the only place a reader meets these treatments, and
+        it can only show what the table contains. Both modes have to be
+        on display — underline INSTEAD of a marker, and AS WELL AS one.
+
+        Pinned because deleting a theme's fact_decoration breaks nothing
+        else: every other assertion here stays self-consistent, so the
+        catalogue would quietly stop demonstrating the feature."""
+        instead, as_well = [], []
+        for slug, theme in self.lwp.THEMES.items():
+            props = self.lwp.theme_fact_properties(theme)
+            if props['decoration'] != 'underline':
+                continue
+            (instead if props['highlight'] == 'transparent' else as_well).append(slug)
+
+        self.assertTrue(instead, 'no theme shows an underline replacing the marker')
+        self.assertTrue(as_well, 'no theme shows an underline alongside the marker')
+
+        # And it has to be legible: a --marker chosen to work as a
+        # highlight BACKGROUND is often far too pale to work as a line.
+        for slug in instead + as_well:
+            theme = self.lwp.THEMES[slug]
+            colour = theme.get('fact_decoration_color')
+            if colour is None:
+                continue    # currentColor — as legible as the text itself
+            self.assertGreaterEqual(
+                contrast_ratio(theme[colour], theme['page']), 3.0,
+                f'{slug}: the underline is too faint against the page')
+
     def test_the_default_highlight_role_names_a_role_that_exists(self):
         """A latent defect: the fallback stayed 'yellow' through the
         v0.15.0 rename. No built-in theme trips it — every entry states
@@ -3299,11 +3345,16 @@ class PaletteRoleNames(unittest.TestCase):
         self.assertEqual(offenders, [], f'colour names among the roles: {offenders}')
 
     def test_every_theme_defines_exactly_the_declared_roles(self):
+        """Every palette role present, and nothing colour-shaped beyond
+        them. The fact_* emphasis keys are matched by prefix rather than
+        listed: an axis added later is legitimately new metadata, but a
+        stray colour key still has to fail here."""
         meta_keys = {'label', 'source', 'note', 'note_good', 'intensity',
-                     'dark_background', 'fact_weight', 'fact_style', 'fact_highlight'}
+                     'dark_background'}
         for slug, theme in self.lwp.THEMES.items():
-            self.assertEqual(sorted(k for k in theme if k not in meta_keys),
-                             sorted(self.lwp.PALETTE_ROLES), slug)
+            colour_keys = [k for k in theme
+                           if k not in meta_keys and not k.startswith('fact_')]
+            self.assertEqual(sorted(colour_keys), sorted(self.lwp.PALETTE_ROLES), slug)
 
     def test_a_fact_highlight_only_ever_names_a_role_that_exists(self):
         for slug, theme in self.lwp.THEMES.items():

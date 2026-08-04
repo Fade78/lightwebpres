@@ -46,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.16.0"
+VERSION = "0.16.1"
 
 # The six palette variables, in the order a reader meets them on the page:
 # the ground, then the two inks, then the furniture (§9.1).
@@ -339,7 +339,12 @@ THEMES = {
         'marker': '#D8D8D8', 'ink': '#111111', 'ink-muted': '#707070',
         'page': '#FAFAFA', 'accent': '#2B2B2B', 'positive': '#000000',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Aucune couleur nulle part. Les verdicts d\'un tableau tiennent alors sur la graisse, l\'opacité et les marqueurs de forme — et ça fonctionne.',
+        # Souligné EN PLUS du surlignage — le seul thème du lot à cumuler
+        # les deux, ce qui montre que les axes sont bien indépendants.
+        # Trait en currentColor : sur un thème qui s'interdit la teinte,
+        # détacher le trait par la couleur n'aurait aucun sens.
+        'fact_decoration': 'underline',
+        'note': 'Aucune couleur nulle part. Les verdicts d\'un tableau tiennent alors sur la graisse, l\'opacité et les marqueurs de forme — et ça fonctionne. Le gras en fact-box cumule surlignage et soulignement : quand la teinte est exclue, l\'emphase passe par la forme.',
         'note_good': True,
     },
     'graphite': {
@@ -347,8 +352,13 @@ THEMES = {
         'dark_background': True,
         'marker': '#C9C9C9', 'ink': '#EDEDED', 'ink-muted': '#8A8A8A',
         'page': '#121212', 'accent': '#FFFFFF', 'positive': '#B8B8B8',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': 'Le pendant sombre de Monochrome : tout repose sur la clarté et la forme, jamais sur la teinte.',
+        # Souligné À LA PLACE du surlignage, le pendant exact de
+        # Monochrome : un aplat gris sur un fond noir empâte, un trait
+        # non. Les deux thèmes mono couvrent ainsi les deux façons
+        # d'employer l'axe, sur les deux polarités de fond.
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
+        'fact_decoration': 'underline', 'fact_decoration_color': 'marker',
+        'note': 'Le pendant sombre de Monochrome : tout repose sur la clarté et la forme, jamais sur la teinte. Le gras en fact-box est souligné plutôt que surligné — sur un fond noir, un aplat empâte là où un trait porte.',
         'note_good': True,
     },
     'newsprint': {

@@ -1186,9 +1186,22 @@ un menu fermé : « gras sans aucun surlignage » se dit
 surlignage vert » se dit `--fact-strong-weight: normal` +
 `--fact-strong-highlight: var(--positive)`, et « souligné et rien
 d'autre » se dit `--fact-strong-decoration: underline` avec un
-`--fact-strong-highlight: transparent`. Sept combinaisons distinctes
-existent d'ailleurs parmi les thèmes intégrés — aucun d'eux n'emploie
-encore le soulignement, l'axe étant plus récent que le catalogue.
+`--fact-strong-highlight: transparent`. Neuf combinaisons distinctes
+existent d'ailleurs parmi les thèmes intégrés.
+
+Les deux thèmes qui emploient le soulignement sont `monochrome` et
+`graphite`, et ce n'est pas un choix arbitraire : ce sont les deux
+palettes qui s'interdisent la teinte (« tout repose sur la clarté et la
+forme »), et un soulignement est justement une forme, pas une teinte.
+Elles couvrent les deux façons d'employer l'axe — `monochrome` cumule
+surlignage **et** soulignement, `graphite` souligne **à la place** d'un
+surlignage — sur les deux polarités de fond.
+
+Un `--marker` fait pour servir de fond de surlignage est souvent trop
+pâle pour servir de trait : mesuré à 1,23:1 contre le fond de page sur
+`newsprint` et 1,49:1 sur `blueprint`. D'où le trait en `currentColor`
+sur `monochrome`, et en `var(--marker)` sur `graphite` seulement parce
+que ce thème est sombre, où le même gris ressort à 11,3:1.
 
 Deux conséquences pratiques, apprises en constatant que rien ne les
 disait :
@@ -2018,7 +2031,7 @@ traitement du gras que le thème a choisi (§9.1) — « Gras, surligné
 `--marker` », « Gras, sans surlignage », « Italique, surligné
 `--positive` », « Gras, sans surlignage, souligné `--marker` »… La
 galerie appliquait ces propriétés à sa maquette sans jamais les nommer :
-sept combinaisons distinctes existent parmi les thèmes intégrés et
+neuf combinaisons distinctes existent parmi les thèmes intégrés et
 aucune n'était lisible autrement qu'en scrutant deux lignes d'aperçu.
 Le soulignement n'est mentionné que lorsqu'il est présent — en annoncer
 l'absence sur chaque carte noierait les axes qui, eux, diffèrent.
