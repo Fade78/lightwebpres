@@ -1,11 +1,17 @@
 # Cahier des charges — refonte du système de templates
 
-**Statut :** document de travail, antérieur à toute architecture. Il dit ce que
-la refonte doit permettre, préserver et corriger ; il ne dit pas comment.
+**Statut : document historique, gelé.** Ce cahier des charges décrivait le
+système *antérieur* à la refonte de 2026-08-04 et ce qu'elle devait en faire ;
+la refonte a eu lieu, et `specifications.md` §9 fait foi. Les contraintes
+C1-C12 décrivent un monde démoli (marqueurs, `style.css` substitué,
+`theme_state`) — elles expliquent le pourquoi, elles n'obligent plus rien.
+L'adjudication des critères A1-A11 est consignée dans l'historique du dépôt
+(commit de réadjudication du backlog, 2026-08-04). Restent d'actualité comme
+références : la table de mesures du §6.3 (aucun accent emprunté n'atteint 4,5:1
+sur fond clair — citée par B5) et les décisions Q1-Q5, dont les réponses sont
+dans `ARCHI-TEMPLATES.md` et les messages de commit de la refonte.
 
-**Destination :** absorbé à terme par `specifications.md` §9. Rédigé en français
-pour cette raison — §9 l'est encore, et la traduction du référentiel la prend en
-dernier. Il partira en anglais avec elle.
+---
 
 **Date :** 2026-08-04. **Version de référence :** v0.12.2.
 

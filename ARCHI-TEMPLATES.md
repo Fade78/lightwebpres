@@ -1,8 +1,16 @@
 # Architecture du système de rendu d'un thème
 
-**Statut :** architecture retenue, répondant au cahier des charges
-`CDC-TEMPLATES.md`. Destinée à être fondue dans `specifications.md` §9.
-L'inventaire complet des propriétés suit ce document.
+**Statut : document historique, gelé.** Cette architecture est construite :
+`specifications.md` §9 fait foi pour l'état courant, l'exécutable pour le
+registre (le décompte des propriétés est dérivé du code, jamais écrit à la
+main). Ce document reste la trace des décisions avec leurs motifs — les six
+types, la règle de complétude, le renversement sur les littéraux d'instance,
+les décisions typographiques §6.4 — et n'est plus tenu à jour. Les manques
+assumés du §10 ont leurs entrées au `BACKLOG.md` (B8 extends, B9 révision du
+catalogue, B10 mappage de gamut, B11 dichromatie, B12 ombres de boîte, B13
+`content-max`).
+
+---
 
 **Date :** 2026-08-04. **Base :** v0.12.2.
 
