@@ -46,7 +46,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.15.1"
+VERSION = "0.16.0"
 
 # The six palette variables, in the order a reader meets them on the page:
 # the ground, then the two inks, then the furniture (§9.1).
@@ -208,12 +208,19 @@ LANG_EN = r'''{
 # Candidate color themes for the default template's six palette
 # properties (PALETTE_ROLES, §9.1), plus how each
 # theme renders **bold** text inside a fact-box (§9.1's --fact-strong-*
-# properties): fact_weight ('bold'|'normal'), fact_style ('normal'|
-# 'italic'), and fact_highlight (one of this same theme's own color roles
-# above, used as the highlight background, or None for no highlight at
-# all). Every theme sets all three explicitly, even where the value
-# matches the engine's own un-themed default (bold/normal/yellow) —
+# properties), on four independent axes:
+#   fact_weight            'bold' | 'normal'
+#   fact_style             'normal' | 'italic'
+#   fact_highlight         a color role of this same theme, used as the
+#                          marker's background, or None for no marker
+#   fact_decoration        'underline', or absent for none
+#   fact_decoration_color  a color role for the underline, or absent to
+#                          use the text's own colour
+# Every theme states weight/style/highlight explicitly, even where the
+# value matches the engine's own un-themed default (bold/normal/marker) —
 # that's a deliberate choice recorded for that theme, not an omission.
+# The two decoration keys are the exception: absent means no underline,
+# which is what 'no opinion' means for an axis added after the fact.
 # This is the single source of truth for both `install --theme <name>`
 # (applies one at scaffold time, see apply_theme()) and `themes-gallery`
 # (renders every entry here into themes-gallery.html, see
@@ -697,45 +704,61 @@ def theme_surface_properties(theme):
 
 def theme_fact_properties(theme):
     """Resolves a THEMES entry's fact-box strong-emphasis properties
-    (§9.1's --fact-strong-weight/--fact-strong-style/--fact-strong-
-    highlight) to concrete CSS values: fact_weight/fact_style pass
-    through as-is, and fact_highlight — a role name from this same
-    theme's own colors, or None — becomes a var(--role) reference (so a
-    later manual override of that role's own color is still picked up)
-    or the literal 'transparent' for no highlight. Missing keys default
-    to bold/normal/yellow, matching the engine's own un-themed look, so
-    a THEMES entry that doesn't set these three explicitly still renders
-    exactly as before this feature existed."""
-    weight = theme.get('fact_weight', 'bold')
-    style = theme.get('fact_style', 'normal')
-    highlight_role = theme.get('fact_highlight', 'yellow')
-    highlight = f'var(--{highlight_role})' if highlight_role else 'transparent'
+    (§9.1) to concrete CSS values, keyed by the --fact-strong-* suffix
+    they feed. Returns a dict rather than a tuple: there are six of them
+    now, and six positional values that must be unpacked in the right
+    order at three call sites is a defect waiting to happen.
+
+    Four axes, independent by design — a theme can be bold with no
+    highlight, or un-bold with a green one, or underlined and nothing
+    else:
+
+      weight/style        pass through as-is
+      highlight           a role name from this theme's own colours, or
+                          None; becomes var(--role) so a later override
+                          of that role still applies, or 'transparent'
+      ink                 the text ON that marker (see below)
+      decoration          'underline' or None -> 'none'
+      decoration-color    a role name, or None -> currentColor, i.e. the
+                          text's own colour, which is the classic look
+
+    Missing keys default to the engine's own un-themed rendering, so an
+    entry that sets none of them looks exactly as it did before any of
+    this existed."""
+    highlight_role = theme.get('fact_highlight', 'marker')
+    decoration_role = theme.get('fact_decoration_color')
     # The text sitting ON that highlight. The rule used to set only a
     # background, which silently assumed dark text on a bright marker —
-    # true on a light theme, false on a dark one, where --dark holds the
+    # true on a light theme, false on a dark one, where --ink holds the
     # LIGHT text colour: measured at a contrast ratio of 1.00, i.e.
-    # invisible. On a dark theme --light is the dark page ground, so it
-    # is exactly the ink needed here. With no highlight there is no
-    # marker to sit on and the text keeps the body colour.
+    # invisible. On a dark theme --page is the dark ground, so it is
+    # exactly the ink needed here. With no highlight there is no marker
+    # to sit on and the text keeps the body colour.
     if not highlight_role:
         ink = 'inherit'
     elif theme.get('dark_background'):
         ink = 'var(--page)'
     else:
         ink = 'var(--ink)'
-    return weight, style, highlight, ink
+    return {
+        'weight': theme.get('fact_weight', 'bold'),
+        'style': theme.get('fact_style', 'normal'),
+        'highlight': f'var(--{highlight_role})' if highlight_role else 'transparent',
+        'ink': ink,
+        'decoration': theme.get('fact_decoration') or 'none',
+        'decoration-color': f'var(--{decoration_role})' if decoration_role else 'currentColor',
+    }
 
 
 def fact_treatment_label(theme):
     """One French sentence saying how a theme renders **bold** inside a
     fact-box (§9.1), for themes-gallery (§11.7).
 
-    The gallery applied these three properties to its mock-up and never
-    said a word about them, so nothing anywhere told a reader that a
-    theme can be bold WITHOUT a highlight, or un-bold WITH a coloured
-    one. Seven distinct combinations exist across the built-in themes and
-    all seven were invisible: you had to squint at a two-line preview and
-    guess."""
+    The gallery applied these properties to its mock-up and never said a
+    word about them, so nothing anywhere told a reader that a theme can
+    be bold WITHOUT a highlight, or un-bold WITH a coloured one. Every
+    distinct combination in the table was invisible: you had to squint at
+    a two-line preview and guess."""
     weight = theme.get('fact_weight', 'bold')
     style = theme.get('fact_style', 'normal')
     role = theme.get('fact_highlight', 'marker')
@@ -748,13 +771,18 @@ def fact_treatment_label(theme):
     face = ' '.join(faces) if faces else 'sans changement de graisse'
     face = face[0].upper() + face[1:]
 
-    mark = f'surlign&eacute; <code>--{role}</code>' if role else 'sans surlignage'
-    return f'{face}, {mark}'
+    parts = [face, f'surlign&eacute; <code>--{role}</code>' if role else 'sans surlignage']
+    # Only mentioned when present: naming the absence of an underline on
+    # every one of the built-in themes would bury the axes that differ.
+    if theme.get('fact_decoration') == 'underline':
+        colour = theme.get('fact_decoration_color')
+        parts.append(f'soulign&eacute; <code>--{colour}</code>' if colour else 'soulign&eacute;')
+    return ', '.join(parts)
 
 
 def apply_theme(css_text, theme_key):
     """Rewrites the six palette declarations (PALETTE_ROLES),
-    the four --fact-strong-* ones (§9.1), and the nine
+    the six --fact-strong-* ones (§9.1), and the nine
     overlay/cover/control ones (§9.5.2 — --rule, --rule-strong,
     --surface, --sunken, --cover-bg, --cover-fg, --cover-fg-faint,
     --control, --control-soft) in `css_text`'s :root block to
@@ -778,12 +806,10 @@ def apply_theme(css_text, theme_key):
         pattern = r'(--%s:\s*)#[0-9A-Fa-f]{3,8}(\s*;)' % var
         css_text = re.sub(pattern, lambda m: m.group(1) + theme[var] + m.group(2), css_text, count=1)
 
-    fact_weight, fact_style, fact_highlight, fact_ink = theme_fact_properties(theme)
     for var, value in (
-        ('fact-strong-weight', fact_weight),
-        ('fact-strong-style', fact_style),
-        ('fact-strong-highlight', fact_highlight),
-        ('fact-strong-ink', fact_ink),
+        # Keyed by suffix, so adding an emphasis axis needs no change
+        # here at all — which is the point of returning a mapping.
+        *((f'fact-strong-{k}', v) for k, v in theme_fact_properties(theme).items()),
         # The overlays and the cover (§9.5.2). Substituted like the rest,
         # so a dark-backgrounded theme gets veils that go the right way
         # instead of a white card on a black page.
@@ -870,6 +896,13 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     --fact-strong-style: normal;
     --fact-strong-highlight: var(--marker);
     --fact-strong-ink: var(--ink);
+    /* Underline as a fourth, independent axis: reinforce instead of a
+       marker, or as well as one. Its thickness and offset are fixed in
+       the rule rather than exposed — a hairline underline sitting on the
+       baseline is what makes underlined text hard to read, and that is
+       not a choice worth offering. */
+    --fact-strong-decoration: none;
+    --fact-strong-decoration-color: currentColor;
     --content-max: min(84vw, 1100px);
     /* Neutrals as translucent overlays rather than fixed greys, so they
        tint whatever is actually underneath and the page follows the
@@ -975,6 +1008,15 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
     font-style: var(--fact-strong-style);
     background: var(--fact-strong-highlight);
     color: var(--fact-strong-ink);
+    text-decoration: var(--fact-strong-decoration);
+    text-decoration-color: var(--fact-strong-decoration-color);
+    /* Measured, not guessed: at the default offset the rule collides
+       with the descenders, and inside a highlight it runs into the
+       marker's lower edge. Both properties degrade silently on an old
+       engine — the underline simply falls back to its default position
+       rather than disappearing. */
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
     padding: 1px 4px;
     border-radius: 2px;
   }
@@ -1333,15 +1375,19 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
   .intro p { margin-bottom: 16px; }
 
   /* --------------------------------------------------------------
-     Le gras Markdown a l'interieur d'une fact-box se regle par quatre
+     Le gras Markdown a l'interieur d'une fact-box se regle par six
      variables independantes (specifications.md 9.1) : un theme peut
-     etre gras SANS surlignage, ou non gras AVEC un surlignage vert.
+     etre gras SANS surlignage, non gras AVEC un surlignage vert, ou
+     souligne et rien d'autre.
 
-       --fact-strong-weight      bold | normal
-       --fact-strong-style       normal | italic
-       --fact-strong-highlight   var(--role) pour un fond colore,
-                                 ou transparent pour aucun fond
-       --fact-strong-ink         la couleur du texte POSE sur ce fond
+       --fact-strong-weight            bold | normal
+       --fact-strong-style             normal | italic
+       --fact-strong-highlight         var(--role) pour un fond colore,
+                                       ou transparent pour aucun fond
+       --fact-strong-ink               la couleur du texte POSE sur ce fond
+       --fact-strong-decoration        underline | none
+       --fact-strong-decoration-color  var(--role), ou currentColor pour
+                                       la couleur du texte lui-meme
 
      Le fond et l'encre vont par paire : changer l'un sans l'autre peut
      tomber sous le seuil de lisibilite. Trois exemples prets a coller,
@@ -1358,6 +1404,18 @@ TEMPLATE_STYLE = r'''/* LightWebPres default style — extracted from series */
      Italique seul, sans fond -- le registre le plus discret :
        :root { --fact-strong-weight: normal; --fact-strong-style: italic;
                --fact-strong-highlight: transparent; --fact-strong-ink: inherit; }
+
+     Gras souligne, sans fond -- le trait reprend la couleur des filets :
+       :root { --fact-strong-highlight: transparent; --fact-strong-ink: inherit;
+               --fact-strong-decoration: underline;
+               --fact-strong-decoration-color: var(--marker); }
+
+     Souligne EN PLUS du surlignage, pour appuyer deux fois :
+       :root { --fact-strong-decoration: underline; }
+
+     L'epaisseur et le decalage du trait ne sont pas parametrables : un
+     trait fin colle a la ligne de base est precisement ce qui rend un
+     texte souligne penible a lire.
      -------------------------------------------------------------- */
 ''' + '\n  ' + TEMPLATE_STYLE_CUSTOM_MARKER + '\n'
 
@@ -2600,7 +2658,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
 
   /* --- live mock-up of the real lightwebpres UI, driven entirely by --- */
-  /* --- the six custom properties set inline per card                --- */
+  /* --- the theme's own properties, set inline per card              --- */
   .preview {
     margin: 14px 18px 0;
     border-radius: 10px;
@@ -2720,6 +2778,10 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     font-style: var(--fact-strong-style);
     background: var(--fact-strong-highlight);
     color: var(--fact-strong-ink);
+    text-decoration: var(--fact-strong-decoration);
+    text-decoration-color: var(--fact-strong-decoration-color);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2.5px;
     padding: 1px 4px;
     border-radius: 2px;
   }
@@ -2881,7 +2943,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     <p class="dek">
       Chaque carte applique une palette r&eacute;elle sur un vrai fragment de fiche
       (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;, fact-box, tableau) : les six couleurs,
-      mais aussi les quatre propri&eacute;t&eacute;s de gras en fact-box et les neuf
+      mais aussi les six propri&eacute;t&eacute;s de gras en fact-box et les neuf
       superpositions neutres, qui suivent la polarit&eacute; du fond. L'aper&ccedil;u fait
       correspondre chaque variable au m&ecirc;me r&ocirc;le que la vraie feuille de
       style : ce n'est pas une capture d'&eacute;cran, mais aucune couleur n'y est fig&eacute;e.
@@ -2952,7 +3014,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
         <h2>{label}</h2>
         <p class="theme-source">{source}</p>
       </header>
-      <div class="preview" style="--marker:{marker};--ink:{ink};--ink-muted:{ink_muted};--page:{page};--accent:{accent};--positive:{positive};--fact-strong-weight:{fact_weight};--fact-strong-style:{fact_style};--fact-strong-highlight:{fact_highlight};{overlay_vars}">
+      <div class="preview" style="--marker:{marker};--ink:{ink};--ink-muted:{ink_muted};--page:{page};--accent:{accent};--positive:{positive};--fact-strong-weight:{fact_weight};--fact-strong-style:{fact_style};--fact-strong-highlight:{fact_highlight};--fact-strong-ink:{fact_ink};--fact-strong-decoration:{fact_decoration};--fact-strong-decoration-color:{fact_decoration_color};{overlay_vars}">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -5545,7 +5607,14 @@ def cmd_themes_gallery(output_path, args):
 
     cards = []
     for slug, theme in THEMES.items():
-        fact_weight, fact_style, fact_highlight, _fact_ink = theme_fact_properties(theme)
+        # Every emphasis property, prefixed for the inline style. The ink
+        # used to be destructured and thrown away here while the preview
+        # rule referenced var(--fact-strong-ink) — so the marker's text
+        # colour was never actually supplied and fell back to inherit.
+        # Passing the whole mapping through makes that class of omission
+        # impossible rather than merely unlikely.
+        fact = {f'fact_{k.replace("-", "_")}': v
+                for k, v in theme_fact_properties(theme).items()}
         facets = theme_facets(theme)
         # Les voiles aussi : sans eux, un thème à fond sombre s'affiche
         # dans la galerie avec les surfaces claires du préréglage par
@@ -5580,9 +5649,7 @@ def cmd_themes_gallery(output_path, args):
             page=theme['page'],
             accent=theme['accent'],
             positive=theme['positive'],
-            fact_weight=fact_weight,
-            fact_style=fact_style,
-            fact_highlight=fact_highlight,
+            **fact,
             note=theme['note'],
             note_good_class=' theme-note--good' if theme.get('note_good') else '',
             slug=slug,
@@ -5956,15 +6023,20 @@ PALETTE AND EMPHASIS (templates/style.css, see specifications.md §9.1)
                   nav dot, emphasized column
     --accent      links, focus ring, key-figure arrow, "partial"
     --positive    the "yes" verdict of a comparison table
-  Four more decide how **bold** renders INSIDE a fact-box, independently
-  of one another — a theme can be bold with no highlight, or un-bold with
-  a green one:
-    --fact-strong-weight      bold | normal
-    --fact-strong-style       normal | italic
-    --fact-strong-highlight   var(--<role>) for a marker, or transparent
-    --fact-strong-ink         the text ON that marker; set it whenever
-                              you change the highlight, or the pair can
-                              land below readable contrast
+  Six more decide how **bold** renders INSIDE a fact-box, on four
+  independent axes — a theme can be bold with no highlight, un-bold with
+  a green one, or underlined and nothing else:
+    --fact-strong-weight            bold | normal
+    --fact-strong-style             normal | italic
+    --fact-strong-highlight         var(--<role>), or transparent
+    --fact-strong-ink               the text ON that marker; set it
+                                    whenever you change the highlight, or
+                                    the pair can land below readable
+                                    contrast
+    --fact-strong-decoration        underline | none
+    --fact-strong-decoration-color  var(--<role>), or currentColor
+  The underline's thickness and offset are fixed, not exposed: a hairline
+  sitting on the baseline is what makes underlined text hard to read.
   Override any of them in templates/style.css, AFTER the personalization
   marker — that section survives refresh-templates. For example, keeping
   the bold and dropping the marker:

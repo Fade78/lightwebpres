@@ -2904,20 +2904,20 @@ class DarkBackgroundThemes(unittest.TestCase):
         on a real dark build before this: contrast ratio 1.00, i.e. the
         figure was invisible. On a dark theme --light IS the dark page
         ground, so it is the ink this needs."""
-        _, _, highlight, ink = self.lwp.theme_fact_properties(
+        dark = self.lwp.theme_fact_properties(
             {'dark_background': True, 'fact_highlight': 'marker'})
-        self.assertEqual(highlight, 'var(--marker)')
-        self.assertEqual(ink, 'var(--page)')
+        self.assertEqual(dark['highlight'], 'var(--marker)')
+        self.assertEqual(dark['ink'], 'var(--page)')
 
-        _, _, _, light_ink = self.lwp.theme_fact_properties({'fact_highlight': 'marker'})
-        self.assertEqual(light_ink, 'var(--ink)')
+        light = self.lwp.theme_fact_properties({'fact_highlight': 'marker'})
+        self.assertEqual(light['ink'], 'var(--ink)')
 
         # No marker means no marker to sit on: the text must keep the
         # body colour, or a dark theme would paint it dark-on-dark.
-        _, _, no_highlight, no_ink = self.lwp.theme_fact_properties(
+        bare = self.lwp.theme_fact_properties(
             {'dark_background': True, 'fact_highlight': None})
-        self.assertEqual(no_highlight, 'transparent')
-        self.assertEqual(no_ink, 'inherit')
+        self.assertEqual(bare['highlight'], 'transparent')
+        self.assertEqual(bare['ink'], 'inherit')
 
     def test_install_with_a_dark_theme_writes_the_inverted_overlays(self):
         """End to end through the real install path, with a dark theme
@@ -3158,10 +3158,13 @@ class GalleryPreviewFidelity(unittest.TestCase):
         for slug, theme in self.lwp.THEMES.items():
             label = self.lwp.fact_treatment_label(theme)
             self.assertIn(label, stated, slug)
-            weight, style, highlight, _ink = self.lwp.theme_fact_properties(theme)
-            self.assertEqual('gras' in label.lower(), weight == 'bold', slug)
-            self.assertEqual('italique' in label.lower(), style == 'italic', slug)
-            self.assertEqual('sans surlignage' in label, highlight == 'transparent', slug)
+            props = self.lwp.theme_fact_properties(theme)
+            self.assertEqual('gras' in label.lower(), props['weight'] == 'bold', slug)
+            self.assertEqual('italique' in label.lower(), props['style'] == 'italic', slug)
+            self.assertEqual('sans surlignage' in label,
+                             props['highlight'] == 'transparent', slug)
+            self.assertEqual('soulign' in label,
+                             props['decoration'] == 'underline', slug)
 
         # The point is that the variety is visible, not that a single
         # sentence is repeated 33 times.
@@ -3196,12 +3199,68 @@ class GalleryPreviewFidelity(unittest.TestCase):
             self.assertEqual(after.count('Gras, sans aucun surlignage'), 1)
             self.assertIn(':root { --fact-strong-ink: inherit; }', after)
 
-    def test_help_documents_the_four_emphasis_variables(self):
+    EMPHASIS_VARS = ('--fact-strong-weight', '--fact-strong-style',
+                     '--fact-strong-highlight', '--fact-strong-ink',
+                     '--fact-strong-decoration', '--fact-strong-decoration-color')
+
+    def test_help_documents_every_emphasis_variable(self):
         result = run('--help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        for var in ('--fact-strong-weight', '--fact-strong-style',
-                    '--fact-strong-highlight', '--fact-strong-ink'):
+        for var in self.EMPHASIS_VARS:
             self.assertIn(var, result.stdout, var)
+
+    def test_underline_is_a_fourth_independent_axis(self):
+        """§9.1: it reinforces INSTEAD of a marker, or AS WELL AS one.
+        Both have to be expressible, and the underline's colour has to be
+        able to leave the text's own."""
+        props = self.lwp.theme_fact_properties
+        self.assertEqual(props({})['decoration'], 'none')
+        self.assertEqual(props({})['decoration-color'], 'currentColor')
+
+        instead = props({'fact_highlight': None, 'fact_decoration': 'underline',
+                         'fact_decoration_color': 'marker'})
+        self.assertEqual(instead['highlight'], 'transparent')
+        self.assertEqual(instead['decoration'], 'underline')
+        self.assertEqual(instead['decoration-color'], 'var(--marker)')
+
+        as_well = props({'fact_highlight': 'marker', 'fact_decoration': 'underline'})
+        self.assertEqual(as_well['highlight'], 'var(--marker)')
+        self.assertEqual(as_well['decoration'], 'underline')
+        self.assertEqual(as_well['decoration-color'], 'currentColor')
+
+    def test_the_default_highlight_role_names_a_role_that_exists(self):
+        """A latent defect: the fallback stayed 'yellow' through the
+        v0.15.0 rename. No built-in theme trips it — every entry states
+        the key — so a theme omitting it would have been handed
+        var(--yellow), which no longer resolves to anything."""
+        default = self.lwp.theme_fact_properties({})['highlight']
+        self.assertIn(default[6:-1], self.lwp.PALETTE_ROLES, default)
+
+    def test_both_stylesheets_honour_the_decoration(self):
+        """The preview must not silently drop an axis the real page has —
+        it is the page whose whole job is to show what a theme does."""
+        for css, selector in ((self.lwp.TEMPLATE_STYLE, '.fact-content strong'),
+                              (self.lwp.TEMPLATE_THEMES_GALLERY_HEAD,
+                               '.preview-factcontent strong')):
+            block = self._block(css, selector)
+            self.assertIn('var(--fact-strong-decoration)', block, selector)
+            self.assertIn('var(--fact-strong-decoration-color)', block, selector)
+
+    def test_the_card_supplies_every_emphasis_variable_it_styles(self):
+        """The ink used to be computed, destructured into a throwaway and
+        never passed, while the preview rule referenced it — so on a dark
+        theme the marker's text fell back to the body colour and measured
+        1.00:1 in a browser, i.e. invisible. Asserting that the RULE names
+        the variable was not enough: the card has to supply it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'g.html'
+            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            html = out.read_text(encoding='utf-8')
+        previews = re.findall(r'<div class="preview" style="([^"]*)"', html)
+        self.assertEqual(len(previews), len(self.lwp.THEMES))
+        for style in previews:
+            for var in self.EMPHASIS_VARS:
+                self.assertIn(f'{var}:', style, f'{var} not supplied to the preview')
 
     def test_the_verdict_cells_carry_the_shape_marker_too(self):
         """The real stylesheet gained these for WCAG 1.4.1. A preview

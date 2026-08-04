@@ -214,9 +214,12 @@ version — because the substitution could leave it half-recolored;
 `--force` overrides that and warns. Rules you appended after the
 personalization marker are preserved either way.
 
-A theme substitutes nineteen CSS custom properties: six palette colors,
-four fact-box emphasis properties, and nine translucent overlays for
-rules, surfaces and floating controls. Those overlays are what makes a
+A theme substitutes twenty-one CSS custom properties: six palette colors,
+six fact-box emphasis properties, and nine translucent overlays for
+rules, surfaces and floating controls. The emphasis properties are four
+independent axes — weight, italic, highlight, underline — so a theme can
+be bold with no highlight, un-bold with a green one, or underlined and
+nothing else. Those overlays are what makes a
 dark-background theme possible at all — over a dark page a surface veil
 has to be white on dark instead of the reverse. Nothing else in the CSS
 changes, and the substitution survives an executable upgrade:

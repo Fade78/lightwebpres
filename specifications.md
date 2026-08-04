@@ -1136,8 +1136,8 @@ un fichier qu'il ne doit pas éditer.
 d'abord et son nom de variable ensuite : lire « yellow · #7A6A00 » sans
 autre indication n'apprenait rien à personne.
 
-Quatre variables supplémentaires pilotent, indépendamment les unes des
-autres, le rendu visuel du gras Markdown (`**texte**` → `<strong>`)
+Six variables supplémentaires pilotent, sur quatre axes indépendants
+les uns des autres, le rendu visuel du gras Markdown (`**texte**` → `<strong>`)
 **à l'intérieur d'une fact-box** (`.fact-content strong`) — le marquage
 sémantique ne change pas, seule sa présentation par défaut devient
 paramétrable :
@@ -1154,6 +1154,17 @@ paramétrable :
   ci-dessus (`var(--accent)`, `var(--positive)`...) plutôt qu'une couleur
   en dur permet à une surcharge ultérieure de cette variable de continuer
   à s'appliquer.
+- `--fact-strong-decoration` (`none` par défaut) — le soulignement :
+  `underline` ou `none`. Quatrième axe, indépendant des trois autres :
+  il renforce *à la place* d'un surlignage, ou *en plus*.
+- `--fact-strong-decoration-color` (`currentColor` par défaut) — la
+  couleur du trait ; `currentColor` reprend celle du texte, une
+  `var(--rôle)` la détache. L'épaisseur et le décalage, eux, ne sont
+  **pas** paramétrables : ils sont fixés dans la règle, parce qu'un trait
+  fin collé à la ligne de base est précisément ce qui rend un texte
+  souligné pénible à lire, et que ce n'est pas un choix qui mérite d'être
+  offert. Attention au registre : un texte souligné, non gras et en
+  `var(--accent)` se lit comme un lien.
 - `--fact-strong-ink` (`var(--ink)` par défaut) — la couleur du **texte
   posé sur ce fond**. Sans elle, la règle ne posait qu'un fond, ce qui
   présupposait un texte foncé sur un marqueur vif : vrai sur un thème
@@ -1163,7 +1174,7 @@ paramétrable :
   (`fact_highlight` absent) : sans marqueur, le texte garde la couleur du
   corps.
 
-Ces quatre variables se personnalisent exactement comme les six
+Ces six variables se personnalisent exactement comme les six
 premières : une surcharge dans `templates/style.css`, après le marqueur
 de personnalisation (§9.4). Elles sont aussi intégrées à `THEMES`
 (§9.5) — chaque thème prédéfini choisit ses propres valeurs plutôt que
@@ -1173,8 +1184,11 @@ de se limiter aux couleurs, voir §9.5.
 un menu fermé : « gras sans aucun surlignage » se dit
 `--fact-strong-highlight: transparent`, et « non gras avec un
 surlignage vert » se dit `--fact-strong-weight: normal` +
-`--fact-strong-highlight: var(--positive)`. Sept combinaisons distinctes
-existent d'ailleurs parmi les thèmes intégrés.
+`--fact-strong-highlight: var(--positive)`, et « souligné et rien
+d'autre » se dit `--fact-strong-decoration: underline` avec un
+`--fact-strong-highlight: transparent`. Sept combinaisons distinctes
+existent d'ailleurs parmi les thèmes intégrés — aucun d'eux n'emploie
+encore le soulignement, l'axe étant plus récent que le catalogue.
 
 Deux conséquences pratiques, apprises en constatant que rien ne les
 disait :
@@ -1188,7 +1202,7 @@ disait :
 - **Le mécanisme doit être trouvable.** Il ne l'était pas : absent de
   `--help`, absent du README, présent seulement ici. Trois choses le
   disent désormais — la section PALETTE AND EMPHASIS de `--help`, un
-  bloc de commentaire avec trois recettes prêtes à coller dans le
+  bloc de commentaire avec cinq recettes prêtes à coller dans le
   `templates/style.css` généré, et la ligne « Gras en fact-box » de
   chaque carte de `themes-gallery` (§11.7).
 
@@ -1390,8 +1404,8 @@ réécriture inutile.
 Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
 (« slug ») à une palette complète : les six couleurs de §9.1 (`--page
 --ink --ink-muted --marker --accent --positive`), plus les propriétés de
-rendu du gras en fact-box (`fact_weight`/`fact_style`/`fact_highlight`,
-§9.1) — un thème n'est donc pas qu'une recoloration, il peut aussi
+rendu du gras en fact-box (`fact_weight`/`fact_style`/`fact_highlight`/
+`fact_decoration`/`fact_decoration_color`, §9.1) — un thème n'est donc pas qu'une recoloration, il peut aussi
 choisir un traitement typographique différent (ex. italique sans fond
 coloré plutôt que gras surligné) — plus un drapeau de polarité
 (`dark_background`, §9.5.2) et une intensité déclarée (`intensity`,
@@ -1399,10 +1413,13 @@ coloré plutôt que gras surligné) — plus un drapeau de polarité
 éditoriales (étiquette affichable, source, remarque) qui ne servent qu'à
 `themes-gallery` (§11.7) — jamais à `install --theme`. `fact_highlight`
 vaut le nom d'un des six rôles de couleur ci-dessus (résolu en
-`var(--rôle)`) ou `None` pour aucun fond ; les trois propriétés sont
-toujours explicites dans chaque entrée, y compris quand la valeur
-choisie est celle par défaut du moteur (`bold`/`normal`/`yellow`) — un
-choix délibéré consigné, pas un oubli.
+`var(--rôle)`) ou `None` pour aucun fond ; `fact_weight`, `fact_style` et
+`fact_highlight` sont toujours explicites dans chaque entrée, y compris
+quand la valeur choisie est celle par défaut du moteur
+(`bold`/`normal`/`marker`) — un choix délibéré consigné, pas un oubli.
+Les deux clés de soulignement font exception : absentes, elles valent
+« pas de soulignement », ce qui est le sens de « pas d'avis » pour un axe
+ajouté après coup.
 
 Les neuf premières entrées reprenaient des palettes d'éditeurs de code
 connues (`nord`, `dracula`, `solarized`, `gruvbox`, `catppuccin`,
@@ -1423,9 +1440,9 @@ un fichier généré depuis cette table (§11.7).
 
 #### 9.5.1 Appliquer un thème à l'installation (`install --theme`)
 
-`install [répertoire] --theme <slug>` (§11.1) substitue les dix-neuf
+`install [répertoire] --theme <slug>` (§11.1) substitue les vingt et une
 variables du fichier `templates/style.css` généré par celles du thème
-choisi — six couleurs, quatre propriétés de gras en fact-box (§9.1), et
+choisi — six couleurs, six propriétés de gras en fact-box (§9.1), et
 neuf superpositions neutres (§9.5.2). Rien
 d'autre dans le CSS par défaut n'est modifié. Le fichier obtenu se termine
 toujours par le marqueur de personnalisation (§9.4), donc
@@ -1489,9 +1506,9 @@ Deux conséquences en découlent, toutes deux vérifiées par les tests :
   clair, faux sur un thème sombre, où le rapport de contraste mesuré
   tombait à 1,00 — c'est-à-dire invisible.
 
-Le drapeau s'appelle `dark_background` et non `dark` parce que cette
-seconde clé porte déjà la couleur foncée de la palette dans chaque
-entrée : un drapeau ainsi nommé serait lu comme une chaîne de couleur,
+Le drapeau s'appelle `dark_background` et non `dark` parce qu'à l'époque
+cette seconde clé portait déjà la couleur foncée de la palette dans
+chaque entrée (elle s'appelle `ink` depuis la v0.15.0, §9.1) : un drapeau ainsi nommé serait lu comme une chaîne de couleur,
 donc toujours vrai, et tous les thèmes basculeraient silencieusement en
 polarité sombre.
 
@@ -1630,8 +1647,8 @@ Crée la structure de travail dans `[répertoire]` :
    `public/`
 3. Extrait les templates par défaut depuis l'exécutable (§9) :
    - `templates/style.css` — avec les couleurs du thème par défaut, sauf
-     si `--theme <nom>` est fourni, auquel cas les neuf variables de ce
-     thème sont substituées (§9.5.1) ; `<nom>` inconnu de `THEMES` est une
+     si `--theme <nom>` est fourni, auquel cas les vingt et une variables
+     de ce thème sont substituées (§9.5.1) ; `<nom>` inconnu de `THEMES` est une
      erreur fatale, qui liste les noms valides
    - `templates/nav.js`
 4. Extrait les packs de langue par défaut depuis l'exécutable :
@@ -1999,10 +2016,12 @@ claire — c'est-à-dire pas telle qu'elle rendra réellement.
 Sous chaque aperçu, une ligne « Gras en fact-box » **énonce** le
 traitement du gras que le thème a choisi (§9.1) — « Gras, surligné
 `--marker` », « Gras, sans surlignage », « Italique, surligné
-`--positive` »… La galerie appliquait ces trois propriétés à sa maquette
-sans jamais les nommer : sept combinaisons distinctes existent parmi les
-thèmes intégrés et aucune n'était lisible autrement qu'en scrutant deux
-lignes d'aperçu.
+`--positive` », « Gras, sans surlignage, souligné `--marker` »… La
+galerie appliquait ces propriétés à sa maquette sans jamais les nommer :
+sept combinaisons distinctes existent parmi les thèmes intégrés et
+aucune n'était lisible autrement qu'en scrutant deux lignes d'aperçu.
+Le soulignement n'est mentionné que lorsqu'il est présent — en annoncer
+l'absence sur chaque carte noierait les axes qui, eux, diffèrent.
 
 **Fidélité de l'aperçu.** L'aperçu est une *miniature*, pas une capture
 d'écran : ses tailles et ses espacements sont délibérément réduits. En
@@ -2018,6 +2037,7 @@ figée :
 | surface de carte | `.preview-factbox` | `.fact-box` | `--surface` |
 | fond en creux | `.preview-cell--neutral` | `.comparison-table th` | `--sunken` |
 | encre du surlignage | `.preview-factcontent strong` | `.fact-content strong` | `--fact-strong-ink` |
+| couleur du soulignement | `.preview-factcontent strong` | `.fact-content strong` | `--fact-strong-decoration-color` |
 
 Passer les variables du thème à l'aperçu ne suffit pas si l'aperçu les
 ignore ensuite : c'est ce qui s'est produit. Le fond de couverture était

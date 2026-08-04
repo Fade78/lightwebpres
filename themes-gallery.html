@@ -187,7 +187,7 @@
   }
 
   /* --- live mock-up of the real lightwebpres UI, driven entirely by --- */
-  /* --- the six custom properties set inline per card                --- */
+  /* --- the theme's own properties, set inline per card              --- */
   .preview {
     margin: 14px 18px 0;
     border-radius: 10px;
@@ -307,6 +307,10 @@
     font-style: var(--fact-strong-style);
     background: var(--fact-strong-highlight);
     color: var(--fact-strong-ink);
+    text-decoration: var(--fact-strong-decoration);
+    text-decoration-color: var(--fact-strong-decoration-color);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2.5px;
     padding: 1px 4px;
     border-radius: 2px;
   }
@@ -468,7 +472,7 @@
     <p class="dek">
       Chaque carte applique une palette r&eacute;elle sur un vrai fragment de fiche
       (tag, titre, r&eacute;sum&eacute;, chiffre-cl&eacute;, fact-box, tableau) : les six couleurs,
-      mais aussi les quatre propri&eacute;t&eacute;s de gras en fact-box et les neuf
+      mais aussi les six propri&eacute;t&eacute;s de gras en fact-box et les neuf
       superpositions neutres, qui suivent la polarit&eacute; du fond. L'aper&ccedil;u fait
       correspondre chaque variable au m&ecirc;me r&ocirc;le que la vraie feuille de
       style : ce n'est pas une capture d'&eacute;cran, mais aucune couleur n'y est fig&eacute;e.
@@ -537,7 +541,7 @@
         <h2>Nord</h2>
         <p class="theme-source">nordtheme.com</p>
       </header>
-      <div class="preview" style="--marker:#EBCB8B;--ink:#2E3440;--ink-muted:#4C566A;--page:#ECEFF4;--accent:#BF616A;--positive:#A3BE8C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#EBCB8B;--ink:#2E3440;--ink-muted:#4C566A;--page:#ECEFF4;--accent:#BF616A;--positive:#A3BE8C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -582,7 +586,7 @@
         <h2>Dracula</h2>
         <p class="theme-source">draculatheme.com</p>
       </header>
-      <div class="preview" style="--marker:#F1FA8C;--ink:#282A36;--ink-muted:#6272A4;--page:#F8F8F2;--accent:#FF5555;--positive:#50FA7B;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--positive);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#F1FA8C;--ink:#282A36;--ink-muted:#6272A4;--page:#F8F8F2;--accent:#FF5555;--positive:#50FA7B;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--positive);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -627,7 +631,7 @@
         <h2>Solarized Light</h2>
         <p class="theme-source">ethanschoonover.com</p>
       </header>
-      <div class="preview" style="--marker:#B58900;--ink:#002B36;--ink-muted:#93A1A1;--page:#FDF6E3;--accent:#DC322F;--positive:#859900;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#B58900;--ink:#002B36;--ink-muted:#93A1A1;--page:#FDF6E3;--accent:#DC322F;--positive:#859900;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:transparent;--fact-strong-ink:inherit;--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -672,7 +676,7 @@
         <h2>Gruvbox Light</h2>
         <p class="theme-source">github.com/morhetz</p>
       </header>
-      <div class="preview" style="--marker:#D79921;--ink:#282828;--ink-muted:#928374;--page:#FBF1C7;--accent:#CC241D;--positive:#98971A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#D79921;--ink:#282828;--ink-muted:#928374;--page:#FBF1C7;--accent:#CC241D;--positive:#98971A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -717,7 +721,7 @@
         <h2>Catppuccin Latte</h2>
         <p class="theme-source">github.com/catppuccin</p>
       </header>
-      <div class="preview" style="--marker:#DF8E1D;--ink:#4C4F69;--ink-muted:#6C6F85;--page:#EFF1F5;--accent:#D20F39;--positive:#40A02B;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#DF8E1D;--ink:#4C4F69;--ink-muted:#6C6F85;--page:#EFF1F5;--accent:#D20F39;--positive:#40A02B;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -762,7 +766,7 @@
         <h2>Tokyo Night</h2>
         <p class="theme-source">github.com/folke</p>
       </header>
-      <div class="preview" style="--marker:#E0AF68;--ink:#1A1B26;--ink-muted:#565F89;--page:#E1E2E7;--accent:#F7768E;--positive:#9ECE6A;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:var(--accent);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E0AF68;--ink:#1A1B26;--ink-muted:#565F89;--page:#E1E2E7;--accent:#F7768E;--positive:#9ECE6A;--fact-strong-weight:bold;--fact-strong-style:italic;--fact-strong-highlight:var(--accent);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -807,7 +811,7 @@
         <h2>Monokai</h2>
         <p class="theme-source">classique, Sublime Text</p>
       </header>
-      <div class="preview" style="--marker:#E6DB74;--ink:#272822;--ink-muted:#75715E;--page:#F8F8F2;--accent:#F92672;--positive:#A6E22E;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E6DB74;--ink:#272822;--ink-muted:#75715E;--page:#F8F8F2;--accent:#F92672;--positive:#A6E22E;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -852,7 +856,7 @@
         <h2>Everforest</h2>
         <p class="theme-source">github.com/sainnhe</p>
       </header>
-      <div class="preview" style="--marker:#DFA000;--ink:#2D353B;--ink-muted:#859289;--page:#FDF6E3;--accent:#F85552;--positive:#A7C080;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--positive);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#DFA000;--ink:#2D353B;--ink-muted:#859289;--page:#FDF6E3;--accent:#F85552;--positive:#A7C080;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--positive);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -897,7 +901,7 @@
         <h2>Rosé Pine Dawn</h2>
         <p class="theme-source">rosepinetheme.com</p>
       </header>
-      <div class="preview" style="--marker:#EA9D34;--ink:#464261;--ink-muted:#797593;--page:#FAF4ED;--accent:#B4637A;--positive:#6D8F89;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#EA9D34;--ink:#464261;--ink-muted:#797593;--page:#FAF4ED;--accent:#B4637A;--positive:#6D8F89;--fact-strong-weight:normal;--fact-strong-style:italic;--fact-strong-highlight:transparent;--fact-strong-ink:inherit;--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -942,7 +946,7 @@
         <h2>High Contrast</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFD500;--ink:#000000;--ink-muted:#4A4A4A;--page:#FFFFFF;--accent:#D00000;--positive:#006B2C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#FFD500;--ink:#000000;--ink-muted:#4A4A4A;--page:#FFFFFF;--accent:#D00000;--positive:#006B2C;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -987,7 +991,7 @@
         <h2>Blueprint</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#F2C14E;--ink:#0B2545;--ink-muted:#5A7184;--page:#EEF2F7;--accent:#D64045;--positive:#136F63;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#F2C14E;--ink:#0B2545;--ink-muted:#5A7184;--page:#EEF2F7;--accent:#D64045;--positive:#136F63;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1032,7 +1036,7 @@
         <h2>Blueprint Night</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#F2C14E;--ink:#DCE6F2;--ink-muted:#7B8FA8;--page:#0A1626;--accent:#FF8A5B;--positive:#5BC0A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#F2C14E;--ink:#DCE6F2;--ink-muted:#7B8FA8;--page:#0A1626;--accent:#FF8A5B;--positive:#5BC0A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1077,7 +1081,7 @@
         <h2>Monochrome</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#D8D8D8;--ink:#111111;--ink-muted:#707070;--page:#FAFAFA;--accent:#2B2B2B;--positive:#000000;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#D8D8D8;--ink:#111111;--ink-muted:#707070;--page:#FAFAFA;--accent:#2B2B2B;--positive:#000000;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1122,7 +1126,7 @@
         <h2>Graphite</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#C9C9C9;--ink:#EDEDED;--ink-muted:#8A8A8A;--page:#121212;--accent:#FFFFFF;--positive:#B8B8B8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#C9C9C9;--ink:#EDEDED;--ink-muted:#8A8A8A;--page:#121212;--accent:#FFFFFF;--positive:#B8B8B8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1167,7 +1171,7 @@
         <h2>Newsprint</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#E4DAC2;--ink:#1A1A18;--ink-muted:#6B6862;--page:#F4F1EA;--accent:#8C2F1E;--positive:#3E5641;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E4DAC2;--ink:#1A1A18;--ink-muted:#6B6862;--page:#F4F1EA;--accent:#8C2F1E;--positive:#3E5641;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1212,7 +1216,7 @@
         <h2>Gold Leaf</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#E8C874;--ink:#F3EDDF;--ink-muted:#8E8269;--page:#0B0B0D;--accent:#D4AF37;--positive:#A8B26A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#E8C874;--ink:#F3EDDF;--ink-muted:#8E8269;--page:#0B0B0D;--accent:#D4AF37;--positive:#A8B26A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1257,7 +1261,7 @@
         <h2>Crimson</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#E8B4A0;--ink:#3B0A12;--ink-muted:#8A6A6E;--page:#FFF6F0;--accent:#B00020;--positive:#5C7A3F;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E8B4A0;--ink:#3B0A12;--ink-muted:#8A6A6E;--page:#FFF6F0;--accent:#B00020;--positive:#5C7A3F;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1302,7 +1306,7 @@
         <h2>Ember</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFC24D;--ink:#FFEDE2;--ink-muted:#A08074;--page:#140A08;--accent:#F4622E;--positive:#8CBF5A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC24D;--ink:#FFEDE2;--ink-muted:#A08074;--page:#140A08;--accent:#F4622E;--positive:#8CBF5A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1347,7 +1351,7 @@
         <h2>Dread</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#B9C46A;--ink:#D6D2C8;--ink-muted:#6E6A64;--page:#0B0A0C;--accent:#C1121F;--positive:#7F9440;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#B9C46A;--ink:#D6D2C8;--ink-muted:#6E6A64;--page:#0B0A0C;--accent:#C1121F;--positive:#7F9440;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1392,7 +1396,7 @@
         <h2>Sage</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#E5D9A8;--ink:#26302A;--ink-muted:#7C8B7E;--page:#F3F5EF;--accent:#B4652A;--positive:#4F7A52;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E5D9A8;--ink:#26302A;--ink-muted:#7C8B7E;--page:#F3F5EF;--accent:#B4652A;--positive:#4F7A52;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1437,7 +1441,7 @@
         <h2>Evergreen</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#E8C35A;--ink:#DDE9DC;--ink-muted:#7D9480;--page:#0D1712;--accent:#E0A32E;--positive:#6FBF73;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#E8C35A;--ink:#DDE9DC;--ink-muted:#7D9480;--page:#0D1712;--accent:#E0A32E;--positive:#6FBF73;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1482,7 +1486,7 @@
         <h2>Sprout</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#F2D544;--ink:#1E2B1B;--ink-muted:#7A8A72;--page:#FBFDF7;--accent:#6D28D9;--positive:#3F8F29;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#F2D544;--ink:#1E2B1B;--ink-muted:#7A8A72;--page:#FBFDF7;--accent:#6D28D9;--positive:#3F8F29;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1527,7 +1531,7 @@
         <h2>Vaporwave</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#E0FF4F;--ink:#16003B;--ink-muted:#6B5CA5;--page:#F3F0FF;--accent:#FF2FB9;--positive:#00C2A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#E0FF4F;--ink:#16003B;--ink-muted:#6B5CA5;--page:#F3F0FF;--accent:#FF2FB9;--positive:#00C2A8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--ink);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1572,7 +1576,7 @@
         <h2>Terminal</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#F4FF52;--ink:#D7FFE0;--ink-muted:#6E9C7A;--page:#0B0F0C;--accent:#FF3C6F;--positive:#33FF88;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#F4FF52;--ink:#D7FFE0;--ink-muted:#6E9C7A;--page:#0B0F0C;--accent:#FF3C6F;--positive:#33FF88;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1617,7 +1621,7 @@
         <h2>Synthwave</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFE66D;--ink:#F2E9FF;--ink-muted:#9A86C4;--page:#1A1030;--accent:#FF2E97;--positive:#2DE2C5;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE66D;--ink:#F2E9FF;--ink-muted:#9A86C4;--page:#1A1030;--accent:#FF2E97;--positive:#2DE2C5;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1662,7 +1666,7 @@
         <h2>Pop Red</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFC94D;--ink:#FFF1F0;--ink-muted:#F7BDC2;--page:#9E1128;--accent:#FFD400;--positive:#86EFAC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC94D;--ink:#FFF1F0;--ink-muted:#F7BDC2;--page:#9E1128;--accent:#FFD400;--positive:#86EFAC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1707,7 +1711,7 @@
         <h2>Pop Tangerine</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#7A3E00;--ink:#241000;--ink-muted:#5E3000;--page:#FF9500;--accent:#4C1D95;--positive:#0F3D21;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#7A3E00;--ink:#241000;--ink-muted:#5E3000;--page:#FF9500;--accent:#4C1D95;--positive:#0F3D21;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--fact-strong-ink:inherit;--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1752,7 +1756,7 @@
         <h2>Pop Lemon</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#7A6A00;--ink:#1F1A00;--ink-muted:#6B5C0A;--page:#FFD400;--accent:#8F0049;--positive:#0D5C2A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
+      <div class="preview" style="--marker:#7A6A00;--ink:#1F1A00;--ink-muted:#6B5C0A;--page:#FFD400;--accent:#8F0049;--positive:#0D5C2A;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:transparent;--fact-strong-ink:inherit;--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(0, 0, 0, 0.10);--rule-strong:rgba(0, 0, 0, 0.16);--surface:rgba(255, 255, 255, 0.72);--sunken:rgba(0, 0, 0, 0.045);--cover-bg:var(--ink);--cover-fg:var(--page);--cover-fg-faint:rgba(255, 255, 255, 0.34);--control:rgba(255, 255, 255, 0.92);--control-soft:rgba(255, 255, 255, 0.75);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1797,7 +1801,7 @@
         <h2>Pop Lime</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFC94D;--ink:#F0FFF4;--ink-muted:#B5E4C4;--page:#075C26;--accent:#FFD400;--positive:#C7F9CC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC94D;--ink:#F0FFF4;--ink-muted:#B5E4C4;--page:#075C26;--accent:#FFD400;--positive:#C7F9CC;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1842,7 +1846,7 @@
         <h2>Pop Lagoon</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFC94D;--ink:#EFFCFF;--ink-muted:#A6D9E4;--page:#075B6E;--accent:#FFC2D8;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFC94D;--ink:#EFFCFF;--ink-muted:#A6D9E4;--page:#075B6E;--accent:#FFC2D8;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1887,7 +1891,7 @@
         <h2>Pop Cobalt</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFE45C;--ink:#F0F4FF;--ink-muted:#B3C2F0;--page:#1B3FBF;--accent:#FFD400;--positive:#8CF2AE;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE45C;--ink:#F0F4FF;--ink-muted:#B3C2F0;--page:#1B3FBF;--accent:#FFD400;--positive:#8CF2AE;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1932,7 +1936,7 @@
         <h2>Pop Violet</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFE99A;--ink:#F6F1FF;--ink-muted:#CBB6EE;--page:#5B1DB8;--accent:#FDE047;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE99A;--ink:#F6F1FF;--ink-muted:#CBB6EE;--page:#5B1DB8;--accent:#FDE047;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>
@@ -1977,7 +1981,7 @@
         <h2>Pop Fuchsia</h2>
         <p class="theme-source">lightwebpres</p>
       </header>
-      <div class="preview" style="--marker:#FFE99A;--ink:#FFF0FA;--ink-muted:#F0B8D8;--page:#94105F;--accent:#FDE047;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
+      <div class="preview" style="--marker:#FFE99A;--ink:#FFF0FA;--ink-muted:#F0B8D8;--page:#94105F;--accent:#FDE047;--positive:#9BF6C8;--fact-strong-weight:bold;--fact-strong-style:normal;--fact-strong-highlight:var(--marker);--fact-strong-ink:var(--page);--fact-strong-decoration:none;--fact-strong-decoration-color:currentColor;--rule:rgba(255, 255, 255, 0.14);--rule-strong:rgba(255, 255, 255, 0.24);--surface:rgba(255, 255, 255, 0.055);--sunken:rgba(0, 0, 0, 0.30);--cover-bg:rgba(0, 0, 0, 0.45);--cover-fg:var(--ink);--cover-fg-faint:rgba(255, 255, 255, 0.30);--control:rgba(255, 255, 255, 0.13);--control-soft:rgba(255, 255, 255, 0.09);">
         <div class="preview-cover">
           <span class="preview-tag">Chapitre 1</span>
           <div class="preview-cover-title">Le sucre n'est pas qu'une question de go&ucirc;t</div>

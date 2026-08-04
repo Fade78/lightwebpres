@@ -64,27 +64,44 @@ no server needed, every page is a single self-contained file.
 
 ## 3. Choosing a look
 
-Nine named color themes ship pre-configured — Nord, Dracula, Solarized,
-Gruvbox, Catppuccin, Tokyo Night, Monokai, Everforest, Rosé Pine — pick
-one at install time:
+Thirty-three named color themes ship pre-configured — too many to pick
+from a list, so you find one by facet: light or dark background, how loud
+it is, and what hue the page itself carries.
 
 ```bash
-./lightwebpres install my-series --theme nord
+./lightwebpres themes                              # all 33, with their facets
+./lightwebpres themes --polarity dark --hue green  # just the ones you mean
 ```
 
-`--theme` substitutes the six CSS custom properties the default
-stylesheet exposes (`--yellow --dark --grey --light --accent --green`);
-nothing else changes, and the choice survives an executable upgrade —
+Apply one at install time, or change your mind later:
+
+```bash
+./lightwebpres install my-series --theme evergreen
+./lightwebpres set-theme my-series --theme crimson
+```
+
+`set-theme` reports what it replaced, and refuses a `style.css` whose
+built-in part isn't what this version would have written — `--force`
+overrides that. Either way your own rules are kept.
+
+A theme substitutes twenty-one CSS custom properties: six palette colors,
+six that decide how **bold** renders inside a fact-box, and nine
+translucent overlays for rules, surfaces and floating controls. Each
+palette variable is named for what it does — `--page`, `--ink`,
+`--ink-muted`, `--marker`, `--accent`, `--positive` — and `--help` lists
+them all with their roles. The choice survives an executable upgrade:
 `refresh-templates` (section 7) reapplies the same theme instead of
-silently reverting to default. Preview every theme, rendered against real
-slide content, with:
+silently reverting to default.
+
+Preview every theme, rendered against real slide content and filterable
+by those same facets, with:
 
 ```bash
 ./lightwebpres themes-gallery
 open themes-gallery.html
 ```
 
-Beyond the nine presets, `templates/style.css` and `templates/nav.js` are
+Beyond the presets, `templates/style.css` and `templates/nav.js` are
 read back on every build if present, replacing the built-in defaults —
 the page/index HTML structure itself is fixed, not a template, so a
 malformed override can't break the build's structure, only its styling.
@@ -186,9 +203,10 @@ lightwebpres refresh-templates my-series
 
 For `style.css`, this updates only the built-in part and leaves anything
 you wrote after the `Personnalisations locales` marker untouched — and if
-you'd picked a theme (section 3), that theme's colors are reapplied to
-the refreshed CSS automatically, so an upgrade never quietly reverts you
-to the default look. If the marker is missing (a file that predates it,
+you'd picked a theme (section 3), that theme is reapplied to the
+refreshed CSS automatically — all twenty-one of its properties, not just
+its colors — so an upgrade never quietly reverts you to the default
+look. If the marker is missing (a file that predates it,
 or one where it was removed by accident), `refresh-templates` refuses to
 guess: it leaves the file alone and tells you the exact line to add
 first. `nav.js` has no such split-and-preserve mechanism — it gets fully
