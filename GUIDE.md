@@ -124,8 +124,8 @@ position — so you never renumber when you insert one. By default a body
 lands at the foot of the unit that called it (the card, or the end of the
 long-form article) and numbering restarts in each card, because a card is
 shareable on its own and a reader may arrive at it having read nothing
-else. `notes-placement: page` in the meta block instead collects every
-body into one notes section at the end of the page; `notes-tooltip: on`
+else. `notes_placement: page` in the meta block instead collects every
+body into one notes section at the end of the page; `notes_tooltip: on`
 additionally puts the text on the call. `audit` names a call with no
 body, a body nothing calls, and a body written inside a raw HTML block
 (where it ships as literal text).

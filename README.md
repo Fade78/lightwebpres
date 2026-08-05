@@ -191,14 +191,14 @@ still depart from it:
 
 | Field | Values | Default | Effect |
 |---|---|---|---|
-| `notes-placement` | `local`, `page` | `local` | `local` collects each note at the foot of the unit that called it. `page` gathers every note of the article into one notes section at the end. |
-| `notes-tooltip` | `on`, `off` | `off` | `on` also puts the note's text in the call's `title`, so a pointer reveals it without leaving the line. |
+| `notes_placement` | `local`, `page` | `local` | `local` collects each note at the foot of the unit that called it. `page` gathers every note of the article into one notes section at the end. |
+| `notes_tooltip` | `on`, `off` | `off` | `on` also puts the note's text in the call's `title`, so a pointer reveals it without leaving the line. |
 
 ```
 <!-- lwp:meta -->
 page_title: …
-notes-placement: page
-notes-tooltip: on
+notes_placement: page
+notes_tooltip: on
 ```
 
 Which to choose is an editorial decision, not a cosmetic one: `local`
@@ -223,7 +223,7 @@ after `×`/`≈` before a number — it never inserts spacing or digit
 grouping that wasn't already there, and a non-breaking space already in
 your source always passes through unchanged. This alters generated
 content, so it's controllable at three levels: per-article meta fields
-`typo-units: off` / `typo-thousands: off` (just those rules) or `typo:
+`typo_units: off` / `typo_thousands: off` (just those rules) or `typo:
 off` (every rule, that article's page only), and the CLI flag
 `--no-typography` on `build`/`check` (every rule, the whole run). See
 `--help` or specifications.md §4.5/§7.5/§19.6 for the full list.

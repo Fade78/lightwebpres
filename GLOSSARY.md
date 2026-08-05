@@ -13,14 +13,28 @@ Excludes LWP's structural markers (`<!-- lwp:meta -->`, `<!-- lwp:slide:TYPE
 
 ## Naming conventions
 
-Settled in v0.7.0 and guaranteed from 1.0 on, for every future field too
-(§13.9: a frozen name can only change in a MAJOR release):
+**A name's shape says what level it is set at.** Settled in v0.7.0 and
+guaranteed from 1.0 on, for every future field too (§13.9: a frozen name
+can only change in a MAJOR release). `specifications.md` §20.0 is
+authoritative:
 
 - Slide-level fields: kebab-case (`fact-label`, `highlight-caption`).
-- Article/series-level fields: snake_case (`page_title`, `nav_desc`).
+- Article/series-level fields: snake_case (`page_title`, `nav_desc`,
+  `notes_placement`, `typo_units`).
+- Theme properties: dotted `component.axis` (`card.title.size`,
+  `verdict.yes.fg`).
 - The `page_*` family covers everything about the compiled page: its
   source (`page_source`), its output file (`page_dest`), its title
   (`page_title`), its description (`page_desc`).
+
+This is not decoration. Putting a field at the wrong level produces **no
+error** — it is simply ignored — so a legible cue is worth more than a
+diagnostic that will never exist. And it is what lets `resolve` take any
+field name and know which cascade to consult, with no disambiguation
+table: the shape answers that.
+
+So a new field is named after its **level**, never after what looks
+natural beside it.
 
 ## `comment` — review notes
 
@@ -67,11 +81,11 @@ taking priority when both are set (§20.3.1).
 | `license` | `series.json`, meta block | `series.json` > meta `license:` > `series_meta.license` > `''` (§20.3.1) | Content license; shown in the page footer; raw HTML allowed (a link) |
 | `date` | `series.json`, meta block | `series.json` > meta `date:` > `''` — never derived from file mtime (§20.3.1) | Free-text date shown verbatim in the footer byline |
 | `draft` | `series.json`, meta block | Not a draft. Only `true` (bool or string, case-insensitive) marks one; `series.json` wins even with an explicit `false` (§20.6) | Draft article: fully excluded from the build (no page, no card, no nav entry) unless `--include-drafts`, which builds it with a centered "draft" banner |
-| `notes-placement` | `series.json` `series_meta`, meta block | `local` (§6.5.1) | Where note bodies land. `local`: at the foot of the unit that called them — that card, or the end of the long-form article; numbering restarts in each card. `page`: every body on the page collected into one notes section at the end, numbered continuously. The article's meta block wins over `series_meta`; an unknown value is a fatal build error naming the article |
-| `notes-tooltip` | `series.json` `series_meta`, meta block | `off` (§6.5.3) | `on` also puts the body's text on the call as a tooltip. Composes with either placement and is never the only carrier — the body stays in the document, because a tooltip does not exist on a touch screen, in print, or in the reading order |
+| `notes_placement` | `series.json` `series_meta`, meta block | `local` (§6.5.1) | Where note bodies land. `local`: at the foot of the unit that called them — that card, or the end of the long-form article; numbering restarts in each card. `page`: every body on the page collected into one notes section at the end, numbered continuously. The article's meta block wins over `series_meta`; an unknown value is a fatal build error naming the article |
+| `notes_tooltip` | `series.json` `series_meta`, meta block | `off` (§6.5.3) | `on` also puts the body's text on the call as a tooltip. Composes with either placement and is never the only carrier — the body stays in the document, because a tooltip does not exist on a touch screen, in print, or in the reading order |
 | `typo` | meta block only | Unset — typography stays on | `off` disables every typography rule (§4.5), for this article's own page only |
-| `typo-units` | meta block only | Unset — rule stays on | `off` disables only the units/`×`/`≈` typography rule, for this article only |
-| `typo-thousands` | meta block only | Unset — rule stays on | `off` disables only the thousands-grouping typography rule, for this article only |
+| `typo_units` | meta block only | Unset — rule stays on | `off` disables only the units/`×`/`≈` typography rule, for this article only |
+| `typo_thousands` | meta block only | Unset — rule stays on | `off` disables only the thousands-grouping typography rule, for this article only |
 
 ## Cover slide fields
 

@@ -8,8 +8,8 @@ description: >
   written as a heading, there is no title field), the one-way
   field/free-text parsing switch, the editorial and draft fields, the
   comparison-table verdict classes, series.json wiring, and automatic
-  non-breaking-space typography with its opt-outs (typo, typo-units,
-  typo-thousands).
+  non-breaking-space typography with its opt-outs (typo, typo_units,
+  typo_thousands).
   Format mechanics only, not editorial writing — it doesn't decide what
   an article says, only how to encode it correctly. Use whenever someone
   writes, edits, or debugs a lightwebpres .md article or series.json
@@ -168,12 +168,12 @@ and emitted as `<meta>` tags:
 
 **Notes fields**, settable here or in `series_meta` (the article wins):
 
-- `notes-placement: local | page` — where note bodies land. `local`
+- `notes_placement: local | page` — where note bodies land. `local`
   (default) puts them at the foot of the unit that called them: the foot
   of that card, the end of the long-form article. `page` collects every
   body on the page into one notes section at the end. An unknown value is
   a fatal build error naming the article.
-- `notes-tooltip: on | off` — `on` also puts the body's text on the call
+- `notes_tooltip: on | off` — `on` also puts the body's text on the call
   as a tooltip. It composes with either placement and is never the only
   carrier: the body stays in the document regardless. Off by default.
 
@@ -464,8 +464,8 @@ non-breaking space you type yourself always passes through unchanged.
 `--lang en` has no typography rules at all — this is French-only.
 
 This alters generated content, so it can be turned off per article, in
-that article's meta block: `typo-units: off` (numbers/units and `×`/`≈`
-rules only), `typo-thousands: off` (thousands-grouping rule only), or
+that article's meta block: `typo_units: off` (numbers/units and `×`/`≈`
+rules only), `typo_thousands: off` (thousands-grouping rule only), or
 `typo: off` (every rule, this article only). Leave these out unless
 specifically asked to disable something — the default is what most
 articles want.

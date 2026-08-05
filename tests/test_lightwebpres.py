@@ -2562,7 +2562,7 @@ class DashesAreNeverOrphaned(unittest.TestCase):
 
 
 class TypographyDisableSwitches(unittest.TestCase):
-    """§4.5/§19.6: typo-units/typo-thousands/typo meta fields and
+    """§4.5/§19.6: typo_units/typo_thousands/typo meta fields and
     --no-typography each turn off part or all of the typography engine,
     scoped exactly as documented — per-rule, per-article, or global."""
 
@@ -2595,26 +2595,26 @@ class TypographyDisableSwitches(unittest.TestCase):
 
     def test_typo_units_off_disables_only_units_for_that_article(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._two_article_series(tmp, meta_extra_b='typo-units: off\n')
+            root = self._two_article_series(tmp, meta_extra_b='typo_units: off\n')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             a = self._summary_of(root, 'public', 'a.html')
             b = self._summary_of(root, 'public', 'b.html')
             self.assertIn('170\xa0millions', a)
             self.assertIn('170 millions', b)
-            # Thousands separator is untouched by typo-units: off.
+            # Thousands separator is untouched by typo_units: off.
             self.assertIn('170\xa0000\xa0000', b)
 
     def test_typo_thousands_off_disables_only_thousands_for_that_article(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._two_article_series(tmp, meta_extra_b='typo-thousands: off\n')
+            root = self._two_article_series(tmp, meta_extra_b='typo_thousands: off\n')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             a = self._summary_of(root, 'public', 'a.html')
             b = self._summary_of(root, 'public', 'b.html')
             self.assertIn('170\xa0000\xa0000', a)
             self.assertIn('170 000 000', b)
-            # Units rule is untouched by typo-thousands: off.
+            # Units rule is untouched by typo_thousands: off.
             self.assertIn('170\xa0millions', b)
 
     def test_typo_off_disables_every_rule_for_that_article_only(self):
@@ -3873,9 +3873,8 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
                       ).read_text(encoding='utf-8')
 
     def test_every_recognized_slide_field_is_named(self):
-        source = inspect.getsource(self.lwp.parse_markdown_extended)
-        names = re.search(r"\^\(([a-z|-]+)\):", source).group(1).split('|')
-        self.assertIn('highlight-caption', names, 'the field regex moved')
+        names = self.lwp.SLIDE_FIELD_NAMES
+        self.assertIn('highlight-caption', names, 'the field list moved')
         for field in names:
             self.assertIn(field, self.skill, field)
 
@@ -5865,7 +5864,7 @@ class HelpDocumentsTypographyControls(unittest.TestCase):
     def test_help_mentions_meta_opt_outs_and_no_typography_flag(self):
         result = run('--help')
         self.assertEqual(result.returncode, 0)
-        for needle in ('typo-units', 'typo-thousands', '--no-typography'):
+        for needle in ('typo_units', 'typo_thousands', '--no-typography'):
             self.assertIn(needle, result.stdout)
 
 
@@ -8673,7 +8672,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         self.assertNotIn('id="note-s3-1"', card)
 
     def test_page_placement_collects_into_one_section_of_the_page(self):
-        html = self._build(extra='notes-placement: page\n')
+        html = self._build(extra='notes_placement: page\n')
         self.assertIn('<section class="slide notes-section" id="notes" '
                       'role="doc-endnotes">', html)
         self.assertNotIn('class="notes-local"', html)
@@ -8686,7 +8685,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
     def test_a_call_can_precede_the_card_that_defines_its_body(self):
         # Only possible because a page-wide scope is numbered once the
         # whole page has been converted, not card by card.
-        deck = self.DECK.format(extra='notes-placement: page\n').replace(
+        deck = self.DECK.format(extra='notes_placement: page\n').replace(
             '[^z]: Its own body.', '[^late]: Defined after it was called.')
         deck = deck.replace('A claim in the next card[^z].',
                             'A claim in the next card[^late].')
@@ -8706,18 +8705,18 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         # the document; the tooltip only ever saves a jump.
         plain = self._build()
         self.assertNotIn('title="Measured at 230 V."', plain)
-        withtip = self._build(extra='notes-tooltip: on\n')
+        withtip = self._build(extra='notes_tooltip: on\n')
         self.assertIn('title="Measured at 230 V."', withtip)
         self.assertIn('<li id="note-s2-1"', withtip)
 
     def test_placement_cascades_from_series_meta_and_the_article_wins(self):
-        for meta_line, expected_section in (('', True), ('notes-placement: local\n', False)):
+        for meta_line, expected_section in (('', True), ('notes_placement: local\n', False)):
             tmp = tempfile.mkdtemp()
             self.addCleanup(shutil.rmtree, tmp, True)
             root = scaffold(tmp, self.DECK.format(extra=meta_line))
             (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
-            data = {'series_meta': {'notes-placement': 'page'},
+            data = {'series_meta': {'notes_placement': 'page'},
                     'articles': data['articles']}
             (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -8731,12 +8730,12 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         # that ignores what they asked for, with nothing to say why.
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
-        root = scaffold(tmp, self.DECK.format(extra='notes-placement: sidebar\n'))
+        root = scaffold(tmp, self.DECK.format(extra='notes_placement: sidebar\n'))
         (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
         self.assertEqual(result.returncode, 1)
         self.assertIn('a.md', result.stderr)
-        self.assertIn('notes-placement', result.stderr)
+        self.assertIn('notes_placement', result.stderr)
 
     def test_a_call_inside_a_code_span_stays_literal(self):
         html = self._build(article='Write `[^1]` to call a note.\n')
@@ -8989,7 +8988,7 @@ class AuditNamesTheThreeWaysANoteBreaks(unittest.TestCase):
         # and perfectly fine under `page`. A report blind to that would be
         # wrong in one direction or the other, every time.
         self.assertIn('[^here]', self._audit())
-        self.assertNotIn('[^here]', self._audit(extra='notes-placement: page\n'))
+        self.assertNotIn('[^here]', self._audit(extra='notes_placement: page\n'))
 
 
 class LicenseTextsTravelWithTheExecutable(unittest.TestCase):
@@ -9044,6 +9043,83 @@ class LicenseTextsTravelWithTheExecutable(unittest.TestCase):
                     f'its license, through no fault of their own')
                 self.assertEqual(path.read_text(encoding='utf-8'),
                                  (self.root / filename).read_text(encoding='utf-8'))
+
+
+class TestNamingConvention(unittest.TestCase):
+    """§20.0: a name's shape says what level it is set at — kebab-case for a
+    slide field, snake_case for an article/series field, dotted for a theme
+    property.
+
+    The rule is load-bearing, not cosmetic. Putting a field at the wrong
+    level produces no error (it is simply ignored), and `resolve` picks
+    which cascade to interrogate from the shape of the name alone. It is
+    also the rule most likely to be broken by accident: four article-level
+    fields were once named in kebab-case purely because they sat next to
+    `highlight-caption` and looked like CSS. Nothing checked, so the
+    resemblance won. This is the thing that checks."""
+
+    SNAKE = re.compile(r'^[a-z][a-z0-9]*(_[a-z0-9]+)*$')
+    KEBAB = re.compile(r'^[a-z][a-z0-9]*(-[a-z0-9]+)*$')
+
+    def setUp(self):
+        self.source = EXECUTABLE.read_text(encoding='utf-8')
+        self.lwp = load_lightwebpres_module()
+
+    def _article_level_names(self):
+        # The meta block is a flat dict, so every article/series-level field
+        # the engine honours is read through one of these two call shapes —
+        # `meta.get`/`series_meta.get` for the plain ones, `pick` for the
+        # notes settings, which cascade instead of merely defaulting. Both
+        # halves are checked for emptiness rather than for a specific name:
+        # a canary that names a field would fire on the very rename this
+        # test exists to report, and hide the real message behind it.
+        plain = set(re.findall(r"(?:meta|series_meta)\.get\('([^']+)'", self.source))
+        cascaded = set(re.findall(r"\bpick\('([^']+)'", self.source))
+        self.assertGreater(len(plain), 10, 'the scan no longer finds the meta reads')
+        self.assertTrue(cascaded, 'the scan no longer finds the notes reads')
+        return plain | cascaded
+
+    def test_every_slide_field_is_kebab_case(self):
+        self.assertTrue(self.lwp.SLIDE_FIELD_NAMES, 'the slide field list has gone empty')
+        for name in self.lwp.SLIDE_FIELD_NAMES:
+            with self.subTest(name):
+                self.assertNotIn(
+                    '_', name,
+                    f'{name!r} is a slide field written in snake_case: its shape '
+                    f'now claims it belongs in the meta block instead (§20.0)')
+                self.assertRegex(name, self.KEBAB, f'{name!r} is not kebab-case')
+
+    def test_every_article_level_field_is_snake_case(self):
+        for name in sorted(self._article_level_names()):
+            with self.subTest(name):
+                self.assertNotIn(
+                    '-', name,
+                    f'{name!r} is an article-level field written in kebab-case: its '
+                    f'shape claims it belongs in a slide header, and `resolve` would '
+                    f'send it to the wrong cascade (§20.0)')
+                self.assertRegex(name, self.SNAKE, f'{name!r} is not snake_case')
+
+    def test_the_two_levels_share_no_name(self):
+        # A name living at both levels would make the shape rule say two
+        # things at once, which is the one thing `resolve` cannot survive.
+        overlap = self._article_level_names() & set(self.lwp.SLIDE_FIELD_NAMES)
+        self.assertEqual(
+            overlap, set(),
+            f'{sorted(overlap)} is read at both the slide and the article level')
+
+    def test_every_theme_property_is_dotted(self):
+        registry = self.lwp.PROPERTY_REGISTRY
+        self.assertTrue(registry, 'the property registry has gone empty')
+        for key in registry:
+            with self.subTest(key):
+                self.assertIn(
+                    '.', key,
+                    f'{key!r} is a theme property with no dot: nothing tells it '
+                    f'apart from a field name (§20.0)')
+                for segment in key.split('.'):
+                    self.assertRegex(
+                        segment, self.KEBAB,
+                        f'{key!r} has a segment that is not kebab-case')
 
 
 if __name__ == '__main__':

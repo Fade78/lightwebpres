@@ -584,8 +584,8 @@ en partie, pour cet article et sa propre page uniquement :
 
 | Champ | Effet quand la valeur est `off` |
 |-------|----------------------------------|
-| `typo-units: off` | Désactive uniquement les règles nombre/unité et opérateur/nombre (`nbsp_before_unit`, `nbsp_after_operator`, §7.5) |
-| `typo-thousands: off` | Désactive uniquement la règle de séparateur de milliers (`nbsp_thousands_separator`, §7.5) |
+| `typo_units: off` | Désactive uniquement les règles nombre/unité et opérateur/nombre (`nbsp_before_unit`, `nbsp_after_operator`, §7.5) |
+| `typo_thousands: off` | Désactive uniquement la règle de séparateur de milliers (`nbsp_thousands_separator`, §7.5) |
 | `typo: off` | Désactive **toutes** les règles pour cet article — y compris les trois règles historiques (guillemets, ponctuation haute, %), pas seulement les deux ci-dessus |
 
 Seule la valeur `off` (insensible à la casse) désactive une règle ; toute
@@ -907,7 +907,7 @@ n'atteint jamais la page** : c'est une clé, rien d'autre, ce qui explique
 qu'il puisse être n'importe quoi (`[^1]`, `[^kwh]`, `[^a]`) et que la
 numérotation ne soit pas une réécriture de ce que l'auteur a écrit.
 
-#### 6.5.1 Emplacement (`notes-placement`)
+#### 6.5.1 Emplacement (`notes_placement`)
 
 Deux valeurs, et l'emplacement est la **seule** décision de structure :
 
@@ -977,10 +977,10 @@ cela, deux fiches portant chacune une note émettraient deux
 **Un label appelé deux fois donne un corps et deux liens de retour** —
 dupliquer le corps donnerait deux numéros à une seule référence.
 
-#### 6.5.3 Info-bulle (`notes-tooltip`)
+#### 6.5.3 Info-bulle (`notes_tooltip`)
 
 Ce n'est pas un emplacement mais un **agrément sur l'appel**, et il se
-compose avec les deux emplacements : `notes-tooltip: on` porte aussi le
+compose avec les deux emplacements : `notes_tooltip: on` porte aussi le
 texte du corps sur l'appel, sans le déplacer.
 
 **Ce n'est jamais le seul porteur, et cela ne peut pas le devenir.** Une
@@ -997,13 +997,13 @@ par défaut.
 **La structure et l'apparence ne cascadent pas par les mêmes couches, et
 la raison est mécanique, pas esthétique.** Le moteur de thèmes compose du
 CSS et rien d'autre. Le CSS ne peut pas déplacer un élément d'un
-conteneur vers un autre. Donc `notes-placement` **ne peut pas** être une
+conteneur vers un autre. Donc `notes_placement` **ne peut pas** être une
 propriété de thème : non parce que ce serait inélégant, mais parce qu'un
 thème serait physiquement incapable de l'honorer.
 
 | | ce qui est décidé | cascade |
 |---|---|---|
-| **structure** | `notes-placement`, `notes-tooltip` | défaut → `series_meta` → bloc meta de l'article |
+| **structure** | `notes_placement`, `notes_tooltip` | défaut → `series_meta` → bloc meta de l'article |
 | **apparence** | corps du texte, filet, couleur, numéro | le registre de propriétés (§9) : défauts → thème → `settings.conf` → `style.*` → balise d'instance |
 
 La cascade de structure reprend la forme qu'`author` / `license` / `date`
@@ -4396,7 +4396,7 @@ le chargement d'un moteur de règles pour ce lancement — aucune règle,
 qu'elle vienne du pack intégré ou d'un override (§7.4/§19.5), ne s'exécute
 sur aucun article ni sur l'index, pour toute la durée de ce build. C'est
 la portée la plus large des trois mécanismes de désactivation (§4.5) :
-`typo-units`/`typo-thousands` ne visent qu'une paire de règles nommées,
+`typo_units`/`typo_thousands` ne visent qu'une paire de règles nommées,
 `typo: off` vise déjà toutes les règles mais pour un seul article, `--no-
 typography` les vise toutes pour tout le build — y compris toute règle qui
 serait ajoutée plus tard, puisque le mécanisme ne construit simplement pas
@@ -4405,6 +4405,41 @@ de moteur du tout plutôt que d'énumérer des noms de règles à exclure.
 ---
 
 ## 20. Schéma formel de `series.json`
+
+### 20.0 Nomenclature : la forme d'un nom dit son niveau
+
+Le format n'a pas trois styles de nommage par accident. **La forme d'un
+nom indique à quel niveau il se règle**, et c'est une règle, pas une
+habitude :
+
+| Forme | Niveau | Exemples |
+|---|---|---|
+| `kebab-case` | champ de **diapositive** | `fact-label`, `highlight-caption` |
+| `snake_case` | champ d'**article** ou de **série** | `page_title`, `nav_desc`, `notes_placement` |
+| `pointé` | **propriété de thème** (`composant.axe`) | `card.title.size`, `verdict.yes.fg` |
+
+Ce que cela achète, dans un format où un même fichier porte les trois :
+un coup d'œil suffit à savoir si une ligne va dans un en-tête de
+diapositive ou dans le bloc meta. Se tromper d'endroit **ne produit
+aucune erreur** — le champ est simplement ignoré — donc un indice lisible
+vaut mieux qu'un diagnostic qui n'existera jamais.
+
+**Et c'est ce qui rend `resolve` (§11.12) implémentable sans registre de
+désambiguïsation.** La forme du nom dit à quelle cascade s'adresser :
+`resolve page_title` interroge la cascade d'article, `resolve fact-label`
+celle de diapositive, `resolve card.title.size` celle du thème. Un espace
+d'interrogation plat, sans collision et sans arbitrage à écrire. La
+convention n'est donc plus seulement une aide de lecture : elle est
+portante.
+
+**Corollaire, et il est contraignant :** un nouveau champ est nommé
+d'après son niveau, jamais d'après ce qui « paraît naturel ». Quatre
+champs de niveau article — les réglages de notes et deux commutateurs de
+typographie — ont été nommés en kebab-case par voisinage visuel avec
+`highlight-caption` et avec le CSS, alors que la règle les voulait en
+`snake_case`. C'est le mode de rupture à attendre : la ressemblance
+l'emporte sur la règle dès que rien ne vérifie. Un test le vérifie
+désormais.
 
 ### 20.1 Structure
 
