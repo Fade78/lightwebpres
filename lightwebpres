@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.13.0"
+VERSION = "0.14.0"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
