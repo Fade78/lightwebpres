@@ -7977,5 +7977,59 @@ class AuditNamesTheThreeWaysANoteBreaks(unittest.TestCase):
         self.assertNotIn('[^here]', self._audit(extra='notes-placement: page\n'))
 
 
+class LicenseTextsTravelWithTheExecutable(unittest.TestCase):
+    """The executable embeds the GPL and the Output Exception rather than
+    reading them from files beside it, because `install` copies the program
+    into a series and GPL section 4 requires the License to travel with it
+    -- and a release publishes the executable ALONE, with no COPYING nearby,
+    so a repository-relative lookup would fail in exactly the case that
+    matters. Embedding buys that at the cost of a duplicated text, so the
+    duplicate is guarded here rather than by good intentions."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+        self.root = EXECUTABLE.parent
+
+    def test_embedded_texts_match_the_files_at_the_repository_root(self):
+        for filename, constant in (
+            ('COPYING', 'LICENSE_GPL_TEXT'),
+            ('COPYING.EXCEPTION', 'LICENSE_EXCEPTION_TEXT'),
+        ):
+            with self.subTest(filename):
+                self.assertEqual(
+                    getattr(self.lwp, constant),
+                    (self.root / filename).read_text(encoding='utf-8'),
+                    f'{constant} has drifted from {filename}. Change both together: '
+                    f'the copy inside the executable is the one users actually '
+                    f'receive, so a stale constant hands out terms that are not '
+                    f'the ones this repository publishes.')
+
+    def test_the_gpl_text_is_whole(self):
+        # A truncated license is worse than no license: it looks like
+        # compliance. Cheap to check, and the failure it catches (a bad
+        # copy-paste, a stray editor truncation) is silent otherwise.
+        text = self.lwp.LICENSE_GPL_TEXT
+        self.assertIn('GNU GENERAL PUBLIC LICENSE', text)
+        self.assertIn('Version 3, 29 June 2007', text)
+        self.assertIn('END OF TERMS AND CONDITIONS', text)
+
+    def test_install_writes_both_licenses_beside_the_copied_executable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            subprocess.run([sys.executable, str(EXECUTABLE), 'install', str(root)],
+                           check=True, capture_output=True, text=True)
+            self.assertTrue((root / 'lightwebpres').is_file(),
+                            'install no longer copies the executable')
+            for filename in ('COPYING', 'COPYING.EXCEPTION'):
+                path = root / filename
+                self.assertTrue(
+                    path.is_file(),
+                    f'install copied the program but not {filename}: anyone '
+                    f'publishing this series would be conveying GPL code without '
+                    f'its license, through no fault of their own')
+                self.assertEqual(path.read_text(encoding='utf-8'),
+                                 (self.root / filename).read_text(encoding='utf-8'))
+
+
 if __name__ == '__main__':
     unittest.main()

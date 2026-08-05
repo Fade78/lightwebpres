@@ -395,8 +395,31 @@ placeholder reference, and more.
 
 ## License
 
-Not yet set. `web/vendor/pyodide/` is vendored third-party code (Mozilla
-Public License 2.0) — see `web/vendor/NOTICE.md`.
+GNU General Public License v3 or later (`COPYING`), **with the LightWebPres
+Output Exception** (`COPYING.EXCEPTION`).
+
+In plain terms:
+
+- **What you make with this tool is yours.** The series it scaffolds and the
+  pages it builds — including the templates, stylesheets and scripts it
+  writes into them — are covered by the Exception: publish them under any
+  terms you like, commercially or not. Nothing in the GPL reaches your
+  presentations. The Exception exists precisely because the tool copies
+  parts of itself into its output, and that copying should cost you nothing.
+- **The tool itself is copyleft.** Improve it and distribute your version,
+  and your improvements ship with it. One caveat worth knowing: `install`
+  places a copy of the executable in your series directory, and that copy
+  is the program, not output — publish your series repository and you are
+  distributing GPL code. That is why `install` writes `COPYING` and
+  `COPYING.EXCEPTION` beside it for you.
+
+Third-party code inside the executable is listed in
+`THIRD-PARTY-NOTICES.md`. `web/vendor/pyodide/` is vendored under the
+Mozilla Public License 2.0 — see `web/vendor/NOTICE.md`.
+
+**The name.** "LightWebPres" identifies this project. The licenses above
+cover the code, not the name: fork it freely, but don't present a modified
+version as being this project.
 
 ## Troubleshooting
 

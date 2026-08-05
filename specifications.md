@@ -84,6 +84,23 @@ est la source de vérité) :
   format d'entrée (`series.json`, article `.md`) sont stables au sens de la politique de versionnage (§13.9) : le GUI peut
   s'y fier sans qu'un patch les casse.
 
+- **Licence.** Ce projet est sous GPLv3 ou ultérieure, avec la
+  *LightWebPres Output Exception* (`COPYING`, `COPYING.EXCEPTION`). Le GUI
+  en vendorise une copie : il doit donc être distribué sous une licence
+  compatible, et il l'est — GPLv3 ou ultérieure lui aussi, **sans**
+  exception propre, parce qu'il n'écrit rien de lui-même dans une série.
+  Ce que le GUI produit est produit par cet exécutable, et hérite donc de
+  l'exception d'ici. Les fichiers de licence doivent voyager avec toute
+  redistribution, y compris dans l'arborescence déployée du GUI.
+- **Surface interne consommée.** Au-delà de `cmd_*`, le GUI dépend de six
+  symboles internes que la surface commande n'expose pas :
+  `build_article()`, `load_language()`, `TypoEngine`, `strings`, `THEMES`
+  et `_find_series_dir_in_archive()`. La dépendance existe, écrite ou non ;
+  l'écrire évite qu'un renommage la casse en silence, puisque la suite de
+  tests d'ici ne la voit pas. Les renommer est un changement cassant pour
+  le GUI même si rien ne rougit de ce côté-ci — voir la spec
+  `lightwebpres-gui` §2.3, qui tient la liste à jour.
+
 Réciproquement, les fonctionnalités propres au GUI (édition assistée,
 chiffrement au repos, aperçu, synchronisation Git…) sont **hors** de ce
 document : elles vivent dans le dépôt `lightwebpres-gui` et n'imposent

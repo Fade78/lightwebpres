@@ -1,0 +1,39 @@
+LightWebPres Output Exception, version 1.0
+
+Additional permission under section 7 of the GNU General Public License,
+version 3.
+
+When lightwebpres sets up, refreshes, or builds a series, it writes files
+that contain material copied from lightwebpres itself: template scaffolds
+such as templates/settings.conf and templates/custom.css, scripts such as
+templates/nav.js, language packs, configuration files, demonstration
+articles, and the HTML, CSS and JavaScript of every page it builds.
+
+In this exception, "Covered Output" means every file that lightwebpres
+writes or generates, and every portion of lightwebpres embedded in such a
+file -- but not any complete copy of the lightwebpres program itself, such
+as the copy of this executable that `lightwebpres install` places in the
+series directory. That copy remains governed by the GNU General Public
+License, and if you distribute it -- for instance by publishing your series
+repository -- the License's conditions apply to it, including passing on a
+copy of the License.
+
+As a special exception, you have permission to copy, modify, and convey
+Covered Output, and any work containing it -- a published presentation, for
+example -- under terms of your choice, free of the conditions the GNU
+General Public License would otherwise place on it, so long as the work
+you convey under this permission is not itself a document or presentation
+generator that uses Covered Output, or a modified version of it, as its
+own templates or scaffolds. (You may still convey such a generator; you
+simply convey it under the GNU General Public License, without this
+special permission.)
+
+Portions of Covered Output that come from third parties remain under their
+own license terms; the copyright and license notices that lightwebpres
+writes into its files must be kept with them. See THIRD-PARTY-NOTICES.md.
+
+This exception grants nothing beyond the GNU General Public License for
+lightwebpres itself. As provided by section 7, anyone who conveys a copy
+of lightwebpres, modified or not, may remove this exception from that
+copy; output produced by a copy from which it has been removed is governed
+by the GNU General Public License without this exception.
