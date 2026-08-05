@@ -2960,7 +2960,8 @@ thèmes, la liste était un rappel utile ; passé la trentaine, c'est un mur
 de noms qui ne dit rien de ce que chacun donne à l'écran — exactement le
 problème que les facettes existent pour résoudre, simplement déplacé de
 la galerie vers le terminal. L'aide renvoie donc aux deux commandes qui
-savent répondre à « lequel je veux » : `themes` et `themes-gallery`.
+savent répondre à « lequel je veux » : `themes` et `themes-gallery`, et
+sur celle qui répond à « celui-là, il vaut quoi » : `theme-info`.
 
 ### 11.9 `themes`
 
@@ -3058,6 +3059,85 @@ Chaque catégorie qui échoue est accompagnée des **paires fautives** avec
 leur ratio mesuré et le seuil manqué — un niveau sans ses contre-exemples
 n'est pas actionnable.
 
+#### Ce qui est mesuré, et ce qui ne l'est pas
+
+Une balayage de toutes les couleurs contre toutes les autres produirait
+des échecs sur des paires que la page ne superpose jamais : illisible et
+inactionnable. La mesure porte donc sur des **sites**, et un site nomme
+trois choses : la propriété d'avant-plan, la **pile** de propriétés de
+fond sous elle, et l'endroit de la page où cela arrive.
+
+La répartition entre ce qui est déclaré et ce qui est dérivé n'est pas
+un compromis, c'est la ligne de partage du §9.1 :
+
+- **L'imbrication est déclarée.** Qu'un `strong` d'encadré se pose sur
+  `fact.strong.bg` par-dessus `fact.bg` par-dessus la page est un fait
+  sur les gabarits et le squelette ; aucune lecture du registre ne le
+  retrouve. Idem pour la taille héritée quand elle vient du squelette
+  (`.full-article h1` à 28 px, `.share-cell-head` à 11 px).
+- **Tout le reste est dérivé du registre.** Les couleurs sont les
+  propriétés résolues ; la **catégorie WCAG** d'un site est calculée à
+  partir de ses propres axes `size` et `weight` résolus, donc un thème
+  qui agrandit son résumé voit son résumé jugé en grand texte sans que
+  rien n'ait à être mis à jour ; la palette et les piles de polices de la
+  sortie sont dérivées de `THEME_SHARED_PROPS`, donc une septième valeur
+  partagée apparaîtrait le jour où elle existerait.
+- **L'oubli est impossible.** Toute propriété de type couleur du registre
+  est soit dans un site, soit dans `CONTRAST_UNMEASURED` avec sa raison
+  écrite — un test parcourt le registre contre les deux. Ajouter une
+  dispense est une décision ; en oublier une ne se peut pas. C'est le
+  même dispositif que celui qui a rattrapé deux fois l'omission de voiles
+  de mobilier (§9.5.1), et pour la même raison : une table qui *paraît*
+  complète à la lecture.
+
+**Composition à 8 bits.** Un fond est composité `source-over` puis
+quantifié en canaux 8 bits, parce que l'écran n'a nulle part où garder la
+fraction. Ce n'est pas un détail : porté en flottant, un anneau de focus
+du catalogue mesure 3,0009:1 et passe ; à la précision que le lecteur
+reçoit réellement, il mesure 2,9970:1 et ne passe pas. La base de toute
+pile est la toile blanche du navigateur, sous `page.bg` — un fond de page
+avec un alpha laisse voir la toile, pas le néant.
+
+**Comparaison non arrondie.** Le seuil est franchi sur le ratio brut :
+2,9970 s'arrondit à 3,00 sans jamais atteindre 3. Les ratios sont
+imprimés à quatre décimales, parce que « 3,00 n'est pas 3,00 » n'est pas
+un message d'échec sur lequel on puisse agir.
+
+**Ce que le non-textuel retient.** SC 1.4.11 vise l'information
+**nécessaire** pour identifier un composant ou un état, et exempte
+explicitement le décoratif. Sont donc mesurés : les anneaux de focus
+(seule chose qui dise où est le clavier, contre la page **et** contre le
+remplissage du contrôle), la pastille de la fiche courante (contre la
+page et contre les autres pastilles — les distinguer *est*
+l'information), le soulignement d'un lien de corps de texte (seul
+porteur, puisque la couleur est héritée, §9.5.3), celui du gras
+d'encadré quand un thème l'emploie, et le filet de la colonne `col-snap`.
+Sont dispensés, chacun avec sa raison écrite dans le code : les filets
+séparateurs (un trait dont le retrait ne coûte rien au lecteur), le bord
+d'un contrôle qui porte déjà un libellé ou un glyphe — lesquels sont
+mesurés, eux, sur le remplissage du contrôle —, les états au survol (le
+clavier a l'anneau, qui est mesuré), et le voile de modale, dont le
+métier est justement de ne pas se voir. Exiger le bord des contrôles en
+plus mettrait les 33 thèmes à `fail` pour un motif qu'aucun lecteur
+n'éprouve : ces bords sont tous un voile à 16 %, par construction.
+
+**Ce que la mesure ne voit pas.** `templates/custom.css` n'est pas
+mesuré : c'est du CSS libre, hors de la surface typée, et rien n'y est
+une propriété résolue. La sortie le **dit** quand le fichier porte des
+règles — une mesure qui ignorerait la moitié de la feuille en silence
+serait l'étiquette écrite à la main de nouveau.
+
+#### Facettes d'une cible répertoire
+
+Sur un slug, les facettes sont celles de `theme_facets()` telles quelles
+(§9.5.2) : `themes`, la galerie et cette commande ne peuvent pas diverger
+sur la même entrée. Sur un répertoire, la question porte sur le thème
+*effectif* : la polarité et la teinte sont donc recalculées sur la page
+qu'un build peindrait réellement — épingler un `color.page` sombre sur un
+thème clair change les deux. L'intensité, elle, est déclarée et ne se
+dérive de rien (§9.5.2) : elle reste le mot du thème, et vaut `null`
+quand aucun thème n'est nommé.
+
 #### Format machine : JSON
 
 `--format json` émet du JSON, et non du YAML. La raison est la contrainte
@@ -3069,6 +3149,86 @@ rien écrire du tout.
 La sortie texte reste la sortie par défaut et vise la lecture humaine,
 sans chercher à être aussi un YAML valide : servir deux maîtres
 produirait un texte moins lisible que l'un et moins fiable que l'autre.
+
+**Les clés, une par une.** Racine :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `schema` | chaîne | `lightwebpres.theme-info/1`. Ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
+| `target` | objet | ce sur quoi la question portait (ci-dessous) |
+| `label` | chaîne ou `null` | l'étiquette affichable du thème ; `null` si aucun thème n'est nommé |
+| `note` | chaîne ou `null` | la remarque éditoriale, **en texte nu** (§9.5.4) |
+| `source` | chaîne ou `null` | la provenance de la palette (`lightwebpres`, `nord`, …) |
+| `facets` | objet | `polarity`, `intensity`, `hue` (§9.5.2) ; `intensity` vaut `null` sur un répertoire sans thème |
+| `palette` | objet | les six valeurs partagées **résolues**, clés sans le préfixe `color.` : `page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`. Valeurs en `#RRGGBBAA` |
+| `fonts` | objet | les quatre piles résolues : `text`, `display`, `ui`, `mono` |
+| `accessibility` | objet | les trois catégories (ci-dessous) |
+
+`target` :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `kind` | `"theme"` ou `"series"` | laquelle des deux cibles a répondu |
+| `theme` | chaîne ou `null` | le slug ; `null` pour une série dont `settings.conf` ne nomme aucun thème (elle tourne alors sur les défauts du registre) |
+| `directory` | chaîne ou `null` | le chemin absolu de la série ; `null` sur un slug |
+| `pinned` | liste de chaînes | les clés de propriété épinglées (décommentées) dans `templates/settings.conf`, triées. Vide sur un slug. C'est la réponse à « qu'est-ce que cette série a changé » |
+| `custom_css` | booléen | `templates/custom.css` porte des règles — donc quelque chose de non mesuré s'applique par-dessus |
+
+`accessibility` a trois clés — `body_text`, `large_text`, `non_text` —
+de même forme :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `level` | chaîne | `AAA`, `AA` ou `fail` pour les deux catégories de texte ; `pass` ou `fail` pour `non_text`, qui n'a pas de niveau AAA dans la norme |
+| `threshold_aa` | nombre | le seuil AA de la catégorie |
+| `threshold_aaa` | nombre ou `null` | le seuil AAA, `null` pour `non_text` |
+| `pairs_measured` | entier | le nombre de paires distinctes mesurées dans cette catégorie |
+| `worst` | objet paire | la paire qui **décide** le niveau — donc, à AA, celle qu'il faut déplacer pour atteindre AAA |
+| `failures` | liste d'objets paire | les paires sous le seuil AA, la pire d'abord. Vide quand la catégorie franchit AA |
+
+Une **paire** :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `site` | chaîne | où cela se passe dans la page, en clair (`cover tag`, `verdict "yes"`) |
+| `foreground` | chaîne | la clé de propriété peinte |
+| `foreground_color` | chaîne | sa valeur résolue, `#RRGGBBAA` |
+| `ground` | liste de chaînes | la pile de propriétés de fond, de l'intérieur vers l'extérieur, `page.bg` implicite en base ; `[]` = à même la page |
+| `ground_color` | chaîne | le fond **composité**, opaque, `#RRGGBB` |
+| `ratio` | nombre | le ratio mesuré, à quatre décimales |
+| `required` | nombre | le seuil AA de la catégorie, celui que `failures` a manqué |
+
+Deux sites qui compositent vers les deux mêmes couleurs — les deux
+arrêts d'un dégradé plat, les deux colonnes teintées d'un tableau au même
+alpha — comptent pour **une** paire : le niveau serait le même, mais le
+lecteur recevrait quatre fois le même contre-exemple, ce qui est
+exactement la façon dont une liste actionnable cesse de l'être.
+
+#### État mesuré du catalogue
+
+Le corollaire du §9.5.2 se lit maintenant en chiffres, et il est net :
+la catégorie est décidée par sa **pire** paire, or le petit appareil
+textuel (`ink-quiet` et les couleurs de verdict à 12-14 px sur un voile
+de carte) est le point bas de tous les thèmes. Aucune entrée du
+catalogue n'atteint donc AAA en texte courant ; **douze** franchissent AA
+et **vingt et une** échouent, sur les couleurs de verdict, les libellés
+de navigation de série, les étiquettes d'encadré et les légendes. En non
+textuel, **seize** passent et **dix-sept** échouent, presque toujours sur
+la pastille de fiche courante peinte en `mark` — la faiblesse que le
+§9.5.1 nomme déjà dans ses propres termes (« un `mark` fait pour servir
+de fond est souvent trop pâle pour servir de trait »), et qui frappe les
+thèmes clairs. **Dix** entrées tiennent les deux à la fois :
+`blueprint-night`, `ember`, `evergreen`, `gold-leaf`, `graphite`,
+`pop-fuchsia`, `pop-red`, `synthwave`, `terminal`, `tokyo-night` — toutes
+sombres, ce qui n'est pas une coïncidence mais la même cause vue de
+l'autre côté. Le grand texte est AAA partout, ce qui est attendu : c'est
+`ink` sur `page`, le seul couple sur lequel tout thème est admis
+(§9.5.3).
+
+Ces nombres ne sont pas figés ici — ils changent avec le catalogue, et
+c'est la commande qui les dit. Ce qui est figé, c'est qu'ils soient
+**mesurés**.
 
 #### Consommateur connu
 

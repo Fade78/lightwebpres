@@ -144,6 +144,7 @@ all generated automatically.
 | `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide") and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build |
 | `refresh-templates [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
+| `theme-info <slug>` or `theme-info [dir]` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. A slug describes the theme as shipped (no series needed); a directory describes the *effective* theme, after the values that series pins. `--format json` for machines |
 | `set-theme [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
@@ -290,6 +291,36 @@ Apply one when scaffolding, or change your mind later:
 ./lightwebpres install my-series --theme evergreen
 ./lightwebpres set-theme my-series --theme crimson
 ```
+
+To read one out before committing to it — its palette, its fonts, its
+facets, and the contrast level it actually reaches:
+
+```bash
+./lightwebpres theme-info evergreen        # the theme as shipped
+./lightwebpres theme-info my-series        # the effective theme of a series
+./lightwebpres theme-info evergreen --format json
+```
+
+The level is **measured**, never declared: it is computed from the same
+resolved properties the build emits, on grounds composited the way a
+browser composites them, so it cannot claim something the palette does
+not do. It comes per WCAG category rather than as a single letter — a
+theme can be faultless on running text and fail on its focus rings — and
+every failing category is printed with the offending pairs and their
+ratios, because a level without counter-examples is not something you
+can act on. Not every theme is meant to be conformant: a theme is a
+stance, and making `terminal`'s phosphor halo AAA would destroy it. What
+matters is knowing which ones are.
+
+The two targets answer different questions, and the difference is the
+point: a series that pins three colors in `settings.conf` may have
+dropped below the floor without anyone noticing, and only the directory
+form sees that. (`custom.css` is free CSS, outside the typed surface, so
+it is not measured — the output says so when the file has rules in it.)
+
+None of this ever reaches a built page. No tag, no class, no mention: the
+reader of a presentation is never told the contrast level of the theme
+chosen for them.
 
 `set-theme` is one word in a data file: it rewrites the `theme:` line of
 `templates/settings.conf` and nothing else, reports what it replaced
