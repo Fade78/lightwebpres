@@ -3386,6 +3386,75 @@ rien n'écrit ni ne lit (§9.4.2, §9.8). De même, plus de notion de
 commande n'écrit que dans un fichier de données, sur une ligne qui lui
 appartient.
 
+### 11.11 `series-info`
+
+```bash
+lightwebpres series-info [répertoire] [--format text|json]
+```
+
+Décrit **ce qu'il y a dans une série** sans rien construire : ses
+articles, dans l'ordre de `series.json`, chacun avec ses champs
+**résolus**.
+
+#### Pourquoi une commande, et pas une lecture de `series.json`
+
+Un titre d'article est le résultat d'une cascade — `series.json`, puis le
+bloc meta de l'article, puis le titre de sa couverture, puis `page_dest`
+(§20.3.1). Lire `series.json` ne donne donc pas un titre : ça donne, le
+plus souvent, un nom de fichier et rien d'autre, parce qu'une entrée
+minimale ne porte que `page_source`.
+
+Cette commande existe parce que **la cascade appartient au moteur**. Tout
+consommateur qui la réimplémente — `lightwebpres-gui` au premier chef —
+en produirait une copie qui dérive, et finirait par afficher un titre que
+le build ne donne pas. C'est la même raison qui a fait exister
+`theme-info` (§11.9.1) plutôt que de laisser un second calcul de
+contraste s'installer ailleurs : quand un consommateur a besoin d'une
+donnée que le moteur possède, **le moteur l'expose ; il ne se fait pas
+fouiller**. L'alternative était d'élargir la surface interne que le GUI
+atteint déjà (§1.2), c'est-à-dire d'ajouter un symbole de plus dont la
+suite de tests d'ici ne voit pas le couplage.
+
+Elle répond aussi à une question que rien ne traitait en ligne de
+commande : « qu'y a-t-il dans cette série ? ». `check` compare, `audit`
+avertit, `build` construit ; aucun ne se contente de dire ce qu'il y a.
+
+#### Ce qu'elle rapporte
+
+Par article, dans l'ordre de `series.json` — l'ordre **est** une donnée,
+c'est lui qui fixe la navigation inter-articles :
+
+- `page_source`, et le `page_dest` résolu ;
+- les champs résolus de la cascade : `page_title`, `card_title`,
+  `card_desc`, `card_label`, `nav_title`, `nav_desc` ;
+- `draft`, parce qu'un article écarté du build reste dans la série et
+  qu'un consommateur doit pouvoir le montrer comme tel plutôt que de le
+  faire disparaître ;
+- pour chaque champ, **d'où vient la valeur retenue** — `series.json`, le
+  bloc meta, le contenu, ou le repli. C'est ce qui permet à une interface
+  de dire « ce titre vient du fichier » plutôt que de présenter une
+  valeur dérivée comme si l'auteur l'avait écrite.
+
+Au niveau de la série : le `series_meta` résolu, le thème en vigueur, et
+le décompte des articles — dont les brouillons, comptés à part.
+
+#### Ce qu'elle ne fait pas
+
+Elle **ne construit rien** et n'écrit rien. Elle ne valide pas non plus
+au-delà de ce que la résolution exige : une série dont un article est
+introuvable est une erreur de `build`, et le rester ; `series-info` n'a
+pas à devenir un second `check`.
+
+#### Format
+
+`--format json` comme pour `theme-info`, et pour la même raison — la
+bibliothèque standard porte `json` et pas `yaml`. Les noms de clés sont
+une **surface publique** consommée par `lightwebpres-gui` : les renommer
+casse le GUI sans que rien ne rougisse ici, ce qui en fait un élément du
+contrat de §1.2 au même titre que les symboles internes qui y sont listés.
+
+La sortie texte est le défaut et vise la lecture humaine.
+
 ---
 
 ## 12. Algorithme du build
