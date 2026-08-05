@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LightWebPres</title>
+<style>
+:root {
+  /* shared */
+  --color-page: #F8F8F5FF;
+  --color-ink: #1A1A2EFF;
+  --color-ink-quiet: #6B6B7DFF;
+  --color-mark: #FFFC00FF;
+  --color-call: #FF4757FF;
+  --color-affirm: #3AA55CFF;
+  --font-text: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --font-display: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --font-ui: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  /* page */
+  --page-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --page-bg: #F8F8F5FF;
+  --page-fg: #1A1A2EFF;
+  --page-leading: 1.6;
+  --page-shadow-fg: #00000000;
+  --page-shadow-blur: 0;
+  --page-shadow-dy: 0;
+  --page-content-max: 50ch;
+  --page-block-max: min(84vw, 1100px);
+  --page-hyphens: manual;
+  /* slide */
+  --slide-rule-fg: #0000001A;
+  --slide-rule-width: 1px;
+  /* slide.num */
+  --slide-num-fg: #6B6B7DFF;
+  --slide-num-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --slide-num-size: 13px;
+  --slide-num-tracking: 1px;
+  /* tag */
+  --tag-fg: #6B6B7DFF;
+  --tag-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --tag-size: 12px;
+  --tag-weight: bold;
+  --tag-tracking: 2px;
+  --tag-transform: uppercase;
+  /* title1 */
+  --title1-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --title1-size: clamp(28px, 4.5vmin, 52px);
+  --title1-weight: bold;
+  --title1-leading: 1.15;
+  --title1-fg: #F8F8F5FF;
+  --title1-shadow-fg: #00000000;
+  --title1-shadow-blur: 0;
+  --title1-shadow-dy: 0;
+  --title1-align: left;
+  /* title2 */
+  --title2-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --title2-size: clamp(24px, 3.5vmin, 40px);
+  --title2-weight: bold;
+  --title2-leading: 1.2;
+  --title2-align: left;
+  /* summary */
+  --summary-fg: #1A1A2EFF;
+  --summary-size: clamp(16px, 2vmin, 22px);
+  --summary-leading: 1.55;
+  --summary-align: left;
+  /* fact */
+  --fact-bg: #FFFFFFB8;
+  --fact-rule-fg: #FFFC00FF;
+  --fact-rule-width: 4px;
+  --fact-fg: #1A1A2EFF;
+  --fact-size: clamp(15px, 1.6vmin, 18px);
+  --fact-align: left;
+  /* fact-label */
+  --fact-label-fg: #6B6B7DFF;
+  --fact-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --fact-label-size: 12px;
+  --fact-label-weight: bold;
+  --fact-label-tracking: 1.5px;
+  --fact-label-transform: uppercase;
+  /* fact.strong */
+  --fact-strong-weight: bold;
+  --fact-strong-style: normal;
+  --fact-strong-bg: #FFFC00FF;
+  --fact-strong-fg: #1A1A2EFF;
+  --fact-strong-decoration: none;
+  --fact-strong-decoration-color: #1A1A2EFF;
+  /* body-heading */
+  --body-heading-fg: #1A1A2EFF;
+  --body-heading-weight: bold;
+  --body-heading-leading: 1.3;
+  /* source */
+  --source-fg: #6B6B7DFF;
+  --source-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --source-size: 12px;
+  /* footer */
+  --footer-fg: #6B6B7DFF;
+  --footer-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --footer-size: 12px;
+  --footer-rule-fg: #0000001A;
+  --footer-rule-width: 1px;
+  /* cover */
+  --cover-bg-from: #1A1A2EFF;
+  --cover-bg-to: #1A1A2EFF;
+  --cover-bg-angle: 180deg;
+  --cover-fg: #F8F8F5FF;
+  --cover-align: left;
+  /* cover.summary */
+  --cover-summary-fg: #F8F8F5C7;
+  /* cover.tag */
+  --cover-tag-fg: #FFFC00FF;
+  /* cover.num */
+  --cover-num-fg: #FFFFFFB3;
+  /* quote */
+  --quote-fg: #6B6B7DFF;
+  --quote-style: italic;
+  --quote-rule-fg: #00000029;
+  --quote-rule-width: 3px;
+  /* code */
+  --code-font: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --code-size: 0.88em;
+  --code-bg: #0000000B;
+  --code-rule-fg: #0000001A;
+  --code-rule-width: 1px;
+  --code-leading: 1.55;
+  /* footnote-call */
+  --footnote-call-fg: #FF4757FF;
+  --footnote-call-size: 0.72em;
+  /* link */
+  --link-decoration-color: #1A1A2EFF;
+  /* table */
+  --table-size: clamp(13px, 1.4vmin, 16px);
+  --table-rule-fg: #0000001A;
+  --table-rule-width: 1px;
+  --table-cell-align: left;
+  /* table.head */
+  --table-head-bg: #0000000B;
+  --table-head-fg: #1A1A2EFF;
+  --table-head-rule-fg: #1A1A2EFF;
+  --table-head-rule-width: 2px;
+  --table-head-weight: bold;
+  --table-head-size: 13px;
+  --table-head-tracking: 0.5px;
+  --table-head-align: left;
+  /* verdict.yes */
+  --verdict-yes-fg: #3AA55CFF;
+  --verdict-yes-weight: bold;
+  --verdict-yes-mark: "\25CF";
+  /* verdict.no */
+  --verdict-no-fg: #6B6B7DFF;
+  --verdict-no-weight: normal;
+  --verdict-no-mark: "\25CB";
+  /* verdict.partial */
+  --verdict-partial-fg: #FF4757FF;
+  --verdict-partial-weight: bold;
+  --verdict-partial-mark: "\25D0";
+  /* table.col-signal */
+  --table-col-signal-bg: #0000000B;
+  --table-col-signal-weight: bold;
+  /* table.col-snap */
+  --table-col-snap-bg: #0000000B;
+  --table-col-snap-rule-fg: #FFFC00FF;
+  --table-col-snap-rule-width: 3px;
+  /* caption */
+  --caption-fg: #6B6B7DFF;
+  --caption-size: 0.85em;
+  --caption-align: center;
+  /* article */
+  --article-bg: #FFFFFFB8;
+  --article-size: 15px;
+  --article-leading: 1.7;
+  --article-align: left;
+  --article-rule-fg: #0000001A;
+  --article-rule-width: 1px;
+  /* refs */
+  --refs-fg: #6B6B7DFF;
+  --refs-size: 13px;
+  --refs-leading: 1.5;
+  /* highlight */
+  --highlight-fg: #1A1A2EFF;
+  --highlight-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --highlight-size: clamp(2.1rem, 8vmin, 3.4rem);
+  --highlight-weight: bold;
+  --highlight-leading: 1.05;
+  --highlight-tracking: -0.01em;
+  --highlight-numeric: tabular-nums;
+  --highlight-shadow-fg: #00000000;
+  --highlight-shadow-blur: 0;
+  --highlight-shadow-dy: 0;
+  --highlight-align: center;
+  /* highlight-caption */
+  --highlight-caption-fg: #6B6B7DFF;
+  --highlight-caption-size: 0.9rem;
+  /* series-nav.current */
+  --series-nav-current-bg: #0000000B;
+  --series-nav-current-rule-fg: #00000029;
+  --series-nav-current-rule-width: 2px;
+  /* series-nav.link */
+  --series-nav-link-bg: #FFFFFFB8;
+  --series-nav-link-rule-fg: #FFFC00FF;
+  --series-nav-link-rule-width: 2px;
+  --series-nav-link-ring: #FF4757FF;
+  --series-nav-link-ring-width: 3px;
+  /* series-nav.label */
+  --series-nav-label-fg: #6B6B7DFF;
+  --series-nav-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --series-nav-label-size: 12px;
+  --series-nav-label-weight: bold;
+  --series-nav-label-tracking: 1.5px;
+  --series-nav-label-transform: uppercase;
+  /* series-nav.title */
+  --series-nav-title-size: 18px;
+  --series-nav-title-weight: bold;
+  /* series-nav.desc */
+  --series-nav-desc-fg: #6B6B7DFF;
+  --series-nav-desc-size: 14px;
+  /* series-nav.status */
+  --series-nav-status-size: 13px;
+  --series-nav-status-weight: bold;
+  --series-nav-status-fg-current: #6B6B7DFF;
+  --series-nav-status-fg-link: #1A1A2EFF;
+  /* nav-btn */
+  --nav-btn-bg: #FFFFFFEB;
+  --nav-btn-bg-soft: #FFFFFFBF;
+  --nav-btn-fg: #1A1A2EFF;
+  --nav-btn-rule-fg: #00000029;
+  --nav-btn-rule-width: 1px;
+  --nav-btn-size: 20px;
+  --nav-btn-ring: #FF4757FF;
+  --nav-btn-ring-width: 3px;
+  /* nav-dot */
+  --nav-dot-bg: #00000029;
+  --nav-dot-bg-hover: #6B6B7DFF;
+  --nav-dot-bg-active: #FFFC00FF;
+  /* share */
+  --share-bg: #F8F8F5FF;
+  --share-fg: #1A1A2EFF;
+  --share-quiet-fg: #6B6B7DFF;
+  --share-size: 13px;
+  --share-rule-fg: #00000029;
+  --share-rule-width: 1px;
+  --share-scrim: #0000008C;
+  --share-rule-fg-hover: #1A1A2EFF;
+  --share-bg-hover: #FFFFFFB8;
+  /* card */
+  --card-bg: #FFFFFFB8;
+  --card-rule-fg: #00000029;
+  --card-rule-width: 2px;
+  --card-rule-fg-hover: #FFFC00FF;
+  /* card.label */
+  --card-label-fg: #6B6B7DFF;
+  --card-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --card-label-size: 13px;
+  --card-label-weight: bold;
+  --card-label-tracking: 2px;
+  --card-label-transform: uppercase;
+  /* card.title */
+  --card-title-size: 20px;
+  --card-title-weight: bold;
+  /* card.desc */
+  --card-desc-fg: #6B6B7DFF;
+  --card-desc-size: 15px;
+  /* card.cta */
+  --card-cta-fg: #1A1A2EFF;
+  --card-cta-size: 14px;
+  --card-cta-weight: bold;
+  /* header */
+  --header-rule-fg: #FFFC00FF;
+  --header-rule-width: 2px;
+  /* header.title */
+  --header-title-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --header-title-size: clamp(28px, 4vmin, 44px);
+  --header-title-weight: bold;
+  --header-title-leading: 1.2;
+  /* header.subtitle */
+  --header-subtitle-fg: #6B6B7DFF;
+  --header-subtitle-size: clamp(16px, 2vmin, 20px);
+  /* version-tag */
+  --version-tag-font: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --version-tag-fg: #6B6B7DFF;
+  --version-tag-bg: #0000000B;
+  --version-tag-size: 12px;
+  /* intro */
+  --intro-size: 17px;
+  --intro-leading: 1.7;
+}
+body {
+  text-shadow: 0 var(--page-shadow-dy) var(--page-shadow-blur) var(--page-shadow-fg);
+  font-family: var(--page-font);
+  background: var(--page-bg);
+  color: var(--page-fg);
+  line-height: var(--page-leading);
+  hyphens: var(--page-hyphens);
+}
+.slide {
+  border-bottom-color: var(--slide-rule-fg);
+  border-bottom-width: var(--slide-rule-width);
+}
+.slide-num {
+  color: var(--slide-num-fg);
+  font-family: var(--slide-num-font);
+  font-size: var(--slide-num-size);
+  letter-spacing: var(--slide-num-tracking);
+}
+.slide-tag {
+  color: var(--tag-fg);
+  font-family: var(--tag-font);
+  font-size: var(--tag-size);
+  font-weight: var(--tag-weight);
+  letter-spacing: var(--tag-tracking);
+  text-transform: var(--tag-transform);
+}
+h1 {
+  text-shadow: 0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg);
+  font-family: var(--title1-font);
+  font-size: var(--title1-size);
+  font-weight: var(--title1-weight);
+  line-height: var(--title1-leading);
+  text-align: var(--title1-align);
+}
+.slide-cover h1 {
+  color: var(--title1-fg);
+}
+h2 {
+  font-family: var(--title2-font);
+  font-size: var(--title2-size);
+  font-weight: var(--title2-weight);
+  line-height: var(--title2-leading);
+  text-align: var(--title2-align);
+}
+.summary {
+  color: var(--summary-fg);
+  font-size: var(--summary-size);
+  line-height: var(--summary-leading);
+  text-align: var(--summary-align);
+}
+.fact-box {
+  background: var(--fact-bg);
+  border-left-color: var(--fact-rule-fg);
+  border-left-width: var(--fact-rule-width);
+}
+.fact-content {
+  color: var(--fact-fg);
+  font-size: var(--fact-size);
+  text-align: var(--fact-align);
+}
+.fact-label {
+  color: var(--fact-label-fg);
+  font-family: var(--fact-label-font);
+  font-size: var(--fact-label-size);
+  font-weight: var(--fact-label-weight);
+  letter-spacing: var(--fact-label-tracking);
+  text-transform: var(--fact-label-transform);
+}
+.fact-content strong {
+  font-weight: var(--fact-strong-weight);
+  font-style: var(--fact-strong-style);
+  background: var(--fact-strong-bg);
+  color: var(--fact-strong-fg);
+  text-decoration: var(--fact-strong-decoration);
+  text-decoration-color: var(--fact-strong-decoration-color);
+}
+.fact-content h1, .fact-content h2, .fact-content h3, .slide-body h1, .slide-body h2, .slide-body h3 {
+  color: var(--body-heading-fg);
+  font-weight: var(--body-heading-weight);
+  line-height: var(--body-heading-leading);
+}
+.source {
+  color: var(--source-fg);
+  font-family: var(--source-font);
+  font-size: var(--source-size);
+}
+.page-footer {
+  color: var(--footer-fg);
+  font-family: var(--footer-font);
+  font-size: var(--footer-size);
+  border-top-color: var(--footer-rule-fg);
+  border-top-width: var(--footer-rule-width);
+}
+.slide-cover {
+  background: linear-gradient(var(--cover-bg-angle), var(--cover-bg-from), var(--cover-bg-to));
+  color: var(--cover-fg);
+  text-align: var(--cover-align);
+}
+.slide-cover .summary {
+  color: var(--cover-summary-fg);
+}
+.slide-cover .slide-tag {
+  color: var(--cover-tag-fg);
+}
+.slide-cover .slide-num {
+  color: var(--cover-num-fg);
+}
+blockquote {
+  color: var(--quote-fg);
+  font-style: var(--quote-style);
+  border-left-color: var(--quote-rule-fg);
+  border-left-width: var(--quote-rule-width);
+}
+code {
+  font-family: var(--code-font);
+  font-size: var(--code-size);
+}
+code, pre {
+  background: var(--code-bg);
+}
+pre {
+  border-color: var(--code-rule-fg);
+  border-width: var(--code-rule-width);
+  line-height: var(--code-leading);
+}
+sup {
+  color: var(--footnote-call-fg);
+  font-size: var(--footnote-call-size);
+}
+.fact-content a, .full-article a {
+  text-decoration-color: var(--link-decoration-color);
+}
+.comparison-table {
+  font-size: var(--table-size);
+}
+.comparison-table th, .comparison-table td {
+  border-bottom-color: var(--table-rule-fg);
+  border-bottom-width: var(--table-rule-width);
+}
+.comparison-table td {
+  text-align: var(--table-cell-align);
+}
+.comparison-table th, .full-article table th {
+  background: var(--table-head-bg);
+}
+.comparison-table th {
+  color: var(--table-head-fg);
+  border-bottom-color: var(--table-head-rule-fg);
+  border-bottom-width: var(--table-head-rule-width);
+  font-weight: var(--table-head-weight);
+  font-size: var(--table-head-size);
+  letter-spacing: var(--table-head-tracking);
+  text-align: var(--table-head-align);
+}
+.comparison-table .yes {
+  color: var(--verdict-yes-fg);
+  font-weight: var(--verdict-yes-weight);
+}
+.comparison-table .yes::before { content: var(--verdict-yes-mark); }
+.comparison-table .no {
+  color: var(--verdict-no-fg);
+  font-weight: var(--verdict-no-weight);
+}
+.comparison-table .no::before { content: var(--verdict-no-mark); }
+.comparison-table .partial {
+  color: var(--verdict-partial-fg);
+  font-weight: var(--verdict-partial-weight);
+}
+.comparison-table .partial::before { content: var(--verdict-partial-mark); }
+.comparison-table .col-signal {
+  background: var(--table-col-signal-bg);
+  font-weight: var(--table-col-signal-weight);
+}
+.comparison-table .col-snap {
+  box-shadow: inset var(--table-col-snap-rule-width) 0 0 var(--table-col-snap-rule-fg);
+  background: var(--table-col-snap-bg);
+}
+.figure-caption {
+  color: var(--caption-fg);
+  font-size: var(--caption-size);
+  text-align: var(--caption-align);
+}
+.full-article {
+  background: var(--article-bg);
+}
+.full-article p, .full-article ul, .full-article ol {
+  font-size: var(--article-size);
+  text-align: var(--article-align);
+}
+.full-article p {
+  line-height: var(--article-leading);
+}
+.full-article table th, .full-article table td {
+  border-color: var(--article-rule-fg);
+  border-width: var(--article-rule-width);
+}
+.full-article .refs {
+  color: var(--refs-fg);
+  font-size: var(--refs-size);
+}
+.full-article .refs p {
+  line-height: var(--refs-leading);
+}
+.highlight-figure {
+  text-shadow: 0 var(--highlight-shadow-dy) var(--highlight-shadow-blur) var(--highlight-shadow-fg);
+  color: var(--highlight-fg);
+  font-family: var(--highlight-font);
+  font-size: var(--highlight-size);
+  font-weight: var(--highlight-weight);
+  line-height: var(--highlight-leading);
+  letter-spacing: var(--highlight-tracking);
+  font-variant-numeric: var(--highlight-numeric);
+}
+.highlight {
+  text-align: var(--highlight-align);
+}
+.highlight-caption {
+  color: var(--highlight-caption-fg);
+  font-size: var(--highlight-caption-size);
+}
+.series-current {
+  background: var(--series-nav-current-bg);
+  border-color: var(--series-nav-current-rule-fg);
+  border-width: var(--series-nav-current-rule-width);
+}
+.series-link {
+  background: var(--series-nav-link-bg);
+  border-color: var(--series-nav-link-rule-fg);
+  border-width: var(--series-nav-link-rule-width);
+}
+.series-link:focus-visible {
+  outline-color: var(--series-nav-link-ring);
+  outline-width: var(--series-nav-link-ring-width);
+}
+.series-label {
+  color: var(--series-nav-label-fg);
+  font-family: var(--series-nav-label-font);
+  font-size: var(--series-nav-label-size);
+  font-weight: var(--series-nav-label-weight);
+  letter-spacing: var(--series-nav-label-tracking);
+  text-transform: var(--series-nav-label-transform);
+}
+.series-title {
+  font-size: var(--series-nav-title-size);
+  font-weight: var(--series-nav-title-weight);
+}
+.series-desc {
+  color: var(--series-nav-desc-fg);
+  font-size: var(--series-nav-desc-size);
+}
+.series-status {
+  font-size: var(--series-nav-status-size);
+  font-weight: var(--series-nav-status-weight);
+}
+.series-current .series-status {
+  color: var(--series-nav-status-fg-current);
+}
+.series-link .series-status {
+  color: var(--series-nav-status-fg-link);
+}
+.nav-btn {
+  background: var(--nav-btn-bg);
+  color: var(--nav-btn-fg);
+  border-color: var(--nav-btn-rule-fg);
+  border-width: var(--nav-btn-rule-width);
+  font-size: var(--nav-btn-size);
+}
+.nav-btn-home {
+  background: var(--nav-btn-bg-soft);
+}
+.nav-btn:focus-visible {
+  outline-color: var(--nav-btn-ring);
+  outline-width: var(--nav-btn-ring-width);
+}
+.nav-dots a {
+  background: var(--nav-dot-bg);
+}
+.nav-dots a:hover {
+  background: var(--nav-dot-bg-hover);
+}
+.nav-dots a.active {
+  background: var(--nav-dot-bg-active);
+}
+.share-popover, .share-qr-modal-content, button.share-action, .share-qr-close {
+  background: var(--share-bg);
+}
+.share-popover, .share-qr-modal-content, .share-cell-label, button.share-action, .share-qr-close {
+  color: var(--share-fg);
+}
+.share-cell-head, .share-qr-modal-url {
+  color: var(--share-quiet-fg);
+}
+.share-cell {
+  font-size: var(--share-size);
+}
+button.share-action, .share-qr-close {
+  border-color: var(--share-rule-fg);
+  border-width: var(--share-rule-width);
+}
+.share-qr-modal {
+  background: var(--share-scrim);
+}
+button.share-action:hover:not(:disabled), .share-qr-close:hover {
+  border-color: var(--share-rule-fg-hover);
+}
+button.share-action:hover:not(:disabled) {
+  background: var(--share-bg-hover);
+}
+.article-card {
+  background: var(--card-bg);
+  border-color: var(--card-rule-fg);
+  border-width: var(--card-rule-width);
+}
+.article-card:hover {
+  border-color: var(--card-rule-fg-hover);
+}
+.article-number {
+  color: var(--card-label-fg);
+  font-family: var(--card-label-font);
+  font-size: var(--card-label-size);
+  font-weight: var(--card-label-weight);
+  letter-spacing: var(--card-label-tracking);
+  text-transform: var(--card-label-transform);
+}
+.article-title {
+  font-size: var(--card-title-size);
+  font-weight: var(--card-title-weight);
+}
+.article-desc {
+  color: var(--card-desc-fg);
+  font-size: var(--card-desc-size);
+}
+.article-cta {
+  color: var(--card-cta-fg);
+  font-size: var(--card-cta-size);
+  font-weight: var(--card-cta-weight);
+}
+.header {
+  border-bottom-color: var(--header-rule-fg);
+  border-bottom-width: var(--header-rule-width);
+}
+.header h1 {
+  font-family: var(--header-title-font);
+  font-size: var(--header-title-size);
+  font-weight: var(--header-title-weight);
+  line-height: var(--header-title-leading);
+}
+.header .subtitle {
+  color: var(--header-subtitle-fg);
+  font-size: var(--header-subtitle-size);
+}
+.version-tag {
+  font-family: var(--version-tag-font);
+  color: var(--version-tag-fg);
+  background: var(--version-tag-bg);
+  font-size: var(--version-tag-size);
+}
+.intro {
+  font-size: var(--intro-size);
+  line-height: var(--intro-leading);
+}
+/* LightWebPres skeleton — layout only: everything no theme property
+   drives. Composed AFTER the engine's rules, so the @media block below
+   wins at equal specificity. Two rules when editing:
+     - a declaration here must not also be driven by PROPERTY_REGISTRY,
+       or a stale literal fights the engine across the cascade;
+     - no colour literal, and no var() but --page-content-max — a colour here
+       would survive theming, the exact defect the registry kills.
+   These comments ship: the sheet is inlined into every page. Keep them
+   short, and never spell a markup tag out literally — anything scanning
+   the output would read it as markup. */
+
+/* The skeleton's own layout variable: the one it declares, and the one
+   var() allowed below. Every other variable comes from the engine. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+/* --- The slide frame --- */
+.slide {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 8vw;
+  border-bottom-style: solid;
+  position: relative;
+}
+.slide-num { position: absolute; top: 24px; right: 32px; }
+.slide-tag { display: inline-block; margin-bottom: 16px; }
+h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
+h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
+.summary { max-width: var(--page-content-max); margin-bottom: 32px; }
+
+/* --- The fact box --- */
+.fact-box {
+  border-left-style: solid;
+  padding: 24px 28px;
+  border-radius: 0 8px 8px 0;
+  max-width: var(--page-content-max);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.fact-label { margin-bottom: 8px; }
+/* Measured, not guessed: at the default offset the underline collides
+   with the descenders, and inside a highlight it runs into the mark's
+   lower edge. Both properties degrade silently on an old engine — the
+   rule falls back to its default position rather than disappearing. */
+.fact-content strong {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
+.fact-content h1:first-child,
+.fact-content h2:first-child,
+.fact-content h3:first-child {
+  margin-top: 0;
+}
+.fact-content h1 { font-size: 1.3em; }
+.fact-content h2 { font-size: 1.15em; }
+.fact-content h3 { font-size: 1.05em; }
+.fact-content ul, .fact-content ol {
+  padding-left: 20px;
+  margin-bottom: 10px;
+}
+.fact-content li { margin-bottom: 4px; }
+
+/* Free-form standard-slide body (no fact-label). A heading here is body
+   content (§22.2), never the slide's own title, so it must render
+   smaller than that title. These em sizes resolve against the inherited
+   base, i.e. well under it. */
+.slide-body h1, .slide-body h2, .slide-body h3 {
+  margin: 14px 0 6px;
+  max-width: var(--page-content-max);
+}
+.slide-body h1:first-child,
+.slide-body h2:first-child,
+.slide-body h3:first-child {
+  margin-top: 0;
+}
+.slide-body h1 { font-size: 1.3em; }
+.slide-body h2 { font-size: 1.15em; }
+.slide-body h3 { font-size: 1.05em; }
+
+.source { margin-top: 16px; max-width: var(--page-content-max); }
+.page-footer { padding: 20px 8vw 28px; border-top-style: solid; }
+.page-footer .footer-byline { margin-bottom: 4px; }
+.page-footer .footer-license a { color: inherit; }
+
+/* --- Markdown constructs the converter has always emitted. Their ground,
+   ink and rule colours are registry properties; the geometry is here. --- */
+blockquote {
+  margin: 0 0 16px;
+  padding: 4px 0 4px 18px;
+  border-left-style: solid;
+  max-width: var(--page-content-max);
+}
+blockquote p:last-child { margin-bottom: 0; }
+code { padding: 1px 5px; border-radius: 4px; }
+pre {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-style: solid;
+  border-radius: 8px;
+  overflow-x: auto;
+  max-width: var(--page-block-max);
+}
+/* Inside a block, the ground belongs to the block itself: a second one
+   would double up and the rounded corners would show through. */
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+sup { vertical-align: super; line-height: 0; }
+
+/* A body link keeps the ink around it and is signalled by an underline
+   rather than by a colour. The browser default blue measures 1.03:1 on
+   pop-violet and fails AA on fifteen themes, and no palette colour can
+   replace it — each is already a verdict colour or below AA somewhere.
+   Ink on page is the one pair every theme is admitted on, so a link is
+   AA everywhere by construction, and WCAG 1.4.1 is satisfied by the
+   underline, which is not a colour. Only the rule's tint is exposed
+   (link.decoration-color); thickness and offset stay here, because a
+   hairline sitting on the baseline is what makes underlined text hard
+   to read. The scope is load-bearing: widen this selector and every
+   navigation card in the site gets underlined too. */
+.fact-content a, .full-article a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.full-article blockquote, .full-article pre { font-size: 15px; }
+
+/* --- Comparison table --- */
+.comparison-table {
+  width: 100%;
+  max-width: var(--page-block-max);
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+.comparison-table th, .comparison-table td {
+  padding: 12px 16px;
+  border-bottom-style: solid;
+}
+.comparison-table th {
+  border-bottom-style: solid;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
+}
+/* Verdict cells (§6.1) carry a shape as well as a colour. Red/green
+   colour-vision deficiency affects roughly one man in twelve, and weight
+   alone is too fine a cue; the marks are registry properties, their
+   spacing is here. print-color-adjust keeps the distinction on paper,
+   where colour is often dropped — same reason on the emphasized
+   columns below. */
+.comparison-table .yes::before,
+.comparison-table .partial::before,
+.comparison-table .no::before {
+  margin-right: 0.4em;
+  font-size: 0.95em;
+}
+.comparison-table .yes, .comparison-table .no, .comparison-table .partial {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.comparison-table .col-signal {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.comparison-table .col-snap {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* --- Figures --- */
+.figure {
+  margin: 20px auto;
+  max-width: var(--page-block-max);
+  text-align: center;
+}
+.figure img { max-width: 100%; height: auto; }
+.figure-caption { margin-top: 6px; }
+
+/* --- The full-article slide: a measure of its own, narrower than the
+   deck's, because it is read as prose rather than glanced at. --- */
+.full-article { padding: 60px 8vw 80px 8vw; }
+.full-article h1 { font-size: 28px; margin-bottom: 8px; }
+.full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
+.full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+.full-article p { margin-bottom: 14px; max-width: var(--page-content-max); }
+.full-article ul, .full-article ol {
+  margin-bottom: 14px;
+  padding-left: 24px;
+  max-width: var(--page-content-max);
+}
+.full-article table {
+  width: 100%;
+  max-width: var(--page-block-max);
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.full-article table th, .full-article table td {
+  padding: 8px 12px;
+  border-style: solid;
+}
+.full-article table th { font-weight: 700; }
+.full-article strong { font-weight: 700; }
+.full-article em { font-style: italic; }
+.full-article .refs p { font-size: 13px; margin-bottom: 6px; }
+
+/* --- Series navigation --- */
+.series-list { max-width: 680px; }
+.series-item {
+  display: block;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+/* No opacity on the current card. Dimming it to signal "you are here"
+   dimmed its three lines of text with it: 1.62:1 on the worst theme, and
+   below AA on all 33. Its sunken ground, its border and the status glyph
+   carry the same signal without touching a contrast ratio. */
+.series-current { border-style: solid; }
+.series-link {
+  border-style: solid;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.series-link:hover, .series-link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.series-link:focus-visible { outline-style: solid; outline-offset: 2px; }
+.series-label { margin-bottom: 4px; }
+.series-title { margin-bottom: 4px; }
+.series-desc { margin-bottom: 8px; }
+
+/* --- Navigation chrome. The opacities below fade a control's glyph, not
+   running text, which is why they are allowed to stay literal. --- */
+.nav-buttons {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+.nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border-style: solid;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+.nav-btn:active { transform: scale(0.96); }
+.nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
+.nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+.nav-btn-home { font-size: 17px; }
+.nav-dots {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 150;
+}
+.nav-dots a {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: block;
+  transition: background 0.2s, transform 0.2s;
+}
+.nav-dots a:hover { transform: scale(1.3); }
+.nav-dots a.active { transform: scale(1.3); }
+
+/* Responsive overrides. Their placement is load-bearing: they come after
+   the engine's rules, which is what lets them win at equal specificity.
+   Anything declared BELOW them still beats them, so check the source
+   order before adding a selector here. */
+@media (max-width: 600px) {
+  .slide { padding: 40px 24px; }
+  .nav-dots { display: none; }
+  .nav-buttons { bottom: 16px; right: 16px; }
+  .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
+}
+
+/* --- The highlight block --- */
+.highlight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 18px 0 22px;
+  max-width: var(--page-block-max);
+}
+.highlight-figure { overflow-wrap: anywhere; }
+.highlight-caption { max-width: var(--page-content-max); }
+
+/* --- Share popover and its QR modal --- */
+.share-popover {
+  position: fixed;
+  bottom: 80px;
+  right: 28px;
+  z-index: 250;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 14px;
+  display: none;
+  max-width: calc(100vw - 40px);
+}
+.share-popover.open { display: block; }
+.share-matrix {
+  display: grid;
+  grid-template-columns: auto repeat(3, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+}
+.share-cell-head {
+  font-weight: 700;
+  text-align: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.share-cell-head-disabled { opacity: 0.35; }
+.share-cell-label { white-space: nowrap; padding-right: 10px; }
+button.share-action {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border-style: solid;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+button.share-action:disabled { opacity: 0.25; cursor: default; }
+.share-qr-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.share-qr-modal.open { display: flex; }
+/* 400px, not 320: a longer URL bumps the code to a higher version (more
+   modules), and a small on-screen code is the likeliest reason a phone's
+   native camera fails to detect one that decodes fine in a dedicated
+   scanner. Give it room to stay legible. */
+.share-qr-modal-content {
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.share-qr-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.share-qr-modal-content svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 12px;
+}
+.share-qr-modal-url {
+  font-size: 12px;
+  word-break: break-all;
+  margin-bottom: 16px;
+}
+.share-qr-close {
+  border-style: solid;
+  border-radius: 8px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+/* --- The index page: article cards, masthead, intro --- */
+.article-card {
+  display: block;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  border-style: solid;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.article-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+}
+.article-number { margin-bottom: 6px; }
+.article-title { margin-bottom: 6px; }
+.article-desc { margin-bottom: 8px; }
+.header {
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom-style: solid;
+}
+.header h1 { margin-bottom: 16px; }
+.header .subtitle { max-width: var(--page-content-max); }
+.version-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-top: 12px;
+}
+.intro { max-width: var(--page-content-max); margin-bottom: 48px; }
+.intro p { margin-bottom: 16px; }
+
+/* --- Block alignment: the instance layer of the align axes ---
+   {align:center} in an article source wraps its blocks in one of these.
+   The descendant selector is deliberate: text-align is inherited, but a
+   component that declares its own beats what it inherits, so reaching the
+   children is the only way an author's local choice can win over the
+   theme -- which is what an instance tag is for.
+
+   The class is DOUBLED on that arm, and the reason is measured. A plain
+   `.align-x *` is (0,1,0), which loses to `.full-article p` and
+   `.comparison-table td` at (0,1,1) -- so the tag was inert on exactly the
+   long-form prose it exists for, while its `hyphens` companion (which had
+   no competitor) still landed: a paragraph came out left-aligned AND
+   hyphenated, which no layer asked for. Doubling reaches (0,2,0).
+   These arms set alignment and nothing else. Breaking words at end of
+   line is its own axis (page.hyphens), off unless asked for by name, so
+   re-aligning a block never changes whether its words break. */
+.align-left,    .align-left.align-left *       { text-align: left; }
+.align-center,  .align-center.align-center *   { text-align: center; }
+.align-right,   .align-right.align-right *     { text-align: right; }
+.align-justify, .align-justify.align-justify * { text-align: justify; }
+
+/* --- Short viewports: a phone held sideways ---
+   375px of height with 120px of fixed padding leaves no room for a title,
+   a summary and a fact box, and no type scale fixes that. Reclaiming the
+   padding takes the landscape phones from 6 overflowing cards in 8 down to
+   3; the rest degrades gracefully, since .slide is min-height, so a card
+   that will not fit grows and the page scrolls. Inert on every other
+   viewport -- portrait and desktop are unchanged to the pixel. */
+@media (max-height: 520px) {
+  .slide { padding: 24px 6vw; }
+  .fact-box { padding: 14px 18px; }
+  .highlight { margin: 8px 0 10px; }
+}
+
+/* Your own CSS. lightwebpres never writes this file, and appends it after
+   the generated stylesheet. Anything CSS can do, you can do here — new
+   rules, @font-face, media queries. Plain VALUES belong in settings.conf. */
+
+</style>
+</head>
+<body style="padding: 60px 8vw; max-width: 1200px; margin: 0 auto;">
+
+
+<div class="header">
+  <h1>LightWebPres</h1>
+  <p class="subtitle">The guide, built with the tool it describes</p>
+</div>
+
+<div class="intro">
+  <p>Every component named in the guide, rendered by the engine the guide documents.</p>
+</div>
+
+<a href="guide.html" class="article-card">
+  <div class="article-title">LightWebPres — the guide</div>
+  <div class="article-desc">Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.</div>
+  <div class="article-cta">→ Read the article</div>
+</a>
+
+<div class="nav-buttons">
+  <div class="nav-btn" id="navUp" role="button" tabindex="0" title="Scroll up" aria-label="Scroll up">&#8593;</div>
+  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Top of page (Home key)" aria-label="Top of page (Home key)">&#127968;</div>
+  <div class="nav-btn" id="navDown" role="button" tabindex="0" title="Scroll down" aria-label="Scroll down">&#8595;</div>
+</div>
+
+<script>
+var btnUp   = document.getElementById('navUp');
+  var btnHome = document.getElementById('navHome');
+  var btnDown = document.getElementById('navDown');
+
+  function scrollByViewport(direction) {
+    window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
+  }
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateNavUI() {
+    var atTop = window.scrollY <= 4;
+    var atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 4);
+    if (btnUp) btnUp.classList.toggle('disabled', atTop);
+    if (btnDown) btnDown.classList.toggle('disabled', atBottom);
+  }
+
+  if (btnUp) btnUp.addEventListener('click', function () { scrollByViewport(-1); });
+  if (btnDown) btnDown.addEventListener('click', function () { scrollByViewport(1); });
+  if (btnHome) btnHome.addEventListener('click', function () { scrollToTop(); });
+
+  // Enter/Space activate the role=button divs like native buttons.
+  Array.prototype.forEach.call(document.querySelectorAll('.nav-btn'), function (btn) {
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        btn.click();
+      }
+    });
+  });
+
+  window.addEventListener('scroll', updateNavUI);
+  window.addEventListener('resize', updateNavUI);
+  updateNavUI();
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      e.preventDefault(); scrollByViewport(1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); scrollByViewport(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault(); scrollToTop();
+    }
+  });
+
+</script>
+
+
+</body>
+</html>

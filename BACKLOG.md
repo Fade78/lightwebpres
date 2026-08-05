@@ -623,3 +623,31 @@ Related, same family, also pre-existing: `.share-cell-head-disabled`'s
 `opacity: 0.35` slips past the anti-fade guard because the opacity sits in
 a different rule from the `font-size: 11px` it dims. A hole in that
 heuristic, not in the seam.
+
+## B16 — `page_dest: index.html` loses a page in silence — NOTED
+
+Found while building the guide with the tool (`tools/build_guide.py`): an
+article whose `page_dest` is `index.html` collides with the series index
+the build always writes, and one of the two silently overwrites the
+other. The build prints both names and exits 0:
+
+```
+  index.html ← first.md
+  index.html
+Build complete: 3 articles + index -> …/public
+```
+
+The article page is written first and the index lands on top of it, so
+what disappears is the article — a page listed in `series.json`, built,
+and then destroyed by the next write. Exit code 0, no warning.
+
+This is the defect class §22.8 already forbids for a missing article file
+("a corrupted page shipped green"), applied to a name collision instead of
+a missing input. The `page_dest` collision check that already exists is
+case-insensitive **between articles**; it does not know about the index.
+
+The fix is one comparison and a named error, but it turns a currently
+accepted (if broken) configuration into a fatal one, so it wants a look
+before it lands: someone may have a single-article series relying on the
+index being the only page — which today means their article is the thing
+being thrown away, not the index.

@@ -6802,6 +6802,41 @@ class EveryAttributeSinkEscapes(unittest.TestCase):
         self.assertNotIn('onload="alert', html)
 
 
+class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
+    """The guide describes a tool for making card decks backed by a
+    long-form article, so it is one. Running the build here is what stops
+    its examples from rotting: the long-form file IS GUIDE.md, assembled at
+    build time rather than copied, so there is no second version to drift.
+
+    It also means the guide exercises the components it names, which is
+    how the deck's own `source:` line was found published as literal text —
+    it sat after prose, tripping the one-way switch the guide documents two
+    sections earlier."""
+
+    def test_the_guide_builds_and_shows_what_it_names(self):
+        root = Path(__file__).resolve().parent.parent
+        script = root / 'tools' / 'build_guide.py'
+        if not script.exists():
+            self.skipTest('no build_guide.py in this checkout')
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'guide'
+            r = subprocess.run([sys.executable, str(script), '--output', str(out)],
+                               capture_output=True, text=True, timeout=180)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            html = (out / 'guide.html').read_text(encoding='utf-8')
+
+        # Every component the guide's own anatomy section names.
+        for cls in ('slide slide-cover', 'slide full-article', 'fact-box',
+                    'fact-label', 'highlight-figure', 'highlight-caption',
+                    'source', 'series-list', 'comparison-table'):
+            self.assertIn(f'class="{cls}"', html, f'{cls} missing from the guide')
+        # And no field line published as prose, which is what a slide with
+        # its fields after the text looks like.
+        for field in ('source:', 'fact-label:', 'highlight:'):
+            self.assertNotIn(f'<p>{field}', html,
+                             f'{field} rendered as literal text')
+
+
 class TheGalleryInTheRepoIsTheGalleryTheToolMakes(unittest.TestCase):
     """README says the gallery "can never drift from what install --theme
     actually applies". That is true of the generator and was not true of
