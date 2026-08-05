@@ -177,9 +177,27 @@ section**, and the card's own scale already said so: its body is 15px and
 its apparatus — `source`, `fact-label` — is 12px. A note at `note.size`
 came out at 93% of the body it annotates, read as more text rather than
 as apparatus, and *larger* than the `.refs` block three lines below it in
-the same article, which is the same role at 13px. So `note.local.size`
-takes `refs.size`'s 13px. In the notes section the note IS the content,
-read as a scroll, and keeps `note.size`.
+the same article, which is the same role.
+
+Both now sit at **12px**, the floor of the design — nothing among the 244
+properties is smaller. A note is meant to *detail*, and on a card detail
+is room the rest does not get; but below that floor there is nothing left
+to win. Measured: 13 → 12px saves 3px on a 617px card, and at 11px the
+reference — the one thing this tool exists to make reachable — would be
+the smallest element on the card, under the slide number and the tag.
+
+**What replaces size as the way to recede** is the tone (`note.fg`), the
+weight (`note.weight`) and the slant (`note.style`): a theme quietens a
+note by colour or by form, never by shrinking it further. The tone has a
+measured floor, so "quieter" cannot become "unreadable".
+
+`refs.fg` references `note.fg` rather than carrying a tone of its own —
+same role, same size, same page — which also closes a defect older than
+the notes work and never measured: `ink-quiet` there was below AA on 12
+of 33 themes (solarized 2.61:1).
+
+In the notes section the note IS the content, read as a scroll, and keeps
+`note.size`.
 
 ## 6. The authoring surface
 

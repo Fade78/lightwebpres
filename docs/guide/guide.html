@@ -133,10 +133,12 @@
   --note-fg: #1A1A2EFF;
   --note-size: 14px;
   --note-leading: 1.55;
+  --note-weight: normal;
+  --note-style: normal;
   --note-marker-fg: #FF4757FF;
   --note-back-fg: #1A1A2EFF;
   /* note.local */
-  --note-local-size: 13px;
+  --note-local-size: 12px;
   --note-local-rule-fg: #0000001A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -193,9 +195,11 @@
   --article-rule-fg: #0000001A;
   --article-rule-width: 1px;
   /* refs */
-  --refs-fg: #6B6B7DFF;
-  --refs-size: 13px;
+  --refs-fg: #1A1A2EFF;
+  --refs-size: 12px;
   --refs-leading: 1.5;
+  --refs-weight: normal;
+  --refs-style: normal;
   /* highlight */
   --highlight-fg: #1A1A2EFF;
   --highlight-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
@@ -443,6 +447,8 @@ sup {
   color: var(--note-fg);
   font-size: var(--note-size);
   line-height: var(--note-leading);
+  font-weight: var(--note-weight);
+  font-style: var(--note-style);
 }
 .note-body .note-num {
   color: var(--note-marker-fg);
@@ -537,6 +543,8 @@ sup {
 .full-article .refs {
   color: var(--refs-fg);
   font-size: var(--refs-size);
+  font-weight: var(--refs-weight);
+  font-style: var(--refs-style);
 }
 .full-article .refs p {
   line-height: var(--refs-leading);

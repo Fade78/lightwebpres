@@ -343,6 +343,18 @@ class EveryNoteAxisLandsWhereItIsAimed(unittest.TestCase):
                     lwp.build_theme_preview_document('newsprint', panel),
                     encoding='utf-8')
                 urls.append('file://%s' % path)
+            # The two keyword axes default to `normal`, which is also
+            # what an element inherits — so a declared-vs-computed check
+            # passes on them whether or not any rule consumes the
+            # variable, and detaching their selector left it green. The
+            # provoked copy sets them to values nothing inherits.
+            provoked = Path(tmp) / 'provoked.html'
+            provoked.write_text(
+                lwp.build_theme_preview_document('newsprint', 'card')
+                   .replace('--note-weight: normal', '--note-weight: bold')
+                   .replace('--note-style: normal', '--note-style: italic'),
+                encoding='utf-8')
+            urls.append('file://%s' % provoked)
             result = subprocess.run(
                 ['node', str(NOTE_PROPERTIES_SCRIPT), *urls],
                 capture_output=True, text=True,

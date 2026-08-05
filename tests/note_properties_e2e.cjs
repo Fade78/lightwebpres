@@ -14,7 +14,16 @@
 // is actually sound — resolve the declared value, resolve the computed
 // value, compare.
 //
-// argv: <cardUrl> <articleUrl> <notesUrl>
+// One trap this file had to be rebuilt around. `note.weight` and
+// `note.style` default to `normal`, which is ALSO the inherited value —
+// so comparing declared against computed passes whether or not any rule
+// consumes the variable. Detaching their selector entirely left the check
+// green. Axes whose default is indistinguishable from inheritance have to
+// be PROVOKED: the last argument is the same card with those variables
+// rewritten to values nothing inherits, and the assertion is that they
+// arrive.
+//
+// argv: <cardUrl> <articleUrl> <notesUrl> <provokedCardUrl>
 
 const { chromium } = require('playwright');
 
@@ -57,7 +66,15 @@ async function checkPage(page, url, table, label) {
     if (got === null) continue;          // that surface is not on this page
     const [computed, declared] = got;
     if (!declared) { fail(`${label}: ${axis} declares nothing at :root`); continue; }
-    if (kind === 'length') {
+    if (kind === 'keyword') {
+      // `normal` computes to 400 for font-weight; compare on that footing
+      // rather than on the literal, or a passing case reads as a failure.
+      const want = declared === 'normal' && prop === 'fontWeight' ? '400'
+        : declared === 'bold' && prop === 'fontWeight' ? '700' : declared;
+      if (computed !== want) {
+        fail(`${label}: ${axis} declared ${declared} but computed ${computed} — the axis is inert`);
+      }
+    } else if (kind === 'length') {
       if (computed !== declared) {
         fail(`${label}: ${axis} declared ${declared} but computed ${computed} — the axis is inert`);
       }
@@ -79,8 +96,11 @@ async function checkPage(page, url, table, label) {
 }
 
 async function main() {
-  const [cardUrl, articleUrl, notesUrl] = process.argv.slice(2);
-  if (!notesUrl) { console.error('usage: note_properties_e2e.cjs <card> <article> <notes>'); process.exit(2); }
+  const [cardUrl, articleUrl, notesUrl, provokedUrl] = process.argv.slice(2);
+  if (!provokedUrl) {
+    console.error('usage: note_properties_e2e.cjs <card> <article> <notes> <provoked>');
+    process.exit(2);
+  }
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const page = await browser.newPage({ viewport: { width: 900, height: 1200 } });
@@ -99,6 +119,21 @@ async function main() {
   if (box.pad !== '0px') fail(`the article's note list is indented ${box.pad}`);
   if (box.mb !== '0px') fail(`the article's note list carries a ${box.mb} bottom margin`);
   if (box.list !== 'none') fail(`the article's note list shows its own markers (${box.list})`);
+
+  // The provoked pass: values nothing inherits, so "it landed" and "the
+  // rule was never written" stop looking the same.
+  await page.goto(provokedUrl);
+  const provoked = await page.evaluate(() => {
+    const s = getComputedStyle(document.querySelector('.note-body li'));
+    const r = getComputedStyle(document.querySelector('.note-back'));
+    return { weight: s.fontWeight, style: s.fontStyle, backColor: r.color };
+  });
+  if (provoked.weight !== '700') {
+    fail(`note.weight is inert: set to bold, computed ${provoked.weight}`);
+  }
+  if (provoked.style !== 'italic') {
+    fail(`note.style is inert: set to italic, computed ${provoked.style}`);
+  }
 
   await browser.close();
   if (!process.exitCode) console.log('OK: every note axis lands in all three contexts');

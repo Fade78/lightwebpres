@@ -7071,7 +7071,10 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
         # The measured scale a card already has: body 15px, `source` and
         # `fact-label` 12px. A note at `note.size` came out at 93% of the
         # body it annotates, and larger than the `.refs` block that is the
-        # same role three lines below it in the same article.
+        # same role three lines below it in the same article. Both now sit
+        # at 12px, which is the FLOOR of the whole design -- nothing among
+        # the 244 properties is smaller -- so this also pins that nobody
+        # goes below it looking for room.
         reg = self.lwp.PROPERTY_REGISTRY
         local = int(reg['note.local.size'].default.rstrip('px'))
         section = int(reg['note.size'].default.rstrip('px'))
@@ -7080,7 +7083,16 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
         self.assertLess(local, section, 'a foot-of-unit note is not apparatus')
         self.assertEqual(local, refs,
                          'the two foot-of-unit apparatus blocks are two sizes')
+        # The two blocks are one role: a theme that quietens its notes has
+        # said it about its references too, rather than saying it twice.
+        self.assertEqual(reg['refs.fg'].default, 'note.fg')
         self.assertLess(local, body)
+        floor = min(int(p.default.rstrip('px'))
+                    for p in reg.values()
+                    if p.css == 'font-size' and isinstance(p.default, str)
+                    and p.default.endswith('px'))
+        self.assertEqual(local, floor,
+                         'a foot-of-unit note is at the design floor, not below it')
 
     def test_a_theme_that_resizes_its_notes_resizes_both(self):
         # high-contrast states a bigger note; its foot-of-unit note has to
@@ -7855,6 +7867,11 @@ class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
             ('note.marker.fg',        self._rgba(r['note.marker.fg']),        body,     4.5),
             ('note.back.fg',          self._rgba(r['note.back.fg']),          body,     4.5),
             ('note.page.title.fg',    self._rgba(r['note.page.title.fg']),    [notes],  4.5),
+            # `.refs` is the same role at the same size on the same page,
+            # and it had never been measured: `ink-quiet` there was below
+            # AA on 12 of 33 themes (solarized 2.61:1) before it was made
+            # to track `note.fg`.
+            ('refs.fg',               self._rgba(r['refs.fg']),               [article], 4.5),
             ('footnote-call.fg',      self._rgba(r['footnote-call.fg']),      [card, article], 4.5),
             ('footnote-call.fg-marked', self._rgba(r['footnote-call.fg-marked']), [marked], 4.5),
             ('footnote-call.fg-cover',  self._rgba(r['footnote-call.fg-cover']),  [cover],  4.5),

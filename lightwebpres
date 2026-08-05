@@ -1250,10 +1250,19 @@ THEME_COMPONENTS = [
         # AA on all 33, worst case 6.23. Themes that can afford a quieter
         # tone state one; the default cannot assume they can.
         ThemeProp('note.fg',      PROP_COLOR,  'ink',  css='color'),
-        # 14px, not 13: `refs.size` is the same class of apparatus on the
-        # same page, and two sizes for one class reads as an accident.
+        # The notes SECTION only. There the note is not an aside taking
+        # room from something else -- it IS the content of its section,
+        # read as a scroll -- so it keeps a reading size while the
+        # foot-of-unit note drops to the apparatus one.
         ThemeProp('note.size',    PROP_LENGTH, '14px', css='font-size'),
         ThemeProp('note.leading', PROP_RATIO,  '1.55', css='line-height'),
+        # Weight and slant are the levers a theme uses INSTEAD of a
+        # smaller size: at 12px there is no room left below, and a note
+        # that recedes by contrast alone stops being readable. Both are
+        # shared by the two placements, since they say how the theme
+        # speaks rather than where the body sits.
+        ThemeProp('note.weight',  PROP_WEIGHT, 'normal', css='font-weight'),
+        ThemeProp('note.style',   PROP_STYLE,  'normal', css='font-style'),
         ThemeProp('note.marker.fg', PROP_COLOR, 'call', css='color',
                   selector='.note-body .note-num'),
         ThemeProp('note.back.fg', PROP_COLOR, 'ink', css='color',
@@ -1262,22 +1271,25 @@ THEME_COMPONENTS = [
     # Compact furniture INSIDE a card: a rule to detach it from the content
     # above, and nothing else. No ground -- it sits on the card's own.
     ThemeComponent('note.local', '.notes-local', [
-        # A note at the foot of a card is APPARATUS, and the card already
-        # has a scale for that: `source` and `fact-label` sit at 12px
-        # while the body is 15px. A note at `note.size` (14px) came out at
-        # 93% of the body it annotates -- read as more text, not as
-        # apparatus -- and, in the article, LARGER than the `.refs` block
-        # three lines below it, which is the same role at 13px.
+        # A note at the foot of a card is APPARATUS, and it takes room
+        # from the card it sits on -- a note is meant to DETAIL, and
+        # detail on one screen is space the rest does not get. So it takes
+        # the 12px the card's own furniture already uses (`source`,
+        # `fact-label`), together with `refs.size`, which is the same role
+        # at the foot of the article. Below that there is nothing: 12px is
+        # the floor of the whole design, and at 11px the reference -- the
+        # one thing this tool exists to make reachable -- would be the
+        # smallest thing on the card, under the slide number and the tag.
         #
-        # So the foot-of-unit note takes `refs.size`'s 13px, and the notes
-        # SECTION keeps `note.size`: a section of its own, read as a
-        # scroll, where the note IS the content rather than an aside.
+        # What replaces size as the way to recede is `note.fg`,
+        # `note.weight` and `note.style`. The notes SECTION keeps
+        # `note.size`: there the note is the content, not an aside.
         # (0,2,0), which beats both the shared `note.size` at (0,1,0) and
         # -- the one that actually bit -- `article.size`'s
         # `.full-article ol` at (0,1,1). Without something above that
         # second one, a note size stated for the article's own notes was
         # simply ignored: declared 14px, computed 15px.
-        ThemeProp('note.local.size', PROP_LENGTH, '13px', css='font-size',
+        ThemeProp('note.local.size', PROP_LENGTH, '12px', css='font-size',
                   selector='.notes-local .note-body'),
         ThemeProp('note.local.rule-fg',    PROP_COLOR,  '#0000001A',
                   css='border-top-color'),
@@ -1386,11 +1398,35 @@ THEME_COMPONENTS = [
                   css='border-width',
                   selector='.full-article table th, .full-article table td'),
     ]),
+    # The references block and a note at the foot of a unit are the same
+    # role -- apparatus under the text it serves -- so they take the same
+    # size, and 12px is the floor the rest of the design already uses for
+    # what sits under running text. A note is meant to DETAIL, and detail
+    # on a card is space taken from the card.
+    #
+    # What replaces the size as the way to make it recede is the pair
+    # below plus the colour: a theme quietens a note by tone, by weight
+    # or by slant, never by making it smaller still. The tone has a floor
+    # the test suite measures (4.5:1 on all three grounds a body can land
+    # on), so "quieter" can never become "unreadable".
     ThemeComponent('refs', '.full-article .refs', [
-        ThemeProp('refs.fg',      PROP_COLOR,  'ink-quiet', css='color'),
-        ThemeProp('refs.size',    PROP_LENGTH, '13px',      css='font-size'),
+        # `note.fg`, not a tone of its own. The two blocks are the same
+        # role at the same size on the same page, so a theme that quietens
+        # its notes has said everything it needs to say about its
+        # references too -- and 33 per-theme values do not have to be
+        # written twice and kept in step by hand.
+        #
+        # It also closes a defect that predates the notes work and was
+        # never measured: `ink-quiet` here was BELOW AA on 12 of 33 themes
+        # (solarized at 2.61:1), for the same reason it was on notes --
+        # that grey was drawn for secondary text at 15-22px, not for
+        # apparatus at 12.
+        ThemeProp('refs.fg',      PROP_COLOR,  'note.fg', css='color'),
+        ThemeProp('refs.size',    PROP_LENGTH, '12px',      css='font-size'),
         ThemeProp('refs.leading', PROP_RATIO,  '1.5',       css='line-height',
                   selector='.full-article .refs p'),
+        ThemeProp('refs.weight',  PROP_WEIGHT, 'normal',    css='font-weight'),
+        ThemeProp('refs.style',   PROP_STYLE,  'normal',    css='font-style'),
     ]),
 
     ThemeComponent('highlight', '.highlight-figure', [
@@ -1656,7 +1692,7 @@ THEME_NOTE_PROPS = {
     'monokai': {'note.fg': '#AFA99A', 'note.marker.fg': 'ink', 'note.back.fg': '#AFA99A', 'note.local.rule-fg': '#F8F8F265', 'note.page.bg': '#F8F8F217', 'note.page.rule-fg': '#F8F8F269'},
     'everforest': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#BAB9A5', 'note.marker.fg': 'ink', 'note.back.fg': '#BAB9A5', 'note.local.rule-fg': '#D3C6AA94', 'note.page.bg': '#D3C6AA1E', 'note.page.rule-fg': '#D3C6AA9D'},
     'rose-pine': {'footnote-call.fg': 'ink', 'note.fg': '#575279', 'note.marker.fg': 'ink', 'note.back.fg': '#575279', 'note.local.rule-fg': '#4642619D', 'note.page.bg': '#46426117', 'note.page.rule-fg': '#464261A4'},
-    'high-contrast': {'note.size': '16px', 'note.local.size': '15px', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': '30px', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#00000070', 'note.page.bg': '#00000011', 'note.page.rule-fg': '#00000072'},
+    'high-contrast': {'note.size': '16px', 'note.local.size': '14px', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': '30px', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#00000070', 'note.page.bg': '#00000011', 'note.page.rule-fg': '#00000072'},
     'blueprint': {'footnote-call.fg': 'ink', 'note.fg': '#4A6277', 'note.marker.fg': 'ink', 'note.back.fg': '#4A6277', 'note.local.rule-fg': '#0B254584', 'note.page.bg': '#0B254514', 'note.page.rule-fg': '#0B254588'},
     'blueprint-night': {'note.fg': '#889AB2', 'note.marker.fg': 'call', 'note.back.fg': '#889AB2', 'note.local.rule-fg': '#DCE6F266', 'note.page.bg': '#DCE6F21C', 'note.page.rule-fg': '#DCE6F26B'},
     'monochrome': {'note.fg': '#656565', 'note.marker.fg': 'call', 'note.back.fg': '#656565', 'note.local.rule-fg': '#11111178', 'note.page.bg': '#11111111', 'note.page.rule-fg': '#1111117B'},

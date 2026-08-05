@@ -961,10 +961,34 @@ sa propre section**, et l'échelle de la fiche le dictait déjà : son corps
 est à 15 px, son propre appareil — `source`, `fact-label` — à 12 px. Une
 note à `note.size` (14 px) sortait à 93 % du corps qu'elle annote, donc
 lue comme du texte de plus, et **plus grande** que le bloc `.refs` trois
-lignes plus bas, qui est exactement le même rôle à 13 px. D'où
-`note.local.size`, à 13 px comme `refs.size` : au pied d'une unité, une
-note est de l'appareil. Dans la section de notes, elle *est* le contenu,
-lue en défilement, et garde `note.size`.
+lignes plus bas, qui est exactement le même rôle.
+
+`note.local.size` et `refs.size` sont donc tous deux à **12 px**, le
+plancher du design : aucune des 244 propriétés n'est en dessous. Une note
+sert à *détailler*, et sur une fiche le détail est de la place que le
+reste n'a pas ; mais en dessous il n'y a rien à gagner. Mesuré, passer de
+13 à 12 px fait gagner 3 px sur une fiche de 617 — 0,5 % — et à 11 px la
+référence, la seule chose que cet outil existe pour rendre atteignable,
+deviendrait le plus petit élément de la fiche, sous le numéro de fiche
+(13 px) et sous l'étiquette (12 px).
+
+**Ce qui remplace la taille comme moyen de s'effacer**, ce sont le ton
+(`note.fg`), la graisse (`note.weight`) et l'italique (`note.style`) : un
+thème rend une note discrète par la couleur ou par la forme, jamais en la
+rapetissant encore. Le ton a un plancher que la suite de tests mesure —
+4,5:1 sur les trois fonds où un corps peut atterrir — donc « plus
+discret » ne peut pas devenir « illisible ».
+
+`refs.fg` référence `note.fg` plutôt que d'avoir son propre ton : les
+deux blocs sont le même rôle, à la même taille, sur la même page, donc un
+thème qui a rendu ses notes discrètes l'a dit pour ses références aussi.
+Cela ferme au passage un défaut antérieur aux notes et jamais mesuré :
+`ink-quiet` y était **sous AA sur 12 thèmes sur 33** (solarized à
+2,61:1), pour la même raison que sur les notes — ce gris a été dessiné
+pour du texte secondaire à 15-22 px, pas pour de l'appareil à 12.
+
+Dans la section de notes, la note *est* le contenu, lue en défilement, et
+garde `note.size`.
 
 Le sélecteur de `note.local.size` est `.notes-local .note-body`, à
 (0,2,0), et cette spécificité est portante : `article.size` pilote
