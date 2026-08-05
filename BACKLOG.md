@@ -671,3 +671,45 @@ forces the exemption out with it.
 
 Same class as B9's five themes: a palette value below AA, needing a
 measured replacement rather than a mechanism.
+
+## B18 — `cover.tag.fg` is below AA on three themes — NOTED
+
+Found while fixing B17, and it is the same pair seen from the other side.
+The cover tag is `mark` painted on the cover ground, which on a light
+theme *is* `ink` — so catppuccin's tag measured the identical 3.05:1 as
+its fact box, and moving `color.mark` fixed both at once. Three other
+themes are below the floor for the same reason and were not touched:
+
+| theme | `cover.tag.fg` on the cover ground |
+|---|---|
+| pop-tangerine | **2.19:1** |
+| pop-lemon | **3.22:1** |
+| rose-pine | **4.24:1** |
+
+The tag is 12px bold — not large text — so 4.5:1 is the right bar, not
+3:1. Measured from the resolved registry, compositing to 8-bit channels.
+
+Pinned as an exact set, `COVER_TAG_BELOW_AA`, in
+`test_the_cover_tag_is_measured_on_the_ground_the_cover_paints`. The set
+is the same idiom `KNOWN_PALETTE_FAILURES` used for B17: it cannot grow
+in silence, and a fix forces the exemption out with it.
+
+**This entry exists because a pinned set is a guard, not an intention.**
+B17 was fixed because it had both — a test that stopped it spreading and
+a backlog entry saying someone meant to deal with it. A pinned set alone
+would have been a headstone that reads like a decision. Recording it here
+is what makes it a debt rather than a shrug.
+
+Deliberately not fixed with B17: a `cover.tag.fg` literal per theme is
+one line each, but the values are an artistic choice on three palettes,
+and B17's decided route (move `color.mark`) does not transfer — on
+pop-tangerine it would take `mark`-on-page from 3.80:1 to 1.85:1, which
+is worse than what it repairs.
+
+Related: `share.rule-fg` on the 15 **light** themes sits at 1.41:1
+(pop-tangerine) to 1.46:1 (crimson). The argument that justified raising
+it on dark themes applies unchanged — the share button's fill *is* the
+popover's fill, so the 1px border is the only thing saying "button" — but
+fixing it means moving the registry default `#00000029`, which touches
+every light theme at once. Dark and light are asymmetric there until
+someone decides that default.

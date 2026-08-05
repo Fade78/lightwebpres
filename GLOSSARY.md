@@ -3,10 +3,11 @@
 Every `key: value` line of the article format — series, article and slide
 level: where it can be set, what it falls back to when absent, what it
 renders as. Reference only; `specifications.md` is authoritative, each row
-links to its own §. The theme properties (`component.axis`, 237 of them)
-are a separate vocabulary and are not listed here: `templates/settings.conf`
-carries them all, commented, at the current theme's values — see
-`specifications.md` §9.
+links to its own §. The theme properties (`component.axis`) are a separate
+vocabulary and are not listed here: `templates/settings.conf` carries them
+all, commented, at the current theme's values — see `specifications.md` §9,
+whose §9.1 also explains why no count of them is written by hand anywhere,
+including in this sentence.
 Excludes LWP's structural markers (`<!-- lwp:meta -->`, `<!-- lwp:slide:TYPE
 -->`, `---`) — see `specifications.md` §4.1 for those.
 
