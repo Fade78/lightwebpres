@@ -18,6 +18,7 @@ import json
 import os
 import inspect
 import re
+import shutil
 import subprocess
 from html import escape as html_escape
 import sys
@@ -1472,13 +1473,24 @@ class MarkdownConversion(unittest.TestCase):
         )
 
     def test_footnote(self):
-        # Spec §6 (line 414-415): footnotes are a visual marker, not a real
-        # anchor link — [^N] -> <sup>[^N]</sup>, not a clickable #fn1 link.
+        # A note is a note: the call is a link to its body, the body is a
+        # link back, and the reader sees a POSITION -- never the author's
+        # label, which stays a key in the source (ARCHI-NOTES §4).
         html = self._build_article_html(
-            'A claim with a footnote[^1].\n\n[^1]: Some source, 2020.\n'
+            'A claim with a footnote[^kwh].\n\n[^kwh]: Some source, 2020.\n'
         )
-        self.assertIn('A claim with a footnote<sup>[^1]</sup>.', html)
-        self.assertIn('<p><sup>[^1]</sup>: Some source, 2020.</p>', html)
+        self.assertIn(
+            'A claim with a footnote<sup class="note-call">'
+            '<a id="noteref-article-1" href="#note-article-1" '
+            'role="doc-noteref">1</a></sup>.', html)
+        self.assertIn(
+            '<li id="note-article-1" role="doc-footnote">'
+            '<span class="note-num">1</span>Some source, 2020.', html)
+        self.assertIn('href="#noteref-article-1" role="doc-backlink"', html)
+        # The label never reaches the page, and neither does the literal
+        # marker the old rendering shipped.
+        self.assertNotIn('[^kwh]', html)
+        self.assertNotIn('<sup>[^', html)
 
     def test_unordered_list(self):
         html = self._build_article_html('- First item\n- Second item\n')
@@ -2253,7 +2265,7 @@ class NbspPreservedFromSource(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build(tmp, md, extra_articles={'a_article.md': article_md})
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            m = re.search(r'<sup>\[\^1\]</sup>: (.*?)</p>', html)
+            m = re.search(r'<span class="note-num">1</span>(.*?)<a class="note-back"', html)
             self.assertIsNotNone(m, html)
             self.assertTrue(m.group(1).startswith(self.NBSP), repr(m.group(1)))
 
@@ -7449,6 +7461,310 @@ class FactVariant(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertIn('a.md', result.stderr)
             self.assertIn('fact-variant', result.stderr)
+
+
+class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
+    """What shipped under the name "footnotes" before this was a literal
+    marker: `[^1]` became `<sup>[^1]</sup>` and the body became a
+    paragraph starting with the same literal. No anchor, no link, no
+    numbering. For a tool whose central use is the sourced article, a
+    reference the reader cannot reach is a defect, so every test here is
+    about REACHABILITY, not about looks."""
+
+    DECK = (
+        '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+        'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+        '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n'
+        '---\n\n'
+        '<!-- lwp:slide -->\ntag: One\n## First\n\nfact-label: L\n\n'
+        'A claim[^kwh] and the same source again[^kwh].\n\n'
+        'A different one[^b].\n\n'
+        '[^kwh]: Measured at 230 V.\n[^b]: A second body.\n\n'
+        '---\n\n'
+        '<!-- lwp:slide -->\ntag: Two\n## Second\n\nfact-label: L\n\n'
+        'A claim in the next card[^z].\n\n[^z]: Its own body.\n\n'
+        '---\n\n'
+        '<!-- lwp:slide:full-article -->\narticle: art.md\n'
+    )
+    ARTICLE = ('# Long form\n\nOne[^p] and two[^q].\n\n'
+               '[^p]: First.\n[^q]: Second.\n')
+
+    def _build(self, extra='', article=None):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, self.DECK.format(extra=extra))
+        (root / 'articles' / 'art.md').write_text(
+            self.ARTICLE if article is None else article, encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+    def test_the_call_and_the_body_point_at_each_other(self):
+        html = self._build()
+        self.assertIn('<a id="noteref-s2-1" href="#note-s2-1" '
+                      'role="doc-noteref">1</a>', html)
+        self.assertIn('<li id="note-s2-1" role="doc-footnote">', html)
+        self.assertIn('href="#noteref-s2-1" role="doc-backlink"', html)
+
+    def test_the_authors_label_never_reaches_the_page(self):
+        # The label is a key, not content: it can be anything, and
+        # numbering is therefore not a rewrite of what the author wrote.
+        html = self._build()
+        for label in ('[^kwh]', '[^b]', '[^z]', '[^p]', '[^q]'):
+            self.assertNotIn(label, html)
+
+    def test_numbering_restarts_in_each_card_and_runs_on_in_the_article(self):
+        # A card is individually shareable, so a reader can arrive at card
+        # 5 having seen nothing else; a note numbered 7 there would send
+        # them looking for six they will never find (ARCHI-NOTES §4).
+        html = self._build()
+        self.assertIn('id="note-s2-1"', html)
+        self.assertIn('id="note-s2-2"', html)
+        self.assertIn('id="note-s3-1"', html)   # next card, back to 1
+        self.assertIn('id="note-article-1"', html)
+        self.assertIn('id="note-article-2"', html)
+
+    def test_every_id_in_the_page_is_unique(self):
+        # This is the whole reason the displayed number is not the anchor
+        # id. Two cards each carrying one note would otherwise emit two
+        # id="note-1", and every return link would land on the wrong one.
+        html = self._build()
+        ids = re.findall(r'\bid="([^"]+)"', html)
+        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        self.assertEqual(dupes, [], f'duplicate ids: {dupes}')
+
+    def test_one_label_called_twice_is_one_body_with_two_return_links(self):
+        # Duplicating the body would give two numbers to one reference.
+        html = self._build()
+        self.assertEqual(html.count('id="note-s2-1"'), 1)
+        self.assertIn('href="#noteref-s2-1" role="doc-backlink"', html)
+        self.assertIn('href="#noteref-s2-1-2" role="doc-backlink"', html)
+
+    def test_local_is_the_default_and_bodies_stay_with_their_card(self):
+        html = self._build()
+        self.assertIn('class="notes-local"', html)
+        self.assertNotIn('class="slide notes-section"', html)
+        # The card's own block, inside the card's own section.
+        card = html.split('id="s2"', 1)[1].split('<section', 1)[0]
+        self.assertIn('id="note-s2-1"', card)
+        self.assertIn('id="note-s2-2"', card)
+        self.assertNotIn('id="note-s3-1"', card)
+
+    def test_page_placement_collects_into_one_section_of_the_page(self):
+        html = self._build(extra='notes-placement: page\n')
+        self.assertIn('<section class="slide notes-section" id="notes" '
+                      'role="doc-endnotes">', html)
+        self.assertNotIn('class="notes-local"', html)
+        # Continuous across the whole page, and endnotes rather than
+        # footnotes now that they have been collected.
+        for n in range(1, 6):
+            self.assertIn(f'id="note-p-{n}"', html)
+        self.assertIn('role="doc-endnote"', html)
+
+    def test_a_call_can_precede_the_card_that_defines_its_body(self):
+        # Only possible because a page-wide scope is numbered once the
+        # whole page has been converted, not card by card.
+        deck = self.DECK.format(extra='notes-placement: page\n').replace(
+            '[^z]: Its own body.', '[^late]: Defined after it was called.')
+        deck = deck.replace('A claim in the next card[^z].',
+                            'A claim in the next card[^late].')
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, deck)
+        (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        self.assertIn('href="#note-p-3" role="doc-noteref"', html)
+        self.assertIn('id="note-p-3"', html)
+
+    def test_the_tooltip_is_off_by_default_and_is_never_the_only_carrier(self):
+        # A tooltip does not exist on a touch screen, does not exist in
+        # print, and is not in the reading order. The body is always in
+        # the document; the tooltip only ever saves a jump.
+        plain = self._build()
+        self.assertNotIn('title="Measured at 230 V."', plain)
+        withtip = self._build(extra='notes-tooltip: on\n')
+        self.assertIn('title="Measured at 230 V."', withtip)
+        self.assertIn('<li id="note-s2-1"', withtip)
+
+    def test_placement_cascades_from_series_meta_and_the_article_wins(self):
+        for meta_line, expected_section in (('', True), ('notes-placement: local\n', False)):
+            tmp = tempfile.mkdtemp()
+            self.addCleanup(shutil.rmtree, tmp, True)
+            root = scaffold(tmp, self.DECK.format(extra=meta_line))
+            (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data = {'series_meta': {'notes-placement': 'page'},
+                    'articles': data['articles']}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertEqual('class="slide notes-section"' in html,
+                             expected_section, meta_line or '(series only)')
+
+    def test_an_unknown_placement_is_a_build_error_naming_the_article(self):
+        # Falling back to the default would leave an author reading a page
+        # that ignores what they asked for, with nothing to say why.
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, self.DECK.format(extra='notes-placement: sidebar\n'))
+        (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('a.md', result.stderr)
+        self.assertIn('notes-placement', result.stderr)
+
+    def test_a_call_inside_a_code_span_stays_literal(self):
+        html = self._build(article='Write `[^1]` to call a note.\n')
+        self.assertIn('<code>[^1]</code>', html)
+
+    def test_a_source_cannot_forge_a_call_with_a_control_character(self):
+        # md_inline() owns U+0000 and U+0002 as internal placeholders. A
+        # source carrying one must not be able to mint a note that has no
+        # body, nor to reach into the code-span table.
+        deck = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+                'nav_title: A\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n'
+                '---\n\n<!-- lwp:slide:full-article -->\narticle: art.md\n')
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, deck)
+        (root / 'articles' / 'art.md').write_text(
+            'Text \x02kwh\x02 and \x001\x00 more.\n', encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        # 'note-call' on its own is in the composed stylesheet of every
+        # page; what must not appear is a rendered call.
+        self.assertNotIn('<sup class="note-call">', html)
+        self.assertIn('Text kwh and 1 more.', html)
+
+
+class TheNotesSectionIsReadableOnEveryThemeItShipsWith(unittest.TestCase):
+    """DARK_FURNITURE_PROPS is the table that stops a white surface veil
+    from turning a dark page into an unreadable pale block. Membership in
+    it is easy to forget for a component added later — the notes plate and
+    its two rules were forgotten exactly that way, and the default shipped
+    a near-opaque white slab carrying pale ink on all 18 dark themes.
+
+    So this measures the COMPOSITED result rather than the table's
+    contents: a test that checked membership would pass the day someone
+    adds a key with a value that does not work."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    @staticmethod
+    def _rgba(value):
+        h = value.lstrip('#')
+        h = h + 'FF' if len(h) == 6 else h
+        return [int(h[i:i + 2], 16) for i in (0, 2, 4, 6)]
+
+    @classmethod
+    def _over(cls, fg, bg):
+        a = fg[3] / 255
+        return [round(fg[i] * a + bg[i] * (1 - a)) for i in range(3)] + [255]
+
+    @staticmethod
+    def _ratio(a, b):
+        def lum(c):
+            def ch(v):
+                v /= 255
+                return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+            return .2126 * ch(c[0]) + .7152 * ch(c[1]) + .0722 * ch(c[2])
+        la, lb = lum(a), lum(b)
+        return (max(la, lb) + .05) / (min(la, lb) + .05)
+
+    def _plate(self, slug):
+        resolved = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer(slug), {})
+        page = self._rgba(resolved['color.page'])
+        return resolved, page, self._over(self._rgba(resolved['note.page.bg']), page)
+
+    def test_the_notes_heading_is_never_lost_in_its_own_plate(self):
+        # The failure this replaces was total, not marginal: pop-fuchsia
+        # measured 1.00:1 -- the heading was exactly invisible.
+        for slug in self.lwp.THEMES:
+            resolved, _, plate = self._plate(slug)
+            r = self._ratio(self._rgba(resolved['note.page.title.fg']), plate)
+            self.assertGreaterEqual(round(r, 2), 4.5,
+                                    f'{slug}: notes heading at {r:.2f}:1 on its own plate')
+
+    def test_a_dark_theme_never_paints_the_notes_plate_pale(self):
+        # The plate must stay on the dark side of its own page, not become
+        # a light slab in the middle of it.
+        for slug, theme in self.lwp.THEMES.items():
+            if not theme.get('dark_background'):
+                continue
+            resolved, page, plate = self._plate(slug)
+            self.assertLessEqual(self._ratio(plate, page), 2.0,
+                                 f'{slug}: the notes plate departs from its page like a light slab')
+
+    def test_the_notes_rules_are_drawn_at_all(self):
+        # Black on black is not a hairline, it is nothing. This is the
+        # floor (visible), not the 3:1 target a values pass would set.
+        for slug in self.lwp.THEMES:
+            resolved, page, plate = self._plate(slug)
+            local = self._over(self._rgba(resolved['note.local.rule-fg']), page)
+            section = self._over(self._rgba(resolved['note.page.rule-fg']), page)
+            for name, drawn in (('note.local.rule-fg', local), ('note.page.rule-fg', section)):
+                self.assertGreater(self._ratio(drawn, page), 1.1,
+                                   f'{slug}: {name} is invisible against the page')
+
+
+class AuditNamesTheThreeWaysANoteBreaks(unittest.TestCase):
+    """None of them is fatal — the input contract does not break over an
+    editorial slip — so `audit` is where they have to surface."""
+
+    DECK = (
+        '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+        'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+        '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n'
+        '---\n\n'
+        '<!-- lwp:slide -->\ntag: One\n## First\n\nfact-label: L\n\n'
+        'A body defined here[^here].\n\n[^here]: Present.\n\n'
+        '---\n\n'
+        '<!-- lwp:slide -->\ntag: Two\n## Second\n\nfact-label: L\n\n'
+        'A call to it from the next card[^here].\n\n'
+        '---\n\n'
+        '<!-- lwp:slide:full-article -->\narticle: art.md\n'
+    )
+    ARTICLE = (
+        '# Long form\n\nOne[^p].\n\n[^p]: First.\n\n'
+        '[^never]: Nothing calls this.\n\n'
+        '<div class="refs">\n\n[^raw]: Inside raw HTML.\n\n</div>\n'
+    )
+
+    def _audit(self, extra=''):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        run('install', tmp, '--force')
+        root = scaffold(tmp, self.DECK.format(extra=extra))
+        (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+        result = run('audit', str(root))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
+
+    def test_a_body_nothing_calls_and_a_call_with_no_body_are_both_named(self):
+        out = self._audit()
+        self.assertIn('[^never]', out)
+        self.assertIn('nothing calls', out)
+
+    def test_a_definition_inside_raw_html_is_named(self):
+        # Raw HTML is passed through verbatim by design, which is how the
+        # combination of `.refs` and notes shipped broken output at exit 0.
+        out = self._audit()
+        self.assertIn('[^raw]', out)
+        self.assertIn('raw HTML', out)
+
+    def test_the_report_follows_the_placement_in_force(self):
+        # A call in card 3 to a body in card 2 is a defect under `local`
+        # and perfectly fine under `page`. A report blind to that would be
+        # wrong in one direction or the other, every time.
+        self.assertIn('[^here]', self._audit())
+        self.assertNotIn('[^here]', self._audit(extra='notes-placement: page\n'))
 
 
 if __name__ == '__main__':

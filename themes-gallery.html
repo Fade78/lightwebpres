@@ -1549,6 +1549,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -1567,6 +1573,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -1778,11 +1790,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF5555FF;
   --note-back-fg: #8B9CC7FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #F8F8F2FF;
   --note-page-title-size: 22px;
@@ -2784,6 +2796,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -2802,6 +2820,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -4019,6 +4043,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -4037,6 +4067,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -5254,6 +5290,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -5272,6 +5314,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -6489,6 +6537,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -6507,6 +6561,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -6718,11 +6778,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F7768EFF;
   --note-back-fg: #8C94BCFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #C0CAF5FF;
   --note-page-title-size: 22px;
@@ -7724,6 +7784,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -7742,6 +7808,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -7953,11 +8025,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F92672FF;
   --note-back-fg: #9B9483FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #F8F8F2FF;
   --note-page-title-size: 22px;
@@ -8959,6 +9031,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -8977,6 +9055,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -9188,11 +9272,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #E67E80FF;
   --note-back-fg: #9DA9A0FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #D3C6AAFF;
   --note-page-title-size: 22px;
@@ -10194,6 +10278,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -10212,6 +10302,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -11429,6 +11525,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -11447,6 +11549,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -12664,6 +12772,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -12682,6 +12796,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -13899,6 +14019,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -13917,6 +14043,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -14128,11 +14260,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF8A5BFF;
   --note-back-fg: #7B8FA8FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #DCE6F2FF;
   --note-page-title-size: 22px;
@@ -15134,6 +15266,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -15152,6 +15290,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -16369,6 +16513,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -16387,6 +16537,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -16598,11 +16754,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFFFFFFF;
   --note-back-fg: #8A8A8AFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #EDEDEDFF;
   --note-page-title-size: 22px;
@@ -17604,6 +17760,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -17622,6 +17784,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -18839,6 +19007,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -18857,6 +19031,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -19068,11 +19248,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D4AF37FF;
   --note-back-fg: #8E8269FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #F3EDDFFF;
   --note-page-title-size: 22px;
@@ -20074,6 +20254,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -20092,6 +20278,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -21309,6 +21501,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -21327,6 +21525,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -21538,11 +21742,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F4622EFF;
   --note-back-fg: #A08074FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #FFEDE2FF;
   --note-page-title-size: 22px;
@@ -22544,6 +22748,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -22562,6 +22772,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -22773,11 +22989,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #C1121FFF;
   --note-back-fg: #6E6A64FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #D6D2C8FF;
   --note-page-title-size: 22px;
@@ -23779,6 +23995,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -23797,6 +24019,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -25014,6 +25242,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -25032,6 +25266,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -25243,11 +25483,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #E0A32EFF;
   --note-back-fg: #7D9480FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #DDE9DCFF;
   --note-page-title-size: 22px;
@@ -26249,6 +26489,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -26267,6 +26513,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -27484,6 +27736,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -27502,6 +27760,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -28719,6 +28983,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -28737,6 +29007,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -28948,11 +29224,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF3C6FFF;
   --note-back-fg: #6E9C7AFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #D7FFE0FF;
   --note-page-title-size: 22px;
@@ -29954,6 +30230,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -29972,6 +30254,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -30183,11 +30471,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF2E97FF;
   --note-back-fg: #9A86C4FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #F2E9FFFF;
   --note-page-title-size: 22px;
@@ -31189,6 +31477,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -31207,6 +31501,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -31418,11 +31718,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #F7BDC2FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #FFF1F0FF;
   --note-page-title-size: 22px;
@@ -32424,6 +32724,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -32442,6 +32748,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -33659,6 +33971,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -33677,6 +33995,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -34894,6 +35218,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -34912,6 +35242,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -35123,11 +35459,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #B5E4C4FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #F0FFF4FF;
   --note-page-title-size: 22px;
@@ -36129,6 +36465,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -36147,6 +36489,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -36358,11 +36706,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFC2D8FF;
   --note-back-fg: #A6D9E4FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #EFFCFFFF;
   --note-page-title-size: 22px;
@@ -37364,6 +37712,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -37382,6 +37736,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -37593,11 +37953,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #B3C2F0FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #F0F4FFFF;
   --note-page-title-size: 22px;
@@ -38599,6 +38959,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -38617,6 +38983,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -38828,11 +39200,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #CBB6EEFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #F6F1FFFF;
   --note-page-title-size: 22px;
@@ -39834,6 +40206,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -39852,6 +40230,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -40063,11 +40447,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #F0B8D8FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #FFFFFF24;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #FFFFFF0E;
+  --note-page-rule-fg: #FFFFFF24;
   --note-page-rule-width: 1px;
   --note-page-title-fg: #FFF0FAFF;
   --note-page-title-size: 22px;
@@ -41069,6 +41453,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an &lt;ol&gt;
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block&#x27;s own, not the page&#x27;s: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -41087,6 +41477,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the &lt;sup&gt; around it, not the
+   page&#x27;s link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.

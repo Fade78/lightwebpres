@@ -166,6 +166,8 @@ LANG_FR = r'''{
     "series_untitled_fallback": "Série d'articles",
     "draft_banner": "Brouillon",
     "full_article_tag": "Article complet",
+    "notes_section_title": "Notes",
+    "note_back": "Revenir au texte",
     "source_label": "Source",
     "copy_link": "Copier le lien",
     "copy_link_done": "Lien copié !",
@@ -218,6 +220,8 @@ LANG_EN = r'''{
     "series_untitled_fallback": "Article series",
     "draft_banner": "Draft",
     "full_article_tag": "Full article",
+    "notes_section_title": "Notes",
+    "note_back": "Back to the text",
     "source_label": "Source",
     "copy_link": "Copy link",
     "copy_link_done": "Link copied!",
@@ -1528,6 +1532,16 @@ DARK_FURNITURE_PROPS = {
     'nav-dot.bg': '#FFFFFF3D',
     'fact.bg': '#FFFFFF0E', 'article.bg': '#FFFFFF0E',
     'series-nav.link.bg': '#FFFFFF0E', 'card.bg': '#FFFFFF0E',
+    # The notes plate is a surface veil like the four above, and its two
+    # rules are hairlines like the five at the top. Left out of this table
+    # they kept their light-theme defaults on a dark page: a near-opaque
+    # white slab carrying pale ink (measured at 1.02:1 on pop-fuchsia --
+    # the heading was exactly invisible), and rules drawn in black on
+    # black. Every surface veil in the registry belongs here; a new one
+    # that forgets is the same bug again, which is why the test that
+    # guards this measures the composited result rather than membership.
+    'note.page.bg': '#FFFFFF0E',
+    'note.local.rule-fg': '#FFFFFF24', 'note.page.rule-fg': '#FFFFFF24',
     'code.bg': '#0000004D', 'table.head.bg': '#0000004D',
     'table.col-signal.bg': '#0000004D', 'table.col-snap.bg': '#0000004D',
     'series-nav.current.bg': '#0000004D', 'version-tag.bg': '#0000004D',
@@ -2382,6 +2396,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    per locality while the anchor id stays unique to the document — an <ol>
    counter could not carry both. */
 .notes-local {
+  /* The rule is the block's own, not the page's: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
   margin-top: 20px;
   padding-top: 12px;
   border-top-style: solid;
@@ -2400,6 +2420,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .note-body li { margin-bottom: 8px; }
 .note-num { font-weight: 700; margin-right: 6px; }
 .note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the <sup> around it, not the
+   page's link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -4247,8 +4273,174 @@ def apply_strings(text, strings):
 # MARKDOWN TO HTML CONVERTER
 # ============================================================================
 
+# The call marker md_inline() leaves behind for a `[^label]`, resolved into
+# real markup by convert_markdown() (local placement) or by build_article()
+# once the whole page is assembled (page placement). It cannot be written
+# by an author: md_inline() strips U+0002 from its input first, the same
+# way it owns U+0000 for code spans.
+_NOTE_CALL_RE = re.compile('\x02(\\w+)\x02')
+# [ \t]*, not \s* -- \s matches U+00A0 like str.strip() does, which would
+# swallow a non-breaking space right after the ':' instead of preserving
+# it as the body's first character (§7.6).
+_NOTE_DEF_RE = re.compile(r'^\[\^(\w+)\]:[ \t]*(.*)')
+
+
+class NoteScope:
+    """One numbering locality for notes (ARCHI-NOTES §4).
+
+    A note has a *call* in the running text and a *body* somewhere else.
+    This object is what ties them together, and there is exactly one per
+    locality: one per card and one for the long-form article under
+    `notes-placement: local`, one for the whole page under `page`.
+
+    Two identifiers, deliberately not the same thing. The reader sees a
+    POSITION, restarting at 1 in each locality — a card is shareable on
+    its own, so a note numbered 7 in a card someone arrived at directly
+    would send them looking for six they will never find. The anchor id
+    is scoped by `prefix` (`note-s3-1`) because HTML requires ids unique
+    to the DOCUMENT: without that, two cards each carrying one note would
+    emit two id="note-1" and every return link would land on the wrong
+    one.
+
+    The author's label (`[^kwh]`) never reaches the page. It is a key in
+    this object and nothing more, which is why it can be anything and why
+    numbering is not a rewrite of what the author wrote.
+    """
+
+    def __init__(self, prefix, tooltip=False, endnotes=False, deferred=False):
+        self.prefix = prefix
+        self.tooltip = tooltip
+        # A page-wide scope is DEFERRED: its calls are numbered only once
+        # every slide and the article have been converted. Two things
+        # require it. Numbering must follow the order of the finished page,
+        # not the order the converter happened to run in; and a tooltip
+        # needs the body, which may be defined in a later card than the one
+        # that calls it. A local scope has neither problem -- it opens and
+        # closes inside one conversion -- and resolves as it goes.
+        self.deferred = deferred
+        # doc-endnote vs doc-footnote: the same body is an endnote when it
+        # has been collected into a section of its own at the end of the
+        # page, and a footnote when it sits at the foot of the unit that
+        # called it. Assistive technology is told which one it is.
+        self.endnotes = endnotes
+        self.bodies = {}     # label -> body HTML, as md_inline() left it
+        self.numbers = {}    # label -> displayed number
+        self.order = []      # labels, in numbering order
+        self.calls = {}      # label -> how many calls have been resolved
+        # Definitions the converter had to pass through verbatim because
+        # they sat inside a raw HTML block. They are not notes and never
+        # become any -- they ship as literal `[^1]: text`. Recorded here so
+        # `audit` can name them instead of an author finding them on the
+        # published page (ARCHI-NOTES §4).
+        self.swallowed = []
+
+    def define(self, label, body_html):
+        """Records a body. The first definition of a label wins; a second
+        one is an editorial slip, not a build error — `audit` names it."""
+        self.bodies.setdefault(label, body_html)
+
+    def number(self, label):
+        """The displayed number for a label, assigned on first sight."""
+        if label not in self.numbers:
+            self.numbers[label] = len(self.order) + 1
+            self.order.append(label)
+        return self.numbers[label]
+
+    def _call_markup(self, label):
+        num = self.number(label)
+        self.calls[label] = self.calls.get(label, 0) + 1
+        nth = self.calls[label]
+        # One label called twice yields ONE body with two return links, so
+        # each call needs its own id for its own link to come back to.
+        ref_id = f'noteref-{self.prefix}-{num}' + (f'-{nth}' if nth > 1 else '')
+        title = ''
+        if self.tooltip and label in self.bodies:
+            plain = strip_ws(re.sub(r'<[^<>]+>', ' ', self.bodies[label]))
+            if plain:
+                title = f' title="{html_escape(plain)}"'
+        if label not in self.bodies:
+            # A call whose body is nowhere: the marker stays visible and
+            # keeps its number (dropping it would renumber everything the
+            # author already proofread), but it is not a link to a place
+            # that does not exist. `audit` names it.
+            return f'<sup class="note-call"><span id="{ref_id}">{num}</span></sup>'
+        return (f'<sup class="note-call"><a id="{ref_id}" '
+                f'href="#note-{self.prefix}-{num}" role="doc-noteref"'
+                f'{title}>{num}</a></sup>')
+
+    def resolve(self, html):
+        """Turns every call marker in `html` into its markup, numbering in
+        document order. Called once per locality, over text that is final
+        apart from typography."""
+        return _NOTE_CALL_RE.sub(lambda m: self._call_markup(m.group(1)), html)
+
+    def apply_typography(self, typo_engine, disabled=None):
+        """Runs the typography engine over every body, once, before any of
+        them is read. A tooltip is a plain-text attribute the engine will
+        never see again — this is the only moment the two renderings of one
+        body can be made to say the same thing."""
+        if typo_engine is None:
+            return
+        self.bodies = {k: apply_typo(typo_engine, v, disabled)
+                       for k, v in self.bodies.items()}
+
+    def orphan_calls(self):
+        return [lb for lb in self.order if lb not in self.bodies]
+
+    def unreferenced_bodies(self):
+        # Keyed on `calls`, not on `numbers`: render_bodies() numbers the
+        # unreferenced ones so they can still be shown, which would erase
+        # the very signal this reports. `calls` only ever grows in
+        # _call_markup(), so it is exactly "labels a marker pointed at".
+        return [lb for lb in self.bodies if not self.calls.get(lb)]
+
+    def render_bodies(self, strings):
+        """The bodies block, or '' when there is nothing to render.
+
+        Bodies never called are still rendered, numbered after the rest and
+        without a return link: there is nothing to return to. Dropping them
+        would lose text the author wrote over an editorial slip that `audit`
+        already reports — a slip is not a licence to delete."""
+        for label in self.unreferenced_bodies():
+            self.number(label)
+        if not self.order:
+            return ''
+        back_label = strings.get('note_back', 'Back to the text')
+        role = 'doc-endnote' if self.endnotes else 'doc-footnote'
+        items = []
+        for label in self.order:
+            num = self.numbers[label]
+            body = self.bodies.get(label)
+            if body is None:
+                continue
+            backs = []
+            for nth in range(1, self.calls.get(label, 0) + 1):
+                ref_id = f'noteref-{self.prefix}-{num}' + (f'-{nth}' if nth > 1 else '')
+                mark = '↩' + (f'<sup>{nth}</sup>' if self.calls[label] > 1 else '')
+                backs.append(f'<a class="note-back" href="#{ref_id}" '
+                             f'role="doc-backlink" aria-label="{html_escape(back_label)}">'
+                             f'{mark}</a>')
+            # No literal space around the body: `.note-num` and
+            # `.note-back` carry their own margins in the skeleton, and a
+            # space here would sit in FRONT of a body an author began
+            # deliberately with a non-breaking space (§7.6).
+            items.append(
+                f'    <li id="note-{self.prefix}-{num}" role="{role}">'
+                f'<span class="note-num">{num}</span>{body}'
+                + ''.join(backs) + '</li>')
+        if not items:
+            return ''
+        return '  <ol class="note-body">\n' + '\n'.join(items) + '\n  </ol>'
+
+
 def md_inline(text):
     """Converts inline Markdown formatting to HTML."""
+    # This function owns two control characters as internal placeholders
+    # (U+0000 for code spans below, U+0002 for note calls). Neither is
+    # meaningful in a Markdown source, and letting one through would let a
+    # source forge a placeholder — so they are removed on the way in,
+    # before anything else can look at the text.
+    text = text.replace('\x00', '').replace('\x02', '')
     # Inline code spans (§6.3) come first, before any other substitution
     # below, for two reasons: their content must never be reinterpreted
     # as further Markdown (`` `**not bold**` `` stays literal), and —
@@ -4334,8 +4526,14 @@ def md_inline(text):
     # `[` excluded from the URL class for the same reason as the image
     # pattern above: quadratic on a run of unterminated openers.
     text = re.sub(r'\[([^\]\[]+)\]\((https?://[^\)\[]+)\)', _md_link, text)
-    # Inline footnotes
-    text = re.sub(r'\[\^([\w]+)\]', r'<sup>[^\1]</sup>', text)
+    # Note calls. Only a MARKER is emitted here: the number a call gets
+    # depends on every other call in its locality, which this function
+    # cannot see -- it is handed one line at a time. convert_markdown()
+    # (local placement) or build_article() (page placement) owns the
+    # locality and turns each marker into its real markup. Placed after
+    # the code-span extraction above, so `[^1]` inside backticks stays
+    # literal, as every other construct does.
+    text = re.sub(r'\[\^(\w+)\]', lambda m: f'\x02{m.group(1)}\x02', text)
     # A backslash-escaped backtick that never became part of a span
     # (either unpaired, or both delimiters were escaped) is just a
     # literal backtick. Likewise \> (only meaningful at the very start of
@@ -4557,8 +4755,15 @@ def _is_paragraph_continuation(line, lines, idx, n):
     return True
 
 
-def convert_markdown(md_text, typo_engine=None, disabled=None):
-    """Converts the Markdown body to HTML."""
+def convert_markdown(md_text, typo_engine=None, disabled=None,
+                     notes=None, strings=None):
+    """Converts the Markdown body to HTML.
+
+    `notes` is the NoteScope this text's notes belong to. A deferred scope
+    (the page-wide one of `notes-placement: page`) only collects here: its
+    calls stay markers and its bodies are rendered by whoever owns the
+    page. With no scope at all, the text is its own locality — which is
+    what an ad-hoc conversion wants."""
     lines = md_text.split('\n')
     out = []
     in_list = None
@@ -4567,6 +4772,11 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
     align_depth = 0
     i = 0
     n = len(lines)
+    # No scope given: this text is its own locality, and its bodies land at
+    # its own foot. The prefix has to be unique in the document for the
+    # anchors to work, so a caller rendering more than one such text must
+    # pass its own scopes -- which build_article() does.
+    scope = notes if notes is not None else NoteScope('n')
 
     def close_list():
         nonlocal in_list
@@ -4582,6 +4792,9 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
         # earlier line whose tag wasn't closed yet): every line belongs
         # to it verbatim until the depth count returns to 0.
         if raw_html_depth > 0:
+            m_swallowed = _NOTE_DEF_RE.match(line.lstrip())
+            if m_swallowed:
+                scope.swallowed.append(m_swallowed.group(1))
             out.append(rstrip_ws(raw))
             raw_html_depth = max(0, raw_html_depth + _html_tag_depth_delta(line))
             i += 1
@@ -4741,15 +4954,16 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
             i += 1
             continue
 
-        # Footnotes (definitions)
-        # [ \t]*, not \s* — \s matches U+00A0 like str.strip() does, which
-        # would swallow a non-breaking space right after the ':' instead
-        # of preserving it as the footnote body's first character (§7.6).
-        m_ref = re.match(r'^\[\^([\w]+)\]:[ \t]*(.*)', line)
+        # A note body, wherever the author chose to write it.
+        m_ref = _NOTE_DEF_RE.match(line)
         if m_ref:
             close_list()
-            num, txt = m_ref.group(1), m_ref.group(2)
-            out.append(f'  <p><sup>[^{num}]</sup>: {md_inline(txt)}</p>')
+            label, txt = m_ref.group(1), m_ref.group(2)
+            # Nothing is emitted here. A body does not render where it was
+            # written; it renders where its placement says (ARCHI-NOTES §2),
+            # which is at the foot of this locality or in the page's notes
+            # section. The scope is what carries it there.
+            scope.define(label, md_inline(txt))
             i += 1
             continue
 
@@ -4775,7 +4989,21 @@ def convert_markdown(md_text, typo_engine=None, disabled=None):
             f'{align_depth} unclosed {{align:...}} block(s): every opener '
             f'needs a {{/align}} alone on its own line')
     html = '\n'.join(out)
+    # A local scope closes here: its calls get their numbers and its bodies
+    # follow the text they belong to. A deferred one has only been filling
+    # up -- the page closes it, once every card and the article have been
+    # converted. The call markers are resolved BEFORE apply_typo() so no
+    # typography rule can ever see one, and the bodies are typeset before
+    # that so the block and the tooltips agree.
+    bodies = ''
+    if not scope.deferred:
+        scope.apply_typography(typo_engine, disabled)
+        html = scope.resolve(html)
     html = apply_typo(typo_engine, html, disabled)
+    if not scope.deferred:
+        bodies = scope.render_bodies(strings or {})
+    if bodies:
+        html += '\n  <div class="notes-local">\n' + bodies + '\n  </div>'
 
     return html
 
@@ -5111,7 +5339,41 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
 # SLIDE HTML RENDERING
 # ============================================================================
 
-def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=None):
+def resolve_notes_settings(meta, series_meta, source_name):
+    """`notes-placement` and `notes-tooltip`: the STRUCTURAL half of the
+    notes cascade (ARCHI-NOTES §5) — built-in default, then `series_meta`,
+    then the article's own meta block. The same shape `author`, `license`
+    and `date` already have; nothing new is invented.
+
+    It does not run through the theme layers, and the reason is mechanical
+    rather than a matter of taste: the theme engine composes CSS, and CSS
+    cannot move an element from one container into another. A theme could
+    not honour a placement even if it were handed one. What a theme DOES
+    get is the appearance — the `note`, `note.local` and `note.page`
+    components, on the ordinary property cascade.
+
+    A wrong value is a build error naming the article, the same bar every
+    other typed value in this tool is held to: silently falling back to the
+    default would leave an author reading a page that ignores what they
+    asked for, with nothing to tell them why."""
+    def pick(key, allowed, default):
+        for source, origin in ((meta, source_name), (series_meta, 'series.json')):
+            if key in source and str(source[key]).strip():
+                value = str(source[key]).strip().lower()
+                if value not in allowed:
+                    print(f'[ERROR] {origin}: {key}: {value!r} is not a valid '
+                          f'value ({" | ".join(sorted(allowed))}).', file=sys.stderr)
+                    sys.exit(1)
+                return value
+        return default
+
+    placement = pick('notes-placement', ('local', 'page'), 'local')
+    tooltip = pick('notes-tooltip', ('on', 'off'), 'off')
+    return placement, tooltip == 'on'
+
+
+def render_slide(slide, slide_num, total_slides, typo_engine, strings,
+                 disabled=None, notes=None):
     """Generates the HTML for a slide."""
     num_str = f'{slide_num:02d} / {total_slides:02d}'
 
@@ -5164,7 +5426,12 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings, disabled=
 
         # Fact-box
         if slide.fact_content:
-            content_html = convert_markdown(slide.fact_content, typo_engine, disabled)
+            # A card is its own numbering locality under `local` placement:
+            # the slide number is what makes the anchors unique in the page
+            # while the reader sees 1, 2, 3 in every card (ARCHI-NOTES §4).
+            slide_notes = notes if notes is not None else NoteScope(f's{slide_num}')
+            content_html = convert_markdown(slide.fact_content, typo_engine,
+                                            disabled, slide_notes, strings)
             if slide.fact_label:
                 label = apply_typo(typo_engine, slide.fact_label, disabled)
                 fact_classes = 'fact-box'
@@ -5492,6 +5759,15 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # for a whole build, not just the two rules disabled_rules can name.
     article_typo_engine = None if str(meta.get('typo', '')).strip().lower() == 'off' else typo_engine
 
+    # Notes: where the bodies land, and whether the call carries the text
+    # as well. One page-wide scope under `page`, one scope per locality
+    # under `local` -- which is what makes the numbering restart in each
+    # card while the anchors stay unique to the document.
+    notes_placement, notes_tooltip = resolve_notes_settings(
+        meta, series_meta_of(series_data), source_path.name)
+    page_notes = (NoteScope('p', tooltip=notes_tooltip, endnotes=True, deferred=True)
+                  if notes_placement == 'page' else None)
+
     total_slides = len(slides)
     slide_htmls = []
 
@@ -5500,7 +5776,10 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # do above.
     try:
         for i, slide in enumerate(slides, 1):
-            html = render_slide(slide, i, total_slides, article_typo_engine, strings, disabled_rules)
+            slide_notes = (page_notes if page_notes is not None
+                           else NoteScope(f's{i}', tooltip=notes_tooltip))
+            html = render_slide(slide, i, total_slides, article_typo_engine,
+                                strings, disabled_rules, slide_notes)
             slide_htmls.append(html)
     except PropertyError as exc:
         print(f'[ERROR] {source_path.name}: {exc}', file=sys.stderr)
@@ -5541,12 +5820,31 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             # where most of the prose lives -- surfaced a bad instance or
             # block tag as a bare Python traceback naming no source at all.
             try:
+                article_notes = (page_notes if page_notes is not None
+                                 else NoteScope('article', tooltip=notes_tooltip))
                 article_html = convert_markdown(article_md, article_typo_engine,
-                                                disabled_rules)
+                                                disabled_rules, article_notes,
+                                                strings)
             except PropertyError as exc:
                 print(f'[ERROR] {slide.article_file}: {exc}', file=sys.stderr)
                 sys.exit(1)
             slides_html = slides_html.replace('{FULL_ARTICLE_PLACEHOLDER}', article_html)
+
+    # `notes-placement: page`: the whole page is one locality, so nothing
+    # could be numbered until now -- a call in card 2 to a body defined in
+    # card 5 has to wait for card 5 to have been read. The section itself
+    # is a section of the page like the article's, with its own heading,
+    # its own anchor and its own nav dot; "a separate notes page" was never
+    # outside the document (ARCHI-NOTES §2).
+    if page_notes is not None:
+        page_notes.apply_typography(article_typo_engine, disabled_rules)
+        slides_html = page_notes.resolve(slides_html)
+        bodies = page_notes.render_bodies(strings)
+        if bodies:
+            heading = html_escape(strings.get('notes_section_title', 'Notes'))
+            slides_html += (
+                f'\n\n<section class="slide notes-section" id="notes" '
+                f'role="doc-endnotes">\n  <h2>{heading}</h2>\n{bodies}\n</section>')
 
     # Page title — the already-resolved page_title (series.json > article
     # meta > cover slide's own slide_title > page_dest, see
@@ -6304,6 +6602,84 @@ def cmd_check(series_dir, args):
 # AUDIT COMMAND
 # ============================================================================
 
+def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
+    """The three ways a note can be broken without the build noticing
+    (ARCHI-NOTES §4). None of them is fatal: the input contract does not
+    break over an editorial slip, and this is the command that exists for
+    that class.
+
+    The localities are the real ones — one scope per card and one for the
+    long-form file under `local` placement, one for the whole page under
+    `page` — because a call and its body being in different cards is a
+    defect under one placement and perfectly fine under the other. Getting
+    that wrong in either direction would make the report useless.
+
+    It converts rather than re-scanning. A second regex pass over the
+    source would drift from what the build actually does — and the case
+    this is most needed for, a definition swallowed by a raw HTML block,
+    is precisely one only the converter can see."""
+    placement, _ = resolve_notes_settings(meta, series_meta, entry['page_source'])
+    localities = []
+    if placement == 'page':
+        scope = NoteScope('p', deferred=True)
+        for i, slide in enumerate(slides, 1):
+            if slide.fact_content:
+                localities.append(('the page', scope, slide.fact_content))
+        for slide in slides:
+            if slide.slide_type == 'full-article' and slide.article_file:
+                path = _resolve_contained(articles_dir, slide.article_file)
+                if path is not None and path.exists():
+                    localities.append(('the page', scope, read_text_file(path)))
+    else:
+        for i, slide in enumerate(slides, 1):
+            if slide.fact_content:
+                localities.append((f'slide {i}', NoteScope(f's{i}'), slide.fact_content))
+        for slide in slides:
+            if slide.slide_type == 'full-article' and slide.article_file:
+                path = _resolve_contained(articles_dir, slide.article_file)
+                if path is not None and path.exists():
+                    localities.append((slide.article_file, NoteScope('article'),
+                                       read_text_file(path)))
+
+    converted = []
+    for where, scope, text in localities:
+        try:
+            converted.append(convert_markdown(text, None, None, scope, {}))
+        except PropertyError:
+            # A bad instance tag in the same text. It is a build error and
+            # the build will name it; audit is not the place to duplicate
+            # that, and it must not die on the way to its own findings.
+            continue
+    # A deferred scope has collected but numbered nothing — the page is
+    # what closes it. Close it here the same way build_article() does, or
+    # every call would read as never made and every body as never called.
+    if placement == 'page' and localities:
+        localities[0][1].resolve('\n'.join(converted))
+
+    warnings = 0
+    seen = set()
+    for where, scope, _ in localities:
+        if id(scope) in seen:
+            continue
+        seen.add(id(scope))
+        for label in scope.orphan_calls():
+            print(f'[WARNING] {entry["page_source"]}: [^{label}] is called in '
+                  f'{where} but has no body — the marker renders without a '
+                  f'link, and the reader cannot reach the source.')
+            warnings += 1
+        for label in scope.unreferenced_bodies():
+            print(f'[WARNING] {entry["page_source"]}: [^{label}] has a body in '
+                  f'{where} that nothing calls — it renders at the end of the '
+                  f'block, numbered after a number no marker carries.')
+            warnings += 1
+        for label in scope.swallowed:
+            print(f'[WARNING] {entry["page_source"]}: [^{label}]: sits inside a '
+                  f'raw HTML block in {where} — raw HTML is passed through '
+                  f'verbatim, so it ships as literal text, not as a note.')
+            warnings += 1
+    return warnings
+
+
 def cmd_audit(series_dir, args):
     """audit command — flags editorial conventions that are not respected.
 
@@ -6367,6 +6743,9 @@ def cmd_audit(series_dir, args):
         elif slides[0].slide_type != 'cover':
             print(f'[WARNING] {entry["page_dest"]}: the first slide is not a cover (found: {slides[0].slide_type})')
             warnings += 1
+
+        warnings += audit_notes(entry, meta, series_meta, slides,
+                                articles_dir, md_text)
 
         # §20.3.1: page_desc resolves to '' only when no description
         # exists at ANY level (series.json, meta block, cover summary) —
