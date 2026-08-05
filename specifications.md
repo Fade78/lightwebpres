@@ -49,12 +49,20 @@ contrat, et se répartissent en deux familles :
   supprimée du dépôt juste avant la release, jamais référencée par un
   document pérenne. Ses renvois internes en `§x.y` ne sont pas tenus à
   jour et peuvent pointer dans le vide.
-- **rapports et documents gelés** — les études rattachées à une entrée du
-  `BACKLOG.md` (`ETUDE-VIEWPORT.md`, `REVISION-THEMES.md`,
-  `ARCHI-NOTES.md`), et les documents historiques que la refonte §9 a
-  remplacés (`CDC-TEMPLATES.md`, `ARCHI-TEMPLATES.md`, tous deux portant
-  leur propre bandeau « gelé »). Ils expliquent des décisions ; ils
-  n'obligent rien. En cas de divergence, ce document fait foi.
+- **relevés** — `ETUDE-VIEWPORT.md` (mesures de viewport, rattachées à B7
+  et B13), `REVISION-THEMES.md` (mesures du catalogue, plus un registre
+  ouvert de limites du moteur, rattaché à B5 et B9) et
+  `ANTERIORITE-THEMES.md` (ce qui a été trouvé ailleurs avant la refonte
+  du système de thèmes). Ils portent ce qu'une spec normative ne peut pas
+  absorber : des mesures avec leurs conditions, les hypothèses qu'elles
+  ont tuées, et une enquête datée. Ils n'obligent rien ; en cas de
+  divergence, ce document fait foi.
+
+  **Un document de conception, lui, ne survit pas à son absorption.** Une
+  fois son raisonnement versé ici — raisonnement compris, pas seulement
+  ses règles — il est supprimé plutôt que gelé : git le conserve, et un
+  bandeau « document historique » est une invitation à le lire quand
+  même. Un document, un métier, nommé d'après ce métier.
 
 ### 1.2 Contrat avec `lightwebpres-gui`
 

@@ -342,3 +342,47 @@ untrue for five of them.
 [folke/tokyonight.nvim](https://github.com/folke/tokyonight.nvim) ·
 [sainnhe/everforest palette](https://github.com/sainnhe/everforest/blob/master/palette.md) ·
 [rose-pine/neovim](https://github.com/rose-pine/neovim)
+
+---
+
+## Appendix A — Per-colour contrast of borrowed accents on light grounds
+
+Measurement carried over from the prior-art survey that preceded the theme
+refactor, kept here because this is the measurement record on this subject
+and because **`BACKLOG.md` B5 rests on it**. Independent measurements,
+WCAG 2 formula, on two named light grounds.
+
+| Colour | on white | on `#FDF6E3` |
+|---|---|---|
+| Dracula green `#50FA7B` | 1.37 | 1.27 |
+| Monokai green `#A6E22E` | 1.55 | 1.44 |
+| Tokyo Night green `#9ECE6A` | 1.83 | 1.69 |
+| Nord 8 `#88C0D0` | 2.00 | 1.85 |
+| Gruvbox green `#B8BB26` | 2.06 | 1.91 |
+| **Solarized green `#859900`** | **3.20** | 2.97 |
+| **Solarized blue `#268BD2`** | **3.68** | 3.41 |
+
+**No accent of any of these palettes reaches 4.5:1 on a light ground.** Not
+one. The problem is not Dracula; it is the entire class of accent palettes
+designed for a dark ground. And Solarized — the only system designed
+explicitly for both grounds, with symmetric CIELAB lightness steps — tops
+out at 3.2–3.7:1, which is AA for large text and never for body text. The
+only Solarized tokens that clear 4.5:1 on light are the monotones, the ones
+whose function *is* to be text.
+
+**The actionable corollary:** on a light ground, a borrowed accent is usable
+as a surface, as a border, as a graphical marker — never as body text. The
+correction is not a per-theme tweak, it is a separation by class of use.
+
+And nobody who takes the subject seriously renders a dark palette as-is on a
+light ground: **Dracula publishes Alucard**, **Catppuccin publishes Latte**,
+and base16's authors maintain two distinct schemes "rather than a single
+reversible palette". Rendering seven palettes designed for a dark ground on a
+light one and calling it fidelity is fidelity to a table of hex values, not
+to the theme — the authors themselves would not recognise it. That is what
+moves B5's first option: flipping Dracula, Monokai and Tokyo Night to
+`dark_background` is not a loss of fidelity but a **restoration** of it.
+
+This appendix measures a different thing from §3 above, and both are wanted:
+§3 counts, per palette, against each palette's own light paper — broader and
+coarser; this measures named colours against two fixed grounds.

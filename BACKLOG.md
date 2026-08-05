@@ -284,7 +284,8 @@ shared palette colours (`verdict.yes.fg: affirm`, `verdict.partial.fg:
 call`, `verdict.no.fg: ink-quiet`, `footnote-call.fg: call`), so on the
 borrowed palettes the measured ratios above are unchanged. What changed
 is the cost and the blast radius of every option. Each verdict is its own
-component now (E1): retinting one moves nothing else. Option 3 — text
+component now — the theme refactor gave every one of them its own
+property — so retinting one moves nothing else. Option 3 — text
 takes the body ink, colour stays on the shape mark — is a **one-line
 property** (`verdict.yes.fg: ink`), settable per theme, per series
 (`settings.conf`) or as the shipped default, instead of a stylesheet
@@ -295,8 +296,9 @@ now an architectural fact, not an opinion.
 
 **What remains is editorial, not mechanical**: revise the nine borrowed
 catalogue entries. Per entry, the coherent outcomes are unchanged — flip
-the dark-designed schemes to `dark_background` (which CDC §6.3
-established is a *restoration* of fidelity, not a loss), set their
+the dark-designed schemes to `dark_background` (which the per-colour
+measurements in `REVISION-THEMES.md` appendix A establish as a
+*restoration* of fidelity, not a loss), set their
 verdict/footnote inks to `ink`, retune the values, or declare-and-mark
 them (D6, still undone: nothing in `themes` or the gallery distinguishes
 the nine borrowed palettes from the twenty-four measured ones). Owner's
@@ -485,8 +487,9 @@ sRGB gamut, where per-channel clipping distorts chroma — `#008500` is the
 recorded case. A real gamut map would reduce chroma instead. Only
 relevant if a derivation/measurement pass is ever built for the catalogue
 revision (B9); acceptable as clipping until then. Recorded here because
-its previous home (a pre-rewrite section of ARCHI-TEMPLATES.md) no longer
-exists.
+the design document that first recorded it has been absorbed into
+`specifications.md` §9 and removed, and this is the only remaining
+statement of it.
 
 ## B11 — Dichromat separability is not verified — NOTED
 
