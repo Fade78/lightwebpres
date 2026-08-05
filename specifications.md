@@ -891,7 +891,10 @@ syntaxe est celle du Markdown standard ; rien n'est inventé.
 
 L'appel devient un lien vers le corps, le corps porte un lien de retour
 vers l'appel, et les rôles DPUB-ARIA (`doc-noteref`, `doc-footnote` ou
-`doc-endnote`, `doc-backlink`) sont posés. **Le label de l'auteur
+`doc-endnote`, `doc-backlink`) sont posés. Le lien de retour n'est pas un
+agrément : sans lui, un lecteur qui a sauté depuis la fiche 3 n'a d'autre
+issue que la barre de défilement, et un utilisateur de lecteur d'écran
+n'en a aucune. **Le label de l'auteur
 n'atteint jamais la page** : c'est une clé, rien d'autre, ce qui explique
 qu'il puisse être n'importe quoi (`[^1]`, `[^kwh]`, `[^a]`) et que la
 numérotation ne soit pas une réécriture de ce que l'auteur a écrit.
@@ -909,6 +912,24 @@ Deux valeurs, et l'emplacement est la **seule** décision de structure :
   propre point de navigation. Une « page de notes séparée » n'est pas
   hors du document : c'est une section de la même page, ce qui est aussi
   ce qui la rend réalisable dans un fichier autonome unique.
+
+**À qui `page` s'adresse**, faute de quoi il se lit comme une seconde
+option arbitraire : aux fiches destinées à être projetées, ou lues comme
+une suite propre, où un bloc de notes au pied d'une diapositive est du
+bruit. C'est un besoin réel, et c'est à l'auteur de le déclarer.
+
+**Une troisième valeur a été envisagée puis écartée** : « à la fin de
+l'article, spécifiquement ». Pour un appel fait dans l'article, elle est
+identique à `local` ; pour un appel fait dans une fiche, elle est
+identique à `page`. Elle ne nommerait aucun comportement distinct. C'est
+le seul choix rejeté de toute la conception des notes, et c'est la
+question qu'un lecteur reposera — d'où sa présence ici.
+
+Sur le nom `local`, qui recouvre deux positions différentes : l'article
+de fond est l'exact opposé de la fiche — un défilement continu, où le
+bloc rassemblé en fin de texte est ce que tout lecteur attend déjà, et
+où le saut-retour est le geste normal. Un seul mot nomme honnêtement les
+deux parce qu'il nomme le même **principe**, pas la même position.
 
 `local` est le défaut parce qu'une fiche est **adressable
 individuellement** : le bouton de partage distribue des liens vers des
@@ -992,6 +1013,13 @@ au pied d'une fiche — du mobilier compact *dans* une fiche) et
 l'article : elle veut un fond, un titre et un filet). `footnote-call`
 (`sup`) existait déjà et garde son nom : il habille l'appel, qui est le
 même objet où que le corps atterrisse.
+
+Trois et non un, pour une raison de principe et pas de commodité : leur
+donner un composant unique forcerait un thème à habiller de la même
+valeur un bloc au pied d'une fiche et une section entière — c'est
+exactement l'erreur que la réécriture §9 a été faite pour arrêter, un nom
+portant deux sens, si bien qu'aucun des deux ne peut bouger sans
+entraîner l'autre.
 
 **Une note au pied d'une unité est écrite plus petite qu'une note dans
 sa propre section**, et l'échelle de la fiche le dictait déjà : son corps
@@ -1339,6 +1367,27 @@ qui se personnalise :
 - **Un point d'extension libre pour la page d'index**
   (`templates/index_extra.html`) — §9.3.6.
 
+#### Ce que le moteur de rendu ne fait pas
+
+Une frontière, et elle est normative parce que c'est elle qui empêche ce
+§9 de grossir jusqu'à devenir autre chose.
+
+**Le moteur ne calcule aucune couleur.** Résoudre une clarté pour rendre
+une teinte lisible, mapper un gamut, séparer deux teintes pour un
+dichromate — c'est de l'**ingénierie de thème**, pas du rendu. Le moteur
+prend les valeurs qu'on lui donne, les résout, les compose et les émet.
+
+Ce document traite du système qui rend un thème. Il ne traite pas de la
+construction d'un thème cohérent, qui relève d'un savoir éditorial et
+artistique. Les mêler produirait un moteur qui **juge ses entrées au lieu
+de les traiter** — et un auteur ne pourrait plus obtenir la couleur qu'il
+a demandée, seulement celle que l'outil aurait jugée acceptable.
+
+C'est la frontière à laquelle se rattachent les entrées de `BACKLOG.md`
+qui parlent de gamut et de séparabilité : ce sont des travaux de
+catalogue, pas des fonctionnalités du moteur. `theme-info` (§11.9.1) ne
+la franchit pas non plus — il **mesure** et rapporte, il ne corrige rien.
+
 ### 9.1 Le principe et le vocabulaire
 
 **Le vocabulaire d'écriture est une liste plate de propriétés typées ; le
@@ -1391,6 +1440,37 @@ dans le **défaut** de chaque propriété, qui pointe vers une valeur
 partagée du thème. Le piège inverse — un jeton par occurrence
 (`footnote-marker-hover-color`) — est écarté par une raison solide : la
 liste des composants est close et déjà spécifiée ailleurs.
+
+**Ce que l'antériorité dit de ce choix**, parce qu'un accident local ne
+suffit pas à fonder une architecture. Enquête menée avant la refonte, sur
+les systèmes de jetons et les catalogues de thèmes existants :
+
+- La norme de l'industrie est **deux niveaux** de jetons, pas trois. Le
+  troisième — le niveau *composant* — est celui que tout le monde
+  regrette. Les générateurs comparables en ont deux (reveal.js, Quarto,
+  mkdocs-material) ou zéro (Hugo, Zola, Eleventy).
+- Le seuil de rentabilité d'une couche sémantique se situe au **troisième
+  ou quatrième thème**. Ce catalogue en compte trente-trois : elle
+  serait rentable ici, si elle n'était pas d'abord un troisième niveau.
+- La trajectoire **base16 → base17 → Tinted** est le précédent le plus
+  proche, et il est allé à son terme : seize emplacements à sémantique
+  figée remplis par des palettes tierces, puis des critiques documentées
+  de rigidité et de lisibilité — dont « deux sens distincts partagent un
+  emplacement et ne peuvent plus être séparés » —, puis une réécriture
+  d'un coup (base17) **abandonnée**, ses mainteneurs préférant enrichir
+  par étapes. La leçon d'ingénierie n'est pas « faites une couche
+  sémantique », c'est **séparez palette et usage, et faites-le par
+  étapes**. C'est la direction suivie ici.
+- `contrast-color()` en CSS natif, disponible partout depuis avril 2026,
+  **ne répond pas au besoin** : il ne rend que du noir ou du blanc. À
+  savoir avant de le redécouvrir.
+- Le standard DTCG (Design Tokens Community Group) n'est **pas** suivi —
+  brouillon d'un groupe communautaire, JSON plus résolveur d'alias plus
+  détection de cycles plus gestion de types, pour un outil qui n'échange
+  de jetons avec personne. Trois idées en sont retenues quand même : un
+  alias est une valeur légitime, une dépréciation porte un message qui
+  explique, et **les cycles doivent être détectés** — ce dernier point est
+  implémenté (§9.2 les détecte et les nomme).
 
 **Les valeurs partagées.** Six couleurs et quatre piles de polices,
 fournies par un thème et consommées par les défauts des propriétés de
@@ -2337,6 +2417,14 @@ ne se replie sur rien : la déclaration est invalide et la propriété
 garde sa valeur héritée, sans que le navigateur ne dise mot. La
 politique maison — rupture annoncée à voix haute, casse silencieuse
 rendue audible — s'applique par trois canaux, tous vérifiés :
+
+Pourquoi cette politique est défendable **ici** et ne le serait pas
+ailleurs : le facteur discriminant n'est pas la taille du projet, c'est
+**qui paie la migration**. Alias de compatibilité et codemods se
+justifient quand des milliers de dépôts tiers consomment les jetons ;
+alors le coût de la rupture est payé par des gens qui n'ont pas décidé.
+Ce n'est pas le cas de ce projet — c'est celui qui change le vocabulaire
+qui migre ses propres séries.
 
 - **`build`** avertit (`[WARN]`) si `templates/style.css` existe
   encore : le fichier n'est plus lu, la feuille est composée depuis
