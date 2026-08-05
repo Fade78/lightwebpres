@@ -26,6 +26,7 @@ WEB_E2E_SCRIPT = Path(__file__).resolve().parent / 'web_e2e.cjs'
 FILE_PROTOCOL_GUARD_SCRIPT = Path(__file__).resolve().parent / 'file_protocol_guard_e2e.cjs'
 LWP_LOOKUP_SCRIPT = Path(__file__).resolve().parent / 'lightwebpres_lookup_e2e.cjs'
 GALLERY_FACETS_SCRIPT = Path(__file__).resolve().parent / 'themes_gallery_facets_e2e.cjs'
+GALLERY_PANELS_SCRIPT = Path(__file__).resolve().parent / 'gallery_panels_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -271,6 +272,37 @@ class ThemesGalleryFacets(unittest.TestCase):
                 capture_output=True, text=True,
                 env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
                 timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+class GalleryPanelsShowWhatTheyName(unittest.TestCase):
+    """§11.7: each row is four panels, and each panel is an iframe with a
+    real viewport at scale 1.0.
+
+    This needs a browser for the same reason the facet test does: the
+    claim is about LAYOUT. "The card panel shows a note at its foot" is
+    not provable from the markup — the card is taller than the panel and
+    the overflow is hidden, so the note can be perfectly present in the
+    document and entirely off-screen. Shrinking the panel back to the
+    height it had before notes existed left every offline test green with
+    the note out of frame."""
+
+    def test_the_note_is_inside_the_card_panel_and_the_rule_inside_the_section(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            gallery = Path(tmp) / 'themes-gallery.html'
+            generated = subprocess.run(
+                [sys.executable, str(REPO_ROOT / 'lightwebpres'),
+                 'themes-gallery', str(gallery)],
+                capture_output=True, text=True, timeout=120,
+            )
+            self.assertEqual(generated.returncode, 0,
+                             generated.stdout + generated.stderr)
+            result = subprocess.run(
+                ['node', str(GALLERY_PANELS_SCRIPT), 'file://%s' % gallery],
+                capture_output=True, text=True,
+                env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+                timeout=120,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

@@ -3618,10 +3618,6 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 
 <style>
   :root {
-    /* The preview renders at 1100px wide and is scaled to the card's
-       width. One value drives both the frame's width and its height, or
-       the two drift apart. */
-    --preview-scale: 0.34;
     --ui-paper: #F6F4EF;
     --ui-ink: #1C1E24;
     --ui-muted: #6B6558;
@@ -3679,7 +3675,11 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   ::selection { background: var(--ui-structural-soft); }
 
   .wrap {
-    max-width: 1180px;
+    /* 4 x 340 panels + 3 x 14 gutters + the row's own padding. Set from
+       the panels rather than chosen: a narrower wrap would put the fourth
+       panel behind a scroll on every row, on a desktop that has the room
+       for it. */
+    max-width: 1474px;
     margin: 0 auto;
     padding: 56px 28px 96px;
   }
@@ -3749,36 +3749,61 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   .facet.on { background: var(--ui-structural); border-color: var(--ui-structural); color: #fff; }
   .facet:disabled { opacity: 0.32; cursor: default; }
   .facet-count { margin-top: 10px; font-size: 12px; color: var(--ui-muted); }
+  /* One theme per row now, not per cell: the four panels ARE the
+     columns, so the outer grid has nothing left to lay out sideways. */
   .grid {
     margin-top: 40px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-    gap: 30px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
   }
 
-  .theme-card {
+  .theme-row {
     background: var(--ui-card-bg);
     border: 1px solid var(--ui-card-border);
     border-radius: 14px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    padding-bottom: 4px;
   }
   /* Required, not decorative. The filter script hides a card by setting
      its `hidden` property, which relies on the browser default
      [hidden] { display: none }. That default is a type selector in the
      UA sheet, so the class rule just above wins on specificity and the
-     card stays on screen: the counter said "14 palettes sur 33" while
-     all 33 were still displayed. Any future display: on .theme-card
+     row stays on screen: the counter said "14 palettes sur 33" while
+     all 33 were still displayed. Any future display: on .theme-row
      needs this override kept alongside it. */
-  .theme-card[hidden] { display: none; }
+  .theme-row[hidden] { display: none; }
 
   .theme-head {
-    padding: 18px 18px 4px;
+    padding: 16px 18px 2px;
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
     gap: 10px;
+  }
+  .theme-slug {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: var(--ui-muted);
+  }
+  /* The four panels. A FIXED track, never 1fr: the panel width IS the
+     rendering width, so a track that flexed would give each row a
+     different type scale and the comparison would be meaningless. The
+     scroll on overflow is the row's, so a narrow window never makes the
+     page itself scroll sideways. */
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(4, 340px);
+    gap: 14px;
+    padding: 12px 18px 0;
+    overflow-x: auto;
+  }
+  .panel { margin: 0; }
+  .panel figcaption {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 9px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ui-muted);
+    margin-bottom: 5px;
   }
   .theme-head h2 {
     font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -3806,19 +3831,20 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
      miniature of the real rendering, not an imitation. The frame's height
      follows the scale, or the shrunk content would leave a gap. */
   .preview-frame {
-    margin: 14px 18px 0;
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--ui-card-border);
-    height: calc(760px * var(--preview-scale));
   }
   .preview {
-    width: 1100px;
-    height: 760px;
+    /* Measured, not chosen: a card carrying a note needs 548px at this
+       width, and a note below the fold is the one thing that panel exists
+       to show. The cover and the notes section fill the window (their
+       min-height is 100vh, which resolves to the panel); the article is a
+       WINDOW onto something longer, as it is on a real page. */
+    width: 340px;
+    height: 560px;
     border: 0;
     display: block;
-    transform: scale(var(--preview-scale));
-    transform-origin: top left;
   }
   /* The fact-box emphasis treatment, stated rather than merely applied
      to the preview above (§9.1). Four independent axes, six properties,
@@ -3950,14 +3976,24 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     <p class="eyebrow">lightwebpres &middot; colour themes</p>
     <h1>Named palettes, ready to use</h1>
     <p class="dek">
-      Every card is a REAL card: the same parser, the same renderer and the
-      same stylesheet a build uses, in an iframe so the sheet's
-      viewport-relative sizes resolve against the preview. Each theme is a
+      One theme per row, four panels across: the cover, a card carrying a
+      note, the page-wide notes section, and the long-form article. Each
+      panel is a REAL rendering &mdash; same parser, same renderer, same
+      stylesheet a build uses &mdash; in an iframe at its true size, no
+      geometric shrink, so a 14px note is 14px here too. Each theme is a
       layer of typed properties over the engine's registry &mdash; palette
       colours, font stacks, per-component axes &mdash; resolved and
       inlined exactly as a build does. This page is
       generated from the <code>THEMES</code> table embedded in the
       executable &mdash; see specifications.md &sect;9.5.
+    </p>
+    <p class="dek">
+      <strong>One thing the panels cannot show.</strong> They render at
+      340&thinsp;px, which is below every <code>clamp()</code> breakpoint,
+      so each theme appears at its <em>narrow-viewport</em> type scale
+      &mdash; a cover title at the 28px floor rather than the ~50px it
+      reaches on a desktop. Colour, ground, rule, and the proportion
+      between the levels are faithful; absolute size is not.
     </p>
     <p class="dek dek--note">
       <strong>The six palette variables name a role, not a colour.</strong>
@@ -4020,6 +4056,18 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 # cannot drift from what the tool actually produces — the class of defect
 # that let the preview show a left-aligned key figure with an arrow the
 # engine never emits.
+# The four surfaces a reader actually meets, one per panel. Written as
+# ordinary sources and put through the ordinary parser and renderer, for
+# the reason build_theme_preview_document() gives: a hand-written
+# imitation drifts, and has, twice.
+#
+# The note in the card panel is NOT labelled or set apart. A card carries
+# a claim, the claim carries a reference, the reference sits under its
+# rule at the foot of the card -- which is what the panel is for. The call
+# is placed OUTSIDE the `**...**` run deliberately: inside, it would land
+# on the highlight ground, and until every theme's `fact.strong.fg`
+# clears AA there (BACKLOG B17) the gallery would be displaying a contrast
+# shortfall as though it were the design.
 TEMPLATE_THEMES_GALLERY_MOCK = """<!-- lwp:meta -->
 page_title: Theme preview
 nav_title: Theme preview
@@ -4042,25 +4090,71 @@ highlight-caption: recommended baking temperature
 fact-label: The takeaway
 source: Baking guide, 2024 edition.
 
-Preheat before you load the oven, **it changes everything**.
+Preheat before you load the oven[^ring], **it changes everything**.
 
-<table class="comparison-table"><tr><td>Static oven</td><td class="no">no</td></tr><tr><td>Fan oven</td><td class="yes">yes</td></tr></table>
+[^ring]: A domestic ring delivers about 3 kW at 230 V.
 """
 
+# The bodies the notes-section panel collects. Two, one of them long
+# enough to wrap, because a single short line would not show the leading
+# or the measure.
+TEMPLATE_THEMES_GALLERY_NOTE_BODIES = [
+    'A domestic ring delivers about 3 kW at 230 V.',
+    'Measured on a fan oven at 180 °C; a static oven of the same setting '
+    'runs some 20 degrees cooler at the centre of the shelf.',
+]
+
+# Ordered so the top of a 430px window carries the most: the two heading
+# levels, prose with a call in it, a quote, a code span, the verdict
+# table, and the references block.
+TEMPLATE_THEMES_GALLERY_ARTICLE = """# Sugar is not only a matter of taste
+
+Sugar is hygroscopic: it holds water in the crumb long after the oven has
+driven it out of the flour[^hyg].
+
+[^hyg]: Which is why a reduced-sugar cake stales faster, not why it browns less.
+
+## What the oven actually does
+
+> The surface sets first. Everything after that is a race between the
+> crust and the centre.
+
+Set `convection: true` and the whole curve moves.
+
+| Setting | Even browning |
+|---|---|
+| Static oven | no |
+| Fan oven | yes |
+
+<div class="refs">
+
+Baking guide, 2024 edition.
+
+</div>
+"""
+
+TEMPLATE_THEMES_GALLERY_PANEL = '''
+        <figure class="panel">
+          <figcaption>{caption}</figcaption>
+          <!-- The preview IS the real thing: same parser, same renderer,
+               same stylesheet, in an iframe so the sheet's
+               viewport-relative sizes (clamp(..vmin..), 84vw) and the ch
+               measure resolve against the panel rather than the reader's
+               window. srcdoc, so still zero external dependency. -->
+          <div class="preview-frame">
+            <iframe class="preview" title="{label}: {caption}" loading="lazy"
+                    sandbox srcdoc="{preview_doc}"></iframe>
+          </div>
+        </figure>'''
+
 TEMPLATE_THEMES_GALLERY_CARD = '''
-    <article class="theme-card" data-polarity="{polarity}" data-intensity="{intensity}" data-hue="{hue}" data-name="{slug} {label}">
+    <article class="theme-row" data-polarity="{polarity}" data-intensity="{intensity}" data-hue="{hue}" data-name="{slug} {label}">
       <header class="theme-head">
         <h2>{label}</h2>
+        <code class="theme-slug">{slug}</code>
         <p class="theme-source">{source}</p>
       </header>
-      <!-- The preview IS a real card: same parser, same renderer, same
-           stylesheet, in an iframe so the sheet's viewport-relative sizes
-           (clamp(..vw..), 84vw) resolve against the preview rather than
-           the reader's window. srcdoc, so still zero external
-           dependency. -->
-      <div class="preview-frame">
-        <iframe class="preview" title="Preview of the {label} theme" loading="lazy"
-                sandbox srcdoc="{preview_doc}"></iframe>
+      <div class="panels">{panels}
       </div>
       <!-- Reading order: ground, then the two inks, then the furniture.
            Each entry leads with what the colour DOES; the variable name
@@ -4081,7 +4175,7 @@ TEMPLATE_THEMES_GALLERY_FOOT = '''
   (function () {
     var bar = document.getElementById('facets');
     var count = document.getElementById('facetCount');
-    var cards = [].slice.call(document.querySelectorAll('.theme-card'));
+    var cards = [].slice.call(document.querySelectorAll('.theme-row'));
     var chosen = { polarity: '', intensity: '', hue: '' };
     bar.hidden = false;   // r&eacute;v&eacute;l&eacute;e seulement si le script tourne
 
@@ -7304,7 +7398,17 @@ def cmd_set_theme(target_dir, args):
 # THEMES-GALLERY COMMAND
 # ============================================================================
 
-def build_theme_preview_document(theme_key):
+# The four columns of a row, in reading order: what a reader meets first,
+# then the working surface, then the two places a note's body can live.
+THEMES_GALLERY_PANELS = (
+    ('cover',   'Cover'),
+    ('card',    'Card, with a note'),
+    ('notes',   'Notes section'),
+    ('article', 'Full article'),
+)
+
+
+def build_theme_preview_document(theme_key, panel='card'):
     """A complete, standalone card document for `theme_key` — the same
     parser, the same renderer and the same stylesheet a build uses.
 
@@ -7316,27 +7420,72 @@ def build_theme_preview_document(theme_key):
     render_slide() has never emitted. A copy that has to be kept in step
     by hand will not be; running the real thing removes the question.
 
-    Rendered inside an iframe by the caller, so the stylesheet's
-    viewport-relative sizes (clamp(.., 4.5vmin, ..)) and the ch measure
-    resolve against
-    the preview instead of the reader's window."""
-    meta, slides, _, _ = parse_markdown_extended(TEMPLATE_THEMES_GALLERY_MOCK)
+    Rendered inside an iframe by the caller, at the panel's real width and
+    at scale 1.0 — no geometric shrink. The previous gallery rendered at
+    1100px and scaled 0.34, which is fine for judging a palette and
+    useless for judging a note: 14px text lands at under 5 screen pixels.
+    Every glyph here is at its true size, so the rule weight, the plate
+    edge and the note's own measure are all readable.
+
+    The cost, and it should be said rather than discovered: 340px is below
+    every clamp() breakpoint, so each theme shows at its NARROW-viewport
+    type scale — a cover title at the 28px floor rather than the ~50px it
+    reaches on a desktop. What the panel is for survives that intact:
+    colour, ground, rule, and the proportion between the levels.
+
+    `panel` selects which surface is shown:
+      cover   — the cover slide, its gradient and its inverted ink
+      card    — a standard card carrying a note at its foot
+      notes   — the page-wide notes section of `notes-placement: page`
+      article — the long-form article, which the gallery never showed
+    """
     language_pack = load_language(None, 'en')
     typo_engine = TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
+    _, slides, _, _ = parse_markdown_extended(TEMPLATE_THEMES_GALLERY_MOCK)
 
-    body = '\n'.join(
-        render_slide(slide, i, len(slides), typo_engine, strings)
-        for i, slide in enumerate(slides, 1)
-    )
+    if panel == 'cover':
+        body = render_slide(slides[0], 1, len(slides), typo_engine, strings)
+    elif panel == 'card':
+        body = render_slide(slides[1], 2, len(slides), typo_engine, strings)
+    elif panel == 'notes':
+        # The real object, fed the real bodies: a scope that has been
+        # called once per body, so the return links are there too.
+        scope = NoteScope('p', endnotes=True, deferred=True)
+        for i, text in enumerate(TEMPLATE_THEMES_GALLERY_NOTE_BODIES, 1):
+            scope.define(f'n{i}', apply_typo(typo_engine, text))
+            scope.resolve(f'\x02n{i}\x02')
+        heading = html_escape(strings.get('notes_section_title', 'Notes'))
+        body = (f'<section class="slide notes-section" id="notes" '
+                f'role="doc-endnotes">\n  <h2>{heading}</h2>\n'
+                f'{scope.render_bodies(strings)}\n</section>')
+    elif panel == 'article':
+        article = convert_markdown(TEMPLATE_THEMES_GALLERY_ARTICLE,
+                                   typo_engine, None, NoteScope('article'), strings)
+        body = (f'<section class="slide full-article" id="s1">\n'
+                f'  <span class="slide-tag">'
+                f'{html_escape(strings.get("full_article_tag", "Full article"))}'
+                f'</span>\n{article}\n</section>')
+    else:
+        raise ValueError(f'unknown preview panel: {panel!r}')
+
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f'<style>{compose_stylesheet(resolve_theme_properties(theme_property_layer(theme_key)))}</style>'
-        # The real page scrolls between slides; a static preview should
-        # not, or a card would show a scrollbar it does not have.
-        '<style>html,body{overflow:hidden}.slide{min-height:auto}</style>'
-        f'</head><body>{body}</body></html>'
+        # min-height: 100vh is LEFT ALONE: 100vh resolves to the panel's
+        # own height, so the section fills its window and centres in it
+        # exactly as it does on a real page. Only two things are
+        # overridden -- the page must not scroll inside a static panel,
+        # and the slide separator would draw a second line right where the
+        # panel's own border already is.
+        '<style>html,body{overflow:hidden}.slide{border-bottom-width:0}</style>'
+        # A section's own top rule sits at y=0 with nothing above it, so
+        # the panel's rounded border clips the one line the panel is meant
+        # to show. A strip of bare page above it puts the rule and the
+        # plate edge both inside the window.
+        + ('<style>body{padding-top:14px}</style>' if panel == 'notes' else '')
+        + f'</head><body>{body}</body></html>'
     )
 
 
@@ -7353,7 +7502,14 @@ def cmd_themes_gallery(output_path, args):
         # property into the preview document's own stylesheet, exactly as it
         # does for an installed series. Every bug this file has had in the
         # preview came from maintaining a second copy of that wiring.
-        preview_doc = html_escape(build_theme_preview_document(slug), quote=True)
+        panels = ''.join(
+            TEMPLATE_THEMES_GALLERY_PANEL.format(
+                caption=caption,
+                label=html_escape(theme['label'], quote=True),
+                preview_doc=html_escape(
+                    build_theme_preview_document(slug, panel), quote=True))
+            for panel, caption in THEMES_GALLERY_PANELS
+        )
         # Built from PALETTE_ROLES rather than spelled out in the
         # template, so a role can never be renamed in one place and left
         # behind in the other — which is how the swatches came to
@@ -7369,7 +7525,7 @@ def cmd_themes_gallery(output_path, args):
             for role in PALETTE_ROLES
         )
         cards.append(TEMPLATE_THEMES_GALLERY_CARD.format(
-            preview_doc=preview_doc,
+            panels=panels,
             swatches=swatches,
             fact_treatment=fact_treatment_label(theme),
             polarity=facets['polarity'],
@@ -7685,7 +7841,10 @@ COMMANDS
   lightwebpres set-theme [directory] --theme X   Changes an existing series' theme
                                                   (see §11.10)
   lightwebpres themes-gallery [path]             Generates a self-contained HTML page
-                                                  documenting every built-in color theme
+                                                  documenting every built-in color theme —
+                                                  one row per theme, four panels across:
+                                                  cover, card with a note, notes section,
+                                                  full article
                                                   (default path: themes-gallery.html, see §11.7)
   lightwebpres help | --help | -h                Shows this help
 

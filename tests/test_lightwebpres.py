@@ -3039,7 +3039,7 @@ class Themes(unittest.TestCase):
             # Prefix, not the exact tag: cards carry data-* facet
             # attributes (§9.5.3), so an exact-string count silently
             # dropped to zero when those were added.
-            open_tags = html.count('<article class="theme-card"')
+            open_tags = html.count('<article class="theme-row"')
             close_tags = html.count('</article>')
             self.assertEqual(open_tags, expected)
             self.assertEqual(open_tags, close_tags)
@@ -3298,29 +3298,63 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             self.assertIn(sheet, doc, slug)
 
     def test_the_preview_markup_is_what_render_slide_produces(self):
-        """Byte-for-byte the renderer's own output, for every slide of
-        the mock — which is itself written in the real article format and
-        goes through the real parser."""
+        """Byte-for-byte the renderer's own output, for each slide the
+        mock carries — itself written in the real article format and put
+        through the real parser."""
         _, slides, _, _ = self.lwp.parse_markdown_extended(
             self.lwp.TEMPLATE_THEMES_GALLERY_MOCK)
         self.assertGreaterEqual(len(slides), 2, 'the mock lost its slides')
         pack = self.lwp.load_language(None, 'en')
         engine = self.lwp.TypoEngine(pack)
-        doc = self.lwp.build_theme_preview_document('nord')
-        for i, slide in enumerate(slides, 1):
+        for i, (slide, panel) in enumerate(zip(slides, ('cover', 'card')), 1):
             rendered = self.lwp.render_slide(slide, i, len(slides), engine,
                                              pack.get('strings', {}))
-            self.assertIn(rendered, doc, f'slide {i}')
+            self.assertIn(rendered,
+                          self.lwp.build_theme_preview_document('nord', panel),
+                          f'{panel} panel')
+
+    def test_the_four_panels_show_four_different_surfaces(self):
+        """A row whose panels all showed the same thing would be four
+        times the weight for one panel's worth of information."""
+        docs = {p: self.lwp.build_theme_preview_document('nord', p)
+                for p, _ in self.lwp.THEMES_GALLERY_PANELS}
+        self.assertEqual(len(docs), 4)
+        bodies = [d.split('<body>', 1)[1] for d in docs.values()]
+        self.assertEqual(len(set(bodies)), 4, 'two panels render the same body')
+        self.assertIn('class="slide slide-cover"', docs['cover'])
+        # The card panel must show the note AT ITS FOOT, not just the
+        # call: a body scrolled out of a 560px window is the one thing
+        # this panel exists to disprove.
+        self.assertIn('class="notes-local"', docs['card'])
+        self.assertIn('role="doc-footnote"', docs['card'])
+        self.assertIn('class="slide notes-section"', docs['notes'])
+        self.assertIn('role="doc-endnote"', docs['notes'])
+        self.assertIn('class="slide full-article"', docs['article'])
+        # No panel may ship an unresolved note marker.
+        for name, doc in docs.items():
+            self.assertNotIn('\x02', doc, name)
+
+    def test_the_panels_render_at_their_true_size(self):
+        """The previous gallery rendered at 1100px and scaled 0.34, which
+        put 14px note text under 5 screen pixels. A transform reappearing
+        on .preview means the notes became unreadable again."""
+        head = self.lwp.TEMPLATE_THEMES_GALLERY_HEAD
+        preview = head.split('.preview {', 1)[1].split('}', 1)[0]
+        self.assertNotIn('transform', preview)
+        self.assertIn('width: 340px', preview)
 
     def test_the_mock_exercises_the_parts_a_theme_actually_changes(self):
         """A preview that shows no fact-box says nothing about the
         emphasis axes; one with no verdict cell says nothing about the
         shape markers."""
-        doc = self.lwp.build_theme_preview_document('nord')
+        # Across the four panels together: the verdict table moved to the
+        # article panel when the card had to make room for its note.
+        doc = ''.join(self.lwp.build_theme_preview_document('nord', p)
+                      for p, _ in self.lwp.THEMES_GALLERY_PANELS)
         self.assertIn('class="slide slide-cover"', doc)
         for cls in ('slide-tag', 'summary', 'highlight-figure',
                     'highlight-caption', 'fact-box', 'fact-label',
-                    'comparison-table'):
+                    'comparison-table', 'note-body', 'note-call', 'refs'):
             self.assertIn(f'class="{cls}"', doc, cls)
         self.assertIn('<strong>', doc, 'nothing exercises the emphasis axes')
 
@@ -3343,7 +3377,8 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             out = Path(tmp) / 'g.html'
             self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
-        self.assertEqual(html.count('<iframe class="preview"'), len(self.lwp.THEMES))
+        self.assertEqual(html.count('<iframe class="preview"'),
+                         len(self.lwp.THEMES) * len(self.lwp.THEMES_GALLERY_PANELS))
         # srcdoc, so the page stays self-contained: no src= fetch anywhere.
         self.assertNotIn('<iframe src=', html)
         # The theme marker is gone; each preview is told apart by its own

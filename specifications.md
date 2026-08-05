@@ -2712,12 +2712,26 @@ lightwebpres themes-gallery [chemin]
 ```
 
 Génère une page HTML autonome (aucune dépendance) documentant chaque
-entrée de `THEMES` (§9.5) — un aperçu de son rendu sur un fragment de
-fiche réel, ses six couleurs de rôle (chaque pastille donne le rôle, puis
-le nom de propriété qu'un auteur peut réellement taper — `color.mark` —
-puis la valeur), et sa remarque éditoriale. Ne modifie aucun
-`series.json` ni `templates/` : cette commande documente, elle n'installe
-rien.
+entrée de `THEMES` (§9.5). **Un thème par ligne, quatre panneaux en
+colonnes** — la couverture, une fiche portant une note, la section de
+notes de page, et l'article de fond — plus ses six couleurs de rôle
+(chaque pastille donne le rôle, puis le nom de propriété qu'un auteur
+peut réellement taper — `color.mark` — puis la valeur), et sa remarque
+éditoriale. Ne modifie aucun `series.json` ni `templates/` : cette
+commande documente, elle n'installe rien.
+
+Les quatre panneaux sont les quatre surfaces qu'un lecteur rencontre, et
+ce sont les seules où les propriétés du thème se voient toutes. L'article
+de fond n'était montré nulle part avant ; les deux emplacements de note
+(§6.5.1) ne le seraient pas non plus avec un seul panneau, or ils ne
+posent pas les corps sur le même fond.
+
+La note du panneau « fiche » n'est ni étiquetée ni mise à part : une
+fiche porte une affirmation, l'affirmation porte une référence, la
+référence est sous son filet au pied de la fiche. L'appel est
+délibérément placé **hors** du passage en gras — à l'intérieur il
+tomberait sur le fond du surligneur, et la galerie afficherait un défaut
+de contraste comme s'il s'agissait du dessin (BACKLOG B17).
 
 L'aperçu reçoit la couche complète du thème, mobilier compris (§9.5.1),
 sans quoi une palette à fond sombre s'afficherait avec les voiles d'une
@@ -2752,13 +2766,40 @@ Chaque aperçu est un `<iframe srcdoc>`. Deux raisons, l'une nécessaire :
 - La feuille réelle définit `body`, `h1`, `code`… L'isolement du document
   évite d'avoir à réécrire ses ~203 règles pour les confiner.
 
-L'aperçu est rendu à 1100 px de large puis réduit géométriquement
-(`transform: scale()`) : une miniature du rendu réel, pas une
-approximation. `srcdoc` conserve l'autonomie de la page — aucune requête
-externe. La galerie pèse de ce fait environ 1.3 Mo, la feuille
-composée (~34 Ko par document d'aperçu) étant répétée pour chacun des thèmes ;
-c'est le prix de la garantie, et il a été jugé acceptable pour une page
-de documentation.
+**Chaque panneau est rendu à sa taille réelle**, 340 × 560 px, sans
+réduction géométrique. La galerie rendait auparavant à 1100 px puis
+réduisait de 0,34 : acceptable pour juger une palette, inutile pour juger
+une note, dont les 14 px arrivaient sous 5 pixels d'écran. Ici chaque
+glyphe est à sa taille : le poids du filet, le bord du plateau et la
+mesure de la note sont lisibles.
+
+Le prix, qu'il vaut mieux énoncer que découvrir : 340 px est en dessous
+de tous les points de rupture des `clamp()`, donc chaque thème s'affiche
+à son échelle typographique de **fenêtre étroite** — un titre de
+couverture au plancher de 28 px plutôt qu'aux ~50 px qu'il atteint sur un
+bureau. Ce que le panneau sert à montrer y survit intact : couleur, fond,
+filet, et la proportion entre les niveaux. La page le dit dans son
+chapeau.
+
+Les colonnes sont une piste **fixe** (`repeat(4, 340px)`), jamais `1fr` :
+la largeur du panneau *est* la largeur de rendu, donc une piste élastique
+donnerait à chaque ligne une échelle typographique différente et la
+comparaison ne voudrait plus rien dire. Le débordement défile dans la
+ligne, pas dans la page.
+
+`min-height: 100vh` est laissé tel quel dans le document d'aperçu :
+`100vh` s'y résout à la hauteur du panneau, donc la section remplit sa
+fenêtre et s'y centre exactement comme sur une vraie page.
+
+`srcdoc` conserve l'autonomie de la page — aucune requête externe. La
+galerie pèse de ce fait environ 5,5 Mo, la feuille composée (~37 Ko par
+document d'aperçu) étant répétée pour les 132 panneaux ; les iframes
+étant isolées, cela ne peut pas être dédupliqué sans JavaScript. Les
+iframes portent `loading="lazy"`, donc le coût de rendu suit ce que le
+lecteur regarde. **Conséquence à connaître avant qu'elle ne morde :** une
+capture pleine page de la galerie donne des panneaux vides sous la ligne
+de flottaison, puisque les iframes paresseuses n'entrent jamais dans le
+viewport — il faut faire défiler avant de capturer.
 
 **Ce que cette architecture a supprimé.** L'aperçu était auparavant une
 maquette faite main avec ses propres règles `.preview-*`, et une copie

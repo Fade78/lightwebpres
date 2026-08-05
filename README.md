@@ -145,7 +145,7 @@ all generated automatically.
 | `refresh-templates [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
 | `set-theme [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
-| `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme, with facet filters (default: `themes-gallery.html`) |
+| `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
 ## Slide types
@@ -294,13 +294,15 @@ verdict colours.
 
 ![Preview of the built-in color themes](themes-gallery.png)
 
-That's [`themes-gallery.html`](themes-gallery.html) in this repo,
-rendered — open it directly in a browser for the live version, where
-those same facets become filters (each card previews the theme against
-real slide content: tag, title, summary, a highlighted figure, a
-fact-box, a table). It's generated straight from the tool's own `THEMES`
-data with `./lightwebpres themes-gallery`, so it can never drift from
-what `install --theme` actually applies.
+The first four rows of [`themes-gallery.html`](themes-gallery.html) in
+this repo — open it directly in a browser for all thirty-three, where the
+facets become filters. **One theme per row, four panels across:** the
+cover, a card carrying a note, the page-wide notes section, and the
+long-form article. Each panel is a real rendering at its true size, not a
+mock and not a scaled-down miniature, so a 14px note is 14px there too.
+It's generated straight from the tool's own `THEMES` data with
+`./lightwebpres themes-gallery`, so it can never drift from what
+`install --theme` actually applies.
 
 ## One browser-based tool, two tabs
 

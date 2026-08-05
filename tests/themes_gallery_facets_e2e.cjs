@@ -32,7 +32,7 @@ async function main() {
   page.on('pageerror', (err) => consoleErrors.push(String(err)));
 
   // Actually laid out, not merely un-flagged.
-  const visible = () => page.$$eval('.theme-card',
+  const visible = () => page.$$eval('.theme-row',
     (els) => els.filter((e) => e.offsetParent !== null).length);
 
   try {
@@ -62,7 +62,7 @@ async function main() {
     }
 
     // Every visible card really carries the facet asked for.
-    const wrong = await page.$$eval('.theme-card',
+    const wrong = await page.$$eval('.theme-row',
       (els) => els.filter((e) => e.offsetParent !== null)
                   .filter((e) => e.getAttribute('data-polarity') !== 'dark')
                   .map((e) => e.getAttribute('data-name')));
@@ -87,7 +87,7 @@ async function main() {
         return !ctx.some((c) => Object.keys(trial).every(
           (k) => !trial[k] || c[k] === trial[k]));
       }).map((b) => b.getAttribute('data-facet') + '=' + b.getAttribute('data-value')),
-      await page.$$eval('.theme-card', (els) => els.map((e) => ({
+      await page.$$eval('.theme-row', (els) => els.map((e) => ({
         polarity: e.getAttribute('data-polarity'),
         intensity: e.getAttribute('data-intensity'),
         hue: e.getAttribute('data-hue'),
