@@ -122,7 +122,8 @@ où le shebang ne s'applique pas, lancer `python lightwebpres <commande>` ;
 les liens du README généré utilisent toujours `/` (jamais le séparateur de
 l'OS), et une collision de `page_dest` insensible à la casse est une
 erreur fatale partout (deux noms distincts pour une URL peuvent être le
-même fichier sur un système de fichiers Windows/macOS). Il peut être installé
+même fichier sur un système de fichiers Windows/macOS) — la collision
+avec l'index de série relevant d'une règle distincte, §11.3.3. Il peut être installé
 system-wide (`/usr/local/bin/lightwebpres`) ou utilisé localement
 (`./lightwebpres`).
 
@@ -2687,6 +2688,36 @@ le marqueur reste correctement positionné ; `test_minimal_variant_*` et
 `test_minimal_wins_if_both_flags_passed` couvrent `--build-stamp-minimal`
 et sa priorité.
 
+### 11.3.3 Un article qui réclame `index.html`
+
+`build` écrit toujours un index de série, à `index.html`. Un article dont
+le `page_dest` vaut ce même nom entre donc en collision avec lui, et
+jusqu'ici la page de l'article était écrite puis **écrasée par l'index,
+en silence, avec un code de sortie 0** : une série déclarant trois
+articles en livrait deux, et `check` n'y voyait rien. C'est la classe de
+défaut que §22.8 interdit déjà pour un fichier d'article manquant — une
+page corrompue livrée en vert — appliquée à une collision de noms.
+
+La règle dépend du **nombre d'articles**, et ce n'est pas un cas
+particulier concédé : c'est la reconnaissance de ce que l'index vaut dans
+chaque cas.
+
+- **Plus d'un article** : l'index porte une information réelle — la liste
+  des articles — et l'écraser est une perte. **Erreur fatale**, nommée,
+  code de sortie non nul.
+- **Exactement un article** : l'index ne listerait qu'une entrée. Il
+  n'apporte rien. L'article réclame la place, il l'obtient : **l'index de
+  série n'est pas produit**, et `build` le dit dans sa sortie plutôt que
+  de le faire en douce.
+
+Ce que cette seconde branche reconnaît, c'est qu'une série d'un seul
+article est une **brique** autant qu'un site. Elle peut atterrir dans un
+répertoire dont l'index est tenu autrement — à la main, par un autre
+générateur, ou parce que d'autres articles y vivent déjà ; l'auteur laisse
+alors le nom par défaut et ne réclame rien. Ou elle est seule chez elle,
+et `index.html` est le nom qui a du sens. **Le nom choisi est la
+déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
+
 ### 11.4 `check`
 
 ```bash
@@ -2962,6 +2993,89 @@ Deux cas se distinguent volontairement :
 - **Combinaison valide mais vide** (`--polarity dark --hue orange`) :
   succès, avec un message nommant la combinaison restée sans résultat.
   Ce n'est pas une erreur, c'est une réponse.
+
+### 11.9.1 `theme-info`
+
+```bash
+lightwebpres theme-info <slug> [--format text|json]
+lightwebpres theme-info [répertoire] [--format text|json]
+```
+
+Décrit **un** thème sans rien installer : sa palette, ses facettes, et le
+niveau de contraste qu'il atteint réellement, mesuré.
+
+#### Pourquoi la mesure et non une étiquette
+
+Le niveau d'accessibilité d'un thème est **calculé** à partir du registre
+de propriétés, jamais déclaré à la main dans la définition du thème. Une
+étiquette écrite à la main ment dès le premier ajustement de palette, et
+elle mentirait en silence : rien ne la relie à la couleur qu'elle prétend
+qualifier. Le calcul emprunte le même chemin que le reste du moteur — les
+propriétés résolues, les fonds composités — donc il est juste par
+construction ou faux pour tout le monde en même temps.
+
+Corollaire assumé : **tous les thèmes n'ont pas à être conformes.** Un
+thème est un parti pris ; `terminal` avec son halo de phosphore et
+`synthwave` avec ses saturations sont des choix, et les rendre AAA les
+détruirait. Ce qui est exigé n'est pas que les 33 soient conformes, c'est
+qu'on **sache lequel l'est** au moment de choisir, et qu'il y en ait.
+
+#### Ce que la commande ne fait pas
+
+L'information s'arrête à l'auteur. **Rien de ce niveau n'entre dans la
+page construite** : ni balise, ni classe, ni mention. Le lecteur d'une
+présentation n'a pas à être informé du niveau de contraste du thème qu'on
+a choisi pour lui ; c'est une donnée d'outillage, pas de publication. Le
+format ne change pas, `build` ne change pas.
+
+#### Deux cibles
+
+- **Un slug** (`theme-info nord`) : le thème intégré, tel qu'il est
+  livré. Aucun répertoire de série n'est nécessaire — c'est le cas
+  « avant d'installer », celui qui sert à choisir.
+- **Un répertoire de série** (`theme-info .`) : le thème **effectif**,
+  c'est-à-dire après application des valeurs que la série épingle dans
+  `templates/settings.conf`. Les deux réponses peuvent différer, et c'est
+  précisément le renseignement utile : un auteur qui a épinglé trois
+  couleurs a pu faire tomber son thème sous le seuil sans le savoir.
+
+#### Un niveau par catégorie, pas une lettre
+
+Une lettre unique mentirait : un thème peut être irréprochable sur le
+texte et échouer sur ses bordures. La sortie donne donc un niveau par
+catégorie WCAG 2.x, chacune avec son seuil :
+
+| Catégorie | AA | AAA |
+|---|---|---|
+| Texte courant | 4,5:1 | 7:1 |
+| Grand texte (≥ 24 px, ou ≥ 18,7 px en gras) | 3:1 | 4,5:1 |
+| Non textuel porteur d'information (SC 1.4.11) | 3:1 | — |
+
+Le non-textuel n'a pas de niveau AAA dans la norme ; la sortie dit
+`pass`/`fail`, pas un niveau, plutôt que d'inventer une graduation.
+
+Chaque catégorie qui échoue est accompagnée des **paires fautives** avec
+leur ratio mesuré et le seuil manqué — un niveau sans ses contre-exemples
+n'est pas actionnable.
+
+#### Format machine : JSON
+
+`--format json` émet du JSON, et non du YAML. La raison est la contrainte
+qui gouverne tout le projet : `lightwebpres` n'utilise que la
+bibliothèque standard, où `json` est présent et `yaml` non. Adopter YAML
+coûterait la dépendance zéro. Côté `lightwebpres-gui`, JSON se lit sans
+rien écrire du tout.
+
+La sortie texte reste la sortie par défaut et vise la lecture humaine,
+sans chercher à être aussi un YAML valide : servir deux maîtres
+produirait un texte moins lisible que l'un et moins fiable que l'autre.
+
+#### Consommateur connu
+
+`lightwebpres-gui` s'en sert pour afficher le niveau à côté de chaque
+thème dans son sélecteur (sa spec §1.3). C'est un contrat entre les deux
+dépôts au sens de §1.2 : le nom des clés JSON est une surface publique,
+et le renommer casse le GUI sans que rien ne rougisse ici.
 
 ### 11.10 `set-theme`
 
