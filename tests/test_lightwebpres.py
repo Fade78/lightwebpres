@@ -9122,5 +9122,447 @@ class TestNamingConvention(unittest.TestCase):
                         f'{key!r} has a segment that is not kebab-case')
 
 
+class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
+    """§11.11. `series-info` says what is in a series without building
+    it: the articles in series.json's order, each field RESOLVED the way
+    a build resolves it (§20.3.1), and which level of the cascade each
+    value came from.
+
+    The point of the command is that there is ONE cascade in this
+    program. So the load-bearing tests here do not compare the report
+    against an expectation written in this file — they compare it
+    against a real build's output. A second implementation that drifted
+    would still satisfy a hand-written expectation; it cannot satisfy
+    the page the build actually wrote.
+
+    Every string used below is deliberately free of the punctuation the
+    typography engine touches (no colon, no question mark, no
+    guillemets): the build applies non-breaking spaces to what it
+    renders and `series-info` reports the resolved value, so a title
+    carrying any of them would differ for a reason that is not a bug."""
+
+    # A cover slide is all an article needs for the content level of the
+    # cascade to have something to give (its heading and its summary).
+    ARTICLE = ('<!-- lwp:meta -->\n{meta}---\n\n'
+               '<!-- lwp:slide:cover -->\ntag: Tag\n# {heading}\n'
+               'summary: {summary}\n')
+    NAV_SLIDE = '\n---\n\n<!-- lwp:slide:series-nav -->\n'
+
+    def _series(self, tmp, entries, sources, series_meta=None):
+        """A series directory: `entries` go into series.json verbatim,
+        `sources` maps a filename to its .md text."""
+        root = Path(tmp)
+        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        for name, text in sources.items():
+            (root / 'articles' / name).write_text(text, encoding='utf-8')
+        data = {'articles': entries}
+        if series_meta is not None:
+            data['series_meta'] = series_meta
+        (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+        return root
+
+    def _report(self, root):
+        result = run('series-info', str(root), '--format', 'json')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _field(self, article, name):
+        return article['fields'][name]['value'], article['fields'][name]['source']
+
+    # ------------------------------------------------------------------
+    # Against a real build, not against an expectation written here
+    # ------------------------------------------------------------------
+
+    def test_a_minimal_series_reports_the_titles_the_build_produces(self):
+        """Two entries carrying nothing but `page_source` — so every
+        field is derived — checked against the pages a build wrote:
+        <title>, <meta name="description">, the index cards, and the
+        nav card one article renders for the OTHER one."""
+        sources = {
+            'intro.md': self.ARTICLE.format(
+                meta='', heading='Where it begins',
+                summary='A first look at the whole thing.') + self.NAV_SLIDE,
+            'next.md': self.ARTICLE.format(
+                meta='', heading='What comes after',
+                summary='The second half of the story.') + self.NAV_SLIDE,
+        }
+        entries = [{'page_source': 'intro.md'}, {'page_source': 'next.md'}]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, entries, sources)
+            report = self._report(root)
+            out = root / 'public'
+            self.assertEqual(run('build', str(root), '--output', str(out))
+                             .returncode, 0)
+            index = (out / 'index.html').read_text(encoding='utf-8')
+
+            for article in report['articles']:
+                page_dest, _ = self._field(article, 'page_dest')
+                page = (out / page_dest).read_text(encoding='utf-8')
+                page_title, _ = self._field(article, 'page_title')
+                page_desc, _ = self._field(article, 'page_desc')
+                card_title, _ = self._field(article, 'card_title')
+                card_desc, _ = self._field(article, 'card_desc')
+                nav_title, _ = self._field(article, 'nav_title')
+
+                self.assertIn(f'<title>{page_title}</title>', page)
+                self.assertIn(f'<meta name="description" content="{page_desc}">',
+                              page)
+                self.assertIn(f'<div class="article-title">{card_title}</div>',
+                              index)
+                self.assertIn(f'<div class="article-desc">{card_desc}</div>',
+                              index)
+                # The nav card this article gets on the OTHER article's
+                # page — the reason every entry is resolved up front.
+                other = next(a for a in report['articles'] if a is not article)
+                other_page = (out / other['fields']['page_dest']['value']
+                              ).read_text(encoding='utf-8')
+                self.assertIn(f'<div class="series-title">{nav_title}</div>',
+                              other_page)
+
+    def test_the_order_is_series_json_s_order_and_the_build_agrees(self):
+        """The order IS data: it fixes cross-article navigation. Named so
+        that alphabetical order would be a different answer."""
+        names = ['zulu.md', 'alpha.md', 'mike.md']
+        sources = {name: self.ARTICLE.format(
+            meta='', heading=name[:-3].title(), summary='A summary.')
+            for name in names}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, [{'page_source': n} for n in names], sources)
+            report = self._report(root)
+            self.assertEqual([a['page_source'] for a in report['articles']], names)
+
+            out = root / 'public'
+            self.assertEqual(run('build', str(root), '--output', str(out))
+                             .returncode, 0)
+            index = (out / 'index.html').read_text(encoding='utf-8')
+            positions = [index.index(f'>{n[:-3].title()}<') for n in names]
+            self.assertEqual(positions, sorted(positions),
+                             'the report is not in the order the index uses')
+
+    # ------------------------------------------------------------------
+    # The cascade, level by level
+    # ------------------------------------------------------------------
+
+    def test_series_json_wins_over_the_meta_block_wins_over_the_content(self):
+        """The same field, at the three levels an author can write it,
+        one article per level — value AND provenance."""
+        sources = {
+            'all.md': self.ARTICLE.format(
+                meta='page_title: From the meta block\n',
+                heading='From the content', summary='A summary.'),
+            'meta.md': self.ARTICLE.format(
+                meta='page_title: From the meta block\n',
+                heading='From the content', summary='A summary.'),
+            'content.md': self.ARTICLE.format(
+                meta='', heading='From the content', summary='A summary.'),
+        }
+        entries = [
+            {'page_source': 'all.md', 'page_title': 'From series json'},
+            {'page_source': 'meta.md'},
+            {'page_source': 'content.md'},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, entries, sources)
+            report = self._report(root)
+            self.assertEqual(
+                [self._field(a, 'page_title') for a in report['articles']],
+                [('From series json', 'series'),
+                 ('From the meta block', 'article'),
+                 ('From the content', 'content')])
+
+            # And the build agrees about the value that won.
+            out = root / 'public'
+            self.assertEqual(run('build', str(root), '--output', str(out))
+                             .returncode, 0)
+            self.assertIn('<title>From series json</title>',
+                          (out / 'all.html').read_text(encoding='utf-8'))
+            self.assertIn('<title>From the meta block</title>',
+                          (out / 'meta.html').read_text(encoding='utf-8'))
+            self.assertIn('<title>From the content</title>',
+                          (out / 'content.html').read_text(encoding='utf-8'))
+
+    def test_every_level_of_the_cascade_names_itself(self):
+        """All five provenances at once, including the two a hand-written
+        expectation would get wrong: a value chained off another resolved
+        field is `derived`, and a field that legitimately resolves to
+        nothing still has a provenance (`default`) instead of
+        disappearing."""
+        sources = {'a.md': self.ARTICLE.format(
+            meta='card_desc: From the meta block\n',
+            heading='From the content', summary='A summary.')}
+        entries = [{'page_source': 'a.md', 'card_label': 'From series json'}]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, entries, sources)
+            article = self._report(root)['articles'][0]
+
+            self.assertEqual(self._field(article, 'card_label'),
+                             ('From series json', 'series'))
+            self.assertEqual(self._field(article, 'card_desc'),
+                             ('From the meta block', 'article'))
+            self.assertEqual(self._field(article, 'page_title'),
+                             ('From the content', 'content'))
+            # page_dest from page_source, card_title from page_title,
+            # nav_desc from card_desc: computed from another field.
+            self.assertEqual(self._field(article, 'page_dest'),
+                             ('a.html', 'derived'))
+            self.assertEqual(self._field(article, 'card_title'),
+                             ('From the content', 'derived'))
+            self.assertEqual(self._field(article, 'nav_desc'),
+                             ('From the meta block', 'derived'))
+            self.assertEqual(article['draft'], {'value': False,
+                                                'source': 'default'})
+
+        # card_label with nothing anywhere: empty, and still says where
+        # the emptiness comes from.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, [{'page_source': 'a.md'}], sources)
+            article = self._report(root)['articles'][0]
+            self.assertEqual(self._field(article, 'card_label'), ('', 'default'))
+
+    def test_a_derived_page_dest_and_an_explicit_one_are_told_apart(self):
+        sources = {'a.md': self.ARTICLE.format(meta='page_dest: from-meta.html\n',
+                                               heading='H', summary='S.'),
+                   'b.md': self.ARTICLE.format(meta='', heading='H', summary='S.')}
+        entries = [{'page_source': 'a.md'},
+                   {'page_source': 'b.md', 'page_dest': 'from-series.html'}]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, entries, sources)
+            report = self._report(root)
+            self.assertEqual(self._field(report['articles'][0], 'page_dest'),
+                             ('from-meta.html', 'article'))
+            self.assertEqual(self._field(report['articles'][1], 'page_dest'),
+                             ('from-series.html', 'series'))
+
+    # ------------------------------------------------------------------
+    # Drafts
+    # ------------------------------------------------------------------
+
+    def test_drafts_are_listed_reported_and_counted_apart(self):
+        """A draft is excluded from the build but is still in the series:
+        it must be reported, marked, and counted separately — not made to
+        vanish, which is what reading the build's output would do."""
+        sources = {
+            'live.md': self.ARTICLE.format(meta='', heading='Live',
+                                           summary='A summary.'),
+            'hidden.md': self.ARTICLE.format(meta='', heading='Hidden',
+                                             summary='A summary.'),
+            'quiet.md': self.ARTICLE.format(meta='draft: true\n', heading='Quiet',
+                                            summary='A summary.'),
+        }
+        entries = [{'page_source': 'live.md'},
+                   {'page_source': 'hidden.md', 'draft': True},
+                   {'page_source': 'quiet.md'}]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, entries, sources)
+            report = self._report(root)
+            self.assertEqual(report['counts'], {'articles': 3, 'drafts': 2})
+            self.assertEqual([a['draft'] for a in report['articles']],
+                             [{'value': False, 'source': 'default'},
+                              {'value': True, 'source': 'series'},
+                              {'value': True, 'source': 'article'}])
+            self.assertEqual([a['page_source'] for a in report['articles']],
+                             ['live.md', 'hidden.md', 'quiet.md'])
+
+            # Evidence that these really are the build's drafts: the
+            # build skips exactly the two the report counted.
+            out = root / 'public'
+            self.assertEqual(run('build', str(root), '--output', str(out))
+                             .returncode, 0)
+            self.assertTrue((out / 'live.html').exists())
+            self.assertFalse((out / 'hidden.html').exists())
+            self.assertFalse((out / 'quiet.html').exists())
+
+    def test_a_false_draft_in_series_json_still_comes_from_series_json(self):
+        """§20.6: series.json wins even with an explicitly false value.
+        Presence, not truth, picks the level."""
+        sources = {'a.md': self.ARTICLE.format(meta='draft: true\n', heading='H',
+                                               summary='S.')}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, [{'page_source': 'a.md', 'draft': False}],
+                                sources)
+            article = self._report(root)['articles'][0]
+            self.assertEqual(article['draft'], {'value': False,
+                                                'source': 'series'})
+
+    # ------------------------------------------------------------------
+    # The JSON surface itself (§1.2: renaming a key breaks the GUI)
+    # ------------------------------------------------------------------
+
+    ORIGINS = {'series', 'article', 'content', 'derived', 'default'}
+    FIELDS = ('page_dest', 'page_title', 'page_desc', 'card_title',
+              'card_desc', 'card_label', 'nav_title', 'nav_desc')
+
+    def test_the_json_parses_and_carries_the_documented_keys(self):
+        sources = {'a.md': self.ARTICLE.format(meta='', heading='H',
+                                               summary='S.')}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, [{'page_source': 'a.md'}], sources,
+                                series_meta={'title': 'A series',
+                                             'author': 'Fade78'})
+            report = self._report(root)
+
+        self.assertEqual(report['schema'], 'lightwebpres.series-info/1')
+        version = run('--help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
+        self.assertEqual(report['lightwebpres_version'], version)
+        self.assertEqual(set(report), {'schema', 'lightwebpres_version',
+                                       'target', 'series_meta', 'counts',
+                                       'articles'})
+        self.assertEqual(set(report['target']), {'kind', 'directory', 'theme'})
+        self.assertEqual(report['target']['kind'], 'series')
+        self.assertEqual(report['target']['directory'], str(Path(root).resolve()))
+        self.assertIsNone(report['target']['theme'])
+        self.assertEqual(set(report['series_meta']),
+                         {'title', 'subtitle', 'version', 'intro', 'author',
+                          'license'})
+        self.assertEqual(report['series_meta']['title'], 'A series')
+        self.assertIsNone(report['series_meta']['subtitle'])
+        self.assertEqual(set(report['counts']), {'articles', 'drafts'})
+
+        article = report['articles'][0]
+        self.assertEqual(set(article),
+                         {'page_source', 'source_read', 'draft', 'fields'})
+        self.assertIs(article['source_read'], True)
+        self.assertEqual(tuple(article['fields']), self.FIELDS)
+        for name, field in article['fields'].items():
+            self.assertEqual(set(field), {'value', 'source'}, name)
+            self.assertIsInstance(field['value'], str, name)
+            self.assertIn(field['source'], self.ORIGINS, name)
+        self.assertEqual(set(article['draft']), {'value', 'source'})
+        self.assertIsInstance(article['draft']['value'], bool)
+
+    def test_the_theme_in_force_is_the_one_settings_conf_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('install', str(root), '--theme', 'evergreen')
+                             .returncode, 0)
+            self.assertEqual(self._report(root)['target']['theme'], 'evergreen')
+            self.assertEqual(run('set-theme', str(root), '--theme', 'nord')
+                             .returncode, 0)
+            self.assertEqual(self._report(root)['target']['theme'], 'nord')
+
+    # ------------------------------------------------------------------
+    # What it must not do
+    # ------------------------------------------------------------------
+
+    def test_an_unreadable_article_does_not_cost_the_rest_of_the_answer(self):
+        """A missing or undecodable page_source is a `build` error and
+        stays one — this command is not a second `check`. It still
+        answers: the entry is listed with source_read false and its
+        fields fallen back, the other articles are intact, the notice
+        goes to stderr so stdout stays one JSON document, and the exit
+        code is 0."""
+        sources = {'good.md': self.ARTICLE.format(meta='', heading='Good one',
+                                                  summary='A summary.')}
+        entries = [{'page_source': 'good.md'},
+                   {'page_source': 'gone.md'},
+                   {'page_source': 'binary.md'}]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, entries, sources)
+            (root / 'articles' / 'binary.md').write_bytes(
+                b'<!-- lwp:meta -->\npage_title: T \xff\xfe\n---\n')
+            result = run('series-info', str(root), '--format', 'json')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+
+            self.assertEqual([a['source_read'] for a in report['articles']],
+                             [True, False, False])
+            self.assertEqual(self._field(report['articles'][0], 'page_title'),
+                             ('Good one', 'content'))
+            # Nothing to read means nothing to fall back on but the
+            # filename the entry itself carries.
+            self.assertEqual(self._field(report['articles'][1], 'page_title'),
+                             ('gone.html', 'derived'))
+            self.assertEqual(self._field(report['articles'][2], 'page_desc'),
+                             ('', 'default'))
+            self.assertIn('gone.md', result.stderr)
+            self.assertIn('binary.md', result.stderr)
+            self.assertNotIn('gone.md', result.stdout.split('"articles"')[0])
+
+            # And the build's verdict on the same series is unchanged.
+            build = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(build.returncode, 0)
+            self.assertIn('Source not found', build.stderr)
+            self.assertNotIn('Traceback', build.stderr)
+
+    def test_it_writes_nothing_at_all(self):
+        sources = {'a.md': self.ARTICLE.format(meta='', heading='H',
+                                               summary='S.')}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, [{'page_source': 'a.md'}], sources)
+
+            def snapshot():
+                return {str(p.relative_to(root)): p.stat().st_mtime_ns
+                        for p in sorted(root.rglob('*')) if p.is_file()}
+
+            before = snapshot()
+            for fmt in ('text', 'json'):
+                self.assertEqual(run('series-info', str(root), '--format', fmt)
+                                 .returncode, 0)
+            self.assertEqual(snapshot(), before)
+            self.assertFalse((root / 'public').exists())
+            self.assertFalse((root / 'README.md').exists())
+
+    def test_an_unknown_format_is_a_fatal_error(self):
+        sources = {'a.md': self.ARTICLE.format(meta='', heading='H',
+                                               summary='S.')}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, [{'page_source': 'a.md'}], sources)
+            result = run('series-info', str(root), '--format', 'yaml')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('--format', result.stderr)
+
+    def test_the_text_format_names_the_provenance_of_every_field(self):
+        sources = {'a.md': self.ARTICLE.format(meta='', heading='A heading',
+                                               summary='A summary.')}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, [{'page_source': 'a.md'}], sources)
+            text = run('series-info', str(root)).stdout
+        for name in self.FIELDS:
+            self.assertRegex(text, rf'{name}\s+\[(?:{"|".join(self.ORIGINS)})\]',
+                             f'{name} is reported without its provenance')
+        self.assertIn('A heading', text)
+
+    # ------------------------------------------------------------------
+    # One cascade, not two
+    # ------------------------------------------------------------------
+
+    # The command reports what resolve_article_fields RETURNED while it
+    # resolved. If any of these functions ever parses an article itself,
+    # a second cascade has been born — the exact thing §11.11 exists to
+    # prevent, and the kind of copy that drifts silently because both
+    # halves keep passing their own tests.
+    SERIES_INFO_SURFACE = {'series_info_report', 'print_series_info_text',
+                           'cmd_series_info', 'series_theme'}
+    RESOLUTION_PRIMITIVES = {'parse_markdown_extended', 'parse_metadata_block',
+                             '_find_cover_slide', '_read_article_source'}
+
+    def test_series_info_does_not_resolve_anything_a_second_time(self):
+        import ast
+        tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
+        seen = set()
+        for node in tree.body:
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            if node.name not in self.SERIES_INFO_SURFACE:
+                continue
+            seen.add(node.name)
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Name) and sub.id in self.RESOLUTION_PRIMITIVES:
+                    self.fail(f'{node.name} reaches {sub.id}: series-info is '
+                              f'resolving fields itself instead of reporting '
+                              f'what resolve_article_fields resolved')
+        self.assertEqual(seen, self.SERIES_INFO_SURFACE,
+                         'a series-info function was renamed or removed; this '
+                         'guard now watches nothing')
+
+    def test_the_command_goes_through_the_build_s_own_resolver(self):
+        import ast
+        tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
+        command = next(n for n in tree.body
+                       if isinstance(n, ast.FunctionDef) and n.name == 'cmd_series_info')
+        called = {sub.id for sub in ast.walk(command) if isinstance(sub, ast.Name)}
+        self.assertIn('resolve_article_fields', called)
+
+
 if __name__ == '__main__':
     unittest.main()

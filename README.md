@@ -133,6 +133,23 @@ end — plus keyboard/scroll navigation, a "copy link to this slide" button,
 and (if there's more than one article) a cross-article navigation block,
 all generated automatically.
 
+Since so much of that is derived rather than written, there is a way to
+ask what a series actually resolves to, without building it:
+
+```bash
+./lightwebpres series-info my-series
+./lightwebpres series-info my-series --format json
+```
+
+It lists the articles in `series.json` order — the order that fixes the
+cross-article navigation — with each field resolved exactly as the build
+resolves it, drafts included and counted apart, and, for every value,
+which level decided it: the `series.json` entry, the article's meta
+block, the article's own content, another field it was derived from, or
+the built-in default. An article whose file can't be read is still
+listed, with its fields fallen back and a warning on stderr; nothing is
+built and nothing is written.
+
 ## Commands
 
 | Command | What it does |
@@ -145,6 +162,7 @@ all generated automatically.
 | `refresh-templates [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
 | `theme-info <slug>` or `theme-info [dir]` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. A slug describes the theme as shipped (no series needed); a directory describes the *effective* theme, after the values that series pins. `--format json` for machines |
+| `series-info [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
 | `set-theme [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |

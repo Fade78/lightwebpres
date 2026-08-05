@@ -37,6 +37,7 @@ Usage:
   lightwebpres refresh-templates [directory] [--scaffold]
   lightwebpres themes [--polarity light|dark] [--intensity name] [--hue name]
   lightwebpres theme-info <slug>|[directory] [--format text|json]
+  lightwebpres series-info [directory] [--format text|json]
   lightwebpres set-theme [directory] --theme name
   lightwebpres themes-gallery [path]
   lightwebpres --help
@@ -7746,6 +7747,51 @@ def _find_cover_slide(slides):
     return next((s for s in slides if s.slide_type == 'cover'), None)
 
 
+# Where a resolved value came from, as `series-info` reports it (§11.11).
+# A closed vocabulary, shared with `theme-info`'s own answer to the same
+# question, so a consumer that shows provenance writes ONE piece of code:
+#
+#   series   the series-level file decided it — the article's entry in
+#            series.json
+#   article  the article's own meta block decided it
+#   content  derived from the article's own content — the cover slide's
+#            heading, or its summary
+#   derived  computed from another resolved field — page_dest from
+#            page_source with the extension swapped, card_title from
+#            page_title, nav_desc from card_desc
+#   default  the built-in fallback, including "resolves to empty" for a
+#            field like card_label, which has nothing to extrapolate from
+_FIELD_ORIGINS = ('series', 'article', 'content', 'derived', 'default')
+
+# The resolved fields whose provenance is recorded, in cascade order.
+# `author`/`license`/`date` are resolved but deliberately NOT recorded:
+# their last-but-one level is series_meta, a series-wide default written
+# by the author, which is neither this entry's series.json line nor a
+# built-in fallback — no string in _FIELD_ORIGINS says it truthfully, and
+# inventing one for fields §11.11 does not ask for would widen the public
+# vocabulary for nothing. `draft` is recorded, but kept out of this tuple:
+# its value is a boolean, not text (§11.11).
+_RESOLVED_FIELDS = ('page_dest', 'page_title', 'page_desc', 'card_title',
+                    'card_desc', 'card_label', 'nav_title', 'nav_desc')
+
+
+def _read_article_source(path):
+    """The article's own text, or None when this pass cannot have it: the
+    file is absent, unreadable, or not valid UTF-8.
+
+    None is not a verdict. A `page_source` that does not exist is a fatal
+    `build`/`check` error (§20.3), checked a few lines after this runs;
+    undecodable bytes die with read_text_file's clean message when the
+    article is actually read for building. Here the only consequence is
+    that every field falls through to a filesystem-independent level
+    instead of the same fault being reported twice — or once, too early,
+    for a command that reads without building (§11.11)."""
+    try:
+        return Path(path).read_text(encoding='utf-8-sig')
+    except (OSError, ValueError):   # missing, unreadable, or not UTF-8
+        return None
+
+
 def resolve_article_fields(articles, articles_dir, series_meta=None):
     """Resolves `page_dest` and the display/editorial fields for every
     entry, per §20.3.1. Mutates each entry in place so downstream
@@ -7753,6 +7799,14 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
     build_readme) can read the fields directly, with every
     override/fallback already applied — none of them need to know this
     mechanism exists.
+
+    Returns, per entry and in the same order, what the resolution knew
+    while it ran and the mutated entry cannot say afterwards: which level
+    of the cascade each value came from, and whether the article's own
+    file could be read at all. `build` and `check` ignore it; it is what
+    `series-info` (§11.11) reports, and it is returned from HERE rather
+    than recomputed by that command precisely so there is one cascade in
+    this program and not two that drift.
 
     Must run once, after validate_series and before any of those
     renderers — build_series_nav in particular renders every OTHER
@@ -7791,45 +7845,71 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
     descriptions are parallel branches off the same cover summary. That
     asymmetry is intentional (§20.3.1).
 
-    A page_source file that doesn't exist can't be read for its meta
-    block or slides; that case is already a non-fatal warning elsewhere,
-    so every field here just falls through to its filesystem-independent
-    default (derived `page_dest`, or '') instead of erroring a second
-    time."""
+    A page_source file that can't be read — absent, unreadable, or not
+    UTF-8 — can't be read for its meta block or slides either; every
+    field then falls through to its filesystem-independent default
+    (derived `page_dest`, or '') instead of the same fault being reported
+    twice. Absence is fatal to build/check a few lines later, in
+    load_build_context; undecodable bytes die with read_text_file's clean
+    message when the article is read for building."""
     series_meta = series_meta or {}
+    resolution = []
     for entry in articles:
-        source_path = articles_dir / entry['page_source']
+        text = _read_article_source(articles_dir / entry['page_source'])
         meta, slides = {}, []
-        if source_path.exists():
-            meta, slides, _, _ = parse_markdown_extended(read_text_file(source_path))
+        if text is not None:
+            meta, slides, _, _ = parse_markdown_extended(text)
         cover = _find_cover_slide(slides)
         cover_summary = cover.summary if cover and cover.summary else ''
+        origins = {}
 
-        if not entry.get('page_dest'):
-            entry['page_dest'] = meta.get('page_dest') or re.sub(r'\.md$', '.html', entry['page_source'], flags=re.IGNORECASE)
+        def take(field, content='', derived=''):
+            """One field's cascade, and the level the retained value came
+            from. The order is §20.3.1's, and it is written once here
+            rather than once per field so a level cannot be recorded as
+            one thing and resolved as another."""
+            if entry.get(field):
+                origins[field] = 'series'
+                return entry[field]
+            if meta.get(field):
+                origins[field] = 'article'
+                return meta[field]
+            if content:
+                origins[field] = 'content'
+                return content
+            if derived:
+                origins[field] = 'derived'
+                return derived
+            origins[field] = 'default'
+            return ''
+
+        entry['page_dest'] = take('page_dest', derived=re.sub(
+            r'\.md$', '.html', entry['page_source'], flags=re.IGNORECASE))
+        if origins['page_dest'] != 'series':
+            # An explicit page_dest in series.json was already checked by
+            # validate_series; one that arrives here came from the meta
+            # block or from page_source, and gets the same check now.
             if not _is_safe_relative_filename(entry['page_dest']) or not entry['page_dest'].lower().endswith(('.html', '.htm')):
                 print(f'[ERROR] {entry["page_source"]}: resolved "page_dest" value '
                       f'"{entry["page_dest"]}" is not a safe .html/.htm filename '
                       f'(from the article\'s own meta block).', file=sys.stderr)
                 sys.exit(1)
 
-        if not entry.get('page_title'):
-            entry['page_title'] = meta.get('page_title') or (cover.h1 if cover and cover.h1 else '') or entry['page_dest']
-        if not entry.get('page_desc'):
-            entry['page_desc'] = meta.get('page_desc') or cover_summary
+        entry['page_title'] = take('page_title',
+                                   content=(cover.h1 if cover and cover.h1 else ''),
+                                   derived=entry['page_dest'])
+        entry['page_desc'] = take('page_desc', content=cover_summary)
 
-        if not entry.get('card_title'):
-            entry['card_title'] = meta.get('card_title') or entry['page_title']
-        if not entry.get('card_desc'):
-            entry['card_desc'] = meta.get('card_desc') or cover_summary
-        if not entry.get('card_label'):
-            entry['card_label'] = meta.get('card_label', '')
+        entry['card_title'] = take('card_title', derived=entry['page_title'])
+        entry['card_desc'] = take('card_desc', content=cover_summary)
+        entry['card_label'] = take('card_label')
 
-        if not entry.get('nav_title'):
-            entry['nav_title'] = meta.get('nav_title') or entry['card_title']
-        if not entry.get('nav_desc'):
-            entry['nav_desc'] = meta.get('nav_desc') or entry['card_desc']
+        entry['nav_title'] = take('nav_title', derived=entry['card_title'])
+        entry['nav_desc'] = take('nav_desc', derived=entry['card_desc'])
 
+        # The editorial three keep their own lines: their last-but-one
+        # level is a series-wide default (series_meta), which `take` has
+        # no level for and _RESOLVED_FIELDS explains is not reported.
         if not entry.get('author'):
             entry['author'] = meta.get('author') or series_meta.get('author', '')
         if not entry.get('license'):
@@ -7839,9 +7919,18 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
 
         # series.json wins even with an explicit falsy value there, so
         # `"draft": false` in series.json can override a `draft: true`
-        # left in the meta block.
-        draft_value = entry['draft'] if 'draft' in entry else meta.get('draft', '')
+        # left in the meta block. Presence, not truth, is what picks the
+        # level here — which is exactly why `take` can't serve: a written
+        # `false` comes from the file that wrote it, not from the default.
+        if 'draft' in entry:
+            draft_value, origins['draft'] = entry['draft'], 'series'
+        elif 'draft' in meta:
+            draft_value, origins['draft'] = meta['draft'], 'article'
+        else:
+            draft_value, origins['draft'] = '', 'default'
         entry['draft'] = str(draft_value).strip().lower() == 'true'
+
+        resolution.append({'source_read': text is not None, 'origins': origins})
 
     seen = {}
     for i, entry in enumerate(articles, 1):
@@ -7857,6 +7946,8 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
                   f'they would be the same file on Windows/macOS).', file=sys.stderr)
             sys.exit(1)
         seen[f] = i
+
+    return resolution
 
 
 # ============================================================================
@@ -9168,6 +9259,175 @@ def cmd_set_theme(target_dir, args):
 
 
 # ============================================================================
+# SERIES-INFO COMMAND (specifications.md §11.11)
+# ============================================================================
+
+# Bumped when a key changes meaning or disappears, never because one was
+# added — the same promise theme-info's schema makes, so a consumer can
+# test the string instead of guessing an executable's age from the keys
+# it happens to find.
+SERIES_INFO_SCHEMA = 'lightwebpres.series-info/1'
+
+
+def series_theme(templates_dir):
+    """The theme slug a build of this series would run on, or None when
+    it names none — a series with no settings.conf, or one that pins
+    properties without naming a theme, runs on the registry's own
+    defaults (§9.3), and `null` says that better than a slug it does not
+    have. Same parser as the build, so the two cannot disagree."""
+    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    if settings_file is None or not settings_file.exists():
+        return None
+    return parse_settings_text(read_text_file(settings_file))[0]
+
+
+def series_info_report(directory, series_data, articles, resolution, theme):
+    """Everything `series-info` knows about one series, as `--format
+    json` prints it and the text format reads out.
+
+    Every value here comes from resolve_article_fields — the function the
+    build itself calls — and every provenance from what that function
+    recorded while it ran. Nothing is re-resolved: a second cascade is
+    exactly what this command exists to prevent (§11.11).
+
+    `series_meta` is reported as the file holds it, `null` for a field
+    the author left out. The index's untitled fallback is deliberately
+    NOT applied: it is a rendering decision, and a language-dependent one
+    (§7.3), while this command takes no --lang and describes data."""
+    meta = series_meta_of(series_data)
+    return {
+        'schema': SERIES_INFO_SCHEMA,
+        'lightwebpres_version': VERSION,
+        'target': {
+            'kind': 'series',
+            'directory': str(directory),
+            'theme': theme,
+        },
+        'series_meta': {field: meta.get(field)
+                        for field in _SERIES_META_STRING_FIELDS},
+        'counts': {
+            'articles': len(articles),
+            'drafts': sum(1 for entry in articles if entry['draft']),
+        },
+        'articles': [
+            {
+                'page_source': entry['page_source'],
+                'source_read': note['source_read'],
+                'draft': {'value': entry['draft'],
+                          'source': note['origins']['draft']},
+                'fields': {field: {'value': entry[field],
+                                   'source': note['origins'][field]}
+                           for field in _RESOLVED_FIELDS},
+            }
+            for entry, note in zip(articles, resolution)
+        ],
+    }
+
+
+def print_series_info_text(report):
+    """The human format. Like theme-info's, it does not also try to be a
+    machine format: `--format json` is that answer."""
+    import textwrap
+
+    target = report['target']
+    counts = report['counts']
+    print(f"Series: {target['directory']}")
+    print(f"  theme: {target['theme'] or 'none (the built-in defaults)'}")
+    print(f"  {counts['articles']} article(s), of which "
+          f"{counts['drafts']} draft(s)")
+
+    print()
+    print('Series metadata')
+    for field, value in report['series_meta'].items():
+        print(f"  {field:<9s} {value if value else '(unset)'}")
+
+    print()
+    print('Articles, in series.json order — that order IS the navigation order')
+    # Column width from the vocabulary itself, so a sixth provenance
+    # would not silently misalign the whole listing.
+    width = max(len(origin) for origin in _FIELD_ORIGINS) + 3
+    for number, article in enumerate(report['articles'], 1):
+        print()
+        draft = '  [draft]' if article['draft']['value'] else ''
+        print(f"  {number}. {article['page_source']} -> "
+              f"{article['fields']['page_dest']['value']}{draft}")
+        if not article['source_read']:
+            print(f"     ! {article['page_source']} could not be read "
+                  f"(absent, unreadable, or not UTF-8):")
+            print("       every field below fell back to series.json "
+                  "and the defaults.")
+        rows = [(field, value['source'], value['value'])
+                for field, value in article['fields'].items()]
+        rows.append(('draft', article['draft']['source'],
+                     'yes' if article['draft']['value'] else 'no'))
+        for field, source, value in rows:
+            head = f"     {field:<11s} {'[' + source + ']':<{width}s} "
+            body = str(value) if str(value) else '(empty)'
+            for i, line in enumerate(textwrap.wrap(body, width=54)):
+                print((head if i == 0 else ' ' * len(head)) + line)
+
+    print()
+    print('Each value is the one a build would use, and the bracket says which')
+    print('level of the cascade it came from (§20.3.1). Nothing was built and')
+    print('nothing was written.')
+
+
+def cmd_series_info(series_dir, args):
+    """series-info command (§11.11) — says what is in a series without
+    building anything.
+
+    A title is the result of a cascade, so reading series.json does not
+    give one: a minimal entry carries `page_source` and nothing else. The
+    cascade belongs to the engine, and this is how the engine hands the
+    result over instead of being reached into.
+
+    It validates nothing beyond what resolution needs: a series whose
+    article file is missing is a `build` error and stays one. Here that
+    article is still listed, with `source_read` false and its fields
+    fallen back — a consumer asking what is in the series gets the whole
+    series, plus the news that one entry could not be read, rather than
+    an error and no answer at all."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        print(f'[ERROR] Unknown --format: {fmt!r}. Valid values: text, json',
+              file=sys.stderr)
+        sys.exit(1)
+
+    sd, articles_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
+    series_data = load_series_data(sd)
+    series_meta = series_meta_of(series_data)
+    articles = (series_data.get('articles', series_data)
+                if isinstance(series_data, dict) else series_data)
+    validate_series(articles)
+    # Drafts are NOT filtered out: an article kept out of the build is
+    # still in the series, and a consumer must be able to show it as such
+    # rather than have it vanish (§11.11).
+    resolution = resolve_article_fields(articles, articles_dir, series_meta)
+
+    try:
+        theme = series_theme(templates_dir)
+    except PropertyError as exc:
+        print(f'[ERROR] templates/{SETTINGS_FILENAME}: {exc}', file=sys.stderr)
+        sys.exit(1)
+
+    report = series_info_report(sd, series_data, articles, resolution, theme)
+
+    # On stderr, so `--format json` stays a single JSON document on
+    # stdout. Not an error: the answer for every other article is intact,
+    # and this command is not a second `check`.
+    for article in report['articles']:
+        if not article['source_read']:
+            print(f'[WARN] {articles_dir / article["page_source"]} could not be '
+                  f'read (absent, unreadable, or not UTF-8): its fields fall '
+                  f'back to series.json and the defaults.', file=sys.stderr)
+
+    if fmt == 'json':
+        print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=False))
+    else:
+        print_series_info_text(report)
+
+
+# ============================================================================
 # THEMES-GALLERY COMMAND
 # ============================================================================
 
@@ -9618,6 +9878,11 @@ COMMANDS
   lightwebpres theme-info [directory]            Same, for the EFFECTIVE theme of an
                                                   installed series — after the values it
                                                   pins in templates/settings.conf
+  lightwebpres series-info [directory]           Says what is in a series without
+                                                  building: its articles in series.json
+                                                  order, each field RESOLVED as a build
+                                                  would resolve it, and where each value
+                                                  came from (see §11.11)
   lightwebpres set-theme [directory] --theme X   Changes an existing series' theme
                                                   (see §11.10)
   lightwebpres themes-gallery [path]             Generates a self-contained HTML page
@@ -9642,9 +9907,9 @@ OPTIONS
   --intensity name       themes: sober | vivid | mono
   --hue name             themes: neutral, red, orange, yellow, green, cyan,
                         blue, violet, magenta — the hue of the page background
-  --format text|json     theme-info: output format (default: text). JSON, not YAML:
-                        this tool is standard-library only, where `json` is
-                        present and `yaml` is not
+  --format text|json     theme-info/series-info: output format (default: text).
+                        JSON, not YAML: this tool is standard-library only,
+                        where `json` is present and `yaml` is not
   --gitlab-ci             install: also write a .gitlab-ci.yml pipeline (opt-in —
                         install never assumes a GitLab deployment on its own)
   --language-file path   build/check: use this language pack file instead of
@@ -9788,6 +10053,14 @@ ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
   series; author/date/license are displayed (page footer + <meta> tags),
   page_desc feeds <meta name="description">.
 
+  Only page_source is ever required: every other field falls back to the
+  .md meta block, then to what the article already says (its cover's
+  title and summary), then to a default. To read what that resolves to
+  for a whole series — and which level each value came from — without
+  building anything:
+    lightwebpres series-info my-series
+    lightwebpres series-info my-series --format json
+
 NOTES (specifications.md §6.5)
   [^label] calls a note, [^label]: body defines it — standard Markdown, in
   a slide's free text or in the full-article file. The call links to the
@@ -9861,6 +10134,7 @@ _COMMAND_OPTIONS = {
     'refresh-templates': {'--scaffold'},
     'themes': {'--polarity', '--intensity', '--hue'},
     'theme-info': {'--format'},
+    'series-info': {'--format'},
     'set-theme': {'--theme'},
     'themes-gallery': set(),
 }
@@ -9948,6 +10222,8 @@ def main():
         # it is the form that needs no series at all, and the one the
         # "which theme do I want" question arrives in.
         cmd_theme_info(target, opts)
+    elif command == 'series-info':
+        cmd_series_info(target, opts)
     elif command == 'set-theme':
         cmd_set_theme(target, opts)
     elif command == 'themes-gallery':
