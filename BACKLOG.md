@@ -651,3 +651,23 @@ accepted (if broken) configuration into a fatal one, so it wants a look
 before it lands: someone may have a single-article series relying on the
 index being the only page — which today means their article is the thing
 being thrown away, not the index.
+
+## B17 — catppuccin's bold-on-highlight is at 3.05:1 — NOTED
+
+Found while measuring the notes work, and it is **not** a note defect:
+catppuccin's `fact.strong.fg` measures **3.05:1** against its own
+`fact.strong.bg`, for all bold text in a fact box, with or without a note
+in it. Verified on the tree as it stood before any of the notes changes.
+
+It surfaces here because `footnote-call.fg-marked` defaults to
+`fact.strong.fg` — the tone the theme already chose for text on that
+ground — so the call inherits the palette's own shortfall. That default is
+right by construction on the other 32; catppuccin is the one place where
+what the theme already chose is itself below the floor.
+
+`EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith` pins it as an exact
+set rather than a floor, so fixing the palette makes that test fail and
+forces the exemption out with it.
+
+Same class as B9's five themes: a palette value below AA, needing a
+measured replacement rather than a mechanism.

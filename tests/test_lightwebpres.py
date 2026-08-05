@@ -3093,14 +3093,23 @@ class DarkBackgroundThemes(unittest.TestCase):
         palette key, so theme.get('dark') was a truthy colour string and
         every theme silently went dark), so it stays pinned per slug
         rather than as 'all are light'."""
-        dark_items = self.lwp.DARK_FURNITURE_PROPS.items()
         for slug, theme in self.lwp.THEMES.items():
             layer = self.lwp.theme_property_layer(slug)
+            # Minus what the theme states for itself. The furniture is a
+            # DEFAULT for a polarity, not a lock: a theme that names its
+            # own value for one of these axes is doing the ordinary
+            # layering the whole system is built on, and computing the
+            # exemption from the tables keeps this honest when they grow
+            # rather than pinning a list that goes stale.
+            own = (set(self.lwp.THEME_NOTE_PROPS.get(slug, {}))
+                   | set(self.lwp.THEME_PROPERTY_OVERRIDES.get(slug, {})))
+            expected = {k: v for k, v in self.lwp.DARK_FURNITURE_PROPS.items()
+                        if k not in own}
             if theme.get('dark_background'):
-                self.assertTrue(dark_items <= layer.items(),
+                self.assertTrue(expected.items() <= layer.items(),
                                 f'{slug} is dark but its layer lacks the dark furniture')
             else:
-                for key in self.lwp.DARK_FURNITURE_PROPS:
+                for key in expected:
                     self.assertNotIn(key, layer,
                                      f'{slug} is light but its layer overrides {key}')
         # Both polarities must actually be represented, or the mapping
@@ -3226,10 +3235,15 @@ class ThemeFacets(unittest.TestCase):
         """The facet is a label; the property layer drives real CSS. If
         they ever disagreed the gallery would file a theme under the
         wrong heading while rendering it the other way."""
-        dark_items = self.lwp.DARK_FURNITURE_PROPS.items()
         for key, theme in self.lwp.THEMES.items():
             dark_facet = self.lwp.theme_facets(theme)['polarity'] == 'dark'
-            dark_css = dark_items <= self.lwp.theme_property_layer(key).items()
+            # Same exemption as above: a theme naming its own value for a
+            # furniture axis has not changed polarity.
+            own = (set(self.lwp.THEME_NOTE_PROPS.get(key, {}))
+                   | set(self.lwp.THEME_PROPERTY_OVERRIDES.get(key, {})))
+            expected = {k: v for k, v in self.lwp.DARK_FURNITURE_PROPS.items()
+                        if k not in own}
+            dark_css = expected.items() <= self.lwp.theme_property_layer(key).items()
             self.assertEqual(dark_facet, dark_css, key)
 
     def test_the_gallery_preview_receives_the_dark_furniture(self):
@@ -7694,16 +7708,25 @@ class AResponsiveOverrideMustActuallyOverride(unittest.TestCase):
                          'base rule of equal specificity: ' + repr(sorted(set(dead))))
 
 
-class TheNotesSectionIsReadableOnEveryThemeItShipsWith(unittest.TestCase):
-    """DARK_FURNITURE_PROPS is the table that stops a white surface veil
-    from turning a dark page into an unreadable pale block. Membership in
-    it is easy to forget for a component added later — the notes plate and
-    its two rules were forgotten exactly that way, and the default shipped
-    a near-opaque white slab carrying pale ink on all 18 dark themes.
+class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
+    """Nine contrast constraints × 33 themes, measured from the RESOLVED
+    sheet rather than from the intent.
 
-    So this measures the COMPOSITED result rather than the table's
-    contents: a test that checked membership would pass the day someone
-    adds a key with a value that does not work."""
+    Two things this catches that a cheaper test would not. Membership in
+    `DARK_FURNITURE_PROPS` is not enough — the notes plate and its rules
+    were left out of it and shipped a near-opaque white slab carrying pale
+    ink on all 18 dark themes, but a membership test would also pass the
+    day someone adds a key with a value that does not work. And a call does
+    not always sit on the card's ground: inside a highlighted run and on a
+    cover it sits on two other ones, which is where `call` measured 1.00:1
+    on tokyo-night — the number painted exactly its own background."""
+
+    # The one measured failure in 297 checks, and it is not a note defect:
+    # catppuccin's `fact.strong.fg` measures 3.05:1 on its own highlight
+    # ground for ALL bold fact-box text, with or without a note in it.
+    # Pinned as an exact set, not a floor, so that fixing the palette makes
+    # THIS test fail and forces the exemption out with it (BACKLOG B17).
+    KNOWN_PALETTE_FAILURES = {('catppuccin', 'footnote-call.fg-marked')}
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
@@ -7729,41 +7752,76 @@ class TheNotesSectionIsReadableOnEveryThemeItShipsWith(unittest.TestCase):
         la, lb = lum(a), lum(b)
         return (max(la, lb) + .05) / (min(la, lb) + .05)
 
-    def _plate(self, slug):
-        resolved = self.lwp.resolve_theme_properties(
+    def _checks(self, slug):
+        """(name, foreground, grounds it may land on, floor) for one theme."""
+        r = self.lwp.resolve_theme_properties(
             self.lwp.theme_property_layer(slug), {})
-        page = self._rgba(resolved['color.page'])
-        return resolved, page, self._over(self._rgba(resolved['note.page.bg']), page)
+        page = self._rgba(r['color.page'])
+        # A standard card has no ground of its own — getComputedStyle on
+        # section.slide returns rgba(0,0,0,0) — so a note in a card sits
+        # directly on color.page. Three grounds a body can land on, not two.
+        card = page
+        article = self._over(self._rgba(r['article.bg']), page)
+        notes = self._over(self._rgba(r['note.page.bg']), page)
+        marked = self._over(self._rgba(r['fact.strong.bg']),
+                            self._over(self._rgba(r['fact.bg']), page))
+        cover = self._over(self._rgba(r['cover.bg.from']), page)
+        body = [card, article, notes]
+        return r, page, [
+            ('note.fg',               self._rgba(r['note.fg']),               body,     4.5),
+            ('note.marker.fg',        self._rgba(r['note.marker.fg']),        body,     4.5),
+            ('note.back.fg',          self._rgba(r['note.back.fg']),          body,     4.5),
+            ('note.page.title.fg',    self._rgba(r['note.page.title.fg']),    [notes],  4.5),
+            ('footnote-call.fg',      self._rgba(r['footnote-call.fg']),      [card, article], 4.5),
+            ('footnote-call.fg-marked', self._rgba(r['footnote-call.fg-marked']), [marked], 4.5),
+            ('footnote-call.fg-cover',  self._rgba(r['footnote-call.fg-cover']),  [cover],  4.5),
+            ('note.local.rule-fg', self._over(self._rgba(r['note.local.rule-fg']), page), [page], 3.0),
+            ('note.page.rule-fg',  self._over(self._rgba(r['note.page.rule-fg']),  page), [page], 3.0),
+        ]
 
-    def test_the_notes_heading_is_never_lost_in_its_own_plate(self):
-        # The failure this replaces was total, not marginal: pop-fuchsia
-        # measured 1.00:1 -- the heading was exactly invisible.
+    def test_every_note_ink_clears_aa_and_every_rule_clears_three_to_one(self):
+        failures = set()
         for slug in self.lwp.THEMES:
-            resolved, _, plate = self._plate(slug)
-            r = self._ratio(self._rgba(resolved['note.page.title.fg']), plate)
-            self.assertGreaterEqual(round(r, 2), 4.5,
-                                    f'{slug}: notes heading at {r:.2f}:1 on its own plate')
+            _, _, checks = self._checks(slug)
+            for name, fg, grounds, floor in checks:
+                low = min(self._ratio(fg, g) for g in grounds)
+                if round(low, 2) < floor:
+                    failures.add((slug, name))
+        self.assertEqual(
+            failures, self.KNOWN_PALETTE_FAILURES,
+            'the measured failures changed. New entries are regressions; a '
+            'MISSING one means the palette was fixed and its exemption must '
+            'go with it.')
 
     def test_a_dark_theme_never_paints_the_notes_plate_pale(self):
-        # The plate must stay on the dark side of its own page, not become
-        # a light slab in the middle of it.
+        # The plate departs from the page in the direction that has
+        # headroom. On a dark theme that is upward, and it must stay a
+        # raised ground rather than becoming a light slab in the middle.
         for slug, theme in self.lwp.THEMES.items():
             if not theme.get('dark_background'):
                 continue
-            resolved, page, plate = self._plate(slug)
+            r, page, _ = self._checks(slug)
+            plate = self._over(self._rgba(r['note.page.bg']), page)
             self.assertLessEqual(self._ratio(plate, page), 2.0,
-                                 f'{slug}: the notes plate departs from its page like a light slab')
+                                 f'{slug}: the notes plate reads as a light slab')
 
-    def test_the_notes_rules_are_drawn_at_all(self):
-        # Black on black is not a hairline, it is nothing. This is the
-        # floor (visible), not the 3:1 target a values pass would set.
+    def test_the_notes_plate_is_a_ground_and_not_nothing(self):
+        # The other direction: a plate that does not depart from the page
+        # at all is not a section, it is a rule with text under it.
         for slug in self.lwp.THEMES:
-            resolved, page, plate = self._plate(slug)
-            local = self._over(self._rgba(resolved['note.local.rule-fg']), page)
-            section = self._over(self._rgba(resolved['note.page.rule-fg']), page)
-            for name, drawn in (('note.local.rule-fg', local), ('note.page.rule-fg', section)):
-                self.assertGreater(self._ratio(drawn, page), 1.1,
-                                   f'{slug}: {name} is invisible against the page')
+            r, page, _ = self._checks(slug)
+            plate = self._over(self._rgba(r['note.page.bg']), page)
+            self.assertGreater(self._ratio(plate, page), 1.10,
+                               f'{slug}: the notes plate is invisible against its page')
+
+    def test_the_two_extra_call_axes_default_to_the_tone_of_their_ground(self):
+        # The defaults are what make this right by construction with no
+        # per-theme value: each names the tone the theme ALREADY chose for
+        # text on that ground. If a future edit pins a literal instead, 33
+        # themes silently stop tracking their own palettes.
+        reg = self.lwp.PROPERTY_REGISTRY
+        self.assertEqual(reg['footnote-call.fg-marked'].default, 'fact.strong.fg')
+        self.assertEqual(reg['footnote-call.fg-cover'].default, 'cover.fg')
 
 
 class AuditNamesTheThreeWaysANoteBreaks(unittest.TestCase):

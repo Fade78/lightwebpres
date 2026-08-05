@@ -534,23 +534,25 @@
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #BF616AFF;
+  --footnote-call-fg: #2E3440FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #2E3440FF;
+  --footnote-call-fg-cover: #ECEFF4FF;
   /* note */
   --note-fg: #4C566AFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #BF616AFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #2E3440FF;
   --note-back-fg: #4C566AFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #2E344090;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #2E344015;
+  --note-page-rule-fg: #2E344095;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #2E3440FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #2E3440FF;
@@ -838,6 +840,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -1792,23 +1800,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #FF5555FF;
+  --footnote-call-fg: #F8F8F2FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #282A36FF;
+  --footnote-call-fg-cover: #F8F8F2FF;
   /* note */
-  --note-fg: #8B9CC7FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #FF5555FF;
-  --note-back-fg: #8B9CC7FF;
+  --note-fg: #9FADCFFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #F8F8F2FF;
+  --note-back-fg: #9FADCFFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #F8F8F266;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #F8F8F217;
+  --note-page-rule-fg: #F8F8F26C;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #F8F8F2FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F8F8F2FF;
@@ -2096,6 +2106,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -3050,23 +3066,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #DC322FFF;
+  --footnote-call-fg: #002B36FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #002B36FF;
+  --footnote-call-fg-cover: #FDF6E3FF;
   /* note */
-  --note-fg: #93A1A1FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #DC322FFF;
-  --note-back-fg: #93A1A1FF;
+  --note-fg: #4C686EFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #002B36FF;
+  --note-back-fg: #4C686EFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #002B3683;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #002B3613;
+  --note-page-rule-fg: #002B3687;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #002B36FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #002B36FF;
@@ -3354,6 +3372,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -4310,21 +4334,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #CC241DFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #282828FF;
+  --footnote-call-fg-cover: #FBF1C7FF;
   /* note */
-  --note-fg: #928374FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #CC241DFF;
-  --note-back-fg: #928374FF;
+  --note-fg: #665C54FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #282828FF;
+  --note-back-fg: #665C54FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #28282888;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #28282814;
+  --note-page-rule-fg: #2828288C;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #282828FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #282828FF;
@@ -4612,6 +4638,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -5568,21 +5600,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #D20F39FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #4C4F69FF;
+  --footnote-call-fg-cover: #EFF1F5FF;
   /* note */
-  --note-fg: #6C6F85FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #D20F39FF;
-  --note-back-fg: #6C6F85FF;
+  --note-fg: #5C5F77FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #4C4F69FF;
+  --note-back-fg: #5C5F77FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #4C4F69AA;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #4C4F6919;
+  --note-page-rule-fg: #4C4F69B4;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #4C4F69FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #4C4F69FF;
@@ -5870,6 +5904,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -6826,21 +6866,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #F7768EFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #1A1B26FF;
+  --footnote-call-fg-cover: #C0CAF5FF;
   /* note */
-  --note-fg: #8C94BCFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #A9B1D6FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #F7768EFF;
-  --note-back-fg: #8C94BCFF;
+  --note-back-fg: #A9B1D6FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #C0CAF579;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #C0CAF51E;
+  --note-page-rule-fg: #C0CAF57F;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #C0CAF5FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #C0CAF5FF;
@@ -7128,6 +7170,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -8084,21 +8132,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #F8F8F2FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #272822FF;
+  --footnote-call-fg-cover: #F8F8F2FF;
   /* note */
-  --note-fg: #9B9483FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #F92672FF;
-  --note-back-fg: #9B9483FF;
+  --note-fg: #AFA99AFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #F8F8F2FF;
+  --note-back-fg: #AFA99AFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #F8F8F265;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #F8F8F217;
+  --note-page-rule-fg: #F8F8F269;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #F8F8F2FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: ui-monospace, &#x27;Cascadia Code&#x27;, &#x27;Source Code Pro&#x27;, Menlo, Consolas, &#x27;DejaVu Sans Mono&#x27;, monospace;
   /* link */
   --link-decoration-color: #F8F8F2FF;
@@ -8386,6 +8436,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -9340,23 +9396,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #E67E80FF;
+  --footnote-call-fg: #D3C6AAFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #2D353BFF;
+  --footnote-call-fg-cover: #D3C6AAFF;
   /* note */
-  --note-fg: #9DA9A0FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #E67E80FF;
-  --note-back-fg: #9DA9A0FF;
+  --note-fg: #BAB9A5FF;
+  --note-size: 14px;
+  --note-leading: 1.65;
+  --note-marker-fg: #D3C6AAFF;
+  --note-back-fg: #BAB9A5FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #D3C6AA94;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #D3C6AA1E;
+  --note-page-rule-fg: #D3C6AA9D;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #D3C6AAFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #D3C6AAFF;
@@ -9644,6 +9702,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -10598,23 +10662,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #B4637AFF;
+  --footnote-call-fg: #464261FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #464261FF;
+  --footnote-call-fg-cover: #FAF4EDFF;
   /* note */
-  --note-fg: #797593FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #B4637AFF;
-  --note-back-fg: #797593FF;
+  --note-fg: #575279FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #464261FF;
+  --note-back-fg: #575279FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #4642619D;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #46426117;
+  --note-page-rule-fg: #464261A4;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #464261FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #464261FF;
@@ -10902,6 +10968,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -11858,21 +11930,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #D00000FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #000000FF;
+  --footnote-call-fg-cover: #FFFFFFFF;
   /* note */
   --note-fg: #4A4A4AFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-size: 16px;
+  --note-leading: 1.55;
   --note-marker-fg: #D00000FF;
   --note-back-fg: #4A4A4AFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
-  --note-local-rule-width: 1px;
+  --note-local-rule-fg: #00000070;
+  --note-local-rule-width: 2px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #00000011;
+  --note-page-rule-fg: #00000072;
+  --note-page-rule-width: 3px;
   --note-page-title-fg: #000000FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 30px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #000000FF;
@@ -12160,6 +12234,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -13114,23 +13194,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #D64045FF;
+  --footnote-call-fg: #0B2545FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #0B2545FF;
+  --footnote-call-fg-cover: #EEF2F7FF;
   /* note */
-  --note-fg: #5A7184FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #D64045FF;
-  --note-back-fg: #5A7184FF;
+  --note-fg: #4A6277FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #0B2545FF;
+  --note-back-fg: #4A6277FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #0B254584;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #0B254514;
+  --note-page-rule-fg: #0B254588;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #0B2545FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #0B2545FF;
@@ -13418,6 +13500,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -14374,21 +14462,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF8A5BFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #0A1626FF;
+  --footnote-call-fg-cover: #DCE6F2FF;
   /* note */
-  --note-fg: #7B8FA8FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #889AB2FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FF8A5BFF;
-  --note-back-fg: #7B8FA8FF;
+  --note-back-fg: #889AB2FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #DCE6F266;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #DCE6F21C;
+  --note-page-rule-fg: #DCE6F26B;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #DCE6F2FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #DCE6F2FF;
@@ -14676,6 +14766,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -15632,21 +15728,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #2B2B2BFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #111111FF;
+  --footnote-call-fg-cover: #FAFAFAFF;
   /* note */
-  --note-fg: #707070FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #656565FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #2B2B2BFF;
-  --note-back-fg: #707070FF;
+  --note-back-fg: #656565FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #11111178;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #11111111;
+  --note-page-rule-fg: #1111117B;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #111111FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #111111FF;
@@ -15934,6 +16032,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -16890,21 +16994,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFFFFFFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #EDEDEDFF;
+  --footnote-call-fg-cover: #EDEDEDFF;
   /* note */
-  --note-fg: #8A8A8AFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #969696FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FFFFFFFF;
-  --note-back-fg: #8A8A8AFF;
+  --note-back-fg: #969696FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #EDEDED62;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #EDEDED1C;
+  --note-page-rule-fg: #EDEDED65;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #EDEDEDFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #EDEDEDFF;
@@ -17192,6 +17298,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -18148,21 +18260,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #8C2F1EFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #1A1A18FF;
+  --footnote-call-fg-cover: #F4F1EAFF;
   /* note */
-  --note-fg: #6B6862FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #625F5AFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #8C2F1EFF;
-  --note-back-fg: #6B6862FF;
+  --note-back-fg: #625F5AFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
-  --note-local-rule-width: 1px;
+  --note-local-rule-fg: #1A1A187F;
+  --note-local-rule-width: 2px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #1A1A1813;
+  --note-page-rule-fg: #1A1A1882;
+  --note-page-rule-width: 3px;
   --note-page-title-fg: #1A1A18FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1A1A18FF;
@@ -18450,6 +18564,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -19406,21 +19526,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #D4AF37FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #0B0B0DFF;
+  --footnote-call-fg-cover: #F3EDDFFF;
   /* note */
-  --note-fg: #8E8269FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #9C917AFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #D4AF37FF;
-  --note-back-fg: #8E8269FF;
+  --note-back-fg: #9C917AFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #F3EDDF62;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #F3EDDF1F;
+  --note-page-rule-fg: #F3EDDF64;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #F3EDDFFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F3EDDFFF;
@@ -19708,6 +19830,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -20664,21 +20792,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #B00020FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #3B0A12FF;
+  --footnote-call-fg-cover: #FFF6F0FF;
   /* note */
-  --note-fg: #8A6A6EFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #7D5B5FFF;
+  --note-size: 14px;
+  --note-leading: 1.65;
   --note-marker-fg: #B00020FF;
-  --note-back-fg: #8A6A6EFF;
+  --note-back-fg: #7D5B5FFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #3B0A127B;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #3B0A1212;
+  --note-page-rule-fg: #3B0A127F;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #3B0A12FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #3B0A12FF;
@@ -20966,6 +21096,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -21922,21 +22058,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #F4622EFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #140A08FF;
+  --footnote-call-fg-cover: #FFEDE2FF;
   /* note */
-  --note-fg: #A08074FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #AB8D81FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #F4622EFF;
-  --note-back-fg: #A08074FF;
+  --note-back-fg: #AB8D81FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #FFEDE261;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #FFEDE21E;
+  --note-page-rule-fg: #FFEDE262;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #FFEDE2FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #FFEDE2FF;
@@ -22224,6 +22362,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -23178,23 +23322,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #C1121FFF;
+  --footnote-call-fg: #D6D2C8FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #0B0A0CFF;
+  --footnote-call-fg-cover: #D6D2C8FF;
   /* note */
-  --note-fg: #6E6A64FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #C1121FFF;
-  --note-back-fg: #6E6A64FF;
+  --note-fg: #96928AFF;
+  --note-size: 14px;
+  --note-leading: 1.65;
+  --note-marker-fg: #D6D2C8FF;
+  --note-back-fg: #96928AFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #D6D2C86F;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #D6D2C824;
+  --note-page-rule-fg: #D6D2C873;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #D6D2C8FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #D6D2C8FF;
@@ -23482,6 +23628,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -24436,23 +24588,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #B4652AFF;
+  --footnote-call-fg: #26302AFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #26302AFF;
+  --footnote-call-fg-cover: #F3F5EFFF;
   /* note */
-  --note-fg: #7C8B7EFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #B4652AFF;
-  --note-back-fg: #7C8B7EFF;
+  --note-fg: #58655BFF;
+  --note-size: 14px;
+  --note-leading: 1.65;
+  --note-marker-fg: #26302AFF;
+  --note-back-fg: #58655BFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #26302A8A;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #26302A15;
+  --note-page-rule-fg: #26302A8F;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #26302AFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #26302AFF;
@@ -24740,6 +24894,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -25696,21 +25856,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #E0A32EFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #0D1712FF;
+  --footnote-call-fg-cover: #DDE9DCFF;
   /* note */
-  --note-fg: #7D9480FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #889D8AFF;
+  --note-size: 14px;
+  --note-leading: 1.65;
   --note-marker-fg: #E0A32EFF;
-  --note-back-fg: #7D9480FF;
+  --note-back-fg: #889D8AFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #DDE9DC66;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #DDE9DC1C;
+  --note-page-rule-fg: #DDE9DC6A;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #DDE9DCFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #DDE9DCFF;
@@ -25998,6 +26160,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -26954,21 +27122,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #6D28D9FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #1E2B1BFF;
+  --footnote-call-fg-cover: #FBFDF7FF;
   /* note */
-  --note-fg: #7A8A72FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #5C6B55FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #6D28D9FF;
-  --note-back-fg: #7A8A72FF;
+  --note-back-fg: #5C6B55FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #1E2B1B84;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #1E2B1B13;
+  --note-page-rule-fg: #1E2B1B89;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #1E2B1BFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1E2B1BFF;
@@ -27256,6 +27426,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -28210,23 +28386,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #FF2FB9FF;
+  --footnote-call-fg: #16003BFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #16003BFF;
+  --footnote-call-fg-cover: #F3F0FFFF;
   /* note */
-  --note-fg: #6B5CA5FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #FF2FB9FF;
-  --note-back-fg: #6B5CA5FF;
+  --note-fg: #65569EFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #16003BFF;
+  --note-back-fg: #65569EFF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #16003B76;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #16003B11;
+  --note-page-rule-fg: #16003B79;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #16003BFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #16003BFF;
@@ -28514,6 +28692,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -29470,21 +29654,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF3C6FFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #0B0F0CFF;
+  --footnote-call-fg-cover: #D7FFE0FF;
   /* note */
   --note-fg: #6E9C7AFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FF3C6FFF;
   --note-back-fg: #6E9C7AFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #D7FFE05E;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #D7FFE018;
+  --note-page-rule-fg: #D7FFE05F;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #D7FFE0FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: ui-monospace, &#x27;Cascadia Code&#x27;, &#x27;Source Code Pro&#x27;, Menlo, Consolas, &#x27;DejaVu Sans Mono&#x27;, monospace;
   /* link */
   --link-decoration-color: #D7FFE0FF;
@@ -29772,6 +29958,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -30728,21 +30920,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF2E97FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #1A1030FF;
+  --footnote-call-fg-cover: #F2E9FFFF;
   /* note */
-  --note-fg: #9A86C4FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #FF2E97FF;
-  --note-back-fg: #9A86C4FF;
+  --note-fg: #A28FC9FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #F2E9FFFF;
+  --note-back-fg: #A28FC9FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #F2E9FF63;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #F2E9FF1B;
+  --note-page-rule-fg: #F2E9FF66;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #F2E9FFFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F2E9FFFF;
@@ -31030,6 +31224,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -31986,21 +32186,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFD400FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #9E1128FF;
+  --footnote-call-fg-cover: #FFF1F0FF;
   /* note */
-  --note-fg: #F7BDC2FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #FBD5D7FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FFD400FF;
-  --note-back-fg: #F7BDC2FF;
+  --note-back-fg: #FBD5D7FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #FFF1F095;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #FFF1F023;
+  --note-page-rule-fg: #FFF1F09F;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #FFF1F0FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #FFF1F0FF;
@@ -32288,6 +32490,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -33244,21 +33452,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #4C1D95FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #241000FF;
+  --footnote-call-fg-cover: #FF9500FF;
   /* note */
-  --note-fg: #5E3000FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #4C1D95FF;
-  --note-back-fg: #5E3000FF;
+  --note-fg: #542A00FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #241000FF;
+  --note-back-fg: #542A00FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #2410008F;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #24100015;
+  --note-page-rule-fg: #24100096;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #241000FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #241000FF;
@@ -33546,6 +33756,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -34502,21 +34718,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #8F0049FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #1F1A00FF;
+  --footnote-call-fg-cover: #FFD400FF;
   /* note */
-  --note-fg: #6B5C0AFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #5D5008FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #8F0049FF;
-  --note-back-fg: #6B5C0AFF;
+  --note-back-fg: #5D5008FF;
   /* note.local */
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #1F1A0085;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #1F1A0013;
+  --note-page-rule-fg: #1F1A0089;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #1F1A00FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1F1A00FF;
@@ -34804,6 +35022,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -35760,21 +35984,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFD400FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #075C26FF;
+  --footnote-call-fg-cover: #F0FFF4FF;
   /* note */
-  --note-fg: #B5E4C4FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #BCE7CAFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FFD400FF;
-  --note-back-fg: #B5E4C4FF;
+  --note-back-fg: #BCE7CAFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #F0FFF489;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #F0FFF417;
+  --note-page-rule-fg: #F0FFF492;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #F0FFF4FF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F0FFF4FF;
@@ -36062,6 +36288,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -37016,23 +37248,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #FFC2D8FF;
+  --footnote-call-fg: #EFFCFFFF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #075B6EFF;
+  --footnote-call-fg-cover: #EFFCFFFF;
   /* note */
-  --note-fg: #A6D9E4FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
-  --note-marker-fg: #FFC2D8FF;
-  --note-back-fg: #A6D9E4FF;
+  --note-fg: #CFEDF3FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
+  --note-marker-fg: #EFFCFFFF;
+  --note-back-fg: #CFEDF3FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #EFFCFF90;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #EFFCFF1C;
+  --note-page-rule-fg: #EFFCFF9E;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #EFFCFFFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #EFFCFFFF;
@@ -37320,6 +37554,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -38276,21 +38516,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFD400FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #1B3FBFFF;
+  --footnote-call-fg-cover: #F0F4FFFF;
   /* note */
-  --note-fg: #B3C2F0FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #D5DEF8FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FFD400FF;
-  --note-back-fg: #B3C2F0FF;
+  --note-back-fg: #D5DEF8FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #F0F4FF90;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #F0F4FF1E;
+  --note-page-rule-fg: #F0F4FF9A;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #F0F4FFFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F0F4FFFF;
@@ -38578,6 +38820,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -39534,21 +39782,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FDE047FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #5B1DB8FF;
+  --footnote-call-fg-cover: #F6F1FFFF;
   /* note */
-  --note-fg: #CBB6EEFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #DED1F6FF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FDE047FF;
-  --note-back-fg: #CBB6EEFF;
+  --note-back-fg: #DED1F6FF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #F6F1FF8A;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #F6F1FF21;
+  --note-page-rule-fg: #F6F1FF96;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #F6F1FFFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F6F1FFFF;
@@ -39836,6 +40086,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
@@ -40792,21 +41048,23 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FDE047FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #94105FFF;
+  --footnote-call-fg-cover: #FFF0FAFF;
   /* note */
-  --note-fg: #F0B8D8FF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #F8D6EAFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FDE047FF;
-  --note-back-fg: #F0B8D8FF;
+  --note-back-fg: #F8D6EAFF;
   /* note.local */
-  --note-local-rule-fg: #FFFFFF24;
+  --note-local-rule-fg: #FFF0FA92;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFF0E;
-  --note-page-rule-fg: #FFFFFF24;
-  --note-page-rule-width: 1px;
+  --note-page-bg: #FFF0FA25;
+  --note-page-rule-fg: #FFF0FA9F;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #FFF0FAFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #FFF0FAFF;
@@ -41094,6 +41352,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);

@@ -1207,6 +1207,29 @@ THEME_COMPONENTS = [
     ThemeComponent('footnote-call', 'sup', [
         ThemeProp('footnote-call.fg',   PROP_COLOR,  'call',   css='color'),
         ThemeProp('footnote-call.size', PROP_LENGTH, '0.72em', css='font-size'),
+        # A call does not always sit on the card's ground. Inside a
+        # highlighted run it sits on `fact.strong.bg`; on a cover it sits
+        # on the cover's own ground. Measured, `call` fails AA on 26 of 33
+        # themes on the first and 15 of 33 on the second -- tokyo-night at
+        # 1.00:1, where `fact.strong.bg` IS `call`, so the number is
+        # painted exactly its own ground and disappears.
+        #
+        # This is not fixable with a value on any theme. Scanning the whole
+        # luminance range for one colour clearing 4.5:1 on BOTH grounds
+        # finds none on 17 themes for the marked run and 14 for the cover:
+        # the two admissible windows do not intersect. So it takes an axis,
+        # and the registry already has the idiom
+        # (`series-nav.status.fg-current` / `.fg-link`).
+        #
+        # Defaulting each to the tone the theme ALREADY chose for text on
+        # that ground makes it right by construction, with no per-theme
+        # value anywhere: 1 of 33 remains (catppuccin at 3.05, which is
+        # what ALL its bold fact-box text measures today -- a pre-existing
+        # palette defect, not one the call introduces).
+        ThemeProp('footnote-call.fg-marked', PROP_COLOR, 'fact.strong.fg',
+                  css='color', selector='.fact-content strong sup'),
+        ThemeProp('footnote-call.fg-cover',  PROP_COLOR, 'cover.fg',
+                  css='color', selector='.slide-cover sup'),
     ]),
 
     # A note's body, and the two surfaces it can land on. Three components
@@ -1215,12 +1238,21 @@ THEME_COMPONENTS = [
     # theme to style both with the same values, which is exactly the
     # one-name-two-senses fault the §9 rewrite was made to end.
     ThemeComponent('note', '.note-body', [
-        ThemeProp('note.fg',      PROP_COLOR,  'ink-quiet', css='color'),
-        ThemeProp('note.size',    PROP_LENGTH, '13px',      css='font-size'),
-        ThemeProp('note.leading', PROP_RATIO,  '1.5',       css='line-height'),
+        # `ink` and not `ink-quiet`, and the reason is a doctrine rather
+        # than a measurement that happened to come out that way: a note
+        # recedes by SIZE, never by contrast. `ink-quiet` was drawn for
+        # secondary text at 15-22px; at 14px on a departed ground it stops
+        # working on 13 of 33 themes (solarized at 2.48:1). `ink` clears
+        # AA on all 33, worst case 6.23. Themes that can afford a quieter
+        # tone state one; the default cannot assume they can.
+        ThemeProp('note.fg',      PROP_COLOR,  'ink',  css='color'),
+        # 14px, not 13: `refs.size` is the same class of apparatus on the
+        # same page, and two sizes for one class reads as an accident.
+        ThemeProp('note.size',    PROP_LENGTH, '14px', css='font-size'),
+        ThemeProp('note.leading', PROP_RATIO,  '1.55', css='line-height'),
         ThemeProp('note.marker.fg', PROP_COLOR, 'call', css='color',
                   selector='.note-body .note-num'),
-        ThemeProp('note.back.fg', PROP_COLOR, 'ink-quiet', css='color',
+        ThemeProp('note.back.fg', PROP_COLOR, 'ink', css='color',
                   selector='.note-back'),
     ]),
     # Compact furniture INSIDE a card: a rule to detach it from the content
@@ -1238,11 +1270,16 @@ THEME_COMPONENTS = [
                   css='background'),
         ThemeProp('note.page.rule-fg',    PROP_COLOR,  '#0000001A',
                   css='border-top-color'),
-        ThemeProp('note.page.rule-width', PROP_LENGTH, '1px',
+        # 2px: this rule opens a SECTION, where note.local's opens a block
+        # inside one.
+        ThemeProp('note.page.rule-width', PROP_LENGTH, '2px',
                   css='border-top-width'),
         ThemeProp('note.page.title.fg',     PROP_COLOR,  'ink', css='color',
                   selector='.notes-section h2'),
-        ThemeProp('note.page.title.size',   PROP_LENGTH, '22px', css='font-size',
+        # 28px is `.full-article h1`'s size -- <h2>Notes</h2> is a SECTION
+        # title, and the article's own title is its precedent. 22px is
+        # `.full-article h2`, an article subhead: one level too low.
+        ThemeProp('note.page.title.size',   PROP_LENGTH, '28px', css='font-size',
                   selector='.notes-section h2'),
         ThemeProp('note.page.title.font',   PROP_FONT,   'display',
                   css='font-family', selector='.notes-section h2'),
@@ -1579,6 +1616,52 @@ THEME_PROPERTY_OVERRIDES = {
 }
 
 
+THEME_NOTE_PROPS = {
+    # Per-theme note values (B9-adjacent, measured). The three grounds a
+    # note body can land on are not the same colour, and the tone that
+    # clears 4.5:1 on all three is a palette question with no general
+    # answer -- so it is stated per theme, the way the rest of the
+    # catalogue states what it cannot derive. Where a palette documents a
+    # tone at that place, that tone is used (gruvbox dark3, catppuccin
+    # Latte subtext1, rose-pine Dawn text, tokyo-night fg_dark, nord3).
+    # Veils are made of the theme's own ink rather than neutral black or
+    # white, the precedent newsprint set with slide.rule-fg: #1A1A1833.
+    'nord': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#2E344090', 'note.page.bg': '#2E344015', 'note.page.rule-fg': '#2E344095'},
+    'dracula': {'footnote-call.fg': 'ink', 'note.fg': '#9FADCF', 'note.marker.fg': 'ink', 'note.back.fg': '#9FADCF', 'note.local.rule-fg': '#F8F8F266', 'note.page.bg': '#F8F8F217', 'note.page.rule-fg': '#F8F8F26C'},
+    'solarized': {'footnote-call.fg': 'ink', 'note.fg': '#4C686E', 'note.marker.fg': 'ink', 'note.back.fg': '#4C686E', 'note.local.rule-fg': '#002B3683', 'note.page.bg': '#002B3613', 'note.page.rule-fg': '#002B3687'},
+    'gruvbox': {'note.fg': '#665C54', 'note.marker.fg': 'ink', 'note.back.fg': '#665C54', 'note.local.rule-fg': '#28282888', 'note.page.bg': '#28282814', 'note.page.rule-fg': '#2828288C'},
+    'catppuccin': {'note.fg': '#5C5F77', 'note.marker.fg': 'ink', 'note.back.fg': '#5C5F77', 'note.local.rule-fg': '#4C4F69AA', 'note.page.bg': '#4C4F6919', 'note.page.rule-fg': '#4C4F69B4'},
+    'tokyo-night': {'note.fg': '#A9B1D6', 'note.marker.fg': 'call', 'note.back.fg': '#A9B1D6', 'note.local.rule-fg': '#C0CAF579', 'note.page.bg': '#C0CAF51E', 'note.page.rule-fg': '#C0CAF57F'},
+    'monokai': {'note.fg': '#AFA99A', 'note.marker.fg': 'ink', 'note.back.fg': '#AFA99A', 'note.local.rule-fg': '#F8F8F265', 'note.page.bg': '#F8F8F217', 'note.page.rule-fg': '#F8F8F269'},
+    'everforest': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#BAB9A5', 'note.marker.fg': 'ink', 'note.back.fg': '#BAB9A5', 'note.local.rule-fg': '#D3C6AA94', 'note.page.bg': '#D3C6AA1E', 'note.page.rule-fg': '#D3C6AA9D'},
+    'rose-pine': {'footnote-call.fg': 'ink', 'note.fg': '#575279', 'note.marker.fg': 'ink', 'note.back.fg': '#575279', 'note.local.rule-fg': '#4642619D', 'note.page.bg': '#46426117', 'note.page.rule-fg': '#464261A4'},
+    'high-contrast': {'note.size': '16px', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': '30px', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#00000070', 'note.page.bg': '#00000011', 'note.page.rule-fg': '#00000072'},
+    'blueprint': {'footnote-call.fg': 'ink', 'note.fg': '#4A6277', 'note.marker.fg': 'ink', 'note.back.fg': '#4A6277', 'note.local.rule-fg': '#0B254584', 'note.page.bg': '#0B254514', 'note.page.rule-fg': '#0B254588'},
+    'blueprint-night': {'note.fg': '#889AB2', 'note.marker.fg': 'call', 'note.back.fg': '#889AB2', 'note.local.rule-fg': '#DCE6F266', 'note.page.bg': '#DCE6F21C', 'note.page.rule-fg': '#DCE6F26B'},
+    'monochrome': {'note.fg': '#656565', 'note.marker.fg': 'call', 'note.back.fg': '#656565', 'note.local.rule-fg': '#11111178', 'note.page.bg': '#11111111', 'note.page.rule-fg': '#1111117B'},
+    'graphite': {'note.fg': '#969696', 'note.marker.fg': 'call', 'note.back.fg': '#969696', 'note.local.rule-fg': '#EDEDED62', 'note.page.bg': '#EDEDED1C', 'note.page.rule-fg': '#EDEDED65'},
+    'newsprint': {'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.fg': '#625F5A', 'note.marker.fg': 'call', 'note.back.fg': '#625F5A', 'note.local.rule-fg': '#1A1A187F', 'note.page.bg': '#1A1A1813', 'note.page.rule-fg': '#1A1A1882'},
+    'gold-leaf': {'note.fg': '#9C917A', 'note.marker.fg': 'call', 'note.back.fg': '#9C917A', 'note.local.rule-fg': '#F3EDDF62', 'note.page.bg': '#F3EDDF1F', 'note.page.rule-fg': '#F3EDDF64'},
+    'crimson': {'note.leading': '1.65', 'note.fg': '#7D5B5F', 'note.marker.fg': 'call', 'note.back.fg': '#7D5B5F', 'note.local.rule-fg': '#3B0A127B', 'note.page.bg': '#3B0A1212', 'note.page.rule-fg': '#3B0A127F'},
+    'ember': {'note.fg': '#AB8D81', 'note.marker.fg': 'call', 'note.back.fg': '#AB8D81', 'note.local.rule-fg': '#FFEDE261', 'note.page.bg': '#FFEDE21E', 'note.page.rule-fg': '#FFEDE262'},
+    'dread': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#96928A', 'note.marker.fg': 'ink', 'note.back.fg': '#96928A', 'note.local.rule-fg': '#D6D2C86F', 'note.page.bg': '#D6D2C824', 'note.page.rule-fg': '#D6D2C873'},
+    'sage': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#58655B', 'note.marker.fg': 'ink', 'note.back.fg': '#58655B', 'note.local.rule-fg': '#26302A8A', 'note.page.bg': '#26302A15', 'note.page.rule-fg': '#26302A8F'},
+    'evergreen': {'note.leading': '1.65', 'note.fg': '#889D8A', 'note.marker.fg': 'call', 'note.back.fg': '#889D8A', 'note.local.rule-fg': '#DDE9DC66', 'note.page.bg': '#DDE9DC1C', 'note.page.rule-fg': '#DDE9DC6A'},
+    'sprout': {'note.fg': '#5C6B55', 'note.marker.fg': 'call', 'note.back.fg': '#5C6B55', 'note.local.rule-fg': '#1E2B1B84', 'note.page.bg': '#1E2B1B13', 'note.page.rule-fg': '#1E2B1B89'},
+    'vaporwave': {'footnote-call.fg': 'ink', 'note.fg': '#65569E', 'note.marker.fg': 'ink', 'note.back.fg': '#65569E', 'note.local.rule-fg': '#16003B76', 'note.page.bg': '#16003B11', 'note.page.rule-fg': '#16003B79'},
+    'terminal': {'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D7FFE05E', 'note.page.bg': '#D7FFE018', 'note.page.rule-fg': '#D7FFE05F'},
+    'synthwave': {'note.fg': '#A28FC9', 'note.marker.fg': 'ink', 'note.back.fg': '#A28FC9', 'note.local.rule-fg': '#F2E9FF63', 'note.page.bg': '#F2E9FF1B', 'note.page.rule-fg': '#F2E9FF66'},
+    'pop-red': {'note.fg': '#FBD5D7', 'note.marker.fg': 'call', 'note.back.fg': '#FBD5D7', 'note.local.rule-fg': '#FFF1F095', 'note.page.bg': '#FFF1F023', 'note.page.rule-fg': '#FFF1F09F'},
+    'pop-tangerine': {'note.fg': '#542A00', 'note.marker.fg': 'ink', 'note.back.fg': '#542A00', 'note.local.rule-fg': '#2410008F', 'note.page.bg': '#24100015', 'note.page.rule-fg': '#24100096'},
+    'pop-lemon': {'note.fg': '#5D5008', 'note.marker.fg': 'call', 'note.back.fg': '#5D5008', 'note.local.rule-fg': '#1F1A0085', 'note.page.bg': '#1F1A0013', 'note.page.rule-fg': '#1F1A0089'},
+    'pop-lime': {'note.fg': '#BCE7CA', 'note.marker.fg': 'call', 'note.back.fg': '#BCE7CA', 'note.local.rule-fg': '#F0FFF489', 'note.page.bg': '#F0FFF417', 'note.page.rule-fg': '#F0FFF492'},
+    'pop-lagoon': {'footnote-call.fg': 'ink', 'note.fg': '#CFEDF3', 'note.marker.fg': 'ink', 'note.back.fg': '#CFEDF3', 'note.local.rule-fg': '#EFFCFF90', 'note.page.bg': '#EFFCFF1C', 'note.page.rule-fg': '#EFFCFF9E'},
+    'pop-cobalt': {'note.fg': '#D5DEF8', 'note.marker.fg': 'call', 'note.back.fg': '#D5DEF8', 'note.local.rule-fg': '#F0F4FF90', 'note.page.bg': '#F0F4FF1E', 'note.page.rule-fg': '#F0F4FF9A'},
+    'pop-violet': {'note.fg': '#DED1F6', 'note.marker.fg': 'call', 'note.back.fg': '#DED1F6', 'note.local.rule-fg': '#F6F1FF8A', 'note.page.bg': '#F6F1FF21', 'note.page.rule-fg': '#F6F1FF96'},
+    'pop-fuchsia': {'note.fg': '#F8D6EA', 'note.marker.fg': 'call', 'note.back.fg': '#F8D6EA', 'note.local.rule-fg': '#FFF0FA92', 'note.page.bg': '#FFF0FA25', 'note.page.rule-fg': '#FFF0FA9F'},
+}
+
+
 def theme_property_layer(theme_key):
     """A THEMES entry as a property layer for the engine.
 
@@ -1627,6 +1710,7 @@ def theme_property_layer(theme_key):
             layer['fact.strong.decoration-color'] = (
                 _ROLE_TO_COLOR[t['fact_decoration_color']])
 
+    layer.update(THEME_NOTE_PROPS.get(theme_key, {}))
     layer.update(THEME_PROPERTY_OVERRIDES.get(theme_key, {}))
     return layer
 
