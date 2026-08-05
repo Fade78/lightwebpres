@@ -3221,6 +3221,141 @@ class DarkBackgroundThemes(unittest.TestCase):
         self.assertEqual(bare['fact.strong.fg'], bare['color.ink'])
 
 
+class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
+    """The dark-furniture omission, caught by measurement instead of by
+    membership. It has now happened twice — the notes plate and its two
+    rules, then `share.bg-hover`, `share.rule-fg` and `article.rule-fg` —
+    and both times the table LOOKED complete to anyone reading it. So
+    nothing here reads `DARK_FURNITURE_PROPS`: the veils are DISCOVERED
+    from the registry (a colour property whose default is pure black or
+    pure white plus an alpha carries no palette information — it only
+    lightens or darkens whatever is under it), resolved per theme, and
+    composited.
+
+    A forgotten veil is caught whichever way it points. A white one kept
+    from the light set becomes a pale slab in the middle of a dark page —
+    `note.page.bg` measured 1.02:1 on pop-fuchsia, `share.bg-hover` 1.00:1
+    on everforest, both times with the heading exactly invisible. A black
+    one drawn on a near-black page is a rule nobody can see —
+    `share.rule-fg` measured 1.01:1 on dread.
+
+    Neither criterion carries a tuned threshold, because a threshold
+    tuned to today's catalogue is a threshold that will be wrong for the
+    thirty-fourth theme. Each is a statement about which side of the
+    page/ink axis the composited veil lands on."""
+
+    # A literal that is pure black or pure white plus an alpha: a veil,
+    # not a colour. `#FFFFFF00` and `#000000FF` are both in the family;
+    # what matters is that the RGB carries nothing.
+    NEUTRAL = re.compile(r'^#(?:000000|FFFFFF)[0-9A-Fa-f]{2}$')
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    @staticmethod
+    def _rgba(value):
+        h = value.lstrip('#')
+        h = h + 'FF' if len(h) == 6 else h
+        return [int(h[i:i + 2], 16) for i in (0, 2, 4, 6)]
+
+    @classmethod
+    def _over(cls, fg, bg):
+        a = fg[3] / 255
+        return [round(fg[i] * a + bg[i] * (1 - a)) for i in range(3)] + [255]
+
+    @staticmethod
+    def _lum(c):
+        def ch(v):
+            v /= 255
+            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+        return .2126 * ch(c[0]) + .7152 * ch(c[1]) + .0722 * ch(c[2])
+
+    @classmethod
+    def _ratio(cls, a, b):
+        la, lb = cls._lum(a), cls._lum(b)
+        return (max(la, lb) + .05) / (min(la, lb) + .05)
+
+    def _veils(self):
+        """(surfaces, rules) discovered from the registry, by key."""
+        surfaces, rules = [], []
+        for key, prop in self.lwp.PROPERTY_REGISTRY.items():
+            if prop.type is not self.lwp.PROP_COLOR:
+                continue
+            if not isinstance(prop.default, str) or not self.NEUTRAL.match(prop.default):
+                continue
+            if prop.css == 'background':
+                surfaces.append(key)
+            elif prop.css and 'border' in prop.css:
+                rules.append(key)
+        return sorted(surfaces), sorted(rules)
+
+    def test_the_scan_reaches_every_veil_the_dark_table_decides_about(self):
+        """The non-vacuity guard, and the only place the table is read.
+        Every key someone thought worth inverting must be a key this scan
+        finds — otherwise a regex that stopped matching would empty both
+        buckets and the two tests below would pass by measuring nothing.
+        The reverse containment is deliberately NOT asserted: a veil the
+        table does not mention is exactly what these tests exist to
+        judge on the numbers rather than on the list."""
+        surfaces, rules = self._veils()
+        found = set(surfaces) | set(rules)
+        self.assertTrue(surfaces and rules, 'the veil scan found nothing to measure')
+        missed = sorted(set(self.lwp.DARK_FURNITURE_PROPS) - found)
+        self.assertEqual(missed, [], 'the dark table inverts veils the scan cannot see')
+
+    def test_a_surface_veil_stays_a_veil_of_the_page_on_every_dark_theme(self):
+        """A surface veil is a departure FROM the page — a card raised off
+        it, a code block sunk into it. Composited, it must therefore still
+        be nearer the page than the ink; the day it is nearer the ink it
+        has stopped being a veil and become a slab, which is the shape
+        both occurrences of this bug took.
+
+        Dark themes only, and not out of timidity: the registry defaults
+        ARE the light set, so on a light theme this asks whether the
+        defaults are their own inverse. `share.scrim` — which darkens the
+        whole viewport behind the QR modal and is meant to be far from the
+        page — would fail it there, correctly and uselessly."""
+        for slug, theme in self.lwp.THEMES.items():
+            if not theme.get('dark_background'):
+                continue
+            r = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug), {})
+            page, ink = self._rgba(r['color.page']), self._rgba(r['color.ink'])
+            for key in self._veils()[0]:
+                surface = self._over(self._rgba(r[key]), page)
+                to_page = self._ratio(surface, page)
+                to_ink = self._ratio(surface, ink)
+                self.assertGreater(
+                    to_ink, to_page,
+                    f'{slug}: {key} composites to a surface nearer the ink '
+                    f'({to_ink:.2f}:1) than the page ({to_page:.2f}:1) — it is '
+                    f'a slab, not a veil')
+
+    def test_a_rule_veil_departs_from_the_page_toward_the_ink(self):
+        """A rule exists to be seen against the page, so it has to move
+        away from it, and the only direction with room is the one the ink
+        already went: darker on a light theme, lighter on a dark one. A
+        veil left un-inverted moves the wrong way and lands on the page's
+        own floor — measured at 1.01:1 for `share.rule-fg` on dread.
+
+        All 33 themes, both polarities, because stated this way the
+        constraint is the same sentence on each."""
+        for slug in self.lwp.THEMES:
+            r = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug), {})
+            page, ink = self._rgba(r['color.page']), self._rgba(r['color.ink'])
+            ink_is_lighter = self._lum(ink) > self._lum(page)
+            for key in self._veils()[1]:
+                painted = self._over(self._rgba(r[key]), page)
+                moved = self._lum(painted) - self._lum(page)
+                went_right_way = moved > 0 if ink_is_lighter else moved < 0
+                self.assertTrue(
+                    went_right_way,
+                    f'{slug}: {key} composites to {painted[:3]} against a page of '
+                    f'{page[:3]} — it moves away from the ink, so it has the '
+                    f'page floor to be seen against and nothing else')
+
+
 class ThemeFacets(unittest.TestCase):
     """§9.5.3: past a dozen palettes the gallery stops being a thing you
     read and becomes a thing you search. Two of the three facets are
@@ -3831,6 +3966,129 @@ class ContrastFloors(unittest.TestCase):
             themed = self.lwp.emit_theme_css(self.lwp.resolve_theme_properties(
                 self.lwp.theme_property_layer(slug)))
             self.assertRegex(themed, r'--link-decoration-color:\s*#[0-9A-F]{8};', slug)
+
+    @staticmethod
+    def _rgba8(value):
+        h = value.lstrip('#')
+        h = h + 'FF' if len(h) == 6 else h
+        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4, 6))
+
+    @classmethod
+    def _composite(cls, value, ground):
+        """`value` (an 8-digit ARGB literal) painted over an opaque ground.
+
+        Rounded to 8-bit channels, which `_over` above deliberately is
+        not. A browser has nowhere to keep the fraction, and the
+        difference decides a case: monokai's first candidate ring
+        measures 3.0009:1 on a ground carried at full float precision and
+        2.9970:1 on the one the screen actually shows. The rounded number
+        is the one a reader gets."""
+        r, g, b, a = cls._rgba8(value)
+        return tuple(round(c) for c in cls._over((r, g, b), a / 255, ground))
+
+    def _ring_sites(self):
+        """(ring key, [fill keys]) for every focus ring in the registry.
+
+        Discovered, not listed: a ring is a `*.ring` property, and the
+        fills it can land on are the backgrounds of its OWN component —
+        `.nav-btn` has two of them, the plain button and the softer home
+        one. A ring added to a third component is measured the day it
+        exists, with nothing to remember to update."""
+        sites = []
+        for comp in self.lwp.THEME_COMPONENTS:
+            rings = [p.key for p in comp.props if p.key.endswith('.ring')]
+            fills = [p.key for p in comp.props if p.css == 'background']
+            for ring in rings:
+                sites.append((ring, fills))
+        return sites
+
+    def test_every_focus_ring_clears_the_non_text_bar_on_every_theme(self):
+        """A focus ring is drawn OUTSIDE the control's border edge, so it
+        has two neighbours and must be seen against both: `color.page` on
+        the outside, the control's own fill on the inside. Checking only
+        the page is how four rings shipped below 3:1 — dread's `#C1121F`
+        measured 2.30:1 against `nav-btn.bg` while clearing 3.17:1
+        against the page, which is the ground nobody was looking at.
+
+        3:1 is WCAG 1.4.11: this is the only thing on the page that says
+        where the keyboard is."""
+        short = []
+        for slug in self.lwp.THEMES:
+            r = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug), {})
+            page = self._rgb(r['color.page'][:7])
+            for ring, fills in self._ring_sites():
+                grounds = [('color.page', page)]
+                grounds += [(f, self._composite(r[f], page)) for f in fills]
+                for name, ground in grounds:
+                    ratio = self._ratio(self._composite(r[ring], ground), ground)
+                    # Compared raw, printed to four places: the closest
+                    # call in the catalogue is 3.0002:1 and the value
+                    # rejected for it was 2.9970:1, and "3.00 is not 3.00"
+                    # is not a failure message anyone can act on.
+                    if ratio < 3.0:
+                        short.append(f'{slug} {ring} vs {name}: {ratio:.4f}:1')
+        self.assertEqual(short, [], 'a focus ring below the non-text bar')
+
+    def test_the_ring_scan_finds_more_than_one_ring_and_more_than_one_fill(self):
+        """The guard on the guard. `_ring_sites` derives its work from the
+        registry, so a renamed suffix or a component that stops declaring
+        a background would quietly leave the test above measuring an empty
+        list of sites — passing, and covering nothing."""
+        sites = self._ring_sites()
+        self.assertGreater(len(sites), 1, 'the ring scan found fewer than two rings')
+        for ring, fills in sites:
+            self.assertTrue(fills, f'{ring}: no fill found for the control it outlines')
+
+    def test_bold_fact_text_clears_aa_on_its_own_highlight_on_every_theme(self):
+        """`fact.strong.bg` is the palette's `mark` and `fact.strong.fg`
+        is the tone the theme chose for text on it, so the pair is the
+        theme's own decision and nothing derives it right. catppuccin's
+        measured 3.05:1 — Latte Yellow under a slate-blue ink — for every
+        bold run in every fact box, with or without a note in it. All 33
+        clear AA, so this is a floor and not a pinned set."""
+        for slug in self.lwp.THEMES:
+            r = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug), {})
+            page = self._rgb(r['color.page'][:7])
+            ground = self._composite(r['fact.strong.bg'],
+                                     self._composite(r['fact.bg'], page))
+            ratio = self._ratio(self._composite(r['fact.strong.fg'], ground), ground)
+            self.assertGreaterEqual(round(ratio, 2), 4.5,
+                                    f'fact.strong.fg on {slug}: {ratio:.2f}:1')
+
+    # Measured while fixing catppuccin's mark, and NOT part of that fix:
+    # three palettes put the cover tag below AA on the cover's own ground,
+    # for a reason that has nothing to do with the highlight. Pinned as an
+    # exact set, the way the note surfaces are — a new entry is a
+    # regression, and a missing one means a palette was fixed and its
+    # exemption leaves with it. pop-tangerine measures 2.19:1, pop-lemon
+    # 3.22:1, rose-pine 4.24:1. The tag is 12px bold, which is not large
+    # text, so 4.5:1 is the right bar for all three.
+    COVER_TAG_BELOW_AA = {'pop-tangerine', 'pop-lemon', 'rose-pine'}
+
+    def test_the_cover_tag_is_measured_on_the_ground_the_cover_paints(self):
+        """The other half of what catppuccin's `color.mark` fixed. On a
+        light theme the cover ground IS `color.ink`, so `cover.tag.fg`
+        (the mark) and `fact.strong.fg` (the ink on the mark) are the same
+        two colours the other way round and measure the same 3.05:1 — but
+        only on a light theme, and only where the highlight is the mark.
+        Deriving one from the other would therefore be wrong on 18 themes,
+        so the cover site is composited for itself."""
+        short = set()
+        for slug in self.lwp.THEMES:
+            r = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug), {})
+            page = self._rgb(r['color.page'][:7])
+            cover = self._composite(r['cover.bg.from'], page)
+            ratio = self._ratio(self._composite(r['cover.tag.fg'], cover), cover)
+            if round(ratio, 2) < 4.5:
+                short.add(slug)
+        self.assertEqual(
+            short, self.COVER_TAG_BELOW_AA,
+            'the measured cover-tag failures changed. New entries are '
+            'regressions; a MISSING one means the palette was fixed and its '
+            'exemption must go with it.')
 
 
 class PaletteRoleNames(unittest.TestCase):
@@ -7855,7 +8113,7 @@ class AResponsiveOverrideMustActuallyOverride(unittest.TestCase):
 
 
 class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
-    """Nine contrast constraints × 33 themes, measured from the RESOLVED
+    """Ten contrast constraints × 33 themes, measured from the RESOLVED
     sheet rather than from the intent.
 
     Two things this catches that a cheaper test would not. Membership in
@@ -7867,12 +8125,14 @@ class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
     cover it sits on two other ones, which is where `call` measured 1.00:1
     on tokyo-night — the number painted exactly its own background."""
 
-    # The one measured failure in 297 checks, and it is not a note defect:
-    # catppuccin's `fact.strong.fg` measures 3.05:1 on its own highlight
-    # ground for ALL bold fact-box text, with or without a note in it.
-    # Pinned as an exact set, not a floor, so that fixing the palette makes
-    # THIS test fail and forces the exemption out with it (BACKLOG B17).
-    KNOWN_PALETTE_FAILURES = {('catppuccin', 'footnote-call.fg-marked')}
+    # EMPTY on purpose, and it stays as the only door an exemption may come
+    # through. The set is exact rather than a floor: a new entry is a
+    # regression, and a MISSING one means a palette was fixed and its
+    # exemption has to leave with it. That is what happened to the last
+    # occupant — catppuccin's `fact.strong.fg` at 3.05:1 on its own
+    # highlight ground, which the palette's `color.mark` now clears at
+    # 4.51:1 — and the mechanism is what pushed it out.
+    KNOWN_PALETTE_FAILURES = set()
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()

@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.15.0"
+VERSION = "0.15.1"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
@@ -1044,7 +1044,13 @@ THEMES = {
     },
     'catppuccin': {
         'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin', 'intensity': 'sober',
-        'marker': '#DF8E1D', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
+        # Latte Yellow (#DF8E1D) put `color.ink` on `color.mark` at 3.05:1 --
+        # every bold run in a fact box, and the cover tag, which is the same
+        # two colours the other way round. Lightened until both clear AA
+        # (4.51:1). The cost is that mark-on-page drops 2.31:1 -> 1.56:1,
+        # which is the fact-box rule, the header rule and the active slide
+        # dot: decorative, ungraded, and quieter than it was.
+        'marker': '#EDBA72', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
         'page': '#EFF1F5', 'accent': '#D20F39', 'positive': '#40A02B',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'marker',
         'note': "The only light-background-first palette here with a true green — `color.ink` is a slate blue, not a pure black (a less striking cover slide).",
@@ -2383,6 +2389,26 @@ DARK_FURNITURE_PROPS = {
     # guards this measures the composited result rather than membership.
     'note.page.bg': '#FFFFFF0E',
     'note.local.rule-fg': '#FFFFFF24', 'note.page.rule-fg': '#FFFFFF24',
+    # Same omission, second occurrence, found by measuring instead of by
+    # reading the table. `share.bg-hover` is a surface veil like the four
+    # above and kept its light-theme #FFFFFFB8 on a dark page: hovering a
+    # share button painted a near-white slab under the pale `share.fg`
+    # glyph on all 18 dark themes -- everforest measured 1.00:1, the glyph
+    # exactly invisible. `article.rule-fg` is a hairline like the five at
+    # the top (a full-article table's cell borders, black on a dark
+    # ground: 1.02:1 on dread).
+    'share.bg-hover': '#FFFFFF21',
+    'article.rule-fg': '#FFFFFF24',
+    # `share.rule-fg` departs from the #00000029 -> #FFFFFF3D inversion
+    # the other 2px-class rules take, and does so deliberately. A share
+    # button's fill IS the popover's fill -- `share.bg` paints both -- so
+    # the border is the only thing that says "button", which puts it under
+    # the 3:1 non-text bar rather than in the decorative-hairline class.
+    # #FFFFFF3D reaches 1.60:1 at worst and #FFFFFF66 only 2.34:1 (both on
+    # pop-red, whose #9E1128 fill is the hardest ground of the eighteen);
+    # 0x82 is the first alpha that clears 3:1 everywhere, so 0x88 is the
+    # first round step past it, measured at 3.20:1 worst.
+    'share.rule-fg': '#FFFFFF88',
     'code.bg': '#0000004D', 'table.head.bg': '#0000004D',
     'table.col-signal.bg': '#0000004D', 'table.col-snap.bg': '#0000004D',
     'series-nav.current.bg': '#0000004D', 'version-tag.bg': '#0000004D',
@@ -2395,11 +2421,25 @@ _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
 # Per-slug property additions beyond what the old entry shape can say.
 # terminal's register is the owner's decision (fixed pitch is what the theme
 # is named for) plus its phosphor halo on display text.
+#
+# The four `*.ring` entries are the focus indicators, and they are stated
+# here rather than on the palette on purpose: `call` also paints the
+# verdicts, the note markers and the fact-box apparatus, so moving the
+# accent to satisfy a keyboard ring would move nine other measured pairs
+# with it. Both rings are pinned wherever one of them was short, because
+# both default to `call` and a theme whose two focus rings are one byte
+# apart is a puzzle in the source with no visible difference on screen.
+# Each value clears 3:1 against `color.page` AND against the fill of the
+# control it outlines -- the ring is drawn outside the border edge, so it
+# lands on both.
 THEME_PROPERTY_OVERRIDES = {
     # Two editor palettes that say so: the apparatus in fixed pitch, the body
     # still in the reading serif. The gesture reads "this came from a
     # terminal" without making the article hard to read.
-    'dracula': {'font.ui': 'mono'},
+    # The ring: #FF5555 measured 2.99:1 on `nav-btn.bg`, the raised veil the
+    # button carries. One step lighter and it clears.
+    'dracula': {'font.ui': 'mono',
+                'nav-btn.ring': '#FF5656', 'series-nav.link.ring': '#FF5656'},
     'tokyo-night': {'font.ui': 'mono'},
     # Monokai is the archetype of the 2010s editor -- all of it in fixed
     # pitch. Two monospace themes in the catalogue, each for its own reason.
@@ -2408,10 +2448,23 @@ THEME_PROPERTY_OVERRIDES = {
         # The pink clears 3:1 but not 4.5:1 on this ground: it keeps the
         # rules and the rings, the text takes the ink.
         'verdict.partial.fg': 'ink', 'footnote-call.fg': 'ink',
+        # ...but only after the ring itself was raised: #F92672 measured
+        # 2.60:1 on `nav-btn.bg`. #FA4A89 was the first candidate and it
+        # measures 2.9970:1 -- it ROUNDS to 3.00 without reaching it, which
+        # is the kind of pass this file is not allowed to take. #FB4A89, one
+        # byte further, measures 3.01:1.
+        'nav-btn.ring': '#FB4A89', 'series-nav.link.ring': '#FB4A89',
     },
     # The undergrowth: generous leading, no named face. Everforest is a
     # palette, not a voice.
     'everforest': {'page.leading': '1.7', 'article.leading': '1.75'},
+    # #C1121F measured 2.30:1 on `nav-btn.bg` and 2.87:1 on
+    # `series-nav.link.bg` -- the worst focus ring in the catalogue.
+    'dread': {'nav-btn.ring': '#E41525', 'series-nav.link.ring': '#E41525'},
+    # The one light theme in the four: #FF2FB9 measured 2.94:1 against
+    # `color.page` itself, so BOTH its rings were short, not just the
+    # series-nav one.
+    'vaporwave': {'nav-btn.ring': '#FF28B7', 'series-nav.link.ring': '#FF28B7'},
     'terminal': {
         'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
         'title1.shadow.fg': '#33FF8866', 'title1.shadow.blur': '10px',
