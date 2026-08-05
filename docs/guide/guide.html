@@ -1327,10 +1327,10 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <div class="fact-label">What is in a standard slide</div>
     <div class="fact-content">  <p>A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS.</p>
   <p>The switch from fields to free text is <strong>one-way within a slide</strong>: once a line is not a <code>field:</code> line, everything after it is prose.</p>
-  <p>A note<sup class="note-call"><a id="noteref-s4-1" href="#note-s4-1" role="doc-noteref">1</a></sup> is reached the standard way, and its number is a position rather than the label you wrote.</p>
+  <p>A note<sup class="note-call"><a id="noteref-s4-1" href="#note-s4-1" role="doc-noteref">1</a></sup> is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.</p>
   <div class="notes-local">
   <ol class="note-body">
-    <li id="note-s4-1" role="doc-footnote"><span class="note-num">1</span><code>[^label]</code> calls it, <code>[^label]: text</code> defines it. By default the body lands at the foot of the unit that called it — this card.<a class="note-back" href="#noteref-s4-1" role="doc-backlink" aria-label="Back to the text">↩</a></li>
+    <li id="note-s4-1" role="doc-footnote"><span class="note-num">1</span><code>[^label]</code> calls it, <code>[^label]: text</code> defines it. <code>notes-placement: local</code> — the default — lands the body at the foot of the unit that called it, which is why this one is here rather than at the end of the page. Set <code>notes-placement: page</code> to gather every note of an article into one section instead, and <code>notes-tooltip: on</code> to put the text in the call's tooltip as well. Both cascade: built-in default, then <code>series_meta</code>, then the article's own meta block.<a class="note-back" href="#noteref-s4-1" role="doc-backlink" aria-label="Back to the text">↩</a></li>
   </ol>
   </div></div>
   </div>
@@ -1692,6 +1692,38 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 </section>
 
 <script defer>
+/*!
+ * The QR encoder below (qrEncode, and the QR* helpers it closes over) is
+ * derived from QR Code Generator for JavaScript.
+ *
+ * Copyright (c) 2009 Kazuhiko Arase -- http://www.d-project.com/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+ *
+ * This notice must travel with the code it covers. It lives inside the
+ * template rather than beside it, so that it reaches every series scaffolded
+ * by `lightwebpres install` and every page written by a build without anyone
+ * having to remember to copy it. Everything after the encoder is part of
+ * lightwebpres itself.
+ */
 var qrEncode = (function () {
 var QRMode = { MODE_8BIT_BYTE: 4 };
 var QRErrorCorrectLevel = { L: 1, M: 0, Q: 3, H: 2 };

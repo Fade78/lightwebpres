@@ -158,11 +158,8 @@ all generated automatically.
 - **`series-nav`** — cross-article navigation, generated from
   `series.json` (at most one per article).
 - **`full-article`** — includes a separate long-form Markdown file,
-  converted with full support for headings, bold/italic, links,
-  notes (`[^label]` calls it, `[^label]: text` defines it — two-way links,
-  the number a position rather than the label you wrote, collected at the
-  foot of the card or in a notes section of the page), lists, tables,
-  blockquotes, images with captions
+  converted with full support for headings, bold/italic, links, notes
+  (see below), lists, tables, blockquotes, images with captions
   (`![alt](src "Caption")` — small, centered, themed; mid-sentence the
   same image stays inline and its title becomes a tooltip),
   inline/fenced code, and inline raw HTML.
@@ -173,6 +170,38 @@ all generated automatically.
 Every slide (and `series.json`/the article's own meta block) also
 accepts `comment:` — a review note, recognized but never rendered, never
 published, not even in the page's raw HTML source.
+
+## Notes
+
+`[^label]` calls a note, `[^label]: text` defines it. The two are linked
+both ways — the call jumps to the body, the body jumps back — and the
+number a reader sees is the note's **position**, not the label you wrote,
+so you can rename or reorder labels without renumbering anything.
+
+Notes work on **any slide**, not only inside a `full-article`. A standard
+card can carry one.
+
+Two fields decide how they are presented. Both cascade the same way —
+built-in default, then `series_meta` in `series.json`, then the article's
+own meta block — so a series can set a house style and one article can
+still depart from it:
+
+| Field | Values | Default | Effect |
+|---|---|---|---|
+| `notes-placement` | `local`, `page` | `local` | `local` collects each note at the foot of the unit that called it. `page` gathers every note of the article into one notes section at the end. |
+| `notes-tooltip` | `on`, `off` | `off` | `on` also puts the note's text in the call's `title`, so a pointer reveals it without leaving the line. |
+
+```
+<!-- lwp:meta -->
+page_title: …
+notes-placement: page
+notes-tooltip: on
+```
+
+Which to choose is an editorial decision, not a cosmetic one: `local`
+keeps the apparatus beside the claim it supports and suits cards read one
+at a time; `page` reads like a printed article's endnotes and suits a
+long argument the reader takes in as a whole.
 
 ## Language & typography
 

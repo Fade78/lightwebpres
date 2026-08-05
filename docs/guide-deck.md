@@ -50,9 +50,9 @@ A fact box, a key figure, a source line, a comparison table, a figure. Each is r
 
 The switch from fields to free text is **one-way within a slide**: once a line is not a `field:` line, everything after it is prose.
 
-A note[^note] is reached the standard way, and its number is a position rather than the label you wrote.
+A note[^note] is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.
 
-[^note]: `[^label]` calls it, `[^label]: text` defines it. By default the body lands at the foot of the unit that called it — this card.
+[^note]: `[^label]` calls it, `[^label]: text` defines it. `notes-placement: local` — the default — lands the body at the foot of the unit that called it, which is why this one is here rather than at the end of the page. Set `notes-placement: page` to gather every note of an article into one section instead, and `notes-tooltip: on` to put the text in the call's tooltip as well. Both cascade: built-in default, then `series_meta`, then the article's own meta block.
 
 ---
 
