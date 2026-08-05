@@ -1791,6 +1791,164 @@ class MultiArticleSeries(unittest.TestCase):
             self.assertIn('Desc B', html_a)
 
 
+class AnArticleThatClaimsTheIndexName(unittest.TestCase):
+    """§11.3.3. `build` always wrote a series index at index.html, so an
+    article whose page_dest was that same name got written first and
+    buried under the index — exit code 0, no warning, and a series
+    declaring three articles shipped two.
+
+    The rule depends on the number of articles because that is what the
+    index is worth in each case: with more than one it carries the list
+    and overwriting it is a loss (fatal), with exactly one it would list
+    a single entry and adds nothing (the article takes the name, no index
+    is produced, and the build says so).
+    """
+
+    ARTICLE = ('<!-- lwp:meta -->\npage_title: {title}\n---\n\n'
+               '<!-- lwp:slide:cover -->\ntag: T\n# {title}\n'
+               'summary: Summary of {title}.\n')
+
+    def series(self, tmp, entries):
+        """entries: list of (page_source, page_dest[, extra dict])."""
+        root = Path(tmp)
+        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        articles = []
+        for source, dest, *rest in entries:
+            title = source[:-3].upper()
+            (root / 'articles' / source).write_text(
+                self.ARTICLE.format(title=title), encoding='utf-8')
+            entry = {'page_source': source, 'page_dest': dest,
+                     'nav_title': title, 'nav_desc': f'Desc {title}'}
+            if rest:
+                entry.update(rest[0])
+            articles.append(entry)
+        (root / 'series.json').write_text(
+            json.dumps({'series_meta': {'title': 'The series title'},
+                        'articles': articles}), encoding='utf-8')
+        return root
+
+    def test_several_articles_and_one_claims_the_index_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html'),
+                                     ('b.md', 'b.html'),
+                                     ('c.md', 'c.html')])
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn('collides with the series index', result.stderr)
+            # Named: the author has to know which line to change, and the
+            # source filename is the one thing every entry always carries
+            # (page_dest can come from the meta block or be derived).
+            self.assertIn('"a.md"', result.stderr)
+            self.assertIn('"index.html"', result.stderr)
+            # Fatal before anything is written, like every other build
+            # error of this class — no half-built output to clean up.
+            self.assertFalse((root / 'public').exists())
+
+    def test_the_fatal_case_is_decided_on_the_name_not_the_filesystem(self):
+        """'Index.html' and 'index.html' are two URLs but one file on
+        Windows and default macOS — same reasoning as the duplicate
+        page_dest check, so the verdict cannot depend on the platform the
+        build happens to run on."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'Index.html'), ('b.md', 'b.html')])
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn('collides with the series index', result.stderr)
+
+    def test_a_lone_article_takes_the_name_and_no_index_is_written(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html')])
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            written = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            # It is the ARTICLE that survived, not the index: the article's
+            # own cover text is there, and the series index's header is not.
+            self.assertIn('Summary of A.', written)
+            self.assertNotIn('The series title', written)
+            self.assertEqual(sorted(p.name for p in (root / 'public').iterdir()),
+                             ['index.html'])
+
+    def test_the_build_says_it_did_not_generate_an_index(self):
+        """Someone whose index stopped being generated has to see why
+        without reading the specification."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html')])
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertIn('[no index]', result.stdout)
+            self.assertIn('a.md', result.stdout)
+            # ...and the closing line must not still claim an index.
+            self.assertIn('Build complete: 1 articles ->', result.stdout)
+            self.assertNotIn('+ index', result.stdout)
+
+    def test_an_ordinary_series_still_gets_its_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'a.html'), ('b.md', 'b.html')])
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn('[no index]', result.stdout)
+            self.assertIn('Build complete: 2 articles + index ->', result.stdout)
+            index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('The series title', index_html)
+            self.assertTrue((root / 'public' / 'a.html').exists())
+            self.assertTrue((root / 'public' / 'b.html').exists())
+
+    def test_check_is_green_on_a_series_the_article_holds_the_index_of(self):
+        """The measured regression this guards: check compared a freshly
+        rendered series index against the article page sitting at that
+        name and reported [DRIFT] — a red CI gate on a correctly built
+        series, that no rebuild could ever settle."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html')])
+            run('build', str(root), '--output', str(root / 'public'))
+            result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotIn('[DRIFT]', result.stdout)
+            self.assertIn('All files are up to date.', result.stdout)
+            # One article + README, and no phantom index slot.
+            self.assertIn('2 file(s) OK, 0 file(s) different.', result.stdout)
+
+    def test_check_refuses_exactly_what_build_refuses(self):
+        """A series build declines to produce must not be reported as
+        ordinary drift by the command whose whole job is 'is public/ what
+        a build would make'."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html'), ('b.md', 'b.html')])
+            result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('collides with the series index', result.stderr)
+
+    def test_the_incremental_path_does_not_bury_the_article_either(self):
+        """`build --only` writes index.html too (it is cheap, so it is
+        always redone) — the branch has to exist on that path as well."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html')])
+            run('build', str(root), '--output', str(root / 'public'))
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--only', 'index.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[no index]', result.stdout)
+            written = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Summary of A.', written)
+            self.assertNotIn('The series title', written)
+
+    def test_a_series_of_one_built_article_is_a_series_of_one(self):
+        """Drafts are excluded before this point (§20.6), so a two-entry
+        series with one draft builds one article — and an index listing
+        that single entry is exactly as pointless as any other."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html'),
+                                     ('b.md', 'b.html', {'draft': True})])
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[no index]', result.stdout)
+            # ...and with the draft included, the index has a list to
+            # carry again, so the same series.json is fatal.
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--include-drafts')
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn('collides with the series index', result.stderr)
+
+
 class SeriesNavTypography(unittest.TestCase):
     """Regression: build_series_nav() used to render card_label/nav_title/
     nav_desc with no typography applied at all — a plain space instead of

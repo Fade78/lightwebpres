@@ -2833,12 +2833,21 @@ Vérifie sans modifier :
    **`README.md`** (contre la racine du répertoire de série) — un
    changement de `series_meta` (titre, intro, ordre des articles) ne
    modifie que ces deux derniers, et `check` restait vert dessus avant la
-   v0.9.0 : c'était un trou dans la porte de CI
+   v0.9.0 : c'était un trou dans la porte de CI. Quand un article unique
+   porte le nom de l'index (§11.3.3), `build` ne produit aucun index de
+   série et `check` n'en compare pas non plus : la page d'article qui
+   occupe ce nom est déjà comparée à sa propre place, et confronter en
+   plus un index fraîchement rendu à cette page signalerait un `[DRIFT]`
+   permanent sur une série pourtant correctement construite, qu'aucune
+   reconstruction ne pourrait résoudre. Un `series.json` que `build`
+   refuse (§11.3.3, plus d'un article) est refusé ici avec la même
+   erreur, plutôt que rapporté comme une dérive ordinaire
 3. Pour chaque fichier différent, affiche `[DRIFT] fichier` suivi d'un diff ;
    pour chaque fichier absent, affiche `[NEW] fichier` ; pour
    chaque fichier identique, affiche `[OK] fichier`
 4. Affiche un résumé chiffré : « N file(s) OK, M file(s) different. »
-   (N + M = nombre d'articles + 2)
+   (N + M = nombre d'articles + 2 — + 1 quand aucun index de série n'est
+   produit, §11.3.3)
 5. Code de sortie non nul (1) si au moins un fichier diffère ou est absent —
    c'est ce qui permet d'utiliser `check` comme porte de vérification dans un
    script ou une CI (§10) ; code de sortie 0 et « All files are up to

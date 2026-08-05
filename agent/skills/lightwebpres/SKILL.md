@@ -132,13 +132,23 @@ chain, cheapest to most specific:
   `card_title`/`card_desc`.
 
 Every field in that chain resolves to *something*, `card_label` included
-(it just ends up empty) — **except `page_dest`, which has three fatal
+(it just ends up empty) — **except `page_dest`, which has four fatal
 cases**: a value that doesn't end in `.html`/`.htm`, a value that isn't a
-bare filename (`sub/x.html` is rejected wherever it comes from), and two
-articles resolving to the same output name (compared case-insensitively).
-Any of the three stops the build with a named error. See
-`specifications.md` §20.3.1 for the authoritative version of this
-cascade.
+bare filename (`sub/x.html` is rejected wherever it comes from), two
+articles resolving to the same output name (compared case-insensitively),
+and — in a series of **several** articles — the name `index.html`, which
+is where the series index goes (§11.3.3). Any of the four stops the build
+with a named error. See `specifications.md` §20.3.1 for the authoritative
+version of this cascade.
+
+A series of **exactly one** article may take `index.html`, and that is
+the way to make a single article the page a directory serves: the
+article gets the name, no series index is generated (an index listing one
+entry adds nothing), and `build` says so on a `[no index]` line. Leave
+the default name instead when the article is a brick in a directory whose
+`index.html` is kept some other way — by hand, by another generator, or
+because other articles already live there. The name chosen is the
+statement of intent, so choose it.
 
 **Editorial fields**, settable here or in `series.json`, both displayed
 and emitted as `<meta>` tags:
