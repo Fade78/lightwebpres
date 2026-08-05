@@ -2250,7 +2250,6 @@ sup { vertical-align: super; line-height: 0; }
   .slide { padding: 40px 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: 16px; right: 16px; }
-  .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
 }
 
 /* --- The highlight block --- */
@@ -2353,6 +2352,18 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
+}
+
+/* The popover's phone geometry. It used to live in the responsive block
+   further up, where it did nothing at all: same specificity, declared
+   ABOVE `.share-popover`, so the base rule won every time. Measured in
+   Chromium at 375px it resolved to bottom 80px / right 28px / max-width
+   335px -- the desktop values, on the screen where the 8px of margin it
+   was trying to reclaim actually matter. The block's own comment already
+   warned about source order; this is what ignoring it looks like, so the
+   override now sits after the rule it overrides. */
+@media (max-width: 600px) {
+  .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
 }
 
 /* --- The index page: article cards, masthead, intro --- */

@@ -7642,6 +7642,58 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         self.assertIn('Text kwh and 1 more.', html)
 
 
+class AResponsiveOverrideMustActuallyOverride(unittest.TestCase):
+    """CSS breaks ties by source order, so a `@media` rule declared ABOVE
+    the base rule it means to override loses at equal specificity and does
+    nothing at all — silently, on the one viewport nobody develops at.
+
+    `.share-popover`'s three phone declarations sat in that position and
+    were dead: measured in Chromium at 375px the popover resolved to the
+    desktop bottom/right/max-width, ignoring every value the media block
+    asked for. The skeleton's own comment warned about source order; a
+    comment is not a guard, so this is one."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_no_media_declaration_is_overruled_by_a_later_base_rule(self):
+        # Comments are blanked FIRST, in place, so offsets stay aligned:
+        # the skeleton's own commentary says "@media" more than once, and
+        # matching one of those mentions blanks a span of real rules and
+        # makes this test pass by seeing nothing. (It did, until the fix
+        # below was mutation-tested.)
+        css = re.sub(r'/\*.*?\*/', lambda m: ' ' * len(m.group(0)),
+                     self.lwp.TEMPLATE_SKELETON, flags=re.S)
+        # (selector, property) -> offset, for every declaration inside a
+        # media block and every one outside it.
+        in_media, base = [], []
+        for m in re.finditer(r'@media[^{]*\{(.*?)\n\}', css, re.S):
+            for rule in re.finditer(r'([^{}]+)\{([^{}]*)\}', m.group(1)):
+                for sel in rule.group(1).split(','):
+                    for decl in rule.group(2).split(';'):
+                        if ':' in decl:
+                            in_media.append((sel.strip(),
+                                             decl.split(':', 1)[0].strip(),
+                                             m.start()))
+        # Everything that is NOT inside a media block, with its offset.
+        stripped = re.sub(r'@media[^{]*\{.*?\n\}',
+                          lambda m: ' ' * len(m.group(0)), css, flags=re.S)
+        for rule in re.finditer(r'([^{}]+)\{([^{}]*)\}', stripped):
+            for sel in rule.group(1).split(','):
+                for decl in rule.group(2).split(';'):
+                    if ':' in decl:
+                        base.append((sel.strip(),
+                                     decl.split(':', 1)[0].strip(),
+                                     rule.start()))
+        self.assertTrue(in_media, 'no media declarations found — the parse is wrong')
+        dead = [(sel, prop) for sel, prop, at in in_media
+                for bsel, bprop, bat in base
+                if bsel == sel and bprop == prop and bat > at]
+        self.assertEqual(sorted(set(dead)), [],
+                         'declared in a @media block but overruled by a later '
+                         'base rule of equal specificity: ' + repr(sorted(set(dead))))
+
+
 class TheNotesSectionIsReadableOnEveryThemeItShipsWith(unittest.TestCase):
     """DARK_FURNITURE_PROPS is the table that stops a white surface veil
     from turning a dark page into an unreadable pale block. Membership in
