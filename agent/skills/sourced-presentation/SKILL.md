@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up: half these rules cover what an edit breaks without saying so. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.10"
+  version: "0.11"
 ---
 
 # Sourced presentation — method
@@ -63,7 +63,7 @@ Each step writes to disk before the next. **Steps 6 and 7 each catch defects the
 
 **Peer-reviewed work is the default; what follows modifies it, not replaces it.** Review has already applied much of what this section asks — method, effect size, declared limits, competing results — and a study gathers many rulings and incidents into one perspective, which no single one of them can.
 
-**Within that default, rank by what the statement cost the one who made it.** The two answer different questions: a study is better on what is generally true, a ruling or an admission on one case. *A paper does not settle what a company did in one month; an admission establishes no general effect.*
+**Within that default, rank by what the statement cost the one who made it.** Review and cost answer different questions: a study is better on what is generally true, a ruling or an admission on one case. *A paper does not settle what a company did in one month; an admission establishes no general effect.*
 
 **A statement against its author's interest is the strongest thing a file can hold.** A concession, an admission, a figure that damages the one naming it. Nobody produces these by accident, and nobody produces them to look good.
 
@@ -99,7 +99,9 @@ Written before searching. It carries:
 
 *When an identifiable actor is in question. An exposition, or a belief no one asserts, has no such source and this section does not apply.*
 
-**A contradiction between two of the actor's own documents beats any outside accusation** — it cannot be accused of its own words. *What makes these strong is not that the actor published them: it is that they were addressed to someone other than your reader — advertisers, investors, recruits — who had to be told something true enough to act on, and that your reader was never meant to see. It does not hold for what the actor says while defending itself, which is addressed to everyone and is treated below.*
+**A contradiction between two of the actor's own documents beats any outside accusation** — it cannot be accused of its own words.
+
+**What makes those documents strong is their audience, not their author.** They were addressed to advertisers, investors, recruits — people who had to be told something solid enough to act on, and your reader was never meant to see it. *A statement the actor makes while defending itself is addressed to everyone, and is a different kind of evidence.*
 
 **Look for the pages not addressed to your reader.** An organisation says one thing to its users and another to its customers, both publicly.
 
@@ -135,7 +137,7 @@ Written before searching. It carries:
 
 **Check that a result applies to the case at hand.** A rate obtained under given conditions does not transfer elsewhere unsaid. Extrapolation is the hardest defect to see from the position that writes it, because the figure is exact and the source real.
 
-**Source the counter-case at the level of the accusation**, on the ranking above and not merely on document type. An article whose second side rests on journalism while the first rests on peer-reviewed work is a prosecution dressed as balance — and one whose second side rests only on the accused's own defence is the same fault mirrored.
+**Source the counter-case at the level of the accusation**, by what its claims cost their authors and not merely by document type. An article whose second side rests on journalism while the first rests on peer-reviewed work is a prosecution dressed as balance — and one whose second side rests only on the accused's own defence is the same fault mirrored.
 
 **A claim's status belongs in the text, not only the note** — complaint or decision, allegation or judgment, statement or audit.
 
@@ -201,9 +203,13 @@ Four passes, none replacing another.
 
 ## What breaks silently
 
-**A bulk operation reports its successes, never its misses, and a check narrower than what it checks passes silently.** Renumbering after an insertion is the type case: the pattern matches one written form and leaves the other untouched, and two items end up sharing a number. Verify the result — the whole sequence, the whole set — not the operation's report, and prefer a broad pattern you read to a narrow one that skims. **Read what the operation produced, not merely that its target is gone**: a substitution can remove every occurrence of what you searched for and leave malformed text where it struck.
+**A bulk operation reports its successes, never its misses, and a check narrower than what it checks passes silently.** Renumbering after an insertion is the type case: the pattern matches one written form, leaves the other, and two items share a number.
 
-**A correction applied to one half of a page leaves the other wrong.** Deck and article are audited and corrected together, or they drift: a term fixed in the cards survives in the article for months. *The article is the larger half and the less examined.*
+**Verify the result — the whole sequence, the whole set — not the operation's report**, and prefer a broad pattern you read to a narrow one that skims.
+
+**Read what the operation produced, not merely that its target is gone**: a substitution can remove every occurrence you searched for and leave malformed text where it struck.
+
+**A defect found once is a sample, not the defect.** Before recording it fixed, search the class it belongs to, across every page and both halves of each. *Search the class, not the string: a vendor removed by name survives as three other vendors. And the article is the larger half and the less examined — a term fixed in the cards survives there for months.*
 
 **An insertion stales the pages describing the series**: lists, counts, numbered references, reading paths, recommendations citing comparable cases. They don't announce themselves.
 
