@@ -3425,8 +3425,8 @@ Par article, dans l'ordre de `series.json` — l'ordre **est** une donnée,
 c'est lui qui fixe la navigation inter-articles :
 
 - `page_source`, et le `page_dest` résolu ;
-- les champs résolus de la cascade : `page_title`, `card_title`,
-  `card_desc`, `card_label`, `nav_title`, `nav_desc` ;
+- les champs résolus de la cascade : `page_title`, `page_desc`,
+  `card_title`, `card_desc`, `card_label`, `nav_title`, `nav_desc` ;
 - `draft`, parce qu'un article écarté du build reste dans la série et
   qu'un consommateur doit pouvoir le montrer comme tel plutôt que de le
   faire disparaître ;
@@ -3435,8 +3435,18 @@ c'est lui qui fixe la navigation inter-articles :
   de dire « ce titre vient du fichier » plutôt que de présenter une
   valeur dérivée comme si l'auteur l'avait écrite.
 
-Au niveau de la série : le `series_meta` résolu, le thème en vigueur, et
-le décompte des articles — dont les brouillons, comptés à part.
+Au niveau de la série : le `series_meta`, le thème en vigueur, et le
+décompte des articles — dont les brouillons, comptés à part.
+
+**Les trois champs éditoriaux ne sont pas rapportés.** `author`,
+`license` et `date` se résolvent comme les autres, mais leur
+avant-dernier niveau est `series_meta` (§20.3.1) : un défaut *de série*,
+écrit par l'auteur, qui n'est ni la ligne `series.json` de cet article ni
+un repli intégré. Aucun mot du vocabulaire de provenance ci-dessous ne le
+dit sans mentir, et en inventer un sixième pour trois champs qu'aucun
+consommateur ne réclame élargirait une surface publique sans besoin
+établi. Le jour où l'un d'eux est demandé, c'est ce mot-là qu'il faut
+décider en premier, avant les clés.
 
 #### Ce qu'elle ne fait pas
 
@@ -3444,6 +3454,18 @@ Elle **ne construit rien** et n'écrit rien. Elle ne valide pas non plus
 au-delà de ce que la résolution exige : une série dont un article est
 introuvable est une erreur de `build`, et le rester ; `series-info` n'a
 pas à devenir un second `check`.
+
+**Un article illisible ne coûte pas le reste de la réponse.** Un
+`page_source` absent, illisible ou non-UTF-8 ne peut être lu ni pour son
+bloc meta ni pour son contenu : l'entrée est **quand même rapportée**,
+ses champs repliés sur ce que `series.json` et les défauts donnent,
+`source_read` à `false`, et un `[WARN]` sur **stderr** — pour que stdout
+reste un document JSON unique. Le code de sortie reste 0 : le
+renseignement sur les autres articles est intact, et la faute est déjà
+fatale là où elle doit l'être (§20.3, `build` et `check`). La rendre
+fatale ici ferait de `series-info` le second `check` qu'elle refuse
+d'être, et priverait une interface de toute la série pour un fichier
+manquant.
 
 #### Format
 
@@ -3454,6 +3476,84 @@ casse le GUI sans que rien ne rougisse ici, ce qui en fait un élément du
 contrat de §1.2 au même titre que les symboles internes qui y sont listés.
 
 La sortie texte est le défaut et vise la lecture humaine.
+
+**Les clés, une par une.** Racine :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `schema` | chaîne | `lightwebpres.series-info/1`. Même promesse que celle de `theme-info` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
+| `target` | objet | ce sur quoi la question portait (ci-dessous) |
+| `series_meta` | objet | les six champs textuels de §20.5 — `title`, `subtitle`, `version`, `intro`, `author`, `license` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
+| `counts` | objet | `articles` (le total) et `drafts` (combien d'entre eux sont brouillons). Deux nombres et pas trois : le troisième se soustrait |
+| `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
+
+`target` :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `kind` | `"series"` | la seule cible de cette commande ; présent pour que le bloc ait la forme de celui de `theme-info` |
+| `directory` | chaîne | le chemin absolu de la série |
+| `theme` | chaîne ou `null` | le thème en vigueur, lu dans `templates/settings.conf` par le parseur du build ; `null` quand la série n'en nomme aucun (elle tourne alors sur les défauts du registre, §9.3) |
+
+Un article :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `page_source` | chaîne | le fichier source, tel que `series.json` le nomme. Seul champ obligatoire (§20.3), donc seul champ sans provenance : il vient toujours de `series.json` |
+| `source_read` | booléen | le fichier a pu être lu et analysé. `false` = absent, illisible ou non-UTF-8, et les champs ci-dessous sont repliés d'autant |
+| `draft` | objet champ | l'état brouillon, `value` **booléen** (§20.6). À part des autres pour cette raison : un consommateur qui affiche `fields` en lignes de texte n'y trouve que du texte |
+| `fields` | objet | les huit champs résolus, dans l'ordre où la cascade les résout : `page_dest`, `page_title`, `page_desc`, `card_title`, `card_desc`, `card_label`, `nav_title`, `nav_desc`. Chacun est un objet champ |
+
+Un **champ** — la forme ne change jamais, y compris quand la valeur est
+vide, parce qu'un `card_label` qui se résout légitimement à rien a quand
+même une provenance :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `value` | chaîne (booléen pour `draft`) | la valeur retenue, exactement celle que le build emploierait |
+| `source` | chaîne | le niveau de la cascade qui l'a décidée (ci-dessous) |
+
+**Le vocabulaire de provenance est fermé**, et il est celui de toute
+commande d'ici qui répond à « d'où vient cette valeur ? » : un
+consommateur n'écrit qu'un seul code, pour deux écrans voisins.
+
+| Valeur | Ce qu'elle dit |
+|---|---|
+| `series` | le fichier de série a décidé — ici, l'entrée de l'article dans `articles[]` |
+| `article` | le bloc meta de l'article a décidé |
+| `content` | déduit du contenu de l'article lui-même : le titre `#` de sa fiche cover, ou son `summary` |
+| `derived` | calculé depuis un autre champ résolu : `page_dest` depuis `page_source` extension changée, `card_title` depuis `page_title`, `nav_desc` depuis `card_desc` |
+| `default` | le repli intégré, **y compris** « se résout à vide » |
+
+Deux conséquences à énoncer, parce qu'elles se devinent mal :
+
+- La provenance porte sur **le champ**, pas sur l'origine ultime du
+  texte. Un `card_title` qui hérite d'un `page_title` lui-même déduit de
+  la fiche cover est `derived` : personne n'a écrit de `card_title`, et
+  c'est précisément ce que l'interface doit pouvoir dire.
+- `draft` choisit son niveau sur la **présence**, pas sur la vérité :
+  `"draft": false` écrit dans `series.json` est `series`, puisque §20.6
+  en fait une décision qui écrase le bloc meta.
+
+#### Une seule cascade, pas deux
+
+La commande ne résout rien elle-même : elle rapporte ce que
+`resolve_article_fields()` — la fonction que le build appelle — a résolu,
+et les provenances que cette fonction a enregistrées **pendant** qu'elle
+résolvait. C'est la raison d'être de la commande retournée contre son
+implémentation : exposer la cascade en la réécrivant aurait installé
+dans cet exécutable la copie divergente qu'on refuse au GUI. Un test le
+tient (aucune fonction de `series-info` n'atteint l'analyseur d'article),
+parce que deux implémentations qui dérivent continuent chacune de passer
+ses propres tests.
+
+#### Consommateur connu
+
+`lightwebpres-gui` s'en sert pour lister les articles d'une série avec
+leurs vrais titres, et pour distinguer un titre écrit d'un titre déduit.
+C'est un contrat entre les deux dépôts au sens de §1.2, exactement comme
+pour `theme-info`.
 
 ---
 
