@@ -7045,6 +7045,54 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
             self.assertFalse((root / 'public' / 'leak.html').exists())
 
 
+class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
+    """A theme axis that is emitted but loses is worse than one that does
+    not exist: `settings.conf` lists it, `audit` counts it, and it does
+    nothing.
+
+    `note.size` shipped exactly that way. `article.size` drives
+    `.full-article ol` at (0,1,1), which beat a plain `.note-body` at
+    (0,1,0), so the axis was inert on the notes at the foot of the
+    long-form article — where the DEFAULT placement puts them. Declared
+    14px, computed 15px, and the same rule was giving the block a 24px
+    indent it never asked for.
+
+    Whether one selector beats another is only answerable against real
+    markup — `.fact-content h2` outranks `.note-back` on paper and can
+    never select it — so the "does it land" half of this lives in
+    tests/test_web.py, where a browser resolves it. What stays here is
+    the SCALE, which is a decision rather than a resolution."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_a_note_at_the_foot_of_a_unit_is_smaller_than_one_in_its_own_section(self):
+        # The measured scale a card already has: body 15px, `source` and
+        # `fact-label` 12px. A note at `note.size` came out at 93% of the
+        # body it annotates, and larger than the `.refs` block that is the
+        # same role three lines below it in the same article.
+        reg = self.lwp.PROPERTY_REGISTRY
+        local = int(reg['note.local.size'].default.rstrip('px'))
+        section = int(reg['note.size'].default.rstrip('px'))
+        refs = int(reg['refs.size'].default.rstrip('px'))
+        body = int(reg['article.size'].default.rstrip('px'))
+        self.assertLess(local, section, 'a foot-of-unit note is not apparatus')
+        self.assertEqual(local, refs,
+                         'the two foot-of-unit apparatus blocks are two sizes')
+        self.assertLess(local, body)
+
+    def test_a_theme_that_resizes_its_notes_resizes_both(self):
+        # high-contrast states a bigger note; its foot-of-unit note has to
+        # follow, or the theme's one intent is honoured in one place only.
+        for slug, props in self.lwp.THEME_NOTE_PROPS.items():
+            if 'note.size' in props:
+                self.assertIn('note.local.size', props,
+                              f'{slug} resizes note.size but not note.local.size')
+                self.assertLess(int(props['note.local.size'].rstrip('px')),
+                                int(props['note.size'].rstrip('px')), slug)
+
+
 class AlignmentReachesWhatItWraps(unittest.TestCase):
     """The instance layer has to WIN, not merely be emitted. Shipped once
     with a losing selector: the tag was inert on long-form prose -- the one

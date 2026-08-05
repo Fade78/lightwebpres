@@ -135,6 +135,7 @@
   --note-marker-fg: #FF4757FF;
   --note-back-fg: #1A1A2EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #0000001A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -447,6 +448,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -1173,7 +1177,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article's own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with "the article's
+   note list is indented 24px". */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;

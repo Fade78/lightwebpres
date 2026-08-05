@@ -585,6 +585,7 @@
   --note-marker-fg: #2E3440FF;
   --note-back-fg: #4C566AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2E344090;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -897,6 +898,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -1623,7 +1627,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -1819,6 +1829,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #2E3440FF;
   --note-back-fg: #4C566AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2E344090;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -2131,6 +2142,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -2857,7 +2871,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -3064,6 +3084,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #2E3440FF;
   --note-back-fg: #4C566AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2E344090;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -3376,6 +3397,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -4102,7 +4126,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -4299,6 +4329,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #2E3440FF;
   --note-back-fg: #4C566AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2E344090;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -4611,6 +4642,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -5337,7 +5371,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -5588,6 +5628,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #9FADCFFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -5900,6 +5941,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -6626,7 +6670,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -6822,6 +6872,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #9FADCFFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -7134,6 +7185,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -7860,7 +7914,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -8067,6 +8127,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #9FADCFFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -8379,6 +8440,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -9105,7 +9169,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -9302,6 +9372,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #9FADCFFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -9614,6 +9685,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -10340,7 +10414,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -10591,6 +10671,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #002B36FF;
   --note-back-fg: #4C686EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #002B3683;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -10903,6 +10984,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -11629,7 +11713,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -11825,6 +11915,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #002B36FF;
   --note-back-fg: #4C686EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #002B3683;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -12137,6 +12228,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -12863,7 +12957,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -13070,6 +13170,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #002B36FF;
   --note-back-fg: #4C686EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #002B3683;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -13382,6 +13483,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -14108,7 +14212,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -14305,6 +14415,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #002B36FF;
   --note-back-fg: #4C686EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #002B3683;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -14617,6 +14728,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -15343,7 +15457,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -15594,6 +15714,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #282828FF;
   --note-back-fg: #665C54FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #28282888;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -15906,6 +16027,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -16632,7 +16756,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -16828,6 +16958,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #282828FF;
   --note-back-fg: #665C54FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #28282888;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -17140,6 +17271,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -17866,7 +18000,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -18073,6 +18213,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #282828FF;
   --note-back-fg: #665C54FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #28282888;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -18385,6 +18526,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -19111,7 +19255,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -19308,6 +19458,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #282828FF;
   --note-back-fg: #665C54FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #28282888;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -19620,6 +19771,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -20346,7 +20500,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -20597,6 +20757,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #4C4F69FF;
   --note-back-fg: #5C5F77FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4C4F69AA;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -20909,6 +21070,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -21635,7 +21799,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -21831,6 +22001,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #4C4F69FF;
   --note-back-fg: #5C5F77FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4C4F69AA;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -22143,6 +22314,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -22869,7 +23043,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -23076,6 +23256,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #4C4F69FF;
   --note-back-fg: #5C5F77FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4C4F69AA;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -23388,6 +23569,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -24114,7 +24298,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -24311,6 +24501,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #4C4F69FF;
   --note-back-fg: #5C5F77FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4C4F69AA;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -24623,6 +24814,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -25349,7 +25543,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -25600,6 +25800,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #F7768EFF;
   --note-back-fg: #A9B1D6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #C0CAF579;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -25912,6 +26113,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -26638,7 +26842,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -26834,6 +27044,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F7768EFF;
   --note-back-fg: #A9B1D6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #C0CAF579;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -27146,6 +27357,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -27872,7 +28086,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -28079,6 +28299,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F7768EFF;
   --note-back-fg: #A9B1D6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #C0CAF579;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -28391,6 +28612,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -29117,7 +29341,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -29314,6 +29544,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F7768EFF;
   --note-back-fg: #A9B1D6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #C0CAF579;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -29626,6 +29857,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -30352,7 +30586,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -30603,6 +30843,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #AFA99AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F265;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -30915,6 +31156,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -31641,7 +31885,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -31837,6 +32087,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #AFA99AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F265;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -32149,6 +32400,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -32875,7 +33129,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -33082,6 +33342,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #AFA99AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F265;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -33394,6 +33655,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -34120,7 +34384,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -34317,6 +34587,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F8F8F2FF;
   --note-back-fg: #AFA99AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F8F8F265;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -34629,6 +34900,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -35355,7 +35629,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -35606,6 +35886,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #D3C6AAFF;
   --note-back-fg: #BAB9A5FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D3C6AA94;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -35918,6 +36199,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -36644,7 +36928,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -36840,6 +37130,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D3C6AAFF;
   --note-back-fg: #BAB9A5FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D3C6AA94;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -37152,6 +37443,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -37878,7 +38172,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -38085,6 +38385,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D3C6AAFF;
   --note-back-fg: #BAB9A5FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D3C6AA94;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -38397,6 +38698,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -39123,7 +39427,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -39320,6 +39630,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D3C6AAFF;
   --note-back-fg: #BAB9A5FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D3C6AA94;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -39632,6 +39943,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -40358,7 +40672,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -40609,6 +40929,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #464261FF;
   --note-back-fg: #575279FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4642619D;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -40921,6 +41242,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -41647,7 +41971,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -41843,6 +42173,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #464261FF;
   --note-back-fg: #575279FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4642619D;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -42155,6 +42486,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -42881,7 +43215,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -43088,6 +43428,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #464261FF;
   --note-back-fg: #575279FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4642619D;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -43400,6 +43741,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -44126,7 +44470,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -44323,6 +44673,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #464261FF;
   --note-back-fg: #575279FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #4642619D;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -44635,6 +44986,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -45361,7 +45715,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -45612,6 +45972,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #D00000FF;
   --note-back-fg: #4A4A4AFF;
   /* note.local */
+  --note-local-size: 15px;
   --note-local-rule-fg: #00000070;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -45924,6 +46285,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -46650,7 +47014,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -46846,6 +47216,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D00000FF;
   --note-back-fg: #4A4A4AFF;
   /* note.local */
+  --note-local-size: 15px;
   --note-local-rule-fg: #00000070;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -47158,6 +47529,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -47884,7 +48258,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -48091,6 +48471,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D00000FF;
   --note-back-fg: #4A4A4AFF;
   /* note.local */
+  --note-local-size: 15px;
   --note-local-rule-fg: #00000070;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -48403,6 +48784,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -49129,7 +49513,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -49326,6 +49716,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D00000FF;
   --note-back-fg: #4A4A4AFF;
   /* note.local */
+  --note-local-size: 15px;
   --note-local-rule-fg: #00000070;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -49638,6 +50029,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -50364,7 +50758,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -50615,6 +51015,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #0B2545FF;
   --note-back-fg: #4A6277FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #0B254584;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -50927,6 +51328,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -51653,7 +52057,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -51849,6 +52259,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #0B2545FF;
   --note-back-fg: #4A6277FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #0B254584;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -52161,6 +52572,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -52887,7 +53301,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -53094,6 +53514,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #0B2545FF;
   --note-back-fg: #4A6277FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #0B254584;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -53406,6 +53827,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -54132,7 +54556,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -54329,6 +54759,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #0B2545FF;
   --note-back-fg: #4A6277FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #0B254584;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -54641,6 +55072,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -55367,7 +55801,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -55618,6 +56058,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FF8A5BFF;
   --note-back-fg: #889AB2FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DCE6F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -55930,6 +56371,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -56656,7 +57100,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -56852,6 +57302,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF8A5BFF;
   --note-back-fg: #889AB2FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DCE6F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -57164,6 +57615,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -57890,7 +58344,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -58097,6 +58557,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF8A5BFF;
   --note-back-fg: #889AB2FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DCE6F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -58409,6 +58870,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -59135,7 +59599,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -59332,6 +59802,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF8A5BFF;
   --note-back-fg: #889AB2FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DCE6F266;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -59644,6 +60115,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -60370,7 +60844,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -60621,6 +61101,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #2B2B2BFF;
   --note-back-fg: #656565FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #11111178;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -60933,6 +61414,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -61659,7 +62143,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -61855,6 +62345,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #2B2B2BFF;
   --note-back-fg: #656565FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #11111178;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -62167,6 +62658,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -62893,7 +63387,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -63100,6 +63600,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #2B2B2BFF;
   --note-back-fg: #656565FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #11111178;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -63412,6 +63913,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -64138,7 +64642,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -64335,6 +64845,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #2B2B2BFF;
   --note-back-fg: #656565FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #11111178;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -64647,6 +65158,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -65373,7 +65887,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -65624,6 +66144,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FFFFFFFF;
   --note-back-fg: #969696FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EDEDED62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -65936,6 +66457,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -66662,7 +67186,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -66858,6 +67388,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFFFFFFF;
   --note-back-fg: #969696FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EDEDED62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -67170,6 +67701,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -67896,7 +68430,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -68103,6 +68643,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFFFFFFF;
   --note-back-fg: #969696FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EDEDED62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -68415,6 +68956,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -69141,7 +69685,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -69338,6 +69888,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFFFFFFF;
   --note-back-fg: #969696FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EDEDED62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -69650,6 +70201,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -70376,7 +70930,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -70627,6 +71187,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #8C2F1EFF;
   --note-back-fg: #625F5AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1A1A187F;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -70939,6 +71500,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -71665,7 +72229,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -71861,6 +72431,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #8C2F1EFF;
   --note-back-fg: #625F5AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1A1A187F;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -72173,6 +72744,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -72899,7 +73473,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -73106,6 +73686,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #8C2F1EFF;
   --note-back-fg: #625F5AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1A1A187F;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -73418,6 +73999,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -74144,7 +74728,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -74341,6 +74931,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #8C2F1EFF;
   --note-back-fg: #625F5AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1A1A187F;
   --note-local-rule-width: 2px;
   /* note.page */
@@ -74653,6 +75244,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -75379,7 +75973,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -75630,6 +76230,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #D4AF37FF;
   --note-back-fg: #9C917AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F3EDDF62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -75942,6 +76543,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -76668,7 +77272,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -76864,6 +77474,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D4AF37FF;
   --note-back-fg: #9C917AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F3EDDF62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -77176,6 +77787,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -77902,7 +78516,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -78109,6 +78729,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D4AF37FF;
   --note-back-fg: #9C917AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F3EDDF62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -78421,6 +79042,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -79147,7 +79771,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -79344,6 +79974,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D4AF37FF;
   --note-back-fg: #9C917AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F3EDDF62;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -79656,6 +80287,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -80382,7 +81016,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -80633,6 +81273,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #B00020FF;
   --note-back-fg: #7D5B5FFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #3B0A127B;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -80945,6 +81586,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -81671,7 +82315,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -81867,6 +82517,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #B00020FF;
   --note-back-fg: #7D5B5FFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #3B0A127B;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -82179,6 +82830,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -82905,7 +83559,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -83112,6 +83772,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #B00020FF;
   --note-back-fg: #7D5B5FFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #3B0A127B;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -83424,6 +84085,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -84150,7 +84814,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -84347,6 +85017,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #B00020FF;
   --note-back-fg: #7D5B5FFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #3B0A127B;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -84659,6 +85330,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -85385,7 +86059,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -85636,6 +86316,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #F4622EFF;
   --note-back-fg: #AB8D81FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFEDE261;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -85948,6 +86629,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -86674,7 +87358,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -86870,6 +87560,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F4622EFF;
   --note-back-fg: #AB8D81FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFEDE261;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -87182,6 +87873,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -87908,7 +88602,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -88115,6 +88815,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F4622EFF;
   --note-back-fg: #AB8D81FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFEDE261;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -88427,6 +89128,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -89153,7 +89857,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -89350,6 +90060,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F4622EFF;
   --note-back-fg: #AB8D81FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFEDE261;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -89662,6 +90373,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -90388,7 +91102,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -90639,6 +91359,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #D6D2C8FF;
   --note-back-fg: #96928AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D6D2C86F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -90951,6 +91672,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -91677,7 +92401,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -91873,6 +92603,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D6D2C8FF;
   --note-back-fg: #96928AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D6D2C86F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -92185,6 +92916,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -92911,7 +93645,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -93118,6 +93858,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D6D2C8FF;
   --note-back-fg: #96928AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D6D2C86F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -93430,6 +94171,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -94156,7 +94900,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -94353,6 +95103,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #D6D2C8FF;
   --note-back-fg: #96928AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D6D2C86F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -94665,6 +95416,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -95391,7 +96145,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -95642,6 +96402,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #26302AFF;
   --note-back-fg: #58655BFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #26302A8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -95954,6 +96715,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -96680,7 +97444,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -96876,6 +97646,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #26302AFF;
   --note-back-fg: #58655BFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #26302A8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -97188,6 +97959,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -97914,7 +98688,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -98121,6 +98901,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #26302AFF;
   --note-back-fg: #58655BFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #26302A8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -98433,6 +99214,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -99159,7 +99943,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -99356,6 +100146,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #26302AFF;
   --note-back-fg: #58655BFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #26302A8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -99668,6 +100459,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -100394,7 +101188,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -100645,6 +101445,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #E0A32EFF;
   --note-back-fg: #889D8AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DDE9DC66;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -100957,6 +101758,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -101683,7 +102487,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -101879,6 +102689,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #E0A32EFF;
   --note-back-fg: #889D8AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DDE9DC66;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -102191,6 +103002,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -102917,7 +103731,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -103124,6 +103944,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #E0A32EFF;
   --note-back-fg: #889D8AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DDE9DC66;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -103436,6 +104257,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -104162,7 +104986,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -104359,6 +105189,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #E0A32EFF;
   --note-back-fg: #889D8AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #DDE9DC66;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -104671,6 +105502,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -105397,7 +106231,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -105648,6 +106488,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #6D28D9FF;
   --note-back-fg: #5C6B55FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1E2B1B84;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -105960,6 +106801,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -106686,7 +107530,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -106882,6 +107732,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #6D28D9FF;
   --note-back-fg: #5C6B55FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1E2B1B84;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -107194,6 +108045,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -107920,7 +108774,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -108127,6 +108987,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #6D28D9FF;
   --note-back-fg: #5C6B55FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1E2B1B84;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -108439,6 +109300,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -109165,7 +110029,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -109362,6 +110232,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #6D28D9FF;
   --note-back-fg: #5C6B55FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1E2B1B84;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -109674,6 +110545,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -110400,7 +111274,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -110651,6 +111531,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #16003BFF;
   --note-back-fg: #65569EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #16003B76;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -110963,6 +111844,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -111689,7 +112573,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -111885,6 +112775,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #16003BFF;
   --note-back-fg: #65569EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #16003B76;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -112197,6 +113088,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -112923,7 +113817,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -113130,6 +114030,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #16003BFF;
   --note-back-fg: #65569EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #16003B76;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -113442,6 +114343,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -114168,7 +115072,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -114365,6 +115275,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #16003BFF;
   --note-back-fg: #65569EFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #16003B76;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -114677,6 +115588,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -115403,7 +116317,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -115654,6 +116574,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FF3C6FFF;
   --note-back-fg: #6E9C7AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D7FFE05E;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -115966,6 +116887,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -116692,7 +117616,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -116888,6 +117818,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF3C6FFF;
   --note-back-fg: #6E9C7AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D7FFE05E;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -117200,6 +118131,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -117926,7 +118860,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -118133,6 +119073,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF3C6FFF;
   --note-back-fg: #6E9C7AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D7FFE05E;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -118445,6 +119386,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -119171,7 +120115,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -119368,6 +120318,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FF3C6FFF;
   --note-back-fg: #6E9C7AFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #D7FFE05E;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -119680,6 +120631,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -120406,7 +121360,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -120657,6 +121617,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #F2E9FFFF;
   --note-back-fg: #A28FC9FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F2E9FF63;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -120969,6 +121930,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -121695,7 +122659,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -121891,6 +122861,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F2E9FFFF;
   --note-back-fg: #A28FC9FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F2E9FF63;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -122203,6 +123174,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -122929,7 +123903,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -123136,6 +124116,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F2E9FFFF;
   --note-back-fg: #A28FC9FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F2E9FF63;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -123448,6 +124429,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -124174,7 +125158,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -124371,6 +125361,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #F2E9FFFF;
   --note-back-fg: #A28FC9FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F2E9FF63;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -124683,6 +125674,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -125409,7 +126403,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -125660,6 +126660,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #FBD5D7FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF1F095;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -125972,6 +126973,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -126698,7 +127702,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -126894,6 +127904,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #FBD5D7FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF1F095;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -127206,6 +128217,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -127932,7 +128946,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -128139,6 +129159,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #FBD5D7FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF1F095;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -128451,6 +129472,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -129177,7 +130201,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -129374,6 +130404,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #FBD5D7FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF1F095;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -129686,6 +130717,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -130412,7 +131446,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -130663,6 +131703,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #241000FF;
   --note-back-fg: #542A00FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2410008F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -130975,6 +132016,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -131701,7 +132745,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -131897,6 +132947,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #241000FF;
   --note-back-fg: #542A00FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2410008F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -132209,6 +133260,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -132935,7 +133989,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -133142,6 +134202,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #241000FF;
   --note-back-fg: #542A00FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2410008F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -133454,6 +134515,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -134180,7 +135244,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -134377,6 +135447,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #241000FF;
   --note-back-fg: #542A00FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #2410008F;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -134689,6 +135760,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -135415,7 +136489,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -135666,6 +136746,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #8F0049FF;
   --note-back-fg: #5D5008FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1F1A0085;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -135978,6 +137059,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -136704,7 +137788,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -136900,6 +137990,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #8F0049FF;
   --note-back-fg: #5D5008FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1F1A0085;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -137212,6 +138303,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -137938,7 +139032,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -138145,6 +139245,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #8F0049FF;
   --note-back-fg: #5D5008FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1F1A0085;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -138457,6 +139558,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -139183,7 +140287,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -139380,6 +140490,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #8F0049FF;
   --note-back-fg: #5D5008FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #1F1A0085;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -139692,6 +140803,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -140418,7 +141532,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -140669,6 +141789,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #BCE7CAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0FFF489;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -140981,6 +142102,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -141707,7 +142831,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -141903,6 +143033,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #BCE7CAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0FFF489;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -142215,6 +143346,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -142941,7 +144075,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -143148,6 +144288,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #BCE7CAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0FFF489;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -143460,6 +144601,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -144186,7 +145330,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -144383,6 +145533,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #BCE7CAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0FFF489;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -144695,6 +145846,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -145421,7 +146575,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -145672,6 +146832,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #EFFCFFFF;
   --note-back-fg: #CFEDF3FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EFFCFF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -145984,6 +147145,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -146710,7 +147874,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -146906,6 +148076,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #EFFCFFFF;
   --note-back-fg: #CFEDF3FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EFFCFF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -147218,6 +148389,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -147944,7 +149118,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -148151,6 +149331,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #EFFCFFFF;
   --note-back-fg: #CFEDF3FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EFFCFF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -148463,6 +149644,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -149189,7 +150373,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -149386,6 +150576,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #EFFCFFFF;
   --note-back-fg: #CFEDF3FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #EFFCFF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -149698,6 +150889,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -150424,7 +151618,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -150675,6 +151875,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #D5DEF8FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0F4FF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -150987,6 +152188,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -151713,7 +152917,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -151909,6 +153119,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #D5DEF8FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0F4FF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -152221,6 +153432,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -152947,7 +154161,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -153154,6 +154374,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #D5DEF8FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0F4FF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -153466,6 +154687,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -154192,7 +155416,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -154389,6 +155619,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FFD400FF;
   --note-back-fg: #D5DEF8FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F0F4FF90;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -154701,6 +155932,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -155427,7 +156661,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -155678,6 +156918,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #DED1F6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F6F1FF8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -155990,6 +157231,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -156716,7 +157960,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -156912,6 +158162,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #DED1F6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F6F1FF8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -157224,6 +158475,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -157950,7 +159204,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -158157,6 +159417,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #DED1F6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F6F1FF8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -158469,6 +159730,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -159195,7 +160459,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -159392,6 +160662,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #DED1F6FF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #F6F1FF8A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -159704,6 +160975,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -160430,7 +161704,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -160681,6 +161961,7 @@ Baking guide, 2024 edition.
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #F8D6EAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF0FA92;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -160993,6 +162274,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -161719,7 +163003,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -161915,6 +163205,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #F8D6EAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF0FA92;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -162227,6 +163518,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -162953,7 +164247,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -163160,6 +164460,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #F8D6EAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF0FA92;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -163472,6 +164773,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -164198,7 +165502,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
@@ -164395,6 +165705,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   --note-marker-fg: #FDE047FF;
   --note-back-fg: #F8D6EAFF;
   /* note.local */
+  --note-local-size: 13px;
   --note-local-rule-fg: #FFF0FA92;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -164707,6 +166018,9 @@ sup {
 }
 .note-back {
   color: var(--note-back-fg);
+}
+.notes-local .note-body {
+  font-size: var(--note-local-size);
 }
 .notes-local {
   border-top-color: var(--note-local-rule-fg);
@@ -165433,7 +166747,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article&#x27;s own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with &quot;the article&#x27;s
+   note list is indented 24px&quot;. */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;

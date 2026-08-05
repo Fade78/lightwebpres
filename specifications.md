@@ -948,13 +948,37 @@ laisserait un auteur devant une page qui ignore ce qu'il a demandé, sans
 rien pour le lui dire.
 
 Côté apparence, le registre porte **trois** composants, parce que les
-deux emplacements ne sont pas la même surface : `note` (le corps
-lui-même : corps de texte, couleur, interligne, lien de retour),
-`note.local` (le bloc au pied d'une fiche — du mobilier compact *dans*
-une fiche) et `note.page` (la section de fin de page — une **section**,
-comme celle de l'article : elle veut un fond, un titre et un filet).
-`footnote-call` (`sup`) existait déjà et garde son nom : il habille
-l'appel, qui est le même objet où que le corps atterrisse.
+deux emplacements ne sont pas la même surface : `note` (les valeurs
+partagées : couleur, interligne, lien de retour), `note.local` (le bloc
+au pied d'une fiche — du mobilier compact *dans* une fiche) et
+`note.page` (la section de fin de page — une **section**, comme celle de
+l'article : elle veut un fond, un titre et un filet). `footnote-call`
+(`sup`) existait déjà et garde son nom : il habille l'appel, qui est le
+même objet où que le corps atterrisse.
+
+**Une note au pied d'une unité est écrite plus petite qu'une note dans
+sa propre section**, et l'échelle de la fiche le dictait déjà : son corps
+est à 15 px, son propre appareil — `source`, `fact-label` — à 12 px. Une
+note à `note.size` (14 px) sortait à 93 % du corps qu'elle annote, donc
+lue comme du texte de plus, et **plus grande** que le bloc `.refs` trois
+lignes plus bas, qui est exactement le même rôle à 13 px. D'où
+`note.local.size`, à 13 px comme `refs.size` : au pied d'une unité, une
+note est de l'appareil. Dans la section de notes, elle *est* le contenu,
+lue en défilement, et garde `note.size`.
+
+Le sélecteur de `note.local.size` est `.notes-local .note-body`, à
+(0,2,0), et cette spécificité est portante : `article.size` pilote
+`.full-article ol` à (0,1,1), qui battait un `.note-body` nu à (0,1,0).
+Une taille de note énoncée pour les notes de l'article de fond — là où
+l'emplacement par défaut les met — était donc simplement ignorée :
+déclarée 14 px, calculée 15 px, et le bloc héritait au passage d'un
+retrait de 24 px et de ses puces. C'est la même classe de défaut que
+l'alignement d'instance (§9.6) : **un axe émis mais perdant est pire
+qu'un axe absent**, puisque `settings.conf` le liste et qu'`audit` le
+compte. Il n'est pas tranchable sur le papier — `.fact-content h2` bat
+`.note-back` par spécificité et ne peut jamais le sélectionner — donc la
+vérification se fait dans un navigateur, valeur déclarée contre valeur
+calculée, dans les trois contextes.
 
 #### 6.5.5 Les trois défauts qu'`audit` nomme
 

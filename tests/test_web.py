@@ -27,6 +27,7 @@ FILE_PROTOCOL_GUARD_SCRIPT = Path(__file__).resolve().parent / 'file_protocol_gu
 LWP_LOOKUP_SCRIPT = Path(__file__).resolve().parent / 'lightwebpres_lookup_e2e.cjs'
 GALLERY_FACETS_SCRIPT = Path(__file__).resolve().parent / 'themes_gallery_facets_e2e.cjs'
 GALLERY_PANELS_SCRIPT = Path(__file__).resolve().parent / 'gallery_panels_e2e.cjs'
+NOTE_PROPERTIES_SCRIPT = Path(__file__).resolve().parent / 'note_properties_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -300,6 +301,50 @@ class GalleryPanelsShowWhatTheyName(unittest.TestCase):
                              generated.stdout + generated.stderr)
             result = subprocess.run(
                 ['node', str(GALLERY_PANELS_SCRIPT), 'file://%s' % gallery],
+                capture_output=True, text=True,
+                env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+                timeout=120,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+class EveryNoteAxisLandsWhereItIsAimed(unittest.TestCase):
+    """§9/§6.5: an axis that is emitted but loses is worse than one that
+    does not exist — `settings.conf` lists it, `audit` counts it, and it
+    does nothing.
+
+    `note.size` shipped that way: `article.size` drives `.full-article ol`
+    at (0,1,1), which beat `.note-body` at (0,1,0), so the axis was inert
+    on the notes at the foot of the long-form article, where the default
+    placement puts them. Declared 14px, computed 15px.
+
+    This needs a browser because it cannot be settled on paper.
+    Specificity alone says `.fact-content h2` outranks `.note-back`, which
+    is true and irrelevant: it can never select one. Only real markup
+    answers the question, so the check is the sound one — resolve the
+    declared value, resolve the computed value, compare."""
+
+    def test_every_note_axis_lands_in_a_card_an_article_and_a_section(self):
+        # The executable has no .py suffix, so spec_from_file_location
+        # cannot pick a loader for it — name one explicitly, as the main
+        # suite's load_lightwebpres_module() does.
+        import importlib.util
+        from importlib.machinery import SourceFileLoader
+        loader = SourceFileLoader('lwp_under_test',
+                                  str(REPO_ROOT / 'lightwebpres'))
+        lwp = importlib.util.module_from_spec(
+            importlib.util.spec_from_loader(loader.name, loader))
+        loader.exec_module(lwp)
+        with tempfile.TemporaryDirectory() as tmp:
+            urls = []
+            for panel in ('card', 'article', 'notes'):
+                path = Path(tmp) / f'{panel}.html'
+                path.write_text(
+                    lwp.build_theme_preview_document('newsprint', panel),
+                    encoding='utf-8')
+                urls.append('file://%s' % path)
+            result = subprocess.run(
+                ['node', str(NOTE_PROPERTIES_SCRIPT), *urls],
                 capture_output=True, text=True,
                 env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
                 timeout=120,

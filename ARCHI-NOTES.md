@@ -163,14 +163,23 @@ call, which is the same object wherever the body lands.
 
 | Component | The surface | Why it is its own |
 |---|---|---|
-| `note` | the body itself | shared: type size, colour, leading, the return link |
-| `note.local` | the block at the foot of a card | compact furniture *inside* a card — a rule to detach it from the content above, tight spacing, no ground of its own |
+| `note` | the body itself | shared: colour, leading, the return link — and `note.size`, which the notes *section* keeps |
+| `note.local` | the block at the foot of a card | compact furniture *inside* a card — a rule to detach it from the content above, tight spacing, no ground of its own, and **its own smaller size** |
 | `note.page` | the notes section at the end | a **section**, like the article's: it wants a ground, a heading and a rule, and it is sized for a scroll rather than for the last third of a screen |
 
 Giving them one component would force a theme to style a foot-of-card
 block and a full section with the same values, which is the mistake the
 §9 rewrite was made to stop: one name carrying two senses, so neither can
 move without moving the other.
+
+**A note at the foot of a unit is set smaller than one in its own
+section**, and the card's own scale already said so: its body is 15px and
+its apparatus — `source`, `fact-label` — is 12px. A note at `note.size`
+came out at 93% of the body it annotates, read as more text rather than
+as apparatus, and *larger* than the `.refs` block three lines below it in
+the same article, which is the same role at 13px. So `note.local.size`
+takes `refs.size`'s 13px. In the notes section the note IS the content,
+read as a scroll, and keeps `note.size`.
 
 ## 6. The authoring surface
 

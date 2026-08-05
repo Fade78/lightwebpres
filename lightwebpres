@@ -1237,6 +1237,10 @@ THEME_COMPONENTS = [
     # its own are not the same object: giving them one name would force a
     # theme to style both with the same values, which is exactly the
     # one-name-two-senses fault the §9 rewrite was made to end.
+    # These are the values BOTH placements share. `note.size` governs the
+    # notes section; inside a card or the article the more specific
+    # `note.local.size` below wins, which is the point rather than an
+    # accident -- see the comment on it.
     ThemeComponent('note', '.note-body', [
         # `ink` and not `ink-quiet`, and the reason is a doctrine rather
         # than a measurement that happened to come out that way: a note
@@ -1258,6 +1262,23 @@ THEME_COMPONENTS = [
     # Compact furniture INSIDE a card: a rule to detach it from the content
     # above, and nothing else. No ground -- it sits on the card's own.
     ThemeComponent('note.local', '.notes-local', [
+        # A note at the foot of a card is APPARATUS, and the card already
+        # has a scale for that: `source` and `fact-label` sit at 12px
+        # while the body is 15px. A note at `note.size` (14px) came out at
+        # 93% of the body it annotates -- read as more text, not as
+        # apparatus -- and, in the article, LARGER than the `.refs` block
+        # three lines below it, which is the same role at 13px.
+        #
+        # So the foot-of-unit note takes `refs.size`'s 13px, and the notes
+        # SECTION keeps `note.size`: a section of its own, read as a
+        # scroll, where the note IS the content rather than an aside.
+        # (0,2,0), which beats both the shared `note.size` at (0,1,0) and
+        # -- the one that actually bit -- `article.size`'s
+        # `.full-article ol` at (0,1,1). Without something above that
+        # second one, a note size stated for the article's own notes was
+        # simply ignored: declared 14px, computed 15px.
+        ThemeProp('note.local.size', PROP_LENGTH, '13px', css='font-size',
+                  selector='.notes-local .note-body'),
         ThemeProp('note.local.rule-fg',    PROP_COLOR,  '#0000001A',
                   css='border-top-color'),
         ThemeProp('note.local.rule-width', PROP_LENGTH, '1px',
@@ -1635,7 +1656,7 @@ THEME_NOTE_PROPS = {
     'monokai': {'note.fg': '#AFA99A', 'note.marker.fg': 'ink', 'note.back.fg': '#AFA99A', 'note.local.rule-fg': '#F8F8F265', 'note.page.bg': '#F8F8F217', 'note.page.rule-fg': '#F8F8F269'},
     'everforest': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#BAB9A5', 'note.marker.fg': 'ink', 'note.back.fg': '#BAB9A5', 'note.local.rule-fg': '#D3C6AA94', 'note.page.bg': '#D3C6AA1E', 'note.page.rule-fg': '#D3C6AA9D'},
     'rose-pine': {'footnote-call.fg': 'ink', 'note.fg': '#575279', 'note.marker.fg': 'ink', 'note.back.fg': '#575279', 'note.local.rule-fg': '#4642619D', 'note.page.bg': '#46426117', 'note.page.rule-fg': '#464261A4'},
-    'high-contrast': {'note.size': '16px', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': '30px', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#00000070', 'note.page.bg': '#00000011', 'note.page.rule-fg': '#00000072'},
+    'high-contrast': {'note.size': '16px', 'note.local.size': '15px', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': '30px', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#00000070', 'note.page.bg': '#00000011', 'note.page.rule-fg': '#00000072'},
     'blueprint': {'footnote-call.fg': 'ink', 'note.fg': '#4A6277', 'note.marker.fg': 'ink', 'note.back.fg': '#4A6277', 'note.local.rule-fg': '#0B254584', 'note.page.bg': '#0B254514', 'note.page.rule-fg': '#0B254588'},
     'blueprint-night': {'note.fg': '#889AB2', 'note.marker.fg': 'call', 'note.back.fg': '#889AB2', 'note.local.rule-fg': '#DCE6F266', 'note.page.bg': '#DCE6F21C', 'note.page.rule-fg': '#DCE6F26B'},
     'monochrome': {'note.fg': '#656565', 'note.marker.fg': 'call', 'note.back.fg': '#656565', 'note.local.rule-fg': '#11111178', 'note.page.bg': '#11111111', 'note.page.rule-fg': '#1111117B'},
@@ -2506,7 +2527,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   border-top-style: solid;
 }
 .notes-section h2 { margin-bottom: 16px; }
-.note-body {
+/* The class is DOUBLED here, and it is load-bearing rather than tidy:
+   `article.size` drives `.full-article ol` at (0,1,1), which beats a
+   plain `.note-body` at (0,1,0) and was handing the article's own note
+   block a 24px indent, a bottom margin and its list markers back. Proved
+   by mutation -- undoubling it fails the browser test with "the article's
+   note list is indented 24px". */
+.note-body.note-body {
   max-width: var(--page-content-max);
   margin: 0;
   padding: 0;
