@@ -36,6 +36,7 @@ Usage:
   lightwebpres audit [directory] [--lang fr]
   lightwebpres refresh-templates [directory] [--scaffold]
   lightwebpres themes [--polarity light|dark] [--intensity name] [--hue name]
+  lightwebpres theme-info <slug>|[directory] [--format text|json]
   lightwebpres set-theme [directory] --theme name
   lightwebpres themes-gallery [path]
   lightwebpres --help
@@ -2874,6 +2875,506 @@ def page_style_properties(meta, source_name):
                 raise PropertyError(f'{source_name}: empty style.* key')
             props[prop] = value
     return props
+
+
+# ----------------------------------------------------------------------------
+# Contrast measurement (§11.9.1): what the composed sheet actually puts on
+# top of what.
+#
+# The accessibility level of a theme is COMPUTED, never declared. A label
+# written into a THEMES entry would be right on the day it was typed and
+# silent about every palette tweak afterwards, because nothing connects it
+# to the colour it claims to qualify. So the numbers come through the same
+# path as the rest of the engine — resolved properties, composited grounds.
+#
+# Two rules govern everything below, and both were learned the hard way in
+# the test suite:
+#
+#   - Only real pairs. A sweep of every colour against every other colour
+#     produces failures nobody can act on, for pairs the page never puts
+#     together. A site names a foreground property, the STACK of background
+#     properties under it, and where in the page that happens.
+#   - Composite at 8 bits. A veil is painted source-over and the result is
+#     quantised to 8-bit channels, because the screen has nowhere to keep
+#     the fraction. Carried at full float precision, one focus ring in the
+#     catalogue measures 3.0009:1 and passes; at the precision a reader
+#     actually gets it measures 2.9970:1 and does not.
+#
+# The DOM containment is declared, not derived: which ground a component
+# sits on is a fact about the page templates and the skeleton, and no
+# amount of reading the registry recovers it. What IS derived is everything
+# the registry does know — the colours, the type sizes and weights that
+# decide the WCAG category, and (through CONTRAST_UNMEASURED below) the
+# guarantee that no colour property is silently left out.
+# ----------------------------------------------------------------------------
+
+# WCAG 2.x, the three categories §11.9.1 reports. Large text is >= 24px, or
+# >= 18.66px when bold. Non-text carrying information (SC 1.4.11) has one
+# bar and no AAA level in the standard, so it is reported pass/fail rather
+# than graded on a scale the standard does not define.
+CONTRAST_LEVELS = {
+    'body_text':  {'aa': 4.5, 'aaa': 7.0},
+    'large_text': {'aa': 3.0, 'aaa': 4.5},
+    'non_text':   {'aa': 3.0, 'aaa': None},
+}
+LARGE_TEXT_PX = 24.0
+LARGE_TEXT_BOLD_PX = 18.66
+
+
+def _rgba8(value):
+    """An engine colour (#RRGGBBAA, or #RRGGBB) as four 0-255 channels."""
+    h = value.lstrip('#')
+    if len(h) == 6:
+        h += 'FF'
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4, 6))
+
+
+def composite_over(value, ground):
+    """`value` painted source-over an opaque `ground`, quantised to 8 bits.
+
+    What a browser does, at the precision a browser keeps. The rounding is
+    not a detail: it is the difference between a ring that clears 3:1 and
+    one that does not."""
+    r, g, b, a = _rgba8(value)
+    alpha = a / 255
+    return tuple(round(c * alpha + ground[i] * (1 - alpha))
+                 for i, c in enumerate((r, g, b)))
+
+
+def relative_luminance(rgb):
+    """WCAG relative luminance of an opaque sRGB triple."""
+    def channel(v):
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (channel(c) for c in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast_ratio(rgb_a, rgb_b):
+    """WCAG contrast ratio between two opaque sRGB triples."""
+    la, lb = relative_luminance(rgb_a), relative_luminance(rgb_b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def _hex6(rgb):
+    return '#%02X%02X%02X' % tuple(rgb)
+
+
+# The page's own canvas. `page.bg` may carry an alpha, and what shows
+# through is the browser's white canvas, not nothing.
+CANVAS = (255, 255, 255)
+
+
+def ground_colour(resolved, stack):
+    """The opaque colour under `stack`, page first then each veil in DOM
+    order. `()` is the page itself."""
+    ground = composite_over(resolved['page.bg'], CANVAS)
+    for key in stack:
+        ground = composite_over(resolved[key], ground)
+    return ground
+
+
+def length_px(value, base):
+    """A resolved length in CSS pixels, or None when it cannot be one.
+
+    `clamp(a, b, c)` takes `a`: the smallest size the rule can render is
+    the one the category has to be decided on. `em` resolves against
+    `base`, which a site states because the inherited size is a fact about
+    the templates rather than about the registry."""
+    value = value.strip()
+    inner = re.match(r'^(?:clamp|min|max)\(\s*([^,()]+)\s*,', value)
+    if inner:
+        return length_px(inner.group(1), base)
+    m = re.match(r'^(-?[\d.]+)(px|rem|em|pt)?$', value)
+    if not m:
+        return None
+    number = float(m.group(1))
+    unit = m.group(2) or 'px'
+    return {'px': number, 'pt': number * 4 / 3,
+            'rem': number * 16, 'em': number * base}[unit]
+
+
+class ContrastSite:
+    """One place the composed sheet lands ink (or a rule) on a ground.
+
+    `fg` is a property key; `grounds` is a list of background stacks the
+    same foreground can land on — a fact box, the article, the notes
+    section. `size`/`weight` name the registry properties that govern this
+    text, so the WCAG category follows the theme's own values instead of a
+    constant written here: a theme that enlarges its summary gets its
+    summary judged as large text, with nothing to remember to update.
+
+    `base` is the inherited size in px, for the sites whose size comes
+    from the skeleton rather than from a property, and for resolving `em`.
+    `unless` switches the site off when a property says the treatment is
+    not painted at all (an underline that is `none`)."""
+
+    def __init__(self, where, fg, grounds, size=None, base=16.0, weight=None,
+                 kind='text', unless=None):
+        self.where = where
+        self.fg = fg
+        self.grounds = tuple(grounds)
+        self.size = size
+        self.base = base
+        self.weight = weight
+        self.kind = kind
+        self.unless = unless          # (property, value) that switches it off
+
+    def category(self, resolved):
+        """`non_text`, or the WCAG text category this site's own type
+        size and weight put it in."""
+        if self.kind != 'text':
+            return 'non_text'
+        px = self.base
+        if self.size:
+            measured = length_px(resolved[self.size], self.base)
+            if measured is not None:
+                px = measured
+        bold = (self.weight == 'bold'
+                or (self.weight is not None and self.weight != 'normal'
+                    and resolved.get(self.weight) == 'bold'))
+        if px >= LARGE_TEXT_PX or (bold and px >= LARGE_TEXT_BOLD_PX):
+            return 'large_text'
+        return 'body_text'
+
+
+# The grounds, page-first. Each is the stack of `background` properties a
+# browser composites under the text, in DOM order.
+_G_PAGE = ()
+_G_COVER = ('cover.bg.from',)
+_G_COVER_TO = ('cover.bg.to',)
+_G_CARD = ('fact.bg',)
+_G_MARK = ('fact.bg', 'fact.strong.bg')
+_G_ARTICLE = ('article.bg',)
+_G_NOTES = ('note.page.bg',)
+_G_CODE_PAGE = ('code.bg',)
+_G_CODE_CARD = ('fact.bg', 'code.bg')
+_G_CODE_ARTICLE = ('article.bg', 'code.bg')
+_G_THEAD_CARD = ('fact.bg', 'table.head.bg')
+_G_THEAD_ARTICLE = ('article.bg', 'table.head.bg')
+_G_NAV_LINK = ('series-nav.link.bg',)
+_G_NAV_CURRENT = ('series-nav.current.bg',)
+_G_NAV_BTN = ('nav-btn.bg',)
+_G_NAV_BTN_SOFT = ('nav-btn.bg-soft',)
+_G_DOTS = ('nav-dot.bg',)
+_G_SHARE = ('share.bg',)
+_G_SHARE_HOVER = ('share.bg', 'share.bg-hover')
+_G_INDEX_CARD = ('card.bg',)
+_G_VERSION = ('version-tag.bg',)
+
+# Prose reaches three containers: a slide's free text (straight on the
+# page), a fact box, and the long-form article.
+_G_PROSE = (_G_PAGE, _G_CARD, _G_ARTICLE)
+# A comparison-table cell, in either container, plain or under one of the
+# two tinted column veils.
+_G_CELLS_CARD = (_G_CARD, ('fact.bg', 'table.col-signal.bg'),
+                 ('fact.bg', 'table.col-snap.bg'))
+_G_CELLS_ARTICLE = (_G_ARTICLE, ('article.bg', 'table.col-signal.bg'),
+                    ('article.bg', 'table.col-snap.bg'))
+_G_CELLS = _G_CELLS_CARD + _G_CELLS_ARTICLE
+_G_COVERS = (_G_COVER, _G_COVER_TO)
+
+CONTRAST_SITES = [
+    # --- the slide, straight on the page ---
+    ContrastSite('slide body text', 'page.fg', [_G_PAGE, _G_CODE_PAGE]),
+    ContrastSite('slide title', 'page.fg', [_G_PAGE],
+                 size='title2.size', weight='title2.weight'),
+    ContrastSite('slide number', 'slide.num.fg', [_G_PAGE], size='slide.num.size'),
+    ContrastSite('slide tag', 'tag.fg', [_G_PAGE],
+                 size='tag.size', weight='tag.weight'),
+    ContrastSite('slide summary', 'summary.fg', [_G_PAGE], size='summary.size'),
+    ContrastSite('source line', 'source.fg', [_G_PAGE], size='source.size'),
+    ContrastSite('page footer', 'footer.fg', [_G_PAGE], size='footer.size'),
+    ContrastSite('key figure', 'highlight.fg', [_G_PAGE],
+                 size='highlight.size', weight='highlight.weight'),
+    ContrastSite('key figure caption', 'highlight-caption.fg', [_G_PAGE],
+                 size='highlight-caption.size'),
+
+    # --- the cover, whose ground is a veil of the page and not the ink ---
+    ContrastSite('cover text', 'cover.fg', _G_COVERS),
+    ContrastSite('cover title', 'title1.fg', _G_COVERS,
+                 size='title1.size', weight='title1.weight'),
+    ContrastSite('cover summary', 'cover.summary.fg', _G_COVERS,
+                 size='summary.size'),
+    ContrastSite('cover tag', 'cover.tag.fg', _G_COVERS,
+                 size='tag.size', weight='tag.weight'),
+    ContrastSite('cover number', 'cover.num.fg', _G_COVERS, size='slide.num.size'),
+    ContrastSite('note call on the cover', 'footnote-call.fg-cover', _G_COVERS,
+                 size='footnote-call.size'),
+
+    # --- the fact box ---
+    ContrastSite('fact box text', 'fact.fg', [_G_CARD, _G_CODE_CARD],
+                 size='fact.size'),
+    ContrastSite('fact box label', 'fact-label.fg', [_G_CARD],
+                 size='fact-label.size', weight='fact-label.weight'),
+    ContrastSite('bold run in a fact box', 'fact.strong.fg', [_G_MARK],
+                 size='fact.size', weight='fact.strong.weight'),
+    ContrastSite('note call in a bold run', 'footnote-call.fg-marked', [_G_MARK],
+                 size='footnote-call.size', base=15.0),
+
+    # --- what any prose container can hold ---
+    # 15.75px: `.fact-content h3` at 1.05em of a 15px fact box, the
+    # smallest of the six headings this component paints.
+    ContrastSite('heading inside body text', 'body-heading.fg',
+                 [_G_PAGE, _G_CARD], base=15.75, weight='body-heading.weight'),
+    ContrastSite('block quote', 'quote.fg', _G_PROSE, base=15.0),
+    ContrastSite('figure caption', 'caption.fg', _G_PROSE,
+                 size='caption.size', base=15.0),
+    ContrastSite('note call', 'footnote-call.fg', _G_PROSE,
+                 size='footnote-call.size', base=15.0),
+
+    # --- comparison tables, in either container ---
+    ContrastSite('table cell', 'fact.fg', _G_CELLS_CARD, size='table.size'),
+    ContrastSite('table cell', 'page.fg', _G_CELLS_ARTICLE, size='table.size'),
+    ContrastSite('table header', 'table.head.fg',
+                 [_G_THEAD_CARD, _G_THEAD_ARTICLE],
+                 size='table.head.size', weight='table.head.weight'),
+    ContrastSite('verdict "yes"', 'verdict.yes.fg', _G_CELLS,
+                 size='table.size', weight='verdict.yes.weight'),
+    ContrastSite('verdict "no"', 'verdict.no.fg', _G_CELLS,
+                 size='table.size', weight='verdict.no.weight'),
+    ContrastSite('verdict "partially"', 'verdict.partial.fg', _G_CELLS,
+                 size='table.size', weight='verdict.partial.weight'),
+
+    # --- notes: the foot of a card, the foot of the article, the section ---
+    ContrastSite('note body', 'note.fg', [_G_CARD, _G_ARTICLE, _G_NOTES],
+                 size='note.local.size', weight='note.weight'),
+    ContrastSite('note number', 'note.marker.fg',
+                 [_G_CARD, _G_ARTICLE, _G_NOTES], size='note.local.size'),
+    ContrastSite('note back-link', 'note.back.fg',
+                 [_G_CARD, _G_ARTICLE, _G_NOTES], size='note.local.size'),
+    ContrastSite('notes section title', 'note.page.title.fg', [_G_NOTES],
+                 size='note.page.title.size', weight='title2.weight'),
+
+    # --- the long-form article ---
+    ContrastSite('article prose', 'page.fg', [_G_ARTICLE, _G_CODE_ARTICLE],
+                 size='article.size'),
+    # `.full-article h1` is 28px of skeleton, so it is stated here rather
+    # than read from a property the registry does not carry.
+    ContrastSite('article title', 'page.fg', [_G_ARTICLE],
+                 base=28.0, weight='bold'),
+    ContrastSite('references block', 'refs.fg', [_G_ARTICLE],
+                 size='refs.size', weight='refs.weight'),
+
+    # --- the series-navigation block ---
+    ContrastSite('series-nav card title', 'page.fg',
+                 [_G_NAV_LINK, _G_NAV_CURRENT],
+                 size='series-nav.title.size', weight='series-nav.title.weight'),
+    ContrastSite('series-nav label', 'series-nav.label.fg',
+                 [_G_NAV_LINK, _G_NAV_CURRENT],
+                 size='series-nav.label.size', weight='series-nav.label.weight'),
+    ContrastSite('series-nav description', 'series-nav.desc.fg',
+                 [_G_NAV_LINK, _G_NAV_CURRENT], size='series-nav.desc.size'),
+    ContrastSite('series-nav status (current)', 'series-nav.status.fg-current',
+                 [_G_NAV_CURRENT],
+                 size='series-nav.status.size', weight='series-nav.status.weight'),
+    ContrastSite('series-nav status (link)', 'series-nav.status.fg-link',
+                 [_G_NAV_LINK],
+                 size='series-nav.status.size', weight='series-nav.status.weight'),
+
+    # --- the chrome ---
+    ContrastSite('navigation button glyph', 'nav-btn.fg',
+                 [_G_NAV_BTN, _G_NAV_BTN_SOFT], size='nav-btn.size'),
+    ContrastSite('share panel text', 'share.fg', [_G_SHARE, _G_SHARE_HOVER],
+                 size='share.size'),
+    # 11px: `.share-cell-head` in the skeleton, the smaller of the two
+    # places this tone paints.
+    ContrastSite('share panel secondary text', 'share.quiet-fg', [_G_SHARE],
+                 base=11.0),
+
+    # --- the index page ---
+    ContrastSite('index subtitle', 'header.subtitle.fg', [_G_PAGE],
+                 size='header.subtitle.size'),
+    ContrastSite('version tag', 'version-tag.fg', [_G_VERSION],
+                 size='version-tag.size'),
+    ContrastSite('index card title', 'page.fg', [_G_INDEX_CARD],
+                 size='card.title.size', weight='card.title.weight'),
+    ContrastSite('index card label', 'card.label.fg', [_G_INDEX_CARD],
+                 size='card.label.size', weight='card.label.weight'),
+    ContrastSite('index card description', 'card.desc.fg', [_G_INDEX_CARD],
+                 size='card.desc.size'),
+    ContrastSite('index card call to action', 'card.cta.fg', [_G_INDEX_CARD],
+                 size='card.cta.size', weight='card.cta.weight'),
+
+    # --- non-text carrying information (SC 1.4.11) ---
+    # A focus ring is drawn outside the control's border edge, so it has
+    # two neighbours and must be seen against both. It is also the only
+    # thing on the page that says where the keyboard is.
+    ContrastSite('focus ring on a navigation button', 'nav-btn.ring',
+                 [_G_PAGE, _G_NAV_BTN, _G_NAV_BTN_SOFT], kind='non-text'),
+    ContrastSite('focus ring on a series-nav card', 'series-nav.link.ring',
+                 [_G_PAGE, _G_NAV_LINK], kind='non-text'),
+    # Which slide you are on: against the page, and against the dots that
+    # are not current, since telling the two apart IS the information.
+    ContrastSite('current slide dot', 'nav-dot.bg-active',
+                 [_G_PAGE, _G_DOTS], kind='non-text'),
+    # The underline is what identifies a body link — the colour cannot,
+    # since a body link inherits the ink around it (§9.5.3).
+    ContrastSite('body link underline', 'link.decoration-color',
+                 [_G_CARD, _G_ARTICLE], kind='non-text'),
+    ContrastSite('underline of a bold run', 'fact.strong.decoration-color',
+                 [_G_MARK], kind='non-text',
+                 unless=('fact.strong.decoration', 'none')),
+    ContrastSite('marker of the snapshot column', 'table.col-snap.rule-fg',
+                 [('fact.bg', 'table.col-snap.bg'),
+                  ('article.bg', 'table.col-snap.bg')], kind='non-text'),
+]
+
+# Colour properties CONTRAST_SITES deliberately never puts in a pair, each
+# with the reason. A test walks the registry against this dict and the site
+# list: a colour property in neither is a measurement nobody made, which is
+# the failure mode this whole section exists to prevent. Adding a key here
+# is a decision; forgetting one is not possible.
+CONTRAST_UNMEASURED = {
+    # The six shared values. A rule never reads one directly (§9.1): what
+    # paints is the component property that takes it as a default, and
+    # every one of those is measured on the ground it actually lands on.
+    # Measuring `color.call` once, against the page, would answer for a
+    # note call in a fact box, a "partially" verdict in a tinted column and
+    # a focus ring — three grounds, three answers, none of them that one.
+    'color.page': 'a shared value: only the properties that take it paint',
+    'color.ink': 'a shared value: only the properties that take it paint',
+    'color.ink-quiet': 'a shared value: only the properties that take it paint',
+    'color.mark': 'a shared value: only the properties that take it paint',
+    'color.call': 'a shared value: only the properties that take it paint',
+    'color.affirm': 'a shared value: only the properties that take it paint',
+
+    # Grounds. They are the second operand of every pair above, never the
+    # first — a background has no contrast requirement of its own.
+    'page.bg': 'the page itself, the base of every ground',
+    'fact.bg': 'ground: the fact box',
+    'fact.strong.bg': 'ground: the mark under a bold run',
+    'cover.bg.from': 'ground: the cover, first stop',
+    'cover.bg.to': 'ground: the cover, second stop',
+    'code.bg': 'ground: a code span or block',
+    'note.page.bg': 'ground: the notes section',
+    'article.bg': 'ground: the long-form article',
+    'table.head.bg': 'ground: a table header cell',
+    'table.col-signal.bg': 'ground: the signal column veil',
+    'table.col-snap.bg': 'ground: the snapshot column veil',
+    'series-nav.link.bg': 'ground: a series-nav card that links',
+    'series-nav.current.bg': 'ground: the series-nav card being read',
+    'nav-btn.bg': 'ground: a navigation button',
+    'nav-btn.bg-soft': 'ground: the home button',
+    'share.bg': 'ground: the share panel',
+    'share.bg-hover': 'ground: a share button under the pointer',
+    'card.bg': 'ground: an index card',
+    'version-tag.bg': 'ground: the version pill',
+    'nav-dot.bg': 'ground: a slide dot that is not the current one',
+
+    # Text haloes. Transparent unless a theme asks for one, and a shadow
+    # sits BEHIND the glyph it thickens rather than carrying it: WCAG has
+    # nothing to say about a colour that is never the thing being read.
+    'page.shadow.fg': 'a halo behind text, not text',
+    'title1.shadow.fg': 'a halo behind text, not text',
+    'highlight.shadow.fg': 'a halo behind text, not text',
+
+    # Decorative rules. SC 1.4.11 covers non-text that CARRIES information;
+    # a separator whose removal costs the reader nothing is exempt by the
+    # standard's own words, and measuring it would drown the pairs that do
+    # carry something. Each of these delimits a block that its own ground,
+    # its label or its position already identifies.
+    'slide.rule-fg': 'decorative: the hairline between slides',
+    'fact.rule-fg': 'decorative: the fact box already has a ground and a label',
+    'footer.rule-fg': 'decorative: the line above the page footer',
+    'quote.rule-fg': 'decorative: a quote is also set in italic',
+    'code.rule-fg': 'decorative: a code block already has a ground',
+    'note.local.rule-fg': 'decorative: the line opening a note block',
+    'note.page.rule-fg': 'decorative: the line opening the notes section',
+    'table.rule-fg': 'decorative: the line between table rows',
+    'table.head.rule-fg': 'decorative: the line under a table header',
+    'article.rule-fg': 'decorative: the borders of a table in the article',
+    'header.rule-fg': 'decorative: the line under the index header',
+
+    # The outline of a control that carries a label or a glyph. SC 1.4.11
+    # asks for 3:1 on the visual information REQUIRED to identify a
+    # component — and a button showing an arrow, a card showing its title,
+    # are identified by that, not by their edge. The glyph and the title
+    # are measured, on the control's own fill. Requiring the edge as well
+    # would put every theme in the catalogue at `fail` for a reason no
+    # reader has: the edges are all a 16% veil, by design.
+    'nav-btn.rule-fg': 'the button is identified by its glyph, which is measured',
+    'series-nav.link.rule-fg': 'the card is identified by its title, which is measured',
+    'series-nav.current.rule-fg': 'the card is identified by its title, which is measured',
+    'card.rule-fg': 'the card is identified by its title, which is measured',
+    'share.rule-fg': 'the button is identified by its glyph, which is measured',
+
+    # Pointer-only states. Hover is feedback, never the only carrier of
+    # anything: the focus ring is what a keyboard gets, and it IS measured.
+    'nav-dot.bg-hover': 'a pointer-only state, and the dot also scales',
+    'card.rule-fg-hover': 'a pointer-only state of a card already identified '
+                          'by its title',
+    'share.rule-fg-hover': 'a pointer-only state of a button already '
+                           'identified by its glyph',
+
+    # A dimmer, on purpose.
+    'share.scrim': 'darkens the viewport behind the QR modal — its job is '
+                   'to be a veil, not to be seen',
+}
+
+
+def measure_contrast(resolved):
+    """The three WCAG categories of §11.9.1, measured on `resolved`.
+
+    Returns {category: {level, threshold_aa, threshold_aaa, pairs_measured,
+    worst, failures}}. `worst` is the pair that decides the level, so a
+    category sitting at AA names the one pair to fix to reach AAA.
+
+    Comparisons are made on the UNROUNDED ratio: 2.9970 rounds to 3.00
+    without ever reaching 3."""
+    out = {name: {'level': None,
+                  'threshold_aa': bars['aa'], 'threshold_aaa': bars['aaa'],
+                  'pairs_measured': 0, 'worst': None, 'failures': []}
+           for name, bars in CONTRAST_LEVELS.items()}
+    worst_ratio = {name: None for name in CONTRAST_LEVELS}
+    # Several sites composite to the same two colours — the two gradient
+    # stops of a flat cover, the two tinted table columns at the same
+    # alpha. Counting them twice would not change a level, but it would
+    # hand a reader the same counter-example four times over, which is how
+    # an actionable list stops being one.
+    seen = {name: set() for name in CONTRAST_LEVELS}
+
+    for site in CONTRAST_SITES:
+        if site.unless and resolved.get(site.unless[0]) == site.unless[1]:
+            continue
+        category = site.category(resolved)
+        bucket = out[category]
+        for stack in site.grounds:
+            ground = ground_colour(resolved, stack)
+            pair = (site.fg, _hex6(ground))
+            if pair in seen[category]:
+                continue
+            seen[category].add(pair)
+            ratio = contrast_ratio(composite_over(resolved[site.fg], ground), ground)
+            record = {
+                'site': site.where,
+                'foreground': site.fg, 'foreground_color': resolved[site.fg],
+                'ground': list(stack), 'ground_color': _hex6(ground),
+                'ratio': round(ratio, 4),
+                'required': CONTRAST_LEVELS[category]['aa'],
+            }
+            bucket['pairs_measured'] += 1
+            if worst_ratio[category] is None or ratio < worst_ratio[category]:
+                worst_ratio[category] = ratio
+                bucket['worst'] = record
+            if ratio < CONTRAST_LEVELS[category]['aa']:
+                bucket['failures'].append(record)
+
+    for name, bucket in out.items():
+        bars = CONTRAST_LEVELS[name]
+        low = worst_ratio[name]
+        if low is None:                     # no site of this kind: say so
+            bucket['level'] = 'n/a'
+        elif low < bars['aa']:
+            bucket['level'] = 'fail'
+        elif bars['aaa'] is None:
+            bucket['level'] = 'pass'
+        elif low < bars['aaa']:
+            bucket['level'] = 'AA'
+        else:
+            bucket['level'] = 'AAA'
+        bucket['failures'].sort(key=lambda record: record['ratio'])
+    return out
 
 
 # ----------------------------------------------------------------------------
@@ -8357,9 +8858,237 @@ def cmd_themes(args):
     print('Facets: polarity (light/dark), intensity (sober/vivid/mono), hue.')
     print('Narrow the list with, for example:')
     print('  lightwebpres themes --polarity dark --intensity sober')
+    print('Read one out — palette, fonts, and the contrast level it')
+    print('reaches, measured — with `lightwebpres theme-info <slug>`.')
     print('Apply one with `install --theme <slug>` (new series) or')
     print('`set-theme --theme <slug>` (existing one); see them rendered with')
     print('`lightwebpres themes-gallery`.')
+
+
+# The JSON key names are a contract with `lightwebpres-gui` (§1.2,
+# §11.9.1): renaming one breaks the GUI's theme picker and nothing here
+# goes red. The version in the string is what lets the GUI tell an old
+# executable from a new one instead of guessing from the keys it finds.
+THEME_INFO_SCHEMA = 'lightwebpres.theme-info/1'
+
+# The three WCAG categories, in the order the output shows them, with the
+# heading each gets in the text format.
+THEME_INFO_CATEGORIES = (
+    ('body_text', 'Body text'),
+    ('large_text', 'Large text'),
+    ('non_text', 'Non-text'),
+)
+
+
+def _ground_label(stack):
+    """A ground stack read outside-in, the way a reader meets it."""
+    return ' over '.join([*reversed(stack), 'page.bg'])
+
+
+def _theme_info_facets(kind, slug, resolved):
+    """The three facets (§9.5.2) of what was asked about.
+
+    For a slug this is `theme_facets()` verbatim, so `themes`, the gallery
+    and this command cannot disagree about the same entry. For a series
+    the answer is about the EFFECTIVE theme, so polarity and hue are
+    recomputed from the page a build would actually paint — pinning a dark
+    `color.page` onto a light theme changes both. Intensity is declared
+    and not derivable from anything (§9.5.2), so it stays the theme's own
+    word, and is null when no theme is named."""
+    if kind == 'theme':
+        return theme_facets(THEMES[slug])
+    page = composite_over(resolved['page.bg'], CANVAS)
+    ink = composite_over(resolved['page.fg'], page)
+    return {
+        'polarity': ('dark' if relative_luminance(ink) > relative_luminance(page)
+                     else 'light'),
+        'intensity': THEMES[slug]['intensity'] if slug else None,
+        'hue': theme_hue_family({'page': _hex6(page)}),
+    }
+
+
+def theme_info_report(kind, slug, directory, layers, pinned=(), custom_css=False):
+    """Everything `theme-info` knows about one theme, as the structure
+    `--format json` prints and the text format reads out.
+
+    The palette and the font stacks are taken from the shared properties
+    the registry declares, not from a list written here, so a seventh
+    shared value would appear the day it exists."""
+    resolved = resolve_theme_properties(*layers)
+    entry = THEMES[slug] if slug else None
+    return {
+        'schema': THEME_INFO_SCHEMA,
+        'lightwebpres_version': VERSION,
+        'target': {
+            'kind': kind,
+            'theme': slug,
+            'directory': directory,
+            'pinned': list(pinned),
+            'custom_css': custom_css,
+        },
+        'label': entry['label'] if entry else None,
+        'note': entry['note'] if entry else None,
+        'source': entry.get('source') if entry else None,
+        'facets': _theme_info_facets(kind, slug, resolved),
+        'palette': {p.key[len('color.'):]: resolved[p.key]
+                    for p in THEME_SHARED_PROPS if p.key.startswith('color.')},
+        'fonts': {p.key[len('font.'):]: resolved[p.key]
+                  for p in THEME_SHARED_PROPS if p.key.startswith('font.')},
+        'accessibility': measure_contrast(resolved),
+    }
+
+
+def print_theme_info_text(report):
+    """The human format. It does not also try to be valid YAML: serving
+    two masters would make it less readable than one and less reliable
+    than the other, and `--format json` is the machine answer."""
+    import textwrap
+
+    target = report['target']
+    facets = report['facets']
+    trio = '/'.join(str(facets[name]) if facets[name] else '?'
+                    for name in ('polarity', 'intensity', 'hue'))
+
+    if target['kind'] == 'theme':
+        print(f"Theme: {target['theme']}  [{trio}]")
+        print(f"  {report['label']}")
+        for line in textwrap.wrap(report['note'], width=70):
+            print(f'  {line}')
+    else:
+        print(f"Series: {target['directory']}")
+        print(f"  effective theme: "
+              f"{target['theme'] or 'none (the built-in defaults)'}  [{trio}]")
+        if target['pinned']:
+            print(f"  pinned in templates/{SETTINGS_FILENAME} "
+                  f"({len(target['pinned'])}), and measured below:")
+            for line in textwrap.wrap(', '.join(target['pinned']), width=66,
+                                      break_on_hyphens=False):
+                print(f'    {line}')
+        else:
+            print(f'  nothing pinned in templates/{SETTINGS_FILENAME}: this is '
+                  f'the theme as shipped')
+        if target['custom_css']:
+            print(f'  templates/{CUSTOM_CSS_FILENAME} exists and is NOT '
+                  f'measured — it is free')
+            print('  CSS, outside the typed surface the engine can resolve.')
+
+    print()
+    print('Palette')
+    for role, value in report['palette'].items():
+        print(f'  {role:<10s} {value}')
+    print()
+    print('Fonts')
+    for role, value in report['fonts'].items():
+        print(f'  {role:<10s} {value}')
+
+    print()
+    print('Contrast, measured through the property registry (WCAG 2.x)')
+    for name, title in THEME_INFO_CATEGORIES:
+        category = report['accessibility'][name]
+        worst = category['worst']
+        bars = f"AA {category['threshold_aa']}:1"
+        bars += (f", AAA {category['threshold_aaa']}:1"
+                 if category['threshold_aaa'] is not None
+                 else ', no AAA level in the standard')
+        print()
+        print(f"  {title:<11s} {category['level']:<4s}  "
+              f"{category['pairs_measured']} pairs measured — {bars}")
+        # Ratios are printed to four places and compared unrounded: 2.9970
+        # rounds to 3.00 without ever reaching 3, and "3.00 is not 3.00" is
+        # not a failure message anyone can act on.
+        if category['failures']:
+            # The worst pair IS the first failure, so it is not printed
+            # twice: what a failing category owes the reader is the list.
+            print(f"    {len(category['failures'])} pair(s) below "
+                  f"{category['threshold_aa']}:1, worst first:")
+            for pair in category['failures']:
+                print(f"      {pair['ratio']:7.4f}:1  {pair['site']}")
+                print(f"        {pair['foreground']} {pair['foreground_color']} "
+                      f"on {_ground_label(pair['ground'])} {pair['ground_color']}")
+        else:
+            # Nothing to fix, so the one thing worth naming is the pair
+            # that decides the level — at AA, the pair to move for AAA.
+            print(f"    worst {worst['ratio']:.4f}:1  {worst['site']}")
+            print(f"      {worst['foreground']} {worst['foreground_color']} on "
+                  f"{_ground_label(worst['ground'])} {worst['ground_color']}")
+
+    print()
+    print('The level is computed from the resolved properties and the grounds')
+    print('they are composited on — never declared in a theme. It is author')
+    print('information only: no built page mentions it.')
+
+
+def cmd_theme_info(target, args):
+    """theme-info command (§11.9.1) — describes ONE theme without
+    installing anything.
+
+    Two targets answering different questions: a slug is the theme as
+    shipped, which is what serves choosing and needs no series at all; a
+    series directory is the EFFECTIVE theme, after the values that series
+    pinned. They can differ, and that difference is the useful part — an
+    author who pinned three colours may have dropped below the floor
+    without knowing it."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        print(f'[ERROR] Unknown --format: {fmt!r}. Valid values: text, json',
+              file=sys.stderr)
+        sys.exit(1)
+
+    if target in THEMES:
+        report = theme_info_report('theme', target, None,
+                                   [theme_property_layer(target)])
+    else:
+        directory = Path(target).resolve()
+        templates_dir = directory / 'templates'
+        if not directory.is_dir():
+            # A slug that does not exist and a directory that does not
+            # exist are the same typo from here, so the error names both
+            # readings rather than picking one and misleading half the
+            # time. The valid slugs are listed, not pointed at: the reader
+            # is one word away from the answer.
+            import textwrap
+            print(f'[ERROR] {target!r} is neither a built-in theme nor a '
+                  f'directory.', file=sys.stderr)
+            print(f'The {len(THEMES)} valid slugs are:', file=sys.stderr)
+            # break_on_hyphens=False: half the catalogue is hyphenated,
+            # and a slug split across two lines is a slug nobody can copy.
+            for line in textwrap.wrap('  '.join(THEMES), width=70,
+                                      break_on_hyphens=False):
+                print(f'  {line}', file=sys.stderr)
+            sys.exit(1)
+        if not templates_dir.is_dir():
+            print(f'[ERROR] {templates_dir} not found: {directory} is not an '
+                  f'installed series. Run install first, or name a theme '
+                  f'slug instead.', file=sys.stderr)
+            sys.exit(1)
+
+        settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+        text = (read_text_file(settings_file)
+                if settings_file is not None and settings_file.exists() else '')
+        try:
+            slug, props = parse_settings_text(text)
+            layers = ([theme_property_layer(slug)] if slug else []) + [props]
+            # `custom.css` is deliberately NOT read: it is free CSS, and
+            # nothing in it is a resolved property. Saying so is the point
+            # — a measurement that quietly ignored half the sheet would be
+            # the hand-written label all over again.
+            # `install` creates custom.css carrying only its explanatory
+            # comment, so existence says nothing: what matters is whether
+            # a rule was written into it.
+            custom = templates_dir / CUSTOM_CSS_FILENAME
+            has_rules = custom.exists() and bool(re.sub(
+                r'/\*.*?\*/', '', read_text_file(custom), flags=re.DOTALL).strip())
+            report = theme_info_report(
+                'series', slug, str(directory), layers, sorted(props),
+                custom_css=has_rules)
+        except PropertyError as exc:
+            print(f'[ERROR] {exc}', file=sys.stderr)
+            sys.exit(1)
+
+    if fmt == 'json':
+        print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=False))
+    else:
+        print_theme_info_text(report)
 
 
 def cmd_set_theme(target_dir, args):
@@ -8868,6 +9597,13 @@ COMMANDS
                                                   your pinned (uncommented) lines
   lightwebpres themes [--polarity ...]           Lists the built-in color themes, narrowed
                                                   by facet (see THEMES below, §11.9)
+  lightwebpres theme-info <slug>                 Describes ONE theme without installing:
+                                                  palette, fonts, facets, and the WCAG
+                                                  contrast level it actually reaches,
+                                                  measured (see §11.9.1)
+  lightwebpres theme-info [directory]            Same, for the EFFECTIVE theme of an
+                                                  installed series — after the values it
+                                                  pins in templates/settings.conf
   lightwebpres set-theme [directory] --theme X   Changes an existing series' theme
                                                   (see §11.10)
   lightwebpres themes-gallery [path]             Generates a self-contained HTML page
@@ -8892,6 +9628,9 @@ OPTIONS
   --intensity name       themes: sober | vivid | mono
   --hue name             themes: neutral, red, orange, yellow, green, cyan,
                         blue, violet, magenta — the hue of the page background
+  --format text|json     theme-info: output format (default: text). JSON, not YAML:
+                        this tool is standard-library only, where `json` is
+                        present and `yaml` is not
   --gitlab-ci             install: also write a .gitlab-ci.yml pipeline (opt-in —
                         install never assumes a GitLab deployment on its own)
   --language-file path   build/check: use this language pack file instead of
@@ -8943,6 +9682,16 @@ THEMES ({theme_count} built in, see specifications.md §9.5)
   Preview every theme rendered against real slide content, with facet
   filters, at:
     lightwebpres themes-gallery
+  And read one out — palette, fonts, facets, and the contrast level it
+  reaches, per WCAG category, MEASURED through the property registry
+  rather than declared by hand:
+    lightwebpres theme-info evergreen
+    lightwebpres theme-info my-series          the effective theme, after
+                                               the values that series pins
+  Not every theme is meant to be conformant — a theme is a stance — but
+  which ones are is a fact, and this is where it is read. None of it ever
+  reaches a built page: the reader of a presentation is never told the
+  contrast level of the theme chosen for them.
 
 SETTINGS (templates/settings.conf, see specifications.md §9)
   Every visual decision is a typed property, `component.axis: value`, and
@@ -9085,7 +9834,7 @@ Full reference: specifications.md.''')
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                             '--theme', '--only', '--nav-cache',
-                            '--polarity', '--intensity', '--hue'})
+                            '--polarity', '--intensity', '--hue', '--format'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
@@ -9097,6 +9846,7 @@ _COMMAND_OPTIONS = {
     'audit': {'--lang'},
     'refresh-templates': {'--scaffold'},
     'themes': {'--polarity', '--intensity', '--hue'},
+    'theme-info': {'--format'},
     'set-theme': {'--theme'},
     'themes-gallery': set(),
 }
@@ -9178,6 +9928,12 @@ def main():
         # Not a series-directory command: it reads the built-in table
         # only, so a stray positional would mean nothing.
         cmd_themes(opts)
+    elif command == 'theme-info':
+        # The one command whose positional is read two ways (§11.9.1): a
+        # built-in slug, or a series directory. The slug is tried first —
+        # it is the form that needs no series at all, and the one the
+        # "which theme do I want" question arrives in.
+        cmd_theme_info(target, opts)
     elif command == 'set-theme':
         cmd_set_theme(target, opts)
     elif command == 'themes-gallery':

@@ -4249,6 +4249,552 @@ class ContrastFloors(unittest.TestCase):
             'exemption must go with it.')
 
 
+class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
+    """§11.9.1. The accessibility level of a theme is COMPUTED from the
+    property registry, never written into a THEMES entry. A hand-written
+    label is right on the day it is typed and silent about every palette
+    tweak afterwards, because nothing connects it to the colour it claims
+    to qualify.
+
+    So the arithmetic is redone here, independently: this class does not
+    call the executable's compositing or its luminance, it writes its own
+    and compares. A test that borrowed the code under test could not
+    catch an error in it."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    # --- independent arithmetic, owing nothing to the executable ---
+
+    @staticmethod
+    def _channels(value):
+        h = value.lstrip('#')
+        if len(h) == 6:
+            h += 'FF'
+        return [int(h[i:i + 2], 16) for i in (0, 2, 4, 6)]
+
+    @classmethod
+    def _over(cls, value, ground):
+        """source-over, quantised to 8 bits — what the screen shows."""
+        r, g, b, a = cls._channels(value)
+        alpha = a / 255
+        return [round(c * alpha + ground[i] * (1 - alpha))
+                for i, c in enumerate((r, g, b))]
+
+    @staticmethod
+    def _lum(rgb):
+        def channel(v):
+            v /= 255
+            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+        r, g, b = (channel(c) for c in rgb)
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+    @classmethod
+    def _ratio(cls, a, b):
+        la, lb = cls._lum(a), cls._lum(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    def _ground(self, resolved, stack):
+        ground = self._over(resolved['page.bg'], [255, 255, 255])
+        for key in stack:
+            ground = self._over(resolved[key], ground)
+        return ground
+
+    def _report(self, *args):
+        """theme-info's JSON, through the CLI, as the GUI would get it."""
+        result = run('theme-info', *args, '--format', 'json')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_the_primitives_agree_with_arithmetic_done_by_hand(self):
+        """Two numbers nobody has to trust the rest of the module for.
+        Black on white is 21:1 exactly, and a 20%-alpha grey over a
+        near-black ground lands on 33.6, which the screen shows as 34 —
+        the rounding that decides whether a focus ring clears 3:1."""
+        self.assertAlmostEqual(
+            self.lwp.contrast_ratio((0, 0, 0), (255, 255, 255)), 21.0, places=10)
+        self.assertEqual(self.lwp.composite_over('#80808033', (10, 10, 10)),
+                         (34, 34, 34))
+        # Unrounded, that composite is 33.6 and the ratio it produces
+        # differs in the third decimal. The engine must not keep it.
+        self.assertNotEqual(self.lwp.composite_over('#80808033', (10, 10, 10)),
+                            (33.6, 33.6, 33.6))
+
+    def test_every_reported_ratio_survives_being_recomputed_from_scratch(self):
+        """The whole claim, on all 33 themes at once: for the pair the
+        command NAMES as deciding each category, the ratio it reports is
+        the one this class's own compositing and luminance produce. The
+        executable chooses which pairs the page really superposes; the
+        arithmetic on them is checked here."""
+        for slug in self.lwp.THEMES:
+            resolved = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug))
+            measured = self.lwp.measure_contrast(resolved)
+            for name, category in measured.items():
+                worst = category['worst']
+                self.assertIsNotNone(worst, f'{slug}: {name} measured nothing')
+                ground = self._ground(resolved, worst['ground'])
+                mine = self._ratio(self._over(worst['foreground_color'], ground),
+                                   ground)
+                self.assertEqual(round(mine, 4), worst['ratio'],
+                                 f'{slug} {name} {worst["foreground"]}')
+                self.assertEqual(
+                    '#%02X%02X%02X' % tuple(ground), worst['ground_color'],
+                    f'{slug} {name}: composited ground differs')
+
+    def test_the_level_is_the_verdict_of_the_worst_pair_and_nothing_else(self):
+        """The grading rule, re-derived from the numbers rather than
+        taken from the module: a category is AAA only if its WORST pair
+        clears the AAA bar, and non-text says pass/fail because WCAG
+        defines no AAA level for it."""
+        for slug in self.lwp.THEMES:
+            measured = self.lwp.measure_contrast(self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug)))
+            for name, category in measured.items():
+                low = category['worst']['ratio']
+                if low < category['threshold_aa']:
+                    expected = 'fail'
+                elif category['threshold_aaa'] is None:
+                    expected = 'pass'
+                elif low < category['threshold_aaa']:
+                    expected = 'AA'
+                else:
+                    expected = 'AAA'
+                self.assertEqual(category['level'], expected,
+                                 f'{slug} {name} at {low}')
+                self.assertEqual(
+                    bool(category['failures']), category['level'] == 'fail',
+                    f'{slug} {name}: failures and level disagree')
+                for pair in category['failures']:
+                    self.assertLess(pair['ratio'], category['threshold_aa'])
+
+    # Two measured facts, pinned as exact values rather than as
+    # inequalities: a change here is a real change in the catalogue or in
+    # what the command measures, and either one is worth being told about.
+    # graphite is the reference for "clears AA everywhere"; nord is a
+    # borrowed palette whose green accent sits at 1.79:1 on its own
+    # near-white card, which §9.5.2 already records in its own words.
+    PINNED_LEVELS = {
+        'graphite': ('AA', 'AAA', 'pass'),
+        'nord': ('fail', 'AAA', 'fail'),
+    }
+
+    def test_the_levels_of_two_named_themes_are_what_was_measured(self):
+        for slug, expected in self.PINNED_LEVELS.items():
+            report = self._report(slug)
+            got = tuple(report['accessibility'][name]['level'] for name in
+                        ('body_text', 'large_text', 'non_text'))
+            self.assertEqual(got, expected, slug)
+
+    def test_a_failing_category_names_the_pairs_that_made_it_fail(self):
+        """A level without counter-examples is not actionable. nord's
+        body text fails, so the command owes the reader the offending
+        pairs, their measured ratio and the bar they missed."""
+        report = self._report('nord')
+        failures = report['accessibility']['body_text']['failures']
+        self.assertTrue(failures, 'a failing category reported no pair')
+        self.assertEqual(failures, sorted(failures, key=lambda p: p['ratio']),
+                         'the worst pair is not first')
+        self.assertIn('verdict.yes.fg', {p['foreground'] for p in failures})
+        for pair in failures:
+            self.assertEqual(pair['required'], 4.5)
+            self.assertLess(pair['ratio'], 4.5)
+        # And the text format carries the same evidence, not just a word.
+        text = run('theme-info', 'nord')
+        self.assertEqual(text.returncode, 0, text.stderr)
+        self.assertIn('verdict.yes.fg', text.stdout)
+        self.assertRegex(text.stdout, r'Body text\s+fail')
+
+    # --- the two targets ---
+
+    def test_a_series_that_pins_a_colour_gets_a_different_answer(self):
+        """§11.9.1's whole reason for taking a directory. graphite as
+        shipped clears AA on body text; the same series with one quieter
+        `color.ink-quiet` pinned does not — and nothing but measuring the
+        EFFECTIVE theme could say so. The pin is a colour the author had
+        every reason to think was a small darkening."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('install', str(root), '--theme', 'graphite')
+                             .returncode, 0)
+            shipped = self._report('graphite')
+            before = self._report(str(root))
+            self.assertEqual(before['target']['kind'], 'series')
+            self.assertEqual(before['target']['theme'], 'graphite')
+            self.assertEqual(before['target']['pinned'], [])
+            self.assertEqual(before['accessibility']['body_text']['level'],
+                             shipped['accessibility']['body_text']['level'])
+
+            settings = root / 'templates' / 'settings.conf'
+            settings.write_text(settings.read_text(encoding='utf-8')
+                                + '\ncolor.ink-quiet: #6A6A6A\n', encoding='utf-8')
+            after = self._report(str(root))
+            self.assertEqual(after['target']['pinned'], ['color.ink-quiet'])
+            self.assertEqual(after['palette']['ink-quiet'], '#6A6A6AFF')
+            self.assertEqual(shipped['accessibility']['body_text']['level'], 'AA')
+            self.assertEqual(after['accessibility']['body_text']['level'], 'fail',
+                             'the pinned colour did not move the answer')
+            self.assertTrue(after['accessibility']['body_text']['failures'])
+
+    def test_a_directory_target_needs_no_theme_line_at_all(self):
+        """A series installed without a theme runs on the registry's own
+        defaults. That is an answer, not an error: `theme` is null and
+        the intensity facet — the one that is declared and cannot be
+        derived (§9.5.2) — is null with it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('install', str(root)).returncode, 0)
+            settings = root / 'templates' / 'settings.conf'
+            settings.write_text(
+                '\n'.join(line for line in settings.read_text(encoding='utf-8')
+                          .splitlines() if not line.startswith('theme:')) + '\n',
+                encoding='utf-8')
+            report = self._report(str(root))
+            self.assertIsNone(report['target']['theme'])
+            self.assertIsNone(report['facets']['intensity'])
+            self.assertIsNone(report['label'])
+            self.assertIn(report['facets']['polarity'], ('light', 'dark'))
+
+    def test_custom_css_is_reported_as_unmeasured_only_once_it_has_rules(self):
+        """custom.css is free CSS, outside the typed surface, so it is
+        not measured — and saying nothing about that would be the
+        hand-written label all over again. `install` writes the file with
+        only its explanatory comment in it, so existence alone must not
+        raise the flag or it would be raised on every series."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('install', str(root), '--theme', 'nord')
+                             .returncode, 0)
+            custom = root / 'templates' / 'custom.css'
+            self.assertTrue(custom.exists())
+            self.assertFalse(self._report(str(root))['target']['custom_css'])
+            custom.write_text(custom.read_text(encoding='utf-8')
+                              + '\n.slide { color: red; }\n', encoding='utf-8')
+            self.assertTrue(self._report(str(root))['target']['custom_css'])
+            self.assertIn('NOT', run('theme-info', str(root)).stdout)
+
+    # --- the JSON contract with lightwebpres-gui (§1.2, §11.9.1) ---
+
+    ROOT_KEYS = {'schema', 'lightwebpres_version', 'target', 'label', 'note',
+                 'source', 'facets', 'palette', 'fonts', 'accessibility'}
+    TARGET_KEYS = {'kind', 'theme', 'directory', 'pinned', 'custom_css'}
+    CATEGORY_KEYS = {'level', 'threshold_aa', 'threshold_aaa',
+                     'pairs_measured', 'worst', 'failures'}
+    PAIR_KEYS = {'site', 'foreground', 'foreground_color', 'ground',
+                 'ground_color', 'ratio', 'required'}
+
+    def test_the_json_parses_and_carries_exactly_the_documented_keys(self):
+        """The key names are a public surface: renaming one breaks the
+        GUI's theme picker and nothing goes red here. Checked as an EXACT
+        set, both ways — an added key is as much a contract change as a
+        removed one, and the GUI is entitled to know which it is from the
+        `schema` string."""
+        report = self._report('nord')
+        self.assertEqual(report['schema'], 'lightwebpres.theme-info/1')
+        self.assertEqual(report['lightwebpres_version'],
+                         self.lwp.VERSION)
+        self.assertEqual(set(report), self.ROOT_KEYS)
+        self.assertEqual(set(report['target']), self.TARGET_KEYS)
+        self.assertEqual(set(report['facets']),
+                         {'polarity', 'intensity', 'hue'})
+        self.assertEqual(set(report['palette']),
+                         {'page', 'ink', 'ink-quiet', 'mark', 'call', 'affirm'})
+        self.assertEqual(set(report['fonts']),
+                         {'text', 'display', 'ui', 'mono'})
+        self.assertEqual(set(report['accessibility']),
+                         {'body_text', 'large_text', 'non_text'})
+        for name, category in report['accessibility'].items():
+            self.assertEqual(set(category), self.CATEGORY_KEYS, name)
+            self.assertGreater(category['pairs_measured'], 0, name)
+            for pair in [category['worst'], *category['failures']]:
+                self.assertEqual(set(pair), self.PAIR_KEYS, name)
+                self.assertIsInstance(pair['ground'], list)
+                self.assertRegex(pair['ground_color'], r'^#[0-9A-F]{6}$')
+                self.assertRegex(pair['foreground_color'], r'^#[0-9A-F]{8}$')
+        self.assertIsNone(report['accessibility']['non_text']['threshold_aaa'],
+                          'WCAG defines no AAA level for non-text')
+        self.assertIn(report['accessibility']['non_text']['level'],
+                      ('pass', 'fail'))
+
+    def test_the_palette_and_fonts_come_from_the_registry_not_from_a_list(self):
+        """A seventh shared value must appear in the output the day it
+        exists, without anyone remembering to add it. Derived here from
+        THEME_SHARED_PROPS, which is what the command does too — the
+        guard is that the two agree, so a hard-coded list in either would
+        show up as a disagreement."""
+        report = self._report('nord')
+        shared = {p.key for p in self.lwp.THEME_SHARED_PROPS}
+        self.assertEqual({f'color.{k}' for k in report['palette']},
+                         {k for k in shared if k.startswith('color.')})
+        self.assertEqual({f'font.{k}' for k in report['fonts']},
+                         {k for k in shared if k.startswith('font.')})
+        resolved = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('nord'))
+        for role, value in report['palette'].items():
+            self.assertEqual(value, resolved[f'color.{role}'])
+
+    def test_a_slugs_facets_are_the_same_ones_themes_prints(self):
+        """§9.5.2: one function feeds every surface, so a terminal
+        picker and this one cannot disagree about the same entry."""
+        listing = run('themes')
+        self.assertEqual(listing.returncode, 0, listing.stderr)
+        printed = dict(re.findall(r'^  (\S+)  \[(\S+)\]$', listing.stdout,
+                                  re.MULTILINE))
+        self.assertEqual(len(printed), len(self.lwp.THEMES))
+        for slug in ('nord', 'graphite', 'terminal', 'pop-fuchsia'):
+            facets = self._report(slug)['facets']
+            self.assertEqual(
+                '/'.join(facets[k] for k in ('polarity', 'intensity', 'hue')),
+                printed[slug], slug)
+
+    # --- errors ---
+
+    def test_an_unknown_slug_is_a_named_error_listing_the_valid_ones(self):
+        """The `themes` idiom for an unknown facet value: name what was
+        rejected and list what is accepted. Answering "no such theme" and
+        stopping would send a reader hunting for something that exists, a
+        typo away."""
+        result = run('theme-info', 'nrod')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('nrod', result.stderr)
+        self.assertEqual(result.stdout, '')
+        for slug in self.lwp.THEMES:
+            self.assertIn(slug, result.stderr, f'{slug} missing from the list')
+        # Whole, not split across a line break: a slug a reader cannot
+        # copy in one piece is a slug the listing did not give them.
+        listed = result.stderr[result.stderr.index('valid slugs'):]
+        for slug in self.lwp.THEMES:
+            self.assertIn(f' {slug} ', ' ' + listed.replace('\n', ' ') + ' ')
+
+    def test_a_directory_that_was_never_installed_points_at_install(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run('theme-info', tmp)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('install', result.stderr)
+
+    def test_an_unknown_format_is_a_named_error(self):
+        result = run('theme-info', 'nord', '--format', 'yaml')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('text', result.stderr)
+        self.assertIn('json', result.stderr)
+
+    def test_the_command_takes_no_option_it_does_not_own(self):
+        result = run('theme-info', 'nord', '--theme', 'graphite')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('Unknown option', result.stderr)
+
+
+class ContrastSitesAreDiscoveredNotRemembered(unittest.TestCase):
+    """The guard on the guard. A measurement is only as good as its
+    inventory, and this project's recorded failure mode is an inventory
+    that LOOKS complete: the dark-furniture table read as exhaustive
+    twice while two veils were missing from it.
+
+    So every colour property in the registry must be either measured at a
+    real site or exempted with a written reason. Adding a dispensation is
+    a decision someone makes; forgetting one is not possible."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def _mentioned(self):
+        keys = set()
+        for site in self.lwp.CONTRAST_SITES:
+            keys.add(site.fg)
+            keys.update(*site.grounds) if site.grounds else None
+            for stack in site.grounds:
+                keys.update(stack)
+        return keys
+
+    def test_no_colour_property_escapes_both_the_sites_and_the_exemptions(self):
+        colours = {k for k, p in self.lwp.PROPERTY_REGISTRY.items()
+                   if p.type is self.lwp.PROP_COLOR}
+        uncovered = sorted(colours - self._mentioned()
+                           - set(self.lwp.CONTRAST_UNMEASURED))
+        self.assertEqual(uncovered, [],
+                         'colour properties neither measured nor exempted')
+
+    def test_no_exemption_outlives_the_property_it_excused(self):
+        """A dispensation for a property that no longer exists is a
+        reason nobody will ever re-read, and it hides the day the same
+        name comes back meaning something else."""
+        colours = {k for k, p in self.lwp.PROPERTY_REGISTRY.items()
+                   if p.type is self.lwp.PROP_COLOR}
+        stale = sorted(set(self.lwp.CONTRAST_UNMEASURED) - colours)
+        self.assertEqual(stale, [], 'exemptions for properties that are gone')
+
+    def test_every_exemption_carries_a_reason_someone_wrote(self):
+        for key, reason in self.lwp.CONTRAST_UNMEASURED.items():
+            self.assertIsInstance(reason, str)
+            self.assertGreater(len(reason.split()), 3,
+                               f'{key}: that is not a reason')
+
+    def test_each_category_actually_measures_something(self):
+        """The non-vacuity guard. A site table that stopped producing
+        pairs in a category would report a level for it anyway, and the
+        level of nothing reads exactly like the level of something."""
+        measured = self.lwp.measure_contrast(
+            self.lwp.resolve_theme_properties({}))
+        for name, category in measured.items():
+            self.assertGreater(category['pairs_measured'], 1, name)
+            self.assertNotEqual(category['level'], 'n/a', name)
+        self.assertGreater(len(self.lwp.CONTRAST_SITES), 40,
+                           'the site inventory collapsed')
+
+    def test_the_category_of_a_site_follows_the_type_size_the_theme_sets(self):
+        """The WCAG category is computed from the resolved axes, not
+        written next to the site: enlarge a summary and the summary is
+        judged as large text, with nothing to remember to update. Proved
+        by moving one axis and watching a pair change bucket."""
+        base = self.lwp.measure_contrast(
+            self.lwp.resolve_theme_properties({}))
+        grown = self.lwp.measure_contrast(self.lwp.resolve_theme_properties(
+            {'source.size': '30px'}))
+        self.assertEqual(grown['large_text']['pairs_measured'],
+                         base['large_text']['pairs_measured'] + 1)
+        self.assertEqual(grown['body_text']['pairs_measured'],
+                         base['body_text']['pairs_measured'] - 1)
+        # And the bold rule, which is the other half of the WCAG bar.
+        self.assertEqual(
+            self.lwp.length_px('clamp(19px, 4vmin, 40px)', 16.0), 19.0,
+            'a clamp must be read at its smallest, which is what renders')
+
+    def test_a_treatment_a_theme_does_not_paint_is_not_measured(self):
+        """Most themes leave the fact-box underline at `none`. Measuring
+        the colour of a line nobody draws would invent a failure."""
+        painted = self.lwp.measure_contrast(self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('graphite')))
+        plain = self.lwp.measure_contrast(self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('nord')))
+        self.assertEqual(self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('nord'))['fact.strong.decoration'],
+            'none')
+        self.assertEqual(painted['non_text']['pairs_measured'],
+                         plain['non_text']['pairs_measured'] + 1)
+
+
+class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
+    """§11.9.1's hard boundary: the information stops at the author. No
+    tag, no class, no mention — the reader of a presentation is never
+    told the contrast level of the theme chosen for them, and `build`
+    does not change."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    # Vocabulary that exists in this executable ONLY because of
+    # theme-info -- each one verified absent from the version before it.
+    # `WCAG`, `contrast ratio` and `threshold` are deliberately NOT here:
+    # the skeleton and the hue calculation used all three before this
+    # command existed, and a guard that fails on what it did not
+    # introduce teaches people to edit the guard.
+    FORBIDDEN = (r'theme-info', r'threshold_aa', r'pairs measured',
+                 r'CONTRAST_', r'Large text', r'Non-text')
+
+    def test_no_file_build_writes_mentions_a_contrast_level(self):
+        """Built under two themes of opposite polarity, over a demo that
+        exercises every slide type — so the sweep sees a cover, a fact
+        box, a comparison table, a notes section and a full article."""
+        for theme in ('graphite', 'pop-lemon'):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'series'
+                self.assertEqual(run('install', str(root), '--theme', theme)
+                                 .returncode, 0)
+                self.assertEqual(run('demo', str(root)).returncode, 0)
+                out = root / 'public'
+                self.assertEqual(run('build', str(root), '--output', str(out))
+                                 .returncode, 0)
+                written = sorted(p for p in out.rglob('*') if p.is_file())
+                self.assertTrue(written, 'build wrote nothing to sweep')
+                for path in written:
+                    try:
+                        text = path.read_text(encoding='utf-8')
+                    except UnicodeDecodeError:
+                        continue          # an image copied verbatim
+                    for pattern in self.FORBIDDEN:
+                        self.assertNotRegex(
+                            text, pattern,
+                            f'{path.name} under {theme} mentions {pattern}')
+
+    # Every function in the executable whose body reaches the contrast
+    # API. Pinned as an exact set: the day `build_article` or
+    # `compose_stylesheet` grows a call, this fails, and the sweep above
+    # would not necessarily — a level computed and merely not printed is
+    # still a level the build path now depends on.
+    CONTRAST_API = {'measure_contrast', 'CONTRAST_SITES', 'CONTRAST_LEVELS',
+                    'CONTRAST_UNMEASURED', 'theme_info_report',
+                    'contrast_ratio', 'composite_over', 'ground_colour',
+                    'relative_luminance'}
+    CONTRAST_CALLERS = {'contrast_ratio', 'ground_colour', 'measure_contrast',
+                        '_theme_info_facets', 'theme_info_report',
+                        'cmd_theme_info'}
+
+    def test_the_contrast_engine_is_reachable_from_nothing_but_theme_info(self):
+        import ast
+        tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
+        callers = set()
+        for node in tree.body:
+            if not isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                continue
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Name) and sub.id in self.CONTRAST_API:
+                    callers.add(node.name)
+        self.assertEqual(callers, self.CONTRAST_CALLERS)
+
+    def test_a_built_page_is_byte_identical_to_the_previous_version_s(self):
+        """The direct evidence, not a word list: the same series built
+        by the executable as it stood BEFORE theme-info existed, and by
+        this one, compared byte for byte. --build-stamp is off by
+        default, so there is no timestamp to excuse a difference.
+
+        Skipped, loudly, when the previous version cannot be reached --
+        outside a git checkout there is nothing to compare against, and
+        a comparison with nothing is not a pass."""
+        previous = subprocess.run(
+            ['git', 'show', 'HEAD:lightwebpres'], capture_output=True,
+            cwd=str(EXECUTABLE.parent))
+        if previous.returncode != 0:
+            self.skipTest('no git checkout to read the previous version from')
+        with tempfile.TemporaryDirectory() as tmp:
+            before_exe = Path(tmp) / 'lightwebpres-before'
+            before_exe.write_bytes(previous.stdout)
+            outputs = []
+            for name, executable in (('before', before_exe),
+                                     ('after', EXECUTABLE)):
+                root = Path(tmp) / name
+                for step in (['install', str(root), '--theme', 'pop-lemon'],
+                             ['demo', str(root)]):
+                    done = subprocess.run(
+                        [sys.executable, str(executable), *step],
+                        capture_output=True, text=True)
+                    self.assertEqual(done.returncode, 0, done.stderr)
+                pages = {}
+                for path in sorted((root / 'public').rglob('*')):
+                    if path.is_file():
+                        pages[path.name] = path.read_bytes()
+                outputs.append(pages)
+            self.assertTrue(outputs[0], 'the previous version built nothing')
+            self.assertEqual(sorted(outputs[0]), sorted(outputs[1]),
+                             'build writes a different set of files')
+            for name in outputs[0]:
+                self.assertEqual(outputs[0][name], outputs[1][name],
+                                 f'{name} is not the page it was')
+
+    def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
+        """The narrower statement the sweep cannot make: measuring a
+        theme must not perturb it. The sheet is composed, measured, and
+        composed again — resolution mutates nothing, so the two are the
+        same bytes."""
+        for slug in ('nord', 'terminal'):
+            layer = self.lwp.theme_property_layer(slug)
+            first = self.lwp.compose_stylesheet(
+                self.lwp.resolve_theme_properties(layer))
+            self.lwp.measure_contrast(self.lwp.resolve_theme_properties(layer))
+            again = self.lwp.compose_stylesheet(
+                self.lwp.resolve_theme_properties(layer))
+            self.assertEqual(first, again, slug)
+
+
 class PaletteRoleNames(unittest.TestCase):
     """§9.1: the six palette variables are named for what they DO. Until
     v0.12.0 they were named for the values they happened to hold in the
