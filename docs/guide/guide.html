@@ -1594,6 +1594,29 @@ tag.fg: call               ← uncommented: yours, and it stays
 ./lightwebpres check my-series   # rebuilds in memory, diffs against public/
   </code></pre>
   <p><code>audit</code> flags things worth a second look — no cover slide, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, the instance tags in each article — but never fails; it's a nudge, not a gate. <code>check</code> is the opposite: it rebuilds every article in memory and compares it byte-for-byte against <code>public/</code>, exiting non-zero the moment anything differs. That non-zero exit is what makes it a real CI gate — wire it in before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
+  <h3>Asking why a value is what it is</h3>
+  <p>Most of what ends up on a page was never written on that page: a title falls back through <code>series.json</code>, the meta block and the cover slide, a colour falls through <code>settings.conf</code>, the theme and the built-in defaults. When the result surprises you, ask:</p>
+  <pre><code class="language-bash">
+./lightwebpres resolve my-series page_title --article apple-pie.md
+./lightwebpres resolve my-series tag.fg
+  </code></pre>
+  <p>Nothing tells it what kind of name you passed — the name does. A dot means a theme property, an underscore an article or series field, a hyphen a slide field.</p>
+  <p>The answer shows the level that decided <strong>and every level that didn't</strong>, strongest first:</p>
+  <pre><code>
+tag.fg — theme property
+  value: #BF616AFF
+  from:  settings
+  via:   color.call
+
+  cascade, strongest first:
+    instance  —
+    article   —
+  &gt; settings  call
+    theme     —
+    default   ink-quiet
+  </code></pre>
+  <p>That second half is the one that solves problems. A line you wrote that changed nothing shows up here as a level holding nothing — still commented out, or beaten by a <code>series.json</code> entry you had forgotten.</p>
+  <p>A slide field has no cascade, so <code>resolve fact-label</code> answers with the list of slides that set it instead — across the series, or within one article with <code>--article</code>. Add <code>--format json</code> for a machine, and pass <code>--article</code> to a theme property to fold that page's own <code>style.*</code> lines into the chain.</p>
   <h2>7. Keeping templates current</h2>
   <p><code>lightwebpres</code> is a single file you copy into each project (<code>install</code> does this). When you drop in a newer copy, the built-in JS baked into <code>templates/</code> doesn't update on its own:</p>
   <pre><code class="language-bash">
@@ -1686,6 +1709,14 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
       <tr>
         <td>a note marker that isn't a link</td>
         <td>nothing defines that label in the same locality; <code>audit</code> names it</td>
+      </tr>
+      <tr>
+        <td>a value is not what you wrote</td>
+        <td>another level of the cascade won — <code>resolve &lt;name&gt;</code> shows which, and what every other level held (section 6)</td>
+      </tr>
+      <tr>
+        <td>a <code>settings.conf</code> line that changes nothing</td>
+        <td>it is probably still commented out; <code>resolve &lt;property&gt;</code> shows that level holding nothing</td>
       </tr>
     </tbody>
   </table>

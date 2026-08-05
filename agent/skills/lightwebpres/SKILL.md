@@ -150,6 +150,14 @@ the default name instead when the article is a brick in a directory whose
 because other articles already live there. The name chosen is the
 statement of intent, so choose it.
 
+You never have to reason a cascade out by hand. `lightwebpres resolve
+<dir> page_title --article this-file.md` prints the value in force, the
+level that decided it, and every level that did not — which is the fast
+way to see that the line you just wrote is being beaten by a
+`series.json` entry. The shape of the name picks the cascade: a dot is a
+theme property, an underscore an article field, a hyphen a slide field.
+`--format json` if you are parsing it.
+
 **Editorial fields**, settable here or in `series.json`, both displayed
 and emitted as `<meta>` tags:
 

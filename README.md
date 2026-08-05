@@ -150,6 +150,42 @@ the built-in default. An article whose file can't be read is still
 listed, with its fields fallen back and a warning on stderr; nothing is
 built and nothing is written.
 
+When the question is about **one** name rather than the whole series —
+and especially when the answer is a surprise — `resolve` says what that
+name is worth here, which level decided it, and what every other level
+held:
+
+```bash
+./lightwebpres resolve my-series page_title --article apple-pie.md
+./lightwebpres resolve my-series tag.fg
+./lightwebpres resolve my-series fact-label
+```
+
+No option says which kind of thing you are asking about, because the
+name already does: a dot means a theme property, an underscore an
+article or series field, a hyphen a slide field. The losing levels are
+the point — a value on its own never explains why the line you just
+wrote changed nothing, and a chain showing your `settings.conf` entry
+still commented out does.
+
+```
+tag.fg — theme property
+  value: #BF616AFF
+  from:  settings
+  via:   color.call
+
+  cascade, strongest first:
+    instance  —
+    article   —
+  > settings  call
+    theme     —
+    default   ink-quiet
+```
+
+A slide field has no cascade — it is written on a slide or it is not —
+so `resolve fact-label` answers with every slide that sets it, across
+the series or within one article.
+
 ## Commands
 
 | Command | What it does |
@@ -163,6 +199,7 @@ built and nothing is written.
 | `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
 | `theme-info <slug>` or `theme-info [dir]` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. A slug describes the theme as shipped (no series needed); a directory describes the *effective* theme, after the values that series pins. `--format json` for machines |
 | `series-info [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
+| `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
 | `set-theme [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |

@@ -3438,15 +3438,15 @@ c'est lui qui fixe la navigation inter-articles :
 Au niveau de la série : le `series_meta`, le thème en vigueur, et le
 décompte des articles — dont les brouillons, comptés à part.
 
-**Les trois champs éditoriaux ne sont pas rapportés.** `author`,
+**Les trois champs éditoriaux ne sont pas rapportés ici.** `author`,
 `license` et `date` se résolvent comme les autres, mais leur
 avant-dernier niveau est `series_meta` (§20.3.1) : un défaut *de série*,
 écrit par l'auteur, qui n'est ni la ligne `series.json` de cet article ni
-un repli intégré. Aucun mot du vocabulaire de provenance ci-dessous ne le
-dit sans mentir, et en inventer un sixième pour trois champs qu'aucun
-consommateur ne réclame élargirait une surface publique sans besoin
-établi. Le jour où l'un d'eux est demandé, c'est ce mot-là qu'il faut
-décider en premier, avant les clés.
+un repli intégré. Il porte son propre mot, `series-default` — le sixième
+du vocabulaire, décidé avant les clés qui l'emploient. `resolve` (§11.12)
+les atteint par leur nom, un à la fois ; cet inventaire-ci reste sur les
+huit champs d'affichage, parce qu'un rapport qui liste tout n'a pas
+besoin de porter aussi ce que personne n'y cherche.
 
 #### Ce qu'elle ne fait pas
 
@@ -3522,6 +3522,7 @@ consommateur n'écrit qu'un seul code, pour deux écrans voisins.
 |---|---|
 | `series` | le fichier de série a décidé — ici, l'entrée de l'article dans `articles[]` |
 | `article` | le bloc meta de l'article a décidé |
+| `series-default` | le `series_meta` a décidé : une valeur écrite une fois pour toute la série. N'apparaît que pour les champs qui ont ce niveau — `author`, `license`, et les réglages de notes (§6.5) |
 | `content` | déduit du contenu de l'article lui-même : le titre `#` de sa fiche cover, ou son `summary` |
 | `derived` | calculé depuis un autre champ résolu : `page_dest` depuis `page_source` extension changée, `card_title` depuis `page_title`, `nav_desc` depuis `card_desc` |
 | `default` | le repli intégré, **y compris** « se résout à vide » |
@@ -3554,6 +3555,182 @@ ses propres tests.
 leurs vrais titres, et pour distinguer un titre écrit d'un titre déduit.
 C'est un contrat entre les deux dépôts au sens de §1.2, exactement comme
 pour `theme-info`.
+
+### 11.12 `resolve`
+
+```bash
+lightwebpres resolve [répertoire] <nom> [--article <fichier>] [--format text|json]
+```
+
+Répond à une seule question, sur **un seul nom** : *quelle est sa valeur
+ici, et à quel niveau a-t-elle été décidée ?* Et, parce que c'est la
+moitié utile de la réponse, **elle montre aussi les niveaux perdants**.
+
+#### Pourquoi
+
+Ce format porte quatre cascades — les champs d'article (§20.3.1), les
+propriétés de thème (§9.3), les réglages de notes (§6.5), les champs
+éditoriaux — et aucune n'écrit son résultat nulle part. Aujourd'hui, pour
+savoir ce que vaut `tag.fg` dans une série, il faut lire `settings.conf`,
+puis la table du thème, puis les défauts du registre, et reconstituer de
+tête l'ordre dans lequel les trois se recouvrent. Pour savoir ce que vaut
+`page_title`, il faut lire `series.json`, puis le bloc meta, puis la
+fiche cover. Le moteur, lui, connaît la réponse : il vient de la calculer.
+
+`series-info` (§11.11) et `theme-info` (§11.9.1) répondent déjà, mais
+chacune par un **inventaire** : tous les articles, ou toutes les
+propriétés. Elles servent à peupler une interface. `resolve` sert à
+comprendre une surprise — « pourquoi ce titre-là ? », « pourquoi cette
+couleur alors que j'ai écrit autre chose ? » — et une question ponctuelle
+ne se pose pas en lisant deux cents lignes de rapport.
+
+**Les niveaux perdants sont la fonctionnalité, pas un ornement.** Une
+valeur seule ne dit pas pourquoi la ligne qu'on vient d'écrire n'a rien
+changé. La chaîne, si : elle montre que `settings.conf` porte bien la
+propriété mais que la ligne est encore commentée, ou que `series.json`
+écrase le bloc meta qu'on était en train de corriger. C'est exactement la
+classe de fautes qu'un format à cascades produit et qu'aucun message
+d'erreur ne peut attraper, puisqu'il n'y a pas d'erreur : le mécanisme a
+fonctionné, sur une entrée dont l'auteur avait oublié l'existence.
+
+#### La forme du nom choisit la cascade
+
+Aucun argument ne dit de quel genre de nom il s'agit, parce que le nom le
+dit déjà (§20.0) :
+
+| Forme du `<nom>` | Cascade interrogée |
+|---|---|
+| pointé — `tag.fg`, `card.title.size` | les propriétés de thème (§9.3) |
+| `snake_case` — `page_title`, `notes_placement` | les champs d'article et de série (§20.3.1, §6.5) |
+| `kebab-case` — `fact-label`, `highlight-caption` | les champs de diapositive (§4.3) |
+
+C'est la contrepartie concrète de la convention de nommage : un espace
+d'interrogation **plat**, sans collision, et sans table de désambiguïsation
+à écrire ni à tenir à jour. Un nom dont la forme ne correspond à rien de
+connu est une erreur qui **nomme la lecture faite** — « `notes-placement`
+a été lu comme un champ de diapositive ; aucun champ de diapositive ne
+porte ce nom » —, parce que la faute la plus probable est justement d'avoir
+écrit la mauvaise forme.
+
+#### Ce que chaque genre rapporte
+
+**Propriété de thème.** La chaîne est celle de §9.3, du plus fort au plus
+faible : `article` (une ligne `style.<propriété>` du bloc meta, présente
+seulement avec `--article`), `settings` (`templates/settings.conf`),
+`theme` (le thème que ce fichier nomme), `default` (le registre). Chaque
+niveau montre la valeur **écrite** ; le niveau retenu montre en plus la
+valeur **résolue**, avec les sauts de référence traversés (`ink-quiet →
+#6b7280`), puisqu'une valeur écrite peut être un mot et pas une couleur
+(§9.2).
+
+**Les balises d'instance ne sont pas dans la chaîne.** Elles sont la
+cinquième couche (§9.6.3), mais elles sont *par occurrence* : il n'y a pas
+une valeur d'instance dans un article, il y en a autant que de balises.
+Une cascade qui prétendrait en retenir une mentirait sur les autres.
+`audit` les énumère déjà, et c'est la bonne forme pour cette donnée-là.
+La chaîne le dit explicitement plutôt que de les omettre en silence.
+
+**Champ d'article ou de série.** La chaîne est celle de §20.3.1, du plus
+fort au plus faible : `series`, `article`, `series-default`, `content`,
+`derived`, `default` — le vocabulaire de §11.11, sans un mot de plus. Un
+champ ne porte que les niveaux qui existent pour lui : `card_label` n'en
+a que trois, `author` en a quatre, `page_title` cinq. Un niveau affiché
+vide et un niveau qui n'existe pas ne se ressemblent pas ici, parce que
+le premier est un endroit où l'auteur *pourrait* écrire la valeur qu'il
+cherche.
+
+Les réglages de notes (§6.5) et les commutateurs de typographie (§4.5)
+ont chacun leur cascade, plus courte, et elle est rapportée telle quelle
+— y compris quand elle n'a qu'un niveau utile : « ce champ ne se règle
+que dans le bloc meta » est la moitié utile de la réponse.
+
+Les champs de `series_meta` (§20.5) se résolvent sans `--article` ; tous
+les autres l'exigent, et l'erreur qui le dit **liste les articles de la
+série**, pour que la correction soit un copier-coller et pas une
+recherche.
+
+**Champ de diapositive.** Il n'a pas de cascade : il est écrit sur une
+diapositive ou il n'y est pas. La réponse honnête n'est donc pas une
+valeur unique mais un **relevé de sites** — chaque diapositive qui porte
+ce champ, avec son article, son rang, son titre et sa valeur. C'est la
+même question (« quelle valeur, et où ? ») posée au seul niveau que ce
+champ possède. Sans `--article`, le relevé couvre la série entière.
+
+#### Ce qu'elle ne fait pas
+
+Elle ne construit rien et n'écrit rien. Comme `series-info`, elle ne
+valide pas au-delà de ce que la résolution exige, et un article illisible
+n'est pas fatal : il est signalé sur stderr et le reste de la réponse
+tient. Elle ne prend pas de `--lang` : elle décrit des données, pas un
+rendu.
+
+**Deux noms sont refusés, avec leur raison.** `comment` est une note de
+relecture : tous les niveaux la lisent et aucun moteur de rendu ne
+l'emploie, donc elle n'a pas de valeur résolue — c'est aussi le seul nom
+que les deux niveaux se partagent, et le refuser est ce qui évite d'avoir
+à trancher lequel des deux la question visait. `slide_title` n'est pas un
+champ : le titre d'une diapositive s'écrit `#` ou `##` (§22.2). Répondre
+quelque chose serait pire que refuser dans les deux cas.
+
+#### Format
+
+Texte par défaut, pour la lecture humaine. `--format json` pour un
+consommateur, avec la même promesse de schéma que les deux commandes
+voisines. Racine :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `schema` | chaîne | `lightwebpres.resolve/1` |
+| `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
+| `query` | objet | `name`, `kind`, `directory`, `article` (ou `null`) |
+
+`kind` a quatre valeurs. Trois viennent directement de la forme du nom —
+`theme-property`, `article-field`, `slide-field` — et la quatrième,
+`series-field`, du fait que `snake_case` couvre deux niveaux : `author`
+et `license` existent aux deux, et interrogés **sans** `--article` la
+question porte sur la valeur de la série. Le `kind` le dit, plutôt que de
+laisser un lecteur appliquer le vocabulaire d'article à une réponse de
+série.
+| `resolution` | objet | la réponse (ci-dessous) |
+
+`resolution`, pour une propriété de thème ou un champ d'article :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `value` | chaîne | la valeur retenue, celle que le build emploierait |
+| `source` | chaîne | le niveau qui l'a décidée — mêmes mots que §11.11 |
+| `chain` | liste | les niveaux, **du plus fort au plus faible**, y compris ceux qui n'ont rien à dire |
+
+Un maillon de `chain` :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `level` | chaîne | le niveau, même vocabulaire que `source` |
+| `present` | booléen | ce niveau porte-t-il une valeur ? |
+| `value` | chaîne ou `null` | ce qu'il porte, tel qu'écrit |
+| `winner` | booléen | ce maillon est-il celui qui a décidé ? |
+| `note` | chaîne ou absent | pourquoi ce niveau n'a pas été consulté (pas de `--article`, balises d'instance hors cascade) |
+
+L'ordre est **le plus fort d'abord** dans les deux cas, alors que les deux
+cascades sont écrites en sens inverse l'une de l'autre dans ce document
+(les propriétés fusionnent du plus faible au plus fort, les champs
+s'essaient du plus fort au plus faible). Le rapport tranche pour l'ordre
+de lecture d'un humain qui débogue : on commence par le niveau qui aurait
+dû gagner.
+
+Pour un champ de diapositive, `resolution` porte `sites`, une liste de
+`{article, slide, slide_title, value}`, dans l'ordre des articles puis des
+diapositives. Deux formes plutôt qu'une seule forcée : `kind` les
+distingue, et prétendre qu'un relevé de sites est une cascade à un maillon
+aurait été une uniformité de façade.
+
+#### Une seule cascade, encore
+
+Comme `series-info`, la commande ne résout rien elle-même : elle
+interroge `resolve_article_fields()` et `resolve_theme_properties()`, les
+fonctions que le build appelle. Un test l'exige, pour la raison déjà
+donnée en §11.11 — deux implémentations qui dérivent continuent chacune
+de passer ses propres tests.
 
 ---
 

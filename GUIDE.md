@@ -287,6 +287,49 @@ exiting non-zero the moment anything differs. That non-zero exit is what
 makes it a real CI gate — wire it in before `build` to catch a `public/`
 that was hand-edited or never rebuilt after a source change.
 
+### Asking why a value is what it is
+
+Most of what ends up on a page was never written on that page: a title
+falls back through `series.json`, the meta block and the cover slide, a
+colour falls through `settings.conf`, the theme and the built-in
+defaults. When the result surprises you, ask:
+
+```bash
+./lightwebpres resolve my-series page_title --article apple-pie.md
+./lightwebpres resolve my-series tag.fg
+```
+
+Nothing tells it what kind of name you passed — the name does. A dot
+means a theme property, an underscore an article or series field, a
+hyphen a slide field.
+
+The answer shows the level that decided **and every level that didn't**,
+strongest first:
+
+```
+tag.fg — theme property
+  value: #BF616AFF
+  from:  settings
+  via:   color.call
+
+  cascade, strongest first:
+    instance  —
+    article   —
+  > settings  call
+    theme     —
+    default   ink-quiet
+```
+
+That second half is the one that solves problems. A line you wrote that
+changed nothing shows up here as a level holding nothing — still
+commented out, or beaten by a `series.json` entry you had forgotten.
+
+A slide field has no cascade, so `resolve fact-label` answers with the
+list of slides that set it instead — across the series, or within one
+article with `--article`. Add `--format json` for a machine, and pass
+`--article` to a theme property to fold that page's own `style.*` lines
+into the chain.
+
 ## 7. Keeping templates current
 
 `lightwebpres` is a single file you copy into each project (`install`
@@ -393,3 +436,5 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 | a `field:` line published as literal text | it came after prose in the same slide; the switch to free text is one-way (section 3) |
 | `[^1]: …` published as literal text | the body sits inside a raw HTML block, which is passed through verbatim — move it outside |
 | a note marker that isn't a link | nothing defines that label in the same locality; `audit` names it |
+| a value is not what you wrote | another level of the cascade won — `resolve <name>` shows which, and what every other level held (section 6) |
+| a `settings.conf` line that changes nothing | it is probably still commented out; `resolve <property>` shows that level holding nothing |

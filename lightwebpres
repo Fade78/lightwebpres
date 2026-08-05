@@ -38,6 +38,7 @@ Usage:
   lightwebpres themes [--polarity light|dark] [--intensity name] [--hue name]
   lightwebpres theme-info <slug>|[directory] [--format text|json]
   lightwebpres series-info [directory] [--format text|json]
+  lightwebpres resolve [directory] <name> [--article file.md] [--format text|json]
   lightwebpres set-theme [directory] --theme name
   lightwebpres themes-gallery [path]
   lightwebpres --help
@@ -70,7 +71,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.16.0"
+VERSION = "0.17.0"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
@@ -7763,16 +7764,22 @@ def _find_cover_slide(slides):
 #            field like card_label, which has nothing to extrapolate from
 _FIELD_ORIGINS = ('series', 'article', 'content', 'derived', 'default')
 
-# The resolved fields whose provenance is recorded, in cascade order.
-# `author`/`license`/`date` are resolved but deliberately NOT recorded:
-# their last-but-one level is series_meta, a series-wide default written
-# by the author, which is neither this entry's series.json line nor a
-# built-in fallback — no string in _FIELD_ORIGINS says it truthfully, and
-# inventing one for fields §11.11 does not ask for would widen the public
-# vocabulary for nothing. `draft` is recorded, but kept out of this tuple:
-# its value is a boolean, not text (§11.11).
+# `author` and `license` reach one level the display fields do not have:
+# `series_meta`, a series-wide default the author wrote for every article
+# at once. It is neither this entry's series.json line (`series`) nor a
+# built-in fallback (`default`), so it needed a word of its own before
+# `resolve` (§11.12) could report those fields at all — the decision
+# §11.11 said had to come before the keys. `series-info` still does not
+# report them, and its vocabulary is still the five above.
+_SERIES_DEFAULT_ORIGIN = 'series-default'
+
+# The resolved fields whose provenance `series-info` reports, in cascade
+# order. `draft` is recorded too but kept out of this tuple: its value is
+# a boolean, not text (§11.11). The editorial three are out for the
+# reason just given — `resolve` reaches them by name, one at a time.
 _RESOLVED_FIELDS = ('page_dest', 'page_title', 'page_desc', 'card_title',
                     'card_desc', 'card_label', 'nav_title', 'nav_desc')
+_EDITORIAL_FIELDS = ('author', 'license', 'date')
 
 
 def _read_article_source(path):
@@ -7862,24 +7869,38 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
         cover = _find_cover_slide(slides)
         cover_summary = cover.summary if cover and cover.summary else ''
         origins = {}
+        candidates = {}
 
-        def take(field, content='', derived=''):
+        def take(field, content=None, derived=None, series_default=None):
             """One field's cascade, and the level the retained value came
             from. The order is §20.3.1's, and it is written once here
             rather than once per field so a level cannot be recorded as
-            one thing and resolved as another."""
-            if entry.get(field):
-                origins[field] = 'series'
-                return entry[field]
-            if meta.get(field):
-                origins[field] = 'article'
-                return meta[field]
-            if content:
-                origins[field] = 'content'
-                return content
-            if derived:
-                origins[field] = 'derived'
-                return derived
+            one thing and resolved as another.
+
+            `None` means the level does not exist for this field, `''`
+            means it exists and is empty — a distinction the resolution
+            itself does not need (both fall through) but the report does:
+            `card_label` has no content level at all, while `page_desc`
+            has one that a coverless article leaves empty, and showing
+            them alike would invent a level.
+
+            Every level is recorded, not just the winner: `resolve`
+            (§11.12) reports the losing ones too, because a value alone
+            does not explain why the line an author just wrote changed
+            nothing. Recorded HERE, from the same list the loop walks, so
+            a level cannot be offered as a candidate and skipped as a
+            resolver."""
+            tried = [('series', entry.get(field) or ''),
+                     ('article', meta.get(field) or '')]
+            for level, value in (('series-default', series_default),
+                                 ('content', content), ('derived', derived)):
+                if value is not None:
+                    tried.append((level, value))
+            candidates[field] = tried
+            for level, value in tried:
+                if value:
+                    origins[field] = level
+                    return value
             origins[field] = 'default'
             return ''
 
@@ -7907,21 +7928,28 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
         entry['nav_title'] = take('nav_title', derived=entry['card_title'])
         entry['nav_desc'] = take('nav_desc', derived=entry['card_desc'])
 
-        # The editorial three keep their own lines: their last-but-one
-        # level is a series-wide default (series_meta), which `take` has
-        # no level for and _RESOLVED_FIELDS explains is not reported.
-        if not entry.get('author'):
-            entry['author'] = meta.get('author') or series_meta.get('author', '')
-        if not entry.get('license'):
-            entry['license'] = meta.get('license') or series_meta.get('license', '')
-        if not entry.get('date'):
-            entry['date'] = meta.get('date', '')
+        # The editorial three take the same path as the rest, with one
+        # level the display fields do not have: `series-default`, the
+        # series-wide value in `series_meta`. `series-info` does not
+        # report them (§11.11); `resolve` does, which is what made the
+        # sixth word of the provenance vocabulary necessary — a value
+        # written by the author for the whole series is neither this
+        # article's series.json line nor a built-in fallback.
+        entry['author'] = take('author',
+                               series_default=series_meta.get('author', ''))
+        entry['license'] = take('license',
+                                series_default=series_meta.get('license', ''))
+        entry['date'] = take('date')
 
         # series.json wins even with an explicit falsy value there, so
         # `"draft": false` in series.json can override a `draft: true`
         # left in the meta block. Presence, not truth, is what picks the
         # level here — which is exactly why `take` can't serve: a written
         # `false` comes from the file that wrote it, not from the default.
+        candidates['draft'] = [
+            ('series', str(entry['draft']) if 'draft' in entry else ''),
+            ('article', str(meta['draft']) if 'draft' in meta else ''),
+        ]
         if 'draft' in entry:
             draft_value, origins['draft'] = entry['draft'], 'series'
         elif 'draft' in meta:
@@ -7930,7 +7958,8 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
             draft_value, origins['draft'] = '', 'default'
         entry['draft'] = str(draft_value).strip().lower() == 'true'
 
-        resolution.append({'source_read': text is not None, 'origins': origins})
+        resolution.append({'source_read': text is not None, 'origins': origins,
+                           'candidates': candidates})
 
     seen = {}
     for i, entry in enumerate(articles, 1):
@@ -9428,6 +9457,448 @@ def cmd_series_info(series_dir, args):
 
 
 # ============================================================================
+# RESOLVE COMMAND (§11.12)
+# ============================================================================
+#
+# One name in, one answer out: what it is worth here, and which level of
+# which cascade decided that. `series-info` and `theme-info` answer by
+# INVENTORY — every article, every property — which is what populates an
+# interface. This answers a question, and a question is not asked by
+# reading two hundred lines of report.
+#
+# The losing levels are the feature. A value alone never explains why the
+# line an author just wrote changed nothing; the chain does, by showing
+# the settings.conf entry still commented out, or the series.json field
+# that overrides the meta block being edited. That class of mistake
+# produces no error — the mechanism worked, on an input its author had
+# forgotten — so nothing but a report can catch it.
+
+RESOLVE_SCHEMA = 'lightwebpres.resolve/1'
+
+# Which Slide attribute carries which slide-level field. `article` is
+# here although it is not in SLIDE_FIELD_NAMES: it is parsed by the
+# full-article slide's own branch rather than the shared field regex,
+# and a reader asking where it is set does not care which branch read it.
+_SLIDE_FIELD_ATTRS = {name: name.replace('-', '_') for name in SLIDE_FIELD_NAMES}
+_SLIDE_FIELD_ATTRS['article'] = 'article_file'
+
+# Names that exist in the vocabulary but have no resolved value, and what
+# to say instead. Refusing with the reason beats resolving to a lie.
+_UNRESOLVABLE_NAMES = {
+    'comment': ('a review note: every level parses it and no renderer '
+                'ever reads it (GLOSSARY.md), so it has no resolved '
+                'value. Search the sources for it instead.'),
+    'slide_title': ("not a field — a slide's own title is written `#` "
+                    '(cover) or `##` (any other slide), never as a '
+                    '`slide_title:` line (§22.2).'),
+}
+
+# The notes settings cascade (§6.5): the article's meta block, then the
+# series-wide default in series_meta, then the built-in value. No
+# per-article series.json level — unlike the display fields, these are
+# not written in `articles[]`.
+_NOTES_FIELD_DEFAULTS = {'notes_placement': 'local', 'notes_tooltip': 'off'}
+
+# The typography switches (§4.5): the article's meta block and nothing
+# else. A one-level cascade is still a cascade worth reporting — the
+# answer "you can only set this in the meta block" is the useful half.
+_TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
+
+# Every name that resolves per article, whatever its own cascade — the
+# display fields, the editorial three, the notes settings, the typography
+# switches, plus the two that stand outside `take`: `page_source`, which
+# has one level, and `draft`, whose value is a boolean. Assembled from the
+# tuples the resolvers themselves use, so a field cannot be reachable by
+# one and unknown to the other.
+_ARTICLE_LEVEL_NAMES = frozenset(
+    _RESOLVED_FIELDS + _EDITORIAL_FIELDS + _TYPO_FIELD_NAMES
+    + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'draft'))
+
+
+def _chain_link(level, value, note=None):
+    """One level of a cascade, present or not. `value` is what that level
+    holds AS WRITTEN — a bare reference stays a bare reference here, and
+    is followed once, for the winner only."""
+    link = {'level': level, 'present': bool(value),
+            'value': value if value else None, 'winner': False}
+    if note:
+        link['note'] = note
+    return link
+
+
+def _crown(chain):
+    """Marks the strongest present level as the winner, or the last link
+    when nothing is set — the last link is always the built-in fallback,
+    which is exactly what "nothing is set" resolves to."""
+    for link in chain:
+        if link['present']:
+            link['winner'] = True
+            return link
+    chain[-1]['winner'] = True
+    return chain[-1]
+
+
+def classify_resolve_name(name):
+    """Which cascade a name belongs to, from its SHAPE alone (§20.0).
+
+    No option says which kind is meant, because the name already does:
+    dotted is a theme property, snake_case an article or series field,
+    kebab-case a slide field. That is the concrete payoff of the naming
+    convention — a flat query namespace, with no disambiguation table to
+    write and keep in step.
+
+    Bare single words have no shape marker, so they are looked up in the
+    vocabularies instead. After `comment` is excluded (above), every one
+    of them belongs to exactly one level, so the lookup never has to
+    choose."""
+    if '.' in name:
+        return 'theme-property'
+    if '_' in name:
+        return 'article-field'
+    if '-' in name:
+        return 'slide-field'
+    if name in _SLIDE_FIELD_ATTRS:
+        return 'slide-field'
+    if name in _ARTICLE_LEVEL_NAMES or name in _SERIES_META_STRING_FIELDS:
+        return 'article-field'
+    return None
+
+
+def resolve_theme_property(name, directory, article_meta, article_name):
+    """A theme property's cascade (§9.3), strongest level first.
+
+    The VALUE comes from resolve_theme_properties() — the function the
+    build calls — so there is one cascade here and not a second one that
+    drifts. What this adds is the per-level detail that function does not
+    keep: which layer held what, including the layers that lost."""
+    templates_dir = directory / 'templates'
+    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    text = (read_text_file(settings_file)
+            if settings_file is not None and settings_file.exists() else '')
+    slug, pinned = parse_settings_text(text)
+    theme_layer = theme_property_layer(slug) if slug else {}
+    article_layer = (page_style_properties(article_meta, article_name)
+                     if article_meta is not None else {})
+
+    layers = [theme_layer, pinned] + ([article_layer] if article_meta is not None else [])
+    resolved = resolve_theme_properties(*layers)   # validates the name, follows refs
+
+    prop = PROPERTY_REGISTRY[name]
+    chain = [
+        _chain_link('instance', '',
+                    note='per occurrence, never one value: an instance tag '
+                         '(§9.6.3) styles the phrase it wraps, so no single '
+                         'value could stand for the page. `audit` enumerates '
+                         'them.'),
+        _chain_link('article', article_layer.get(name, ''),
+                    note=None if article_meta is not None else
+                    'not consulted — pass --article to include a page\'s own '
+                    'style.* lines'),
+        _chain_link('settings', pinned.get(name, ''),
+                    note=None if pinned else
+                    'nothing pinned in templates/settings.conf'),
+        _chain_link('theme', theme_layer.get(name, ''),
+                    note=None if slug else
+                    'the series names no theme, so it runs on the registry '
+                    'defaults (§9.3)'),
+        _chain_link('default', prop.default),
+    ]
+    winner = _crown(chain)
+
+    # The written value may be a reference (§9.2). Followed once, for the
+    # winner only, with the same helper the engine follows them with — so
+    # the hops shown are the hops taken.
+    raw = {k: p.default for k, p in PROPERTY_REGISTRY.items()}
+    for layer in layers:
+        raw.update(layer)
+    hops, value = [], winner['value'] or prop.default
+    key = name
+    while True:
+        target = _reference_target(prop, value)
+        if target is None or target in hops:
+            break
+        hops.append(target)
+        value = raw[target]
+    return {
+        'value': resolved[name],
+        'source': winner['level'],
+        'type': prop.type.name,
+        'hops': hops,
+        'chain': chain,
+    }
+
+
+def resolve_series_field(name, series_meta):
+    """A `series_meta` field (§20.5): written once for the whole series,
+    or absent. One level, and saying so is the answer."""
+    chain = [_chain_link('series', series_meta.get(name, '')),
+             _chain_link('default', '')]
+    winner = _crown(chain)
+    return {'value': winner['value'] or '', 'source': winner['level'],
+            'chain': chain}
+
+
+def resolve_notes_field(name, series_meta, article_meta):
+    """`notes_placement` / `notes_tooltip` (§6.5). Its own cascade, and a
+    shorter one than the display fields': the article's meta block, the
+    series-wide default, the built-in value. Nothing in `articles[]`
+    sets it."""
+    chain = [
+        _chain_link('article', (article_meta or {}).get(name, ''),
+                    note=None if article_meta is not None else
+                    'not consulted — pass --article'),
+        _chain_link('series-default', series_meta.get(name, '')),
+        _chain_link('default', _NOTES_FIELD_DEFAULTS[name]),
+    ]
+    winner = _crown(chain)
+    return {'value': winner['value'], 'source': winner['level'], 'chain': chain}
+
+
+def resolve_typo_field(name, article_meta):
+    """A typography switch (§4.5). The meta block or nothing — and the
+    useful half of the answer is that there is nowhere else to set it."""
+    chain = [
+        _chain_link('article', (article_meta or {}).get(name, ''),
+                    note=None if article_meta is not None else
+                    'not consulted — pass --article'),
+        _chain_link('default', 'on',
+                    note='the rule is on unless the meta block turns it off; '
+                         'this field is settable in the meta block only'),
+    ]
+    winner = _crown(chain)
+    return {'value': winner['value'], 'source': winner['level'], 'chain': chain}
+
+
+def resolve_article_field(name, entry, note):
+    """One display or editorial field of one article (§20.3.1), from what
+    resolve_article_fields() recorded WHILE it resolved. Not re-resolved:
+    a second cascade is what §11.11 exists to prevent, and the rule does
+    not weaken because the question got narrower."""
+    if name == 'page_source':
+        # The only field with nowhere to fall back to: §20.3 requires it
+        # in series.json, so it is written there or the series is invalid.
+        chain = [_chain_link('series', entry['page_source'])]
+        _crown(chain)
+        return {'value': entry['page_source'], 'source': 'series',
+                'chain': chain}
+
+    chain = [_chain_link(level, value)
+             for level, value in note['candidates'][name]]
+    # `draft` is the one field whose built-in fallback has a value to
+    # show: every other one resolves to the empty string, and an empty
+    # default link that claimed a value would be inventing one.
+    chain.append(_chain_link('default', 'false' if name == 'draft' else ''))
+    winner = _crown(chain)
+    value = entry[name]
+    if name == 'draft':
+        value = 'true' if value else 'false'
+    return {'value': value, 'source': note['origins'][name], 'chain': chain}
+
+
+def survey_slide_field(name, articles, articles_dir, only):
+    """Where a slide-level field is actually set, across the series.
+
+    A slide field has no cascade: it is written on a slide or it is not.
+    Answering with a single value would mean inventing a winner among
+    slides that never competed, so the answer is the list of sites — the
+    same question ("what value, and where?") asked at the only level this
+    field has."""
+    attr = _SLIDE_FIELD_ATTRS[name]
+    sites, unread = [], []
+    for entry in articles:
+        source = entry['page_source']
+        if only and source != only:
+            continue
+        text = _read_article_source(articles_dir / source)
+        if text is None:
+            unread.append(source)
+            continue
+        _, slides, _, _ = parse_markdown_extended(text)
+        for number, slide in enumerate(slides, 1):
+            value = getattr(slide, attr, None)
+            if value:
+                sites.append({
+                    'article': source,
+                    'slide': number,
+                    'slide_type': slide.slide_type,
+                    'slide_title': slide.h1 or slide.h2 or None,
+                    'value': value,
+                })
+    return {'sites': sites}, unread
+
+
+def print_resolve_text(report):
+    """The human format. Strongest level first in both cascades, although
+    the two are written in opposite directions elsewhere in the spec:
+    someone debugging starts at the level that should have won."""
+    import textwrap
+
+    query = report['query']
+    resolution = report['resolution']
+    where = f" ({query['article']})" if query['article'] else ''
+    print(f"{query['name']} — {query['kind'].replace('-', ' ')}{where}")
+
+    if 'sites' in resolution:
+        sites = resolution['sites']
+        if not sites:
+            print('  set nowhere in this series.')
+            return
+        print(f"  set on {len(sites)} slide(s):")
+        for site in sites:
+            title = f' "{site["slide_title"]}"' if site['slide_title'] else ''
+            print(f"    {site['article']}  slide {site['slide']}"
+                  f" ({site['slide_type']}){title}")
+            for line in textwrap.wrap(str(site['value']), width=64) or ['(empty)']:
+                print(f"        {line}")
+        return
+
+    print(f"  value: {resolution['value'] if resolution['value'] else '(empty)'}")
+    print(f"  from:  {resolution['source']}")
+    if resolution.get('hops'):
+        print(f"  via:   {' -> '.join(resolution['hops'])}")
+    print()
+    print('  cascade, strongest first:')
+    width = max(len(link['level']) for link in resolution['chain'])
+    for link in resolution['chain']:
+        mark = '>' if link['winner'] else ' '
+        body = link['value'] if link['present'] else '—'
+        print(f"  {mark} {link['level']:<{width}s}  {body}")
+        if link.get('note'):
+            for line in textwrap.wrap(link['note'], width=60):
+                print(f"    {' ' * width}  {line}")
+    print()
+    print('  A level with — holds nothing; the > is the one that decided.')
+
+
+def cmd_resolve(series_dir, name, args):
+    """resolve command (§11.12) — what one name is worth here, and which
+    level decided it.
+
+    The shape of the name picks the cascade (§20.0), so no option has to
+    say which kind of thing is being asked about. That is the convention
+    paying for itself: a flat namespace with no collisions, and no
+    disambiguation table to keep in step with four vocabularies."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        print(f'[ERROR] Unknown --format: {fmt!r}. Valid values: text, json',
+              file=sys.stderr)
+        sys.exit(1)
+
+    if name in _UNRESOLVABLE_NAMES:
+        print(f'[ERROR] {name}: {_UNRESOLVABLE_NAMES[name]}', file=sys.stderr)
+        sys.exit(1)
+
+    kind = classify_resolve_name(name)
+    if kind is None:
+        print(f'[ERROR] {name!r}: no field or property of that name. A bare '
+              f'word is looked up in the field vocabularies; a name with a '
+              f'dot is a theme property, one with an underscore an article '
+              f'field, one with a hyphen a slide field (§20.0).',
+              file=sys.stderr)
+        sys.exit(1)
+
+    sd, articles_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
+    series_data = load_series_data(sd)
+    series_meta = series_meta_of(series_data)
+    articles = (series_data.get('articles', series_data)
+                if isinstance(series_data, dict) else series_data)
+    validate_series(articles)
+
+    only = args.get('--article')
+    if only is not None and not any(e['page_source'] == only for e in articles):
+        # The fix is a copy-paste, so the error hands over the strings
+        # rather than pointing at the file they are in.
+        print(f'[ERROR] --article {only!r}: no such article in this series. '
+              f'The series carries:', file=sys.stderr)
+        for entry in articles:
+            print(f'  {entry["page_source"]}', file=sys.stderr)
+        sys.exit(1)
+
+    article_meta, unread = None, []
+    if only is not None:
+        text = _read_article_source(articles_dir / only)
+        if text is None:
+            unread.append(only)
+        else:
+            article_meta, _, _, _ = parse_markdown_extended(text)
+            article_meta = article_meta or {}
+
+    try:
+        if kind == 'theme-property':
+            if name not in PROPERTY_REGISTRY:
+                tail = name.split('.')[-1]
+                near = [k for k in PROPERTY_REGISTRY if k.split('.')[-1] == tail]
+                print(f'[ERROR] {name}: unknown theme property'
+                      + (f' (did you mean {near[0]}?)' if near else '')
+                      + '. `theme-info` lists every one of them.',
+                      file=sys.stderr)
+                sys.exit(1)
+            resolution = resolve_theme_property(name, sd, article_meta, only or name)
+        elif kind == 'slide-field':
+            if name not in _SLIDE_FIELD_ATTRS:
+                # `comment` is a slide field and is refused above, so it
+                # is not offered here: a list that named it would send
+                # the reader straight into the next error.
+                known = sorted(set(_SLIDE_FIELD_ATTRS) - set(_UNRESOLVABLE_NAMES))
+                print(f'[ERROR] {name!r} was read as a slide field (its name is '
+                      f'hyphenated, §20.0); no slide field has that name. The '
+                      f'ones that resolve are: {", ".join(known)}.',
+                      file=sys.stderr)
+                sys.exit(1)
+            resolution, unread = survey_slide_field(name, articles, articles_dir, only)
+        elif name in _NOTES_FIELD_DEFAULTS:
+            resolution = resolve_notes_field(name, series_meta, article_meta)
+        elif name in _TYPO_FIELD_NAMES:
+            resolution = resolve_typo_field(name, article_meta)
+        elif name in _SERIES_META_STRING_FIELDS and only is None:
+            # `author` and `license` live at both levels. Asked WITHOUT an
+            # article, the question is about the series' own value, and
+            # the kind says so rather than letting a reader apply the
+            # article vocabulary to a series answer.
+            kind = 'series-field'
+            resolution = resolve_series_field(name, series_meta)
+        elif name in _ARTICLE_LEVEL_NAMES:
+            if only is None:
+                print(f'[ERROR] {name} is resolved per article, so `resolve` '
+                      f'needs to know which one: pass --article. The series '
+                      f'carries:', file=sys.stderr)
+                for entry in articles:
+                    print(f'  {entry["page_source"]}', file=sys.stderr)
+                sys.exit(1)
+            notes = resolve_article_fields(articles, articles_dir, series_meta)
+            index = next(i for i, e in enumerate(articles)
+                         if e['page_source'] == only)
+            resolution = resolve_article_field(name, articles[index], notes[index])
+        else:
+            print(f'[ERROR] {name!r} was read as an article-level field (§20.0); '
+                  f'no article or series field has that name.', file=sys.stderr)
+            sys.exit(1)
+    except PropertyError as exc:
+        print(f'[ERROR] {exc}', file=sys.stderr)
+        sys.exit(1)
+
+    report = {
+        'schema': RESOLVE_SCHEMA,
+        'lightwebpres_version': VERSION,
+        'query': {'name': name, 'kind': kind, 'directory': str(sd),
+                  'article': only},
+        'resolution': resolution,
+    }
+
+    # stderr, so `--format json` stays one JSON document on stdout, and
+    # exit 0, for the reason §11.11 gives: this is not a second `check`.
+    for source in unread:
+        print(f'[WARN] {articles_dir / source} could not be read (absent, '
+              f'unreadable, or not UTF-8): the levels it would have carried '
+              f'are missing from the answer.', file=sys.stderr)
+
+    if fmt == 'json':
+        print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=False))
+    else:
+        print_resolve_text(report)
+
+
+# ============================================================================
 # THEMES-GALLERY COMMAND
 # ============================================================================
 
@@ -9883,6 +10354,12 @@ COMMANDS
                                                   order, each field RESOLVED as a build
                                                   would resolve it, and where each value
                                                   came from (see §11.11)
+  lightwebpres resolve [directory] <name>        Says what ONE name is worth here and
+                                                  which level decided it, losing levels
+                                                  included. The shape of the name picks
+                                                  the cascade: dotted = theme property,
+                                                  snake_case = article field,
+                                                  kebab-case = slide field (see §11.12)
   lightwebpres set-theme [directory] --theme X   Changes an existing series' theme
                                                   (see §11.10)
   lightwebpres themes-gallery [path]             Generates a self-contained HTML page
@@ -9907,7 +10384,9 @@ OPTIONS
   --intensity name       themes: sober | vivid | mono
   --hue name             themes: neutral, red, orange, yellow, green, cyan,
                         blue, violet, magenta — the hue of the page background
-  --format text|json     theme-info/series-info: output format (default: text).
+  --article file.md      resolve: the article whose levels to include — required
+                        for a per-article field, additive for a theme property
+  --format text|json     theme-info/series-info/resolve: output format (default: text).
                         JSON, not YAML: this tool is standard-library only,
                         where `json` is present and `yaml` is not
   --gitlab-ci             install: also write a .gitlab-ci.yml pipeline (opt-in —
@@ -10061,6 +10540,11 @@ ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
     lightwebpres series-info my-series
     lightwebpres series-info my-series --format json
 
+  For ONE name, with the levels that lost as well as the one that won:
+    lightwebpres resolve my-series page_title --article intro.md
+    lightwebpres resolve my-series tag.fg
+    lightwebpres resolve my-series fact-label
+
 NOTES (specifications.md §6.5)
   [^label] calls a note, [^label]: body defines it — standard Markdown, in
   a slide's free text or in the full-article file. The call links to the
@@ -10121,7 +10605,8 @@ Full reference: specifications.md.''')
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                             '--theme', '--only', '--nav-cache',
-                            '--polarity', '--intensity', '--hue', '--format'})
+                            '--polarity', '--intensity', '--hue', '--format',
+                            '--article'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
@@ -10135,6 +10620,7 @@ _COMMAND_OPTIONS = {
     'themes': {'--polarity', '--intensity', '--hue'},
     'theme-info': {'--format'},
     'series-info': {'--format'},
+    'resolve': {'--format', '--article'},
     'set-theme': {'--theme'},
     'themes-gallery': set(),
 }
@@ -10224,6 +10710,27 @@ def main():
         cmd_theme_info(target, opts)
     elif command == 'series-info':
         cmd_series_info(target, opts)
+    elif command == 'resolve':
+        # Two positionals, and the name is the one that is never optional:
+        # `resolve <name>` in the current series, `resolve <dir> <name>`
+        # elsewhere. Read by count rather than by guessing which of the
+        # two a lone argument looks like.
+        if not positional:
+            print('[ERROR] resolve needs a name: '
+                  '`lightwebpres resolve [directory] <name>`. The shape of '
+                  'the name picks the cascade — dotted for a theme property, '
+                  'snake_case for an article field, kebab-case for a slide '
+                  'field (§20.0).', file=sys.stderr)
+            sys.exit(1)
+        if len(positional) > 2:
+            print(f'[ERROR] resolve takes at most a directory and a name; '
+                  f'got {len(positional)} arguments.', file=sys.stderr)
+            sys.exit(1)
+        if len(positional) == 2:
+            cmd_resolve(positional[0], positional[1], opts)
+        else:
+            cmd_resolve(os.environ.get('LWP_SERIES_DIR', '.'),
+                        positional[0], opts)
     elif command == 'set-theme':
         cmd_set_theme(target, opts)
     elif command == 'themes-gallery':

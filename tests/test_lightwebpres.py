@@ -9066,18 +9066,22 @@ class TestNamingConvention(unittest.TestCase):
         self.lwp = load_lightwebpres_module()
 
     def _article_level_names(self):
-        # The meta block is a flat dict, so every article/series-level field
-        # the engine honours is read through one of these two call shapes —
-        # `meta.get`/`series_meta.get` for the plain ones, `pick` for the
-        # notes settings, which cascade instead of merely defaulting. Both
-        # halves are checked for emptiness rather than for a specific name:
-        # a canary that names a field would fire on the very rename this
-        # test exists to report, and hide the real message behind it.
-        plain = set(re.findall(r"(?:meta|series_meta)\.get\('([^']+)'", self.source))
-        cascaded = set(re.findall(r"\bpick\('([^']+)'", self.source))
-        self.assertGreater(len(plain), 10, 'the scan no longer finds the meta reads')
-        self.assertTrue(cascaded, 'the scan no longer finds the notes reads')
-        return plain | cascaded
+        """Every name the engine treats as article- or series-level.
+
+        Two sources on purpose. The tuples are the registries `resolve`
+        and `series-info` are driven by, so they are what a new field is
+        added to; the source scan catches a field that is read from a
+        meta block and registered nowhere, which is exactly the kind that
+        would slip past a registry-only check. Neither is asked for a
+        specific name — a canary naming a field would fire on the very
+        rename this test exists to report, and bury the real message."""
+        names = set(self.lwp._ARTICLE_LEVEL_NAMES)
+        names |= set(self.lwp._SERIES_META_STRING_FIELDS)
+        names |= set(self.lwp._SERIES_STRING_FIELDS)
+        names |= set(re.findall(r"(?:meta|series_meta)\.get\('([^']+)'", self.source))
+        names |= set(re.findall(r"\bpick\('([^']+)'", self.source))
+        self.assertGreater(len(names), 15, 'the field registries have gone empty')
+        return names
 
     def test_every_slide_field_is_kebab_case(self):
         self.assertTrue(self.lwp.SLIDE_FIELD_NAMES, 'the slide field list has gone empty')
@@ -9099,13 +9103,23 @@ class TestNamingConvention(unittest.TestCase):
                     f'send it to the wrong cascade (§20.0)')
                 self.assertRegex(name, self.SNAKE, f'{name!r} is not snake_case')
 
-    def test_the_two_levels_share_no_name(self):
-        # A name living at both levels would make the shape rule say two
-        # things at once, which is the one thing `resolve` cannot survive.
+    def test_a_name_at_both_levels_is_one_resolve_refuses(self):
+        """A bare word has no shape to read, so a name living at BOTH
+        levels makes the rule say two things at once — and `resolve` has
+        to pick a cascade from it. One such name exists: `comment`, which
+        every level parses and no renderer reads.
+
+        The invariant is therefore not "no overlap" but "no SILENT
+        overlap": anything at both levels must be in the list of names
+        `resolve` refuses, with a reason. A new one added quietly would
+        make `resolve` answer about one level while the reader asked
+        about the other."""
         overlap = self._article_level_names() & set(self.lwp.SLIDE_FIELD_NAMES)
+        unacknowledged = overlap - set(self.lwp._UNRESOLVABLE_NAMES)
         self.assertEqual(
-            overlap, set(),
-            f'{sorted(overlap)} is read at both the slide and the article level')
+            unacknowledged, set(),
+            f'{sorted(unacknowledged)} is read at both the slide and the '
+            f'article level, and `resolve` would silently pick one of them')
 
     def test_every_theme_property_is_dotted(self):
         registry = self.lwp.PROPERTY_REGISTRY
@@ -9562,6 +9576,407 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                        if isinstance(n, ast.FunctionDef) and n.name == 'cmd_series_info')
         called = {sub.id for sub in ast.walk(command) if isinstance(sub, ast.Name)}
         self.assertIn('resolve_article_fields', called)
+
+
+class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
+    """§11.12. `resolve` takes one name and says what it is worth here,
+    which level decided it, and — the part that makes it worth having —
+    what every other level held.
+
+    A value alone never explains why the line an author just wrote
+    changed nothing. So the tests that matter here are the ones about the
+    LOSERS: a settings pin that beats the theme must leave the theme in
+    the chain, and a commented-out line must show as a level holding
+    nothing rather than vanish. A report that only ever showed the winner
+    would pass a naive test and be useless for the one job it has.
+
+    Values are cross-checked against a real build wherever a build can
+    produce them: an expectation written in this file would be satisfied
+    by a second cascade that drifted, and the page the build wrote would
+    not."""
+
+    ARTICLE = ('<!-- lwp:meta -->\n{meta}---\n\n'
+               '<!-- lwp:slide:cover -->\ntag: Tag\n# {heading}\n'
+               'summary: {summary}\n')
+
+    def _series(self, tmp, entries, sources, series_meta=None, settings=None):
+        root = Path(tmp)
+        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        for name, text in sources.items():
+            (root / 'articles' / name).write_text(text, encoding='utf-8')
+        data = {'articles': entries}
+        if series_meta is not None:
+            data['series_meta'] = series_meta
+        (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+        if settings is not None:
+            (root / 'templates').mkdir(exist_ok=True)
+            (root / 'templates' / 'settings.conf').write_text(
+                settings, encoding='utf-8')
+        return root
+
+    def _one_article(self, tmp, meta='', entry=None, **kwargs):
+        sources = {'intro.md': self.ARTICLE.format(
+            meta=meta, heading='Where it begins',
+            summary='A first look at the whole thing.')}
+        return self._series(tmp, [dict({'page_source': 'intro.md'},
+                                       **(entry or {}))], sources, **kwargs)
+
+    def _resolve(self, root, *args):
+        result = run('resolve', str(root), *args, '--format', 'json')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _levels(self, report):
+        return {link['level']: link for link in report['resolution']['chain']}
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    # ------------------------------------------------------------------
+    # The shape of the name picks the cascade (§20.0)
+    # ------------------------------------------------------------------
+
+    def test_the_shape_of_the_name_picks_the_cascade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            for name, kind, extra in (
+                ('tag.fg', 'theme-property', ()),
+                ('page_title', 'article-field', ('--article', 'intro.md')),
+                ('fact-label', 'slide-field', ()),
+                ('title', 'series-field', ()),
+            ):
+                with self.subTest(name):
+                    report = self._resolve(root, name, *extra)
+                    self.assertEqual(report['query']['kind'], kind)
+
+    # ------------------------------------------------------------------
+    # Against a real build, not against an expectation written here
+    # ------------------------------------------------------------------
+
+    def test_a_theme_property_reports_the_colour_the_build_paints(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            subprocess.run([sys.executable, str(EXECUTABLE), 'install',
+                            str(root), '--theme', 'nord'],
+                           check=True, capture_output=True, text=True)
+            subprocess.run([sys.executable, str(EXECUTABLE), 'demo', str(root)],
+                           check=True, capture_output=True, text=True)
+            build = run('build', str(root))
+            self.assertEqual(build.returncode, 0, build.stderr)
+
+            value = self._resolve(root, 'tag.fg')['resolution']['value']
+            page = next((root / 'public').glob('*.html')).read_text(encoding='utf-8')
+            self.assertIn(
+                value, page,
+                f'resolve says tag.fg is {value}, and no built page contains '
+                f'it: the report and the stylesheet disagree, which is the '
+                f'second cascade this command exists not to be')
+
+    def test_an_article_field_reports_the_title_the_build_writes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            build = run('build', str(root))
+            self.assertEqual(build.returncode, 0, build.stderr)
+            report = self._resolve(root, 'page_title', '--article', 'intro.md')
+            page = (root / 'public' / 'intro.html').read_text(encoding='utf-8')
+            self.assertIn(f'<title>{report["resolution"]["value"]}</title>', page)
+            self.assertEqual(report['resolution']['source'], 'content')
+
+    # ------------------------------------------------------------------
+    # The losers, which are the point
+    # ------------------------------------------------------------------
+
+    def test_a_settings_pin_wins_and_the_theme_stays_in_the_chain(self):
+        """`note.fg` on purpose: nord overrides it, so the theme level
+        holds a real value that the pin then beats. A property no theme
+        touches would leave that level empty, and the test would pass
+        while proving nothing about losing levels."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp, settings='theme: nord\nnote.fg: call\n')
+            levels = self._levels(self._resolve(root, 'note.fg'))
+            self.assertTrue(levels['settings']['winner'])
+            self.assertEqual(levels['settings']['value'], 'call')
+            self.assertTrue(
+                levels['theme']['present'],
+                'the level that lost was dropped from the report, which is '
+                'the half of the answer that explains why')
+            self.assertEqual(levels['theme']['value'],
+                             self.lwp.theme_property_layer('nord')['note.fg'])
+            self.assertFalse(levels['theme']['winner'])
+            self.assertTrue(levels['default']['present'],
+                            'the registry default always holds something')
+            self.assertFalse(levels['default']['winner'])
+
+    def test_a_commented_out_line_is_a_level_holding_nothing(self):
+        """The exact mistake this command exists for: the line is in the
+        file, the author can see it, and it does nothing."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp, settings='theme: nord\n# tag.fg: call\n')
+            report = self._resolve(root, 'tag.fg')
+            levels = self._levels(report)
+            self.assertFalse(levels['settings']['present'])
+            self.assertIsNone(levels['settings']['value'])
+            self.assertNotEqual(report['resolution']['source'], 'settings')
+
+    def test_an_instance_tag_is_named_in_the_chain_and_never_wins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp, settings='theme: nord\n')
+            instance = self._levels(self._resolve(root, 'tag.fg'))['instance']
+            self.assertFalse(instance['winner'])
+            self.assertFalse(instance['present'])
+            self.assertIn('note', instance,
+                          'a level that can never win has to say why, or it '
+                          'reads as one nobody set')
+
+    def test_the_article_layer_is_absent_until_article_is_passed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp, meta='style.tag.fg: #123456\n', settings='theme: nord\n')
+
+            without = self._levels(self._resolve(root, 'tag.fg'))['article']
+            self.assertFalse(without['present'])
+            self.assertIn('--article', without.get('note', ''),
+                          'a layer that was not consulted must say so, not '
+                          'look like one nobody wrote')
+
+            report = self._resolve(root, 'tag.fg', '--article', 'intro.md')
+            self.assertEqual(report['resolution']['source'], 'article')
+            self.assertEqual(self._levels(report)['article']['value'], '#123456')
+            self.assertTrue(report['resolution']['value'].startswith('#123456'))
+
+    def test_a_reference_is_followed_and_the_hops_are_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp, settings='theme: nord\ntag.fg: call\n')
+            resolution = self._resolve(root, 'tag.fg')['resolution']
+            self.assertEqual(resolution['hops'], ['color.call'],
+                             'a bare word is a reference (§9.2); showing only '
+                             'the final colour hides where it came from')
+            palette = self._resolve(root, 'color.call')['resolution']['value']
+            self.assertEqual(resolution['value'], palette)
+
+    def test_a_series_wide_default_is_told_apart_from_a_series_json_line(self):
+        """`author` reaches a level the display fields do not have. It
+        needed its own word before it could be reported at all, and the
+        whole point of that word is that it is NOT `series`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp, series_meta={'author': 'The series'})
+            report = self._resolve(root, 'author', '--article', 'intro.md')
+            self.assertEqual(report['resolution']['source'], 'series-default')
+            self.assertEqual(report['resolution']['value'], 'The series')
+            self.assertFalse(self._levels(report)['series']['present'])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp, entry={'author': 'This article'},
+                                     series_meta={'author': 'The series'})
+            report = self._resolve(root, 'author', '--article', 'intro.md')
+            self.assertEqual(report['resolution']['source'], 'series')
+            levels = self._levels(report)
+            self.assertEqual(levels['series-default']['value'], 'The series')
+            self.assertFalse(levels['series-default']['winner'])
+
+    def test_every_level_of_the_article_cascade_can_win(self):
+        cases = [
+            ({}, '', 'content', 'Where it begins'),
+            ({}, 'page_title: From the meta block\n', 'article',
+             'From the meta block'),
+            ({'page_title': 'From series json'}, 'page_title: ignored\n',
+             'series', 'From series json'),
+        ]
+        for entry, meta, source, value in cases:
+            with self.subTest(source), tempfile.TemporaryDirectory() as tmp:
+                root = self._one_article(tmp, meta=meta, entry=entry)
+                resolution = self._resolve(
+                    root, 'page_title', '--article', 'intro.md')['resolution']
+                self.assertEqual(resolution['source'], source)
+                self.assertEqual(resolution['value'], value)
+
+    def test_the_chain_is_ordered_strongest_first(self):
+        """And carries every level, not only the ones holding something:
+        the empty rungs are what tell an author where they could have
+        written the value they are looking for."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            for name, expected in (
+                ('page_title',
+                 ['series', 'article', 'content', 'derived', 'default']),
+                ('card_label', ['series', 'article', 'default']),
+                ('author',
+                 ['series', 'article', 'series-default', 'default']),
+                ('tag.fg',
+                 ['instance', 'article', 'settings', 'theme', 'default']),
+            ):
+                with self.subTest(name):
+                    chain = self._resolve(
+                        root, name, '--article',
+                        'intro.md')['resolution']['chain']
+                    self.assertEqual([link['level'] for link in chain], expected)
+
+    def test_a_series_field_still_names_the_level_it_fell_back_to(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            report = self._resolve(root, 'subtitle')
+            self.assertEqual([link['level']
+                              for link in report['resolution']['chain']],
+                             ['series', 'default'])
+            self.assertEqual(report['resolution']['source'], 'default')
+
+    # ------------------------------------------------------------------
+    # A slide field has no cascade, and the report says so by shape
+    # ------------------------------------------------------------------
+
+    def test_a_slide_field_is_reported_as_sites_not_as_one_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = {
+                'a.md': self.ARTICLE.format(meta='', heading='A', summary='s')
+                        + '\n---\n\n<!-- lwp:slide -->\n## First\n'
+                          'fact-label: On A\n\nbody\n',
+                'b.md': self.ARTICLE.format(meta='', heading='B', summary='s')
+                        + '\n---\n\n<!-- lwp:slide -->\n## Second\n'
+                          'fact-label: On B\n\nbody\n',
+            }
+            root = self._series(tmp, [{'page_source': 'a.md'},
+                                      {'page_source': 'b.md'}], sources)
+
+            report = self._resolve(root, 'fact-label')
+            self.assertNotIn('value', report['resolution'],
+                             'a slide field has no winner to report: slides '
+                             'that never competed cannot have one')
+            sites = report['resolution']['sites']
+            self.assertEqual([(s['article'], s['value']) for s in sites],
+                             [('a.md', 'On A'), ('b.md', 'On B')])
+            self.assertEqual(sites[0]['slide'], 2)
+            self.assertEqual(sites[0]['slide_title'], 'First')
+
+            only = self._resolve(root, 'fact-label', '--article', 'b.md')
+            self.assertEqual([s['article'] for s in only['resolution']['sites']],
+                             ['b.md'])
+
+    def test_a_slide_field_set_nowhere_is_an_empty_survey_not_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            self.assertEqual(
+                self._resolve(root, 'highlight-caption')['resolution']['sites'], [])
+
+    # ------------------------------------------------------------------
+    # Refusals, each with the reason
+    # ------------------------------------------------------------------
+
+    def test_a_name_that_never_resolves_is_refused_with_its_reason(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            for name, expected in (('comment', 'review note'),
+                                   ('slide_title', '`##`')):
+                with self.subTest(name):
+                    result = run('resolve', str(root), name)
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn(expected, result.stderr)
+
+    def test_an_unknown_name_names_the_reading_that_was_made(self):
+        """The likeliest mistake is writing the wrong SHAPE, so the error
+        has to say which cascade it went to before saying it found
+        nothing there."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            for name, expected in (('fact-lable', 'slide field'),
+                                   ('page_titel', 'article-level field'),
+                                   ('tag.foreground', 'unknown theme property')):
+                with self.subTest(name):
+                    result = run('resolve', str(root), name)
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn(expected, result.stderr)
+
+    def test_a_per_article_field_without_article_lists_the_articles(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            result = run('resolve', str(root), 'card_label')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('--article', result.stderr)
+            self.assertIn('intro.md', result.stderr,
+                          'the fix is a copy-paste; the error should hand '
+                          'over the string, not point at the file')
+
+    def test_an_unknown_article_lists_the_ones_that_exist(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            result = run('resolve', str(root), 'page_title',
+                         '--article', 'nope.md')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('intro.md', result.stderr)
+
+    def test_a_missing_name_and_an_unknown_format_are_both_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            self.assertEqual(run('resolve').returncode, 1)
+            result = run('resolve', str(root), 'page_title',
+                         '--article', 'intro.md', '--format', 'yaml')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('text, json', result.stderr)
+
+    # ------------------------------------------------------------------
+    # What it must not do
+    # ------------------------------------------------------------------
+
+    def test_it_writes_nothing_at_all(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp, settings='theme: nord\n')
+            before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+            for args in (('tag.fg',), ('fact-label',),
+                         ('page_title', '--article', 'intro.md')):
+                self._resolve(root, *args)
+            after = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+            self.assertEqual(before, after)
+            self.assertFalse((root / 'public').exists(),
+                             'resolve built something, and it must not')
+
+    def test_an_unreadable_article_warns_and_still_answers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            (root / 'articles' / 'intro.md').unlink()
+            result = run('resolve', str(root), 'page_title',
+                         '--article', 'intro.md', '--format', 'json')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[WARN]', result.stderr)
+            self.assertEqual(
+                json.loads(result.stdout)['resolution']['source'], 'derived')
+
+    def test_the_command_goes_through_the_builds_own_resolvers(self):
+        """Same rule as `series-info`, for the same reason: exposing a
+        cascade by rewriting it installs the divergent copy the command
+        exists to prevent."""
+        import ast
+        tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
+        wanted = {'resolve_article_field': 'resolve_article_fields',
+                  'resolve_theme_property': 'resolve_theme_properties'}
+        found = {}
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef) and node.name in wanted:
+                found[node.name] = {sub.id for sub in ast.walk(node)
+                                    if isinstance(sub, ast.Name)}
+        for caller, callee in wanted.items():
+            with self.subTest(caller):
+                self.assertIn(caller, found, f'{caller} is gone')
+                if caller == 'resolve_article_field':
+                    # It does not call the resolver — cmd_resolve does, and
+                    # hands it what that call recorded. What matters is that
+                    # nothing here re-parses an article.
+                    self.assertNotIn('parse_markdown_extended', found[caller])
+                else:
+                    self.assertIn(callee, found[caller])
+
+    def test_the_text_format_shows_the_losing_levels_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp, settings='theme: nord\ntag.fg: call\n')
+            result = run('resolve', str(root), 'tag.fg')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for level in ('instance', 'article', 'settings', 'theme', 'default'):
+                self.assertIn(level, result.stdout, level)
+            self.assertIn('> settings', result.stdout,
+                          'the human format has to mark the winner, or the '
+                          'chain is a list of values with no verdict')
 
 
 if __name__ == '__main__':

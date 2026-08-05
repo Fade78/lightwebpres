@@ -34,7 +34,14 @@ field name and know which cascade to consult, with no disambiguation
 table: the shape answers that.
 
 So a new field is named after its **level**, never after what looks
-natural beside it.
+natural beside it. A test holds every name here to the shape its level
+requires — the rule was broken four times before there was one.
+
+Bare single words carry no shape, so they are looked up rather than
+read. Every one of them belongs to exactly one level except `comment`,
+which belongs to all of them and is why `resolve` refuses it: it is
+parsed everywhere and read nowhere, so it has no resolved value to
+report (below).
 
 ## `comment` — review notes
 
