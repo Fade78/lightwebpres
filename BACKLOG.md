@@ -258,8 +258,16 @@ below WCAG AA (4.5:1) against `--page` on a third of the catalogue:
 (§9.5.3); these are the palette values themselves. The admission criteria
 in §9.5.2 promise "AA for secondary text and accents" — they were applied
 to the twenty-four project-owned palettes and **never retro-applied to
-the nine borrowed ones**, which predate them. Eight of the nine failures
-in the first row are borrowed palettes.
+the nine borrowed ones**, which predate them.
+
+**Re-measured after B9, and this entry's own numbers were stale.** The
+failure counts above describe the pre-B9 catalogue: `ink-quiet` now fails
+on 7 themes of 33 (worst 2.48, `solarized`), `affirm` on 7 (worst 1.77,
+`nord`), `call` on 8 (worst 2.94, `vaporwave`). Four of the nine borrowed
+palettes were returned to their own dark grounds and clear AA there, so
+"eight of the nine failures are borrowed palettes" is now four of seven.
+And the criteria were applied to the project palettes but are **met by
+nineteen of the twenty-four** — B9 names the five that are not.
 
 **The root cause is deeper than a few values.** Seven of the nine
 borrowed palettes are colour schemes designed for a *dark* background,

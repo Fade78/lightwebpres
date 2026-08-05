@@ -151,7 +151,7 @@ all generated automatically.
   footnotes, lists, tables, blockquotes, images with captions
   (`![alt](src "Caption")` — small, centered, themed; mid-sentence the
   same image stays inline and its title becomes a tooltip),
-  inline/fenced code, and inline raw HTML (at most one per article).
+  inline/fenced code, and inline raw HTML.
   A comparison table's cells can carry `yes` / `no` / `partial` — or
   `col-signal` on a whole column — to be coloured by verdict; written as
   inline HTML, since Markdown has no syntax for it.
@@ -213,14 +213,21 @@ editor palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo
 Night, Monokai, Everforest, Rosé Pine); the rest are the project's own —
 high-contrast and monochrome sets, a red family, a green one, three cyber
 palettes, and an eight-strong Pop family whose backgrounds carry the
-color themselves. Every project-owned palette was measured before being
-kept: AAA contrast for body text, AA for secondary text and accents, 3:1
-for rules, and comparison verdicts checked for separability under
-simulated deuteranopia and protanopia. The nine borrowed palettes are
-offered for **fidelity**, as their editors ship them: those criteria
-were never retro-applied to them, and measured today several of their
-accents miss AA on a light page — whether to correct, repolarize or
-leave them is an open call (`BACKLOG.md` B5).
+color themselves. Every project-owned palette is designed against a measured floor: AAA
+contrast for body text, AA for secondary text and accents, 3:1 for rules,
+and comparison verdicts checked for separability under simulated
+deuteranopia and protanopia. Five entries — `blueprint`, `sage`,
+`sprout`, `dread`, `vaporwave` — are still **below** that floor and open
+in `BACKLOG.md` B9: it is the admission criterion, not a verified state
+of the catalogue.
+
+The nine borrowed palettes are offered for **fidelity**, as their editors
+ship them, and those criteria were never retro-applied. Four of them —
+Dracula, Tokyo Night, Monokai, Everforest — have since been returned to
+the dark grounds they were drawn for, where every one of their text roles
+clears AA; a syntax palette spreads hue at near-constant lightness by
+design, so it cannot paint text on paper. The five that remain light are
+unchanged.
 
 Thirty-three is too many to pick from a list, so themes are found by
 facet — **polarity** (light or dark background), **intensity** (sober,
@@ -260,9 +267,9 @@ ink around it and is signalled by an underline, whose tint is the one
 exposed axis (`link.decoration-color`, defaulting to the text ink —
 the only pairing that passes AA and AAA on all 33 themes). Measured
 across the catalogue before choosing: the browser default blue fails AA
-on fifteen themes, and every palette colour that could replace it is
-either below AA on a third of the catalogue or already one of the three
-comparison-table verdict colours.
+on 19 themes, and every palette colour that could replace it is either
+below AA on 15 of the 33 or already one of the three comparison-table
+verdict colours.
 
 > **Coming from a series built before the typed-properties engine?**
 > `templates/style.css` is no longer read: values move to

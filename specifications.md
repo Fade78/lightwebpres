@@ -52,8 +52,9 @@ est la source de vérité) :
 
 - **Vocabulaire.** `GLOSSARY.md` est le contrat de vocabulaire partagé :
   tout champ que le GUI présente, valide ou génère porte le nom, la
-  portée et la casse qui y sont figés (§2.5 des conventions de nommage).
-  Le générique est « field », jamais « tag »/« balise ».
+  portée et la casse qui y sont figés (conventions de nommage :
+  `GLOSSARY.md` § « Naming conventions »). Le générique est « field »,
+  jamais « tag »/« balise ».
 - **Format et comportement.** `specifications.md` (ce document) et
   `SKILL.md` décrivent le format et le rendu que le GUI doit produire à
   l'identique — un build lancé depuis le GUI et un build en ligne de
@@ -65,8 +66,8 @@ est la source de vérité) :
   de version est une action explicite côté GUI, vérifiée par ses propres
   tests.
 - **Stabilité promise.** À partir de la 1.0, les noms de champs gelés
-  (§2.5) et le format d'entrée (`series.json`, article `.md`) sont
-  stables au sens de la politique de versionnage (§13.9) : le GUI peut
+  (`GLOSSARY.md` § « Naming conventions », liste gelée en §20.2) et le
+  format d'entrée (`series.json`, article `.md`) sont stables au sens de la politique de versionnage (§13.9) : le GUI peut
   s'y fier sans qu'un patch les casse.
 
 Réciproquement, les fonctionnalités propres au GUI (édition assistée,
@@ -1163,7 +1164,7 @@ composant :
 | `color.mark` | filet d'encadré (`fact.rule-fg`), tag de couverture, fond du gras d'encadré (`fact.strong.bg`), filet d'en-tête d'index, point de navigation actif, colonne `col-snap` |
 | `color.call` | appel de note, verdict « partiellement », anneaux de focus |
 | `color.affirm` | verdict « oui » |
-| `font.text` | le corps (`page.font`) ; `font.display` et `font.ui` y renvoient par défaut |
+| `font.text` | le corps (`page.font`) ; `font.display` y renvoie par défaut — `font.ui` est une pile sans distincte depuis B9 (§9.5.1) |
 | `font.display` | titres (`title1.font`, `title2.font`), chiffre-clé, en-tête d'index |
 | `font.ui` | tags, étiquettes, sources, pieds de page — le petit appareil textuel |
 | `font.mono` | code, pastille de version — la seule pile monospace correcte, écrite une fois |
@@ -1247,7 +1248,7 @@ historique `monospace, monospace` devient inutile.
 - **Un mot nu est cherché dans l'espace de son type** : l'axe fixe le
   type, le type fixe l'espace. `tag.fg: ink-quiet` se lit
   `color.ink-quiet` parce que `fg` est une couleur ;
-  `summary.font: mono` se lirait `font.mono`. C'est toute la règle — le
+  `page.font: mono` se lit `font.mono`. C'est toute la règle — le
   moteur ne devine jamais si une valeur « ressemble » à une clé : un
   littéral se reconnaît à sa forme (une couleur commence par `#`, une
   pile contient une virgule ou est un générique).
@@ -1256,7 +1257,7 @@ historique `monospace, monospace` devient inutile.
 - **Profondeur maximale : 3 sauts.** Les chaînes étant résolues à la
   génération, la limite ne protège que le lecteur d'un fichier de
   settings. Deux sauts se sont avérés trop courts le jour où le thème
-  `terminal` du catalogue a eu besoin de `summary.font → font.text →
+  `terminal` du catalogue a eu besoin de `page.font → font.text →
   font.mono` : un thème ordinaire saturait la limite et ne laissait à
   une série aucune indirection propre.
 - **Les cycles sont détectés et nommés** : `tag.fg: reference cycle
@@ -1770,6 +1771,18 @@ l'impression qu'ils font :
   seul porteur de l'information, puisque chaque verdict porte aussi son
   marqueur de forme (WCAG 1.4.1).
 
+**Cette section décrit le critère d'admission, pas un état vérifié du
+catalogue, et la différence a été mesurée.** Cinq entrées du projet sont
+aujourd'hui **en dessous** et n'ont pas été corrigées : `blueprint`,
+`sage`, `sprout`, `dread` et `vaporwave`, sur neuf rôles au total
+(textes secondaires ou accents entre 2,02:1 et 4,52:1). Le critère
+« filets ≥ 3 » n'est pas davantage tenu par `mark` sur les thèmes clairs
+du projet, où il est fait pour servir de fond avant de servir de trait —
+le §9.5.1 le dit déjà dans ses propres termes. Les mesures et la
+correction restante sont au BACKLOG (B9). La phrase précédente affirmait
+le contraire jusqu'ici ; elle était fausse depuis l'admission de ces cinq
+thèmes.
+
 **Ces critères n'ont jamais été rétro-appliqués aux neuf palettes
 empruntées**, reprises telles quelles de leur source pour la fidélité —
 et la mesure faite depuis montre que plusieurs de leurs accents échouent
@@ -1789,7 +1802,7 @@ filtres, et la commande `themes` (§11.9) en options :
 | Facette | Valeurs | Origine |
 |---|---|---|
 | polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.1) |
-| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée ; absente, vaut `sober` — c'est le cas des neuf palettes d'éditeurs, reprises telles quelles |
+| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée ; absente, vaudrait `sober`, mais les 33 entrées la déclarent — le repli n'est pas exercé par le catalogue |
 | hue | `neutral`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta` | **calculée** à partir du fond |
 
 Les noms de facettes et leurs valeurs sont en anglais, comme tout
@@ -1815,8 +1828,11 @@ Le calcul se fait en **CIELAB**, pas en RVB. En RVB, une teinte est un
 angle, et un crème pâle occupe le même angle qu'une orange pleine — ce
 qui faisait nommer « orange » le papier de Solarized, ce qu'aucun
 lecteur ne dirait. En CIELAB on dispose en plus du **chroma** : sous un
-seuil (`NEUTRAL_CHROMA`), un fond se lit comme du papier ou de l'encre,
-jamais comme une teinte, et la facette vaut `neutral`. Les bornes
+seuil, un fond se lit comme du papier ou de l'encre, jamais comme une
+teinte, et la facette vaut `neutral`. Le seuil n'est pas fixe — il
+**suit la clarté** (`neutral_chroma_threshold(L) = max(4,0 ; 0,25 × L)`),
+précisément pour que le papier crème de Gruvbox (C = 21,8) se lise neutre
+et que le bleu nuit de Blueprint Night (C = 12,6) ne se lise pas. Les bornes
 d'angle ont été calibrées en mesurant des références connues plutôt que
 de mémoire : les angles CIELAB ne sont pas ceux que l'intuition RVB
 suggère — un bleu franc se situe vers 297°, pas 240°, et le cyan vers
@@ -1853,14 +1869,15 @@ Mesuré sur les 33 thèmes avant de choisir, et c'est ce qui a écarté les
 autres options :
 
 - Le bleu par défaut du navigateur, livré jusqu'à la v0.12.1, échoue AA
-  sur **quinze** thèmes et tombe à 1,03:1 sur `pop-violet`. Contrairement
+  sur **19** thèmes et tombe à 1,03:1 sur `pop-violet`. Contrairement
   à ce que BACKLOG B3 supposait, ce ne sont pas seulement les thèmes
   sombres : `pop-tangerine` est un thème clair à 4,27:1.
-- `call` échoue AA sur onze thèmes **et** est la couleur du verdict
-  « partiellement », par identité (ΔE = 0) sur les 33.
+- `call` échoue AA sur **8** thèmes **et** est la couleur du verdict
+  « partiellement », par identité (ΔE = 0) sur 32 des 33 — `monokai` a
+  sorti son rose du texte (§9.5.1).
 - `affirm` et `ink-quiet` sont les deux autres couleurs de verdict.
   Aucune valeur partagée n'est donc libre, sauf `mark`, utilisable sur
-  13 thèmes sur 33.
+  **18** thèmes sur 33 — tous les sombres.
 - `ink` sur `page` est le seul couple sur lequel **tout** thème est
   admis (§9.5.2). Un lien est donc AA et AAA partout par construction, et
   WCAG 1.4.1 est satisfait par le soulignement, qui n'est pas une
@@ -2578,13 +2595,13 @@ Chaque aperçu est un `<iframe srcdoc>`. Deux raisons, l'une nécessaire :
   se calculeraient sur la fenêtre du lecteur ; dans un iframe elles se
   calculent sur l'aperçu, comme dans une vraie page.
 - La feuille réelle définit `body`, `h1`, `code`… L'isolement du document
-  évite d'avoir à réécrire ses 135 règles pour les confiner.
+  évite d'avoir à réécrire ses ~203 règles pour les confiner.
 
 L'aperçu est rendu à 1100 px de large puis réduit géométriquement
 (`transform: scale()`) : une miniature du rendu réel, pas une
 approximation. `srcdoc` conserve l'autonomie de la page — aucune requête
-externe. La galerie pèse de ce fait environ 1 Mo, la feuille composée
-(~29 Ko par document d'aperçu) étant répétée pour chacun des thèmes ;
+externe. La galerie pèse de ce fait environ 1.3 Mo, la feuille
+composée (~34 Ko par document d'aperçu) étant répétée pour chacun des thèmes ;
 c'est le prix de la garantie, et il a été jugé acceptable pour une page
 de documentation.
 
@@ -2970,14 +2987,14 @@ Le numéro de version (constante `VERSION` de l'exécutable, affichée par
   un nouveau champ optionnel, une nouvelle option de commande, un nouveau
   thème. Une série valide pour `x.Y` le reste pour `x.Y+1`.
 - **MAJEUR** (`X.0.0`) : changement **incompatible** du contrat d'entrée —
-  renommer/supprimer un champ gelé (§2.5), changer la sémantique de la
+  renommer/supprimer un champ gelé (§20.2), changer la sémantique de la
   cascade (§20.3.1), retirer une commande ou une option. C'est exactement
   ce qui a motivé le gel de nomenclature avant la 1.0.
 
 **Le contrat stable, c'est l'entrée, pas la sortie.** Sont garantis
 stables au sein d'une même version MAJEURE : les noms et la portée des
-champs (§2.5), la structure de `series.json`, le format de l'article
-`.md`, les commandes et options de la CLI, les variables `LWP_*`. Le
+champs (`GLOSSARY.md` § « Naming conventions », liste gelée en §20.2),
+la structure de `series.json`, le format de l'article `.md`, les commandes et options de la CLI, les variables `LWP_*`. Le
 **HTML produit**, lui, peut changer entre deux CORRECTIFs (amélioration de
 style, de sémantique, d'accessibilité) : c'est pourquoi `check` (§11.4)
 signale une dérive normale après une montée de version, jusqu'au prochain
@@ -2987,7 +3004,8 @@ ce dont `check` dépend ; la reproductibilité ne traverse pas les versions.
 
 Avant la 1.0, toutes les releases sont des **préversions** : le format a
 pu bouger d'une mineure à l'autre (c'est la phase de stabilisation qui
-s'achève avec le gel §2.5). La 1.0 est le premier engagement de stabilité
+s'achève avec le gel des noms de champs (§20.2). La 1.0 est le premier
+engagement de stabilité
 au sens ci-dessus.
 
 ---

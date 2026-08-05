@@ -119,7 +119,7 @@ description; the terms are fixed here, in English.
 | **override** | The relation between layers: a value in a later layer covering an earlier one. |
 | **customization** | The author's act of overriding — via settings, per-article properties, instance tags, or `custom.css`. |
 | **article properties** | `style.<property>: value` lines in an article's meta block — the same vocabulary, scoped to that page alone (§9.6.1). |
-| **instance tag** | A format-defined tag in free text (`{color:mark}…{/color}`, `{sc}…{/sc}`) — the instance-scoped fifth layer, same types as everywhere, enumerated by `audit` (§9.6.3). |
+| **instance tag** | A format-defined tag in free text — the instance-scoped fifth layer, same types as everywhere, enumerated by `audit` (§9.6.3). Inline (`{color:mark}…{/color}`, `{sc}…{/sc}`) or, for alignment alone, **block-level**: `{align:center}` and `{/align}` each on their own line, because `text-align` on an inline span does nothing. |
 | **variant** | A named look for a component instance (`fact-variant: warning` → class `fact--warning`), defined once per series in `custom.css` — the source carries meaning, not visual values (§9.6.2). |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
 | **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |
