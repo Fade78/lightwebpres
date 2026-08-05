@@ -89,15 +89,34 @@ off by default.
 
 ## 4. Numbering, links, and the cases that need a ruling
 
-**Numbering is continuous across the page, in order of appearance,
-whatever the placement.** The author's label (`[^kwh]`, `[^1]`, `[^a]`)
-stays in the source and can be anything; what the reader sees is a
-position. Two cards each carrying "their first note" would otherwise both
-show 1, which is wrong on a page a reader scrolls through.
+**Numbering is continuous, and it restarts with the unit that carries
+the bodies.** One rule, and it follows from placement rather than being a
+second decision:
 
-This is not a content rewrite — the source keeps its labels — so it does
-not collide with the rule that the tool never mutates what an author
-wrote.
+| placement | the unit carrying bodies | numbering |
+|---|---|---|
+| `local`, call in a card | that card | restarts at 1 in each card |
+| `local`, call in the article | the article | continuous through the article |
+| `page` | the page | continuous across the page |
+
+**The argument is addressability, not symmetry.** A card is shareable on
+its own — the share button hands out links to individual cards — so a
+reader can arrive at card 5 having seen nothing else. A note numbered 7
+there is meaningless to them: they will look for the first six. Numbering
+must be scoped the way addressing is. It is also what print does: notes
+restart per page, and here the card *is* the page's analogue — one
+screen, one unit, its own ground and rules.
+
+**The displayed number is not the anchor id.** HTML requires ids unique
+to the document, so the body's id stays scoped (`note-s3-1`: slide 3,
+note 1) while the reader sees `1`. Without that, two cards each carrying
+one note would emit two `id="note-1"` and every return link would land on
+the wrong one.
+
+The author's label (`[^kwh]`, `[^1]`, `[^a]`) stays in the source and can
+be anything; what the reader sees is a position. This is not a content
+rewrite — the source keeps its labels — so it does not collide with the
+rule that the tool never mutates what an author wrote.
 
 **Links go both ways.** The call is a link to the body; the body carries
 a return link to the call. The return link is not decoration: without it
@@ -137,10 +156,21 @@ The structural cascade reuses the shape `author`/`license`/`date`
 already have: declared series-wide in `series_meta`, overridden per
 article in its own meta block. Nothing new is invented.
 
-The appearance side extends the registry as an ordinary component. One
-already exists — `footnote-call` (`sup`), with `fg` and `size` — and it
-keeps its name. A `note` component joins it for the body block: its
-rule, its type size, its ground.
+The appearance side extends the registry with **three** components,
+because the two placements are not one surface. `footnote-call` (`sup`,
+with `fg` and `size`) already exists and keeps its name; it styles the
+call, which is the same object wherever the body lands.
+
+| Component | The surface | Why it is its own |
+|---|---|---|
+| `note` | the body itself | shared: type size, colour, leading, the return link |
+| `note.local` | the block at the foot of a card | compact furniture *inside* a card — a rule to detach it from the content above, tight spacing, no ground of its own |
+| `note.page` | the notes section at the end | a **section**, like the article's: it wants a ground, a heading and a rule, and it is sized for a scroll rather than for the last third of a screen |
+
+Giving them one component would force a theme to style a foot-of-card
+block and a full section with the same values, which is the mistake the
+§9 rewrite was made to stop: one name carrying two senses, so neither can
+move without moving the other.
 
 ## 6. The authoring surface
 

@@ -1205,6 +1205,45 @@ THEME_COMPONENTS = [
         ThemeProp('footnote-call.size', PROP_LENGTH, '0.72em', css='font-size'),
     ]),
 
+    # A note's body, and the two surfaces it can land on. Three components
+    # rather than one, because a block tucked under a card and a section of
+    # its own are not the same object: giving them one name would force a
+    # theme to style both with the same values, which is exactly the
+    # one-name-two-senses fault the §9 rewrite was made to end.
+    ThemeComponent('note', '.note-body', [
+        ThemeProp('note.fg',      PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('note.size',    PROP_LENGTH, '13px',      css='font-size'),
+        ThemeProp('note.leading', PROP_RATIO,  '1.5',       css='line-height'),
+        ThemeProp('note.marker.fg', PROP_COLOR, 'call', css='color',
+                  selector='.note-body .note-num'),
+        ThemeProp('note.back.fg', PROP_COLOR, 'ink-quiet', css='color',
+                  selector='.note-back'),
+    ]),
+    # Compact furniture INSIDE a card: a rule to detach it from the content
+    # above, and nothing else. No ground -- it sits on the card's own.
+    ThemeComponent('note.local', '.notes-local', [
+        ThemeProp('note.local.rule-fg',    PROP_COLOR,  '#0000001A',
+                  css='border-top-color'),
+        ThemeProp('note.local.rule-width', PROP_LENGTH, '1px',
+                  css='border-top-width'),
+    ]),
+    # A SECTION, like the article's: it carries a ground and a heading, and
+    # it is sized for a scroll rather than for the last third of a screen.
+    ThemeComponent('note.page', '.notes-section', [
+        ThemeProp('note.page.bg',         PROP_COLOR,  '#FFFFFFB8',
+                  css='background'),
+        ThemeProp('note.page.rule-fg',    PROP_COLOR,  '#0000001A',
+                  css='border-top-color'),
+        ThemeProp('note.page.rule-width', PROP_LENGTH, '1px',
+                  css='border-top-width'),
+        ThemeProp('note.page.title.fg',     PROP_COLOR,  'ink', css='color',
+                  selector='.notes-section h2'),
+        ThemeProp('note.page.title.size',   PROP_LENGTH, '22px', css='font-size',
+                  selector='.notes-section h2'),
+        ThemeProp('note.page.title.font',   PROP_FONT,   'display',
+                  css='font-family', selector='.notes-section h2'),
+    ]),
+
     # color:inherit and the underline itself are architecture (B3), not
     # settings; only the rule's tint is exposed.
     ThemeComponent('link', '.fact-content a, .full-article a', [
@@ -2336,6 +2375,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
+
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an <ol>
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.

@@ -536,6 +536,22 @@
   /* footnote-call */
   --footnote-call-fg: #BF616AFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #4C566AFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #BF616AFF;
+  --note-back-fg: #4C566AFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #2E3440FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #2E3440FF;
   /* table */
@@ -823,6 +839,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -1502,6 +1543,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -1705,6 +1771,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF5555FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #8B9CC7FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FF5555FF;
+  --note-back-fg: #8B9CC7FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #F8F8F2FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F8F8F2FF;
   /* table */
@@ -1992,6 +2074,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -2671,6 +2778,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -2874,6 +3006,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #DC322FFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #93A1A1FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #DC322FFF;
+  --note-back-fg: #93A1A1FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #002B36FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #002B36FF;
   /* table */
@@ -3161,6 +3309,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -3840,6 +4013,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -4043,6 +4241,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #CC241DFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #928374FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #CC241DFF;
+  --note-back-fg: #928374FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #282828FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #282828FF;
   /* table */
@@ -4330,6 +4544,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -5009,6 +5248,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -5212,6 +5476,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #D20F39FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #6C6F85FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #D20F39FF;
+  --note-back-fg: #6C6F85FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #4C4F69FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #4C4F69FF;
   /* table */
@@ -5499,6 +5779,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -6178,6 +6483,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -6381,6 +6711,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #F7768EFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #8C94BCFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #F7768EFF;
+  --note-back-fg: #8C94BCFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #C0CAF5FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #C0CAF5FF;
   /* table */
@@ -6668,6 +7014,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -7347,6 +7718,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -7550,6 +7946,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #F8F8F2FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #9B9483FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #F92672FF;
+  --note-back-fg: #9B9483FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #F8F8F2FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: ui-monospace, &#x27;Cascadia Code&#x27;, &#x27;Source Code Pro&#x27;, Menlo, Consolas, &#x27;DejaVu Sans Mono&#x27;, monospace;
   /* link */
   --link-decoration-color: #F8F8F2FF;
   /* table */
@@ -7837,6 +8249,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -8516,6 +8953,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -8719,6 +9181,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #E67E80FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #9DA9A0FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #E67E80FF;
+  --note-back-fg: #9DA9A0FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #D3C6AAFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #D3C6AAFF;
   /* table */
@@ -9006,6 +9484,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -9685,6 +10188,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -9888,6 +10416,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #B4637AFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #797593FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #B4637AFF;
+  --note-back-fg: #797593FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #464261FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #464261FF;
   /* table */
@@ -10175,6 +10719,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -10854,6 +11423,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -11057,6 +11651,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #D00000FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #4A4A4AFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #D00000FF;
+  --note-back-fg: #4A4A4AFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #000000FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #000000FF;
   /* table */
@@ -11344,6 +11954,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -12023,6 +12658,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -12226,6 +12886,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #D64045FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #5A7184FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #D64045FF;
+  --note-back-fg: #5A7184FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #0B2545FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #0B2545FF;
   /* table */
@@ -12513,6 +13189,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -13192,6 +13893,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -13395,6 +14121,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF8A5BFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #7B8FA8FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FF8A5BFF;
+  --note-back-fg: #7B8FA8FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #DCE6F2FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #DCE6F2FF;
   /* table */
@@ -13682,6 +14424,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -14361,6 +15128,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -14564,6 +15356,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #2B2B2BFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #707070FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #2B2B2BFF;
+  --note-back-fg: #707070FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #111111FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #111111FF;
   /* table */
@@ -14851,6 +15659,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -15530,6 +16363,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -15733,6 +16591,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFFFFFFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #8A8A8AFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FFFFFFFF;
+  --note-back-fg: #8A8A8AFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #EDEDEDFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #EDEDEDFF;
   /* table */
@@ -16020,6 +16894,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -16699,6 +17598,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -16902,6 +17826,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #8C2F1EFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #6B6862FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #8C2F1EFF;
+  --note-back-fg: #6B6862FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #1A1A18FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1A1A18FF;
   /* table */
@@ -17189,6 +18129,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -17868,6 +18833,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -18071,6 +19061,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #D4AF37FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #8E8269FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #D4AF37FF;
+  --note-back-fg: #8E8269FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #F3EDDFFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F3EDDFFF;
   /* table */
@@ -18358,6 +19364,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -19037,6 +20068,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -19240,6 +20296,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #B00020FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #8A6A6EFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #B00020FF;
+  --note-back-fg: #8A6A6EFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #3B0A12FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #3B0A12FF;
   /* table */
@@ -19527,6 +20599,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -20206,6 +21303,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -20409,6 +21531,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #F4622EFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #A08074FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #F4622EFF;
+  --note-back-fg: #A08074FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #FFEDE2FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #FFEDE2FF;
   /* table */
@@ -20696,6 +21834,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -21375,6 +22538,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -21578,6 +22766,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #C1121FFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #6E6A64FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #C1121FFF;
+  --note-back-fg: #6E6A64FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #D6D2C8FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #D6D2C8FF;
   /* table */
@@ -21865,6 +23069,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -22544,6 +23773,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -22747,6 +24001,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #B4652AFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #7C8B7EFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #B4652AFF;
+  --note-back-fg: #7C8B7EFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #26302AFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #26302AFF;
   /* table */
@@ -23034,6 +24304,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -23713,6 +25008,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -23916,6 +25236,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #E0A32EFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #7D9480FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #E0A32EFF;
+  --note-back-fg: #7D9480FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #DDE9DCFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #DDE9DCFF;
   /* table */
@@ -24203,6 +25539,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -24882,6 +26243,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -25085,6 +26471,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #6D28D9FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #7A8A72FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #6D28D9FF;
+  --note-back-fg: #7A8A72FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #1E2B1BFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1E2B1BFF;
   /* table */
@@ -25372,6 +26774,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -26051,6 +27478,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -26254,6 +27706,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF2FB9FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #6B5CA5FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FF2FB9FF;
+  --note-back-fg: #6B5CA5FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #16003BFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #16003BFF;
   /* table */
@@ -26541,6 +28009,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -27220,6 +28713,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -27423,6 +28941,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF3C6FFF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #6E9C7AFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FF3C6FFF;
+  --note-back-fg: #6E9C7AFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #D7FFE0FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: ui-monospace, &#x27;Cascadia Code&#x27;, &#x27;Source Code Pro&#x27;, Menlo, Consolas, &#x27;DejaVu Sans Mono&#x27;, monospace;
   /* link */
   --link-decoration-color: #D7FFE0FF;
   /* table */
@@ -27710,6 +29244,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -28389,6 +29948,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -28592,6 +30176,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FF2E97FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #9A86C4FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FF2E97FF;
+  --note-back-fg: #9A86C4FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #F2E9FFFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F2E9FFFF;
   /* table */
@@ -28879,6 +30479,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -29558,6 +31183,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -29761,6 +31411,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFD400FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #F7BDC2FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FFD400FF;
+  --note-back-fg: #F7BDC2FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #FFF1F0FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #FFF1F0FF;
   /* table */
@@ -30048,6 +31714,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -30727,6 +32418,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -30930,6 +32646,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #4C1D95FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #5E3000FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #4C1D95FF;
+  --note-back-fg: #5E3000FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #241000FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #241000FF;
   /* table */
@@ -31217,6 +32949,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -31896,6 +33653,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -32099,6 +33881,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #8F0049FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #6B5C0AFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #8F0049FF;
+  --note-back-fg: #6B5C0AFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #1F1A00FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1F1A00FF;
   /* table */
@@ -32386,6 +34184,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -33065,6 +34888,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -33268,6 +35116,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFD400FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #B5E4C4FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FFD400FF;
+  --note-back-fg: #B5E4C4FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #F0FFF4FF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F0FFF4FF;
   /* table */
@@ -33555,6 +35419,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -34234,6 +36123,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -34437,6 +36351,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFC2D8FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #A6D9E4FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FFC2D8FF;
+  --note-back-fg: #A6D9E4FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #EFFCFFFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #EFFCFFFF;
   /* table */
@@ -34724,6 +36654,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -35403,6 +37358,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -35606,6 +37586,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FFD400FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #B3C2F0FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FFD400FF;
+  --note-back-fg: #B3C2F0FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #F0F4FFFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F0F4FFFF;
   /* table */
@@ -35893,6 +37889,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -36572,6 +38593,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -36775,6 +38821,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FDE047FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #CBB6EEFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FDE047FF;
+  --note-back-fg: #CBB6EEFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #F6F1FFFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #F6F1FFFF;
   /* table */
@@ -37062,6 +39124,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -37741,6 +39828,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
 
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
    The descendant selector is deliberate: text-align is inherited, but a
@@ -37944,6 +40056,22 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   /* footnote-call */
   --footnote-call-fg: #FDE047FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #F0B8D8FF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FDE047FF;
+  --note-back-fg: #F0B8D8FF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #FFF0FAFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, &#x27;Bitstream Charter&#x27;, &#x27;Sitka Text&#x27;, Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #FFF0FAFF;
   /* table */
@@ -38231,6 +40359,31 @@ sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
 }
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
+}
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
 }
@@ -38909,6 +41062,31 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
+
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an &lt;ol&gt;
+   counter could not carry both. */
+.notes-local {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
