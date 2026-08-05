@@ -381,6 +381,13 @@ switching between them is instant — no separate page, no reload.
   missing required slides, unsafe file paths in `series.json`/`article:`
   (rejects anything that isn't a plain filename — no directory traversal),
   malformed JSON.
+- No page is ever written over another. Two articles resolving to the
+  same output name is fatal, and so is an article named `index.html` in a
+  series of several articles — that name belongs to the series index,
+  which carries the article list. A series of **exactly one** article may
+  take it: the article becomes the page the directory serves, no series
+  index is generated (a list of one adds nothing), and `build` says so on
+  a `[no index]` line.
 - Typography rules are applied to already-assembled HTML but can never
   touch tag syntax — text and markup are split before any rule runs.
 - Every generated page is checked for HTML tag balance before being

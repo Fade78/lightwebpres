@@ -7551,6 +7551,63 @@ def load_build_context(series_dir, args):
     )
 
 
+def resolve_index_claim(articles):
+    """§11.3.3 — the article, if any, whose resolved page_dest is the very
+    name `build` writes the series index to. Returns that entry, or None.
+
+    The name is what the collision is: the article page was written
+    first, the index landed on top of it, exit code 0, no warning — a
+    series declaring three articles shipped two. Same class of defect as
+    §22.8 (a page published broken while the build reports success),
+    applied to a name clash.
+
+    What to do about it depends on the number of articles, and that is
+    not a concession — it is what the index is worth in each case. With
+    more than one article the index carries real information (the list),
+    so overwriting it is a loss: fatal, here, before anything is written.
+    With exactly one, the index would list a single entry and adds
+    nothing; the caller lets the article take the name and skips the
+    index (announced in the build output, never in silence).
+
+    A one-article series is a brick as much as a site: it may land in a
+    directory whose index is kept some other way — by hand, by another
+    generator, or because other articles already live there — and the
+    author then leaves the default name and claims nothing. Or it is
+    alone, and index.html is the name that means something. The name
+    chosen IS the statement of intent, and the tool has no business
+    guessing otherwise.
+
+    Compared case-insensitively, for the same reason the duplicate
+    page_dest check is (see resolve_article_fields): 'Index.html' and
+    'index.html' are two names to a URL but one file on Windows and
+    default macOS, so the clash is decided identically everywhere rather
+    than being silent data loss on some filesystems only.
+
+    Shared by build and check: refusing in one and diffing against an
+    arrangement the other will not build would leave check reporting a
+    drift that no rebuild can ever settle."""
+    claimant = next((e for e in articles if e['page_dest'].lower() == 'index.html'), None)
+    if claimant is not None and len(articles) > 1:
+        print(f'[ERROR] series.json: article "{claimant["page_source"]}" resolves '
+              f'to page_dest "{claimant["page_dest"]}", which collides with the '
+              f'series index — with {len(articles)} articles the index carries '
+              f'the article list, so one of the two pages would overwrite the '
+              f'other. Give this article another page_dest (in series.json, in '
+              f'its own meta block, or by renaming the source); only a '
+              f'one-article series may take the index name.', file=sys.stderr)
+        sys.exit(1)
+    return claimant
+
+
+def _no_index_notice(claimant):
+    """The one-article branch of §11.3.3, said out loud. Someone whose
+    index stopped being generated has to be able to see why from the
+    build output alone, without going to the specification."""
+    return (f'  [no index] {claimant["page_dest"]} is {claimant["page_source"]}\'s '
+            f'own page — a series index would list that one article and nothing '
+            f'else, so none is generated.')
+
+
 def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
     """The fast path for `build --only`: the caller has already confirmed
     nav/index-affecting metadata is unchanged since the last build, so
@@ -7574,11 +7631,18 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context)
     (ctx.output_dir / entry['page_dest']).write_text(html, encoding='utf-8')
 
-    index_extra_file = ctx.templates_dir / 'index_extra.html'
-    index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
-    print('  index.html')
-    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
-    (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+    # Same §11.3.3 branch as the full build — the fast path writes the
+    # index too, so leaving it out here would drop the index straight
+    # back onto the article page it just wrote.
+    claimant = resolve_index_claim(ctx.articles)
+    if claimant is None:
+        index_extra_file = ctx.templates_dir / 'index_extra.html'
+        index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
+        print('  index.html')
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
+        (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+    else:
+        print(_no_index_notice(claimant))
 
     readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
     (ctx.sd / 'README.md').write_text(readme, encoding='utf-8')
@@ -7586,7 +7650,8 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
-    print(f'Incremental build complete: {entry["page_dest"]} + index -> {ctx.output_dir}')
+    tail = ' + index' if claimant is None else ''
+    print(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
 
 
 def cmd_build(series_dir, args):
@@ -7605,6 +7670,12 @@ def cmd_build(series_dir, args):
         build_stamp = build_stamp_html(VERSION)
     else:
         build_stamp = ''
+
+    # §11.3.3, decided before anything is written and before the --only
+    # fast path (which writes the index too): more than one article
+    # claiming index.html is fatal in there, exactly one gets the name and
+    # no series index is produced.
+    claimant = resolve_index_claim(ctx.articles)
 
     nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
     fresh_fingerprint = compute_nav_fingerprint(ctx.articles)
@@ -7645,10 +7716,15 @@ def cmd_build(series_dir, args):
         output_path = ctx.output_dir / output_file
         output_path.write_text(html, encoding='utf-8')
 
-    # Build the index
-    print('  index.html')
-    index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
-    (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+    # Build the index — unless a lone article has claimed its name
+    # (§11.3.3), in which case the page just written IS what lives there
+    # and dropping an index on top of it would destroy it.
+    if claimant is None:
+        print('  index.html')
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
+        (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+    else:
+        print(_no_index_notice(claimant))
 
     # Generate the README (spec §8.3)
     readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
@@ -7659,7 +7735,8 @@ def cmd_build(series_dir, args):
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
 
-    print(f'Build complete: {len(ctx.articles)} articles + index -> {ctx.output_dir}')
+    tail = ' + index' if claimant is None else ''
+    print(f'Build complete: {len(ctx.articles)} articles{tail} -> {ctx.output_dir}')
 
 
 def cmd_check(series_dir, args):
@@ -7669,6 +7746,11 @@ def cmd_check(series_dir, args):
     series_meta change (title, intro, article order) alters only the
     index/README, and check stayed green over a stale publication."""
     ctx = load_build_context(series_dir, args)
+    # Decided up front, as in cmd_build: a series.json that build refuses
+    # is refused here too, with the same message and before any per-file
+    # line is printed, rather than after a screenful of comparisons that
+    # describe an arrangement no build will produce.
+    claimant = resolve_index_claim(ctx.articles)
 
     ok_count = 0
     diff_count = 0
@@ -7703,11 +7785,18 @@ def cmd_check(series_dir, args):
         generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
-    index_extra_file = ctx.templates_dir / 'index_extra.html'
-    index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
-    compare('index.html',
-            build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra),
-            ctx.output_dir / 'index.html')
+    # §11.3.3: when a lone article's page_dest IS index.html, `build`
+    # produces no series index at all — that file is the article's own
+    # page, already compared in the loop above. Rendering an index here
+    # and diffing it against that page would report a [DRIFT] on a series
+    # that is correctly built and that no rebuild could ever settle: the
+    # CI gate would stay red for as long as the arrangement lasts.
+    if claimant is None:
+        index_extra_file = ctx.templates_dir / 'index_extra.html'
+        index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
+        compare('index.html',
+                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra),
+                ctx.output_dir / 'index.html')
     compare('README.md',
             build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
             ctx.sd / 'README.md')
