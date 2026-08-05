@@ -105,6 +105,7 @@ reach each one; `SKILL.md` carries the exact syntax and every edge case.
 | **comparison table** | a grid of verdicts read at a glance | a Markdown table; cells take `yes` / `no` / `partial` classes via inline HTML |
 | **figure** | a captioned image | `![alt](img/x.png "Caption")` alone on its line |
 | **quote, code, list** | ordinary prose furniture | ordinary Markdown |
+| **note** | a reference the reader can reach | `[^label]` in the text, `[^label]: body` on its own line |
 | **long-form article** | the piece the cards summarise | a `full-article` slide pointing at a second `.md` file |
 
 Two things are worth knowing before you write, because they surprise
@@ -116,6 +117,18 @@ people:
   `highlight: 3 000 W`. Fields first, prose after.
 - **A fact box appears only with `fact-label:`.** Free text without it
   renders as plain paragraphs — which is often what you want.
+
+**Notes.** `[^label]` calls a note, `[^label]: text` on its own line is
+its body. The label is a key, never displayed — the reader sees a
+position — so you never renumber when you insert one. By default a body
+lands at the foot of the unit that called it (the card, or the end of the
+long-form article) and numbering restarts in each card, because a card is
+shareable on its own and a reader may arrive at it having read nothing
+else. `notes-placement: page` in the meta block instead collects every
+body into one notes section at the end of the page; `notes-tooltip: on`
+additionally puts the text on the call. `audit` names a call with no
+body, a body nothing calls, and a body written inside a raw HTML block
+(where it ships as literal text).
 
 Register every article that should appear in navigation in
 `series.json` — next section.
@@ -378,3 +391,5 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 | the site is in French | `--lang en` on `build`/`demo`; French is the default |
 | `open: command not found` | macOS-only — use `xdg-open` on Linux |
 | a `field:` line published as literal text | it came after prose in the same slide; the switch to free text is one-way (section 3) |
+| `[^1]: …` published as literal text | the body sits inside a raw HTML block, which is passed through verbatim — move it outside |
+| a note marker that isn't a link | nothing defines that label in the same locality; `audit` names it |

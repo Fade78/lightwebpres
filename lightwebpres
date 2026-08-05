@@ -8,11 +8,11 @@ rules + interface strings).
 
 Usage:
   lightwebpres install [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
-  lightwebpres demo [directory] [--lang fr]
+  lightwebpres demo [directory] [--lang fr] [--output public/]
   lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts]
   lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
   lightwebpres audit [directory] [--lang fr]
-  lightwebpres refresh-templates [directory]
+  lightwebpres refresh-templates [directory] [--scaffold]
   lightwebpres themes [--polarity light|dark] [--intensity name] [--hue name]
   lightwebpres set-theme [directory] --theme name
   lightwebpres themes-gallery [path]
@@ -5998,7 +5998,9 @@ def load_series_data(series_dir):
     return data
 
 
-# Field names retired by the v1.0 nomenclature freeze (JOURNAL-1.0.md §2.1),
+# Field names retired in v0.7.0 by the nomenclature freeze that 1.0 will
+# GUARANTEE -- the freeze was performed then, 1.0 is when it becomes a
+# compatibility promise (spec §13.9, JOURNAL-1.0.md §2.1),
 # mapped to their replacements — recognized only to produce a clear
 # migration error instead of a mystifying "missing required field".
 _LEGACY_SERIES_FIELDS = {'source': 'page_source', 'file': 'page_dest'}
@@ -6073,7 +6075,7 @@ def validate_series(articles):
         for legacy, renamed in _LEGACY_SERIES_FIELDS.items():
             if legacy in entry:
                 print(f'[ERROR] series.json: entry {i} uses "{legacy}", '
-                      f'renamed to "{renamed}" in v1.0 — just rename the '
+                      f'renamed to "{renamed}" in v0.7.0 — just rename the '
                       f'key, the value is unchanged.', file=sys.stderr)
                 sys.exit(1)
         if not entry.get('page_source'):
@@ -7558,7 +7560,13 @@ This is the full article for the third demo article [^1].
     print('Running the build...')
     cmd_build(str(td), args)
     print()
-    print('Demo site generated in public/. Open public/index.html in a browser.')
+    # Name the directory the build actually wrote to, not the default:
+    # with --output the fixed string was simply false, and contradicted the
+    # build's own line two above it. The default still reads "public/"
+    # exactly as before.
+    out = args.get('--output', 'public/')
+    print(f'Demo site generated in {out}. '
+          f'Open {Path(out) / "index.html"} in a browser.')
 
 
 # ============================================================================
@@ -7577,7 +7585,8 @@ def print_help():
 
 COMMANDS
   lightwebpres install [directory] [--lang fr]   Creates the directory structure
-  lightwebpres demo [directory] [--lang fr]      Creates a demo site
+  lightwebpres demo [directory] [--lang fr] [--output public/]
+                                                 Creates a demo site
   lightwebpres build [directory] [--lang fr]     Builds the site (self-contained HTML)
   lightwebpres check [directory] [--lang fr]     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr]     Warns about editorial conventions (never blocking)
@@ -7600,7 +7609,9 @@ OPTIONS
   (--option value and --option=value are equivalent; an unknown or
    out-of-place option is a fatal error, never silently ignored)
   --lang fr|en           Language: typography rules + interface strings (default: fr)
-  --output public/       Output directory (default: public/)
+  --output public/       demo/build/check: output directory (default: public/).
+                        A relative path is resolved against the directory you
+                        run from, not against [directory]
   --force                install: proceed even if the target directory is not empty
   --theme name           install/set-theme: apply a named palette (see THEMES
                         below); unknown name is a fatal error
@@ -7621,6 +7632,10 @@ OPTIONS
                         since the last build (checked via --nav-cache) —
                         silently falls back to a full build otherwise, never
                         a stale page (spec §11.3.1)
+  --scaffold              refresh-templates: regenerate settings.conf's commented
+                        surface at the current theme's values, keeping your
+                        pinned (uncommented) lines — the one case where the
+                        tool rewrites that file (spec §9.4.3)
   --include-drafts        build/check: also build articles marked draft: true
                         (excluded entirely by default — no page, no index
                         card, no nav entry). Draft pages built this way carry
@@ -7677,7 +7692,7 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
     fact.strong.weight: normal      un-bold the fact-box emphasis
   A bare word is looked up in its type's namespace (`tag.fg: ink-quiet`);
   a dotted word references another property (`title1.fg: cover.fg`).
-  Errors name their key and line — a mistyped property is a build error,
+  Errors name the file and the key — a mistyped property is a build error,
   never a silent no-op. CSS rules (new selectors, @font-face, media
   queries) belong in templates/custom.css, appended after the composed
   stylesheet so your rules win ties.
@@ -7718,22 +7733,48 @@ ARTICLE FORMAT (.md)
 SLIDE TYPES
   cover         Cover slide (tag, # Title, summary)
   standard      Regular slide (tag, ## Title, summary, highlight,
-                highlight-caption, fact-label, source, + free text = fact-box)
+                highlight-caption, fact-label, fact-variant, source,
+                + free text = fact-box)
   series-nav    Cross-article navigation block, generated from series.json
   full-article  Includes an external .md file via the article: field
                 (required; only one full-article slide per article)
 
 FIELDS RECOGNIZED IN A SLIDE
-  tag, ## Title, summary, fact-label, source, highlight, highlight-caption,
-  comment (review note, never rendered)
+  tag, ## Title, summary, fact-label, fact-variant, source, highlight,
+  highlight-caption, comment (review note, never rendered)
 
 ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
   page_source (required, series.json only), page_dest, page_title, page_desc,
   card_title, card_desc, card_label, nav_title, nav_desc, author, license,
-  date, draft, comment — see GLOSSARY.md for every field's scope and
+  date, draft, notes-placement, notes-tooltip, comment — see GLOSSARY.md
+  for every field's scope and
   fallback chain. author/license default from series_meta for the whole
   series; author/date/license are displayed (page footer + <meta> tags),
   page_desc feeds <meta name="description">.
+
+NOTES (specifications.md §6.5)
+  [^label] calls a note, [^label]: body defines it — standard Markdown, in
+  a slide's free text or in the full-article file. The call links to the
+  body, the body links back, and the label never reaches the page: what
+  the reader sees is a position, so inserting a note renumbers nothing you
+  wrote.
+
+  Two article-level <!-- lwp:meta --> fields, also settable in series_meta
+  (the article wins):
+    notes-placement: local   bodies at the foot of the unit that called
+                             them — that card, or the end of the long-form
+                             article. Numbering restarts in each card,
+                             because a card is shareable on its own. Default.
+    notes-placement: page    every body collected into one notes section at
+                             the end of the page, numbered continuously
+    notes-tooltip: on        also put the body's text on the call. Composes
+                             with either placement, never the only carrier
+                             (the body stays in the document). Default off.
+  An unknown value is a build error naming the article.
+
+  audit names three things, none of them fatal: a call with no body, a
+  body nothing calls, and a body written inside a raw HTML block (raw HTML
+  is passed through verbatim, so it ships as literal text).
 
 TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specifications.md §7/§19
   The built-in French pack (language/fr.json) inserts a non-breaking space
@@ -7874,4 +7915,17 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except BrokenPipeError:
+        # `lightwebpres themes | head` closes the pipe early. Not a themes
+        # bug: any command whose output outruns the pipe buffer hits it,
+        # which is why the handler is here rather than in one command.
+        # Python flushes the standard streams at shutdown, which would
+        # raise a second BrokenPipeError and print a traceback after this
+        # handler returned, so stdout is pointed at devnull first (the
+        # recipe from the signal module's note on SIGPIPE). Exit 1: the
+        # output was truncated, and nothing downstream should read it as
+        # complete.
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        sys.exit(1)

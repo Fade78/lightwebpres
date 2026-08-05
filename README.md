@@ -159,7 +159,10 @@ all generated automatically.
   `series.json` (at most one per article).
 - **`full-article`** — includes a separate long-form Markdown file,
   converted with full support for headings, bold/italic, links,
-  footnotes, lists, tables, blockquotes, images with captions
+  notes (`[^label]` calls it, `[^label]: text` defines it — two-way links,
+  the number a position rather than the label you wrote, collected at the
+  foot of the card or in a notes section of the page), lists, tables,
+  blockquotes, images with captions
   (`![alt](src "Caption")` — small, centered, themed; mid-sentence the
   same image stays inline and its title becomes a tooltip),
   inline/fenced code, and inline raw HTML.

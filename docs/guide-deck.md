@@ -50,6 +50,10 @@ A fact box, a key figure, a source line, a comparison table, a figure. Each is r
 
 The switch from fields to free text is **one-way within a slide**: once a line is not a `field:` line, everything after it is prose.
 
+A note[^note] is reached the standard way, and its number is a position rather than the label you wrote.
+
+[^note]: `[^label]` calls it, `[^label]: text` defines it. By default the body lands at the foot of the unit that called it — this card.
+
 ---
 
 <!-- lwp:slide -->

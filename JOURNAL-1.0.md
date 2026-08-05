@@ -458,8 +458,11 @@ c'est au propriétaire de décider quel(s) numéro(s) leur donner.
 **Puis le système de thèmes :**
 - Un thème peut déclarer un fond sombre (`dark_background`) : les neuf
   superpositions neutres suivent la polarité.
-- Catalogue porté de 9 à 33 thèmes, tous mesurés avant d'être retenus
-  (AAA texte, AA secondaires, 3:1 filets, verdicts séparables en CVD).
+- Catalogue porté de 9 à 33 thèmes. Les critères visés (AAA texte, AA
+  secondaires, 3:1 filets, verdicts séparables en CVD) sont un critère
+  d'admission, pas un état vérifié : cinq thèmes du projet sont en
+  dessous et les neuf palettes empruntées n'ont jamais été rétro-mesurées
+  (spec §9.5.2, BACKLOG B5/B9).
 - Facettes (polarité / intensité / teinte, la teinte calculée en CIELAB)
   et filtres dans `themes-gallery`.
 - Deux commandes : `themes` (lister/filtrer) et `set-theme` (changer de

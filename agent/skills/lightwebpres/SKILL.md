@@ -156,6 +156,17 @@ and emitted as `<meta>` tags:
   `build --include-drafts` builds it anyway, with a banner on the page so
   a preview is never mistaken for a publication.
 
+**Notes fields**, settable here or in `series_meta` (the article wins):
+
+- `notes-placement: local | page` — where note bodies land. `local`
+  (default) puts them at the foot of the unit that called them: the foot
+  of that card, the end of the long-form article. `page` collects every
+  body on the page into one notes section at the end. An unknown value is
+  a fatal build error naming the article.
+- `notes-tooltip: on | off` — `on` also puts the body's text on the call
+  as a tooltip. It composes with either placement and is never the only
+  carrier: the body stays in the document regardless. Off by default.
+
 **A key this block does not recognize is accepted in silence** — no
 error, no warning, and no effect. `page-title:` instead of `page_title:`
 builds cleanly and falls back as though you had written nothing. This is
@@ -210,7 +221,7 @@ highlighted-callout look, omit it for ordinary body text.
 
 **That free text goes through the same Markdown converter as the
 full-article file** — everything listed under "The full-article file"
-below works here too: tables (including the verdict classes), footnotes,
+below works here too: tables (including the verdict classes), notes,
 blockquotes, code spans and fenced blocks, links, raw HTML. Headings are
 styled smaller than the slide's own big title to fit the fact-box's
 frame. One trap to know about: a heading opening
@@ -230,8 +241,9 @@ takes `article:` and nothing else.
 
 Referenced by `article:`, it's a separate `.md` file (by convention
 `{name}_article.md`) with **no LWP structure at all** — just standard
-Markdown: headings, `**bold**`/`*italic*`, `[links](url)`, footnotes
-(`[^1]` + `[^1]: definition`), lists, tables, blockquotes (`> text`),
+Markdown: headings, `**bold**`/`*italic*`, `[links](url)`, notes
+(`[^label]` + `[^label]: body` — see "Notes" below), lists, tables,
+blockquotes (`> text`),
 images (`![alt](img/pic.png)` — alone on its line it becomes a centered
 `<figure>` block, and a standard Markdown title, `![alt](src "Caption")`,
 renders as a small centered caption under the image; mid-paragraph it's
@@ -282,6 +294,43 @@ a multi-line card, closed by `</a>` several lines later) and every line
 in between is raw HTML verbatim until the matching close, even a line
 that would look like a self-contained inline usage on its own
 (`<span class="caption">...</span>` alone on its line, say).
+
+## Notes
+
+Standard Markdown, nothing invented:
+
+```markdown
+The kettle draws about 3 kW[^kwh] on a domestic ring.
+
+[^kwh]: Measured at 230 V, 13 A. See the appliance's rating plate.
+```
+
+Works in a slide's free text and in the full-article file. **The label is
+a key, not content** — `[^kwh]`, `[^1]`, `[^a]` are all fine, none of them
+reaches the page, and what the reader sees is a position. So you never
+have to renumber anything when you insert a note.
+
+The call becomes a link to the body; the body carries a link back to the
+call. One label called twice gives one body with two return links.
+
+**Numbering restarts with whatever unit holds the bodies.** Under the
+default `local` placement that means each card starts again at 1, while
+the long-form article runs continuously through itself. That is on
+purpose: a card is individually shareable, so a reader can arrive at card
+5 having seen nothing else, and a note numbered 7 there would send them
+hunting for six that are not on their screen.
+
+Three things `audit` will tell you about, none of them fatal:
+
+- a call with no body — the marker still renders, but as no link at all;
+- a body nothing calls — it still renders, at the end of the block,
+  with no return link;
+- a definition written inside a raw HTML block (a `<div class="refs">`,
+  typically) — raw HTML is passed through verbatim, so it ships as the
+  literal text `[^1]: …`. Put note bodies outside your raw HTML.
+
+Practical note for `local`: notes at the foot of a card take room on a
+screen that is already short. A card carrying five of them will scroll.
 
 ## Per-slide look: `fact-variant`
 

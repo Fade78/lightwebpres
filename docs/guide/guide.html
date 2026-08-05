@@ -127,6 +127,22 @@
   /* footnote-call */
   --footnote-call-fg: #FF4757FF;
   --footnote-call-size: 0.72em;
+  /* note */
+  --note-fg: #6B6B7DFF;
+  --note-size: 13px;
+  --note-leading: 1.5;
+  --note-marker-fg: #FF4757FF;
+  --note-back-fg: #6B6B7DFF;
+  /* note.local */
+  --note-local-rule-fg: #0000001A;
+  --note-local-rule-width: 1px;
+  /* note.page */
+  --note-page-bg: #FFFFFFB8;
+  --note-page-rule-fg: #0000001A;
+  --note-page-rule-width: 1px;
+  --note-page-title-fg: #1A1A2EFF;
+  --note-page-title-size: 22px;
+  --note-page-title-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1A1A2EFF;
   /* table */
@@ -413,6 +429,31 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.note-body {
+  color: var(--note-fg);
+  font-size: var(--note-size);
+  line-height: var(--note-leading);
+}
+.note-body .note-num {
+  color: var(--note-marker-fg);
+}
+.note-back {
+  color: var(--note-back-fg);
+}
+.notes-local {
+  border-top-color: var(--note-local-rule-fg);
+  border-top-width: var(--note-local-rule-width);
+}
+.notes-section {
+  background: var(--note-page-bg);
+  border-top-color: var(--note-page-rule-fg);
+  border-top-width: var(--note-page-rule-width);
+}
+.notes-section h2 {
+  color: var(--note-page-title-fg);
+  font-size: var(--note-page-title-size);
+  font-family: var(--note-page-title-font);
 }
 .fact-content a, .full-article a {
   text-decoration-color: var(--link-decoration-color);
@@ -953,7 +994,6 @@ sup { vertical-align: super; line-height: 0; }
   .slide { padding: 40px 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: 16px; right: 16px; }
-  .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
 }
 
 /* --- The highlight block --- */
@@ -1058,6 +1098,18 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   font-size: 14px;
 }
 
+/* The popover's phone geometry. It used to live in the responsive block
+   further up, where it did nothing at all: same specificity, declared
+   ABOVE `.share-popover`, so the base rule won every time. Measured in
+   Chromium at 375px it resolved to bottom 80px / right 28px / max-width
+   335px -- the desktop values, on the screen where the 8px of margin it
+   was trying to reclaim actually matter. The block's own comment already
+   warned about source order; this is what ignoring it looks like, so the
+   override now sits after the rule it overrides. */
+@media (max-width: 600px) {
+  .share-popover { bottom: 72px; right: 16px; max-width: calc(100vw - 32px); }
+}
+
 /* --- The index page: article cards, masthead, intro --- */
 .article-card {
   display: block;
@@ -1092,6 +1144,43 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 }
 .intro { max-width: var(--page-content-max); margin-bottom: 48px; }
 .intro p { margin-bottom: 16px; }
+
+/* --- Notes: the body, and the two surfaces it can land on ---
+   Layout only; every colour and size here is a registry axis. The list is
+   unstyled and the number explicit, because the displayed number restarts
+   per locality while the anchor id stays unique to the document — an <ol>
+   counter could not carry both. */
+.notes-local {
+  /* The rule is the block's own, not the page's: without this it spans the
+     full slide while the note text sits in a ~50ch column beside it, and
+     reads as a section break rather than as the foot of this block. Same
+     measure as the prose it belongs to, which is the one variable the
+     skeleton is allowed to reach for. */
+  max-width: var(--page-content-max);
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top-style: solid;
+}
+.notes-section {
+  padding: 40px 8vw 60px 8vw;
+  border-top-style: solid;
+}
+.notes-section h2 { margin-bottom: 16px; }
+.note-body {
+  max-width: var(--page-content-max);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.note-body li { margin-bottom: 8px; }
+.note-num { font-weight: 700; margin-right: 6px; }
+.note-back { text-decoration: none; margin-left: 6px; }
+/* The call is a link, and must not look like one: it takes the size and
+   colour the footnote-call component gives the <sup> around it, not the
+   page's link styling. Layout, not a theme value -- a theme that wanted
+   to paint it would set footnote-call.fg. */
+.note-call a { color: inherit; text-decoration: none; }
+.note-call a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* --- Block alignment: the instance layer of the align axes ---
    {align:center} in an article source wraps its blocks in one of these.
@@ -1211,7 +1300,13 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="fact-box">
     <div class="fact-label">What is in a standard slide</div>
     <div class="fact-content">  <p>A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS.</p>
-  <p>The switch from fields to free text is <strong>one-way within a slide</strong>: once a line is not a <code>field:</code> line, everything after it is prose.</p></div>
+  <p>The switch from fields to free text is <strong>one-way within a slide</strong>: once a line is not a <code>field:</code> line, everything after it is prose.</p>
+  <p>A note<sup class="note-call"><a id="noteref-s4-1" href="#note-s4-1" role="doc-noteref">1</a></sup> is reached the standard way, and its number is a position rather than the label you wrote.</p>
+  <div class="notes-local">
+  <ol class="note-body">
+    <li id="note-s4-1" role="doc-footnote"><span class="note-num">1</span><code>[^label]</code> calls it, <code>[^label]: text</code> defines it. By default the body lands at the foot of the unit that called it — this card.<a class="note-back" href="#noteref-s4-1" role="doc-backlink" aria-label="Back to the text">↩</a></li>
+  </ol>
+  </div></div>
   </div>
 </section>
 
@@ -1381,6 +1476,11 @@ xdg-open my-series/public/index.html         # `open` on macOS
         <td>ordinary Markdown</td>
       </tr>
       <tr>
+        <td><strong>note</strong></td>
+        <td>a reference the reader can reach</td>
+        <td><code>[^label]</code> in the text, <code>[^label]: body</code> on its own line</td>
+      </tr>
+      <tr>
         <td><strong>long-form article</strong></td>
         <td>the piece the cards summarise</td>
         <td>a <code>full-article</code> slide pointing at a second <code>.md</code> file</td>
@@ -1396,6 +1496,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <li><strong>A fact box appears only with <code>fact-label:</code>.</strong> Free text without it</li>
   </ul>
   <p>  renders as plain paragraphs — which is often what you want.</p>
+  <p><strong>Notes.</strong> <code>[^label]</code> calls a note, <code>[^label]: text</code> on its own line is its body. The label is a key, never displayed — the reader sees a position — so you never renumber when you insert one. By default a body lands at the foot of the unit that called it (the card, or the end of the long-form article) and numbering restarts in each card, because a card is shareable on its own and a reader may arrive at it having read nothing else. <code>notes-placement: page</code> in the meta block instead collects every body into one notes section at the end of the page; <code>notes-tooltip: on</code> additionally puts the text on the call. <code>audit</code> names a call with no body, a body nothing calls, and a body written inside a raw HTML block (where it ships as literal text).</p>
   <p>Register every article that should appear in navigation in <code>series.json</code> — next section.</p>
   <h2>4. Organizing a series</h2>
   <p><code>series.json</code> lists the articles and holds series-wide metadata:</p>
@@ -1551,6 +1652,14 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
       <tr>
         <td>a <code>field:</code> line published as literal text</td>
         <td>it came after prose in the same slide; the switch to free text is one-way (section 3)</td>
+      </tr>
+      <tr>
+        <td><code>[^1]: …</code> published as literal text</td>
+        <td>the body sits inside a raw HTML block, which is passed through verbatim — move it outside</td>
+      </tr>
+      <tr>
+        <td>a note marker that isn't a link</td>
+        <td>nothing defines that label in the same locality; <code>audit</code> names it</td>
       </tr>
     </tbody>
   </table>

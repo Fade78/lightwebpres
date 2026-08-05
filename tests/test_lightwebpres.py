@@ -6148,14 +6148,14 @@ class LegacyFieldMigrationErrors(unittest.TestCase):
             root = self._series_with_keys(tmp, {'source': 'a.md'})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('renamed to "page_source" in v1.0', result.stderr)
+            self.assertIn('renamed to "page_source" in v0.7.0', result.stderr)
 
     def test_legacy_file_key_gets_migration_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series_with_keys(tmp, {'page_source': 'a.md', 'file': 'a.html'})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('renamed to "page_dest" in v1.0', result.stderr)
+            self.assertIn('renamed to "page_dest" in v0.7.0', result.stderr)
 
 
 class DegenerateInputRobustness(unittest.TestCase):

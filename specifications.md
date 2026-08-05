@@ -37,10 +37,24 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
   (installer, écrire, vérifier, publier).
 - **`agent/skills/lightwebpres/SKILL.md`** (anglais) — la référence du
   format à destination d'un agent LLM qui écrit ou modifie des articles.
+- **`BACKLOG.md`** (anglais) — le registre *pérenne* des manques relevés
+  et des décisions différées : ce qui doit rester trouvable « plus tard »
+  y va, et y reste au travers des releases. Référencé par cette
+  spécification (B3, B5, B9).
 
-Le fichier de travail `JOURNAL-1.0.md`, transitoire, ne fait **pas**
-partie de ce contrat : il est supprimé du dépôt juste avant la 1.0 et
-n'est jamais référencé par un document pérenne.
+Les autres fichiers `.md` de la racine ne font **pas** partie de ce
+contrat, et se répartissent en deux familles :
+
+- **transitoire** — `JOURNAL-1.0.md`, la mémoire de travail de la 1.0 :
+  supprimée du dépôt juste avant la release, jamais référencée par un
+  document pérenne. Ses renvois internes en `§x.y` ne sont pas tenus à
+  jour et peuvent pointer dans le vide.
+- **rapports et documents gelés** — les études rattachées à une entrée du
+  `BACKLOG.md` (`ETUDE-VIEWPORT.md`, `REVISION-THEMES.md`,
+  `ARCHI-NOTES.md`), et les documents historiques que la refonte §9 a
+  remplacés (`CDC-TEMPLATES.md`, `ARCHI-TEMPLATES.md`, tous deux portant
+  leur propre bandeau « gelé »). Ils expliquent des décisions ; ils
+  n'obligent rien. En cas de divergence, ce document fait foi.
 
 ### 1.2 Contrat avec `lightwebpres-gui`
 
@@ -166,11 +180,11 @@ Les options en ligne de commande **override** les variables d'environnement.
 
 ```bash
 lightwebpres install [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
-lightwebpres demo [répertoire] [--lang fr]
+lightwebpres demo [répertoire] [--lang fr] [--output public/]
 lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal]
 lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
 lightwebpres audit [répertoire] [--lang fr]
-lightwebpres refresh-templates [répertoire]
+lightwebpres refresh-templates [répertoire] [--scaffold]
 lightwebpres themes [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
 lightwebpres set-theme [répertoire] --theme nom
 lightwebpres themes-gallery [chemin]
@@ -179,7 +193,12 @@ lightwebpres --help
 
 - `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`)
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
-- `--output` : le répertoire de sortie (défaut : `public/`, ou `$LWP_OUTPUT_DIR`)
+- `--output` : `demo` / `build` / `check` — le répertoire de sortie
+  (défaut : `public/`, ou `$LWP_OUTPUT_DIR`) ; un chemin **relatif** est
+  résolu depuis le répertoire courant, pas depuis `[répertoire]`
+- `--scaffold` : `refresh-templates` seulement — régénère la surface
+  commentée de `settings.conf` aux valeurs du thème courant, en
+  conservant les lignes épinglées (§9.4.3)
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
 - `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide (`set-theme` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
 - `--theme` : `install`/`set-theme` — applique une palette prédéfinie (§9.5)
@@ -350,7 +369,13 @@ Générée depuis `series.json`. L'article courant est marqué `series-current`.
   <h2>Introduction</h2>
   <p>...</p>
   <h2>Références</h2>
-  <p><sup>[^1]</sup>: ...</p>
+  <div class="notes-local">
+    <ol class="note-body">
+      <li id="note-article-1" role="doc-footnote">
+        <span class="note-num">1</span>...<a class="note-back"
+        href="#noteref-article-1" role="doc-backlink">↩</a></li>
+    </ol>
+  </div>
 </section>
 ```
 
@@ -620,8 +645,8 @@ pas inline dans l'exécutable au moment du build.
 | `### Titre`       | `<h3>Titre</h3>`                        |
 | `**gras**`        | `<strong>gras</strong>`                |
 | `*italique*`      | `<em>italique</em>`                    |
-| `[^N]`            | `<sup>[^N]</sup>`                      |
-| `[^N]: def`       | `<p><sup>[^N]</sup>: def</p>`          |
+| `[^label]`        | appel de note — voir §6.5              |
+| `[^label]: corps` | corps de note — voir §6.5              |
 | `1. item`         | `<li>item</li>` (regroupés en `<ol>`)  |
 | `- item`          | `<li>item</li>` (regroupés en `<ul>`)  |
 | `| a | b |`       | `<table>` avec thead/tbody             |
@@ -819,6 +844,136 @@ indentée n'est ni un titre ni une liste, c'est un paragraphe ordinaire.
 Une ligne vide sépare deux paragraphes ; des lignes de texte consécutives
 sans ligne vide entre elles sont fusionnées dans le même paragraphe
 (voir §6.1).
+
+### 6.5 Notes
+
+Une note a deux parties, nommées séparément parce qu'elles ne vivent pas
+au même endroit : l'**appel** (`[^label]`), le repère dans le texte
+courant, et le **corps** (`[^label]: texte`), la note elle-même. La
+syntaxe est celle du Markdown standard ; rien n'est inventé.
+
+L'appel devient un lien vers le corps, le corps porte un lien de retour
+vers l'appel, et les rôles DPUB-ARIA (`doc-noteref`, `doc-footnote` ou
+`doc-endnote`, `doc-backlink`) sont posés. **Le label de l'auteur
+n'atteint jamais la page** : c'est une clé, rien d'autre, ce qui explique
+qu'il puisse être n'importe quoi (`[^1]`, `[^kwh]`, `[^a]`) et que la
+numérotation ne soit pas une réécriture de ce que l'auteur a écrit.
+
+#### 6.5.1 Emplacement (`notes-placement`)
+
+Deux valeurs, et l'emplacement est la **seule** décision de structure :
+
+- `local` (défaut) — le corps s'affiche au pied de l'unité qui l'appelle :
+  pied de la fiche pour un appel en fiche, fin de l'article pour un appel
+  dans l'article de fond. Un principe, deux structures : *aussi près de
+  l'appel que la structure le permet*.
+- `page` — tous les corps de la page se rassemblent dans une section de
+  notes en fin de page, avec son propre titre, sa propre ancre et son
+  propre point de navigation. Une « page de notes séparée » n'est pas
+  hors du document : c'est une section de la même page, ce qui est aussi
+  ce qui la rend réalisable dans un fichier autonome unique.
+
+`local` est le défaut parce qu'une fiche est **adressable
+individuellement** : le bouton de partage distribue des liens vers des
+fiches précises, donc un lecteur peut arriver en fiche 5 sans avoir lu
+les quatre premières. S'il clique un appel et se retrouve projeté à la
+fin d'un document qu'il n'a pas lu, la note lui a coûté sa place pour
+rien — le corps pouvait être six lignes plus bas.
+
+Une conséquence mesurée, à dire franchement : des notes au pied d'une
+fiche prennent de la place sur un écran déjà court (`ETUDE-VIEWPORT.md`).
+Une fiche portant cinq notes défilera. C'est un signal d'écriture plus
+qu'un défaut de rendu, mais un auteur qui choisit `local` doit le savoir.
+
+#### 6.5.2 Numérotation
+
+**Continue, et elle redémarre avec l'unité qui porte les corps.** Une
+seule règle, conséquence de l'emplacement plutôt que seconde décision :
+
+| emplacement | unité portant les corps | numérotation |
+|---|---|---|
+| `local`, appel en fiche | cette fiche | redémarre à 1 dans chaque fiche |
+| `local`, appel dans l'article | l'article | continue dans tout l'article |
+| `page` | la page | continue sur toute la page |
+
+L'argument est l'adressabilité, pas la symétrie : une note numérotée 7
+dans une fiche où le lecteur vient d'arriver directement ne lui dit rien,
+il cherchera les six premières. La numérotation doit être portée à la
+même échelle que l'adressage. C'est aussi ce que fait l'imprimé — les
+notes redémarrent par page, et ici la fiche *est* l'analogue de la page.
+
+**Le numéro affiché n'est pas l'identifiant d'ancre.** HTML exige des
+`id` uniques dans le document, donc l'ancre reste portée par sa localité
+(`note-s3-1` : fiche 3, note 1) pendant que le lecteur voit `1`. Sans
+cela, deux fiches portant chacune une note émettraient deux
+`id="note-1"` et chaque lien de retour tomberait sur la mauvaise.
+
+**Un label appelé deux fois donne un corps et deux liens de retour** —
+dupliquer le corps donnerait deux numéros à une seule référence.
+
+#### 6.5.3 Info-bulle (`notes-tooltip`)
+
+Ce n'est pas un emplacement mais un **agrément sur l'appel**, et il se
+compose avec les deux emplacements : `notes-tooltip: on` porte aussi le
+texte du corps sur l'appel, sans le déplacer.
+
+**Ce n'est jamais le seul porteur, et cela ne peut pas le devenir.** Une
+info-bulle n'existe pas sur un écran tactile, n'existe pas à l'impression
+et ne fait pas partie de l'ordre de lecture. Une note qui n'y vivrait que
+serait perdue pour une large part des lecteurs — et perdre la référence
+est le pire endroit où cet outil puisse économiser. Le corps est toujours
+dans le document ; l'info-bulle ne fait qu'épargner un saut. Sa valeur
+est donc maximale avec `page` et minimale avec `local`. Elle est à `off`
+par défaut.
+
+#### 6.5.4 La cascade, et pourquoi il y en a deux
+
+**La structure et l'apparence ne cascadent pas par les mêmes couches, et
+la raison est mécanique, pas esthétique.** Le moteur de thèmes compose du
+CSS et rien d'autre. Le CSS ne peut pas déplacer un élément d'un
+conteneur vers un autre. Donc `notes-placement` **ne peut pas** être une
+propriété de thème : non parce que ce serait inélégant, mais parce qu'un
+thème serait physiquement incapable de l'honorer.
+
+| | ce qui est décidé | cascade |
+|---|---|---|
+| **structure** | `notes-placement`, `notes-tooltip` | défaut → `series_meta` → bloc meta de l'article |
+| **apparence** | corps du texte, filet, couleur, numéro | le registre de propriétés (§9) : défauts → thème → `settings.conf` → `style.*` → balise d'instance |
+
+La cascade de structure reprend la forme qu'`author` / `license` / `date`
+ont déjà : déclarée pour la série dans `series_meta`, redéfinie par
+article dans son propre bloc meta. Une valeur inconnue est une erreur de
+build qui nomme l'article — retomber silencieusement sur le défaut
+laisserait un auteur devant une page qui ignore ce qu'il a demandé, sans
+rien pour le lui dire.
+
+Côté apparence, le registre porte **trois** composants, parce que les
+deux emplacements ne sont pas la même surface : `note` (le corps
+lui-même : corps de texte, couleur, interligne, lien de retour),
+`note.local` (le bloc au pied d'une fiche — du mobilier compact *dans*
+une fiche) et `note.page` (la section de fin de page — une **section**,
+comme celle de l'article : elle veut un fond, un titre et un filet).
+`footnote-call` (`sup`) existait déjà et garde son nom : il habille
+l'appel, qui est le même objet où que le corps atterrisse.
+
+#### 6.5.5 Les trois défauts qu'`audit` nomme
+
+Aucun n'est fatal — le contrat d'entrée ne se casse pas sur une bévue
+éditoriale — donc c'est `audit` qui les fait remonter, et il suit
+l'emplacement en vigueur (un appel en fiche 3 vers un corps en fiche 2
+est un défaut sous `local` et parfaitement correct sous `page`) :
+
+- **un appel sans corps** — une affirmation qui cite une source absente.
+  Le repère s'affiche et garde son numéro, mais sans lien.
+- **un corps que rien n'appelle** — un reste. Il s'affiche quand même,
+  numéroté à la suite et sans lien de retour : perdre du texte écrit par
+  l'auteur sur une bévue serait pire.
+- **une définition dans un bloc HTML brut** — le HTML brut est reproduit
+  verbatim par construction, donc `[^1]: texte` part tel quel dans la
+  page. C'est ainsi que la combinaison de `.refs` et des notes, toutes
+  deux documentées séparément, produisait une sortie cassée en exit 0.
+
+---
 
 ---
 
@@ -2216,7 +2371,7 @@ attendant une entrée qui ne viendra jamais.
 ### 11.2 `demo`
 
 ```bash
-lightwebpres demo [répertoire] [--lang fr]
+lightwebpres demo [répertoire] [--lang fr] [--output public/]
 ```
 
 Vérifie que `install` a été fait (présence de `templates/settings.conf`,
@@ -2519,7 +2674,7 @@ Le nombre et la position des fiches `cover` restent libres (§4.4, §22.13) :
 ### 11.6 `refresh-templates`
 
 ```bash
-lightwebpres refresh-templates [répertoire]
+lightwebpres refresh-templates [répertoire] [--scaffold]
 ```
 
 Met à jour ce qui, dans `templates/`, appartient à l'outil — voir §9.4.3
