@@ -55,8 +55,19 @@ one `.html` file, opens straight from disk or any static host.
   CLI never blocks on an interactive prompt, and a bundled skill teaches
   the format to any skill-aware agent — so a person with an editor and an
   agent driving a pipeline get the same tool, not two different ones. A
-  second skill ships alongside it for one editorial method the format
-  suits well; the format doesn't require it, or any other.
+  second skill ships alongside for one editorial method the format suits
+  well; it is offered, not required — the format takes whatever you put
+  in it.
+- **Made to sit in a content pipeline.** Every command runs unattended
+  and returns a meaningful exit code — `check` fails on drift and is a
+  real CI gate, `audit` never fails because it is advice. Nothing to
+  install: one file, eleven standard-library modules, no wheel, no
+  lockfile, no network at build time, so any image with `python3` runs
+  it. Every path is an environment variable (`LWP_SERIES_DIR`,
+  `LWP_OUTPUT_DIR`, …), and `--only page` rebuilds a single article. The
+  Markdown can come from a CMS export, a database, a generator or an
+  agent upstream; this is the step that turns it into publishable
+  pages.
 
 ## Quickstart
 

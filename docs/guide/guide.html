@@ -1174,14 +1174,14 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </div>
 
 <section class="slide slide-cover" id="s1">
-  <span class="slide-num">01 / 09</span>
+  <span class="slide-num">01 / 10</span>
   <span class="slide-tag">Guide</span>
   <h1>LightWebPres</h1>
   <p class="summary">Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.</p>
 </section>
 
 <section class="slide" id="s2">
-  <span class="slide-num">02 / 09</span>
+  <span class="slide-num">02 / 10</span>
   <span class="slide-tag">Scope</span>
   <h2>What it does, and what it leaves to you</h2>
   <div class="fact-box">
@@ -1192,7 +1192,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </section>
 
 <section class="slide" id="s3">
-  <span class="slide-num">03 / 09</span>
+  <span class="slide-num">03 / 10</span>
   <span class="slide-tag">Install</span>
   <h2>Three commands to a built site</h2>
   <div class="fact-box">
@@ -1204,7 +1204,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </section>
 
 <section class="slide" id="s4">
-  <span class="slide-num">04 / 09</span>
+  <span class="slide-num">04 / 10</span>
   <span class="slide-tag">Anatomy</span>
   <h2>A page is slides, a slide has components</h2>
   <div class="highlight"><span class="highlight-figure">4</span><span class="highlight-caption">slide types — cover, standard, series-nav, full-article</span></div>
@@ -1216,7 +1216,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </section>
 
 <section class="slide" id="s5">
-  <span class="slide-num">05 / 09</span>
+  <span class="slide-num">05 / 10</span>
   <span class="slide-tag">Look</span>
   <h2>Four gestures, smallest first</h2>
   <div class="fact-box">
@@ -1227,7 +1227,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </section>
 
 <section class="slide" id="s6">
-  <span class="slide-num">06 / 09</span>
+  <span class="slide-num">06 / 10</span>
   <span class="slide-tag">Look</span>
   <h2>Thirty-three themes, found by facet</h2>
   <div class="highlight"><span class="highlight-figure">33</span><span class="highlight-caption">themes, filtered by polarity, intensity and hue</span></div>
@@ -1239,7 +1239,19 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </section>
 
 <section class="slide" id="s7">
-  <span class="slide-num">07 / 09</span>
+  <span class="slide-num">07 / 10</span>
+  <span class="slide-tag">Automation</span>
+  <h2>A step in a content pipeline</h2>
+  <div class="highlight"><span class="highlight-figure">11</span><span class="highlight-caption">standard-library modules, and nothing else to install</span></div>
+  <div class="fact-box">
+    <div class="fact-label">What makes it pipeline-shaped</div>
+    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>check</code> fails on drift, <code>audit</code> never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
+  <p>The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.</p></div>
+  </div>
+</section>
+
+<section class="slide" id="s8">
+  <span class="slide-num">08 / 10</span>
   <span class="slide-tag">Shipping</span>
   <h2>Two checks, two different moments</h2>
   <div class="fact-box">
@@ -1249,7 +1261,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="s8-series">
+<section class="slide" id="s9-series">
   <h2>This series</h2>
   <div class="series-list">
     <div class="series-item series-current">
@@ -1263,15 +1275,26 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide full-article" id="s9">
-  <span class="slide-num">09 / 09</span>
+<section class="slide full-article" id="s10">
+  <span class="slide-num">10 / 10</span>
   <span class="slide-tag">Full article</span>
   <h1>LightWebPres — Guide</h1>
   <p>This is the map of the tool: install it, see what a page is made of, wire a series, adjust the look, ship it. For what each command <em>exactly</em> does in every edge case, see <code>specifications.md</code>; for the precise article syntax, see <code>SKILL.md</code>. This guide is the path through all of it in the order you'll actually need it.</p>
   <p><strong>What this guide does not do is teach you to write.</strong> LightWebPres is for people who already know how; it renders what you give it. Nothing here says what makes a good card, how to structure an argument or when a claim needs a source. A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for people who would like a method — an offered interface, not the core of what this does. Take it or leave it: [section 9](#9-going-further).</p>
   <h2>1. What LightWebPres is</h2>
   <p>LightWebPres turns an extended Markdown format into self-contained, scrollable HTML articles — a cover, a handful of fact-card slides, an optional long-form piece, cross-article navigation — with zero runtime dependencies. One executable, <code>lightwebpres</code>, does the whole job: scaffold a project, generate demo content, build, verify, and keep templates current.</p>
-  <p><strong>Written for a person at a terminal — but you needn't be the one typing.</strong> LightWebPres ships a packaged skill (<code>SKILL.md</code>, in <code>agent/skills/lightwebpres/</code>) that gives an agent the article format directly, and every command here runs unattended: nothing ever blocks on an interactive prompt. Point an agent at <code>SKILL.md</code> and it can write the Markdown and run the build from minute one.</p>
+  <p><strong>Three ways it gets used, and the tool does not care which.</strong></p>
+  <ul>
+    <li><strong>A person at a terminal</strong>, which is how this guide is written.</li>
+    <li><strong>An agent</strong>, given the packaged skill (<code>SKILL.md</code>, in</li>
+  </ul>
+  <p>  <code>agent/skills/lightwebpres/</code>) that carries the article format. Point it   there and it can write the Markdown and run the build from minute one.</p>
+  <ul>
+    <li><strong>A step in a content pipeline</strong>, where the Markdown comes from</li>
+  </ul>
+  <p>  somewhere else entirely — a CMS export, a database, a generator, an   agent upstream — and LightWebPres is what turns it into publishable   pages.</p>
+  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>check</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit</code> never fails, because it is advice. <strong>There is nothing to install</strong>: one file, eleven modules from the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
+  <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Install &amp; your first build</h2>
   <pre><code class="language-bash">
 ./lightwebpres install my-series
@@ -1451,7 +1474,20 @@ tag.fg: call               ← uncommented: yours, and it stays
   </code></pre>
   <p>The stylesheet is composed in memory from the current executable at every build, so it is fresh by construction, and your <code>settings.conf</code> and <code>custom.css</code> are yours — never touched. The one tool-owned file on disk is <code>nav.js</code>: <code>refresh-templates</code> replaces it if it differs from the built-in version (saving the old one as <code>nav.js.bak</code>) and reports <code>already up to date</code> otherwise. Your theme choice needs no reapplying: it's the <code>theme:</code> line of <code>settings.conf</code>, which an upgrade cannot revert.</p>
   <p><code>--scaffold</code> additionally regenerates <code>settings.conf</code>'s commented block against the current theme and the current property registry, keeping every line you uncommented.</p>
-  <h2>8. Beyond the CLI</h2>
+  <h2>8. Automation, CI/CD, and the browser</h2>
+  <h3>As a pipeline step</h3>
+  <p>The generated <code>.gitlab-ci.yml</code> (<code>install --gitlab-ci</code>, opt-in — a plain <code>install</code> never assumes a deployment) is the two-line version:</p>
+  <pre><code class="language-yaml">
+build:
+  script:
+    - python3 lightwebpres check .    # fails if public/ is stale
+    - python3 lightwebpres build .
+  artifacts:
+    paths: [public]
+  </code></pre>
+  <p><code>check</code> before <code>build</code> is the useful ordering: it catches a <code>public/</code> that was hand-edited or never rebuilt after a source change, <strong>before</strong> the build overwrites the evidence. Nothing here is GitLab-specific — the same two commands are the whole job on any runner.</p>
+  <p>For a pipeline where content arrives from upstream, three more things matter. <code>--only page</code> rebuilds a single article rather than the series, with <code>--nav-cache</code> holding the fingerprint that tells it whether the navigation still needs regenerating. <code>--build-stamp</code> marks every generated page with the version and time it came from, which is what you want when a page is published by a machine and questioned by a human three months later. And <code>draft: true</code> in <code>series.json</code> keeps an article out of the build entirely until something upstream flips it.</p>
+  <h3>In the browser</h3>
   <p><code>web/index.html</code>, one page with two tabs, runs the exact same engine as the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly), so the output is identical either way:</p>
   <ul>
     <li><strong>Upload a zip</strong> — drop a zip of your series, get back a zip of</li>
@@ -1466,7 +1502,6 @@ tag.fg: call               ← uncommented: yours, and it stays
 python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
   </code></pre>
-  <p>For unattended builds, <code>install --gitlab-ci</code> writes a <code>.gitlab-ci.yml</code> that runs <code>lightwebpres build .</code> on every push and publishes <code>public/</code> as an artifact — opt-in, never written by a plain <code>install</code>. Add a <code>check</code> step before it to catch drift before it merges (section 6).</p>
   <h2>9. Going further</h2>
   <ul>
     <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/lightwebpres/</code>) — the precise mechanics</li>

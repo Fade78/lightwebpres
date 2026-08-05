@@ -23,12 +23,30 @@ dependencies. One executable, `lightwebpres`, does the whole job:
 scaffold a project, generate demo content, build, verify, and keep
 templates current.
 
-**Written for a person at a terminal — but you needn't be the one
-typing.** LightWebPres ships a packaged skill (`SKILL.md`, in
-`agent/skills/lightwebpres/`) that gives an agent the article format
-directly, and every command here runs unattended: nothing ever blocks on
-an interactive prompt. Point an agent at `SKILL.md` and it can write the
-Markdown and run the build from minute one.
+**Three ways it gets used, and the tool does not care which.**
+
+- **A person at a terminal**, which is how this guide is written.
+- **An agent**, given the packaged skill (`SKILL.md`, in
+  `agent/skills/lightwebpres/`) that carries the article format. Point it
+  there and it can write the Markdown and run the build from minute one.
+- **A step in a content pipeline**, where the Markdown comes from
+  somewhere else entirely — a CMS export, a database, a generator, an
+  agent upstream — and LightWebPres is what turns it into publishable
+  pages.
+
+The third is not an afterthought; the tool is shaped for it. **Every
+command runs unattended** — nothing ever blocks on an interactive prompt.
+**Every command has a meaningful exit code**: `check` exits non-zero the
+moment the built output differs from the sources, which is a real gate;
+`audit` never fails, because it is advice. **There is nothing to
+install**: one file, eleven modules from the Python standard library,
+no wheel, no lockfile, no network at build time — any image with
+`python3` in it can run it. And **every path is an environment
+variable** (`LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, `LWP_OUTPUT_DIR`,
+`LWP_TEMPLATES_DIR`, `LWP_LANGUAGE_DIR`, `LWP_LANG`), so a pipeline can
+lay the pieces out however it likes without passing a single flag.
+
+Section 8 has the shape of a pipeline that uses all of it.
 
 ## 2. Install & your first build
 
@@ -279,7 +297,37 @@ revert.
 against the current theme and the current property registry, keeping
 every line you uncommented.
 
-## 8. Beyond the CLI
+## 8. Automation, CI/CD, and the browser
+
+### As a pipeline step
+
+The generated `.gitlab-ci.yml` (`install --gitlab-ci`, opt-in — a plain
+`install` never assumes a deployment) is the two-line version:
+
+```yaml
+build:
+  script:
+    - python3 lightwebpres check .    # fails if public/ is stale
+    - python3 lightwebpres build .
+  artifacts:
+    paths: [public]
+```
+
+`check` before `build` is the useful ordering: it catches a `public/`
+that was hand-edited or never rebuilt after a source change, **before**
+the build overwrites the evidence. Nothing here is GitLab-specific — the
+same two commands are the whole job on any runner.
+
+For a pipeline where content arrives from upstream, three more things
+matter. `--only page` rebuilds a single article rather than the series,
+with `--nav-cache` holding the fingerprint that tells it whether the
+navigation still needs regenerating. `--build-stamp` marks every
+generated page with the version and time it came from, which is what you
+want when a page is published by a machine and questioned by a human
+three months later. And `draft: true` in `series.json` keeps an article
+out of the build entirely until something upstream flips it.
+
+### In the browser
 
 `web/index.html`, one page with two tabs, runs the exact same engine as
 the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly),
@@ -298,11 +346,6 @@ block Pyodide's asset loading under that origin. For local testing:
 python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
 ```
-
-For unattended builds, `install --gitlab-ci` writes a `.gitlab-ci.yml`
-that runs `lightwebpres build .` on every push and publishes `public/` as
-an artifact — opt-in, never written by a plain `install`. Add a `check`
-step before it to catch drift before it merges (section 6).
 
 ## 9. Going further
 

@@ -80,6 +80,21 @@ Thirty-three names tell you nothing. Light or dark, loud or sober, and what hue 
 ---
 
 <!-- lwp:slide -->
+tag: Automation
+## A step in a content pipeline
+
+highlight: 11
+highlight-caption: standard-library modules, and nothing else to install
+
+fact-label: What makes it pipeline-shaped
+
+Every command runs unattended and returns a meaningful exit code. `check` fails on drift, `audit` never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.
+
+The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.
+
+---
+
+<!-- lwp:slide -->
 tag: Shipping
 ## Two checks, two different moments
 
