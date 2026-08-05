@@ -160,7 +160,9 @@ all generated automatically.
 - **`full-article`** — includes a separate long-form Markdown file,
   converted with full support for headings, bold/italic, links, notes
   (see below), lists, tables, blockquotes, images with captions
-  (`![alt](src "Caption")` — small, centered, themed; mid-sentence the
+  (`![alt](src "Caption")` — small, centered, themed; wrap it in a link,
+  `[![alt](src "Caption")](url)`, and the picture becomes clickable while
+  the caption stays outside the link, as text about it; mid-sentence the
   same image stays inline and its title becomes a tooltip),
   inline/fenced code, and inline raw HTML.
   A comparison table's cells can carry `yes` / `no` / `partial` — or

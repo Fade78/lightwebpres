@@ -246,9 +246,13 @@ Markdown: headings, `**bold**`/`*italic*`, `[links](url)`, notes
 blockquotes (`> text`),
 images (`![alt](img/pic.png)` — alone on its line it becomes a centered
 `<figure>` block, and a standard Markdown title, `![alt](src "Caption")`,
-renders as a small centered caption under the image; mid-paragraph it's
-a plain inline `<img>`, no caption; the path is relative — images live
-in `articles/img/`, copied to `public/img/` at build), inline code
+renders as a small centered caption under the image; wrap that whole line
+in a Markdown link, `[![alt](src "Caption")](https://…)`, and the picture
+becomes clickable while the caption stays outside the link — so the link's
+accessible name is the alt text alone, not alt plus caption;
+mid-paragraph it's a plain inline `<img>`, no caption; the path is
+relative — images live in `articles/img/`, copied to `public/img/` at
+build), inline code
 (`` `code` ``), fenced code blocks (` ```lang ` ... ` ``` `, the
 language optional and purely informational — no syntax highlighting),
 and raw HTML passed through as-is (so an author can drop in a

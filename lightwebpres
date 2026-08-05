@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.14.1"
+VERSION = "0.15.0"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
@@ -5708,6 +5708,31 @@ _CODE_FENCE_RE = re.compile(r'^```(\S*)$')
 # articles/img/ and are copied to public/img/ at build time.
 _FIGURE_LINE_RE = re.compile(r'^!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)$')
 
+# The same line wrapped in an ordinary Markdown link: the figure becomes
+# clickable. Groups are alt, src, caption, href -- the first three in the
+# same order as _FIGURE_LINE_RE so one emission path serves both.
+#
+# Why this is a widened rule and not a new field. "Alone on its line" is
+# already what separates a figure from an image inside a sentence, so
+# "alone on its line, possibly wrapped in a link" extends a rule the
+# format already has rather than introducing a mechanism. The long-form
+# body is plain Markdown -- there is no field layer in it -- and Markdown
+# already expresses "an image that is a link", so a property would have
+# been a second syntax for something the first one says.
+#
+# Without this, such a line fell through to md_inline() and produced
+# <p><a><img title="..."></a></p>: no <figure>, no <figcaption>, the
+# caption silently demoted to a tooltip, and -- measured -- the typography
+# engine skipping it, since it does not touch attribute values. A writer
+# saw a tooltip appear and had no reason to suspect the figure was gone.
+#
+# http(s) only, matching the inline link rule: the href reaches an
+# attribute, and §6.3 restricts link targets. Bounded classes as
+# everywhere else here, `[` excluded from the URL for the same quadratic
+# reason documented on the inline patterns.
+_LINKED_FIGURE_LINE_RE = re.compile(
+    r'^\[!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)\]\((https?://[^)\[\s]+)\)$')
+
 
 def _html_tag_depth_delta(line):
     """Net change in open-raw-HTML-tag depth contributed by `line`: +1 per
@@ -5776,7 +5801,7 @@ def _is_paragraph_continuation(line, lines, idx, n):
         return False
     if _CODE_FENCE_RE.match(line):
         return False
-    if _FIGURE_LINE_RE.match(line):
+    if _FIGURE_LINE_RE.match(line) or _LINKED_FIGURE_LINE_RE.match(line):
         return False
     # A block alignment tag alone on its line opens or closes a container:
     # swallowed as continuation it would land inside the paragraph it was
@@ -5890,16 +5915,26 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         # an optional quoted caption — rendered as a <figure>, the
         # caption as a small centered <figcaption> under the image.
         # Mid-paragraph images are md_inline()'s job and have no caption.
-        m_fig = _FIGURE_LINE_RE.match(line)
+        m_fig = _FIGURE_LINE_RE.match(line) or _LINKED_FIGURE_LINE_RE.match(line)
         if m_fig:
             close_list()
             alt = html_escape(m_fig.group(1), quote=True)
             src = html_escape(m_fig.group(2), quote=True)
             caption = m_fig.group(3)
+            img = f'<img src="{src}" alt="{alt}">'
+            # A linked figure wraps the IMAGE only, never the caption. Two
+            # reasons, and the second is the one that decides it: you click
+            # the picture and the caption is text about it -- and wrapping
+            # just the <img> leaves the link's accessible name to be the
+            # alt text alone. Put the caption inside and a screen reader
+            # announces the whole sentence as the link's name.
+            if len(m_fig.groups()) == 4:
+                href = html_escape(m_fig.group(4), quote=True)
+                img = f'<a href="{href}" target="_blank" rel="noopener">{img}</a>'
             if caption:
-                out.append(f'  <figure class="figure"><img src="{src}" alt="{alt}"><figcaption class="figure-caption">{md_inline(caption)}</figcaption></figure>')
+                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption)}</figcaption></figure>')
             else:
-                out.append(f'  <figure class="figure"><img src="{src}" alt="{alt}"></figure>')
+                out.append(f'  <figure class="figure">{img}</figure>')
             i += 1
             continue
 

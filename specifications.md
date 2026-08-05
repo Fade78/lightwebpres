@@ -743,6 +743,25 @@ copié vers `public/img/` au build (§11.3). Une ligne-image n'est jamais
 fusionnée dans le paragraphe qui la précède : c'est un démarreur de
 bloc, comme un titre ou une liste.
 
+**Figure cliquable.** La même ligne enveloppée d'un lien Markdown —
+`[![alt](src "Légende")](https://…)`, seule sur sa ligne — reste une
+figure, et l'image devient cliquable :
+`<figure class="figure"><a href="…" target="_blank" rel="noopener"><img …></a><figcaption>…</figcaption></figure>`.
+La cible est restreinte à http(s) comme tout lien (§6.3), puisqu'elle
+atterrit dans un attribut.
+
+Le lien enveloppe **l'image seule, jamais la légende**. Sémantiquement
+on clique l'image et la légende est un texte à son propos ; et
+techniquement, n'envelopper que l'`<img>` laisse le **nom accessible** du
+lien être le seul texte alternatif. Légende comprise, un lecteur d'écran
+annoncerait la phrase entière comme intitulé du lien.
+
+C'est un élargissement de la règle « seule sur sa ligne », pas un
+mécanisme de plus : cette règle distingue déjà la figure de l'image au
+fil de la phrase. Un champ dédié aurait introduit une couche de
+propriétés dans le corps long-forme, qui est du Markdown pur, pour dire
+ce que Markdown exprime déjà.
+
 **Fusion des paragraphes.** Un paragraphe peut être écrit sur plusieurs
 lignes physiques consécutives : tant qu'aucune ligne vide ne les sépare, ces
 lignes appartiennent au même paragraphe et doivent être fusionnées en un
@@ -3425,9 +3444,11 @@ Demandées le 2026-07-31 :
     `ink-quiet` par défaut, §9.1) sous l'image — le style par défaut suit
     donc automatiquement chaque thème. Les légendes
     de **tableaux** restent non planifiées.
-22. **Images cliquables** — pas de comportement par défaut aujourd'hui (ex.
-    lien vers l'image en taille réelle, ou lightbox JS) ; à ajouter dans
-    `nav.js` si lightbox, ou simplement envelopper l'`<img>` dans un `<a>`.
+22. **Agrandissement d'image (lightbox)** — pas de comportement par défaut
+    (ouvrir l'image en taille réelle par-dessus la page) ; à ajouter dans
+    `nav.js` le jour où le besoin se présente. À ne pas confondre avec une
+    figure cliquable, qui elle est une ligne-image enveloppée d'un lien
+    Markdown (§6.1) et n'a rien à voir avec du JavaScript.
 23. **Taille et justification des images réglables** — pas de mécanisme
     dédié aujourd'hui (le style par défaut `.figure` centre l'image et la
     limite à la largeur du contenu ; au-delà, l'auteur passe par le CSS ou

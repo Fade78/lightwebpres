@@ -1436,6 +1436,57 @@ class ImageFiguresAndCaptions(unittest.TestCase):
         self.assertIn('.figure-caption', html)
         self.assertIn('color: var(--caption-fg)', html)
 
+    def test_linked_figure_is_a_figure_and_wraps_only_the_image(self):
+        # §6.1: `[![alt](src "Cap")](url)` alone on its line. Before this,
+        # the line fell through to the inline rules and produced
+        # <p><a><img title="Cap"></a></p> — no figure, no figcaption, the
+        # caption silently demoted to a tooltip.
+        html = self._build_article_html(
+            '[![A page](img/p.png "The caption")](https://example.org/comic)\n')
+        self.assertIn(
+            '<figure class="figure"><a href="https://example.org/comic" '
+            'target="_blank" rel="noopener"><img src="img/p.png" alt="A page">'
+            '</a><figcaption class="figure-caption">The caption</figcaption></figure>',
+            html)
+        # The caption must sit OUTSIDE the anchor: wrapping it too would make
+        # the link's accessible name the alt text plus the whole caption.
+        self.assertNotIn('The caption</a>', html)
+
+    def test_linked_figure_without_a_caption(self):
+        html = self._build_article_html(
+            '[![A page](img/p.png)](https://example.org/comic)\n')
+        self.assertIn('<figure class="figure"><a href="https://example.org/comic" '
+                      'target="_blank" rel="noopener"><img src="img/p.png" '
+                      'alt="A page"></a></figure>', html)
+        self.assertNotIn('<figcaption', html)
+
+    def test_linked_figure_caption_gets_typography_and_inline_markup(self):
+        # The two things the raw-HTML workaround lost. A caption is real
+        # block content, so it runs through md_inline() and the typography
+        # engine exactly as an unlinked figure's does — a tooltip could
+        # never have either, since neither belongs in an attribute value.
+        html = self._build_article_html(
+            '[![P](img/p.png "Double sign ! and [a link](https://example.org/x) inside")]'
+            '(https://example.org/comic)\n',
+            slide_body='<!-- lwp:slide:full-article -->\narticle: art.md\n')
+        self.assertIn('Double sign\xa0!', html)
+        self.assertIn('<a href="https://example.org/x"', html)
+
+    def test_linked_figure_is_not_swallowed_by_the_paragraph_above_it(self):
+        html = self._build_article_html(
+            'A paragraph immediately above.\n'
+            '[![P](img/p.png "Cap")](https://example.org/comic)\n')
+        self.assertIn('<figure class="figure">', html)
+
+    def test_a_non_http_target_is_not_a_linked_figure(self):
+        # §6.3 restricts link targets to http(s); the href reaches an
+        # attribute. A javascript: target must not become one by way of a
+        # figure, so the line simply is not a linked figure.
+        html = self._build_article_html(
+            '[![P](img/p.png "Cap")](javascript:alert(1))\n')
+        self.assertNotIn('javascript:alert(1)"', html)
+        self.assertNotIn('<figure class="figure"><a', html)
+
 
 class MarkdownConversion(unittest.TestCase):
     """§3.2/§6: the full-article body goes through convert_markdown() and
