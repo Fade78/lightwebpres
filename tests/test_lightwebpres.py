@@ -1526,7 +1526,7 @@ class MarkdownConversion(unittest.TestCase):
     def test_footnote(self):
         # A note is a note: the call is a link to its body, the body is a
         # link back, and the reader sees a POSITION -- never the author's
-        # label, which stays a key in the source (ARCHI-NOTES §4).
+        # label, which stays a key in the source (specifications.md §6.5).
         html = self._build_article_html(
             'A claim with a footnote[^kwh].\n\n[^kwh]: Some source, 2020.\n'
         )
@@ -8092,7 +8092,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
     def test_numbering_restarts_in_each_card_and_runs_on_in_the_article(self):
         # A card is individually shareable, so a reader can arrive at card
         # 5 having seen nothing else; a note numbered 7 there would send
-        # them looking for six they will never find (ARCHI-NOTES §4).
+        # them looking for six they will never find (specifications.md §6.5.2).
         html = self._build()
         self.assertIn('id="note-s2-1"', html)
         self.assertIn('id="note-s2-2"', html)
