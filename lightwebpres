@@ -187,7 +187,22 @@ LANG_FR = r'''{
 LANG_EN = r'''{
   "lang": "en",
   "name": "English",
-  "rules": [],
+  "rules": [
+    {
+      "name": "nbsp_inside_dash_incise",
+      "description": "Same rule as French, and for the same reason: it protects a space that is already there rather than changing what is written. Inert on a closed-up dash (Chicago style, word—word: no space to bind), protective on a spaced one (AP style and most web writing, word — word), which orphans exactly as readily in English as in French.",
+      "pattern": "([—–]) ([^—–]*?) ([—–])",
+      "replacement": "$1 $2 $3",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_before_lone_dash",
+      "description": "An unpaired spaced dash binds to the word before it, so it can never begin a line.",
+      "pattern": "(?<=\\S) ([—–])(?! )",
+      "replacement": " $1",
+      "flags": "g"
+    }
+  ],
   "strings": {
     "nav_prev": "Previous slide",
     "nav_home": "Back to index (Home key)",

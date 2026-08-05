@@ -3520,18 +3520,97 @@ introuvable. Les packs embarqués, eux, portent évidemment tout.
   règles : elles sont substituées telles quelles via les placeholders
   `{{str_KEY}}` (§18).
 
+#### 19.3.1 Ce que font les règles embarquées
+
+Le mécanisme ci-dessus dit comment une règle s'applique ; cette section
+dit **ce que les règles livrées font**, parce que c'est le contrat qu'un
+auteur de nouveau pack lit pour savoir ce qui est déjà couvert et ce
+qu'il lui reste à écrire.
+
+**La distinction qui gouverne tout : règle de langue ou règle de mise en
+page.** Une règle de **langue** encode une convention nationale — en
+français l'insécable devant `; : ! ? »`, qui n'existe ni en anglais ni en
+allemand. Une règle de **mise en page** protège une espace qui est déjà
+là contre une coupure de ligne malheureuse ; elle ne dépend d'aucune
+langue et **doit figurer dans tout pack**. Le premier groupe est à
+réécrire pour chaque langue, le second est à recopier tel quel.
+
+| Règle | Groupe | Ce qu'elle fait | Packs |
+|---|---|---|---|
+| `nbsp_before_double_punctuation` | langue | Insécable avant `; : ! ? »` | fr |
+| `nbsp_after_opening_quote` | langue | Insécable après `«` | fr |
+| `nbsp_before_percent` | langue | Insécable avant `%` | fr |
+| `nbsp_thousands_separator` | langue | Insécable entre groupes de 3 chiffres **déjà espacés** — n'ajoute jamais de groupement à `170000` | fr |
+| `nbsp_before_unit` | langue | Insécable entre un nombre et `million(s)`, `milliard(s)`, `dollar(s)`, `$` | fr |
+| `nbsp_after_operator` | langue | Insécable entre `×`/`≈` et le nombre qui suit | fr |
+| `nbsp_inside_dash_incise` | **mise en page** | Incise encadrée de tirets : insécable **après** le tiret ouvrant et **avant** le fermant, sécable à l'extérieur | fr, **en** |
+| `nbsp_before_lone_dash` | **mise en page** | Tiret non apparié : insécable **avant**, pour qu'il ne puisse jamais commencer une ligne | fr, **en** |
+
+**Les deux règles de tiret sont dans le pack anglais, et ce n'est pas une
+inadvertance.** Un cadratin collé à ses mots (`word—word`, style Chicago)
+n'offre aucune espace à protéger : la règle ne matche pas et ne fait
+rien. Un cadratin espacé (`word — word`, style AP et la plus grande
+partie de l'écrit web) s'orpheline exactement comme en français. La règle
+protège une espace existante ; elle ne change jamais ce qui est écrit.
+Elle vaut donc pour toute langue qui espace ses tirets.
+
+**Ce que le moteur ne fait pas, et ne fera pas par défaut :** transformer
+un signe en un autre. Aucune règle embarquée ne promeut un trait d'union
+en cadratin, ne redresse une apostrophe droite, ne convertit `"` en
+guillemets. Ce sont des transformations de **contenu**, pas de mise en
+page : elles réécrivent ce que l'auteur a tapé, et un article déjà publié
+verrait son texte muter au build suivant. Un auteur qui les veut les
+ajoute dans son propre `language/<lang>.json` — le mécanisme de surcharge
+(§19.2) est fait pour ça. À titre d'exemple, la promotion d'un trait
+d'union espacé, qui n'existe pas en français, en tiret d'incise :
+
+```json
+{
+  "name": "dash_from_spaced_hyphen",
+  "pattern": "(?<=[^\\s\\d]) - (?=[^\\s\\d])",
+  "replacement": " — ",
+  "flags": "g"
+}
+```
+
+**Cinq contraintes qu'une règle doit respecter**, toutes vérifiables :
+
+1. **Idempotence** (§19.3) : appliquée deux fois, elle ne doit rien
+   changer. Une règle qui insère une insécable doit donc exclure le cas
+   déjà traité — c'est la raison du `(?!\u00a0)` de
+   `nbsp_before_lone_dash`.
+2. **Écrire l'insécable en `\u00a0`, jamais en caractère littéral.** Un
+   U+00A0 dans un fichier source est invisible : il se perd à la copie,
+   au passage dans un éditeur, dans un diff. Les deux packs embarqués
+   l'écrivent en échappement pour cette raison, découverte en le perdant.
+3. **Ne jamais toucher à ce qui n'est pas espacé.** C'est ce qui
+   distingue un tiret d'un trait d'union : `Marie-Claire` et `12-15`
+   n'ont pas d'espace, donc aucune règle de tiret ne les voit.
+4. **L'ordre compte** : les règles s'appliquent dans l'ordre du tableau,
+   et une règle peut dépendre du travail de la précédente. L'incise
+   appariée passe avant le tiret solitaire, sans quoi le tiret ouvrant
+   serait lié des deux côtés.
+5. **Pas de quantificateur imbriqué.** Un fichier de langue est du code
+   de confiance (§7.2), mais ses regex tournent sur tout le texte de tous
+   les articles : une classe négative bornée (`[^—–]*?`) est linéaire, un
+   `.*` sous `DOTALL` ne l'est pas.
+
 ### 19.4 Fichier `en.json` (anglais)
 
-L'anglais a des règles typographiques plus simples (pas d'insécables avant
-la ponctuation, pas de guillemets français), mais un bloc `strings` tout
-aussi complet que le français — c'est lui qui sert de repli ultime (§7.1,
-§7.4) :
+L'anglais n'a **aucune règle de langue** — pas d'insécable avant la
+ponctuation, pas de guillemets français — mais il porte les **deux règles
+de mise en page** sur les tirets (§19.3.1), et un bloc `strings` aussi
+complet que le français, puisque c'est lui qui sert de repli ultime
+(§7.1, §7.4) :
 
 ```json
 {
   "lang": "en",
   "name": "English",
-  "rules": [],
+  "rules": [
+    { "name": "nbsp_inside_dash_incise",  "...": "..." },
+    { "name": "nbsp_before_lone_dash",    "...": "..." }
+  ],
   "strings": {
     "nav_prev": "Previous slide",
     "copy_link": "Copy link"
@@ -3539,8 +3618,12 @@ aussi complet que le français — c'est lui qui sert de repli ultime (§7.1,
 }
 ```
 
-Le tableau `rules` est vide car l'anglais n'a pas de règles typographiques
-spéciales à appliquer sur le texte généré.
+Cette section a longtemps affirmé que `rules` était vide « car l'anglais
+n'a pas de règles typographiques spéciales ». C'était vrai des règles de
+langue et faux des règles de mise en page : un cadratin espacé, qui est
+la norme de l'écrit web anglophone, s'orpheline en fin de ligne dans les
+deux langues. La distinction est maintenant celle du §19.3.1, et c'est
+elle qu'un auteur de pack doit suivre.
 
 ### 19.5 Packs par défaut embarqués dans l'exécutable
 

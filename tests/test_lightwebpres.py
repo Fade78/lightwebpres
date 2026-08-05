@@ -2322,12 +2322,22 @@ class DashesAreNeverOrphaned(unittest.TestCase):
         n = self.NB
         self.assertEqual(out, f'Trois —{n}une{n}— puis —{n}deux{n}— ici.')
 
-    def test_the_english_pack_leaves_dashes_alone(self):
-        # English sets the em dash closed up against its words; there is
-        # nothing to protect and no space to make non-breaking.
+    def test_english_gets_the_same_protection(self):
+        # First written asserting English was left alone, on the belief that
+        # it sets the dash closed up. Both styles are in use: Chicago closes
+        # it up (word—word), AP and most web writing space it (word — word),
+        # and the spaced form orphans exactly as readily as in French. The
+        # rule is about layout, not language — it protects a space that is
+        # already there and never changes what is written.
         en = self.lwp.TypoEngine(json.loads(self.lwp.LANG_EN))
-        text = 'The point — this one — is clear.'
-        self.assertEqual(self.lwp.apply_typo(en, text, None), text)
+        f = lambda t: self.lwp.apply_typo(en, t, None)
+        n = self.NB
+        self.assertEqual(f('The point — this one — is clear.'),
+                         f'The point —{n}this one{n}— is clear.')
+        # Inert where there is no space to bind.
+        self.assertEqual(f('The point—this one—is clear.'),
+                         'The point—this one—is clear.')
+        self.assertEqual(f('pages 12-15'), 'pages 12-15')
 
 
 class TypographyDisableSwitches(unittest.TestCase):

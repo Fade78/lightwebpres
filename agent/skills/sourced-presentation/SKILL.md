@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up: half these rules cover what an edit breaks without saying so. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.8"
+  version: "0.10"
 ---
 
 # Sourced presentation — method
@@ -17,7 +17,7 @@ The deck is what gets read; the article is what makes it defensible. **The artic
 
 *What follows is what had to be discovered — not general craft, which you already have. Rules that look deducible from a stated principle mostly are not: they look that way once known. Compressing them out is the standing temptation here.*
 
-**Verification is asymmetric, and that is why none of it is skimmable.** Fifty facts confirmed do not offset one quotation that turns out to have no source. A reader who catches a single error is right to doubt everything else — they cannot check the rest, and they have just learned that they should. What that costs is not one fact: it is the standing of the piece, of whoever signs it, and of whoever did the checking. *And a check reported as done is itself a claim. Never report one you skimmed; say instead what you did not verify, which is information the reader can use.*
+**Verification is asymmetric: fifty facts confirmed do not offset one quotation with no source.** A reader who catches one error is right to doubt the rest — they cannot check it, and have just learned they should. *A check reported as done is itself a claim: never report one you skimmed, say what you left unverified.*
 
 ## The chain
 
@@ -31,11 +31,11 @@ The deck is what gets read; the article is what makes it defensible. **The artic
 
 Each step writes to disk before the next. **Steps 6 and 7 each catch defects the other misses**: the article alone hides a card promising what it doesn't deliver; the cards alone hide an article claim with no source.
 
-**Where a belief comes from dictates where its sources are.** A claim an actor makes — its own documents are the strongest piece. A belief a design induces without anyone asserting it — the mechanism is the evidence. A belief kept alive by repetition — the stale source is itself a finding. An ordinary intuition — only research can qualify it.
+**Where a belief comes from dictates where its sources are.** A claim an actor makes — start from its own documents. A belief a design induces without anyone asserting it — the mechanism is the evidence. A belief kept alive by repetition — the stale source is itself a finding. An ordinary intuition — only research can qualify it.
 
 **For a reversal, the research may confirm the belief.** Then the article says so, and the deck opens on what the belief gets right before what it misses. *Forcing a reversal the evidence does not support is the worst failure available to this method.*
 
-**Where the article makes a new allegation about a named actor, its response is sought**, and that response is itself a fact for the file. *Reporting published material and existing research does not trigger this; formulating a charge does.*
+**Where the article makes a new allegation about a named actor, its response is sought**, and that response is itself a fact for the file — a fact about what the actor answered, not about whether the charge holds. *Reporting published material and existing research does not trigger this; formulating a charge does.*
 
 ## The file of facts
 
@@ -49,17 +49,33 @@ Each step writes to disk before the next. **Steps 6 and 7 each catch defects the
 
 **A report of a source is not that source.** A news piece citing a study, a summary citing a ruling: the chain is followed to its end, and where it cannot be, say which link you stopped at.
 
-**A quotation attributed to a named person is traced to where they said it** — an interview, a talk, a text — and a quotation carrying a figure most of all. *These travel alone: each repetition cites another repetition, and a striking phrase can circulate for years without a first utterance. If no primary source is found, say what the person is documented as having said instead, and say why the other phrase is not used.*
+**A quotation attributed to a named person is traced to where they said it** — an interview, a talk, a text — one carrying a figure most of all. *Each repetition cites another, and a striking phrase circulates for years without a first utterance. Found none: give what the person is documented as saying, and why the other is dropped.*
 
 **For a study, verification reads the body and the method, not the abstract alone.** An abstract states an association the body restricts to one condition — the figure is right and the claim is not.
 
-**A fact the article leans on is checked for replication.** Has anyone repeated the study, and what did they find? A single experiment can be sound and still not generalise: failed replications outside its original conditions do not refute it, they **bound** it, and the bound is usually more useful than the effect. *Ask this of every load-bearing fact, not of the striking ones.*
+**A fact the article leans on is checked for replication.** Has anyone repeated the study, and found what? A single experiment can be sound and still not generalise: failed replications outside its original conditions do not refute it, they **bound** it — and the bound is usually more useful. *Ask it of every load-bearing fact, not the striking ones.*
 
 **Record what funds a source and what ties it has.** Industry funding does not disqualify peer-reviewed work; it changes its weight, and the reader decides only if told.
 
 **A translated quotation is marked as translated and checked against the original.** Translating is interpreting, and the reader cannot see where the interpretation was made.
 
-**When two sources conflict, the more specific and better dated wins.** A dispatch repeating stale boilerplate loses to one citing a source on a given date.
+### Which source wins
+
+**Peer-reviewed work is the default; what follows modifies it, not replaces it.** Review has already applied much of what this section asks — method, effect size, declared limits, competing results — and a study gathers many rulings and incidents into one perspective, which no single one of them can.
+
+**Within that default, rank by what the statement cost the one who made it.** The two answer different questions: a study is better on what is generally true, a ruling or an admission on one case. *A paper does not settle what a company did in one month; an admission establishes no general effect.*
+
+**A statement against its author's interest is the strongest thing a file can hold.** A concession, an admission, a figure that damages the one naming it. Nobody produces these by accident, and nobody produces them to look good.
+
+**Next, what was said to an audience other than your reader**, who was not meant to see it. The audience had to be told something solid enough to act on, and the flattering version was not the one on offer.
+
+**Then what has been adjudicated over what has been alleged**, a body that heard both sides being worth more than a filing that heard one.
+
+**A statement that serves its author sits at the bottom, whoever the author is.** The accused defending itself, the vendor sizing its own market, the campaign group sizing the problem it exists to fight. *The last gets waved through, its conclusion being the one you already hold.*
+
+**Ranking decides which claim leads and which yields in a conflict. It never licenses dropping the weak source in silence** — say what it is, and let the reader weigh it.
+
+**Where cost to the author is equal, the more specific and better dated wins.** A dispatch repeating stale boilerplate loses to one citing a source on a given date.
 
 **When neither can be dated, report the disagreement rather than picking**, and say the change cannot be dated.
 
@@ -83,11 +99,15 @@ Written before searching. It carries:
 
 *When an identifiable actor is in question. An exposition, or a belief no one asserts, has no such source and this section does not apply.*
 
-**What the actor publishes itself is the strongest piece in the file** — it cannot be accused of its own words, and a contradiction between two of its own documents beats any outside accusation.
+**A contradiction between two of the actor's own documents beats any outside accusation** — it cannot be accused of its own words. *What makes these strong is not that the actor published them: it is that they were addressed to someone other than your reader — advertisers, investors, recruits — who had to be told something true enough to act on, and that your reader was never meant to see. It does not hold for what the actor says while defending itself, which is addressed to everyone and is treated below.*
 
 **Look for the pages not addressed to your reader.** An organisation says one thing to its users and another to its customers, both publicly.
 
 **Its own words cut both ways.** A claim that presents it well is carried like any other — verified where it can be, and given its status where it cannot: a statement nobody has audited. *Quoting a document only where it incriminates builds a prosecution out of primary sources, and the reader cannot see the selection.*
+
+**A defensive response is evidence of what the actor chose to defend, not of what is true.** An organisation under accusation is obliged to answer: weighing that answer against the charge as though both were testimony dilutes a sound finding. Read it for what it does not contest, and for what it selects. *Defending eleven points of twelve concedes the twelfth, and that concession is the fact.*
+
+**The exchange does not end at the response.** What the accusers said back is part of the file, and finding it is a separate search. *Stopping at the reply leaves the last word with the party under threat — an artefact of your search order, not of the evidence.*
 
 **Read a guarantee to its exact scope.** "We do not sell" is not "we do not hold": what is held is exploited otherwise, can leak, and falls under a jurisdiction.
 
@@ -97,7 +117,9 @@ Written before searching. It carries:
 
 **Two placements for hedging, and the series chooses.** *Distributed*: every claim carries its degree of certainty where it stands, and a limits section consolidates only what cuts across the file. *Concentrated*: the body states plainly and one section holds every reservation — which suits a series whose cards must not moderate one another, since a card carrying its own hedge moderates the deck.
 
-**Under either placement, a limits section never walks back what the body overstated**, and the status of a claim — alleged, measured, declared — is not hedging: it travels with the claim, always. *The boundary is operational: a card says « a complaint alleges », never « though this rests on one study ». The first is what the fact is; the second is what the article thinks of it.* *Hedging every sentence asserts nothing; hedging only at the end asserts too much, and takes it back where fewer readers go.*
+**Under either placement, a limits section never walks back what the body overstated.** And the status of a claim — alleged, measured, declared — is not hedging: it travels with the claim, always. *A card says « a complaint alleges », never « though this rests on one study »: the first is what the fact is, the second what the article thinks of it.*
+
+**Hedging every sentence asserts nothing; hedging only at the end asserts too much**, and takes it back where fewer readers go.
 
 **The article's scope clearly exceeds the deck's**, and it develops every fact a card will carry. An article that merely expands its cards gives them nothing to stand on.
 
@@ -109,11 +131,11 @@ Written before searching. It carries:
 
 **An absence is reported, and never upgraded.** A control that doesn't exist, a figure an actor publishes on everything but one point: these are findings. But "we did not find" is not "it does not exist" — saying so changes the claim's status.
 
-**A decimal is information when it comes from a count or a declaration, decoration when it comes from a model, a median or a projection.** Reporting a modelled figure to two decimals while its stated range spans an order of magnitude does not measure anything: it reassures. Give the order of magnitude and say it is one.
+**A decimal is information from a count or a declaration, decoration from a model, a median or a projection.** A modelled figure given to two decimals while its range spans an order of magnitude measures nothing: it reassures. Give the order of magnitude and say it is one.
 
 **Check that a result applies to the case at hand.** A rate obtained under given conditions does not transfer elsewhere unsaid. Extrapolation is the hardest defect to see from the position that writes it, because the figure is exact and the source real.
 
-**Source the counter-case at the level of the accusation.** An article whose second side rests on journalism while the first rests on peer-reviewed work is a prosecution dressed as balance.
+**Source the counter-case at the level of the accusation**, on the ranking above and not merely on document type. An article whose second side rests on journalism while the first rests on peer-reviewed work is a prosecution dressed as balance — and one whose second side rests only on the accused's own defence is the same fault mirrored.
 
 **A claim's status belongs in the text, not only the note** — complaint or decision, allegation or judgment, statement or audit.
 
@@ -167,7 +189,7 @@ The reader **enters anywhere**: skims, skips, returns. **A card assumes nothing 
 
 Four passes, none replacing another.
 
-**A check that needs judgement runs from a list, not from a pattern.** Enumerate first what must be examined — every load-bearing fact, every named quotation, every claim resting on one study — then walk the list. *Pattern checks finish; judgement checks stop at the salient cases and feel finished. The result is that what is greppable gets done in full and what matters gets done in part.*
+**A check that needs judgement runs from a list, not from a pattern.** Enumerate what must be examined — every load-bearing fact, every named quotation, every single-study claim — then walk it. *Pattern checks finish; judgement checks stop at the salient cases and feel finished. What is greppable gets done in full, what matters in part.*
 
 **The article alone**, read continuously, after any series of edits including purely lexical ones. Pattern checks skim usefully; **what the reading catches is not locally detectable** — a duplicate, a broken sequence, a reference gone stale after a title changed elsewhere. Editing by successive replacement produces duplicates mechanically, each insertion ignoring its neighbour.
 
@@ -181,7 +203,7 @@ Four passes, none replacing another.
 
 **A bulk operation reports its successes, never its misses, and a check narrower than what it checks passes silently.** Renumbering after an insertion is the type case: the pattern matches one written form and leaves the other untouched, and two items end up sharing a number. Verify the result — the whole sequence, the whole set — not the operation's report, and prefer a broad pattern you read to a narrow one that skims. **Read what the operation produced, not merely that its target is gone**: a substitution can remove every occurrence of what you searched for and leave malformed text where it struck.
 
-**A correction applied to one half of a page leaves the other wrong.** Deck and article are audited together and corrected together, or they drift: a term fixed in the cards survives in the article for months, and nothing signals it, because each audit looks at one half. *The article is the larger half and the less often examined.*
+**A correction applied to one half of a page leaves the other wrong.** Deck and article are audited and corrected together, or they drift: a term fixed in the cards survives in the article for months. *The article is the larger half and the less examined.*
 
 **An insertion stales the pages describing the series**: lists, counts, numbered references, reading paths, recommendations citing comparable cases. They don't announce themselves.
 
