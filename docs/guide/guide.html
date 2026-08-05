@@ -127,21 +127,23 @@
   /* footnote-call */
   --footnote-call-fg: #FF4757FF;
   --footnote-call-size: 0.72em;
+  --footnote-call-fg-marked: #1A1A2EFF;
+  --footnote-call-fg-cover: #F8F8F5FF;
   /* note */
-  --note-fg: #6B6B7DFF;
-  --note-size: 13px;
-  --note-leading: 1.5;
+  --note-fg: #1A1A2EFF;
+  --note-size: 14px;
+  --note-leading: 1.55;
   --note-marker-fg: #FF4757FF;
-  --note-back-fg: #6B6B7DFF;
+  --note-back-fg: #1A1A2EFF;
   /* note.local */
   --note-local-rule-fg: #0000001A;
   --note-local-rule-width: 1px;
   /* note.page */
   --note-page-bg: #FFFFFFB8;
   --note-page-rule-fg: #0000001A;
-  --note-page-rule-width: 1px;
+  --note-page-rule-width: 2px;
   --note-page-title-fg: #1A1A2EFF;
-  --note-page-title-size: 22px;
+  --note-page-title-size: 28px;
   --note-page-title-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1A1A2EFF;
@@ -429,6 +431,12 @@ pre {
 sup {
   color: var(--footnote-call-fg);
   font-size: var(--footnote-call-size);
+}
+.fact-content strong sup {
+  color: var(--footnote-call-fg-marked);
+}
+.slide-cover sup {
+  color: var(--footnote-call-fg-cover);
 }
 .note-body {
   color: var(--note-fg);
