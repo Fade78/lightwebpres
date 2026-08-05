@@ -2623,7 +2623,39 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 # --- Template: nav.js ---
 # {{str_*}} placeholders are filled from the language pack's "strings" by
 # apply_strings() at build time.
-TEMPLATE_NAV_JS = r'''var qrEncode = (function () {
+TEMPLATE_NAV_JS = r'''/*!
+ * The QR encoder below (qrEncode, and the QR* helpers it closes over) is
+ * derived from QR Code Generator for JavaScript.
+ *
+ * Copyright (c) 2009 Kazuhiko Arase -- http://www.d-project.com/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+ *
+ * This notice must travel with the code it covers. It lives inside the
+ * template rather than beside it, so that it reaches every series scaffolded
+ * by `lightwebpres install` and every page written by a build without anyone
+ * having to remember to copy it. Everything after the encoder is part of
+ * lightwebpres itself.
+ */
+var qrEncode = (function () {
 var QRMode = { MODE_8BIT_BYTE: 4 };
 var QRErrorCorrectLevel = { L: 1, M: 0, Q: 3, H: 2 };
 var QRMaskPattern = { PATTERN000: 0, PATTERN001: 1, PATTERN010: 2, PATTERN011: 3,
