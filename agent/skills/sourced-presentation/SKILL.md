@@ -1,8 +1,8 @@
 ---
 name: sourced-presentation
-description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up: half these rules cover what an edit breaks without saying so. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
+description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up, since it opens on how to locate yourself in work already under way and on what each kind of edit invalidates. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.11"
+  version: "0.13"
 ---
 
 # Sourced presentation — method
@@ -19,7 +19,15 @@ The deck is what gets read; the article is what makes it defensible. **The artic
 
 **Verification is asymmetric: fifty facts confirmed do not offset one quotation with no source.** A reader who catches one error is right to doubt the rest — they cannot check it, and have just learned they should. *A check reported as done is itself a claim: never report one you skimmed, say what you left unverified.*
 
-## The chain
+## Where you are
+
+**Read the state from disk, never from memory.** The file of facts, the article, the deck and the spec each record what has been decided; a summary of prior work does not. *A session that trusts its own recollection re-decides what was settled and leaves what was pending.*
+
+**Two situations, and they are not the same work.** A page that does not exist yet runs the chain below, once, in order. A page that exists is never on a step — it is in a state that something just changed. Find what changed, then run what that change invalidates.
+
+**The chain is the first pass. Nothing after it is a first pass.**
+
+## The first pass: the chain
 
 1. **The target.** For a reversal, the sentence the reader holds true. For an exposition, the question they cannot answer and why they have never had the pieces.
 2. **Adversarial research.** Commission a synthesis demanding both sides and exact statuses.
@@ -36,6 +44,25 @@ Each step writes to disk before the next. **Steps 6 and 7 each catch defects the
 **For a reversal, the research may confirm the belief.** Then the article says so, and the deck opens on what the belief gets right before what it misses. *Forcing a reversal the evidence does not support is the worst failure available to this method.*
 
 **Where the article makes a new allegation about a named actor, its response is sought**, and that response is itself a fact for the file — a fact about what the actor answered, not about whether the charge holds. *Reporting published material and existing research does not trigger this; formulating a charge does.*
+
+## What a change invalidates
+
+**Every edit invalidates something, and the something is rarely local.** Find the row, run the column.
+
+| What moved | What re-enters |
+|---|---|
+| A fact in the article | verification against its source; the cross-check on every card carrying it |
+| A card | the cross-check on that pair |
+| A quotation, anywhere | its status; every other page quoting the same source |
+| A correction, anywhere | the same defect across the corpus — a defect found once is a sample |
+| A page inserted or removed | every count, cross-reference and ordering claim in the series |
+| A section renumbered | every reference to a section number, in both halves |
+| A rule added to the spec | every page written before it |
+| A tool version | what it now composes, what it stopped reading |
+
+**The last two rows get skipped.** A rule added mid-series governs what comes after it and is never applied backwards; a tool that changes how it builds leaves the old configuration in place, silently. *Both end with a spec describing a minority of its own pages.*
+
+**A correction creates.** Rewriting a card to remove a repetition can install a contradiction with its own proof; shortening a quotation to fit can drop the modality that made it exact. Re-read what you just changed, against the half you did not change.
 
 ## The file of facts
 
@@ -185,11 +212,13 @@ The reader **enters anywhere**: skims, skips, returns. **A card assumes nothing 
 
 **The last card that carries a fact is one of agency, never a threat.** *Apparatus may follow it — a series index, the long-form article itself — and that is fine: the reader who scans stops at the last card that says something.* It carries a fact: a real right, a setting that exists, a check within the reader's reach — never an exhortation, which cannot be verified, and which the reader can only obey or refuse. *When no lever exists, saying so beats inventing one.*
 
-**An announced count is exact, and says what it counts.** A tool may display a second count of its own, over a different set — apparatus included — and the two will never coincide. Recount at every addition.
+**A deck written after the article inherits its facts and loses its hedges.** Announced becomes did; we found no study becomes none exists — a short form drops the hedge first. *Check the pair at each derivation: the card was true when written, and the article moved.*
+
+**An announced count is exact, and the series fixes what it counts.** A tool may count a different set, and the two will never coincide. *Two defensible conventions differ by one on every deck at once: check that the spec and the tool agree.* Recount at every addition.
 
 ## The re-readings
 
-Four passes, none replacing another.
+Five passes, none replacing another. **On a first pass, all five. On a return, whatever the invalidation table sends you to — plus the corpus pass whenever a property was touched on more than one page.**
 
 **A check that needs judgement runs from a list, not from a pattern.** Enumerate what must be examined — every load-bearing fact, every named quotation, every single-study claim — then walk it. *Pattern checks finish; judgement checks stop at the salient cases and feel finished. What is greppable gets done in full, what matters in part.*
 
@@ -200,6 +229,8 @@ Four passes, none replacing another.
 **At least one pass runs without the draft in view, from the sources alone.** Re-reading one's own text recognises what it meant to say; reading from the sources finds what it failed to say. *This is not step 6 of the chain: that one asks whether each written claim matches its source, this one asks what the sources hold that the article never used. Verifying and finding an omission are different operations, and doing one does not do the other.*
 
 **The cross-check.** Three questions. Is every figure in a card found in the article? Does any card assert more than the article does, limits included — shortening a fact hardens it? Is every claim a card repeats actually sourced in the article? Unsourced claims surface here; in the article alone they blend into referenced text.
+
+**One pass runs across the corpus, on one property at a time.** Some defects have no local form: a sentence on every page reads as apparatus from any one of them. *A reader given one page cannot know the sentence is not that page's.* Take one property, walk every page on it alone.
 
 ## What breaks silently
 
