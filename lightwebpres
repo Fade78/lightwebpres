@@ -2509,8 +2509,14 @@ THEME_PROPERTY_OVERRIDES = {
     'vaporwave': {'nav-btn.ring': '#FF28B7', 'series-nav.link.ring': '#FF28B7'},
     'terminal': {
         'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
-        'title1.shadow.fg': '#33FF8866', 'title1.shadow.blur': '10px',
-        'highlight.shadow.fg': '#33FF8859', 'highlight.shadow.blur': '8px',
+        # A glow is a halo around a glyph, so it is sized by the glyph.
+        # Left in bare pixels it was 10px around a 51px title at 1080p
+        # and the same 10px around a 132px one at 3840 -- the theme's
+        # one visual idea, gone on the screen it is presented on.
+        'title1.shadow.fg': '#33FF8866',
+        'title1.shadow.blur': 'max(10px, 1.25vmin)',
+        'highlight.shadow.fg': '#33FF8859',
+        'highlight.shadow.blur': 'max(8px, 1vmin)',
     },
 }
 
@@ -3488,12 +3494,22 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 /* Measured, not guessed: at the default offset the underline collides
    with the descenders, and inside a highlight it runs into the mark's
    lower edge. Both properties degrade silently on an old engine — the
-   rule falls back to its default position rather than disappearing. */
+   rule falls back to its default position rather than disappearing.
+
+   Every length here is a halo around a glyph: the coloured box a marked
+   run sits in, the rounding of its corners, the weight of the rule and
+   how far it clears the baseline. All four are drawn against the text,
+   so all four scale with it. In bare pixels the box hugged the glyphs
+   tighter the larger the screen got -- 4px of side padding reads as a
+   marker at 24px type and as a printing error at 47px. The floors keep
+   the two collisions above as measured: below roughly an 800px smaller
+   dimension these are the pixel values they were measured at, and above
+   it they hold the ratio they were measured at. */
 .fact-content strong {
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-  padding: 1px 4px;
-  border-radius: 2px;
+  text-decoration-thickness: max(2px, 0.25vmin);
+  text-underline-offset: max(3px, 0.375vmin);
+  padding: max(1px, 0.125vmin) max(4px, 0.5vmin);
+  border-radius: max(2px, 0.25vmin);
 }
 .fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
 .fact-content h1:first-child,
@@ -3659,7 +3675,15 @@ sup { vertical-align: super; line-height: 0; }
 .full-article .refs p { font-size: 13px; margin-bottom: 6px; }
 
 /* --- Series navigation --- */
-.series-list { max-width: 680px; }
+/* The column, like everything else on a card. A flat 680px left the
+   navigation at 42% of the column at 1920 and 21% at 3840, pinned to the
+   left edge of a card whose heading ran the full width -- and the
+   heading is what a series-nav slide puts directly above this list, so
+   any width narrower than the column is also a second centre on the one
+   card that has only two things on it. Reading --page-content-max gives
+   both of the things a narrow box was reaching for: it is wider, and it
+   is centred, because it IS the column. */
+.series-list { max-width: var(--page-content-max); }
 .series-item {
   display: block;
   padding: 20px 24px;

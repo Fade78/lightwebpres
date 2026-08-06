@@ -8565,6 +8565,59 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
                 if key.endswith('.size'):
                     self.assertIn('vmin', value, f'{slug} {key}')
 
+    def test_a_halo_is_drawn_against_the_glyph_it_surrounds(self):
+        """A glow and a marker box are both sized by the text they sit
+        on, so both scale with it. terminal is the one theme with a glow
+        and it stated 10px flat -- around a 51px title at 1080p and the
+        same 10px around a 132px one at 3840, which is the theme's single
+        visual idea gone on the screen a deck is shown on."""
+        seen = 0
+        for store in (self.lwp.THEME_PROPERTY_OVERRIDES,
+                      self.lwp.THEME_NOTE_PROPS,
+                      self.lwp.DARK_FURNITURE_PROPS):
+            for slug, props in store.items():
+                if not isinstance(props, dict):
+                    continue
+                for key, value in props.items():
+                    if not key.endswith('.shadow.blur'):
+                        continue
+                    if str(value) in ('0', '0px'):
+                        continue
+                    seen += 1
+                    self.assertIn('vmin', value, f'{slug} {key}')
+        # A test that iterates the wrong store passes on an empty set. The
+        # first version of this one read THEMES, which holds a theme's
+        # label and palette rather than its property overrides, so it went
+        # green against a glow still written as a flat 10px.
+        self.assertGreater(seen, 0, 'no glow found -- wrong store')
+
+    def test_the_marker_box_grows_with_the_run_it_marks(self):
+        """4px of side padding reads as a marker at 24px type and as a
+        printing error at 47px. The underline thickness and its offset go
+        with it: they were measured against the descenders and against
+        the mark's lower edge, and a ratio measured once is only kept by
+        scaling both sides of it."""
+        sk = self.lwp.TEMPLATE_SKELETON
+        i = sk.index('.fact-content strong {')
+        rule = sk[i:sk.index('}', i)]
+        for decl in ('padding', 'border-radius',
+                     'text-decoration-thickness', 'text-underline-offset'):
+            line = [l for l in rule.splitlines() if l.strip().startswith(decl + ':')]
+            self.assertTrue(line, decl)
+            self.assertIn('vmin', line[0], decl)
+            self.assertIn('max(', line[0], decl)
+
+    def test_the_navigation_list_is_as_wide_as_the_card(self):
+        """A flat 680px put the series-nav list at 42% of the column at
+        1920 and 21% at 3840, against the left edge of a card whose
+        heading ran the full width. That heading is the only other thing
+        on the slide, so any narrower width is also a second centre."""
+        sk = self.lwp.TEMPLATE_SKELETON
+        i = sk.index('.series-list {')
+        rule = sk[i:sk.index('}', i)]
+        self.assertIn('var(--page-content-max)', rule)
+        self.assertNotIn('680px', rule)
+
     def test_every_size_keeps_a_floor(self):
         """The floor is what leaves a phone untouched: below a smaller
         dimension of about 800px it wins, so a 375x667 screen renders as

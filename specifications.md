@@ -2463,6 +2463,23 @@ flex : `align-items: center` rendait `highlight.align` inerte — mesuré,
 des blocs ordinaires héritent de `text-align`, ce qui rend la propriété
 effective.
 
+**Les halos suivent le glyphe.** Ce qui est dessiné *contre* le texte est
+dimensionné par lui : la boîte colorée d'un passage marqué et l'arrondi de
+ses coins, l'épaisseur du filet et sa distance à la ligne de base, et la
+lueur (`*.shadow.blur`) qu'un thème peut poser autour d'un titre. En
+pixels nus, une boîte de 4 px de marge latérale se lit comme un
+surligneur sur un corps de 24 px et comme une coquille sur un corps de
+47 px ; une lueur de 10 px entoure un titre de 51 px à 1080p et le même
+titre à 132 px à 3840. Les planchers gardent les deux collisions mesurées
+(descendantes, bord bas de la marque) telles qu'elles ont été mesurées.
+
+**Navigation de série.** `.series-list` lit `page.content-max`, comme
+tout le reste d'une fiche. Une largeur fixe la mettait à 42 % de la
+colonne à 1920 et 21 % à 3840, collée au bord gauche d'une fiche dont le
+titre occupait toute la largeur — et ce titre est la seule autre chose
+présente sur une fiche `series-nav`, donc toute largeur inférieure à la
+colonne y est aussi un second centre.
+
 Elle a brièvement été une mesure en `ch`, et la raison même pour laquelle
 ce choix avait été fait est ce qui l'a fait échouer : une longueur en `ch`
 placée dans une propriété personnalisée se résout contre la police de

@@ -358,3 +358,47 @@ sheet, which it did.
 that a value is *emitted* is not a test that it is *obeyed*. The cheap
 version of the missing check is to set the property to its least likely
 value, rebuild, and measure that something moved.
+
+## 13. Everything drawn against a glyph, and the one list that was not
+
+Two more instances of §11's defect, both reported rather than found by
+the instrument.
+
+**A halo is sized by the glyph it surrounds.** Three things are drawn
+against the text rather than beside it: the coloured box a marked run
+sits in (with its corner radius), the underline under it (with its
+thickness and its clearance from the baseline), and the glow a theme may
+put around a title. All were flat pixels. 4px of side padding reads as a
+marker at 24px type and as a printing error at 47px; `terminal`'s 10px
+glow surrounded a 51px title at 1080p and an identical 10px surrounded a
+132px one at 3840, which is the theme's one visual idea disappearing on
+the screen a deck is presented on. Measured after, on the marked run:
+
+| viewport | side padding | radius | underline |
+|---|---|---|---|
+| 375×667 | 4px | 2px | 2px |
+| 1440×810 | 4.05px | 2.03px | 2.03px |
+| 1920×1080 | 5.4px | 2.7px | 2.7px |
+| 3840×2160 | 10.8px | 5.4px | 5.4px |
+
+The floors are what keep the two collisions this rule was measured to
+avoid — the descenders, and the mark's lower edge — as they were measured.
+
+**`.series-list` was 680px flat**, so the cross-article navigation sat at
+42% of the column at 1920 and 21% at 3840, against the left edge of a card
+whose heading ran the full width. A series-nav card holds exactly two
+things, that heading and this list, so any width narrower than the column
+is §12's problem again: a second centre on the card that can least afford
+one. It reads `--page-content-max` now — wider *and* centred, because it
+is the column. Measured: heading centre and list centre agree at 720, 960
+and 1920.
+
+**What the instrument still does not have.** §11 noted it had no column
+for how many sizes exist. It has no column for how many *lengths* exist
+either: about 150 literal pixel values remain in the skeleton, and most
+of them should stay — a 1px border is 1px, a media-query breakpoint is a
+breakpoint, and fixed chrome is positioned against the viewport, not
+against the type. The distinction that matters is not px versus vmin; it
+is whether the length is drawn against the text. Every defect in §11
+through §13 sat on the wrong side of that line, and nothing in this
+document asks the question directly.
