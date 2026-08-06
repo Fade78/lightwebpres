@@ -224,9 +224,9 @@ A cover slide **accepts** `fact-label`, `source`, `highlight` and
 get a `[WARNING]`, exit code 0, and a page missing what you wrote. Only
 free *text* on a cover is fatal.
 
-`<!-- lwp:slide:TYPE -->` is not validated either: a misspelt type
-(`lwp:slide:standrd`) is silently treated as a standard slide. Nothing
-tells you; the slide simply isn't the type you meant.
+`<!-- lwp:slide:TYPE -->` is validated: a misspelt type
+(`lwp:slide:standrd`) is a fatal build error naming the slide's rank, the
+token, and the four types.
 
 `comment` is a review note — recognized as a real field on any slide
 (and in `series.json`/the article's own meta block too), but never read
