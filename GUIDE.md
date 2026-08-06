@@ -256,11 +256,18 @@ A bare word like `call` is looked up among the theme's shared values
 works anywhere a colour does. A mistyped key or value is a named build
 error pointing at the file and key.
 
-Two properties people look for by name: **`page.content-max`** is the
+Three properties people look for by name: **`page.content-max`** is the
 text column width, `84vw` by default — proportional to the window, with
-no ceiling, so a deck shown full screen uses the screen. The type scale
-is proportional too, which is what keeps the line length steady as both
-grow. **`page.hyphens`**
+no ceiling, so a deck shown full screen uses the screen. Every type size
+is proportional too — the tag, the fact label, the key figure's caption
+and the slide number as much as the title — which is what keeps the line
+length steady and the proportions between them fixed as the screen
+grows. Each size has a floor in pixels, and the floor is what governs a
+phone. **`page.block-max`** is the width of the things that are not
+running text — a table, a code block, a figure — sized by what they hold
+rather than by a count of characters; it has a floor rather than a
+ceiling as well, so a table grows with the text inside it.
+**`page.hyphens`**
 (`manual | auto`) controls whether words break at end of line; it is
 `manual`, and nothing turns it on for you.
 

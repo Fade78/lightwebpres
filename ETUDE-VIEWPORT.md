@@ -276,3 +276,85 @@ What this adds to §9's lesson: the instrument was not only missing a column
 for "do the components agree with each other", it was missing one for "how
 much of the screen is this using". Both are questions about the page as a
 whole, and every column in §7 is about a line of text.
+
+## 11. Uncapping eight sizes made the other twenty-seven small
+
+§10 gave a scale to the eight sizes the study had ever measured — the two
+titles, the summary, the fact body, the table body, the key figure and the
+two header lines. There are thirty-five font sizes in the registry. The
+other twenty-seven kept the pixel values they were drawn at, so raising the
+eight did not leave them alone: it made them small *relative to everything
+around them*, and the bigger the screen the smaller they read.
+
+Measured on one card, before and after:
+
+| | 375×667 | 1440 | 1920 | 3840 |
+|---|---|---|---|---|
+| summary | 16 | 21.9 | 29.2 | 58.3 |
+| tag — before | 12 | 12 | 12 | 12 |
+| tag — after | 12 | 12.2 | 16.2 | 32.4 |
+| key figure's caption — before | 14.4 | 14.4 | 14.4 | 14.4 |
+| key figure's caption — after | 14.4 | 14.6 | 19.4 | 38.9 |
+| slide number — before | 13 | 13 | 13 | 13 |
+| slide number — after | 13 | 13.2 | 17.6 | 35.1 |
+
+The ratio is the thing to read, not the pixels. `tag`/`summary` was 0.556
+in the drawing (12px against a 21.6px body at 1080p). After §10 it was
+0.412 at 1920 and **0.206 at 3840** — an eyebrow label at a fifth of the
+body text on the screen a deck is actually presented on. After: 0.556 at
+both, because the coefficient is the pixel value over 8, which is exactly
+what reproduces the drawn ratio at 1920×1080 and holds it above.
+
+**The floors do the same work here as in §10.** A floor binds until the
+smaller dimension passes about 800px, so every phone and small tablet
+renders as it did — 375×667 measured identical, value for value.
+
+`page.block-max` had the same shape of defect from the other side. It was
+`min(84vw, 1100px)`: a flat ceiling, while `table.size` had just been given
+a scale. At 3840 a table's own text reached 41px inside a box still 1100px
+wide — about 26 characters a line. `min(84vw, max(1100px, 102vmin))` makes
+the 1100 a floor: 102vmin *is* 1100px at 1920×1080, so nothing at or below
+that size moves, and the table holds 68% of the column at 1920 and at 3840
+alike.
+
+**What §10 did not have a column for, again.** The instrument measured the
+eight sizes it knew about. Nothing in it asked *how many sizes are there*,
+so twenty-seven properties sat outside every table in this document while
+being changed, relative to their neighbours, by the change §10 made. A
+count of the population is the cheapest column there is and it was the one
+missing.
+
+## 12. A centred box is the only one whose width is also its centre
+
+Reported, not measured first: on a card, the big number was not centred on
+the same thing as the text around it.
+
+`.highlight` read `--page-block-max` like every other box. Every *other*
+box is left-aligned, so a narrower one still starts at the column's left
+edge and reads as deliberate. The key figure is centred, and a centred box
+that is narrower than the column has a different **centre**, not just a
+different width. Measured, on one card:
+
+| viewport | column centre | key figure centre | off by |
+|---|---|---|---|
+| 1440×810 | 720 | 665 | 55px |
+| 1920×1080 | 960 | 704 | 256px |
+| 3840×2160 | 1920 | 857 | **1063px** |
+
+After, all three agree exactly: 720/720, 960/960, 1920/1920, with the h2,
+the summary, the caption and the fact box on the same centre.
+
+The second defect was in the same four lines and was found only because
+they were being rewritten. `.highlight` was `display: flex` with
+`align-items: center`, which is what centred the figure and its caption —
+and `highlight.align`, a registry property since the theme refactor, emits
+`text-align` onto that element. `text-align` does nothing to flex items.
+Setting `highlight.align: left` and rebuilding moved the figure by **zero
+pixels**: a documented, themeable, tested property that had never once had
+an effect. Its tests checked that the custom property appeared in the
+sheet, which it did.
+
+**The lesson, and it is the same one as §9 in a different costume:** a test
+that a value is *emitted* is not a test that it is *obeyed*. The cheap
+version of the missing check is to set the property to its least likely
+value, rebuild, and measure that something moved.

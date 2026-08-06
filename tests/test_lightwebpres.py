@@ -3398,6 +3398,33 @@ class Themes(unittest.TestCase):
                 self.assertIn('--color-mark: #EBCB8BFF;', html, page)
 
 
+_SIZE_RE = re.compile(r'^max\(\s*([0-9.]+)(px|rem)\s*,\s*([0-9.]+)vmin\s*\)$')
+
+
+def _floor_px(value):
+    """The px a size falls back to on a small screen. Every font size in
+    the design reads `max(<floor>, <n>vmin)`; a bare `<n>px` or `<n>rem`
+    is one that has not been given a scale yet, and an em is relative to
+    a parent that already has one."""
+    m = _SIZE_RE.match(value.strip())
+    if m:
+        n, unit = float(m.group(1)), m.group(2)
+        return n * 16 if unit == 'rem' else n
+    if value.endswith('rem'):
+        return float(value[:-3]) * 16
+    if value.endswith('px'):
+        return float(value[:-2])
+    return None
+
+
+def _coefficient(value):
+    """The vmin coefficient of a size -- what governs it on a big screen.
+    Zero for a size with no scale at all, which is what makes a missing
+    one sort below every real one instead of raising."""
+    m = _SIZE_RE.match(value.strip())
+    return float(m.group(3)) if m else 0.0
+
+
 def load_lightwebpres_module():
     """Imports the executable as a module, for the few things that can
     only be checked from the inside. Safe: everything below `if __name__
@@ -8332,10 +8359,10 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
         # the 244 properties is smaller -- so this also pins that nobody
         # goes below it looking for room.
         reg = self.lwp.PROPERTY_REGISTRY
-        local = int(reg['note.local.size'].default.rstrip('px'))
-        section = int(reg['note.size'].default.rstrip('px'))
-        refs = int(reg['refs.size'].default.rstrip('px'))
-        body = int(reg['article.size'].default.rstrip('px'))
+        local = _floor_px(reg['note.local.size'].default)
+        section = _floor_px(reg['note.size'].default)
+        refs = _floor_px(reg['refs.size'].default)
+        body = _floor_px(reg['article.size'].default)
         self.assertLess(local, section, 'a foot-of-unit note is not apparatus')
         self.assertEqual(local, refs,
                          'the two foot-of-unit apparatus blocks are two sizes')
@@ -8343,12 +8370,20 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
         # said it about its references too, rather than saying it twice.
         self.assertEqual(reg['refs.fg'].default, 'note.fg')
         self.assertLess(local, body)
-        floor = min(int(p.default.rstrip('px'))
+        floor = min(_floor_px(p.default)
                     for p in reg.values()
                     if p.css == 'font-size' and isinstance(p.default, str)
-                    and p.default.endswith('px'))
+                    and _floor_px(p.default) is not None)
         self.assertEqual(local, floor,
                          'a foot-of-unit note is at the design floor, not below it')
+        # The ordering has to hold at both ends of the scale, not just at
+        # the floor. Sizes read `max(floor, N vmin)`: a change that raises
+        # one coefficient and not the other inverts the ranking on any
+        # screen large enough for the coefficient to win, which is every
+        # screen this is presented on.
+        self.assertLess(_coefficient(reg['note.local.size'].default),
+                        _coefficient(reg['note.size'].default),
+                        'the ordering holds at the floor and inverts above it')
 
     def test_a_theme_that_resizes_its_notes_resizes_both(self):
         # high-contrast states a bigger note; its foot-of-unit note has to
@@ -8357,8 +8392,14 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
             if 'note.size' in props:
                 self.assertIn('note.local.size', props,
                               f'{slug} resizes note.size but not note.local.size')
-                self.assertLess(int(props['note.local.size'].rstrip('px')),
-                                int(props['note.size'].rstrip('px')), slug)
+                self.assertLess(_floor_px(props['note.local.size']),
+                                _floor_px(props['note.size']), slug)
+                # A theme that restates a size restates a SCALE. Written in
+                # bare px it pinned the note at 16px on a 4K screen whose
+                # body text had reached 58px -- the theme's one intent,
+                # a bigger note, inverted by the screen it was shown on.
+                self.assertLess(_coefficient(props['note.local.size']),
+                                _coefficient(props['note.size']), slug)
 
 
 class AlignmentReachesWhatItWraps(unittest.TestCase):
@@ -8462,12 +8503,77 @@ class BlockWidthIsNotAMeasure(unittest.TestCase):
     def test_boxes_read_the_block_width_and_prose_reads_the_measure(self):
         self.assertEqual(
             self.lwp.PROPERTY_REGISTRY['page.block-max'].default,
-            'min(84vw, 1100px)')
+            'min(84vw, max(1100px, 102vmin))')
         for box in ('pre', '.comparison-table', '.figure',
-                    '.full-article table', '.highlight'):
+                    '.full-article table'):
             self.assertIn('var(--page-block-max)', self._rule(box), box)
         for prose in ('.summary', '.full-article p', '.intro'):
             self.assertIn('var(--page-content-max)', self._rule(prose), prose)
+
+    def test_the_block_width_is_a_floor_and_not_a_ceiling(self):
+        """1100px flat put a table with 41px text in 26 characters a line
+        at 3840, once the type scales lost their own ceilings. The `max`
+        is what keeps the box growing with the text inside it; a bare
+        `min(84vw, 1100px)` is the shape this replaced."""
+        d = self.lwp.PROPERTY_REGISTRY['page.block-max'].default
+        self.assertIn('max(', d, 'the block width has a ceiling again')
+        self.assertIn('vmin', d)
+
+    def test_the_key_figure_is_centred_on_the_same_thing_as_the_text(self):
+        """.highlight was the ONE centred box reading the block width, so
+        its centre sat 256px left of every other component's at 1920 and
+        1063px left at 3840 -- measured in a browser. A left-aligned box
+        can be narrower and still share the column's left edge; a centred
+        one cannot. It is also not a flex column any more: `align-items:
+        center` made highlight.align inert, and setting it to `left`
+        moved the figure by zero pixels."""
+        rule = self._rule('.highlight')
+        self.assertIn('var(--page-content-max)', rule)
+        self.assertNotIn('var(--page-block-max)', rule)
+        self.assertNotIn('display: flex', rule)
+        self.assertNotIn('align-items', rule)
+
+
+class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
+    """A deck is presented full screen, so a size that does not scale
+    shrinks -- relative to everything around it -- the bigger the screen
+    gets. Eight sizes were given a scale and twenty-seven were not, which
+    left the tag, the fact label, the key figure's caption and the slide
+    number at their 1080p pixel values on a 4K display whose body text
+    had more than doubled. Measured: tag/summary was 0.556 by design and
+    had fallen to 0.206 at 3840."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+        cls.sizes = {n: p.default for n, p in cls.lwp.PROPERTY_REGISTRY.items()
+                     if getattr(p, 'css', None) == 'font-size'}
+
+    def test_no_size_is_pinned_to_pixels(self):
+        stuck = {n: d for n, d in self.sizes.items()
+                 if 'vmin' not in d and not d.endswith('em')}
+        self.assertEqual(stuck, {},
+                         'these sizes stay put while the screen grows')
+        self.assertGreater(len(self.sizes), 30, 'the size list moved')
+
+    def test_a_theme_that_restates_a_size_restates_a_scale(self):
+        """high-contrast is the only theme that resizes anything, and it
+        did it in bare px -- so under that theme the notes it deliberately
+        enlarges were the one part of the page that did not grow."""
+        for slug, props in self.lwp.THEME_NOTE_PROPS.items():
+            for key, value in props.items():
+                if key.endswith('.size'):
+                    self.assertIn('vmin', value, f'{slug} {key}')
+
+    def test_every_size_keeps_a_floor(self):
+        """The floor is what leaves a phone untouched: below a smaller
+        dimension of about 800px it wins, so a 375x667 screen renders as
+        it did before any of this."""
+        for name, d in self.sizes.items():
+            if d.endswith('em'):
+                continue
+            self.assertIsNotNone(_floor_px(d), f'{name} = {d}')
+            self.assertGreaterEqual(_floor_px(d), 12, name)
 
 
 class BlockTagErrorContract(unittest.TestCase):

@@ -2429,6 +2429,40 @@ téléphone, où les fiches sont déjà serrées en hauteur (§7 de
 `ETUDE-VIEWPORT.md` compte celles qui débordent). Mesuré à 375×667 :
 identique à l'octet près.
 
+**Toutes** les tailles suivent cette forme `max(<plancher>, <N>vmin)` —
+les trente-cinq, pas seulement les huit du corps de texte. Une taille
+figée en pixels rétrécit *relativement* à tout ce qui l'entoure à mesure
+que l'écran grandit : mesuré à 3840, le rapport `tag`/`summary` valait
+0,206 pour 0,556 voulu, c'est-à-dire une étiquette presque trois fois
+trop petite. Le coefficient de chaque taille vaut sa valeur en pixels
+divisée par 8, ce qui redonne à 1920×1080 exactement le rapport que le
+dessin avait, et le conserve au-delà. Un thème qui redéclare une taille
+redéclare une **échelle** : écrite en pixels nus, elle serait la seule
+part de la page à ne pas grandir, ce qui inverse l'intention du thème sur
+l'écran où elle compte.
+
+**Largeur des blocs.** `page.block-max` gouverne ce qui n'est pas du
+texte courant — tableau, bloc de code, figure —, dimensionné par ce qu'il
+contient et non par un compte de caractères. Le `1100px` y est un
+**plancher**, pas un plafond, pour la même raison : mesuré à 3840, un
+tableau dont le texte atteignait 41 px tenait dans une boîte restée à
+1100 px, soit environ 26 caractères par ligne. `102vmin` vaut 1100 px à
+1920×1080, donc rien ne bouge à cette taille ni en dessous ; au-delà, la
+boîte garde la part de colonne qu'elle y avait — 68 %, mesuré à 1920
+comme à 3840.
+
+Le bloc `highlight` fait exception aux blocs et lit `page.content-max` :
+c'est le seul bloc **centré**, et une boîte centrée plus étroite que la
+colonne n'a pas seulement une autre largeur, elle a un autre centre.
+Mesuré sous `page.block-max`, le chiffre-clé était décentré de 256 px à
+1920 et de 1063 px à 3840 par rapport à tout ce qui l'entourait. Un bloc
+aligné à gauche n'a pas ce problème : plus étroit, il partage quand même
+le bord gauche de la colonne. Le bloc n'est pas non plus une colonne
+flex : `align-items: center` rendait `highlight.align` inerte — mesuré,
+`highlight.align: left` déplaçait le chiffre de zéro pixel — alors que
+des blocs ordinaires héritent de `text-align`, ce qui rend la propriété
+effective.
+
 Elle a brièvement été une mesure en `ch`, et la raison même pour laquelle
 ce choix avait été fait est ce qui l'a fait échouer : une longueur en `ch`
 placée dans une propriété personnalisée se résout contre la police de
