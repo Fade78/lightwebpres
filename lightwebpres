@@ -1793,8 +1793,18 @@ THEME_COMPONENTS = [
         ThemeProp('page.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('page.shadow.blur', PROP_LENGTH, '0'),
         ThemeProp('page.shadow.dy',   PROP_LENGTH, '0'),
-        # The width of running text inside a slide, and it is PROPORTIONAL to
-        # the display area, with a ceiling: 84vw up to 1100px.
+        # The width of running text inside a slide: PROPORTIONAL to the
+        # display area, with no ceiling at all. A built page is a deck --
+        # every card is `min-height: 100vh` -- and a deck shown full screen
+        # has to use the screen. Measured at 3840px with the old 1100px
+        # ceiling: the column was 29% of the width, with 22px body text.
+        #
+        # The type scale is proportional too (`Nvmin`, also unceilinged), and
+        # the two together are what keeps this readable rather than merely
+        # large: when the column and the type grow by the same factor, the
+        # characters per line do not move. Raising one without the other is
+        # what would produce a bad page -- a wider column alone lengthens
+        # every line, bigger type alone shortens them.
         #
         # It was briefly a measure in `ch` (B13 / ETUDE-VIEWPORT.md), which
         # reads well in a table of characters-per-line and badly on a screen.
@@ -1807,13 +1817,12 @@ THEME_COMPONENTS = [
         # related to the card around it. That is what a reader sees; the
         # per-line count is what a spreadsheet sees.
         #
-        # A ceiling in absolute units resolves the same for every element, so
-        # the title and the paragraph under it share one right edge, and the
-        # vw term keeps the whole thing tied to the width actually available.
-        # The measure study's other findings stand -- what it got wrong was
-        # treating "the right measure at every type size" as a gain when it
-        # is what breaks the alignment.
-        ThemeProp('page.content-max', PROP_LENGTH, 'min(84vw, 1100px)'),
+        # A width in `vw` resolves the same for every element, so the title
+        # and the paragraph under it share one right edge. The measure
+        # study's other findings stand -- what it got wrong was treating
+        # "the right measure at every type size" as a gain when it is what
+        # breaks the alignment.
+        ThemeProp('page.content-max', PROP_LENGTH, '84vw'),
         # And the width of things that are NOT running text. A table, a code
         # block or a figure is sized by what it contains, not by a count of
         # characters in its own font: B13 pointed all seventeen consumers at
@@ -1851,7 +1860,7 @@ THEME_COMPONENTS = [
     # its size override — kept coupled, as the sheet has it.
     ThemeComponent('title1', 'h1', [
         ThemeProp('title1.font',    PROP_FONT,   'display', css='font-family'),
-        ThemeProp('title1.size',    PROP_LENGTH, 'clamp(28px, 4.5vmin, 52px)',
+        ThemeProp('title1.size',    PROP_LENGTH, 'max(28px, 6.1vmin)',
                   css='font-size'),
         ThemeProp('title1.weight',  PROP_WEIGHT, 'bold',    css='font-weight'),
         ThemeProp('title1.leading', PROP_RATIO,  '1.15',    css='line-height'),
@@ -1865,7 +1874,7 @@ THEME_COMPONENTS = [
                    '0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg)')]),
     ThemeComponent('title2', 'h2', [
         ThemeProp('title2.font',    PROP_FONT,   'display', css='font-family'),
-        ThemeProp('title2.size',    PROP_LENGTH, 'clamp(24px, 3.5vmin, 40px)',
+        ThemeProp('title2.size',    PROP_LENGTH, 'max(24px, 4.7vmin)',
                   css='font-size'),
         ThemeProp('title2.weight',  PROP_WEIGHT, 'bold',    css='font-weight'),
         ThemeProp('title2.leading', PROP_RATIO,  '1.2',     css='line-height'),
@@ -1876,7 +1885,7 @@ THEME_COMPONENTS = [
     # four surfaces that claimed ink-muted were the CDC's debt D1.
     ThemeComponent('summary', '.summary', [
         ThemeProp('summary.fg',      PROP_COLOR,  'ink', css='color'),
-        ThemeProp('summary.size',    PROP_LENGTH, 'clamp(16px, 2vmin, 22px)',
+        ThemeProp('summary.size',    PROP_LENGTH, 'max(16px, 2.7vmin)',
                   css='font-size'),
         ThemeProp('summary.leading', PROP_RATIO,  '1.55', css='line-height'),
         ThemeProp('summary.align', PROP_ALIGN, 'left', css='text-align'),
@@ -1888,7 +1897,7 @@ THEME_COMPONENTS = [
         ThemeProp('fact.rule-width', PROP_LENGTH, '4px',       css='border-left-width'),
         ThemeProp('fact.fg',   PROP_COLOR,  'ink', css='color',
                   selector='.fact-content'),
-        ThemeProp('fact.size', PROP_LENGTH, 'clamp(15px, 1.6vmin, 18px)',
+        ThemeProp('fact.size', PROP_LENGTH, 'max(15px, 2.2vmin)',
                   css='font-size', selector='.fact-content'),
         ThemeProp('fact.align', PROP_ALIGN, 'left', css='text-align',
                   selector='.fact-content'),
@@ -2096,7 +2105,7 @@ THEME_COMPONENTS = [
     ]),
 
     ThemeComponent('table', '.comparison-table', [
-        ThemeProp('table.size', PROP_LENGTH, 'clamp(13px, 1.4vmin, 16px)',
+        ThemeProp('table.size', PROP_LENGTH, 'max(13px, 1.9vmin)',
                   css='font-size'),
         ThemeProp('table.rule-fg',    PROP_COLOR,  '#0000001A',
                   css='border-bottom-color',
@@ -2202,7 +2211,7 @@ THEME_COMPONENTS = [
     ThemeComponent('highlight', '.highlight-figure', [
         ThemeProp('highlight.fg',       PROP_COLOR,   'ink',     css='color'),
         ThemeProp('highlight.font',     PROP_FONT,    'display', css='font-family'),
-        ThemeProp('highlight.size',     PROP_LENGTH,  'clamp(2.1rem, 8vmin, 3.4rem)',
+        ThemeProp('highlight.size',     PROP_LENGTH,  'max(2.1rem, 10.8vmin)',
                   css='font-size'),
         ThemeProp('highlight.weight',   PROP_WEIGHT,  'bold',    css='font-weight'),
         ThemeProp('highlight.leading',  PROP_RATIO,   '1.05',    css='line-height'),
@@ -2343,14 +2352,14 @@ THEME_COMPONENTS = [
     ]),
     ThemeComponent('header.title', '.header h1', [
         ThemeProp('header.title.font',    PROP_FONT,   'display', css='font-family'),
-        ThemeProp('header.title.size',    PROP_LENGTH, 'clamp(28px, 4vmin, 44px)',
+        ThemeProp('header.title.size',    PROP_LENGTH, 'max(28px, 5.4vmin)',
                   css='font-size'),
         ThemeProp('header.title.weight',  PROP_WEIGHT, 'bold', css='font-weight'),
         ThemeProp('header.title.leading', PROP_RATIO,  '1.2',  css='line-height'),
     ]),
     ThemeComponent('header.subtitle', '.header .subtitle', [
         ThemeProp('header.subtitle.fg',   PROP_COLOR,  'ink-quiet', css='color'),
-        ThemeProp('header.subtitle.size', PROP_LENGTH, 'clamp(16px, 2vmin, 20px)',
+        ThemeProp('header.subtitle.size', PROP_LENGTH, 'max(16px, 2.7vmin)',
                   css='font-size'),
     ]),
     # Aligned on font.mono — the sheet's own stack dropped Consolas here, the

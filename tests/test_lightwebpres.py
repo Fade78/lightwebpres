@@ -8498,16 +8498,40 @@ class ContentMeasure(unittest.TestCase):
         cls.lwp = load_lightwebpres_module()
 
     def test_the_content_width_follows_the_display_area(self):
-        # PROPORTIONAL, with a ceiling. A `ch` cap was tried and reverted:
-        # a ch length inside a custom property resolves against the CONSUMING
-        # element, so one declared value becomes a different pixel width per
-        # component — about 800px on a 32px title, about 450px on 18px body
-        # text. The card then has no inner edge, and its text stops looking
-        # related to the card around it.
+        # PROPORTIONAL, and with no ceiling: a built page is a deck, every
+        # card is `min-height: 100vh`, and a deck shown full screen has to
+        # use the screen. Measured at 3840px under the old 1100px ceiling:
+        # the column was 29% of the width, with 22px body text.
+        #
+        # A `ch` cap was tried before that and reverted for a different
+        # reason: a ch length inside a custom property resolves against the
+        # CONSUMING element, so one declared value became a different pixel
+        # width per component — about 800px on a 32px title, about 450px on
+        # 18px body text — and the card lost its inner edge.
         default = self.lwp.PROPERTY_REGISTRY['page.content-max'].default
-        self.assertEqual(default, 'min(84vw, 1100px)')
-        self.assertIn('vw', default,
-                      'the width has to answer to the display area')
+        self.assertEqual(default, '84vw')
+
+    def test_the_type_scale_has_no_ceiling_either(self):
+        # The column and the type have to be uncapped TOGETHER. Capping one
+        # is what produces a bad page: a wider column alone lengthens every
+        # line, bigger type alone shortens them. Only both moving by the same
+        # factor leaves the characters per line where they were — measured
+        # invariant from 1080p to 4K.
+        #
+        # The FLOOR stays: it is what governs a phone, where the cards are
+        # already tight vertically (ETUDE-VIEWPORT.md §7 counted the ones
+        # that overflow), and where a 35% larger type would put more of them
+        # over. Measured at 375x667: byte for byte what it was.
+        for key in ('title1.size', 'title2.size', 'summary.size', 'fact.size',
+                    'header.title.size', 'header.subtitle.size',
+                    'highlight.size', 'table.size'):
+            default = self.lwp.PROPERTY_REGISTRY[key].default
+            self.assertNotIn('clamp(', default,
+                             f'{key} is capped again, so it stops growing on '
+                             f'the screen this scale exists for')
+            self.assertIn('vmin', default,
+                          f'{key} has to answer to the smaller dimension, or '
+                          f'rotating a phone changes the type size')
 
     def test_the_column_is_centred_in_the_card(self):
         # Measured at 1920px before this was fixed: 154px of margin on the

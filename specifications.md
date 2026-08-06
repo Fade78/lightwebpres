@@ -2411,8 +2411,23 @@ toute la page ; et la coupure automatique a besoin de la langue, que les
 gabarits déclarent déjà en `<html lang="…">`.
 
 **Largeur de colonne.** `page.content-max` est la largeur du texte
-courant dans une fiche, et elle est **proportionnelle à la zone
-d'affichage** avec un plafond : `min(84vw, 1100px)` par défaut.
+courant dans une fiche : **proportionnelle à la zone d'affichage**, et
+sans plafond — `84vw` par défaut. Une page construite est un deck (chaque
+fiche fait `min-height: 100vh`), et un deck montré en plein écran doit
+utiliser l'écran : mesuré à 3840 px sous l'ancien plafond de 1100 px, la
+colonne faisait 29 % de la largeur avec du texte à 22 px.
+
+L'échelle typographique est proportionnelle elle aussi (`Nvmin`, sans
+plafond), et **c'est le couple qui tient** : quand la colonne et le corps
+grandissent du même facteur, le nombre de caractères par ligne ne bouge
+pas — mesuré invariant de 1080p à 4K. Lever un plafond sans l'autre
+produirait une mauvaise page : une colonne plus large seule allonge les
+lignes, un corps plus gros seul les raccourcit.
+
+Le **plancher** de chaque taille reste : c'est lui qui gouverne un
+téléphone, où les fiches sont déjà serrées en hauteur (§7 de
+`ETUDE-VIEWPORT.md` compte celles qui débordent). Mesuré à 375×667 :
+identique à l'octet près.
 
 Elle a brièvement été une mesure en `ch`, et la raison même pour laquelle
 ce choix avait été fait est ce qui l'a fait échouer : une longueur en `ch`

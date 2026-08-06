@@ -235,3 +235,44 @@ Two things follow for anything like this in future:
   decision.** The next such study needs a column for "do the components on
   one card agree with each other", or it will make this mistake again with
   a different number.
+
+## 10. And then the ceilings came off entirely
+
+Reported from a 1080p screen in full screen, and confirmed at 4K: the deck
+does not use the display. Measured, with the ceilings §7 shipped:
+
+| viewport | column | % of screen | title | body |
+|---|---|---|---|---|
+| 1440×900 | 1100px | 76% | 31.5px | 18px |
+| 1920×1080 | 1100px | **57%** | 37.8px | 21.6px |
+| 3840×2160 | 1100px | **29%** | 40px | 22px |
+
+Every clamp is at its ceiling by 4K, so nothing grows any further. A built
+page is a deck — every card is `min-height: 100vh` — and a deck shown full
+screen has to use the screen.
+
+**Both ceilings came off, and that pairing is the whole point.** The column
+is `84vw`; the type keeps its `Nvmin` coefficient, raised by 1.35, with no
+upper bound. Uncapping the column alone lengthens every line; raising the
+type alone shortens them. Together the characters per line do not move —
+measured identical at 1920 and 3840, which is the invariance §5 was after
+and did not get.
+
+| viewport | column | % | title | body |
+|---|---|---|---|---|
+| 375×667 | 315px | 84% | 24px | 16px |
+| 768×1024 | 645px | 84% | 36.1px | 20.7px |
+| 1440×900 | 1210px | 84% | 42.3px | 24.3px |
+| 1920×1080 | 1613px | 84% | 50.8px | 29.2px |
+| 3840×2160 | 3226px | 84% | 101.5px | 58.3px |
+
+**The floors are untouched, deliberately.** They are what governs a phone,
+where §7 counted the cards that already overflow, and a 35% larger type
+would put more of them over. At 375×667 the page is what it was, to the
+pixel: the floor binds below roughly a 510px smaller dimension, so nothing
+under a small tablet moves at all.
+
+What this adds to §9's lesson: the instrument was not only missing a column
+for "do the components agree with each other", it was missing one for "how
+much of the screen is this using". Both are questions about the page as a
+whole, and every column in §7 is about a line of text.
