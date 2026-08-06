@@ -157,9 +157,12 @@ HTML name), `page_title`/`page_desc`, `card_title`/`card_desc`/
 (`author`/`license`/`date`, defaulting series-wide from `series_meta`)
 all resolve from the article's own meta block and cover slide, and any of
 them can be overridden per entry here when you want `series.json` to have
-the final say. `draft: true` keeps an article out of the build until it's
-ready (`--include-drafts` previews it, with a banner). The array order is
-the navigation and index order. The full fallback chain per field is in
+the final say. `status` says what each article is worth to the series:
+`active` (the default), `draft` — still an article of the series, kept
+out of the output until `--include-drafts` previews it with a banner — or
+`ignored`, which takes it out of the chain entirely without deleting the
+entry and everything you configured on it. The array order is the
+navigation and index order. The full fallback chain per field is in
 `GLOSSARY.md`.
 
 ## 5. Adjusting the look
@@ -380,8 +383,9 @@ with `--nav-cache` holding the fingerprint that tells it whether the
 navigation still needs regenerating. `--build-stamp` marks every
 generated page with the version and time it came from, which is what you
 want when a page is published by a machine and questioned by a human
-three months later. And `draft: true` in `series.json` keeps an article
-out of the build entirely until something upstream flips it.
+three months later. And `status` in `series.json` decides what enters the
+build at all: `draft` until something upstream flips it, `ignored` for an
+article you want kept and not published.
 
 ### In the browser
 

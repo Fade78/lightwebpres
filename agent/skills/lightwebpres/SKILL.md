@@ -6,7 +6,8 @@ description: >
   standard, series-nav, full-article) and their fields (tag, summary,
   highlight, highlight-caption, fact-label, source, comment — the title is
   written as a heading, there is no title field), the one-way
-  field/free-text parsing switch, the editorial and draft fields, the
+  field/free-text parsing switch, the editorial fields and the article
+  status (active/draft/ignored), the
   comparison-table verdict classes, series.json wiring, and automatic
   non-breaking-space typography with its opt-outs (typo, typo_units,
   typo_thousands).
@@ -168,11 +169,16 @@ and emitted as `<meta>` tags:
 - `page_desc` — feeds `<meta name="description">`. Cascade:
   `series.json` > here > the cover slide's `summary`. It is the one field
   `audit` actively complains about when it resolves to nothing.
-- `draft: true` — keeps the article out of the build entirely: no page,
-  no index card, no navigation entry. Only `true` (any case) marks a
-  draft; `series.json` wins over this file even when it says `false`.
+- `status: active | draft | ignored` — what this article is worth to the
+  series (`active` when absent; `series.json` wins over this file).
+  `status: draft` keeps it out of the output — no page, no index card, no
+  navigation entry — while it still counts as an article of the series;
   `build --include-drafts` builds it anyway, with a banner on the page so
-  a preview is never mistaken for a publication.
+  a preview is never mistaken for a publication. `status: ignored` takes
+  it out of the chain altogether: never built whatever the flags, never
+  listed, never counted, and the entry survives with every field on it —
+  which is how you set an article aside without losing its settings. Any
+  other value is a fatal error.
 
 **Notes fields**, settable here or in `series_meta` (the article wins):
 

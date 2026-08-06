@@ -644,7 +644,7 @@ class CheckIncludeDrafts(unittest.TestCase):
             _MINIMAL_MD.replace('a.html', 'b.html'), encoding='utf-8')
         (root / 'series.json').write_text(json.dumps({'articles': [
             {'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
-            {'page_source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B', 'draft': True},
+            {'page_source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B', 'status': 'draft'},
         ]}), encoding='utf-8')
         return root
 
@@ -833,7 +833,7 @@ class Axis4CommandGaps(unittest.TestCase):
         # count its warning — audit never excludes drafts (§11.5).
         md_no_cover = (
             '<!-- lwp:meta -->\npage_dest: b.html\npage_title: B\nnav_title: B\nnav_desc: B\n'
-            'page_desc: Has one.\ndraft: true\n---\n\n'
+            'page_desc: Has one.\nstatus: draft\n---\n\n'
             '<!-- lwp:slide -->\ntag: T\n## Standard only\nsummary: S.\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -899,9 +899,12 @@ class Axis4CommandGaps(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
-    def test_draft_string_true_is_case_insensitive(self):
+    def test_a_status_is_read_case_insensitively(self):
+        # The predecessor boolean accepted 'TRUE'; the closed vocabulary
+        # that replaced it keeps the same tolerance, so a value typed in
+        # a capitalised style is a status and not a fatal error.
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD, series_extra={'draft': 'TRUE'})
+            root = scaffold(tmp, _MINIMAL_MD, series_extra={'status': 'Draft'})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((root / 'public' / 'a.html').exists())
@@ -1931,22 +1934,34 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
             self.assertIn('Summary of A.', written)
             self.assertNotIn('The series title', written)
 
-    def test_a_series_of_one_built_article_is_a_series_of_one(self):
-        """Drafts are excluded before this point (§20.6), so a two-entry
-        series with one draft builds one article — and an index listing
-        that single entry is exactly as pointless as any other."""
+    def test_what_counts_here_is_the_series_not_the_build(self):
+        """§20.6 decides the tally, and it is deliberately NOT the list of
+        pages this particular run will write.
+
+        A draft is an article of the series — it is only kept out of the
+        output — so a two-entry series with one draft has an index worth
+        protecting and the collision is fatal, with or without
+        --include-drafts. Counting the built list instead would make the
+        very same series.json legal or illegal depending on a build flag.
+
+        An `ignored` entry is not an article of the series at all, so what
+        remains really is a series of one, and the index name is free."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self.series(tmp, [('a.md', 'index.html'),
-                                     ('b.md', 'b.html', {'draft': True})])
+                                     ('b.md', 'b.html', {'status': 'draft'})])
+            for flags in ((), ('--include-drafts',)):
+                with self.subTest(flags=flags):
+                    result = run('build', str(root), '--output',
+                                 str(root / 'public'), *flags)
+                    self.assertEqual(result.returncode, 1, result.stdout)
+                    self.assertIn('collides with the series index', result.stderr)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html'),
+                                     ('b.md', 'b.html', {'status': 'ignored'})])
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('[no index]', result.stdout)
-            # ...and with the draft included, the index has a list to
-            # carry again, so the same series.json is fatal.
-            result = run('build', str(root), '--output', str(root / 'public'),
-                         '--include-drafts')
-            self.assertEqual(result.returncode, 1, result.stdout)
-            self.assertIn('collides with the series index', result.stderr)
 
 
 class SeriesNavTypography(unittest.TestCase):
@@ -3883,11 +3898,12 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
             self.assertIn(field, self.skill, field)
         for field in self.lwp._SERIES_META_STRING_FIELDS:
             self.assertIn(field, self.skill, f'series_meta.{field}')
-        # Not just the word: --include-drafts contains it, which is
-        # how a first version of this line survived its own mutation.
-        # `true` is the only value that marks a draft, so that is what
-        # the skill has to show.
-        self.assertIn('draft: true', self.skill)
+        # Not just the word: --include-drafts contains it, which is how a
+        # first version of this line survived its own mutation. The status
+        # values are a closed vocabulary, so the skill has to carry all
+        # three — an agent shown only `draft` cannot set an article aside.
+        for value in self.lwp.ARTICLE_STATUSES:
+            self.assertIn(f'status: {value}', self.skill, value)
 
     def test_every_styling_hook_reachable_only_by_hand_is_named(self):
         """A class the stylesheet defines and the Markdown cannot
@@ -7124,10 +7140,16 @@ class PageDescMetaDescription(unittest.TestCase):
             self.assertIn('no description anywhere', result.stdout)
 
 
-class DraftArticles(unittest.TestCase):
-    """§20.3.1/GLOSSARY.md: draft: true excludes an article from the
-    build entirely (no page, no index card, no nav entry) unless
-    --include-drafts, which builds it with a centered banner."""
+class ArticleStatus(unittest.TestCase):
+    """§20.6: an article is `active`, `draft` or `ignored`, and the three
+    are three degrees of participation in the series.
+
+    `draft` is the old boolean's behaviour: out of the OUTPUT unless
+    --include-drafts, which builds it with a banner, but still an article
+    of the series for anything that counts. `ignored` is the new one, and
+    the reason the field exists: out of the chain entirely, whatever the
+    flags, so an article can be set aside without deleting the entry that
+    carries all its settings."""
 
     def _series(self, tmp, b_meta_extra='', b_entry_extra=None):
         root = Path(tmp)
@@ -7148,7 +7170,7 @@ class DraftArticles(unittest.TestCase):
 
     def test_draft_excluded_from_page_index_and_nav_by_default(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._series(tmp, b_meta_extra='draft: true\n')
+            root = self._series(tmp, b_meta_extra='status: draft\n')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('[draft] b.html skipped', result.stdout)
@@ -7160,7 +7182,7 @@ class DraftArticles(unittest.TestCase):
 
     def test_include_drafts_builds_the_page_with_a_banner(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._series(tmp, b_meta_extra='draft: true\n')
+            root = self._series(tmp, b_meta_extra='status: draft\n')
             result = run('build', str(root), '--output', str(root / 'public'), '--include-drafts')
             self.assertEqual(result.returncode, 0, result.stderr)
             html_b = (root / 'public' / 'b.html').read_text(encoding='utf-8')
@@ -7172,22 +7194,114 @@ class DraftArticles(unittest.TestCase):
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('b.html', index_html)
 
-    def test_series_json_false_overrides_meta_block_true(self):
+    def test_series_json_overrides_the_meta_block(self):
+        """The priority §20.6 fixes, and the case the boolean needed a
+        special rule for: series.json turning a declared draft back on.
+        With three named words it is an ordinary cascade — `active` is a
+        value, not an absence — which is why nothing here has to
+        distinguish "written false" from "not written"."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._series(tmp, b_meta_extra='draft: true\n',
-                                b_entry_extra={'draft': False})
+            root = self._series(tmp, b_meta_extra='status: draft\n',
+                                b_entry_extra={'status': 'active'})
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'public' / 'b.html').exists())
             html_b = (root / 'public' / 'b.html').read_text(encoding='utf-8')
             self.assertNotIn('draft-banner', html_b)
 
-    def test_non_true_values_are_not_drafts(self):
+    def test_an_unknown_status_is_a_fatal_error_naming_the_article(self):
+        """Not silently treated as the default: an author reading a series
+        that ignores what they asked for, with nothing to say why, is the
+        outcome every other typed value here is protected from."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._series(tmp, b_meta_extra='draft: soon\n')
+            root = self._series(tmp, b_meta_extra='status: publised\n')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('b.md', result.stderr)
+            self.assertIn('active | draft | ignored', result.stderr)
+
+    def test_absent_status_means_active(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'public' / 'b.html').exists())
+
+    # --- ignored: the reason the field exists ------------------------------
+
+    def test_ignored_is_out_of_the_chain_whatever_the_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, b_entry_extra={'status': 'ignored'})
+            for flags in ((), ('--include-drafts',)):
+                with self.subTest(flags=flags):
+                    shutil.rmtree(root / 'public', ignore_errors=True)
+                    result = run('build', str(root), '--output',
+                                 str(root / 'public'), *flags)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn('[ignored] b.html', result.stdout)
+                    self.assertFalse(
+                        (root / 'public' / 'b.html').exists(),
+                        'an ignored article was built — --include-drafts must '
+                        'not reach it, or `ignored` is just a second `draft`')
+                    index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+                    self.assertNotIn('b.html', index_html)
+                    html_a = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+                    self.assertNotIn('b.html', html_a)
+
+    def test_the_entry_survives_being_ignored(self):
+        """The point of the status over deleting the entry: every field it
+        carries is still there afterwards, and one word brings it back."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, b_entry_extra={
+                'status': 'ignored', 'card_label': 'Part 2', 'nav_title': 'Second'})
+            run('build', str(root), '--output', str(root / 'public'))
+            entry = json.loads((root / 'series.json').read_text(encoding='utf-8'))['articles'][1]
+            self.assertEqual(entry['card_label'], 'Part 2')
+            self.assertEqual(entry['nav_title'], 'Second')
+
+    def test_audit_names_every_ignored_article(self):
+        """The one place that mentions them. Everything else in the tool
+        is silent about an ignored article by construction, which is what
+        it is for and also how it gets forgotten."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, b_entry_extra={'status': 'ignored'})
+            result = run('audit', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('b.md', result.stdout)
+            self.assertIn('ignored', result.stdout)
+
+    # --- what each status is worth to the index tally (§11.3.3) ------------
+
+    def _claiming(self, tmp, b_status):
+        """A two-entry series whose SECOND article takes the index name."""
+        root = self._series(tmp, b_entry_extra={
+            'status': b_status, 'page_dest': 'index.html'})
+        return root
+
+    def test_a_draft_still_counts_for_the_index_name(self):
+        """A draft is an article of the series, so the collision is decided
+        identically with and without --include-drafts. Counting the built
+        list instead would make a series.json legal or illegal depending on
+        a build flag."""
+        for flags in ((), ('--include-drafts',)):
+            with self.subTest(flags=flags), tempfile.TemporaryDirectory() as tmp:
+                root = self._claiming(tmp, 'draft')
+                result = run('build', str(root), '--output', str(root / 'public'), *flags)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('collides with the series index', result.stderr)
+
+    def test_an_ignored_article_does_not_count_for_the_index_name(self):
+        """It is not an article of the series at all, so what is left is a
+        one-article series — which may take the index name."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, b_entry_extra={'status': 'ignored'})
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_source': 'a.md', 'page_dest': 'index.html'},
+                {'page_source': 'b.md', 'status': 'ignored'},
+            ]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[no index]', result.stdout)
 
 
 class LegacyFieldMigrationErrors(unittest.TestCase):
@@ -9175,6 +9289,11 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
         return root
 
+    def setUp(self):
+        # The status vocabulary is read from the executable, not restated
+        # here: a value added upstream would otherwise pass unnoticed.
+        self.lwp = load_lightwebpres_module()
+
     def _report(self, root):
         result = run('series-info', str(root), '--format', 'json')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -9323,8 +9442,8 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                              ('From the content', 'derived'))
             self.assertEqual(self._field(article, 'nav_desc'),
                              ('From the meta block', 'derived'))
-            self.assertEqual(article['draft'], {'value': False,
-                                                'source': 'default'})
+            self.assertEqual(article['status'], {'value': 'active',
+                                                 'source': 'default'})
 
         # card_label with nothing anywhere: empty, and still says where
         # the emptiness comes from.
@@ -9360,43 +9479,53 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                                            summary='A summary.'),
             'hidden.md': self.ARTICLE.format(meta='', heading='Hidden',
                                              summary='A summary.'),
-            'quiet.md': self.ARTICLE.format(meta='draft: true\n', heading='Quiet',
+            'quiet.md': self.ARTICLE.format(meta='status: draft\n', heading='Quiet',
                                             summary='A summary.'),
+            'gone.md': self.ARTICLE.format(meta='', heading='Gone',
+                                           summary='A summary.'),
         }
         entries = [{'page_source': 'live.md'},
-                   {'page_source': 'hidden.md', 'draft': True},
-                   {'page_source': 'quiet.md'}]
+                   {'page_source': 'hidden.md', 'status': 'draft'},
+                   {'page_source': 'quiet.md'},
+                   {'page_source': 'gone.md', 'status': 'ignored'}]
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp, entries, sources)
             report = self._report(root)
-            self.assertEqual(report['counts'], {'articles': 3, 'drafts': 2})
-            self.assertEqual([a['draft'] for a in report['articles']],
-                             [{'value': False, 'source': 'default'},
-                              {'value': True, 'source': 'series'},
-                              {'value': True, 'source': 'article'}])
+            self.assertEqual(report['counts'],
+                             {'active': 1, 'draft': 2, 'ignored': 1})
+            self.assertEqual([a['status'] for a in report['articles']],
+                             [{'value': 'active', 'source': 'default'},
+                              {'value': 'draft', 'source': 'series'},
+                              {'value': 'draft', 'source': 'article'},
+                              {'value': 'ignored', 'source': 'series'}])
+            # An ignored article is STILL LISTED. It is out of the chain,
+            # not out of the series file, and a report that dropped it
+            # would leave a consumer unable to show it or bring it back.
             self.assertEqual([a['page_source'] for a in report['articles']],
-                             ['live.md', 'hidden.md', 'quiet.md'])
+                             ['live.md', 'hidden.md', 'quiet.md', 'gone.md'])
 
-            # Evidence that these really are the build's drafts: the
-            # build skips exactly the two the report counted.
+            # Evidence that these really are the build's statuses: the
+            # build writes exactly the one the report calls active.
             out = root / 'public'
             self.assertEqual(run('build', str(root), '--output', str(out))
                              .returncode, 0)
             self.assertTrue((out / 'live.html').exists())
-            self.assertFalse((out / 'hidden.html').exists())
-            self.assertFalse((out / 'quiet.html').exists())
+            for skipped in ('hidden.html', 'quiet.html', 'gone.html'):
+                self.assertFalse((out / skipped).exists(), skipped)
 
-    def test_a_false_draft_in_series_json_still_comes_from_series_json(self):
-        """§20.6: series.json wins even with an explicitly false value.
-        Presence, not truth, picks the level."""
-        sources = {'a.md': self.ARTICLE.format(meta='draft: true\n', heading='H',
+    def test_series_json_beats_the_meta_block_for_the_status_too(self):
+        """§20.6, and the case that used to need a rule of its own: an
+        article declaring itself a draft, put back into the series from
+        series.json. `active` is a value like any other, so this is the
+        ordinary cascade rather than a presence-versus-truth exception."""
+        sources = {'a.md': self.ARTICLE.format(meta='status: draft\n', heading='H',
                                                summary='S.')}
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._series(tmp, [{'page_source': 'a.md', 'draft': False}],
+            root = self._series(tmp, [{'page_source': 'a.md', 'status': 'active'}],
                                 sources)
             article = self._report(root)['articles'][0]
-            self.assertEqual(article['draft'], {'value': False,
-                                                'source': 'series'})
+            self.assertEqual(article['status'], {'value': 'active',
+                                                 'source': 'series'})
 
     # ------------------------------------------------------------------
     # The JSON surface itself (§1.2: renaming a key breaks the GUI)
@@ -9415,7 +9544,10 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                                              'author': 'Fade78'})
             report = self._report(root)
 
-        self.assertEqual(report['schema'], 'lightwebpres.series-info/1')
+        # /2, not /1: `draft` disappeared and `counts` changed meaning.
+        # The promise is that the number moves for exactly that, and
+        # never for a key merely being added.
+        self.assertEqual(report['schema'], 'lightwebpres.series-info/2')
         version = run('--help').stdout.split('LightWebPres v', 1)[1].split(' ', 1)[0]
         self.assertEqual(report['lightwebpres_version'], version)
         self.assertEqual(set(report), {'schema', 'lightwebpres_version',
@@ -9430,19 +9562,19 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                           'license'})
         self.assertEqual(report['series_meta']['title'], 'A series')
         self.assertIsNone(report['series_meta']['subtitle'])
-        self.assertEqual(set(report['counts']), {'articles', 'drafts'})
+        self.assertEqual(set(report['counts']), {'active', 'draft', 'ignored'})
 
         article = report['articles'][0]
         self.assertEqual(set(article),
-                         {'page_source', 'source_read', 'draft', 'fields'})
+                         {'page_source', 'source_read', 'status', 'fields'})
         self.assertIs(article['source_read'], True)
         self.assertEqual(tuple(article['fields']), self.FIELDS)
         for name, field in article['fields'].items():
             self.assertEqual(set(field), {'value', 'source'}, name)
             self.assertIsInstance(field['value'], str, name)
             self.assertIn(field['source'], self.ORIGINS, name)
-        self.assertEqual(set(article['draft']), {'value', 'source'})
-        self.assertIsInstance(article['draft']['value'], bool)
+        self.assertEqual(set(article['status']), {'value', 'source'})
+        self.assertIn(article['status']['value'], self.lwp.ARTICLE_STATUSES)
 
     def test_the_theme_in_force_is_the_one_settings_conf_names(self):
         with tempfile.TemporaryDirectory() as tmp:

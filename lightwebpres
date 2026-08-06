@@ -71,7 +71,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.17.0"
+VERSION = "0.18.0"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
@@ -7531,7 +7531,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # feature has no .draft-banner rule, and a preview must NEVER look
     # like a publication because of a stale stylesheet.
     draft_banner = ''
-    if own_entry and own_entry.get('draft'):
+    if own_entry and own_entry.get('status') == 'draft':
         banner_text = strings.get('draft_banner', 'Draft')
         banner_style = (
             'position:absolute;top:14px;left:50%;transform:translateX(-50%);'
@@ -7731,13 +7731,32 @@ def validate_series(articles):
 _DISPLAY_OVERRIDE_FIELDS = ('page_title', 'card_title', 'card_desc', 'card_label', 'nav_title', 'nav_desc')
 
 # Every series.json entry field that must be a string when present.
-# `draft` is deliberately excluded: it is coerced with str().lower() and
-# so tolerates any type (a non-"true" value simply isn't a draft, §20.6).
+# `status` is among them, unlike the boolean it replaced: three named words
+# have a wrong value to reject, where a boolean coerced with str().lower()
+# tolerated any type at all because everything that was not "true" simply
+# was not a draft (§20.6).
 _SERIES_STRING_FIELDS = (
     'page_source', 'page_dest', 'page_title', 'page_desc',
     'card_title', 'card_desc', 'card_label', 'nav_title', 'nav_desc',
-    'author', 'license', 'date', 'comment',
+    'author', 'license', 'date', 'comment', 'status',
 )
+
+# What an article is worth to the series it is listed in (§20.6). Three
+# degrees of participation, and the middle one is the only one that used to
+# exist:
+#
+#   active   built, carded, navigated, counted — the default, and what an
+#            entry that says nothing means
+#   draft    counted, but built only under --include-drafts, and then with
+#            a banner so a preview is never mistaken for a publication
+#   ignored  out of the chain entirely: never built whatever the flags,
+#            never carded, never navigated, and not counted anywhere
+#
+# `ignored` is what makes the field worth having. Taking an article out of
+# a series used to mean deleting its entry, which threw away every field
+# that entry carried; now it is one word, and the configuration survives.
+ARTICLE_STATUSES = ('active', 'draft', 'ignored')
+DEFAULT_ARTICLE_STATUS = 'active'
 
 
 def _find_cover_slide(slides):
@@ -7774,9 +7793,10 @@ _FIELD_ORIGINS = ('series', 'article', 'content', 'derived', 'default')
 _SERIES_DEFAULT_ORIGIN = 'series-default'
 
 # The resolved fields whose provenance `series-info` reports, in cascade
-# order. `draft` is recorded too but kept out of this tuple: its value is
-# a boolean, not text (§11.11). The editorial three are out for the
-# reason just given — `resolve` reaches them by name, one at a time.
+# order. `status` is recorded too but kept out of this tuple: `series-info`
+# reports it in its own key, beside the fields rather than among them
+# (§11.11). The editorial three are out for the reason just given —
+# `resolve` reaches them by name, one at a time.
 _RESOLVED_FIELDS = ('page_dest', 'page_title', 'page_desc', 'card_title',
                     'card_desc', 'card_label', 'nav_title', 'nav_desc')
 _EDITORIAL_FIELDS = ('author', 'license', 'date')
@@ -7841,9 +7861,9 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
       date        : series.json > article meta > '' (per-article only —
                     no series-wide default, and never derived from file
                     mtime: that would break byte-for-byte reproducibility)
-      draft       : series.json > article meta > not a draft. Only the
-                    exact value true/"true" (case-insensitive) marks a
-                    draft; anything else doesn't.
+      status      : series.json > article meta > 'active' (§20.6). One of
+                    active | draft | ignored; anything else is a fatal
+                    error naming the article.
 
     card_desc deliberately does NOT fall back through page_desc (and vice
     versa): page_desc is invisible metadata (SEO/share preview),
@@ -7941,22 +7961,25 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
                                 series_default=series_meta.get('license', ''))
         entry['date'] = take('date')
 
-        # series.json wins even with an explicit falsy value there, so
-        # `"draft": false` in series.json can override a `draft: true`
-        # left in the meta block. Presence, not truth, is what picks the
-        # level here — which is exactly why `take` can't serve: a written
-        # `false` comes from the file that wrote it, not from the default.
-        candidates['draft'] = [
-            ('series', str(entry['draft']) if 'draft' in entry else ''),
-            ('article', str(meta['draft']) if 'draft' in meta else ''),
-        ]
-        if 'draft' in entry:
-            draft_value, origins['draft'] = entry['draft'], 'series'
-        elif 'draft' in meta:
-            draft_value, origins['draft'] = meta['draft'], 'article'
-        else:
-            draft_value, origins['draft'] = '', 'default'
-        entry['draft'] = str(draft_value).strip().lower() == 'true'
+        # `status` goes through `take` like every other field, and that is
+        # the point of it being three named words rather than a boolean:
+        # none of them is falsy, so nothing has to distinguish "written
+        # false" from "not written". The predecessor field needed its own
+        # presence-based branch for exactly that reason.
+        # Lowercased like every other closed vocabulary here (the notes
+        # settings do the same): the value is a word the format fixes,
+        # not text the author composed, so its capitalisation carries
+        # nothing worth failing over.
+        entry['status'] = (take('status') or DEFAULT_ARTICLE_STATUS).strip().lower()
+        if entry['status'] not in ARTICLE_STATUSES:
+            # The same bar every other typed value here is held to: a wrong
+            # value is named, not silently treated as the default — which
+            # would leave an author reading a series that ignores what they
+            # asked for, with nothing to say why.
+            print(f'[ERROR] {entry["page_source"]}: status: '
+                  f'{entry["status"]!r} is not a valid value '
+                  f'({" | ".join(ARTICLE_STATUSES)}).', file=sys.stderr)
+            sys.exit(1)
 
         resolution.append({'source_read': text is not None, 'origins': origins,
                            'candidates': candidates})
@@ -8144,18 +8167,40 @@ def load_build_context(series_dir, args):
     validate_series(articles)
     resolve_article_fields(articles, articles_dir, series_meta)
 
-    # Draft articles are excluded from the build entirely — no page, no
-    # index card, no entry in the other articles' series-nav blocks —
-    # unless --include-drafts (authors, GUI preview). Filtering the list
-    # that series_data itself references (in place, not a copy) keeps
-    # every downstream renderer consistent: they all re-derive the list
-    # from series_data. It also means the nav fingerprint is computed on
-    # the filtered list, so toggling an article's draft status changes
-    # the cache's key set and correctly forces a full build over the
-    # --only fast path.
+    # Two filters, and they are not the same rule (§20.6).
+    #
+    # `ignored` leaves the chain outright — no page, no index card, no nav
+    # entry, and not counted for anything, whatever the flags. There is no
+    # option to build one: an article the author has taken out of the
+    # series is out of it, and an escape hatch would make `ignored` a
+    # second `draft` instead of the thing that has no effect at all.
+    #
+    # `draft` is excluded from the OUTPUT unless --include-drafts (authors,
+    # GUI preview) but stays part of the series otherwise — which is why
+    # the index tally below is taken between the two filters.
+    #
+    # Both filter the list series_data itself references (in place, not a
+    # copy) so every downstream renderer stays consistent: they all
+    # re-derive the list from series_data. It also means the nav
+    # fingerprint is computed on the filtered list, so changing an
+    # article's status changes the cache's key set and correctly forces a
+    # full build over the --only fast path.
+    ignored = [e['page_dest'] for e in articles if e['status'] == 'ignored']
+    articles[:] = [e for e in articles if e['status'] != 'ignored']
+    for f in ignored:
+        print(f'  [ignored] {f} is not part of this series')
+
+    # The list as the SERIES declares it — after `ignored`, before `draft`.
+    # This is what the index-name rule counts (§11.3.3): a draft is still an
+    # article of the series, so a two-article series where one is a draft
+    # still has an index worth protecting, and the collision is decided the
+    # same way whether or not --include-drafts is passed. An ignored article
+    # is not an article of the series at all, so it does not count.
+    claim_articles = list(articles)
+
     if not args.get('--include-drafts'):
-        skipped = [e['page_dest'] for e in articles if e.get('draft')]
-        articles[:] = [e for e in articles if not e.get('draft')]
+        skipped = [e['page_dest'] for e in articles if e['status'] == 'draft']
+        articles[:] = [e for e in articles if e['status'] != 'draft']
         for f in skipped:
             print(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
 
@@ -8182,11 +8227,12 @@ def load_build_context(series_dir, args):
         lang_dir=lang_dir, output_dir=output_dir, lang=lang,
         language_file=language_file, typo_engine=typo_engine,
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
-        articles=articles, style_context=style_context,
+        articles=articles, claim_articles=claim_articles,
+        style_context=style_context,
     )
 
 
-def resolve_index_claim(articles):
+def resolve_index_claim(claim_articles, built_articles=None):
     """§11.3.3 — the article, if any, whose resolved page_dest is the very
     name `build` writes the series index to. Returns that entry, or None.
 
@@ -8220,18 +8266,32 @@ def resolve_index_claim(articles):
 
     Shared by build and check: refusing in one and diffing against an
     arrangement the other will not build would leave check reporting a
-    drift that no rebuild can ever settle."""
-    claimant = next((e for e in articles if e['page_dest'].lower() == 'index.html'), None)
-    if claimant is not None and len(articles) > 1:
+    drift that no rebuild can ever settle.
+
+    TWO lists, because the count and the outcome are different questions
+    (§20.6). `claim_articles` is the series as it declares itself —
+    `ignored` entries removed, drafts still in it — and it is what decides
+    whether the index is worth protecting: a draft is an article of the
+    series, so the collision is fatal or not regardless of
+    --include-drafts, which is what keeps a build and a build --include-drafts
+    from disagreeing about whether a series.json is legal at all.
+    `built_articles` is what will actually be written; a claimant that is a
+    draft left out of this build claims nothing today, and the index gets
+    generated as usual."""
+    if built_articles is None:
+        built_articles = claim_articles
+    claimant = next((e for e in claim_articles
+                     if e['page_dest'].lower() == 'index.html'), None)
+    if claimant is not None and len(claim_articles) > 1:
         print(f'[ERROR] series.json: article "{claimant["page_source"]}" resolves '
               f'to page_dest "{claimant["page_dest"]}", which collides with the '
-              f'series index — with {len(articles)} articles the index carries '
+              f'series index — with {len(claim_articles)} articles the index carries '
               f'the article list, so one of the two pages would overwrite the '
               f'other. Give this article another page_dest (in series.json, in '
               f'its own meta block, or by renaming the source); only a '
               f'one-article series may take the index name.', file=sys.stderr)
         sys.exit(1)
-    return claimant
+    return claimant if claimant in built_articles else None
 
 
 def _no_index_notice(claimant):
@@ -8269,7 +8329,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     # Same §11.3.3 branch as the full build — the fast path writes the
     # index too, so leaving it out here would drop the index straight
     # back onto the article page it just wrote.
-    claimant = resolve_index_claim(ctx.articles)
+    claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
     if claimant is None:
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
@@ -8310,7 +8370,7 @@ def cmd_build(series_dir, args):
     # fast path (which writes the index too): more than one article
     # claiming index.html is fatal in there, exactly one gets the name and
     # no series index is produced.
-    claimant = resolve_index_claim(ctx.articles)
+    claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
 
     nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
     fresh_fingerprint = compute_nav_fingerprint(ctx.articles)
@@ -8385,7 +8445,7 @@ def cmd_check(series_dir, args):
     # is refused here too, with the same message and before any per-file
     # line is printed, rather than after a screenful of comparisons that
     # describe an arrangement no build will produce.
-    claimant = resolve_index_claim(ctx.articles)
+    claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
 
     ok_count = 0
     diff_count = 0
@@ -8542,12 +8602,26 @@ def cmd_audit(series_dir, args):
     # (derived from `page_source` when series.json omits it, the common
     # case) — without this, an entry that legitimately has no explicit
     # `page_dest` crashes audit with a raw KeyError instead of a warning.
-    # Drafts are NOT filtered out here: audit is an authoring tool, and
-    # work-in-progress articles are exactly what it should look at.
+    # Nothing is filtered out here — not drafts, not ignored articles.
+    # audit is an authoring tool, and work in progress is exactly what it
+    # should look at.
     validate_series(articles)
     resolve_article_fields(articles, articles_dir, series_meta)
 
     warnings = 0
+
+    # An `ignored` article produces nothing and warns about nothing, so
+    # every other check below stays quiet about it forever (§20.6). That
+    # silence is the whole point of the status and also its one hazard —
+    # an article can sit out of the chain for months while its author
+    # remembers writing it. Named once, here, because audit is where
+    # advice belongs and because nothing else in the tool will ever
+    # mention it again.
+    for entry in articles:
+        if entry['status'] == 'ignored':
+            print(f"[NOTE] {entry['page_source']}: status is `ignored` — it is "
+                  f"in series.json but out of the chain: never built, never "
+                  f"listed, never counted.")
 
     for entry in articles:
         source_path = articles_dir / entry['page_source']
@@ -9295,7 +9369,7 @@ def cmd_set_theme(target_dir, args):
 # added — the same promise theme-info's schema makes, so a consumer can
 # test the string instead of guessing an executable's age from the keys
 # it happens to find.
-SERIES_INFO_SCHEMA = 'lightwebpres.series-info/1'
+SERIES_INFO_SCHEMA = 'lightwebpres.series-info/2'
 
 
 def series_theme(templates_dir):
@@ -9334,16 +9408,20 @@ def series_info_report(directory, series_data, articles, resolution, theme):
         },
         'series_meta': {field: meta.get(field)
                         for field in _SERIES_META_STRING_FIELDS},
+        # Three numbers because there are three degrees of participation
+        # (§20.6), and they sum to the whole list — an `ignored` article is
+        # still IN the series file, and a report that quietly left it out of
+        # the arithmetic would make a series look smaller than it is.
         'counts': {
-            'articles': len(articles),
-            'drafts': sum(1 for entry in articles if entry['draft']),
+            status: sum(1 for entry in articles if entry['status'] == status)
+            for status in ARTICLE_STATUSES
         },
         'articles': [
             {
                 'page_source': entry['page_source'],
                 'source_read': note['source_read'],
-                'draft': {'value': entry['draft'],
-                          'source': note['origins']['draft']},
+                'status': {'value': entry['status'],
+                           'source': note['origins']['status']},
                 'fields': {field: {'value': entry[field],
                                    'source': note['origins'][field]}
                            for field in _RESOLVED_FIELDS},
@@ -9362,8 +9440,9 @@ def print_series_info_text(report):
     counts = report['counts']
     print(f"Series: {target['directory']}")
     print(f"  theme: {target['theme'] or 'none (the built-in defaults)'}")
-    print(f"  {counts['articles']} article(s), of which "
-          f"{counts['drafts']} draft(s)")
+    total = sum(counts.values())
+    print(f"  {total} article(s): {counts['active']} active, "
+          f"{counts['draft']} draft, {counts['ignored']} ignored")
 
     print()
     print('Series metadata')
@@ -9377,9 +9456,10 @@ def print_series_info_text(report):
     width = max(len(origin) for origin in _FIELD_ORIGINS) + 3
     for number, article in enumerate(report['articles'], 1):
         print()
-        draft = '  [draft]' if article['draft']['value'] else ''
+        status = article['status']['value']
+        mark = '' if status == 'active' else f'  [{status}]'
         print(f"  {number}. {article['page_source']} -> "
-              f"{article['fields']['page_dest']['value']}{draft}")
+              f"{article['fields']['page_dest']['value']}{mark}")
         if not article['source_read']:
             print(f"     ! {article['page_source']} could not be read "
                   f"(absent, unreadable, or not UTF-8):")
@@ -9387,8 +9467,7 @@ def print_series_info_text(report):
                   "and the defaults.")
         rows = [(field, value['source'], value['value'])
                 for field, value in article['fields'].items()]
-        rows.append(('draft', article['draft']['source'],
-                     'yes' if article['draft']['value'] else 'no'))
+        rows.append(('status', article['status']['source'], status))
         for field, source, value in rows:
             head = f"     {field:<11s} {'[' + source + ']':<{width}s} "
             body = str(value) if str(value) else '(empty)'
@@ -9507,12 +9586,12 @@ _TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
 # Every name that resolves per article, whatever its own cascade — the
 # display fields, the editorial three, the notes settings, the typography
 # switches, plus the two that stand outside `take`: `page_source`, which
-# has one level, and `draft`, whose value is a boolean. Assembled from the
+# has one level, and `status`, which `series-info` reports apart. Assembled from the
 # tuples the resolvers themselves use, so a field cannot be reachable by
 # one and unknown to the other.
 _ARTICLE_LEVEL_NAMES = frozenset(
     _RESOLVED_FIELDS + _EDITORIAL_FIELDS + _TYPO_FIELD_NAMES
-    + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'draft'))
+    + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'status'))
 
 
 def _chain_link(level, value, note=None):
@@ -9684,15 +9763,13 @@ def resolve_article_field(name, entry, note):
 
     chain = [_chain_link(level, value)
              for level, value in note['candidates'][name]]
-    # `draft` is the one field whose built-in fallback has a value to
+    # `status` is the one field whose built-in fallback has a value to
     # show: every other one resolves to the empty string, and an empty
     # default link that claimed a value would be inventing one.
-    chain.append(_chain_link('default', 'false' if name == 'draft' else ''))
+    chain.append(_chain_link(
+        'default', DEFAULT_ARTICLE_STATUS if name == 'status' else ''))
     winner = _crown(chain)
-    value = entry[name]
-    if name == 'draft':
-        value = 'true' if value else 'false'
-    return {'value': value, 'source': note['origins'][name], 'chain': chain}
+    return {'value': entry[name], 'source': note['origins'][name], 'chain': chain}
 
 
 def survey_slide_field(name, articles, articles_dir, only):
@@ -10406,11 +10483,14 @@ OPTIONS
                         surface at the current theme's values, keeping your
                         pinned (uncommented) lines — the one case where the
                         tool rewrites that file (spec §9.4.3)
-  --include-drafts        build/check: also build articles marked draft: true
-                        (excluded entirely by default — no page, no index
-                        card, no nav entry). Draft pages built this way carry
-                        a centered "draft" banner in their header so a
-                        preview is never mistaken for a publication.
+  --include-drafts        build/check: also build articles marked status: draft
+                        (excluded from the output by default — no page, no
+                        index card, no nav entry — while still counting as
+                        articles of the series). Pages built this way carry a
+                        centered "draft" banner in their header so a preview
+                        is never mistaken for a publication. Articles marked
+                        status: ignored are NOT affected: they are out of the
+                        series and this flag does not reach them.
   --nav-cache path        build --only: where the nav/index fingerprint used for
                         that safety check is read from and written to
                         (default: .lwp-cache/nav.json in the series directory)
@@ -10526,7 +10606,7 @@ FIELDS RECOGNIZED IN A SLIDE
 ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
   page_source (required, series.json only), page_dest, page_title, page_desc,
   card_title, card_desc, card_label, nav_title, nav_desc, author, license,
-  date, draft, notes_placement, notes_tooltip, comment — see GLOSSARY.md
+  date, status, notes_placement, notes_tooltip, comment — see GLOSSARY.md
   for every field's scope and
   fallback chain. author/license default from series_meta for the whole
   series; author/date/license are displayed (page footer + <meta> tags),

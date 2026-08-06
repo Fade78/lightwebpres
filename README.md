@@ -143,7 +143,7 @@ ask what a series actually resolves to, without building it:
 
 It lists the articles in `series.json` order — the order that fixes the
 cross-article navigation — with each field resolved exactly as the build
-resolves it, drafts included and counted apart, and, for every value,
+resolves it, each article's status and a count per status, and, for every value,
 which level decided it: the `series.json` entry, the article's meta
 block, the article's own content, another field it was derived from, or
 the built-in default. An article whose file can't be read is still

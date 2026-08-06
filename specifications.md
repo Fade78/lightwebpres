@@ -231,7 +231,7 @@ lightwebpres --help
 - `--polarity` / `--intensity` / `--hue` : `themes` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `install` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
-- `--include-drafts` : `build`/`check` seulement — construit aussi les articles marqués `draft: true` (§20.6), avec bandeau « Brouillon »
+- `--include-drafts` : `build`/`check` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
@@ -288,7 +288,7 @@ contient, pour chaque article, deux catégories de champs bien distinctes
   `card_desc`/`card_label` (carte de la page d'index), `nav_title`/
   `nav_desc` (carte de navigation affichée dans la page d'un *autre*
   article), `author`/`license`/`date` (champs éditoriaux affichés,
-  §20.3.1), `draft` (statut brouillon, §20.6).
+  §20.3.1), `status` (§20.6).
 
 Le contenu d'une fiche `cover` (tag, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
@@ -2595,8 +2595,9 @@ lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography
 
 Construit le site :
 
-1. Lit `series.json` dans `[répertoire]`. Les articles marqués
-   `draft: true` (§20.6) sont **entièrement exclus** — pas de page, pas
+1. Lit `series.json` dans `[répertoire]`. Les articles `status: ignored`
+   (§20.6) sortent de la liste d'abord et sans condition. Les articles
+   `status: draft` sont ensuite **entièrement exclus** — pas de page, pas
    de carte d'index, pas d'entrée dans les navigations des autres
    articles — sauf avec `--include-drafts` (build **et** check), qui les
    construit tous, chaque page brouillon portant alors un bandeau
@@ -2652,9 +2653,10 @@ sur une série à beaucoup d'articles.
 `page_dest` **ou** au `page_source` de chaque article — `--only a.html`
 et `--only a.md` désignent le même article. Aucune correspondance →
 erreur fatale (« matches no article »), de même qu'un `page_source`
-correspondant mais dont le fichier n'existe pas. Les brouillons étant
-exclus de la liste avant ce filtre, un article `draft: true` n'est
-désignable par `--only` qu'avec `--include-drafts`.
+correspondant mais dont le fichier n'existe pas. Les deux filtres de
+§20.6 s'appliquant avant celui-ci, un article `status: draft` n'est
+désignable par `--only` qu'avec `--include-drafts`, et un article
+`status: ignored` ne l'est jamais.
 
 **Le piège que ça doit éviter** : `build_index()` et `build_series_nav()`
 utilisent tous les deux les champs d'affichage résolus par
@@ -2679,9 +2681,9 @@ change cet emplacement. `page_dest` n'entre pas dans ce hash : il sert de
 qui change — via une nouvelle valeur explicite ou une redéduction depuis
 `page_source`/le bloc meta — change la clé elle-même et est détecté par
 construction, sans avoir besoin d'entrer aussi dans le hash. Même
-mécanisme pour `draft` : l'empreinte est calculée sur la liste *après*
-filtrage des brouillons, donc basculer un article en brouillon (ou l'en
-sortir) change l'ensemble des clés et force un build complet.
+mécanisme pour `status` : l'empreinte est calculée sur la liste *après*
+les filtres de §20.6, donc changer le statut d'un article change
+l'ensemble des clés et force un build complet.
 
 Au lancement de `build --only fichier`, l'empreinte est recalculée pour
 **tous** les articles (rien de coûteux : ne fait que reparser les blocs
@@ -2888,8 +2890,10 @@ compare le HTML généré à l'existant, §11.4) :
    audit never blocks... »
 
 Le nombre et la position des fiches `cover` restent libres (§4.4, §22.13) :
-`audit` ne fait qu'informer, la décision reste à l'auteur. Les brouillons
-(§20.6) sont audités comme les autres articles, jamais exclus.
+`audit` ne fait qu'informer, la décision reste à l'auteur. Rien n'est
+exclu de l'audit (§20.6) — ni brouillons ni articles `ignored`, ces
+derniers étant même signalés nommément, parce que c'est le seul endroit
+de l'outil qui parlera jamais d'eux.
 
 ### 11.6 `refresh-templates`
 
@@ -3427,16 +3431,17 @@ c'est lui qui fixe la navigation inter-articles :
 - `page_source`, et le `page_dest` résolu ;
 - les champs résolus de la cascade : `page_title`, `page_desc`,
   `card_title`, `card_desc`, `card_label`, `nav_title`, `nav_desc` ;
-- `draft`, parce qu'un article écarté du build reste dans la série et
+- `status`, parce qu'un article écarté du build reste dans la série et
   qu'un consommateur doit pouvoir le montrer comme tel plutôt que de le
-  faire disparaître ;
+  faire disparaître — y compris un article `ignored`, qui est hors de la
+  chaîne mais pas hors du fichier ;
 - pour chaque champ, **d'où vient la valeur retenue** — `series.json`, le
   bloc meta, le contenu, ou le repli. C'est ce qui permet à une interface
   de dire « ce titre vient du fichier » plutôt que de présenter une
   valeur dérivée comme si l'auteur l'avait écrite.
 
 Au niveau de la série : le `series_meta`, le thème en vigueur, et le
-décompte des articles — dont les brouillons, comptés à part.
+décompte des articles, réparti sur les trois statuts de §20.6.
 
 **Les trois champs éditoriaux ne sont pas rapportés ici.** `author`,
 `license` et `date` se résolvent comme les autres, mais leur
@@ -3485,7 +3490,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les six champs textuels de §20.5 — `title`, `subtitle`, `version`, `intro`, `author`, `license` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
-| `counts` | objet | `articles` (le total) et `drafts` (combien d'entre eux sont brouillons). Deux nombres et pas trois : le troisième se soustrait |
+| `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
 
 `target` :
@@ -3502,7 +3507,7 @@ Un article :
 |---|---|---|
 | `page_source` | chaîne | le fichier source, tel que `series.json` le nomme. Seul champ obligatoire (§20.3), donc seul champ sans provenance : il vient toujours de `series.json` |
 | `source_read` | booléen | le fichier a pu être lu et analysé. `false` = absent, illisible ou non-UTF-8, et les champs ci-dessous sont repliés d'autant |
-| `draft` | objet champ | l'état brouillon, `value` **booléen** (§20.6). À part des autres pour cette raison : un consommateur qui affiche `fields` en lignes de texte n'y trouve que du texte |
+| `status` | objet champ | le statut de l'article (§20.6) : `active`, `draft` ou `ignored`. À part des autres parce qu'il ne se lit pas comme eux — il ne dit pas ce que la page affiche, il dit si elle existe |
 | `fields` | objet | les huit champs résolus, dans l'ordre où la cascade les résout : `page_dest`, `page_title`, `page_desc`, `card_title`, `card_desc`, `card_label`, `nav_title`, `nav_desc`. Chacun est un objet champ |
 
 Un **champ** — la forme ne change jamais, y compris quand la valeur est
@@ -3511,7 +3516,7 @@ même une provenance :
 
 | Clé | Type | Sens |
 |---|---|---|
-| `value` | chaîne (booléen pour `draft`) | la valeur retenue, exactement celle que le build emploierait |
+| `value` | chaîne | la valeur retenue, exactement celle que le build emploierait |
 | `source` | chaîne | le niveau de la cascade qui l'a décidée (ci-dessous) |
 
 **Le vocabulaire de provenance est fermé**, et il est celui de toute
@@ -3533,9 +3538,9 @@ Deux conséquences à énoncer, parce qu'elles se devinent mal :
   texte. Un `card_title` qui hérite d'un `page_title` lui-même déduit de
   la fiche cover est `derived` : personne n'a écrit de `card_title`, et
   c'est précisément ce que l'interface doit pouvoir dire.
-- `draft` choisit son niveau sur la **présence**, pas sur la vérité :
-  `"draft": false` écrit dans `series.json` est `series`, puisque §20.6
-  en fait une décision qui écrase le bloc meta.
+- `status` n'est pas un champ d'affichage et n'est pas rangé avec eux :
+  les autres disent ce que la page montre, celui-là dit si elle existe
+  (§20.6).
 
 #### Une seule cascade, pas deux
 
@@ -4311,7 +4316,7 @@ Placeholders :
 | `{{meta_head}}` | `author`/`page_desc` résolus (§20.3.1) | Balises `<meta name="author">` et `<meta name="description">` (débalisées, échappées) — vides toutes deux = rien d'émis |
 | `{{page_footer}}` | `author`/`date`/`license` résolus (§20.3.1) | Pied de page éditorial (`<footer class="page-footer">`) — tout absent = rien d'émis |
 | `{{build_stamp}}` | `--build-stamp`/`--build-stamp-minimal` (§11.3.2) | Marqueur de fraîcheur du build, vide par défaut |
-| `{{draft_banner}}` | `draft` + `--include-drafts` (§20.6) | Bandeau « Brouillon » centré dans l'en-tête, vide hors brouillon |
+| `{{draft_banner}}` | `status: draft` + `--include-drafts` (§20.6) | Bandeau « Brouillon » centré dans l'en-tête, vide hors brouillon |
 
 Il n'y a pas de fichier `share.js` séparé : le bouton de partage, sa matrice
 et l'encodeur QR font partie de `nav.js`, leurs propres textes sont des
@@ -4774,7 +4779,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 | `author` | string | non | pied de page de l'article + `<meta name="author">` | Auteur de l'article ; surcharge le bloc meta, qui surcharge le défaut `series_meta.author` (§20.3.1) |
 | `license` | string | non | pied de page de l'article | Licence du contenu ; même cascade que `author` (défaut `series_meta.license`) ; HTML brut autorisé (lien) |
 | `date` | string | non | pied de page de l'article (signature) | Date affichée telle quelle (texte libre) ; surcharge le bloc meta ; jamais déduite du mtime (§20.3.1) |
-| `draft` | bool/string | non | build/check | `true` = brouillon, exclu du build sauf `--include-drafts` (§20.6) |
+| `status` | chaîne | non | build/check/series-info | `active` (défaut) \| `draft` \| `ignored` (§20.6) |
 | `comment` | string | non | aucun — jamais lu | Note de relecture ; ignorée par le build (§4.6) |
 
 ### 20.3 Règles de validation
@@ -4816,8 +4821,8 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 - `page_source` doit pointer vers un fichier qui existe dans `articles/` —
   sinon **erreur fatale**, pour `build` comme pour `check`, vérifiée en
   amont avant toute écriture (aucune sortie partielle). Un article
-  volontairement absent du build a son mécanisme dédié : `draft: true`
-  (§20.6). `audit`, non bloquant par contrat, signale le fichier
+  volontairement absent du build a ses mécanismes dédiés : `status: draft`
+  et `status: ignored` (§20.6). `audit`, non bloquant par contrat, signale le fichier
   manquant et continue.
 
 #### 20.3.1 Résolution des champs (surcharge et déduction de contenu)
@@ -4923,23 +4928,64 @@ Le template d'index enveloppe `intro` dans un unique `<p>` fixe
 `</p>\n<p>` dans la valeur — HTML brut passthrough, cohérent avec le
 reste (§6.2).
 
-### 20.6 Statut brouillon (`draft`)
+### 20.6 Statut d'un article (`status`)
 
-`draft: true` (booléen JSON ou chaîne `"true"`, insensible à la casse ;
-**toute autre valeur = pas brouillon**) marque un article comme brouillon.
-Posable dans l'entrée `series.json` ou le bloc meta de l'article ;
-`series.json` prioritaire — y compris avec une valeur explicitement
-fausse : `"draft": false` dans `series.json` l'emporte sur un
-`draft: true` resté dans le bloc meta.
+`status` dit **ce qu'un article vaut à la série qui le liste**. Trois
+valeurs, insensibles à la casse, et rien d'autre — une valeur inconnue
+est une erreur fatale nommant l'article, au même titre que toute autre
+valeur typée de ce format :
 
-Par défaut, un article brouillon est **entièrement exclu** du build : pas
-de page générée, pas de carte d'index, pas d'entrée dans le bloc « Cette
-série » des autres articles — comme s'il n'était pas listé (un message
-informatif `[draft] x.html skipped` le rappelle). `--include-drafts`
-(build **et** check) construit tout, chaque page brouillon portant alors
-le bandeau décrit en §11.3. `audit`, lui, n'exclut jamais les brouillons :
-c'est un outil d'écriture, le travail en cours est précisément ce qu'il
-doit regarder.
+| Valeur | Construit | Compté | Ce que c'est |
+|---|---|---|---|
+| `active` | oui | oui | le défaut, et ce que veut dire une entrée qui ne dit rien |
+| `draft` | seulement sous `--include-drafts`, avec bandeau | oui | un article de la série, tenu hors de la **sortie** |
+| `ignored` | jamais, quels que soient les drapeaux | non | un article **hors de la chaîne**, dont la configuration survit |
+
+Posable dans l'entrée `series.json` ou le bloc meta de l'article,
+`series.json` prioritaire (§20.3.1). Absent partout : `active`.
+
+**Le champ existe pour `ignored`.** Retirer un article d'une série se
+faisait en supprimant son entrée, ce qui jetait avec elle tous les champs
+qu'elle portait — `card_label`, `nav_title`, `page_dest`, le travail de
+réglage entier. Un mot suffit désormais, et un mot le ramène.
+
+`draft` est le comportement du booléen qu'il remplace, à une chose près
+qui n'en est plus une : le prédécesseur avait besoin d'une règle propre
+disant que **la présence** choisissait le niveau, et non la valeur, parce
+que `"draft": false` était indistinguable d'un champ absent — sans quoi
+`series.json` n'aurait jamais pu remettre en circulation un brouillon
+déclaré dans le fichier. Avec trois mots nommés, aucune valeur n'est
+« fausse » : `"status": "active"` dans `series.json` écrase un
+`status: draft` du bloc meta par la cascade ordinaire, sans exception à
+écrire ni à tester.
+
+**Ce que chacun coûte au reste de l'outil :**
+
+- **Le build.** `ignored` sort de la liste d'abord et sans condition ;
+  `draft` sort ensuite, sauf `--include-drafts`. Il n'y a **pas** de
+  drapeau pour construire un article `ignored` : ce serait en faire un
+  second `draft`, alors que c'est précisément la valeur qui n'a aucun
+  effet. Chaque exclusion est annoncée (`[ignored] x.html`,
+  `[draft] x.html skipped`), jamais silencieuse.
+- **Le nom d'index (§11.3.3).** Le décompte se prend **entre les deux
+  filtres** : un brouillon est un article de la série, donc une série de
+  deux dont l'un est brouillon a bien un index à protéger, et la
+  collision est fatale avec ou sans `--include-drafts`. Compter la liste
+  effectivement construite rendrait un même `series.json` légal ou
+  illégal selon un drapeau de build. Un article `ignored` n'est pas un
+  article de la série : il ne compte pas.
+- **`series-info` (§11.11).** Trois nombres, dont la somme est la liste
+  entière — un article `ignored` est toujours *dans* le fichier de série,
+  et un rapport qui le sortirait discrètement de l'arithmétique ferait
+  paraître la série plus petite qu'elle n'est. Il reste **listé**, avec
+  son statut : il est hors de la chaîne, pas hors du fichier, et un
+  consommateur doit pouvoir le montrer et le ramener.
+- **`audit`.** Il n'exclut rien, ni brouillons ni ignorés — c'est un
+  outil d'écriture, le travail en cours est ce qu'il doit regarder. Et
+  c'est **le seul endroit qui nomme un article `ignored`** : tout le
+  reste de l'outil est muet à son sujet par construction, ce qui est son
+  intérêt et aussi son unique danger, puisqu'un article peut rester hors
+  circuit des mois pendant que son auteur se souvient l'avoir écrit.
 
 ---
 
