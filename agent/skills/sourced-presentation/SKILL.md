@@ -2,7 +2,7 @@
 name: sourced-presentation
 description: "Produce a sourced presentation for an editorial series: a deck of short cards, each readable on its own, backed by a fully referenced long-form article — either a reversal, confronting a widespread belief with what is established, or an exposition of a subject the reader has never had the pieces for. Covers the whole chain — commissioning research, verifying every fact at its source, writing, re-reading, cross-checking deck against article. Load before writing, revising, verifying or re-reading either one, and before inserting a presentation into an existing series — including for a small touch-up, since it opens on how to locate yourself in work already under way and on what each kind of edit invalidates. Does not cover a given series' settings (audience, lengths, format), which live in its own specification."
 metadata:
-  version: "0.13"
+  version: "0.14"
 ---
 
 # Sourced presentation — method
@@ -71,6 +71,8 @@ Each step writes to disk before the next. **Steps 6 and 7 each catch defects the
 **A commissioned synthesis is a list of leads, not a file.** It invents specifics — venue, year, sample size — and contradicts itself between body and notes, on central claims. Re-check every figure at the source.
 
 **Then check it against the axes you asked for.** Checking figures cannot reveal a missing axis: the figures are right and the coverage is short. A second brief on the same subject regularly returns what the first left out.
+
+**Verifying that a source exists is not verifying what you claim of it.** Its own page says what it covers and what it does not; the second half goes unread. *A reference can be real, official, and wrong for the sentence it sits under.*
 
 **When the source itself is ambiguous, say so in the note.** A possibly wrong reference is worse than none.
 
@@ -210,9 +212,11 @@ The reader **enters anywhere**: skims, skips, returns. **A card assumes nothing 
 
 **Between the opening and the close, the cards escalate by default**: what the reader lives, then the mechanism behind it, then what has been measured, then what is structural. Order carries the argument — a deck sorted by how strong each fact is reads as a list. **When the subject imposes another order** — a legal threshold before the mechanism it governs — that order prevails.
 
-**The last card that carries a fact is one of agency, never a threat.** *Apparatus may follow it — a series index, the long-form article itself — and that is fine: the reader who scans stops at the last card that says something.* It carries a fact: a real right, a setting that exists, a check within the reader's reach — never an exhortation, which cannot be verified, and which the reader can only obey or refuse. *When no lever exists, saying so beats inventing one.*
+**Where the subject leaves the reader something to do, the last card carrying a fact is one of agency, never a threat.** A real right, a setting that exists, a check within reach — never an exhortation, which cannot be verified and which the reader can only obey or refuse. *Apparatus may follow: the reader who scans stops at the last card that says something. When no lever exists, saying so beats inventing one.*
 
 **A deck written after the article inherits its facts and loses its hedges.** Announced becomes did; we found no study becomes none exists — a short form drops the hedge first. *Check the pair at each derivation: the card was true when written, and the article moved.*
+
+**A right or a setting is agency; a way out is not.** Where the page documents a harm the reader may be living, name a service they can reach, never an exhortation. *The lever that reopens the argument does not reach someone already inside it.*
 
 **An announced count is exact, and the series fixes what it counts.** A tool may count a different set, and the two will never coincide. *Two defensible conventions differ by one on every deck at once: check that the spec and the tool agree.* Recount at every addition.
 
@@ -230,11 +234,15 @@ Five passes, none replacing another. **On a first pass, all five. On a return, w
 
 **The cross-check.** Three questions. Is every figure in a card found in the article? Does any card assert more than the article does, limits included — shortening a fact hardens it? Is every claim a card repeats actually sourced in the article? Unsourced claims surface here; in the article alone they blend into referenced text.
 
+**Someone else's review is applied, not repeated.** Checking its entries against the files is a different operation from reading the pages again, and a better one. *Re-reading feels like doing it properly; it is the slower way to a worse result.*
+
 **One pass runs across the corpus, on one property at a time.** Some defects have no local form: a sentence on every page reads as apparatus from any one of them. *A reader given one page cannot know the sentence is not that page's.* Take one property, walk every page on it alone.
 
 ## What breaks silently
 
 **A bulk operation reports its successes, never its misses, and a check narrower than what it checks passes silently.** Renumbering after an insertion is the type case: the pattern matches one written form, leaves the other, and two items share a number.
+
+**A pattern tuned until it stops complaining measures nothing.** Each false positive pushes you to narrow it, and narrowing converges on silence that reads as cleanliness. *Judge a check by what it found you had missed, never by how little it reports.*
 
 **Verify the result — the whole sequence, the whole set — not the operation's report**, and prefer a broad pattern you read to a narrow one that skims.
 
