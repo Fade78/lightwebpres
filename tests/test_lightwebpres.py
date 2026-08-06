@@ -4042,6 +4042,24 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
         and free text on a cover slide is fatal."""
         self.assertNotIn('slide_title', self.skill)
 
+    def test_the_skill_says_where_the_tool_is_downloaded_from(self):
+        """A skill is installed into an environment, not into a clone.
+        It already told an agent to ask when the executable isn't there,
+        and to read GUIDE.md and specifications.md if they're beside it
+        — three pointers, no address, to a reader whose whole problem is
+        that none of the three is present.
+
+        Read off HOMEPAGE rather than restated, so moving the project
+        fails here instead of leaving a skill that sends agents to an
+        address nobody owns any more."""
+        self.assertIn(self.lwp.HOMEPAGE, self.skill)
+
+    def test_the_help_says_it_too(self):
+        """`--help` ended on "Full reference: specifications.md" — a file
+        that does not travel with the executable a release publishes."""
+        out = run('--help').stdout
+        self.assertIn(self.lwp.HOMEPAGE, out)
+
 
 class ContrastFloors(unittest.TestCase):
     """Every one of these was found by rendering real pages under all 33

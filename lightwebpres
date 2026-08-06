@@ -71,7 +71,16 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.21.0"
+VERSION = "0.21.1"
+
+# Where this tool comes from. A constant because two places have to say
+# it and neither did: `--help` ended on "Full reference:
+# specifications.md" addressed to a reader who may hold nothing but this
+# one file, and the bundled skill told an agent to ask when the
+# executable is missing without saying where to look for it. A release
+# publishes this file ALONE, so "the repository you cloned" is not
+# something the reader necessarily has.
+HOMEPAGE = "https://github.com/Fade78/lightwebpres"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
@@ -10789,7 +10798,8 @@ TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specific
 The framework is a single executable file, with no external dependency.
 Python 3.8+ standard library only. Native UTF-8. On Windows
 (no shebang), run: python lightwebpres <command>.
-Full reference: specifications.md.''')
+Full reference: specifications.md, in ''' + HOMEPAGE + '''
+where this tool is published and can be downloaded.''')
 
 
 # Which options each command accepts, and whether they take a value.

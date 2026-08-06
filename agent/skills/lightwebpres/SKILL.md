@@ -19,6 +19,8 @@ of "slides" (cover, fact-cards, cross-article nav) followed by an
 optional long-form piece. One `.md` file per article. The tool that
 builds it (`lightwebpres`) is a single stdlib-only Python script — if
 it's not obviously present in the project, ask before assuming it is.
+It is published at <https://github.com/Fade78/lightwebpres>; that is
+where to download it from, and the only address to trust for it.
 
 ## The one idea that matters most
 
@@ -597,3 +599,8 @@ For the article format itself, if `specifications.md` is present
 alongside this project, it's the complete, authoritative specification
 (sections 4 and 6 for the format itself, section 22 for every parser
 edge case) — consult it for anything this skill doesn't cover.
+
+Both of those documents, and the executable itself, live at
+<https://github.com/Fade78/lightwebpres>. This skill may well be
+installed somewhere the project isn't, so when neither file is beside
+you, that's where they are.
