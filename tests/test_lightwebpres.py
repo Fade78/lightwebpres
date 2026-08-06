@@ -8509,6 +8509,26 @@ class ContentMeasure(unittest.TestCase):
         self.assertIn('vw', default,
                       'the width has to answer to the display area')
 
+    def test_the_column_is_centred_in_the_card(self):
+        # Measured at 1920px before this was fixed: 154px of margin on the
+        # left of the card and 666px on the right. A source assertion, and
+        # said to be one — what it can catch is a revert to a fixed `8vw`
+        # pair, which is the shape the defect had.
+        #
+        # It reads --page-content-max on purpose: the padding that centres
+        # the column has to be derived from the column's own width, or an
+        # author who pins a different one gets it centred around the wrong
+        # number. Pinning that here is what stops the two drifting apart.
+        skeleton = self.lwp.TEMPLATE_SKELETON
+        slide_rule = self._rule('.slide') if hasattr(self, '_rule') else skeleton
+        self.assertNotIn('padding: 60px 8vw;', skeleton,
+                         'the card is back to a fixed side padding, which '
+                         'leaves the column against the left edge on any '
+                         'screen wider than the column')
+        self.assertIn('(100% - var(--page-content-max)) / 2', skeleton,
+                      'the centring must be computed from the column width, '
+                      'not from a number repeated beside it')
+
     def test_the_prose_cap_resolves_to_one_width_for_every_component(self):
         # The regression this pins is not "a wrong number" — it is a cap in a
         # unit that resolves per element, which is invisible in the source and

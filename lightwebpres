@@ -3425,7 +3425,23 @@ html { scroll-behavior: smooth; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 60px 8vw;
+  /* The column is CENTRED in the card, and it is the padding that centres
+     it -- 8vw until the card is wider than the column, then whatever is
+     left over, split in two. Measured at 1920px before this line existed:
+     154px of margin on the left and 666px on the right, the whole card
+     hugging one edge.
+
+     Centring the padding box rather than the items, because
+     `align-items: center` on a flex column gives every item its own
+     CONTENT width: measured, a short heading landed at x=915 and the
+     summary under it at x=884, so the column stopped having one left edge
+     at all. Every child stays stretched to the same width; only the box
+     they stretch inside moves.
+
+     Reading --page-content-max rather than repeating its value: an author
+     who pins a different column width gets it centred too, with nothing
+     else to set. */
+  padding: 60px max(8vw, (100% - var(--page-content-max)) / 2);
   border-bottom-style: solid;
   position: relative;
 }
