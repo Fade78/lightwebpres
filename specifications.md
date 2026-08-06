@@ -2410,15 +2410,28 @@ mots se coupent. L'axe est hérité, donc une seule déclaration gouverne
 toute la page ; et la coupure automatique a besoin de la langue, que les
 gabarits déclarent déjà en `<html lang="…">`.
 
-**Mesure.** `page.content-max` est la largeur de colonne, exprimée en
-`ch` (défaut `50ch`) et non en pixels. Une longueur en `ch` placée dans
-une propriété personnalisée se résout contre la police de l'élément
-**consommateur**, pas contre `:root` : une seule valeur déclarée donne
-donc à chaque composant la colonne juste pour son propre corps. Mesuré
-sur quinze fenêtres, le nombre de caractères par ligne devient invariant
-par fenêtre. La moitié proportionnelle de la règle n'est pas un second
-plafond mais le rembourrage de la fiche (`8vw`), qui borne déjà la boîte
-à 84vw.
+**Largeur de colonne.** `page.content-max` est la largeur du texte
+courant dans une fiche, et elle est **proportionnelle à la zone
+d'affichage** avec un plafond : `min(84vw, 1100px)` par défaut.
+
+Elle a brièvement été une mesure en `ch`, et la raison même pour laquelle
+ce choix avait été fait est ce qui l'a fait échouer : une longueur en `ch`
+placée dans une propriété personnalisée se résout contre la police de
+l'élément **consommateur**. Une seule valeur déclarée devenait donc une
+largeur en pixels **différente par composant** — `50ch` fait environ
+800 px sur un titre à 32 px et environ 450 px sur du texte à 18 px. Une
+fiche dont le titre va jusqu'à un bord et dont le texte s'arrête bien
+avant n'a plus de bord intérieur du tout, et son texte cesse de paraître
+lié à la fiche qui l'entoure. C'est ce que voit un lecteur ; le nombre de
+caractères par ligne est ce que voit un tableur.
+
+Un plafond en unités absolues se résout **identiquement pour tous les
+éléments** : le titre et le paragraphe en dessous partagent un même bord
+droit. Le terme en `vw` garde l'ensemble lié à la largeur réellement
+disponible. Les autres constats de l'étude de fenêtres tiennent ; ce
+qu'elle avait mal jugé, c'est d'avoir compté « la bonne mesure à chaque
+corps » comme un gain, alors que c'est précisément ce qui casse
+l'alignement.
 
 Les tailles fluides sont exprimées en `vmin`, non en `vw` : en portrait
 `vmin` **est** `vw`, donc rien n'y bouge, et en paysage le corps suit la

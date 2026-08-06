@@ -257,8 +257,10 @@ works anywhere a colour does. A mistyped key or value is a named build
 error pointing at the file and key.
 
 Two properties people look for by name: **`page.content-max`** is the
-text column width, `50ch` by default — a measure in characters, not a
-pixel width, so it stays right at every type size. **`page.hyphens`**
+text column width, `min(84vw, 1100px)` by default — proportional to the
+window, with a ceiling, and one width for every component on the card so
+a title and the paragraph under it share the same right edge.
+**`page.hyphens`**
 (`manual | auto`) controls whether words break at end of line; it is
 `manual`, and nothing turns it on for you.
 

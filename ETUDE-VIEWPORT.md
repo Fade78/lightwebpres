@@ -203,3 +203,35 @@ both are now in the code:
   the inline `<span>` the other instance tags produce has no effect at any
   viewport size, so `{align:center}` is a block tag, its opener and closer
   each alone on their line.
+
+## 9. What was reverted, and what the study got wrong
+
+**`page.content-max` is back to `min(84vw, 1100px)`.** The measurements in
+this document stand — the character counts in §7 were real, and the
+landscape column genuinely was too long. What the study got wrong is what
+it counted as a *gain*.
+
+`50ch` was chosen precisely because a `ch` length in a custom property
+resolves against the **consuming** element: §5 called that "one knob, the
+right measure at every type size". On a screen it is the opposite of a
+feature. One declared value becomes a different pixel width per component
+— about 800px on a 32px title, about 450px on 18px body text — so a card's
+title runs to one edge and its text stops well short of it. The card loses
+its inner edge, and the text stops looking related to the card around it.
+
+That is visible to anyone reading a page, and invisible to this study,
+because every column in §7 counts characters per line and none of them
+compares two components to each other. **A measurement can only find what
+it measures**, and the thing that turned out to matter was an alignment
+this instrument had no column for. Reported by the owner, on his own pages,
+which is where it shows.
+
+Two things follow for anything like this in future:
+
+- **A ceiling shared by several components has to resolve once**, not per
+  element — an absolute or root-relative unit, never `ch`/`em`/`ex`/`lh`.
+  There is now a test that fails on any of those, naming the reason.
+- **Per-line character counts are not sufficient evidence for a width
+  decision.** The next such study needs a column for "do the components on
+  one card agree with each other", or it will make this mistake again with
+  a different number.

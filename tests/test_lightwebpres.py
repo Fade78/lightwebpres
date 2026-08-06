@@ -8497,13 +8497,29 @@ class ContentMeasure(unittest.TestCase):
     def setUpClass(cls):
         cls.lwp = load_lightwebpres_module()
 
-    def test_the_measure_is_expressed_in_characters_not_pixels(self):
-        # A pixel cap cannot be a measure for two type sizes at once: the
-        # old min(84vw, 1100px) gave the summary 106 characters per line and
-        # the article 127. A ch length resolves against the CONSUMING
-        # element, so one value fits every component.
-        self.assertEqual(
-            self.lwp.PROPERTY_REGISTRY['page.content-max'].default, '50ch')
+    def test_the_content_width_follows_the_display_area(self):
+        # PROPORTIONAL, with a ceiling. A `ch` cap was tried and reverted:
+        # a ch length inside a custom property resolves against the CONSUMING
+        # element, so one declared value becomes a different pixel width per
+        # component — about 800px on a 32px title, about 450px on 18px body
+        # text. The card then has no inner edge, and its text stops looking
+        # related to the card around it.
+        default = self.lwp.PROPERTY_REGISTRY['page.content-max'].default
+        self.assertEqual(default, 'min(84vw, 1100px)')
+        self.assertIn('vw', default,
+                      'the width has to answer to the display area')
+
+    def test_the_prose_cap_resolves_to_one_width_for_every_component(self):
+        # The regression this pins is not "a wrong number" — it is a cap in a
+        # unit that resolves per element, which is invisible in the source and
+        # obvious on screen. Any font-relative unit reintroduces it.
+        default = self.lwp.PROPERTY_REGISTRY['page.content-max'].default
+        for relative in ('ch', 'em', 'ex', 'cap', 'ic', 'lh'):
+            self.assertNotRegex(
+                default, rf'\d{relative}\b',
+                f'{relative} resolves against the element that reads the '
+                f'variable, so the title and the paragraph under it would get '
+                f'different widths from one declared value')
 
     def test_every_prose_cap_reads_the_measure(self):
         # The article's own 800px cap was the worst offender and was not

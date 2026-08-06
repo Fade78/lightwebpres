@@ -71,7 +71,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.19.0"
+VERSION = "0.20.0"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
@@ -1793,13 +1793,27 @@ THEME_COMPONENTS = [
         ThemeProp('page.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('page.shadow.blur', PROP_LENGTH, '0'),
         ThemeProp('page.shadow.dy',   PROP_LENGTH, '0'),
-        # B13 / ETUDE-VIEWPORT.md: the measure, in `ch` so that ONE declared
-        # value gives every component the right column for its own type size
-        # -- a ch length inside a custom property resolves against the
-        # CONSUMING element, not :root. 50ch renders 55-67 real characters on
-        # these stacks, centred on the 66 optimum. The proportional half of
-        # the rule is the slide's own 8vw padding, not a second cap here.
-        ThemeProp('page.content-max', PROP_LENGTH, '50ch'),
+        # The width of running text inside a slide, and it is PROPORTIONAL to
+        # the display area, with a ceiling: 84vw up to 1100px.
+        #
+        # It was briefly a measure in `ch` (B13 / ETUDE-VIEWPORT.md), which
+        # reads well in a table of characters-per-line and badly on a screen.
+        # The reason is the very property that was chosen for it: a `ch`
+        # length inside a custom property resolves against the CONSUMING
+        # element. So one declared value became a DIFFERENT pixel width per
+        # component -- 50ch is about 800px on a 32px title and about 450px on
+        # 18px body text. A card whose title runs to one edge and whose text
+        # stops well short of it has no inner edge at all, and stops looking
+        # related to the card around it. That is what a reader sees; the
+        # per-line count is what a spreadsheet sees.
+        #
+        # A ceiling in absolute units resolves the same for every element, so
+        # the title and the paragraph under it share one right edge, and the
+        # vw term keeps the whole thing tied to the width actually available.
+        # The measure study's other findings stand -- what it got wrong was
+        # treating "the right measure at every type size" as a gain when it
+        # is what breaks the alignment.
+        ThemeProp('page.content-max', PROP_LENGTH, 'min(84vw, 1100px)'),
         # And the width of things that are NOT running text. A table, a code
         # block or a figure is sized by what it contains, not by a count of
         # characters in its own font: B13 pointed all seventeen consumers at
