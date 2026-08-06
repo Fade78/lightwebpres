@@ -95,6 +95,10 @@ reach each one; `SKILL.md` carries the exact syntax and every edge case.
 | `series-nav` | nothing — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` | 0 or 1 per article |
 
+Four, and only four. Mistype one — `<!-- lwp:slide:covre -->` — and the
+build stops and tells you which slide, what you wrote, and what the four
+names are. You will not find out from the page.
+
 **The components inside a standard slide.**
 
 | Component | What it is for | How you reach it |

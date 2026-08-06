@@ -225,6 +225,11 @@ the series or within one article.
   `col-signal` on a whole column — to be coloured by verdict; written as
   inline HTML, since Markdown has no syntax for it.
 
+These four are the whole list, and `build` says so: a marker naming
+anything else — `<!-- lwp:slide:covre -->` — stops the build with the
+slide's rank, the token you wrote, and the four names, rather than
+publishing a slide of the wrong kind.
+
 Every slide (and `series.json`/the article's own meta block) also
 accepts `comment:` — a review note, recognized but never rendered, never
 published, not even in the page's raw HTML source.

@@ -261,6 +261,11 @@ unrecognized non-blank line inside either one is also fatal, not ignored:
 a `series-nav` slide takes no fields at all, and a `full-article` slide
 takes `article:` and nothing else.
 
+Those four names are the whole list. A marker naming anything else is a
+fatal build error citing the slide's rank, the token you wrote, and the
+four names — `<!-- lwp:slide:covre -->` does not quietly become a
+standard slide.
+
 ## The full-article file
 
 Referenced by `article:`, it's a separate `.md` file (by convention

@@ -71,7 +71,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.18.0"
+VERSION = "0.19.0"
 
 # The two license texts are embedded, not read from files next to this
 # executable, because `install` copies this file into a series for
@@ -6647,9 +6647,57 @@ SLIDE_FIELD_NAMES = (
 )
 
 
+class SlideType:
+    """One slide type: what it is called, how it carries its own title,
+    which fields it accepts, and what free text becomes on it."""
+
+    __slots__ = ('name', 'title_marker', 'fields', 'free_text', 'summary')
+
+    def __init__(self, name, title_marker, fields, free_text, summary):
+        self.name = name
+        self.title_marker = title_marker  # '#', '##', or None (no title)
+        self.fields = fields              # accepted `key:` lines
+        self.free_text = free_text        # what text below the fields becomes
+        self.summary = summary            # one line, for --help and callers
+
+
+# The four slide types, and the only place that list is written. Both the
+# validator and `--help` read it, so a type cannot be recognized by one and
+# missing from the other — and neither can drift from a description written
+# somewhere else. `comment` is on every type on purpose: it is parsed
+# everywhere and rendered nowhere (GLOSSARY.md).
+SLIDE_TYPES = (
+    SlideType(
+        'cover', '#', ('tag', 'summary', 'comment'), None,
+        "The article's opening slide: a title, an optional tag above it, "
+        'and the one sentence that says what the article is about.'),
+    SlideType(
+        'standard', '##', SLIDE_FIELD_NAMES, 'fact-box',
+        'The ordinary slide, and the only one that takes free text: '
+        'anything written below the fields becomes its fact-box.'),
+    SlideType(
+        'series-nav', None, ('comment',), None,
+        'The list of the other articles in the series, generated from '
+        'series.json — you place the marker, the build writes the list.'),
+    SlideType(
+        'full-article', None, ('article', 'comment'), None,
+        'Pulls in a long-form .md file named by its `article:` field. '
+        'Required field, and at most one such slide per article.'),
+)
+
+SLIDE_TYPES_BY_NAME = {t.name: t for t in SLIDE_TYPES}
+
+# Which Slide attribute carries which slide-level field. `article` is here
+# although it is not in SLIDE_FIELD_NAMES: it is parsed by the full-article
+# slide's own branch rather than the shared field regex, and a reader
+# asking where it is set does not care which branch read it.
+_SLIDE_FIELD_ATTRS = {name: name.replace('-', '_') for name in SLIDE_FIELD_NAMES}
+_SLIDE_FIELD_ATTRS['article'] = 'article_file'
+
+
 class Slide:
     def __init__(self, slide_type='standard'):
-        self.slide_type = slide_type  # 'cover', 'standard', 'series-nav', 'full-article'
+        self.slide_type = slide_type  # one of SLIDE_TYPES (validated per article)
         self.tag = None
         self.h2 = None
         self.h1 = None
@@ -6811,12 +6859,13 @@ def parse_markdown_extended(md_text):
             # ever means "this non-cover slide's own title" — the other
             # heading level can never legitimately set anything here (a
             # non-cover slide is never rendered from slide.h1, a cover
-            # never from slide.h2 — render_slide() treats any slide_type
-            # other than 'cover' as standard, an unrecognized type
-            # included, since nothing validates that token; matched here
-            # for the two to agree), so it must fall through to content
-            # immediately rather than being silently captured into an
-            # attribute nothing ever reads.
+            # never from slide.h2 — render_slide() treats every slide_type
+            # other than 'cover' as standard, matched here for the two to
+            # agree), so it must fall through to content immediately
+            # rather than being silently captured into an attribute
+            # nothing ever reads. Parsing stays permissive about the type
+            # token; validate_slides() is what refuses one that is not in
+            # SLIDE_TYPES, so the message can name the slide's rank.
             elif (slide.slide_type == 'cover' and stripped.startswith('# ')
                   and not stripped.startswith('## ') and not in_content and slide.h1 is None):
                 slide.h1 = strip_ws(stripped[2:])
@@ -6913,6 +6962,18 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
     series_nav_positions = []
 
     for i, slide in enumerate(slides, 1):
+        # A type this build does not know renders as a standard slide —
+        # `render_slide()` treats everything that is not one of the three
+        # special types as standard. So `<!-- lwp:slide:covre -->` used to
+        # publish silently, as a slide of the wrong kind: no error, no
+        # warning, and a page whose first slide is not the cover. Refuse
+        # it here, naming what the types are.
+        if slide.slide_type not in SLIDE_TYPES_BY_NAME:
+            known = ', '.join(t.name for t in SLIDE_TYPES)
+            print(f'[ERROR] {filename}: slide {i} has an unknown type '
+                  f'"{slide.slide_type}" (known types: {known}).', file=sys.stderr)
+            sys.exit(1)
+
         if slide.slide_type == 'cover' and slide.fact_content:
             print(f'[ERROR] {filename}: slide {i} (cover) has content after its '
                   f'fields, but a cover slide has no fact-box.', file=sys.stderr)
@@ -6922,12 +6983,14 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
         # rendered anywhere). The other standard-slide fields are parsed
         # but never rendered on a cover — warn, don't fail: toggling a
         # slide between standard and cover while drafting is a normal
-        # workflow, and the extra fields cost nothing.
+        # workflow, and the extra fields cost nothing. Which fields those
+        # are comes from the type's own entry, so a field added to the
+        # cover stops being reported here by that edit alone.
         if slide.slide_type == 'cover':
-            ignored = [name for name, value in (
-                ('fact-label', slide.fact_label), ('source', slide.source),
-                ('highlight', slide.highlight),
-                ('highlight-caption', slide.highlight_caption)) if value is not None]
+            accepted = set(SLIDE_TYPES_BY_NAME['cover'].fields)
+            ignored = [name for name in SLIDE_FIELD_NAMES
+                       if name not in accepted
+                       and getattr(slide, _SLIDE_FIELD_ATTRS[name]) is not None]
             if ignored:
                 print(f'[WARNING] {filename}: slide {i} (cover) has field(s) '
                       f'{", ".join(ignored)} — parsed but never rendered on a '
@@ -9554,13 +9617,6 @@ def cmd_series_info(series_dir, args):
 
 RESOLVE_SCHEMA = 'lightwebpres.resolve/1'
 
-# Which Slide attribute carries which slide-level field. `article` is
-# here although it is not in SLIDE_FIELD_NAMES: it is parsed by the
-# full-article slide's own branch rather than the shared field regex,
-# and a reader asking where it is set does not care which branch read it.
-_SLIDE_FIELD_ATTRS = {name: name.replace('-', '_') for name in SLIDE_FIELD_NAMES}
-_SLIDE_FIELD_ATTRS['article'] = 'article_file'
-
 # Names that exist in the vocabulary but have no resolved value, and what
 # to say instead. Refusing with the reason beats resolving to a lie.
 _UNRESOLVABLE_NAMES = {
@@ -10402,6 +10458,32 @@ def print_help():
     # the two commands that can actually answer "which one do I want".
     theme_count = len(THEMES)
     property_count = len(PROPERTY_REGISTRY)
+    # Written from SLIDE_TYPES rather than typed out below, because a help
+    # text listing three of the four types, or describing a type the parser
+    # stopped accepting, is worse than no help text: it is read as the
+    # answer. Same reason the theme counts above are counted, not stated.
+    import textwrap
+    slide_type_lines = []
+    for t in SLIDE_TYPES:
+        accepts = list(t.fields)
+        if t.title_marker:
+            accepts.append(f'{t.title_marker} Title')
+        if t.free_text:
+            accepts.append(f'free text = {t.free_text}')
+        body = f'{t.summary} Takes: {", ".join(accepts)}.'
+        # break_on_hyphens off: `fact-label` split across two lines reads as
+        # two field names, which is exactly the confusion this list exists
+        # to remove.
+        wrapped = textwrap.wrap(body, width=62, break_on_hyphens=False)
+        slide_type_lines.append(f'  {t.name:<14}{wrapped[0]}')
+        slide_type_lines.extend(f'{"":<16}{line}' for line in wrapped[1:])
+    slide_types_block = '\n'.join(slide_type_lines)
+    slide_fields_block = textwrap.fill(
+        ', '.join(SLIDE_FIELD_NAMES) + ' — comment is a review note, parsed '
+        'on every type and rendered nowhere. A slide writes its own title '
+        'with `## Title`, or `# Title` on a cover; it is never a `key:` line.',
+        width=74, initial_indent='  ', subsequent_indent='  ',
+        break_on_hyphens=False)
     print(f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
 
 COMMANDS
@@ -10591,17 +10673,10 @@ ARTICLE FORMAT (.md)
                                 breaks inside a value for now)
 
 SLIDE TYPES
-  cover         Cover slide (tag, # Title, summary)
-  standard      Regular slide (tag, ## Title, summary, highlight,
-                highlight-caption, fact-label, fact-variant, source,
-                + free text = fact-box)
-  series-nav    Cross-article navigation block, generated from series.json
-  full-article  Includes an external .md file via the article: field
-                (required; only one full-article slide per article)
+{slide_types_block}
 
 FIELDS RECOGNIZED IN A SLIDE
-  tag, ## Title, summary, fact-label, fact-variant, source, highlight,
-  highlight-caption, comment (review note, never rendered)
+{slide_fields_block}
 
 ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
   page_source (required, series.json only), page_dest, page_title, page_desc,

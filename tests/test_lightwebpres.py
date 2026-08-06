@@ -1027,6 +1027,118 @@ class CoverIgnoredFieldsWarn(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertNotIn('42 %', html)
 
+    def test_every_field_the_cover_does_not_take_is_named(self):
+        """The warning is computed from the cover's own entry in
+        SLIDE_TYPES, so it names every field the type does not take —
+        `fact-variant` included, which the hand-written list it replaced
+        left out for no reason anyone recorded."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n'
+            'fact-label: FACT\nfact-variant: warm\nsource: Someone, 2020.\n'
+            'highlight: 42 %\nhighlight-caption: C\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for name in ('fact-label', 'fact-variant', 'source',
+                         'highlight', 'highlight-caption'):
+                self.assertIn(name, result.stderr)
+
+
+class SlideTypesAreARegistry(unittest.TestCase):
+    """SLIDE_TYPES is the one place the four slide types are written, and
+    both the validator and `--help` read it.
+
+    Why it had to become a registry: `render_slide()` treats everything
+    that is not cover / series-nav / full-article as a standard slide, and
+    nothing validated the token. `<!-- lwp:slide:covre -->` therefore
+    published — no error, no warning, and a page whose opening slide was
+    silently the wrong kind. A typo in a marker is the single most likely
+    mistake in this format, and it was the one mistake the engine did not
+    report."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def test_a_misspelled_slide_type_is_fatal_and_says_what_the_types_are(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\n# Title\nsummary: S.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide:covre -->\n## Second\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn('[ERROR]', result.stderr)
+            self.assertIn('covre', result.stderr)
+            self.assertIn('slide 2', result.stderr)
+            # The message has to carry the answer, not just the verdict:
+            # someone who mistyped `cover` cannot look up a list that is
+            # only in the source.
+            for name in ('cover', 'standard', 'series-nav', 'full-article'):
+                self.assertIn(name, result.stderr)
+            self.assertFalse((root / 'public' / 'a.html').exists(),
+                             'a page was published from an article the engine refused')
+
+    def test_all_four_known_types_still_build(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\n# Title\nsummary: S.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide -->\n## Standard\nFree text.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide:series-nav -->\n\n'
+            '---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: a_article.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'a_article.md').write_text(
+                '## Long form\n\nA paragraph.\n', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_help_describes_every_type_the_parser_accepts(self):
+        """A help text listing three of four types, or describing one the
+        parser stopped accepting, is worse than none — it is read as the
+        answer. Generated from the registry, so this holds by
+        construction; the test is what proves the generation is wired."""
+        result = run('--help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for slide_type in self.lwp.SLIDE_TYPES:
+            self.assertIn(slide_type.name, result.stdout)
+            # A distinctive run of the summary, not the whole thing: the
+            # help wraps, so the full sentence is never on one line.
+            self.assertIn(slide_type.summary.split('.')[0][:40], result.stdout)
+
+    def test_the_registry_describes_fields_that_exist(self):
+        """Every field a type claims to take must be a field something
+        actually parses, and must have a Slide attribute behind it. A
+        registry that names a field the parser never reads would be a
+        second, wrong grammar — the exact failure mode it exists to
+        prevent, relocated one file up."""
+        slide = self.lwp.Slide()
+        for slide_type in self.lwp.SLIDE_TYPES:
+            for name in slide_type.fields:
+                self.assertIn(name, self.lwp._SLIDE_FIELD_ATTRS,
+                              f'{slide_type.name} claims field {name!r}')
+                self.assertTrue(
+                    hasattr(slide, self.lwp._SLIDE_FIELD_ATTRS[name]),
+                    f'{name!r} maps to no Slide attribute')
+            self.assertIn(slide_type.title_marker, ('#', '##', None))
+        self.assertEqual(
+            set(self.lwp.SLIDE_TYPES_BY_NAME),
+            {t.name for t in self.lwp.SLIDE_TYPES},
+            'the lookup table and the tuple disagree')
+        # `comment` is on every type on purpose (GLOSSARY.md): parsed
+        # everywhere, rendered nowhere.
+        for slide_type in self.lwp.SLIDE_TYPES:
+            self.assertIn('comment', slide_type.fields, slide_type.name)
+
 
 class SeriesNavFullArticleStrictContent(unittest.TestCase):
     """§22.8/§22.9: series-nav and full-article slides render none of

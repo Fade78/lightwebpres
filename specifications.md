@@ -573,6 +573,16 @@ puis les fiches `standard`, puis `series-nav`, puis `full-article` en
 dernier — c'est une convention d'usage recommandée, pas une règle imposée
 par le moteur.
 
+**La liste est fermée.** Ces quatre types sont écrits une seule fois, dans
+le registre `SLIDE_TYPES` de l'exécutable, qui porte pour chacun son
+marqueur de titre (`#`, `##`, ou aucun), les champs qu'il accepte, ce que
+devient le texte libre, et une ligne de description. La validation (§22.9.2)
+et `--help` lisent ce registre, et un consommateur extérieur peut le lire
+aussi — c'est de là que `lightwebpres-gui` tire son bandeau d'assistance,
+plutôt que d'écrire une seconde fois une grammaire qui dériverait de
+celle-ci. Un jeton hors de cette liste est une erreur fatale, pas une fiche
+standard silencieuse.
+
 ### 4.5 Désactiver la typographie automatique pour un article
 
 Le moteur de typographie (§7/§19) **modifie le contenu généré** : il insère
@@ -5109,6 +5119,22 @@ reconnu sur tout type, jamais rendu). Toute autre ligne non vide
 (du texte, un champ de fiche standard, un `article:` sur une
 `series-nav`...) arrête le build avec un message citant le début de la
 ligne fautive, plutôt que de disparaître silencieusement du rendu.
+
+### 22.9.2 Type inconnu dans un marqueur `<!-- lwp:slide:TYPE -->`
+
+Erreur fatale, citant le rang de la fiche, le jeton fautif et la liste des
+types connus — quelqu'un qui a mal tapé `cover` ne peut pas aller lire une
+liste qui n'existe que dans le code.
+
+C'est le défaut le plus probable de ce format, et c'était le seul que le
+moteur ne signalait pas : `render_slide()` traite comme `standard` tout ce
+qui n'est ni `cover`, ni `series-nav`, ni `full-article`, donc
+`<!-- lwp:slide:covre -->` se publiait — sans erreur, sans avertissement,
+et avec une fiche d'ouverture du mauvais type. Les quatre types sont un
+registre (`SLIDE_TYPES`), lu par cette validation **et** par `--help` : un
+type ne peut pas être reconnu par l'un et absent de l'autre. L'analyse
+syntaxique, elle, reste permissive sur le jeton ; c'est la validation qui
+refuse, pour que le message puisse nommer le rang de la fiche.
 
 ### 22.10 Fichier `.md` vide (aucune slide)
 
