@@ -1,25 +1,15 @@
 ---
 name: lightwebpres
 description: >
-  Reference for the exact LightWebPres (LWP) Markdown syntax lightwebpres
-  parses: the lwp:meta comment block, the four slide types (cover,
-  standard, series-nav, full-article) and their fields (tag, summary,
-  highlight, highlight-caption, fact-label, source, comment — the title is
-  written as a heading, there is no title field), the one-way
-  field/free-text parsing switch, the editorial fields and the article
-  status (active/draft/ignored), the
-  comparison-table verdict classes, series.json wiring, and automatic
-  non-breaking-space typography with its opt-outs (typo, typo_units,
-  typo_thousands).
-  Format mechanics only, not editorial writing — it doesn't decide what
-  an article says, only how to encode it correctly. Use whenever someone
-  writes, edits, or debugs a lightwebpres .md article or series.json
-  entry, or mentions "LWP format", "slide deck article", "highlight
-  field", "fact-box", "series-nav", "full-article", or
-  typography/non-breaking spaces for a lightwebpres article — even
-  without naming the skill, if series.json and a lightwebpres executable
-  are present. Do NOT use for generic Markdown/blog-post writing or
-  deciding an article's content.
+  The exact LWP article syntax the lightwebpres tool parses: the lwp:meta
+  block, the four slide types and their fields, series.json wiring, and the
+  automatic non-breaking-space typography. Format mechanics, not editorial
+  advice. Use when writing, editing or debugging a lightwebpres .md article
+  or series.json entry — including when nobody names this skill, if a
+  series.json and a lightwebpres executable are present, or the text
+  mentions LWP format, a slide deck article, fact-box, highlight,
+  series-nav or full-article. Not for generic Markdown or blog writing, and
+  not for deciding what an article says.
 ---
 
 # Writing LightWebPres (LWP) articles
