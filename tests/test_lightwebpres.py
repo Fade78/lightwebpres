@@ -89,7 +89,7 @@ class BuildGoldenPath(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             run('build', str(root), '--output', str(root / 'public'))
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('up to date', result.stdout)
 
@@ -97,7 +97,7 @@ class BuildGoldenPath(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'dummy.txt').write_text('x', encoding='utf-8')
-            result = run('install', str(root))
+            result = run('init', str(root))
             self.assertNotEqual(result.returncode, 0)
 
     def test_typography_nbsp_before_double_punctuation(self):
@@ -291,7 +291,7 @@ class InstallForce(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'dummy.txt').write_text('x', encoding='utf-8')
-            result = run('install', str(root), '--force')
+            result = run('init', str(root), '--force')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'series.json').exists())
 
@@ -341,12 +341,12 @@ class AuditCommand(unittest.TestCase):
         audit is where it is said: uncommenting a line would pin a value
         from a theme the series has left."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
             clean = run('audit', tmp)
             self.assertNotIn('scaffold', clean.stdout.lower())
 
-            self.assertEqual(run('set-theme', tmp, '--theme', 'evergreen').returncode, 0)
+            self.assertEqual(run('series', 'theme', 'set', tmp, '--theme', 'evergreen').returncode, 0)
             result = run('audit', tmp)
             self.assertEqual(result.returncode, 0, 'audit must never block')
             self.assertIn("generated for theme 'nord'", result.stdout)
@@ -359,7 +359,7 @@ class AuditCommand(unittest.TestCase):
         no-op this replaces was the most expensive failure of the CSS
         surface."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('init', tmp).returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
             settings.write_text(settings.read_text(encoding='utf-8')
@@ -654,7 +654,7 @@ class CheckIncludeDrafts(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'),
                          '--include-drafts')
             self.assertEqual(result.returncode, 0, result.stderr)
-            result = run('check', str(root), '--output', str(root / 'public'),
+            result = run('verify', str(root), '--output', str(root / 'public'),
                          '--include-drafts')
             self.assertEqual(result.returncode, 0,
                              result.stdout + result.stderr)
@@ -665,7 +665,7 @@ class CheckIncludeDrafts(unittest.TestCase):
             root = self._series_with_draft(tmp)
             run('build', str(root), '--output', str(root / 'public'),
                 '--include-drafts')
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[DRIFT] index.html', result.stdout)
 
@@ -802,12 +802,12 @@ class Axis4CommandGaps(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = run('demo', tmp)
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('install', result.stderr)
+            self.assertIn('init', result.stderr)
 
     def test_demo_writes_svg_and_editorial_fields(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 's'
-            run('install', str(root), '--lang', 'en')
+            run('init', str(root), '--lang', 'en')
             result = run('demo', str(root), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'articles' / 'img' / 'demo-figure.svg').exists())
@@ -823,7 +823,7 @@ class Axis4CommandGaps(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             (root / 'articles' / 'a.md').write_text(
                 md.replace('Original.', 'Changed.'), encoding='utf-8')
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 1)
             self.assertTrue(any(line.strip().startswith('+') and 'Changed.' in line
                                 for line in result.stdout.splitlines()))
@@ -861,7 +861,7 @@ class Axis4CommandGaps(unittest.TestCase):
     def test_gitlab_ci_content_pins_image_and_artifacts(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 's'
-            result = run('install', str(root), '--gitlab-ci')
+            result = run('init', str(root), '--gitlab-ci')
             self.assertEqual(result.returncode, 0, result.stderr)
             ci = (root / '.gitlab-ci.yml').read_text(encoding='utf-8')
             self.assertIn('python:3.12-slim', ci)
@@ -873,7 +873,7 @@ class Axis4CommandGaps(unittest.TestCase):
     def test_gitlab_ci_build_command_carries_install_lang(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 's'
-            result = run('install', str(root), '--gitlab-ci', '--lang', 'en')
+            result = run('init', str(root), '--gitlab-ci', '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
             ci = (root / '.gitlab-ci.yml').read_text(encoding='utf-8')
             self.assertIn('build . --lang en', ci)
@@ -883,7 +883,7 @@ class Axis4CommandGaps(unittest.TestCase):
         # it is inert for local builds) — the UI chrome must be English.
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 's'
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root), '--lang', 'en').returncode, 0)
             index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('Read the article', index)
@@ -978,7 +978,7 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             data['series_meta'] = {'title': 'A brand new title'}
             (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[DRIFT] index.html', result.stdout)
 
@@ -987,7 +987,7 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
             root = scaffold(tmp, _MINIMAL_MD)
             run('build', str(root), '--output', str(root / 'public'))
             (root / 'README.md').write_text('Hand-edited.', encoding='utf-8')
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[DRIFT] README.md', result.stdout)
 
@@ -1313,6 +1313,143 @@ class CliStrictParsing(unittest.TestCase):
             self.assertIn('takes no value', result.stderr)
 
 
+class CliVersionAndShortcuts(unittest.TestCase):
+    """Phase 1 of the CLI refonte (DECISION-CLI.md / PLAN-CLI.md):
+    --version, subcommand shortcuts, and legacy aliases with a [WARN]."""
+
+    def test_version_prints_version_and_exits_zero(self):
+        result = run('--version')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('LightWebPres v', result.stdout)
+        # Version is not buried in help: --version prints only the version.
+        self.assertNotIn('COMMANDS', result.stdout)
+
+    def test_help_contains_version_in_header(self):
+        result = run('--help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('LightWebPres v', result.stdout)
+
+    def test_legacy_install_emits_warn_and_still_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = str(Path(tmp) / 's')
+            result = run('install', target)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[WARN]', result.stderr)
+            self.assertIn('deprecated', result.stderr)
+            self.assertIn('init', result.stderr)
+
+    def test_legacy_check_emits_warn(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            # Build once so check has something to compare.
+            run('build', str(root), '--output', str(root / 'public'))
+            result = run('check', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[WARN]', result.stderr)
+            self.assertIn('verify', result.stderr)
+
+    def test_shortcut_init_works_without_warn(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = str(Path(tmp) / 's')
+            result = run('init', target)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # The shortcut is the new name — no deprecation warning.
+            self.assertNotIn('[WARN]', result.stderr)
+
+    def test_shortcut_verify_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_canonical_series_build_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('series', 'build', str(root),
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.html').exists())
+
+    def test_canonical_theme_list_works(self):
+        result = run('theme', 'list')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('built-in themes', result.stdout)
+
+    def test_canonical_theme_gallery_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'gallery.html'
+            result = run('theme', 'gallery', str(out))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(out.exists())
+
+    def test_canonical_status_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            run('init', str(root))
+            scaffold(str(root), _MINIMAL_MD)
+            result = run('status', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_canonical_template_update_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            # init creates the templates/ directory that template update needs.
+            run('init', str(root))
+            # scaffold overwrites series.json/articles with a minimal fixture
+            # so the series is valid for template update to inspect.
+            scaffold(str(root), _MINIMAL_MD)
+            result = run('template', 'update', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_canonical_series_theme_set_works(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            run('init', str(root))
+            scaffold(str(root), _MINIMAL_MD)
+            result = run('series', 'theme', 'set', str(root),
+                         '--theme', 'nord')
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_theme_set_as_root_shortcut_is_rejected(self):
+        # `theme set` is NOT a root shortcut (DECISION §3): the theme node
+        # never touches a series. Must exit 1 with a helpful message.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            run('init', str(root))
+            scaffold(str(root), _MINIMAL_MD)
+            result = run('theme', 'set', str(root), '--theme', 'nord')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('series theme set', result.stderr)
+
+    def test_lone_template_is_rejected(self):
+        result = run('template')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('template update', result.stderr)
+
+    def test_global_lang_before_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('--lang', 'en', 'build', str(root),
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Read the article', html)
+
+    def test_global_lang_nearest_to_command_wins(self):
+        # `--lang en build --lang fr` → fr (DECISION §2: nearest wins).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('--lang', 'en', 'build', str(root), '--lang', 'fr',
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            # French UI strings: the CTA on the index card is in French.
+            self.assertIn('Lire l', html)
+            # English would have said "Read" instead.
+            self.assertNotIn('Read the article', html)
+
+
 class MissingReferencedFilesAreFatal(unittest.TestCase):
     """§20.3/§22.8: a series.json entry whose page_source doesn't exist,
     or a full-article slide whose article: file doesn't exist, is a fatal
@@ -1363,7 +1500,7 @@ class DemoRefusesRealSeriesJson(unittest.TestCase):
     def test_demo_refuses_when_series_json_lists_articles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 's'
-            result = run('install', str(root), '--lang', 'en')
+            result = run('init', str(root), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
             (root / 'articles' / 'mine.md').write_text(_MINIMAL_MD, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps(
@@ -1378,7 +1515,7 @@ class DemoRefusesRealSeriesJson(unittest.TestCase):
     def test_demo_still_works_on_a_fresh_install(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 's'
-            result = run('install', str(root), '--lang', 'en')
+            result = run('init', str(root), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
             result = run('demo', str(root), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -2015,7 +2152,7 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self.series(tmp, [('a.md', 'index.html')])
             run('build', str(root), '--output', str(root / 'public'))
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertNotIn('[DRIFT]', result.stdout)
             self.assertIn('All files are up to date.', result.stdout)
@@ -2028,7 +2165,7 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
         a build would make'."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self.series(tmp, [('a.md', 'index.html'), ('b.md', 'b.html')])
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 1)
             self.assertIn('collides with the series index', result.stderr)
 
@@ -2300,7 +2437,7 @@ class DemoCommand(unittest.TestCase):
     def test_demo_builds_cleanly(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            install_result = run('install', str(root))
+            install_result = run('init', str(root))
             self.assertEqual(install_result.returncode, 0, install_result.stderr)
             demo_result = run('demo', str(root))
             self.assertEqual(demo_result.returncode, 0, demo_result.stderr)
@@ -2319,7 +2456,7 @@ class InstallContent(unittest.TestCase):
     def test_install_creates_expected_structure(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('install', str(root))
+            result = run('init', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'series.json').exists())
             self.assertTrue((root / 'articles').is_dir())
@@ -2352,7 +2489,7 @@ class CheckDrift(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             changed_md = md.replace('Original summary.', 'Changed summary.')
             (root / 'articles' / 'a.md').write_text(changed_md, encoding='utf-8')
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[DRIFT]', result.stdout)
 
@@ -2818,7 +2955,7 @@ class TypographyDisableSwitches(unittest.TestCase):
     def test_no_typography_flag_works_on_check_too(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._two_article_series(tmp)
-            result = run('check', str(root), '--no-typography')
+            result = run('verify', str(root), '--no-typography')
             # Nothing built yet under this flag's semantics, so everything
             # is [NEW] — the point is the flag is accepted and check runs.
             self.assertIn(result.returncode, (0, 1))
@@ -2934,17 +3071,17 @@ class RefreshTemplates(unittest.TestCase):
     def test_requires_install_first(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('refresh-templates', str(root))
+            result = run('template', 'update', str(root))
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('install', result.stderr.lower())
+            self.assertIn('init', result.stderr.lower())
 
     def test_reports_up_to_date_when_untouched(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             before = {name: (root / 'templates' / name).read_text(encoding='utf-8')
                       for name in ('settings.conf', 'custom.css', 'nav.js')}
-            result = run('refresh-templates', str(root))
+            result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Already up to date', result.stdout)
             for name, text in before.items():
@@ -2958,11 +3095,11 @@ class RefreshTemplates(unittest.TestCase):
         appeared."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             (root / 'templates' / 'settings.conf').unlink()
             (root / 'templates' / 'custom.css').unlink()
 
-            result = run('refresh-templates', str(root))
+            result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('settings.conf (new, default theme)', result.stdout)
             self.assertIn('custom.css (new, empty)', result.stdout)
@@ -2977,14 +3114,14 @@ class RefreshTemplates(unittest.TestCase):
         excuse to write."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
             settings = root / 'templates' / 'settings.conf'
             edited = settings.read_text(encoding='utf-8').replace(
                 '# color.mark: #EBCB8B', 'color.mark: #EBCB8B', 1,
             ) + '# my own note\n'
             settings.write_text(edited, encoding='utf-8')
 
-            result = run('refresh-templates', str(root))
+            result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(settings.read_text(encoding='utf-8'), edited)
 
@@ -2995,12 +3132,12 @@ class RefreshTemplates(unittest.TestCase):
         place — refresh must still succeed at its own job."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             legacy = '/* old scaffold */\n.old-custom { color: blue; }\n'
             style_path = root / 'templates' / 'style.css'
             style_path.write_text(legacy, encoding='utf-8')
 
-            result = run('refresh-templates', str(root))
+            result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('[WARN]', result.stderr)
             self.assertIn('style.css is no longer read', result.stderr)
@@ -3009,12 +3146,12 @@ class RefreshTemplates(unittest.TestCase):
     def test_nav_js_is_replaced_and_previous_version_backed_up(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             nav_path = root / 'templates' / 'nav.js'
             old_nav = nav_path.read_text(encoding='utf-8') + '\n// OLD-CUSTOM-NAV\n'
             nav_path.write_text(old_nav, encoding='utf-8')
 
-            result = run('refresh-templates', str(root))
+            result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
 
             refreshed = nav_path.read_text(encoding='utf-8')
@@ -3036,16 +3173,16 @@ class ScaffoldRegeneration(unittest.TestCase):
 
     def test_it_realigns_scaffold_for_and_keeps_pins(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--theme', 'evergreen', '--force')
+            run('init', tmp, '--theme', 'evergreen', '--force')
             root = Path(tmp)
             conf = root / 'templates' / 'settings.conf'
             conf.write_text(self._settings(root)
                             .replace('# tag.fg: ink-quiet', 'tag.fg: call'),
                             encoding='utf-8')
-            run('set-theme', tmp, '--theme', 'crimson')
+            run('series', 'theme', 'set', tmp, '--theme', 'crimson')
             self.assertIn('# scaffold-for: evergreen', self._settings(root))
 
-            r = run('refresh-templates', tmp, '--scaffold')
+            r = run('template', 'update', tmp, '--scaffold')
             self.assertEqual(r.returncode, 0, r.stderr)
             after = self._settings(root)
             self.assertIn('# scaffold-for: crimson', after)   # realigned
@@ -3056,13 +3193,13 @@ class ScaffoldRegeneration(unittest.TestCase):
 
     def test_the_pin_still_wins_in_the_build_after_regen(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--theme', 'crimson', '--force')
+            run('init', tmp, '--theme', 'crimson', '--force')
             root = Path(tmp)
             conf = root / 'templates' / 'settings.conf'
             conf.write_text(self._settings(root)
                             .replace('# tag.fg: ink-quiet', 'tag.fg: call'),
                             encoding='utf-8')
-            run('refresh-templates', tmp, '--scaffold')
+            run('template', 'update', tmp, '--scaffold')
             scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
                           '# Cover\n\nsummary: s\n')
             self.assertEqual(run('build', tmp).returncode, 0)
@@ -3074,15 +3211,15 @@ class ScaffoldRegeneration(unittest.TestCase):
         # dropped is moved to the retired section commented — and must
         # still be there after a SECOND and THIRD regen, not silently gone.
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--theme', 'nord', '--force')
+            run('init', tmp, '--theme', 'nord', '--force')
             root = Path(tmp)
             conf = root / 'templates' / 'settings.conf'
             conf.write_text(self._settings(root) + '\nphantom.axis: #123456\n',
                             encoding='utf-8')
-            r = run('refresh-templates', tmp, '--scaffold')
+            r = run('template', 'update', tmp, '--scaffold')
             self.assertIn('no longer exist', r.stderr)
             for _ in range(3):
-                run('refresh-templates', tmp, '--scaffold')
+                run('template', 'update', tmp, '--scaffold')
             after = self._settings(root)
             self.assertIn('# phantom.axis: #123456', after)
             self.assertIn('no longer recognized', after)
@@ -3093,17 +3230,17 @@ class ScaffoldRegeneration(unittest.TestCase):
 
     def test_scaffold_regen_needs_an_existing_settings_file(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             (Path(tmp) / 'templates' / 'settings.conf').unlink()
-            r = run('refresh-templates', tmp, '--scaffold')
+            r = run('template', 'update', tmp, '--scaffold')
             self.assertEqual(r.returncode, 1)
             self.assertIn('nothing to regenerate', r.stderr)
 
     def test_regen_is_idempotent(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--theme', 'sage', '--force')
-            run('refresh-templates', tmp, '--scaffold')  # no pins, no drift
-            r = run('refresh-templates', tmp, '--scaffold')
+            run('init', tmp, '--theme', 'sage', '--force')
+            run('template', 'update', tmp, '--scaffold')  # no pins, no drift
+            r = run('template', 'update', tmp, '--scaffold')
             self.assertIn('already current', r.stdout)
 
 
@@ -3175,7 +3312,7 @@ class BuildStamp(unittest.TestCase):
             build_result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp')
             self.assertEqual(build_result.returncode, 0, build_result.stderr)
 
-            check_result = run('check', str(root), '--output', str(root / 'public'))
+            check_result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertEqual(check_result.returncode, 0, check_result.stdout + check_result.stderr)
             self.assertIn('[OK] a.html', check_result.stdout)
             self.assertNotIn('[DRIFT]', check_result.stdout)
@@ -3278,7 +3415,7 @@ class BuildStamp(unittest.TestCase):
             root = scaffold(tmp, self._md())
             build_result = run('build', str(root), '--output', str(root / 'public'), '--build-stamp-minimal')
             self.assertEqual(build_result.returncode, 0, build_result.stderr)
-            check_result = run('check', str(root), '--output', str(root / 'public'))
+            check_result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertEqual(check_result.returncode, 0, check_result.stdout + check_result.stderr)
             self.assertIn('[OK] a.html', check_result.stdout)
 
@@ -3294,7 +3431,7 @@ class Themes(unittest.TestCase):
     def test_install_without_theme_leaves_the_theme_line_commented(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
             # No theme chosen is a state, not an omission: the placeholder
             # stays commented and the scaffold says whose values it shows.
@@ -3306,7 +3443,7 @@ class Themes(unittest.TestCase):
     def test_install_with_valid_theme_declares_it_in_the_scaffold(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('install', str(root), '--theme', 'nord')
+            result = run('init', str(root), '--theme', 'nord')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Nord', result.stdout)
             settings = (root / 'templates' / 'settings.conf').read_text(encoding='utf-8')
@@ -3324,7 +3461,7 @@ class Themes(unittest.TestCase):
     def test_install_with_unknown_theme_is_a_fatal_error_listing_valid_names(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('install', str(root), '--theme', 'not-a-real-theme')
+            result = run('init', str(root), '--theme', 'not-a-real-theme')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('not-a-real-theme', result.stderr)
             self.assertIn('nord', result.stderr)
@@ -3337,17 +3474,17 @@ class Themes(unittest.TestCase):
         existing settings.conf. Pinned on bytes, not on re-derivation."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
+            self.assertEqual(run('init', str(root), '--theme', 'dracula').returncode, 0)
             settings_path = root / 'templates' / 'settings.conf'
             before = settings_path.read_text(encoding='utf-8')
-            result = run('refresh-templates', str(root))
+            result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(settings_path.read_text(encoding='utf-8'), before)
 
     def test_themes_gallery_default_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('themes-gallery', cwd=str(root))
+            result = run('theme', 'gallery', cwd=str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             gallery = root / 'themes-gallery.html'
             self.assertTrue(gallery.exists())
@@ -3356,7 +3493,7 @@ class Themes(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             out = root / 'gallery.html'
-            result = run('themes-gallery', str(out))
+            result = run('theme', 'gallery', str(out))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = out.read_text(encoding='utf-8')
             for label in ('Nord', 'Dracula', 'Solarized Light', 'Gruvbox Light',
@@ -3367,7 +3504,7 @@ class Themes(unittest.TestCase):
             # stylesheet (ARGB-normalised), not through an inline style
             # attribute the gallery assembled itself.
             self.assertIn('--color-mark: #EBCB8BFF;', html)
-            self.assertIn('lightwebpres install my-series --theme nord', html)
+            self.assertIn('lightwebpres init my-series --theme nord', html)
             # One card per theme, whatever the count — asserting a literal
             # number here just means editing the test every time a palette
             # is added, which tests nothing.
@@ -3389,7 +3526,7 @@ class Themes(unittest.TestCase):
         article page and the index carry the composed sheet inline."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
             scaffold(tmp, _MINIMAL_MD)
             result = run('build', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -3488,7 +3625,7 @@ class DarkBackgroundThemes(unittest.TestCase):
         veil reaches the page a reader loads, not just the layer dict."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'terminal').returncode, 0)
+            self.assertEqual(run('init', str(root), '--theme', 'terminal').returncode, 0)
             scaffold(tmp, _MINIMAL_MD)
             self.assertEqual(run('build', str(root)).returncode, 0)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -3500,7 +3637,7 @@ class DarkBackgroundThemes(unittest.TestCase):
         of the `dark` flag bug."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
             scaffold(tmp, _MINIMAL_MD)
             self.assertEqual(run('build', str(root)).returncode, 0)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -3873,7 +4010,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
     def test_every_theme_gets_its_own_rendered_preview(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
         self.assertEqual(html.count('<iframe class="preview"'),
                          len(self.lwp.THEMES) * len(self.lwp.THEMES_GALLERY_PANELS))
@@ -3978,7 +4115,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
     def test_each_swatch_names_the_role_before_the_variable(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
         roles = re.findall(r'<div class="swatch-role">([^<]*)</div>', html)
         self.assertEqual(len(roles), 6 * len(self.lwp.THEMES))
@@ -3993,7 +4130,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
     def test_each_card_states_its_fact_box_emphasis_treatment(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
         stated = re.findall(r'class="fact-treatment"><span>[^<]*</span>(.*?)</p>', html)
         self.assertEqual(len(stated), len(self.lwp.THEMES))
@@ -4587,7 +4724,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         every reason to think was a small darkening."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            self.assertEqual(run('install', str(root), '--theme', 'graphite')
+            self.assertEqual(run('init', str(root), '--theme', 'graphite')
                              .returncode, 0)
             shipped = self._report('graphite')
             before = self._report(str(root))
@@ -4615,7 +4752,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         derived (§9.5.2) — is null with it."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             settings = root / 'templates' / 'settings.conf'
             settings.write_text(
                 '\n'.join(line for line in settings.read_text(encoding='utf-8')
@@ -4635,7 +4772,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         raise the flag or it would be raised on every series."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            self.assertEqual(run('install', str(root), '--theme', 'nord')
+            self.assertEqual(run('init', str(root), '--theme', 'nord')
                              .returncode, 0)
             custom = root / 'templates' / 'custom.css'
             self.assertTrue(custom.exists())
@@ -4708,7 +4845,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     def test_a_slugs_facets_are_the_same_ones_themes_prints(self):
         """§9.5.2: one function feeds every surface, so a terminal
         picker and this one cannot disagree about the same entry."""
-        listing = run('themes')
+        listing = run('theme', 'list')
         self.assertEqual(listing.returncode, 0, listing.stderr)
         printed = dict(re.findall(r'^  (\S+)  \[(\S+)\]$', listing.stdout,
                                   re.MULTILINE))
@@ -4738,11 +4875,11 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         for slug in self.lwp.THEMES:
             self.assertIn(f' {slug} ', ' ' + listed.replace('\n', ' ') + ' ')
 
-    def test_a_directory_that_was_never_installed_points_at_install(self):
+    def test_a_directory_that_was_never_installed_points_at_init(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = run('theme-info', tmp)
             self.assertEqual(result.returncode, 1)
-            self.assertIn('install', result.stderr)
+            self.assertIn('init', result.stderr)
 
     def test_an_unknown_format_is_a_named_error(self):
         result = run('theme-info', 'nord', '--format', 'yaml')
@@ -4870,7 +5007,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         for theme in ('graphite', 'pop-lemon'):
             with tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp) / 'series'
-                self.assertEqual(run('install', str(root), '--theme', theme)
+                self.assertEqual(run('init', str(root), '--theme', theme)
                                  .returncode, 0)
                 self.assertEqual(run('demo', str(root)).returncode, 0)
                 out = root / 'public'
@@ -5032,7 +5169,7 @@ class PaletteRoleNames(unittest.TestCase):
         author's own rules live in custom.css now, and that is the file
         audit reads."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('init', tmp).returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
             custom = Path(tmp) / 'templates' / 'custom.css'
 
@@ -5055,7 +5192,7 @@ class PaletteRoleNames(unittest.TestCase):
         --accent is also the §9-rewrite generation of rename, so this
         doubles as the guard that the new table entries are served."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('init', tmp).returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
             custom = Path(tmp) / 'templates' / 'custom.css'
             custom.write_text(custom.read_text(encoding='utf-8') +
@@ -5070,7 +5207,7 @@ class PaletteRoleNames(unittest.TestCase):
         must say so, and name the replacement for each old variable the
         file still touches so the move to settings.conf is mechanical."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('init', tmp).returncode, 0)
             self.assertEqual(run('demo', tmp).returncode, 0)
             (Path(tmp) / 'templates' / 'style.css').write_text(
                 ':root { --marker: #ff0000; }\n', encoding='utf-8')
@@ -5105,7 +5242,7 @@ class ThemesCommand(unittest.TestCase):
             self.assertNotRegex(note, r'&[a-zA-Z]+;|&#\d+;', slug)
 
     def test_the_terminal_listing_shows_no_markup_of_any_kind(self):
-        result = run('themes')
+        result = run('theme', 'list')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotRegex(result.stdout, r'&[a-zA-Z]+;|&#\d+;')
         self.assertNotIn('<code>', result.stdout)
@@ -5116,7 +5253,7 @@ class ThemesCommand(unittest.TestCase):
     def test_the_gallery_still_gets_the_markup_the_page_needs(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
         self.assertIn('<code>color.ink</code>', html)
         self.assertIn('<code>color.page</code>', html)
@@ -5134,7 +5271,7 @@ class ThemesCommand(unittest.TestCase):
         self.assertEqual(f('`<b>`'), '<code>&lt;b&gt;</code>')
 
     def test_bare_listing_names_every_theme_with_its_facets(self):
-        result = run('themes')
+        result = run('theme', 'list')
         self.assertEqual(result.returncode, 0, result.stderr)
         for slug, theme in self.lwp.THEMES.items():
             facets = self.lwp.theme_facets(theme)
@@ -5147,7 +5284,7 @@ class ThemesCommand(unittest.TestCase):
         self.assertTrue(expected, 'no dark theme to filter on')
         self.assertNotEqual(len(expected), len(self.lwp.THEMES))
 
-        result = run('themes', '--polarity', 'dark')
+        result = run('theme', 'list', '--polarity', 'dark')
         self.assertEqual(result.returncode, 0, result.stderr)
         listed = re.findall(r'^  (\S+)  \[', result.stdout, re.MULTILINE)
         self.assertEqual(sorted(listed), sorted(expected))
@@ -5159,7 +5296,7 @@ class ThemesCommand(unittest.TestCase):
         kept in step by hand."""
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
 
         cards = re.findall(
@@ -5170,7 +5307,7 @@ class ThemesCommand(unittest.TestCase):
         for polarity, intensity, hue in {(c[0], c[1], c[2]) for c in cards}:
             from_gallery = sorted(c[3] for c in cards
                                   if (c[0], c[1], c[2]) == (polarity, intensity, hue))
-            result = run('themes', '--polarity', polarity,
+            result = run('theme', 'list', '--polarity', polarity,
                          '--intensity', intensity, '--hue', hue)
             self.assertEqual(result.returncode, 0, result.stderr)
             from_cli = sorted(re.findall(r'^  (\S+)  \[', result.stdout, re.MULTILINE))
@@ -5180,13 +5317,13 @@ class ThemesCommand(unittest.TestCase):
         """Not an empty result: 'rouge' is a typo for 'red', and quietly
         answering "no theme is like that" would send the reader looking
         for a theme that is right there."""
-        result = run('themes', '--hue', 'rouge')
+        result = run('theme', 'list', '--hue', 'rouge')
         self.assertEqual(result.returncode, 1)
         self.assertIn('Unknown --hue', result.stderr)
         self.assertIn('red', result.stderr)
 
     def test_an_empty_but_legitimate_combination_says_so_and_succeeds(self):
-        result = run('themes', '--polarity', 'dark', '--hue', 'orange')
+        result = run('theme', 'list', '--polarity', 'dark', '--hue', 'orange')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('No theme matches', result.stdout)
 
@@ -5198,7 +5335,7 @@ class ThemesCommand(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         listed = [s for s in self.lwp.THEMES if s in result.stdout]
         self.assertLessEqual(len(listed), 2, f'help still enumerates themes: {listed}')
-        self.assertIn('lightwebpres themes', result.stdout)
+        self.assertIn('lightwebpres theme list', result.stdout)
 
 
 class SetThemeCommand(unittest.TestCase):
@@ -5228,12 +5365,12 @@ class SetThemeCommand(unittest.TestCase):
         value: everything but the `theme:` line must survive byte for
         byte — including that pinned line."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
             self._uncomment(settings, '# color.mark: #EBCB8B', 'color.mark: #EBCB8B')
             before = settings.read_text(encoding='utf-8').splitlines()
 
-            result = run('set-theme', tmp, '--theme', 'evergreen')
+            result = run('series', 'theme', 'set', tmp, '--theme', 'evergreen')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Theme changed: nord -> evergreen', result.stdout)
 
@@ -5246,11 +5383,11 @@ class SetThemeCommand(unittest.TestCase):
         """Idempotence is a promise about the disk, not the message, so
         both are pinned: bytes and mtime untouched."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
             before_text = settings.read_text(encoding='utf-8')
             before_mtime = settings.stat().st_mtime_ns
-            result = run('set-theme', tmp, '--theme', 'nord')
+            result = run('series', 'theme', 'set', tmp, '--theme', 'nord')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Theme unchanged: already nord. Nothing written.', result.stdout)
             self.assertEqual(settings.read_text(encoding='utf-8'), before_text)
@@ -5262,19 +5399,19 @@ class SetThemeCommand(unittest.TestCase):
         replaces a line in place, so any number of round trips must come
         back to the exact installed file."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
             original = settings.read_text(encoding='utf-8')
             for slug in ('synthwave', 'crimson', 'sage', 'nord'):
-                result = run('set-theme', tmp, '--theme', slug)
+                result = run('series', 'theme', 'set', tmp, '--theme', slug)
                 self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(settings.read_text(encoding='utf-8'), original)
 
     def test_a_series_that_was_never_installed_is_a_clean_error(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = run('set-theme', tmp, '--theme', 'nord')
+            result = run('series', 'theme', 'set', tmp, '--theme', 'nord')
             self.assertEqual(result.returncode, 1)
-            self.assertIn('Run install first', result.stderr)
+            self.assertIn('Run init first', result.stderr)
 
     def test_templates_without_settings_gets_a_fresh_scaffold(self):
         """A series installed before the rewrite has templates/ but no
@@ -5282,7 +5419,7 @@ class SetThemeCommand(unittest.TestCase):
         chosen theme is written — the same file install --theme writes."""
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'templates').mkdir()
-            result = run('set-theme', tmp, '--theme', 'nord')
+            result = run('series', 'theme', 'set', tmp, '--theme', 'nord')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('fresh settings.conf written', result.stdout)
             written = (Path(tmp) / 'templates' / 'settings.conf').read_text(encoding='utf-8')
@@ -5290,8 +5427,8 @@ class SetThemeCommand(unittest.TestCase):
 
     def test_a_missing_theme_option_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
-            missing = run('set-theme', tmp)
+            self.assertEqual(run('init', tmp).returncode, 0)
+            missing = run('series', 'theme', 'set', tmp)
             self.assertEqual(missing.returncode, 1)
             self.assertIn('requires --theme', missing.stderr)
 
@@ -5299,8 +5436,8 @@ class SetThemeCommand(unittest.TestCase):
         """The count is derived from THEMES (G6): an error message that
         says how many valid slugs exist cannot drift from the table."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
-            unknown = run('set-theme', tmp, '--theme', 'nope')
+            self.assertEqual(run('init', tmp).returncode, 0)
+            unknown = run('series', 'theme', 'set', tmp, '--theme', 'nope')
             self.assertEqual(unknown.returncode, 1)
             self.assertIn('Unknown theme', unknown.stderr)
             self.assertIn(f'{len(self.lwp.THEMES)} valid slugs', unknown.stderr)
@@ -5309,8 +5446,8 @@ class SetThemeCommand(unittest.TestCase):
         """A file with no theme line is on the default theme, which is an
         answer to "replaced by what" — not a missing value to elide."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
-            result = run('set-theme', tmp, '--theme', 'crimson')
+            self.assertEqual(run('init', tmp).returncode, 0)
+            result = run('series', 'theme', 'set', tmp, '--theme', 'crimson')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Theme changed: default -> crimson', result.stdout)
 
@@ -5322,10 +5459,10 @@ class SetThemeCommand(unittest.TestCase):
         made. Line-diffed against the scaffold, same discipline as the
         themed case."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp).returncode, 0)
+            self.assertEqual(run('init', tmp).returncode, 0)
             settings = Path(tmp) / 'templates' / 'settings.conf'
             before = settings.read_text(encoding='utf-8').splitlines()
-            self.assertEqual(run('set-theme', tmp, '--theme', 'crimson').returncode, 0)
+            self.assertEqual(run('series', 'theme', 'set', tmp, '--theme', 'crimson').returncode, 0)
             after = settings.read_text(encoding='utf-8').splitlines()
             self.assertEqual(len(before), len(after))
             changed = [(a, b) for a, b in zip(before, after) if a != b]
@@ -5339,9 +5476,9 @@ class SetThemeCommand(unittest.TestCase):
         between set-theme and the new colours."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('init', str(root), '--theme', 'nord').returncode, 0)
             scaffold(tmp, _MINIMAL_MD)
-            self.assertEqual(run('set-theme', tmp, '--theme', 'gruvbox').returncode, 0)
+            self.assertEqual(run('series', 'theme', 'set', tmp, '--theme', 'gruvbox').returncode, 0)
             self.assertEqual(run('build', tmp).returncode, 0)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('--color-mark: #D79921FF;', html)
@@ -5354,11 +5491,11 @@ class SetThemeCommand(unittest.TestCase):
         new theme — kept semantics, no longer silent (audit names it)."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root), '--theme', 'dracula').returncode, 0)
+            self.assertEqual(run('init', str(root), '--theme', 'dracula').returncode, 0)
             settings = root / 'templates' / 'settings.conf'
             self._uncomment(settings, '# color.mark: #F1FA8C', 'color.mark: #F1FA8C')
             scaffold(tmp, _MINIMAL_MD)
-            self.assertEqual(run('set-theme', tmp, '--theme', 'nord').returncode, 0)
+            self.assertEqual(run('series', 'theme', 'set', tmp, '--theme', 'nord').returncode, 0)
             self.assertEqual(run('build', tmp).returncode, 0)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('--color-mark: #F1FA8CFF;', html,
@@ -5371,8 +5508,8 @@ class SetThemeCommand(unittest.TestCase):
         message is that promise, made audible at the moment it starts
         being true."""
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertEqual(run('install', tmp, '--theme', 'nord').returncode, 0)
-            result = run('set-theme', tmp, '--theme', 'evergreen')
+            self.assertEqual(run('init', tmp, '--theme', 'nord').returncode, 0)
+            result = run('series', 'theme', 'set', tmp, '--theme', 'evergreen')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Commented values still show the previous theme', result.stdout)
             self.assertIn('uncommented values are untouched', result.stdout.lower())
@@ -5499,7 +5636,7 @@ class FactStrongEmphasis(unittest.TestCase):
         reader loads."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             settings = root / 'templates' / 'settings.conf'
             text = settings.read_text(encoding='utf-8')
             settings.write_text(text.replace('# fact.strong.weight: bold',
@@ -5516,7 +5653,7 @@ class FactStrongEmphasis(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             out = root / 'gallery.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
             # The bolded word comes from the real renderer, inside the
             # preview document's srcdoc, and the emphasis properties from
@@ -6021,7 +6158,7 @@ class DemoOverwriteProtection(unittest.TestCase):
     def test_demo_twice_is_fatal_on_second_run(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.assertEqual(run('install', str(root)).returncode, 0)
+            self.assertEqual(run('init', str(root)).returncode, 0)
             first = run('demo', str(root))
             self.assertEqual(first.returncode, 0, first.stderr)
             second = run('demo', str(root))
@@ -6159,13 +6296,13 @@ class CheckSummaryLine(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             run('build', str(root), '--output', str(root / 'public'))
-            clean = run('check', str(root), '--output', str(root / 'public'))
+            clean = run('verify', str(root), '--output', str(root / 'public'))
             # 3 files: the article page, index.html and README.md (§11.4)
             self.assertIn('3 file(s) OK, 0 file(s) different.', clean.stdout)
 
             changed_md = md.replace('Original.', 'Changed.')
             (root / 'articles' / 'a.md').write_text(changed_md, encoding='utf-8')
-            drifted = run('check', str(root), '--output', str(root / 'public'))
+            drifted = run('verify', str(root), '--output', str(root / 'public'))
             # The cover summary cascades to the index card's card_desc
             # (§20.3.1), so the page AND the index drift — exactly the
             # kind of index staleness check now catches (§11.4).
@@ -6179,7 +6316,7 @@ class InstallCopiesExecutable(unittest.TestCase):
     def test_install_copies_executable(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('install', str(root))
+            result = run('init', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             copied = root / 'lightwebpres'
             self.assertTrue(copied.exists())
@@ -6846,7 +6983,7 @@ class CheckNewMarker(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            result = run('check', str(root), '--output', str(root / 'public'))
+            result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[NEW] a.html', result.stdout)
 
@@ -6924,14 +7061,14 @@ class InstallGitlabCi(unittest.TestCase):
     def test_install_without_flag_does_not_create_gitlab_ci_yml(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('install', str(root))
+            result = run('init', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((root / '.gitlab-ci.yml').exists())
 
     def test_install_with_flag_creates_gitlab_ci_yml(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = run('install', str(root), '--gitlab-ci')
+            result = run('init', str(root), '--gitlab-ci')
             self.assertEqual(result.returncode, 0, result.stderr)
             ci = (root / '.gitlab-ci.yml').read_text(encoding='utf-8')
             self.assertIn('lightwebpres build', ci)
@@ -8108,7 +8245,7 @@ class EverySixTypeRejectsWhatItMustReject(unittest.TestCase):
         # reader knows the cost of weakening it: the article layer reaches
         # the inlined <style>, and colour is what most of it is made of.
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp,
                 '<!-- lwp:meta -->\npage_title: A\n'
                 'style.color.mark: #000} </style><script>alert(1)</script>'
@@ -8129,7 +8266,7 @@ class EveryAttributeSinkEscapes(unittest.TestCase):
 
     def test_a_quote_in_page_desc_cannot_leave_the_meta_content(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n'
                                  'page_desc: D" onx="1\n---\n\n'
                                  '# Cover\n\nsummary: s\n')
@@ -8193,7 +8330,7 @@ class TheGalleryInTheRepoIsTheGalleryTheToolMakes(unittest.TestCase):
             self.skipTest('no committed gallery in this checkout')
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'g.html'
-            self.assertEqual(run('themes-gallery', str(out)).returncode, 0)
+            self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             self.assertEqual(
                 out.read_bytes(), repo_copy.read_bytes(),
                 'themes-gallery.html is stale: re-run '
@@ -8241,7 +8378,7 @@ class TypedSurfaceCannotLeaveItsDeclaration(unittest.TestCase):
 
     def test_a_poisoned_article_property_stops_the_build(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp,
                 '<!-- lwp:meta -->\npage_title: A\n'
                 'style.font.text: </style><script>alert(1)</script>'
@@ -8296,7 +8433,7 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             secret = Path(tmp) / 'hostsecret.txt'
             secret.write_text('HOSTSECRET=hunter2', encoding='utf-8')
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
                                  '# Cover\n\nsummary: s\n')
             custom = root / 'templates' / 'custom.css'
@@ -8314,7 +8451,7 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
             (outside / 'secret.md').write_text(
                 '<!-- lwp:meta -->\npage_title: S\n---\n\n'
                 '# Cover\n\nsummary: sk-live-LEAKED\n', encoding='utf-8')
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
                                  '# Cover\n\nsummary: s\n')
             (root / 'articles' / 'leak.md').symlink_to(outside / 'secret.md')
@@ -8799,7 +8936,7 @@ class ArticleStyleLayer(unittest.TestCase):
     def _series(self, tmp, style_lines=''):
         # install first: it writes its own empty series.json, which would
         # bury the scaffold's article list if run second.
-        run('install', tmp, '--force')
+        run('init', tmp, '--force')
         return scaffold(tmp, self.ARTICLE.format(style_lines=style_lines))
 
     def test_style_meta_restyles_its_page_only(self):
@@ -8814,7 +8951,7 @@ class ArticleStyleLayer(unittest.TestCase):
     def test_page_layer_sits_on_top_of_theme_and_settings(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp, 'style.color.mark: #101010\n')
-            run('set-theme', str(root), '--theme', 'nord')
+            run('series', 'theme', 'set', str(root), '--theme', 'nord')
             self.assertEqual(run('build', str(root)).returncode, 0)
             page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             # the page pins the mark; everything else is still nord
@@ -8889,7 +9026,7 @@ class InstanceTags(unittest.TestCase):
 
     def test_a_bad_tag_in_a_real_article_names_its_file(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
                                  '# Cover\n\nsummary: s\n\n---\n\n'
                                  '## S\n\nfact-label: F\n\n'
@@ -8902,7 +9039,7 @@ class InstanceTags(unittest.TestCase):
     def _series_with_long_form(self, tmp, article_body):
         """A deck whose full-article slide pulls in a long-form file — the
         surface both guards below used to miss."""
-        run('install', tmp, '--force')
+        run('init', tmp, '--force')
         root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
                              '# Cover\n\nsummary: s\n\n---\n\n'
                              '<!-- lwp:slide:full-article -->\n'
@@ -8939,7 +9076,7 @@ class InstanceTags(unittest.TestCase):
 
     def test_audit_enumerates_instance_tags_without_blocking(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
                                  '# Cover\n\nsummary: {color:#333}s{/color} '
                                  'et {sc}x{/sc}\n')
@@ -8958,7 +9095,7 @@ class InstanceAndArticleLayerSecurity(unittest.TestCase):
         cls.lwp = load_lightwebpres_module()
 
     def _build(self, tmp, body='', meta_extra=''):
-        run('install', tmp, '--force')
+        run('init', tmp, '--force')
         scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n' + meta_extra +
                  '---\n\n# Cover\n\nsummary: s\n\n---\n\n'
                  '## S\n\nfact-label: F\n\n' + body + '\n')
@@ -9031,7 +9168,7 @@ class FactVariant(unittest.TestCase):
 
     def test_variant_becomes_a_class_hook(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp, self.ARTICLE.format(variant='warning'))
             self.assertEqual(run('build', str(root)).returncode, 0)
             page = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -9039,7 +9176,7 @@ class FactVariant(unittest.TestCase):
 
     def test_an_invalid_variant_name_is_a_named_build_error(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run('install', tmp, '--force')
+            run('init', tmp, '--force')
             root = scaffold(tmp, self.ARTICLE.format(variant='Bad Name!'))
             result = run('build', str(root))
             self.assertEqual(result.returncode, 1)
@@ -9427,7 +9564,7 @@ class AuditNamesTheThreeWaysANoteBreaks(unittest.TestCase):
     def _audit(self, extra=''):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
-        run('install', tmp, '--force')
+        run('init', tmp, '--force')
         root = scaffold(tmp, self.DECK.format(extra=extra))
         (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
         result = run('audit', str(root))
@@ -9644,7 +9781,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.lwp = load_lightwebpres_module()
 
     def _report(self, root):
-        result = run('series-info', str(root), '--format', 'json')
+        result = run('status', str(root), '--format', 'json')
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
@@ -9928,10 +10065,10 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
     def test_the_theme_in_force_is_the_one_settings_conf_names(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            self.assertEqual(run('install', str(root), '--theme', 'evergreen')
+            self.assertEqual(run('init', str(root), '--theme', 'evergreen')
                              .returncode, 0)
             self.assertEqual(self._report(root)['target']['theme'], 'evergreen')
-            self.assertEqual(run('set-theme', str(root), '--theme', 'nord')
+            self.assertEqual(run('series', 'theme', 'set', str(root), '--theme', 'nord')
                              .returncode, 0)
             self.assertEqual(self._report(root)['target']['theme'], 'nord')
 
@@ -9955,7 +10092,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
             root = self._series(tmp, entries, sources)
             (root / 'articles' / 'binary.md').write_bytes(
                 b'<!-- lwp:meta -->\npage_title: T \xff\xfe\n---\n')
-            result = run('series-info', str(root), '--format', 'json')
+            result = run('status', str(root), '--format', 'json')
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(result.stdout)
 
@@ -9991,7 +10128,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
 
             before = snapshot()
             for fmt in ('text', 'json'):
-                self.assertEqual(run('series-info', str(root), '--format', fmt)
+                self.assertEqual(run('status', str(root), '--format', fmt)
                                  .returncode, 0)
             self.assertEqual(snapshot(), before)
             self.assertFalse((root / 'public').exists())
@@ -10002,7 +10139,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                                                summary='S.')}
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp, [{'page_source': 'a.md'}], sources)
-            result = run('series-info', str(root), '--format', 'yaml')
+            result = run('status', str(root), '--format', 'yaml')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('--format', result.stderr)
 
@@ -10011,7 +10148,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                                                summary='A summary.')}
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp, [{'page_source': 'a.md'}], sources)
-            text = run('series-info', str(root)).stdout
+            text = run('status', str(root)).stdout
         for name in self.FIELDS:
             self.assertRegex(text, rf'{name}\s+\[(?:{"|".join(self.ORIGINS)})\]',
                              f'{name} is reported without its provenance')

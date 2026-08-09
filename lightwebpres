@@ -29,19 +29,20 @@ Native UTF-8. Built-in French and English language packs (typography
 rules + interface strings).
 
 Usage:
-  lightwebpres install [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
+  lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr] [--output public/]
   lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts]
-  lightwebpres check [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
   lightwebpres audit [directory] [--lang fr]
-  lightwebpres refresh-templates [directory] [--scaffold]
-  lightwebpres themes [--polarity light|dark] [--intensity name] [--hue name]
-  lightwebpres theme-info <slug>|[directory] [--format text|json]
-  lightwebpres series-info [directory] [--format text|json]
+  lightwebpres template update [directory] [--scaffold]
+  lightwebpres theme list [--polarity light|dark] [--intensity name] [--hue name]
+  lightwebpres theme show <slug> [--format text|json]
+  lightwebpres series theme [directory] [--format text|json]
+  lightwebpres status [directory] [--format text|json]
   lightwebpres resolve [directory] <name> [--article file.md] [--format text|json]
-  lightwebpres set-theme [directory] --theme name
-  lightwebpres themes-gallery [path]
-  lightwebpres --help
+  lightwebpres series theme set [directory] --theme name
+  lightwebpres theme gallery [path]
+  lightwebpres --version | --help | -h
 """
 
 import sys
@@ -2763,7 +2764,7 @@ def parse_settings_text(text, source='settings.conf'):
             if value not in THEMES:
                 raise PropertyError(
                     f'{source}:{lineno}: unknown theme {value!r}. '
-                    f'Run `lightwebpres themes` for the list.')
+                    f'Run `lightwebpres theme list` for the list.')
             theme = value
         else:
             props[key] = value
@@ -5658,7 +5659,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
       </ul>
       <p class="fact-treatment"><span>Fact-box bold</span>{fact_treatment}</p>
       <p class="theme-note{note_good_class}">{note}</p>
-      <p class="install-hint"><code>lightwebpres install my-series --theme {slug}</code></p>
+      <p class="install-hint"><code>lightwebpres init my-series --theme {slug}</code></p>
     </article>
 '''
 
@@ -9084,7 +9085,7 @@ def cmd_refresh_templates(target_dir, args):
     td = Path(target_dir).resolve()
     templates_dir = td / 'templates'
     if not templates_dir.is_dir():
-        print(f'[ERROR] {templates_dir} not found. Run install first.',
+        print(f'[ERROR] {templates_dir} not found. Run init first.',
               file=sys.stderr)
         sys.exit(1)
 
@@ -9200,7 +9201,7 @@ def cmd_themes(args):
         # the combination that came up empty rather than printing nothing
         # and letting the reader wonder whether the command ran.
         print(f'No theme matches {active}.')
-        print(f'Drop a filter, or run `lightwebpres themes` for all {len(THEMES)}.')
+        print(f'Drop a filter, or run `lightwebpres theme list` for all {len(THEMES)}.')
         return
 
     if active:
@@ -9224,12 +9225,12 @@ def cmd_themes(args):
 
     print('Facets: polarity (light/dark), intensity (sober/vivid/mono), hue.')
     print('Narrow the list with, for example:')
-    print('  lightwebpres themes --polarity dark --intensity sober')
+    print('  lightwebpres theme list --polarity dark --intensity sober')
     print('Read one out — palette, fonts, and the contrast level it')
-    print('reaches, measured — with `lightwebpres theme-info <slug>`.')
-    print('Apply one with `install --theme <slug>` (new series) or')
-    print('`set-theme --theme <slug>` (existing one); see them rendered with')
-    print('`lightwebpres themes-gallery`.')
+    print('reaches, measured — with `lightwebpres theme show <slug>`.')
+    print('Apply one with `init --theme <slug>` (new series) or')
+    print('`series theme set --theme <slug>` (existing one); see them rendered with')
+    print('`lightwebpres theme gallery`.')
 
 
 # The JSON key names are a contract with `lightwebpres-gui` (§1.2,
@@ -9425,7 +9426,7 @@ def cmd_theme_info(target, args):
             sys.exit(1)
         if not templates_dir.is_dir():
             print(f'[ERROR] {templates_dir} not found: {directory} is not an '
-                  f'installed series. Run install first, or name a theme '
+                  f'installed series. Run init first, or name a theme '
                   f'slug instead.', file=sys.stderr)
             sys.exit(1)
 
@@ -9471,19 +9472,19 @@ def cmd_set_theme(target_dir, args):
     new_slug = args.get('--theme')
 
     if new_slug is None:
-        print(f'[ERROR] set-theme requires --theme <slug>. '
-              f'Run `lightwebpres themes` to list them.', file=sys.stderr)
+        print(f'[ERROR] series theme set requires --theme <slug>. '
+              f'Run `lightwebpres theme list` to list them.', file=sys.stderr)
         sys.exit(1)
     if new_slug not in THEMES:
         print(f'[ERROR] Unknown theme: {new_slug!r}. '
-              f'Run `lightwebpres themes` to list the {len(THEMES)} valid slugs.',
+              f'Run `lightwebpres theme list` to list the {len(THEMES)} valid slugs.',
               file=sys.stderr)
         sys.exit(1)
 
     if not settings_path.parent.is_dir():
         # A directory that was never installed stays a clean error, as it
         # always was — set-theme configures a series, it does not create one.
-        print(f'[ERROR] {settings_path.parent} not found. Run install first.',
+        print(f'[ERROR] {settings_path.parent} not found. Run init first.',
               file=sys.stderr)
         sys.exit(1)
     if not settings_path.exists():
@@ -10289,7 +10290,7 @@ def cmd_demo(target_dir, args):
     # surface; nav.js keeps a pre-rewrite series recognized as installed.
     if not ((td / 'templates' / SETTINGS_FILENAME).exists()
             or (td / 'templates' / 'nav.js').exists()):
-        print(f'[ERROR] {td} has not been installed. Run first: lightwebpres install {td}', file=sys.stderr)
+        print(f'[ERROR] {td} has not been installed. Run first: lightwebpres init {td}', file=sys.stderr)
         sys.exit(1)
 
     articles_dir = td / 'articles'
@@ -10583,85 +10584,102 @@ def print_help():
     print(f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
 
 COMMANDS
-  lightwebpres install [directory] [--lang fr]   Creates the directory structure
+  lightwebpres init [directory] [--lang fr]    Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
-                                                 Creates a demo site
-  lightwebpres build [directory] [--lang fr]     Builds the site (self-contained HTML)
-  lightwebpres check [directory] [--lang fr]     Checks without building (diff)
-  lightwebpres audit [directory] [--lang fr]     Warns about editorial conventions (never blocking)
-  lightwebpres refresh-templates [directory]     Refreshes tool-owned templates/ files
+                                                  Creates a demo site
+  lightwebpres build [directory] [--lang fr]  Builds the site (self-contained HTML)
+  lightwebpres verify [directory] [--lang fr] Checks without building (diff)
+  lightwebpres audit [directory] [--lang fr]  Warns about editorial conventions (never blocking)
+  lightwebpres template update [directory]    Refreshes tool-owned templates/ files
                                                   (nav.js); creates a missing settings.conf
                                                   or custom.css (see §9.4.3)
-  lightwebpres refresh-templates … --scaffold    Regenerates settings.conf's commented
+  lightwebpres template update … --scaffold   Regenerates settings.conf's commented
                                                   surface for the current theme, keeping
                                                   your pinned (uncommented) lines
-  lightwebpres themes [--polarity ...]           Lists the built-in color themes, narrowed
+  lightwebpres theme list [--polarity ...]    Lists the built-in color themes, narrowed
                                                   by facet (see THEMES below, §11.9)
-  lightwebpres theme-info <slug>                 Describes ONE theme without installing:
+  lightwebpres theme show <slug>              Describes ONE theme without installing:
                                                   palette, fonts, facets, and the WCAG
                                                   contrast level it actually reaches,
                                                   measured (see §11.9.1)
-  lightwebpres theme-info [directory]            Same, for the EFFECTIVE theme of an
+  lightwebpres series theme [directory]       Same, for the EFFECTIVE theme of an
                                                   installed series — after the values it
                                                   pins in templates/settings.conf
-  lightwebpres series-info [directory]           Says what is in a series without
+  lightwebpres status [directory]             Says what is in a series without
                                                   building: its articles in series.json
                                                   order, each field RESOLVED as a build
                                                   would resolve it, and where each value
                                                   came from (see §11.11)
-  lightwebpres resolve [directory] <name>        Says what ONE name is worth here and
+  lightwebpres resolve [directory] <name>     Says what ONE name is worth here and
                                                   which level decided it, losing levels
                                                   included. The shape of the name picks
                                                   the cascade: dotted = theme property,
                                                   snake_case = article field,
                                                   kebab-case = slide field (see §11.12)
-  lightwebpres set-theme [directory] --theme X   Changes an existing series' theme
+  lightwebpres series theme set [dir] --theme X  Changes an existing series' theme
                                                   (see §11.10)
-  lightwebpres themes-gallery [path]             Generates a self-contained HTML page
+  lightwebpres theme gallery [path]           Generates a self-contained HTML page
                                                   documenting every built-in color theme —
                                                   one row per theme, four panels across:
                                                   cover, card with a note, notes section,
                                                   full article
                                                   (default path: themes-gallery.html, see §11.7)
-  lightwebpres help | --help | -h                Shows this help
+  lightwebpres --version                      Prints the version and exits
+  lightwebpres help | --help | -h             Shows this help
+
+  The commands above are shortcuts. The canonical form is `series <verb>`
+  (or `theme <verb>` for the catalogue): `lightwebpres series build`,
+  `lightwebpres theme list`, etc. The old names (install, check,
+  refresh-templates, themes, theme-info, set-theme, themes-gallery,
+  series-info) remain accepted as aliases for one MAJOR version, with a
+  [WARN] on stderr naming the new form.
 
 OPTIONS
   (--option value and --option=value are equivalent; an unknown or
-   out-of-place option is a fatal error, never silently ignored)
+   out-of-place option is a fatal error, never silently ignored. Global
+   options like --lang, --quiet, --verbose, --no-color, --timestamp may
+   also be placed before the command: `lightwebpres --lang en build .`.)
   --lang fr|en           Language: typography rules + interface strings (default: fr)
-  --output public/       demo/build/check: output directory (default: public/).
+  --quiet                Global: suppress progress output, never the value you
+                        asked for (resolve --format json still prints the JSON)
+  --verbose              Global: print extra detail (each file written, each step)
+  --no-color             Global: disable ANSI colour codes in the output
+  --timestamp            Global: prefix each log line with an RFC 3339 timestamp
+  --version              Print the version and exit
+  --output public/       demo/build/verify: output directory (default: public/).
                         A relative path is resolved against the directory you
                         run from, not against [directory]
-  --force                install: proceed even if the target directory is not empty
-  --theme name           install/set-theme: apply a named palette (see THEMES
+  --force                init: proceed even if the target directory is not empty
+  --theme name           init/series theme set: apply a named palette (see THEMES
                         below); unknown name is a fatal error
-  --polarity light|dark  themes: list only themes with that background polarity
-  --intensity name       themes: sober | vivid | mono
-  --hue name             themes: neutral, red, orange, yellow, green, cyan,
+  --polarity light|dark  theme list: list only themes with that background polarity
+  --intensity name       theme list: sober | vivid | mono
+  --hue name             theme list: neutral, red, orange, yellow, green, cyan,
                         blue, violet, magenta — the hue of the page background
   --article file.md      resolve: the article whose levels to include — required
                         for a per-article field, additive for a theme property
-  --format text|json     theme-info/series-info/resolve: output format (default: text).
-                        JSON, not YAML: this tool is standard-library only,
-                        where `json` is present and `yaml` is not
-  --gitlab-ci             install: also write a .gitlab-ci.yml pipeline (opt-in —
-                        install never assumes a GitLab deployment on its own)
-  --language-file path   build/check: use this language pack file instead of
+  --format text|json     theme show/series theme/status/resolve: output format
+                        (default: text). JSON, not YAML: this tool is
+                        standard-library only, where `json` is present and
+                        `yaml` is not
+  --gitlab-ci            init: also write a .gitlab-ci.yml pipeline (opt-in —
+                        init never assumes a GitLab deployment on its own)
+  --language-file path   build/verify: use this language pack file instead of
                         language/<lang>.json (highest priority, spec §19.5)
-  --no-typography        build/check: disables ALL typography rules (non-breaking
+  --no-typography        build/verify: disables ALL typography rules (non-breaking
                         spaces included) for this run — no rule runs anywhere,
                         not just the ones below (see TYPOGRAPHY section)
-  --only file             build: rebuild just this one article (by page_dest or
+  --only file            build: rebuild just this one article (by page_dest or
                         page_source name) instead of the whole series, IF
                         nothing that affects index.html/series-nav changed
                         since the last build (checked via --nav-cache) —
                         silently falls back to a full build otherwise, never
                         a stale page (spec §11.3.1)
-  --scaffold              refresh-templates: regenerate settings.conf's commented
+  --scaffold             template update: regenerate settings.conf's commented
                         surface at the current theme's values, keeping your
                         pinned (uncommented) lines — the one case where the
                         tool rewrites that file (spec §9.4.3)
-  --include-drafts        build/check: also build articles marked status: draft
+  --include-drafts       build/verify: also build articles marked status: draft
                         (excluded from the output by default — no page, no
                         index card, no nav entry — while still counting as
                         articles of the series). Pages built this way carry a
@@ -10669,16 +10687,16 @@ OPTIONS
                         is never mistaken for a publication. Articles marked
                         status: ignored are NOT affected: they are out of the
                         series and this flag does not reach them.
-  --nav-cache path        build --only: where the nav/index fingerprint used for
+  --nav-cache path       build --only: where the nav/index fingerprint used for
                         that safety check is read from and written to
                         (default: .lwp-cache/nav.json in the series directory)
-  --build-stamp           build: stamps every generated page with a discreet
+  --build-stamp          build: stamps every generated page with a discreet
                         "Compiled at <date/time> with lightwebpres v<version>"
                         marker, in the page's own header (visible only while
                         scrolled to the top) — a live timestamp, so off by
-                        default and ignored by check's comparison either way
+                        default and ignored by verify's comparison either way
                         (spec §11.3.2)
-  --build-stamp-minimal   Same marker, without the date/time or version —
+  --build-stamp-minimal  Same marker, without the date/time or version —
                         "Compiled with lightwebpres." — for when even the
                         build date isn't something you want published.
                         Wins over --build-stamp if both are passed.
@@ -10686,24 +10704,24 @@ OPTIONS
 THEMES ({theme_count} built in, see specifications.md §9.5)
   Themes are chosen by slug, and found by facet — polarity (light/dark),
   intensity (sober/vivid/mono), and hue, computed from the background:
-    lightwebpres themes                            all {theme_count}, with their facets
-    lightwebpres themes --polarity dark --intensity sober  just the ones you mean
+    lightwebpres theme list                       all {theme_count}, with their facets
+    lightwebpres theme list --polarity dark --intensity sober  just the ones you mean
   Then apply one, at scaffold time or afterwards:
-    lightwebpres install my-series --theme evergreen
-    lightwebpres set-theme my-series --theme evergreen
-  set-theme rewrites the one `theme:` line of templates/settings.conf and
-  nothing else: your uncommented values are untouched and still apply on
+    lightwebpres init my-series --theme evergreen
+    lightwebpres series theme set my-series --theme evergreen
+  series theme set rewrites the one `theme:` line of templates/settings.conf
+  and nothing else: your uncommented values are untouched and still apply on
   top of the new theme. The stylesheet is composed at build time, so
   upgrading the executable never silently reverts anything.
   Preview every theme rendered against real slide content, with facet
   filters, at:
-    lightwebpres themes-gallery
+    lightwebpres theme gallery
   And read one out — palette, fonts, facets, and the contrast level it
   reaches, per WCAG category, MEASURED through the property registry
   rather than declared by hand:
-    lightwebpres theme-info evergreen
-    lightwebpres theme-info my-series          the effective theme, after
-                                               the values that series pins
+    lightwebpres theme show evergreen
+    lightwebpres series theme my-series      the effective theme, after
+                                              the values that series pins
   Not every theme is meant to be conformant — a theme is a stance — but
   which ones are is a fact, and this is where it is read. None of it ever
   reaches a built page: the reader of a presentation is never told the
@@ -10788,8 +10806,8 @@ ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
   title and summary), then to a default. To read what that resolves to
   for a whole series — and which level each value came from — without
   building anything:
-    lightwebpres series-info my-series
-    lightwebpres series-info my-series --format json
+    lightwebpres status my-series
+    lightwebpres status my-series --format json
 
   For ONE name, with the levels that lost as well as the one that won:
     lightwebpres resolve my-series page_title --article intro.md
