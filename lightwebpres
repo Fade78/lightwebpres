@@ -74,6 +74,50 @@ if sys.version_info < (3, 8):
 
 VERSION = "0.23.0"
 
+# --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
+# A single log() function routes progress/diagnostic messages to stderr.
+# Normal user output (the value resolve returns, the HTML build prints,
+# the themes listing) stays on stdout via plain print(), so --quiet can
+# silence the chatter without silencing the answer (DECISION §4).
+_LOG_STATE = {'quiet': False, 'verbose': False, 'no_color': False,
+              'timestamp': False}
+
+
+def configure_logging(quiet=False, verbose=False, no_color=False,
+                      timestamp=False):
+    """Sets the global log level. Called once from main() after parsing."""
+    _LOG_STATE['quiet'] = quiet
+    _LOG_STATE['verbose'] = verbose
+    _LOG_STATE['no_color'] = no_color
+    _LOG_STATE['timestamp'] = timestamp
+
+
+def log(level, msg):
+    """Routes a diagnostic message to stderr.
+
+    Levels: 'info' (progress, suppressed by --quiet, shown by default),
+    'verbose' (only with --verbose), 'error' (always shown, even by --quiet).
+    Each level carries its own prefix tag so the output stays greppable.
+    --timestamp prepends an RFC 3339 timestamp. --no-color strips ANSI (the
+    codebase emits none yet, but the flag is wired for the future)."""
+    if level == 'error':
+        prefix = '[ERROR] '
+    elif level == 'info':
+        if _LOG_STATE['quiet']:
+            return
+        prefix = '[INFO] '
+    elif level == 'verbose':
+        if not _LOG_STATE['verbose']:
+            return
+        prefix = '[DEBUG] '
+    else:
+        return  # unknown level: drop silently
+    if _LOG_STATE['timestamp']:
+        from datetime import datetime
+        ts = datetime.now().astimezone().isoformat(timespec='seconds')
+        prefix = f'{ts} {prefix}'
+    print(prefix + msg, file=sys.stderr)
+
 # Where this tool comes from. A constant because two places have to say
 # it and neither did: `--help` ended on "Full reference:
 # specifications.md" addressed to a reader who may hold nothing but this
@@ -5897,18 +5941,18 @@ def load_language(lang_dir, lang='fr', language_file=None):
         except (ValueError, RecursionError) as e:
             # ValueError covers json.JSONDecodeError; RecursionError guards
             # a deeply-nested array/object from crashing the parser itself.
-            print(f'[ERROR] {lang_file}: invalid JSON ({e}).', file=sys.stderr)
+            log('error', f'{lang_file}: invalid JSON ({e}).')
             sys.exit(1)
         if not isinstance(override, dict):
-            print(f'[ERROR] {lang_file}: must be a JSON object.', file=sys.stderr)
+            log('error', f'{lang_file}: must be a JSON object.')
             sys.exit(1)
         rules = override.get('rules', base.get('rules', []))
         strings = override.get('strings', {})
         if not isinstance(rules, list):
-            print(f'[ERROR] {lang_file}: "rules" must be a list.', file=sys.stderr)
+            log('error', f'{lang_file}: "rules" must be a list.')
             sys.exit(1)
         if not isinstance(strings, dict):
-            print(f'[ERROR] {lang_file}: "strings" must be an object.', file=sys.stderr)
+            log('error', f'{lang_file}: "strings" must be an object.')
             sys.exit(1)
         # Every interface string must be a string: a non-string value
         # crashes apply_strings' str.replace with a raw TypeError.
@@ -5924,7 +5968,7 @@ def load_language(lang_dir, lang='fr', language_file=None):
             'strings': {**base.get('strings', {}), **strings},
         }
     elif language_file:
-        print(f'[ERROR] --language-file {language_file}: file not found.', file=sys.stderr)
+        log('error', f'--language-file {language_file}: file not found.')
         sys.exit(1)
 
     return base
@@ -7052,7 +7096,7 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
         sys.exit(1)
 
     if not slides:
-        print(f'[ERROR] {filename}: file has no slides.', file=sys.stderr)
+        log('error', f'{filename}: file has no slides.')
         sys.exit(1)
 
     full_article_positions = []
@@ -7496,13 +7540,13 @@ def validate_html(html_text, filename):
         unclosed = ', '.join(f'<{t}>' for t in reversed(checker.stack))
         checker.errors.append(f'unclosed tag(s) at end of document: {unclosed}')
     if checker.errors:
-        print(f'[ERROR] {filename}: the generated HTML is not well-formed — '
+        log('error', f'{filename}: the generated HTML is not well-formed — '
               f'this almost always means unbalanced raw HTML in the source '
               f'for this page (an unclosed or mismatched tag, e.g. a <div> in '
               f'a fact-box or full-article that is never closed). Fix the tag '
-              f'balance in the source and rebuild:', file=sys.stderr)
+              f'balance in the source and rebuild:')
         for e in checker.errors:
-            print(f'  - {e}', file=sys.stderr)
+            log('error', f'  - {e}')
         sys.exit(1)
 
 
@@ -7546,7 +7590,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         if page_props and style_context is not None:
             css = compose_with(style_context, page_props)
     except PropertyError as exc:
-        print(f'[ERROR] {source_path.name}: {exc}', file=sys.stderr)
+        log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
 
     disabled_rules = typo_disabled_rules(meta)
@@ -7578,7 +7622,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                 strings, disabled_rules, slide_notes)
             slide_htmls.append(html)
     except PropertyError as exc:
-        print(f'[ERROR] {source_path.name}: {exc}', file=sys.stderr)
+        log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
 
     # Join the slides
@@ -7622,7 +7666,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                                 disabled_rules, article_notes,
                                                 strings)
             except PropertyError as exc:
-                print(f'[ERROR] {slide.article_file}: {exc}', file=sys.stderr)
+                log('error', f'{slide.article_file}: {exc}')
                 sys.exit(1)
             slides_html = slides_html.replace('{FULL_ARTICLE_PLACEHOLDER}', article_html)
 
@@ -7765,7 +7809,7 @@ def load_series_data(series_dir):
     """Loads series.json."""
     series_file = series_dir / 'series.json'
     if not series_file.exists():
-        print(f'[ERROR] series.json not found in {series_dir}', file=sys.stderr)
+        log('error', f'series.json not found in {series_dir}')
         sys.exit(1)
     try:
         data = json.loads(read_text_file(series_file))
@@ -7773,7 +7817,7 @@ def load_series_data(series_dir):
         # ValueError covers json.JSONDecodeError; RecursionError guards a
         # deeply-nested array/object (e.g. "["*100000) from crashing the
         # JSON parser with a raw traceback instead of a clean [ERROR].
-        print(f'[ERROR] {series_file}: invalid JSON ({e}).', file=sys.stderr)
+        log('error', f'{series_file}: invalid JSON ({e}).')
         sys.exit(1)
     articles = data.get('articles', data) if isinstance(data, dict) else data
     if not isinstance(articles, list) or not all(isinstance(e, dict) for e in articles):
@@ -8315,7 +8359,7 @@ def load_build_context(series_dir, args):
         style_context = series_style_context(templates_dir)
         css = compose_with(style_context)
     except PropertyError as exc:
-        print(f'[ERROR] templates/{SETTINGS_FILENAME}: {exc}', file=sys.stderr)
+        log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
     nav_js_file = templates_dir / 'nav.js'
     nav_js = read_text_file(nav_js_file) if nav_js_file.exists() else TEMPLATE_NAV_JS
@@ -8471,12 +8515,12 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     always redone rather than also trying to skip them."""
     entry = next((e for e in ctx.articles if only_file in (e['page_dest'], e['page_source'])), None)
     if entry is None:
-        print(f'[ERROR] --only {only_file!r} matches no article (by file or source).', file=sys.stderr)
+        log('error', f'--only {only_file!r} matches no article (by file or source).')
         sys.exit(1)
 
     source_path = ctx.articles_dir / entry['page_source']
     if not source_path.exists():
-        print(f'[ERROR] Source not found: {source_path}', file=sys.stderr)
+        log('error', f'Source not found: {source_path}')
         sys.exit(1)
 
     print(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
@@ -8542,7 +8586,7 @@ def cmd_build(series_dir, args):
             _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp)
             return
         reason = 'no usable cache found' if cached_fingerprint is None else 'nav/index-affecting metadata changed since the last build'
-        print(f'[INFO] --only requested but not safe ({reason}) — doing a full build instead.')
+        log('info', f'--only requested but not safe ({reason}) — doing a full build instead.')
 
     print(f'Build: {ctx.sd}')
     print(f'  Articles: {ctx.articles_dir}')
@@ -8786,7 +8830,7 @@ def cmd_audit(series_dir, args):
     for entry in articles:
         source_path = articles_dir / entry['page_source']
         if not source_path.exists():
-            print(f'[ERROR] {entry["page_dest"]}: page_source not found ({source_path})', file=sys.stderr)
+            log('error', f'{entry["page_dest"]}: page_source not found ({source_path})')
             continue
 
         md_text = read_text_file(source_path)
@@ -8843,6 +8887,10 @@ def cmd_audit(series_dir, args):
         print('No warnings: all editorial conventions are respected.')
     else:
         print(f'{warnings} warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
+        # --strict (DECISION §1 Phase 2): make audit fail on warnings, so a CI
+        # can enforce editorial conventions. Without it, audit always exits 0.
+        if args.get('--strict'):
+            sys.exit(1)
 
 
 # Every variable name that ever existed and no longer does, with where its
@@ -9386,72 +9434,107 @@ def print_theme_info_text(report):
     print('information only: no built page mentions it.')
 
 
-def cmd_theme_info(target, args):
-    """theme-info command (§11.9.1) — describes ONE theme without
-    installing anything.
+def cmd_theme_info(positional, args):
+    """theme show <slug> [<slug>…] [--all] — describes one or more built-in
+    themes without installing anything (§11.9.1, DECISION §1 Phase 2).
 
-    Two targets answering different questions: a slug is the theme as
-    shipped, which is what serves choosing and needs no series at all; a
-    series directory is the EFFECTIVE theme, after the values that series
-    pinned. They can differ, and that difference is the useful part — an
-    author who pinned three colours may have dropped below the floor
-    without knowing it."""
+    The directory branch of the old `theme-info` is now `series theme [dir]`
+    (cmd_series_theme). This command handles only built-in slugs: one, many
+    (compared in the order given), or --all (every built-in theme)."""
     fmt = args.get('--format', 'text')
     if fmt not in ('text', 'json'):
-        print(f'[ERROR] Unknown --format: {fmt!r}. Valid values: text, json',
-              file=sys.stderr)
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
 
-    if target in THEMES:
-        report = theme_info_report('theme', target, None,
-                                   [theme_property_layer(target)])
+    # Resolve the slug list: --all, or the positionals, or (legacy alias
+    # compat) a single argument that might be a directory.
+    if args.get('--all'):
+        slugs = list(THEMES.keys())
+    elif positional:
+        slugs = positional
     else:
-        directory = Path(target).resolve()
-        templates_dir = directory / 'templates'
-        if not directory.is_dir():
-            # A slug that does not exist and a directory that does not
-            # exist are the same typo from here, so the error names both
-            # readings rather than picking one and misleading half the
-            # time. The valid slugs are listed, not pointed at: the reader
-            # is one word away from the answer.
-            import textwrap
-            print(f'[ERROR] {target!r} is neither a built-in theme nor a '
-                  f'directory.', file=sys.stderr)
-            print(f'The {len(THEMES)} valid slugs are:', file=sys.stderr)
-            # break_on_hyphens=False: half the catalogue is hyphenated,
-            # and a slug split across two lines is a slug nobody can copy.
-            for line in textwrap.wrap('  '.join(THEMES), width=70,
-                                      break_on_hyphens=False):
-                print(f'  {line}', file=sys.stderr)
-            sys.exit(1)
-        if not templates_dir.is_dir():
-            print(f'[ERROR] {templates_dir} not found: {directory} is not an '
-                  f'installed series. Run init first, or name a theme '
-                  f'slug instead.', file=sys.stderr)
-            sys.exit(1)
+        # No positional and no --all: show usage. The old `theme-info`
+        # with no arg was an error; with the new split, `theme show` needs
+        # at least one slug or --all.
+        log('error', '`theme show` needs at least one slug (or --all). '
+              'To read the effective theme of a series, use `series theme <dir>`.')
+        sys.exit(1)
 
-        settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
-        text = (read_text_file(settings_file)
-                if settings_file is not None and settings_file.exists() else '')
-        try:
-            slug, props = parse_settings_text(text)
-            layers = ([theme_property_layer(slug)] if slug else []) + [props]
-            # `custom.css` is deliberately NOT read: it is free CSS, and
-            # nothing in it is a resolved property. Saying so is the point
-            # — a measurement that quietly ignored half the sheet would be
-            # the hand-written label all over again.
-            # `install` creates custom.css carrying only its explanatory
-            # comment, so existence says nothing: what matters is whether
-            # a rule was written into it.
-            custom = templates_dir / CUSTOM_CSS_FILENAME
-            has_rules = custom.exists() and bool(re.sub(
-                r'/\*.*?\*/', '', read_text_file(custom), flags=re.DOTALL).strip())
-            report = theme_info_report(
-                'series', slug, str(directory), layers, sorted(props),
-                custom_css=has_rules)
-        except PropertyError as exc:
-            print(f'[ERROR] {exc}', file=sys.stderr)
-            sys.exit(1)
+    # Validate slugs: every one must be a built-in theme. A directory is no
+    # longer accepted here (that's `series theme`).
+    unknown = [s for s in slugs if s not in THEMES]
+    if unknown:
+        import textwrap
+        for s in unknown:
+            log('error', f'{s!r} is not a built-in theme.')
+        log('error', f'The {len(THEMES)} valid slugs are:')
+        for line in textwrap.wrap('  '.join(THEMES), width=70,
+                                  break_on_hyphens=False):
+            log('error', f'  {line}')
+        sys.exit(1)
+
+    reports = []
+    for slug in slugs:
+        reports.append(theme_info_report('theme', slug, None,
+                                         [theme_property_layer(slug)]))
+
+    if fmt == 'json':
+        # JSON: a list when more than one, a single object when exactly one
+        # (the old form, kept for script compat).
+        if len(reports) == 1:
+            print(json.dumps(reports[0], indent=2, ensure_ascii=False,
+                             sort_keys=False))
+        else:
+            print(json.dumps(reports, indent=2, ensure_ascii=False,
+                             sort_keys=False))
+    else:
+        for i, report in enumerate(reports):
+            if i > 0:
+                print()
+            print_theme_info_text(report)
+
+
+def cmd_series_theme(series_dir, args):
+    """series theme [dir] — the EFFECTIVE theme of an installed series
+    (DECISION §1 Phase 2, ex-`theme-info [dir]`).
+
+    Reads the theme a series actually uses after the values it pinned in
+    templates/settings.conf. This is the directory branch of the old
+    `theme-info` split out as its own command, so the slug reading
+    (`theme show`) and the directory reading no longer share one command
+    with an ambiguous positional (PROPOSITION §5.10)."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
+        sys.exit(1)
+
+    directory = Path(series_dir).resolve()
+    templates_dir = directory / 'templates'
+    if not directory.is_dir():
+        log('error', f'{series_dir!r} is not a directory. '
+              f'`series theme` reads the effective theme of an installed '
+              f'series; to read a built-in theme, use `theme show <slug>`.')
+        sys.exit(1)
+    if not templates_dir.is_dir():
+        log('error', f'{templates_dir} not found: {directory} is not an '
+              f'installed series. Run init first.')
+        sys.exit(1)
+
+    settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+    text = (read_text_file(settings_file)
+            if settings_file is not None and settings_file.exists() else '')
+    try:
+        slug, props = parse_settings_text(text)
+        layers = ([theme_property_layer(slug)] if slug else []) + [props]
+        custom = templates_dir / CUSTOM_CSS_FILENAME
+        has_rules = custom.exists() and bool(re.sub(
+            r'/\*.*?\*/', '', read_text_file(custom), flags=re.DOTALL).strip())
+        report = theme_info_report(
+            'series', slug, str(directory), layers, sorted(props),
+            custom_css=has_rules)
+    except PropertyError as exc:
+        log('error', f'{exc}')
+        sys.exit(1)
 
     if fmt == 'json':
         print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=False))
@@ -9675,7 +9758,7 @@ def cmd_series_info(series_dir, args):
     try:
         theme = series_theme(templates_dir)
     except PropertyError as exc:
-        print(f'[ERROR] templates/{SETTINGS_FILENAME}: {exc}', file=sys.stderr)
+        log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
 
     report = series_info_report(sd, series_data, articles, resolution, theme)
@@ -10015,7 +10098,7 @@ def cmd_resolve(series_dir, name, args):
         sys.exit(1)
 
     if name in _UNRESOLVABLE_NAMES:
-        print(f'[ERROR] {name}: {_UNRESOLVABLE_NAMES[name]}', file=sys.stderr)
+        log('error', f'{name}: {_UNRESOLVABLE_NAMES[name]}')
         sys.exit(1)
 
     kind = classify_resolve_name(name)
@@ -10038,10 +10121,10 @@ def cmd_resolve(series_dir, name, args):
     if only is not None and not any(e['page_source'] == only for e in articles):
         # The fix is a copy-paste, so the error hands over the strings
         # rather than pointing at the file they are in.
-        print(f'[ERROR] --article {only!r}: no such article in this series. '
-              f'The series carries:', file=sys.stderr)
+        log('error', f'--article {only!r}: no such article in this series. '
+              f'The series carries:')
         for entry in articles:
-            print(f'  {entry["page_source"]}', file=sys.stderr)
+            log('error', f'  {entry["page_source"]}')
         sys.exit(1)
 
     article_meta, unread = None, []
@@ -10089,11 +10172,11 @@ def cmd_resolve(series_dir, name, args):
             resolution = resolve_series_field(name, series_meta)
         elif name in _ARTICLE_LEVEL_NAMES:
             if only is None:
-                print(f'[ERROR] {name} is resolved per article, so `resolve` '
+                log('error', f'{name} is resolved per article, so `resolve` '
                       f'needs to know which one: pass --article. The series '
-                      f'carries:', file=sys.stderr)
+                      f'carries:')
                 for entry in articles:
-                    print(f'  {entry["page_source"]}', file=sys.stderr)
+                    log('error', f'  {entry["page_source"]}')
                 sys.exit(1)
             notes = resolve_article_fields(articles, articles_dir, series_meta)
             index = next(i for i, e in enumerate(articles)
@@ -10104,7 +10187,7 @@ def cmd_resolve(series_dir, name, args):
                   f'no article or series field has that name.', file=sys.stderr)
             sys.exit(1)
     except PropertyError as exc:
-        print(f'[ERROR] {exc}', file=sys.stderr)
+        log('error', f'{exc}')
         sys.exit(1)
 
     report = {
@@ -10223,14 +10306,54 @@ def build_theme_preview_document(theme_key, panel='card'):
     )
 
 
-def cmd_themes_gallery(output_path, args):
-    """themes-gallery command — generates a self-contained HTML page
-    documenting every THEMES entry (§9.5), built purely from that data so
-    it can never drift from what `install --theme` actually applies."""
+def cmd_themes_gallery(positional, args):
+    """theme gallery [<slug>… | --all] [--output path] — generates a
+    self-contained HTML page documenting built-in themes (§9.5), built
+    purely from that data so it can never drift from what `init --theme`
+    actually applies.
+
+    Without arguments: every theme. With one or more slugs: only those.
+    With --all: every theme (explicit). --output sets the file path
+    (default: themes-gallery.html). Slugs inconnus → erreur fatale.
+
+    Legacy compat: `themes-gallery [path]` (single positional that is not a
+    slug) is treated as the output path, so old scripts keep working."""
+    # Determine the output path first.
+    if args.get('--output'):
+        output_path = args['--output']
+    elif positional and positional[0] not in THEMES:
+        # Legacy form: a single positional that is not a slug → output path.
+        output_path = positional[0]
+        positional = positional[1:]
+    else:
+        output_path = 'themes-gallery.html'
+
+    # Validate any remaining positionals: they must all be slugs.
+    if positional:
+        unknown = [p for p in positional if p not in THEMES]
+        if unknown:
+            import textwrap
+            for s in unknown:
+                log('error', f'{s!r} is not a built-in theme.')
+            log('error', f'The {len(THEMES)} valid slugs are:')
+            for line in textwrap.wrap('  '.join(THEMES), width=70,
+                                      break_on_hyphens=False):
+                log('error', f'  {line}')
+            sys.exit(1)
+
+    # Select the themes to render.
+    if args.get('--all'):
+        selected = list(THEMES.keys())
+    elif positional:
+        selected = positional
+    else:
+        selected = list(THEMES.keys())
+
     out = Path(output_path).resolve()
 
     cards = []
-    for slug, theme in THEMES.items():
+    for slug in selected:
+        theme = THEMES[slug]
         facets = theme_facets(theme)
         # No variables are injected by hand: the composed sheet carries every
         # property into the preview document's own stylesheet, exactly as it
@@ -10290,7 +10413,7 @@ def cmd_demo(target_dir, args):
     # surface; nav.js keeps a pre-rewrite series recognized as installed.
     if not ((td / 'templates' / SETTINGS_FILENAME).exists()
             or (td / 'templates' / 'nav.js').exists()):
-        print(f'[ERROR] {td} has not been installed. Run first: lightwebpres init {td}', file=sys.stderr)
+        log('error', f'{td} has not been installed. Run first: lightwebpres init {td}')
         sys.exit(1)
 
     articles_dir = td / 'articles'
@@ -10885,14 +11008,15 @@ _COMMAND_OPTIONS = {
               '--build-stamp', '--build-stamp-minimal'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
               '--include-drafts'},
-    'audit': {'--lang'},
+    'audit': {'--lang', '--strict'},
     'refresh-templates': {'--scaffold'},
     'themes': {'--polarity', '--intensity', '--hue'},
-    'theme-info': {'--format'},
+    'theme-info': {'--format', '--all'},
     'series-info': {'--format'},
     'resolve': {'--format', '--article'},
     'set-theme': {'--theme'},
-    'themes-gallery': set(),
+    'series-theme': {'--format'},
+    'themes-gallery': {'--all', '--output'},
 }
 
 # --- Refonte CLI v0.23.0 (DECISION-CLI.md / PLAN-CLI.md) ---------------------
@@ -10966,7 +11090,7 @@ _SERIES_VERBS = {
     'init': 'install', 'demo': 'demo', 'build': 'build', 'verify': 'check',
     'audit': 'audit', 'status': 'series-info', 'clean': 'clean',
     'watch': 'watch', 'resolve': 'resolve',
-    'theme': 'theme-info', 'template': 'refresh-templates',
+    'theme': 'series-theme', 'template': 'refresh-templates',
 }
 _THEME_VERBS = {
     'list': 'themes', 'show': 'theme-info', 'gallery': 'themes-gallery',
@@ -11002,8 +11126,8 @@ def _resolve_command(args):
             return 'set-theme', args[3:], False
         if verb in _SERIES_VERBS:
             return _SERIES_VERBS[verb], args[2:], False
-        print(f"[ERROR] Unknown series verb: `series {verb}`. "
-              f"Run `lightwebpres --help` for the command list.", file=sys.stderr)
+        log('error', f"Unknown series verb: `series {verb}`. "
+              f"Run `lightwebpres --help` for the command list.")
         sys.exit(1)
 
     if head == 'theme' and len(args) >= 2:
@@ -11013,13 +11137,12 @@ def _resolve_command(args):
         # `theme set` is NOT a shortcut (DECISION §3): the `theme` node never
         # touches a series. Point at the canonical form.
         if verb == 'set':
-            print("[ERROR] `theme set` is not a root command: the `theme` "
+            log('error', "`theme set` is not a root command: the `theme` "
                   "node is the catalogue and never modifies a series. "
-                  "Use `lightwebpres series theme set [dir] --theme X`.",
-                  file=sys.stderr)
+                  "Use `lightwebpres series theme set [dir] --theme X`.")
             sys.exit(1)
-        print(f"[ERROR] Unknown theme verb: `theme {verb}`. "
-              f"Run `lightwebpres --help` for the command list.", file=sys.stderr)
+        log('error', f"Unknown theme verb: `theme {verb}`. "
+              f"Run `lightwebpres --help` for the command list.")
         sys.exit(1)
 
     # Two-word shortcut: `template update`.
@@ -11027,9 +11150,9 @@ def _resolve_command(args):
         return 'refresh-templates', args[2:], False
     # Lone `template` is NOT a shortcut (series template reading is abandoned).
     if head == 'template':
-        print("[ERROR] `template` alone is not a command. Use "
+        log('error', "`template` alone is not a command. Use "
               "`lightwebpres template update [dir]` (the reading command "
-              "was replaced by `audit --templates`).", file=sys.stderr)
+              "was replaced by `audit --templates`).")
         sys.exit(1)
 
     if head in _SHORTCUTS:
@@ -11080,7 +11203,7 @@ def parse_cli_options(command, rest, global_opts=None):
                     sys.exit(1)
             else:
                 if eq:
-                    print(f'[ERROR] Option {name} takes no value.', file=sys.stderr)
+                    log('error', f'Option {name} takes no value.')
                     sys.exit(1)
                 opts[name] = True
                 i += 1
@@ -11115,7 +11238,7 @@ def _parse_global_options(args):
             sys.exit(0)
         if name in _GLOBAL_FLAGS:
             if eq:
-                print(f'[ERROR] Option {name} takes no value.', file=sys.stderr)
+                log('error', f'Option {name} takes no value.')
                 sys.exit(1)
             global_opts[name] = True
             i += 1
@@ -11127,7 +11250,7 @@ def _parse_global_options(args):
                 global_opts[name] = args[i + 1]
                 i += 2
             else:
-                print(f'[ERROR] Option {name} requires a value.', file=sys.stderr)
+                log('error', f'Option {name} requires a value.')
                 sys.exit(1)
         else:
             break
@@ -11146,11 +11269,19 @@ def main():
 
     command, rest, is_legacy = _resolve_command(args)
     if command is None:
-        print(f'Unknown command: {args[0]}', file=sys.stderr)
+        log('error', f'Unknown command: {args[0]}')
         print_help()
         sys.exit(1)
 
     opts, positional = parse_cli_options(command, rest, global_opts)
+
+    # Wire the global verbosity flags into the logger (Phase 2).
+    configure_logging(
+        quiet=global_opts.get('--quiet', False),
+        verbose=global_opts.get('--verbose', False),
+        no_color=global_opts.get('--no-color', False),
+        timestamp=global_opts.get('--timestamp', False),
+    )
 
     target = positional[0] if positional else os.environ.get('LWP_SERIES_DIR', '.')
 
@@ -11171,11 +11302,18 @@ def main():
         # only, so a stray positional would mean nothing.
         cmd_themes(opts)
     elif command == 'theme-info':
-        # The one command whose positional is read two ways (§11.9.1): a
-        # built-in slug, or a series directory. The slug is tried first —
-        # it is the form that needs no series at all, and the one the
-        # "which theme do I want" question arrives in.
-        cmd_theme_info(target, opts)
+        # `theme show <slug> [<slug>…] [--all]` (DECISION §1 Phase 2): the
+        # slug-reading branch of the old theme-info, now accepting multiple
+        # slugs and --all. The directory branch is `series theme [dir]`.
+        # Legacy compat: the `theme-info` alias may still be called with a
+        # directory (the old form). If the first positional is not a slug
+        # but is a directory, redirect to the series-theme command so the
+        # alias keeps working until the next MAJOR.
+        if (positional and positional[0] not in THEMES
+                and Path(positional[0]).is_dir()):
+            cmd_series_theme(positional[0], opts)
+        else:
+            cmd_theme_info(positional, opts)
     elif command == 'series-info':
         cmd_series_info(target, opts)
     elif command == 'resolve':
@@ -11201,11 +11339,19 @@ def main():
                         positional[0], opts)
     elif command == 'set-theme':
         cmd_set_theme(target, opts)
+    elif command == 'series-theme':
+        # `series theme [dir]` — the effective theme of an installed series
+        # (DECISION §1 Phase 2). The directory branch of the old theme-info,
+        # split out so the slug reading (theme show) and the directory reading
+        # no longer share one ambiguous positional.
+        cmd_series_theme(target, opts)
     elif command == 'themes-gallery':
-        # Not a series-directory command: no LWP_SERIES_DIR fallback here,
-        # just an output file path defaulting to themes-gallery.html in cwd.
-        output_path = positional[0] if positional else 'themes-gallery.html'
-        cmd_themes_gallery(output_path, opts)
+        # `theme gallery [<slug>… | --all] [--output path]` (DECISION §1 P2).
+        # The output path is now --output (default: themes-gallery.html), and
+        # the positionals are slugs to restrict the gallery to. The legacy
+        # `themes-gallery [path]` form is kept via the alias: a single
+        # positional that is not a slug is treated as the output path.
+        cmd_themes_gallery(positional, opts)
 
 
 if __name__ == '__main__':

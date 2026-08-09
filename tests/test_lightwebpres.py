@@ -856,7 +856,7 @@ class Axis4CommandGaps(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'),
                          '--only', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('[INFO]', result.stdout)
+            self.assertIn('[INFO]', result.stderr)
 
     def test_gitlab_ci_content_pins_image_and_artifacts(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1448,6 +1448,154 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertIn('Lire l', html)
             # English would have said "Read" instead.
             self.assertNotIn('Read the article', html)
+
+    def test_quiet_suppresses_info_messages(self):
+        # --quiet suppresses [INFO] progress messages (DECISION §4).
+        # The --only fallback emits an [INFO] line; with --quiet it is gone.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            # Build once so the cache exists, then corrupt it to force the
+            # fallback path that emits the [INFO] message.
+            run('build', str(root), '--output', str(root / 'public'))
+            (root / '.lwp-cache' / 'nav.json').write_text('{garbage',
+                                                           encoding='utf-8')
+            loud = run('build', str(root), '--output', str(root / 'public'),
+                       '--only', 'a.html')
+            quiet = run('--quiet', 'build', str(root), '--output',
+                         str(root / 'public'), '--only', 'a.html')
+            self.assertEqual(loud.returncode, 0, loud.stderr)
+            self.assertEqual(quiet.returncode, 0, quiet.stderr)
+            self.assertIn('[INFO]', loud.stderr)
+            self.assertNotIn('[INFO]', quiet.stderr)
+
+    def test_timestamp_prefixes_log_lines(self):
+        # --timestamp prepends an RFC 3339 timestamp to each log line.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            (root / '.lwp-cache' / 'nav.json').write_text('{garbage',
+                                                           encoding='utf-8')
+            result = run('--timestamp', 'build', str(root), '--output',
+                         str(root / 'public'), '--only', 'a.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # The [INFO] line now starts with a timestamp like
+            # 2026-08-09T18:50:00+02:00 [INFO] ...
+            import re
+            self.assertRegex(result.stderr,
+                              r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} \[INFO\]')
+
+    def test_no_color_is_accepted(self):
+        # --no-color is a no-op for now (no ANSI codes in the codebase) but
+        # must be accepted without error (DECISION §2 global).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('--no-color', 'build', str(root),
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_verbose_is_accepted(self):
+        # --verbose is accepted globally (Phase 2 wires it; verbose messages
+        # are added as the codebase grows).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('--verbose', 'build', str(root),
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_strict_audit_fails_on_warnings(self):
+        # --strict makes audit exit 1 when warnings are emitted (DECISION §1
+        # Phase 2). A series with no cover slide triggers a warning.
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_source: a.md\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:standard -->\n# Title\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md, source_name='a.md', file_name='a.html')
+            no_strict = run('audit', str(root))
+            strict = run('audit', str(root), '--strict')
+            self.assertEqual(no_strict.returncode, 0, no_strict.stderr)
+            self.assertNotEqual(strict.returncode, 0)
+            self.assertIn('warning', strict.stdout.lower())
+
+    def test_strict_audit_passes_when_no_warnings(self):
+        # A clean series: --strict still exits 0 (no warnings).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            run('init', str(root))
+            # The demo series is clean by construction.
+            run('demo', str(root))
+            result = run('audit', str(root), '--strict')
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_series_theme_reads_effective_theme(self):
+        # `series theme [dir]` reads the effective theme of an installed
+        # series (DECISION §1 Phase 2, ex-theme-info [dir]).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            run('init', str(root), '--theme', 'nord')
+            scaffold(str(root), _MINIMAL_MD)
+            result = run('series', 'theme', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('nord', result.stdout)
+
+    def test_series_theme_json_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            run('init', str(root), '--theme', 'nord')
+            scaffold(str(root), _MINIMAL_MD)
+            result = run('series', 'theme', str(root), '--format', 'json')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(result.stdout)
+            self.assertEqual(report['target']['kind'], 'series')
+
+    def test_theme_show_all_describes_every_theme(self):
+        # `theme show --all` describes every built-in theme (DECISION §1 P2).
+        result = run('theme', 'show', '--all')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # The output mentions every theme slug.
+        for slug in ('nord', 'dracula', 'solarized'):
+            self.assertIn(slug, result.stdout)
+
+    def test_theme_show_multiple_slugs(self):
+        # `theme show <slug> [<slug>…]` compares several themes (DECISION §1).
+        result = run('theme', 'show', 'nord', 'dracula')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('nord', result.stdout)
+        self.assertIn('dracula', result.stdout)
+
+    def test_theme_show_unknown_slug_is_fatal(self):
+        result = run('theme', 'show', 'nonexistent')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('not a built-in theme', result.stderr)
+
+    def test_theme_show_no_args_without_all_is_error(self):
+        # `theme show` with no slug and no --all is an error (needs at least
+        # one slug or --all).
+        result = run('theme', 'show')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('slug', result.stderr.lower())
+
+    def test_theme_gallery_restricts_to_slugs(self):
+        # `theme gallery <slug>` generates a gallery with only that theme.
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'gallery.html'
+            result = run('theme', 'gallery', 'nord', '--output', str(out))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(out.exists())
+            html = out.read_text(encoding='utf-8')
+            # The gallery contains nord but not dracula.
+            self.assertIn('nord', html)
+            # Only one card row for a single-theme gallery.
+            self.assertEqual(html.count('class="theme-row"'), 1)
+
+    def test_theme_gallery_output_option(self):
+        # `--output` sets the gallery file path (DECISION §2).
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'custom.html'
+            result = run('theme', 'gallery', '--output', str(out))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(out.exists())
 
 
 class MissingReferencedFilesAreFatal(unittest.TestCase):
@@ -2317,7 +2465,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             root = self._build_series(tmp)
             result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('no usable cache found', result.stdout)
+            self.assertIn('no usable cache found', result.stderr)
             self.assertIn('Build complete:', result.stdout)
             self.assertTrue((root / 'public' / 'b.html').exists())
             self.assertTrue((root / '.lwp-cache' / 'nav.json').exists())
@@ -2371,7 +2519,7 @@ class IncrementalBuildOnly(unittest.TestCase):
 
             result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('nav/index-affecting metadata changed', result.stdout)
+            self.assertIn('nav/index-affecting metadata changed', result.stderr)
             self.assertIn('Build complete:', result.stdout)
             html_b = (root / 'public' / 'b.html').read_text(encoding='utf-8')
             self.assertIn('Article A Renamed', html_b)
@@ -2396,7 +2544,7 @@ class IncrementalBuildOnly(unittest.TestCase):
             # the fingerprint mismatch (new key) must still be caught.
             result = run('build', str(root), '--output', str(root / 'public'), '--only', 'b.html')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('nav/index-affecting metadata changed', result.stdout)
+            self.assertIn('nav/index-affecting metadata changed', result.stderr)
             self.assertTrue((root / 'public' / 'c.html').exists())
 
     def test_only_unknown_file_is_a_fatal_error(self):
@@ -5036,7 +5184,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     'relative_luminance'}
     CONTRAST_CALLERS = {'contrast_ratio', 'ground_colour', 'measure_contrast',
                         '_theme_info_facets', 'theme_info_report',
-                        'cmd_theme_info'}
+                        'cmd_theme_info', 'cmd_series_theme'}
 
     def test_the_contrast_engine_is_reachable_from_nothing_but_theme_info(self):
         import ast
