@@ -1597,6 +1597,103 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(out.exists())
 
+    def test_no_nav_leaves_empty_container(self):
+        # --no-nav (DECISION §4): the placeholder is replaced by an empty
+        # string, the container (<h2> + <div class="series-list">) stays.
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_source: a.md\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md, source_name='a.md', file_name='a.html')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--no-nav')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # The container stays (the <div class="series-list"> is in the
+            # HTML body, not just the CSS).
+            self.assertIn('class="series-list"', html)
+            # No actual nav links: <a class="series-link" ...> elements are
+            # gone (the CSS still mentions .series-link, but no <a> uses it).
+            self.assertNotIn('<a href', html.split('series-list', 1)[1].split('</div>', 1)[0]
+                             if 'series-list' in html else '')
+
+    def test_no_index_skips_index_html(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--no-index')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / 'public' / 'index.html').exists())
+            # The article page is still built.
+            self.assertTrue((root / 'public' / 'a.html').exists())
+
+    def test_no_readme_skips_readme(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            # Build once to create the README, then rebuild with --no-readme
+            # after deleting it, to prove the second build did not write it.
+            run('build', str(root), '--output', str(root / 'public'))
+            self.assertTrue((root / 'README.md').exists())
+            (root / 'README.md').unlink()
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--no-readme')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / 'README.md').exists())
+
+    def test_drafts_only_builds_only_drafts(self):
+        # --drafts-only (DECISION §4): only status: draft articles are built.
+        md_a = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_source: a.md\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title A\nsummary: S.\n'
+        )
+        md_b = (
+            '<!-- lwp:meta -->\npage_dest: b.html\npage_source: b.md\n'
+            'nav_title: B\nnav_desc: B\nstatus: draft\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title B\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
+            (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': 'A', 'nav_desc': 'A'},
+                {'page_dest': 'b.html', 'page_source': 'b.md',
+                 'nav_title': 'B', 'nav_desc': 'B', 'status': 'draft'},
+            ]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--drafts-only')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # b.html (draft) is built; a.html (published) is not.
+            self.assertTrue((root / 'public' / 'b.html').exists())
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+    def test_drafts_only_with_no_drafts_is_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--drafts-only')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('No draft', result.stderr)
+
+    def test_open_opens_browser_after_build(self):
+        # --open (DECISION §1 Phase 3): opens the browser on the result.
+        # We mock webbrowser.open via the LWP_BROWSER env var to avoid
+        # actually opening a window in CI.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            # Point webbrowser at a no-op by setting BROWSER to /bin/true
+            # (webbrowser.open falls back to the BROWSER env var on POSIX).
+            env = {'BROWSER': '/bin/true'}
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--open', env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
 
 class MissingReferencedFilesAreFatal(unittest.TestCase):
     """§20.3/§22.8: a series.json entry whose page_source doesn't exist,

@@ -7575,7 +7575,7 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None):
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -7631,7 +7631,13 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # Inject the series navigation — the build-wide typo_engine, not
     # article_typo_engine: this block's entries aren't "this article's
     # own page content" even when it's this article's own entry (§4.5).
-    series_nav_html = build_series_nav(current_file, series_data, strings, typo_engine)
+    # --no-nav (DECISION §4): the placeholder is replaced by an empty string,
+    # leaving the container (<h2> + <div class="series-list">) in the HTML,
+    # empty but not an error.
+    if include_nav:
+        series_nav_html = build_series_nav(current_file, series_data, strings, typo_engine)
+    else:
+        series_nav_html = ''
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
 
     # Inject the full article. A missing file is fatal (§22.8): the page
@@ -8402,7 +8408,7 @@ def load_build_context(series_dir, args):
     # is not an article of the series at all, so it does not count.
     claim_articles = list(articles)
 
-    if not args.get('--include-drafts'):
+    if not args.get('--include-drafts') and not args.get('--drafts-only'):
         skipped = [e['page_dest'] for e in articles if e['status'] == 'draft']
         articles[:] = [e for e in articles if e['status'] != 'draft']
         for f in skipped:
@@ -8432,7 +8438,7 @@ def load_build_context(series_dir, args):
         language_file=language_file, typo_engine=typo_engine,
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
         articles=articles, claim_articles=claim_articles,
-        style_context=style_context,
+        style_context=style_context, args=args,
     )
 
 
@@ -8527,7 +8533,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context)
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'))
     (ctx.output_dir / entry['page_dest']).write_text(html, encoding='utf-8')
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -8604,13 +8610,23 @@ def cmd_build(series_dir, args):
 
     # Build each article (every page_source was checked to exist by
     # load_build_context — fatal before any output is written)
-    for entry in ctx.articles:
+    include_nav = not args.get('--no-nav')
+    # --drafts-only (DECISION §4): build only status: draft articles. The
+    # index and nav still point to every article, so links may reach pages
+    # that were not built — accepted, it is a preview not a publication.
+    articles_to_build = ctx.articles
+    if args.get('--drafts-only'):
+        articles_to_build = [e for e in ctx.articles if e.get('status') == 'draft']
+        if not articles_to_build:
+            log('error', 'No draft articles found in this series.')
+            sys.exit(1)
+    for entry in articles_to_build:
         source_file = entry['page_source']
         output_file = entry['page_dest']
         source_path = ctx.articles_dir / source_file
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context)
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav)
 
         output_path = ctx.output_dir / output_file
         output_path.write_text(html, encoding='utf-8')
@@ -8618,24 +8634,31 @@ def cmd_build(series_dir, args):
     # Build the index — unless a lone article has claimed its name
     # (§11.3.3), in which case the page just written IS what lives there
     # and dropping an index on top of it would destroy it.
-    if claimant is None:
+    # --no-index (DECISION §4): skip index.html generation entirely.
+    if claimant is None and not args.get('--no-index'):
         print('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
         (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
-    else:
+    elif claimant is not None:
         print(_no_index_notice(claimant))
-
-    # Generate the README (spec §8.3)
-    readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
-    (ctx.sd / 'README.md').write_text(readme, encoding='utf-8')
+    # --no-readme (DECISION §4): skip README.md generation.
+    if not args.get('--no-readme'):
+        readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
+        (ctx.sd / 'README.md').write_text(readme, encoding='utf-8')
 
     # Copy the images
     copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
 
-    tail = ' + index' if claimant is None else ''
-    print(f'Build complete: {len(ctx.articles)} articles{tail} -> {ctx.output_dir}')
+    tail = ' + index' if claimant is None and not args.get('--no-index') else ''
+    print(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
+
+    # --open (DECISION §1 Phase 3): open the result in the browser.
+    if args.get('--open'):
+        import webbrowser
+        index_url = (ctx.output_dir / 'index.html').resolve().as_uri()
+        webbrowser.open(index_url)
 
 
 def cmd_check(series_dir, args):
@@ -11005,7 +11028,9 @@ _COMMAND_OPTIONS = {
     'demo': {'--lang', '--output'},
     'build': {'--lang', '--output', '--language-file', '--no-typography',
               '--include-drafts', '--only', '--nav-cache',
-              '--build-stamp', '--build-stamp-minimal'},
+              '--build-stamp', '--build-stamp-minimal',
+              '--no-nav', '--no-index', '--no-readme', '--drafts-only',
+              '--open'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
               '--include-drafts'},
     'audit': {'--lang', '--strict'},
