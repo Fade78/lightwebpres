@@ -1694,6 +1694,34 @@ class CliVersionAndShortcuts(unittest.TestCase):
                          '--open', env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_dry_run_writes_nothing(self):
+        # --dry-run (DECISION §4): journal the writes without touching disk.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('--dry-run', 'build', str(root),
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # Nothing was written: public/ does not exist.
+            self.assertFalse((root / 'public').exists())
+            # The journal mentions the would-be writes on stderr.
+            self.assertIn('would write', result.stderr)
+
+    def test_dry_run_init_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = str(Path(tmp) / 's')
+            result = run('--dry-run', 'init', target)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(Path(target).exists())
+            self.assertIn('would mkdir', result.stderr)
+
+    def test_dry_run_theme_gallery_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'gallery.html'
+            result = run('--dry-run', 'theme', 'gallery', '--output', str(out))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(out.exists())
+            self.assertIn('would write', result.stderr)
+
 
 class MissingReferencedFilesAreFatal(unittest.TestCase):
     """§20.3/§22.8: a series.json entry whose page_source doesn't exist,

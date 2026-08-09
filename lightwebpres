@@ -80,16 +80,17 @@ VERSION = "0.23.0"
 # the themes listing) stays on stdout via plain print(), so --quiet can
 # silence the chatter without silencing the answer (DECISION §4).
 _LOG_STATE = {'quiet': False, 'verbose': False, 'no_color': False,
-              'timestamp': False}
+              'timestamp': False, 'dry_run': False}
 
 
 def configure_logging(quiet=False, verbose=False, no_color=False,
-                      timestamp=False):
+                      timestamp=False, dry_run=False):
     """Sets the global log level. Called once from main() after parsing."""
     _LOG_STATE['quiet'] = quiet
     _LOG_STATE['verbose'] = verbose
     _LOG_STATE['no_color'] = no_color
     _LOG_STATE['timestamp'] = timestamp
+    _LOG_STATE['dry_run'] = dry_run
 
 
 def log(level, msg):
@@ -117,6 +118,43 @@ def log(level, msg):
         ts = datetime.now().astimezone().isoformat(timespec='seconds')
         prefix = f'{ts} {prefix}'
     print(prefix + msg, file=sys.stderr)
+
+
+# --- Write helpers (Phase 3, DECISION-CLI.md §4) --------------------------
+# Every filesystem write goes through _write_file / _mkdir / _copy so
+# --dry-run can journal the action without touching the disk. A test guards
+# that no bare open(…, 'w') / write_text / mkdir / shutil.copy exists outside
+# these helpers.
+def _write_file(path, content, encoding='utf-8'):
+    """Writes content to path, unless --dry-run is active (then logs only)."""
+    if _LOG_STATE['dry_run']:
+        log('info', f'would write {len(content)} bytes to {path}')
+        return
+    Path(path).write_text(content, encoding=encoding)
+
+
+def _mkdir(path, parents=False, exist_ok=False):
+    """Creates a directory, unless --dry-run is active (then logs only)."""
+    if _LOG_STATE['dry_run']:
+        log('info', f'would mkdir {path}')
+        return
+    Path(path).mkdir(parents=parents, exist_ok=exist_ok)
+
+
+def _copy(src, dst):
+    """Copies a file, unless --dry-run is active (then logs only)."""
+    if _LOG_STATE['dry_run']:
+        log('info', f'would copy {src} -> {dst}')
+        return
+    shutil.copy(str(src), str(dst))
+
+
+def _copytree(src, dst):
+    """Copies a tree, unless --dry-run is active (then logs only)."""
+    if _LOG_STATE['dry_run']:
+        log('info', f'would copytree {src} -> {dst}')
+        return
+    shutil.copytree(str(src), str(dst))
 
 # Where this tool comes from. A constant because two places have to say
 # it and neither did: `--help` ended on "Full reference:
@@ -8257,8 +8295,8 @@ def load_nav_cache(path):
 
 def save_nav_cache(path, fingerprint):
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(fingerprint, indent=2, sort_keys=True), encoding='utf-8')
+    _mkdir(path.parent, parents=True, exist_ok=True)
+    _write_file(path, json.dumps(fingerprint, indent=2, sort_keys=True))
 
 
 def resolve_paths(series_dir, args):
@@ -8530,11 +8568,11 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         sys.exit(1)
 
     print(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
-    ctx.output_dir.mkdir(parents=True, exist_ok=True)
+    _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
     html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'))
-    (ctx.output_dir / entry['page_dest']).write_text(html, encoding='utf-8')
+    _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
     # index too, so leaving it out here would drop the index straight
@@ -8545,12 +8583,12 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         print('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
-        (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+        _write_file(ctx.output_dir / 'index.html', index_html)
     else:
         print(_no_index_notice(claimant))
 
     readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
-    (ctx.sd / 'README.md').write_text(readme, encoding='utf-8')
+    _write_file(ctx.sd / 'README.md', readme)
 
     copy_images(ctx.articles_dir, ctx.output_dir)
 
@@ -8605,8 +8643,7 @@ def cmd_build(series_dir, args):
     index_extra_file = ctx.templates_dir / 'index_extra.html'
     index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
 
-    # Create the output directory
-    ctx.output_dir.mkdir(parents=True, exist_ok=True)
+    _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     # Build each article (every page_source was checked to exist by
     # load_build_context — fatal before any output is written)
@@ -8628,8 +8665,7 @@ def cmd_build(series_dir, args):
         print(f'  {output_file} ← {source_file}')
         html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav)
 
-        output_path = ctx.output_dir / output_file
-        output_path.write_text(html, encoding='utf-8')
+        _write_file(ctx.output_dir / output_file, html)
 
     # Build the index — unless a lone article has claimed its name
     # (§11.3.3), in which case the page just written IS what lives there
@@ -8638,13 +8674,13 @@ def cmd_build(series_dir, args):
     if claimant is None and not args.get('--no-index'):
         print('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
-        (ctx.output_dir / 'index.html').write_text(index_html, encoding='utf-8')
+        _write_file(ctx.output_dir / 'index.html', index_html)
     elif claimant is not None:
         print(_no_index_notice(claimant))
     # --no-readme (DECISION §4): skip README.md generation.
     if not args.get('--no-readme'):
         readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
-        (ctx.sd / 'README.md').write_text(readme, encoding='utf-8')
+        _write_file(ctx.sd / 'README.md', readme)
 
     # Copy the images
     copy_images(ctx.articles_dir, ctx.output_dir)
@@ -9047,10 +9083,10 @@ def cmd_install(target_dir, args):
         sys.exit(1)
 
     # Create the directories
-    (td / 'articles').mkdir(parents=True, exist_ok=True)
-    (td / 'templates').mkdir(exist_ok=True)
-    (td / 'language').mkdir(exist_ok=True)
-    (td / 'public').mkdir(exist_ok=True)
+    _mkdir(td / 'articles', parents=True, exist_ok=True)
+    _mkdir(td / 'templates', exist_ok=True)
+    _mkdir(td / 'language', exist_ok=True)
+    _mkdir(td / 'public', exist_ok=True)
 
     # The author's surface (§9 rewrite): settings.conf, every property
     # commented at its value under the chosen theme, and an empty
@@ -9059,15 +9095,14 @@ def cmd_install(target_dir, args):
     # stays extracted and overridable as before; an optional
     # templates/index_extra.html is inserted as-is into the index page if
     # the author creates one (no default content, nothing to extract).
-    (td / 'templates' / SETTINGS_FILENAME).write_text(
-        build_settings_scaffold(theme_key), encoding='utf-8')
-    (td / 'templates' / CUSTOM_CSS_FILENAME).write_text(
-        CUSTOM_CSS_STUB, encoding='utf-8')
-    (td / 'templates' / 'nav.js').write_text(TEMPLATE_NAV_JS, encoding='utf-8')
+    _write_file(td / 'templates' / SETTINGS_FILENAME,
+                build_settings_scaffold(theme_key))
+    _write_file(td / 'templates' / CUSTOM_CSS_FILENAME, CUSTOM_CSS_STUB)
+    _write_file(td / 'templates' / 'nav.js', TEMPLATE_NAV_JS)
 
     # Extract the language packs
-    (td / 'language' / 'fr.json').write_text(LANG_FR, encoding='utf-8')
-    (td / 'language' / 'en.json').write_text(LANG_EN, encoding='utf-8')
+    _write_file(td / 'language' / 'fr.json', LANG_FR)
+    _write_file(td / 'language' / 'en.json', LANG_EN)
 
     # Empty series.json
     series_json = {
@@ -9081,7 +9116,8 @@ def cmd_install(target_dir, args):
         },
         "articles": []
     }
-    (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')
+    _write_file(td / 'series.json',
+                json.dumps(series_json, ensure_ascii=False, indent=2))
 
     # .gitlab-ci.yml — opt-in only (--gitlab-ci): install never assumes a
     # GitLab deployment, so a project doesn't end up depending on GitLab
@@ -9091,15 +9127,14 @@ def cmd_install(target_dir, args):
     # otherwise defaults to fr (both packs are always installed, language
     # is a per-build choice — §7.1).
     if gitlab_ci:
-        (td / '.gitlab-ci.yml').write_text(
-            TEMPLATE_GITLAB_CI.format(lang=lang), encoding='utf-8')
+        _write_file(td / '.gitlab-ci.yml', TEMPLATE_GITLAB_CI.format(lang=lang))
 
     # Copy the executable itself into the directory, for standalone use
     # (the series directory shouldn't have to depend on lightwebpres being
     # installed system-wide or found elsewhere on PATH).
     exe_src = Path(__file__).resolve()
     exe_dst = td / 'lightwebpres'
-    if exe_src.is_file() and exe_src != exe_dst:
+    if exe_src.is_file() and exe_src != exe_dst and not _LOG_STATE['dry_run']:
         shutil.copy2(exe_src, exe_dst)
         exe_dst.chmod(exe_dst.stat().st_mode | 0o111)
 
@@ -9111,8 +9146,8 @@ def cmd_install(target_dir, args):
         # for a file they did not ask to receive. Written only alongside the
         # executable, never on their own: without the program there is
         # nothing here for them to convey.
-        (td / 'COPYING').write_text(LICENSE_GPL_TEXT, encoding='utf-8')
-        (td / 'COPYING.EXCEPTION').write_text(LICENSE_EXCEPTION_TEXT, encoding='utf-8')
+        _write_file(td / 'COPYING', LICENSE_GPL_TEXT)
+        _write_file(td / 'COPYING.EXCEPTION', LICENSE_EXCEPTION_TEXT)
 
     print(f'Installed: {td}')
     if theme_key:
@@ -9177,7 +9212,7 @@ def cmd_refresh_templates(target_dir, args):
             print(f'templates/{SETTINGS_FILENAME} is already current. '
                   f'Nothing written.')
             return
-        settings_path.write_text(new, encoding='utf-8')
+        _write_file(settings_path, new)
         kept = len(pins)
         unknown = [k for k in pins if k not in PROPERTY_REGISTRY]
         print(f'Regenerated templates/{SETTINGS_FILENAME} for theme '
@@ -9206,12 +9241,11 @@ def cmd_refresh_templates(target_dir, args):
         # A series scaffolded before the rewrite: give it the new surface,
         # default theme — writing a file that does not exist breaks no
         # ownership promise.
-        settings_path.write_text(build_settings_scaffold(None),
-                                 encoding='utf-8')
+        _write_file(settings_path, build_settings_scaffold(None))
         refreshed.append(f'templates/{SETTINGS_FILENAME} (new, default theme)')
     custom_path = templates_dir / CUSTOM_CSS_FILENAME
     if not custom_path.exists():
-        custom_path.write_text(CUSTOM_CSS_STUB, encoding='utf-8')
+        _write_file(custom_path, CUSTOM_CSS_STUB)
         refreshed.append(f'templates/{CUSTOM_CSS_FILENAME} (new, empty)')
 
     nav_path = templates_dir / 'nav.js'
@@ -9221,8 +9255,8 @@ def cmd_refresh_templates(target_dir, args):
             up_to_date.append('templates/nav.js')
         else:
             backup_path = templates_dir / 'nav.js.bak'
-            backup_path.write_text(old_nav, encoding='utf-8')
-            nav_path.write_text(TEMPLATE_NAV_JS, encoding='utf-8')
+            _write_file(backup_path, old_nav)
+            _write_file(nav_path, TEMPLATE_NAV_JS)
             refreshed.append('templates/nav.js (previous version saved as templates/nav.js.bak)')
 
     if refreshed:
@@ -9596,8 +9630,7 @@ def cmd_set_theme(target_dir, args):
     if not settings_path.exists():
         # Installed before the rewrite: nothing to preserve, write a fresh
         # scaffold for the chosen theme.
-        settings_path.write_text(build_settings_scaffold(new_slug),
-                                 encoding='utf-8')
+        _write_file(settings_path, build_settings_scaffold(new_slug))
         print(f'Theme set: {new_slug} (fresh {SETTINGS_FILENAME} written)')
         print('Run build again to apply the new theme.')
         return
@@ -9617,7 +9650,7 @@ def cmd_set_theme(target_dir, args):
                       count=1, flags=re.MULTILINE)
     else:
         text = f'theme: {new_slug}\n' + text
-    settings_path.write_text(text, encoding='utf-8')
+    _write_file(settings_path, text)
 
     print(f'Theme changed: {current or "default"} -> {new_slug}')
     print(f'  {settings_path}')
@@ -10419,7 +10452,7 @@ def cmd_themes_gallery(positional, args):
         ))
 
     html = TEMPLATE_THEMES_GALLERY_HEAD + ''.join(cards) + TEMPLATE_THEMES_GALLERY_FOOT
-    out.write_text(html, encoding='utf-8')
+    _write_file(out, html)
     print(f'Generated: {out}')
 
 
@@ -10643,14 +10676,14 @@ This is the full article for the third demo article [^1].
 '''
 
     # Write the files
-    (articles_dir / 'first.md').write_text(demo1, encoding='utf-8')
+    _write_file(articles_dir / 'first.md', demo1)
     (articles_dir / 'img').mkdir(exist_ok=True)
-    (articles_dir / 'img' / 'demo-figure.svg').write_text(demo_figure_svg, encoding='utf-8')
-    (articles_dir / 'first_article.md').write_text(demo1_article, encoding='utf-8')
-    (articles_dir / 'middle.md').write_text(demo2, encoding='utf-8')
-    (articles_dir / 'middle_article.md').write_text(demo2_article, encoding='utf-8')
-    (articles_dir / 'last.md').write_text(demo3, encoding='utf-8')
-    (articles_dir / 'last_article.md').write_text(demo3_article, encoding='utf-8')
+    _write_file(articles_dir / 'img' / 'demo-figure.svg', demo_figure_svg)
+    _write_file(articles_dir / 'first_article.md', demo1_article)
+    _write_file(articles_dir / 'middle.md', demo2)
+    _write_file(articles_dir / 'middle_article.md', demo2_article)
+    _write_file(articles_dir / 'last.md', demo3)
+    _write_file(articles_dir / 'last_article.md', demo3_article)
 
     # Update series.json — series_meta carries author/license so the demo
     # exercises the series-wide editorial defaults and their footers.
@@ -10669,7 +10702,7 @@ This is the full article for the third demo article [^1].
             {"page_source": "last.md"}
         ]
     }
-    (td / 'series.json').write_text(json.dumps(series_json, ensure_ascii=False, indent=2), encoding='utf-8')
+    _write_file(td / 'series.json', json.dumps(series_json, ensure_ascii=False, indent=2))
 
     print(f'Demo created: {td}')
     print('  3 articles (first, middle, last) with full articles')
@@ -11049,9 +11082,9 @@ _COMMAND_OPTIONS = {
 # no-op until Phase 2 wires them to log()/behaviours; --version and --help act
 # immediately. The option nearest the command wins (DECISION §2: precedence).
 _GLOBAL_OPTIONS = frozenset({'--lang', '--quiet', '--verbose', '--no-color',
-                             '--timestamp', '--version', '--help'})
+                             '--timestamp', '--dry-run', '--version', '--help'})
 _GLOBAL_FLAGS = frozenset({'--quiet', '--verbose', '--no-color', '--timestamp',
-                           '--version', '--help'})
+                           '--dry-run', '--version', '--help'})
 _GLOBAL_VALUES = frozenset({'--lang'})
 
 # Canonical commands are the source of truth (PROPOSITION §4.2). Shortcuts are
@@ -11306,6 +11339,7 @@ def main():
         verbose=global_opts.get('--verbose', False),
         no_color=global_opts.get('--no-color', False),
         timestamp=global_opts.get('--timestamp', False),
+        dry_run=global_opts.get('--dry-run', False),
     )
 
     target = positional[0] if positional else os.environ.get('LWP_SERIES_DIR', '.')
