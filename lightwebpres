@@ -8597,6 +8597,163 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     print(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
 
 
+_MANIFEST_NAME = '.lwp-manifest.json'
+
+
+def _write_manifest(output_dir, articles_built, include_index=True):
+    """Writes .lwp-manifest.json in public/ listing every file the build
+    produced, so `clean` can purge orphans without guessing (DECISION §3)."""
+    files = [e['page_dest'] for e in articles_built]
+    if include_index:
+        files.append('index.html')
+    # Images are copied wholesale; list the img/ directory if it exists.
+    img_dir = output_dir / 'img'
+    if img_dir.is_dir():
+        for p in sorted(img_dir.rglob('*')):
+            if p.is_file():
+                files.append(str(p.relative_to(output_dir)))
+    manifest = {'schema': 'lightwebpres.manifest/1', 'files': files}
+    _write_file(output_dir / _MANIFEST_NAME,
+                json.dumps(manifest, indent=2, ensure_ascii=False))
+
+
+def cmd_clean(series_dir, args):
+    """clean command (DECISION §1 Phase 3, §3) — purges public/ of files
+    that are no longer produced by the build, using the manifest written by
+    the last build. Dry-run by default: --force deletes for real."""
+    sd = Path(series_dir).resolve() if series_dir else Path(
+        os.environ.get('LWP_SERIES_DIR', '.')).resolve()
+    output_dir = Path(args.get('--output') or os.environ.get(
+        'LWP_OUTPUT_DIR', str(sd / 'public'))).resolve()
+    manifest_path = output_dir / _MANIFEST_NAME
+    if not manifest_path.exists():
+        log('error', f'No manifest found at {manifest_path}. '
+              f'Run `lightwebpres build` first: clean only removes what a '
+              f'build has declared, and a manifest is how it declares it.')
+        sys.exit(1)
+    manifest = json.loads(read_text_file(manifest_path))
+    declared = set(manifest.get('files', []))
+    declared.add(_MANIFEST_NAME)
+
+    # Find orphans: files in output_dir that are not in the manifest.
+    orphans = []
+    for p in sorted(output_dir.rglob('*')):
+        if p.is_file():
+            rel = str(p.relative_to(output_dir))
+            if rel not in declared:
+                orphans.append(rel)
+
+    if not orphans:
+        print('No orphan files to clean.')
+        return
+
+    force = args.get('--force')
+    if force:
+        for rel in orphans:
+            p = output_dir / rel
+            p.unlink()
+            print(f'  removed {rel}')
+        print(f'Cleaned {len(orphans)} orphan file(s) from {output_dir}.')
+    else:
+        # Dry-run by default (DECISION §3): list what would be removed.
+        print(f'{len(orphans)} orphan file(s) would be removed from '
+              f'{output_dir}:')
+        for rel in orphans:
+            print(f'  {rel}')
+        print('Run with --force to remove them.')
+
+
+def _cmd_watch_poll(sources, interval=0.5):
+    """Yields when any of `sources` (file paths) changed mtime since the
+    last call. A simple stdlib polling loop (DECISION §3: no watchdog)."""
+    import time
+    mtimes = {}
+    while True:
+        changed = []
+        for path in sources:
+            try:
+                m = path.stat().st_mtime
+            except OSError:
+                m = 0
+            if path not in mtimes:
+                mtimes[path] = m
+            elif m != mtimes[path]:
+                mtimes[path] = m
+                changed.append(path)
+        if changed:
+            yield changed
+        time.sleep(interval)
+
+
+def cmd_watch(series_dir, args):
+    """watch command (DECISION §1 Phase 3, §3) — polls the sources and
+    rebuilds on every change. --serve (opt-in) starts a local HTTP server
+    on 127.0.0.1:--port. --open opens the browser. Ctrl-C exits 0."""
+    import http.server
+    import webbrowser
+    import threading
+
+    sd = Path(series_dir).resolve() if series_dir else Path(
+        os.environ.get('LWP_SERIES_DIR', '.')).resolve()
+    output_dir = Path(args.get('--output') or os.environ.get(
+        'LWP_OUTPUT_DIR', str(sd / 'public'))).resolve()
+    port = int(args.get('--port', '8000'))
+
+    # Build once first, so the output exists before serving.
+    build_args = dict(args)
+    build_args.pop('--serve', None)
+    build_args.pop('--port', None)
+    build_args.pop('--open', None)
+    print(f'[watch] initial build of {sd}')
+    cmd_build(str(sd), build_args)
+
+    # Start the HTTP server if --serve.
+    if args.get('--serve'):
+        import functools
+        handler = functools.partial(http.server.SimpleHTTPRequestHandler,
+                                    directory=str(output_dir))
+        httpd = http.server.HTTPServer(('127.0.0.1', port), handler)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        url = f'http://127.0.0.1:{port}/'
+        print(f'[watch] serving {output_dir} at {url}')
+        if args.get('--open'):
+            webbrowser.open(url)
+    elif args.get('--open'):
+        # No serve, but --open: open the file directly.
+        index = output_dir.resolve() / 'index.html'
+        if index.exists():
+            webbrowser.open(index.resolve().as_uri())
+
+    # Gather the sources to poll.
+    sources = []
+    articles_dir = sd / 'articles'
+    if articles_dir.is_dir():
+        sources.extend(p for p in articles_dir.rglob('*.md') if p.is_file())
+    series_json = sd / 'series.json'
+    if series_json.exists():
+        sources.append(series_json)
+    settings = sd / 'templates' / SETTINGS_FILENAME
+    if settings.exists():
+        sources.append(settings)
+    custom = sd / 'templates' / CUSTOM_CSS_FILENAME
+    if custom.exists():
+        sources.append(custom)
+
+    print(f'[watch] polling {len(sources)} source file(s). Ctrl-C to stop.')
+    try:
+        for changed in _cmd_watch_poll(sources):
+            names = ', '.join(p.name for p in changed)
+            print(f'[watch] {names} changed — rebuilding...')
+            try:
+                cmd_build(str(sd), build_args)
+                print('[watch] rebuilt.')
+            except Exception as exc:
+                log('error', f'build failed: {exc}')
+    except KeyboardInterrupt:
+        print('\n[watch] stopped.')
+        return 0
+
+
 def cmd_build(series_dir, args):
     """build command."""
     ctx = load_build_context(series_dir, args)
@@ -8686,6 +8843,11 @@ def cmd_build(series_dir, args):
     copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
+
+    # Manifest for `clean` (DECISION §3): lists every file this build
+    # produced in public/, so clean can purge orphans without guessing.
+    _write_manifest(ctx.output_dir, articles_to_build,
+                    include_index=claimant is None and not args.get('--no-index'))
 
     tail = ' + index' if claimant is None and not args.get('--no-index') else ''
     print(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
@@ -11055,7 +11217,7 @@ where this tool is published and can be downloaded.''')
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                             '--theme', '--only', '--nav-cache',
                             '--polarity', '--intensity', '--hue', '--format',
-                            '--article'})
+                            '--article', '--port'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
@@ -11075,6 +11237,9 @@ _COMMAND_OPTIONS = {
     'set-theme': {'--theme'},
     'series-theme': {'--format'},
     'themes-gallery': {'--all', '--output'},
+    'clean': {'--force', '--dry-run'},
+    'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
+              '--open'},
 }
 
 # --- Refonte CLI v0.23.0 (DECISION-CLI.md / PLAN-CLI.md) ---------------------
@@ -11411,6 +11576,15 @@ def main():
         # `themes-gallery [path]` form is kept via the alias: a single
         # positional that is not a slug is treated as the output path.
         cmd_themes_gallery(positional, opts)
+    elif command == 'clean':
+        # `clean [dir] [--force]` (DECISION §1 Phase 3, §3): purges public/
+        # of orphan files using the manifest written by build. Dry-run by
+        # default, --force to remove.
+        cmd_clean(target, opts)
+    elif command == 'watch':
+        # `watch [dir] [--serve] [--port N] [--open]` (DECISION §1 Phase 3,
+        # §3): polls sources, rebuilds on change, optionally serves.
+        cmd_watch(target, opts)
 
 
 if __name__ == '__main__':

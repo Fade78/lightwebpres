@@ -1722,6 +1722,66 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertFalse(out.exists())
             self.assertIn('would write', result.stderr)
 
+    def test_clean_dry_run_lists_orphans(self):
+        # `clean` (DECISION §3): dry-run by default, lists orphans.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            # Drop an orphan file into public/.
+            (root / 'public' / 'orphan.html').write_text('stale', encoding='utf-8')
+            result = run('clean', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('orphan.html', result.stdout)
+            self.assertIn('would be removed', result.stdout)
+            # Dry-run: the orphan is still there.
+            self.assertTrue((root / 'public' / 'orphan.html').exists())
+
+    def test_clean_force_removes_orphans(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            (root / 'public' / 'orphan.html').write_text('stale', encoding='utf-8')
+            result = run('clean', str(root), '--force')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / 'public' / 'orphan.html').exists())
+
+    def test_clean_without_manifest_is_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            # No build yet → no manifest.
+            result = run('clean', str(root))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('manifest', result.stderr.lower())
+
+    def test_clean_with_no_orphans_says_so(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root / 'public'))
+            result = run('clean', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('No orphan', result.stdout)
+
+    def test_watch_is_a_known_command(self):
+        # `watch` is recognized and builds once before polling. We can't
+        # test the infinite loop in CI, but we can check the initial build
+        # runs by sending SIGINT immediately after.
+        import signal
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            import subprocess as sp
+            proc = sp.Popen([sys.executable, str(EXECUTABLE), 'watch',
+                             str(root), '--output', str(root / 'public')],
+                            stdout=sp.PIPE, stderr=sp.PIPE, text=True)
+            # Give it time to build once.
+            import time as _time
+            _time.sleep(1.5)
+            proc.send_signal(signal.SIGINT)
+            out, err = proc.communicate(timeout=10)
+            self.assertEqual(proc.returncode, 0, err)
+            self.assertIn('[watch]', out)
+            # The initial build wrote the page.
+            self.assertTrue((root / 'public' / 'a.html').exists())
+
 
 class MissingReferencedFilesAreFatal(unittest.TestCase):
     """§20.3/§22.8: a series.json entry whose page_source doesn't exist,
@@ -2390,7 +2450,8 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
             # own cover text is there, and the series index's header is not.
             self.assertIn('Summary of A.', written)
             self.assertNotIn('The series title', written)
-            self.assertEqual(sorted(p.name for p in (root / 'public').iterdir()),
+            self.assertEqual(sorted(p.name for p in (root / 'public').iterdir()
+                                    if not p.name.startswith('.lwp-')),
                              ['index.html'])
 
     def test_the_build_says_it_did_not_generate_an_index(self):
@@ -5352,7 +5413,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     self.assertEqual(done.returncode, 0, done.stderr)
                 pages = {}
                 for path in sorted((root / 'public').rglob('*')):
-                    if path.is_file():
+                    if path.is_file() and not path.name.startswith('.lwp-'):
                         pages[path.name] = path.read_bytes()
                 outputs.append(pages)
             self.assertTrue(outputs[0], 'the previous version built nothing')
