@@ -42,7 +42,7 @@ def build_from_zip_bytes(data, lang='fr'):
     Returns (result_zip_bytes_or_None, log_text, error_text_or_None).
     On success, error_text is None and result_zip_bytes holds the zipped
     public/ output. On failure, result_zip_bytes is None and error_text
-    describes what went wrong; log_text always holds whatever build/check
+    describes what went wrong; log_text always holds whatever build/verify
     printed, for troubleshooting either way.
     """
     log = io.StringIO()

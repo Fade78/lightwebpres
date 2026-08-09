@@ -10,7 +10,7 @@ series navigation, an index page, and a generated README — deployable to
 any static host.
 
 ```bash
-./lightwebpres install my-series
+./lightwebpres init my-series
 ./lightwebpres demo my-series
 ./lightwebpres build my-series
 # -> my-series/public/index.html
@@ -59,7 +59,7 @@ one `.html` file, opens straight from disk or any static host.
   well; it is offered, not required — the format takes whatever you put
   in it.
 - **Made to sit in a content pipeline.** Every command runs unattended
-  and returns a meaningful exit code — `check` fails on drift and is a
+  and returns a meaningful exit code — `verify` fails on drift and is a
   real CI gate, `audit` never fails because it is advice. Nothing to
   install: one file, eleven standard-library modules, no wheel, no
   lockfile, no network at build time, so any image with `python3` runs
@@ -72,7 +72,7 @@ one `.html` file, opens straight from disk or any static host.
 ## Quickstart
 
 ```bash
-./lightwebpres install my-series             # scaffold a series directory
+./lightwebpres init my-series             # scaffold a series directory
 ./lightwebpres demo my-series --lang en      # generate + build 3 example articles (English UI)
 open my-series/public/index.html
 ```
@@ -137,8 +137,8 @@ Since so much of that is derived rather than written, there is a way to
 ask what a series actually resolves to, without building it:
 
 ```bash
-./lightwebpres series-info my-series
-./lightwebpres series-info my-series --format json
+./lightwebpres status my-series
+./lightwebpres status my-series --format json
 ```
 
 It lists the articles in `series.json` order — the order that fixes the
@@ -195,13 +195,13 @@ the series or within one article.
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1) |
 | `check [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide") and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build |
-| `refresh-templates [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
-| `themes` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
-| `theme-info <slug>` or `theme-info [dir]` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. A slug describes the theme as shipped (no series needed); a directory describes the *effective* theme, after the values that series pins. `--format json` for machines |
-| `series-info [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
+| `template update [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
+| `theme list` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
+| `theme show <slug>` or `theme show [dir]` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. A slug describes the theme as shipped (no series needed); a directory describes the *effective* theme, after the values that series pins. `--format json` for machines |
+| `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
-| `set-theme [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
-| `themes-gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
+| `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
+| `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `theme gallery.html`) |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
 ## Slide types
@@ -285,7 +285,7 @@ your source always passes through unchanged. This alters generated
 content, so it's controllable at three levels: per-article meta fields
 `typo_units: off` / `typo_thousands: off` (just those rules) or `typo:
 off` (every rule, that article's page only), and the CLI flag
-`--no-typography` on `build`/`check` (every rule, the whole run). See
+`--no-typography` on `build`/`verify` (every rule, the whole run). See
 `--help` or specifications.md §4.5/§7.5/§19.6 for the full list.
 
 ## Theming & customization
@@ -341,24 +341,24 @@ vivid, mono), and **hue**, computed from the background in CIELAB rather
 than declared, so it can't drift when a color is tweaked:
 
 ```bash
-./lightwebpres themes                              # all 33, with their facets
-./lightwebpres themes --polarity dark --intensity sober  # just the ones you mean
+./lightwebpres theme list                              # all 33, with their facets
+./lightwebpres theme list --polarity dark --intensity sober  # just the ones you mean
 ```
 
 Apply one when scaffolding, or change your mind later:
 
 ```bash
-./lightwebpres install my-series --theme evergreen
-./lightwebpres set-theme my-series --theme crimson
+./lightwebpres init my-series --theme evergreen
+./lightwebpres series theme set my-series --theme crimson
 ```
 
 To read one out before committing to it — its palette, its fonts, its
 facets, and the contrast level it actually reaches:
 
 ```bash
-./lightwebpres theme-info evergreen        # the theme as shipped
-./lightwebpres theme-info my-series        # the effective theme of a series
-./lightwebpres theme-info evergreen --format json
+./lightwebpres theme show evergreen        # the theme as shipped
+./lightwebpres theme show my-series        # the effective theme of a series
+./lightwebpres theme show evergreen --format json
 ```
 
 The level is **measured**, never declared: it is computed from the same
@@ -382,7 +382,7 @@ None of this ever reaches a built page. No tag, no class, no mention: the
 reader of a presentation is never told the contrast level of the theme
 chosen for them.
 
-`set-theme` is one word in a data file: it rewrites the `theme:` line of
+`series theme set` is one word in a data file: it rewrites the `theme:` line of
 `templates/settings.conf` and nothing else, reports what it replaced
 (`Theme changed: evergreen -> crimson`), and your pinned values stay in
 place and apply on top of the new palette. No CSS is rewritten, so there
@@ -411,19 +411,19 @@ verdict colours.
 > `templates/style.css` is no longer read: values move to
 > `settings.conf`, rules to `custom.css`, and no variable aliases were
 > kept — `lightwebpres audit` names every retired variable still
-> referenced, each with its replacement, and `refresh-templates` creates
+> referenced, each with its replacement, and `template update` creates
 > the new files if they're missing.
 
-![Preview of the built-in color themes](themes-gallery.png)
+![Preview of the built-in color themes](theme gallery.png)
 
-The first four rows of [`themes-gallery.html`](themes-gallery.html) in
+The first four rows of [`theme gallery.html`](theme gallery.html) in
 this repo — open it directly in a browser for all thirty-three, where the
 facets become filters. **One theme per row, four panels across:** the
 cover, a card carrying a note, the page-wide notes section, and the
 long-form article. Each panel is a real rendering at its true size, not a
 mock and not a scaled-down miniature, so a 14px note is 14px there too.
 It's generated straight from the tool's own `THEMES` data with
-`./lightwebpres themes-gallery`, so it can never drift from what
+`./lightwebpres theme gallery`, so it can never drift from what
 `install --theme` actually applies.
 
 ## One browser-based tool, two tabs
@@ -499,8 +499,8 @@ for both tabs of the browser-based tool.
 ```
 lightwebpres          # the executable — the only thing you need to run this
 specifications.md     # full reference specification (French)
-themes-gallery.html   # preview of every built-in color theme (generated, see below)
-themes-gallery.png    # a rendered snapshot of the above, for this README
+theme gallery.html   # preview of every built-in color theme (generated, see below)
+theme gallery.png    # a rendered snapshot of the above, for this README
 web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
 agent/skills/         # two packaged skills: the article format, and one optional editorial method
 tools/                # maintenance scripts (regenerating the gallery snapshot above)
@@ -536,10 +536,10 @@ In plain terms:
   presentations. The Exception exists precisely because the tool copies
   parts of itself into its output, and that copying should cost you nothing.
 - **The tool itself is copyleft.** Improve it and distribute your version,
-  and your improvements ship with it. One caveat worth knowing: `install`
+  and your improvements ship with it. One caveat worth knowing: `init`
   places a copy of the executable in your series directory, and that copy
   is the program, not output — publish your series repository and you are
-  distributing GPL code. That is why `install` writes `COPYING` and
+  distributing GPL code. That is why `init` writes `COPYING` and
   `COPYING.EXCEPTION` beside it for you.
 
 Third-party code inside the executable is listed in
@@ -571,14 +571,14 @@ of the file, so `lightwebpres` (or `.\lightwebpres`) won't launch on its
 own. Run it through Python explicitly instead:
 
 ```powershell
-python lightwebpres install my-series
+python lightwebpres init my-series
 ```
 
 If that's not found, try the `py` launcher (bundled with most Windows
 Python installs):
 
 ```powershell
-py lightwebpres install my-series
+py lightwebpres init my-series
 ```
 
 **`python3: command not found`**

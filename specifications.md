@@ -140,13 +140,13 @@ L'exécutable contient en interne :
 1. La logique de build (parseur, convertisseur, moteur d'inclusion)
 2. Le moteur de thèmes (registre de propriétés typées, §9) et les templates
    par défaut (JS de navigation, HTML) — le scaffold de `settings.conf` et
-   `nav.js` sont extraits par la commande `install` ; la feuille de style,
+   `nav.js` sont extraits par la commande `init` ; la feuille de style,
    elle, est composée en mémoire à chaque build, jamais installée (§9.3)
 3. Les règles typographiques par défaut (`fr` et `en`) — écrites en string
-   Python, extraites par la commande `install`
+   Python, extraites par la commande `init`
 4. Le générateur de démo (crée des articles d'exemple)
-5. Le CLI (`install`, `demo`, `build`, `check`, `audit`, `refresh-templates`,
-   `themes`, `set-theme`, `themes-gallery`, `--help`)
+5. Le CLI (`init`, `demo`, `build`, `verify`, `audit`, `template update`,
+   `theme list`, `series theme set`, `theme gallery`, `--help`)
 
 ### 2.2 Le répertoire de série
 
@@ -154,7 +154,7 @@ L'unité de travail est le **répertoire de série**. C'est lui qui contient tou
 ce qui est particulier à une série d'articles : les sources, les templates, la
 typographie, la configuration, et le output.
 
-Structure créée par `install` :
+Structure créée par `init` :
 
 ```
 ma-serie/                          # Le répertoire de la série (l'unité de travail)
@@ -205,33 +205,33 @@ série.
 Les options en ligne de commande **override** les variables d'environnement.
 
 ```bash
-lightwebpres install [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
+lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
 lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal]
-lightwebpres check [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
 lightwebpres audit [répertoire] [--lang fr]
-lightwebpres refresh-templates [répertoire] [--scaffold]
-lightwebpres themes [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
-lightwebpres set-theme [répertoire] --theme nom
-lightwebpres themes-gallery [chemin]
+lightwebpres template update [répertoire] [--scaffold]
+lightwebpres theme list [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
+lightwebpres series theme set [répertoire] --theme nom
+lightwebpres theme gallery [chemin]
 lightwebpres --help
 ```
 
 - `[répertoire]` : le chemin du répertoire de série (défaut : `.`, ou `$LWP_SERIES_DIR`)
 - `--lang` : la langue — règles typographiques et chaînes d'interface (défaut : `fr`, ou `$LWP_LANG`)
-- `--output` : `demo` / `build` / `check` — le répertoire de sortie
+- `--output` : `demo` / `build` / `verify` — le répertoire de sortie
   (défaut : `public/`, ou `$LWP_OUTPUT_DIR`) ; un chemin **relatif** est
   résolu depuis le répertoire courant, pas depuis `[répertoire]`
-- `--scaffold` : `refresh-templates` seulement — régénère la surface
+- `--scaffold` : `template update` seulement — régénère la surface
   commentée de `settings.conf` aux valeurs du thème courant, en
   conservant les lignes épinglées (§9.4.3)
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
-- `--force` : `install` seulement — procède même si le répertoire cible n'est pas vide (`set-theme` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
-- `--theme` : `install`/`set-theme` — applique une palette prédéfinie (§9.5)
-- `--polarity` / `--intensity` / `--hue` : `themes` seulement — restreint la liste par facette (§9.5.2, §11.9)
-- `--gitlab-ci` : `install` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
-- `--no-typography` : `build`/`check` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
-- `--include-drafts` : `build`/`check` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
+- `--force` : `init` seulement — procède même si le répertoire cible n'est pas vide (`series theme set` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
+- `--theme` : `init`/`series theme set` — applique une palette prédéfinie (§9.5)
+- `--polarity` / `--intensity` / `--hue` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
+- `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
+- `--no-typography` : `build`/`verify` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
+- `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
@@ -239,9 +239,9 @@ lightwebpres --help
 Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR`
 sont honorées par toute commande qui opère sur un répertoire de série —
 `LWP_SERIES_DIR` est résolu une seule fois dans `main()`, avant l'aiguillage,
-donc `install`, `demo` et `set-theme` l'honorent aussi. Seules `themes` et
-`themes-gallery` y échappent : la première n'interroge que la table `THEMES`
-intégrée, la seconde ne prend qu'un chemin de sortie. `themes` et `themes-gallery` ne lisent aucun répertoire de
+donc `init`, `demo` et `series theme set` l'honorent aussi. Seules `theme list` et
+`theme gallery` y échappent : la première n'interroge que la table `THEMES`
+intégrée, la seconde ne prend qu'un chemin de sortie. `theme list` et `theme gallery` ne lisent aucun répertoire de
 série : la première n'interroge que la table `THEMES` intégrée, la
 seconde ne prend qu'un chemin de sortie.
 
@@ -1403,7 +1403,7 @@ a demandée, seulement celle que l'outil aurait jugée acceptable.
 
 C'est la frontière à laquelle se rattachent les entrées de `BACKLOG.md`
 qui parlent de gamut et de séparabilité : ce sont des travaux de
-catalogue, pas des fonctionnalités du moteur. `theme-info` (§11.9.1) ne
+catalogue, pas des fonctionnalités du moteur. `theme show` (§11.9.1) ne
 la franchit pas non plus — il **mesure** et rapporte, il ne corrige rien.
 
 ### 9.1 Le principe et le vocabulaire
@@ -1416,7 +1416,7 @@ Trois conséquences, et ce sont elles qui justifient tout le reste :
 - **La sortie cesse d'être une interface.** L'ancien `style.css` était à
   moitié source, à moitié sortie — d'où tout un appareillage (marqueur de
   personnalisation, marqueur de thème, vérification d'identité octet pour
-  octet, `--force` de `set-theme`), et d'où le gel de sa forme, puisque
+  octet, `--force` de `series theme set`), et d'où le gel de sa forme, puisque
   des auteurs l'éditaient. La feuille émise n'étant plus qu'un artefact,
   sa structure est libre de changer à chaque version : renommer une
   classe ou réorganiser des règles n'est plus un changement de contrat.
@@ -1661,14 +1661,14 @@ est inlinée dans chaque page, il suffit d'en afficher la source.
 | Fichier | Propriétaire | Écrit par le système |
 |---|---|---|
 | feuille émise | le système | régénérée à chaque build, jamais sur disque |
-| `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite (`set-theme` réécrit la seule ligne `theme:`, §9.4.2) |
+| `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite (`series theme set` réécrit la seule ligne `theme:`, §9.4.2) |
 | `templates/custom.css` | l'auteur | **jamais** (créé vide à l'install) |
-| `templates/nav.js` | l'outil | remplacé par `refresh-templates`, sauvegarde `.bak` (§9.4.3) |
+| `templates/nav.js` | l'outil | remplacé par `template update`, sauvegarde `.bak` (§9.4.3) |
 
 **C'est ce partage qui supprime l'appareillage.** Le marqueur de
 personnalisation, sa variante héritée, la recherche de sa première
 occurrence, la vérification d'identité octet pour octet, le `--force` de
-`set-theme`, le `[SKIP]` sans marqueur : une dizaine de mécanismes dont
+`series theme set`, le `[SKIP]` sans marqueur : une dizaine de mécanismes dont
 l'unique raison d'être était que le système écrivait dans le fichier que
 l'auteur édite. La bonne façon de ne pas détruire le travail de
 quelqu'un n'est pas de le détecter, c'est de ne pas écrire là où il est.
@@ -1688,7 +1688,7 @@ CSS vont dans `custom.css` — un fichier qui ressemble à des propriétés
 et avalerait du CSS en silence serait l'ancienne surface de retour. Une
 clé inconnue, une valeur mal typée, un renvoi cassé sont des erreurs de
 `build` qui nomment la clé (§9.2). Un `theme:` inconnu nomme la ligne et
-renvoie vers `lightwebpres themes`.
+renvoie vers `lightwebpres theme list`.
 
 **Le scaffold.** Le fichier est généré **une fois** (à l'install, §9.4.1)
 avec **toutes** les propriétés présentes, en commentaire, à la valeur du
@@ -1700,7 +1700,7 @@ trois problèmes d'un coup : la découvrabilité — la surface complète est
 sous les yeux, sans documentation (il remplace ainsi le bloc de
 « recettes prêtes à coller » de l'ancienne feuille, qui ne couvrait
 qu'un seul objet et dont le compte annoncé avait dérivé) ; la mise à
-jour — `refresh-templates --scaffold` (§9.4.3) régénère à la demande la
+jour — `template update --scaffold` (§9.4.3) régénère à la demande la
 surface commentée pour le thème courant, en gardant les lignes
 épinglées : les propriétés apparues et disparues se lisent comme un diff
 ; et la dérive de la documentation, puisque le
@@ -1872,7 +1872,7 @@ d'un point d'ancrage que `settings.conf`/`custom.css`/`nav.js` ne
 couvrent pas (`nav.js` ne s'applique qu'aux pages d'article, pas à
 l'index). Si `templates/index_extra.html` existe, son contenu est inséré
 tel quel (HTML, CSS inline, `<script>`... — aucune transformation) juste
-avant `</body>` de la page d'index générée. Absent par défaut : `install`
+avant `</body>` de la page d'index générée. Absent par défaut : `init`
 ne crée pas ce fichier, contrairement à `settings.conf`/`custom.css`/
 `nav.js`.
 
@@ -1888,7 +1888,7 @@ propriété invalide.
 
 #### 9.4.1 `install --theme`
 
-`install` écrit les trois fichiers : `settings.conf` — le scaffold
+`init` écrit les trois fichiers : `settings.conf` — le scaffold
 complet du thème choisi, avec sa ligne `theme: <slug>` et son
 `# scaffold-for: <slug>` (sans `--theme` : pas de ligne `theme:` active,
 scaffold aux défauts intégrés) —, `custom.css` (le gabarit commenté,
@@ -1896,9 +1896,9 @@ vide de règles) et `nav.js`. Aucune substitution dans du CSS : choisir
 un thème à l'install, c'est écrire un mot dans un fichier de données. Un
 slug inconnu est une erreur fatale qui liste les slugs valides.
 
-#### 9.4.2 `set-theme`
+#### 9.4.2 `series theme set`
 
-`set-theme [répertoire] --theme <slug>` réécrit **la seule ligne du
+`series theme set [répertoire] --theme <slug>` réécrit **la seule ligne du
 fichier qui soit à l'outil** : la ligne `theme:` de `settings.conf` (ou
 le placeholder commenté `# theme:` du scaffold, ou en tête de fichier si
 ni l'un ni l'autre n'existe). Tout ce que l'ancienne implémentation
@@ -1908,7 +1908,7 @@ l'auteur édite ; il n'y a plus rien à garder, et **`--force` n'existe
 plus**. Comportements, tous vérifiés :
 
 - répertoire jamais installé (pas de `templates/`) : erreur propre
-  renvoyant vers `install` — `set-theme` configure une série, il n'en
+  renvoyant vers `init` — `series theme set` configure une série, il n'en
   crée pas ;
 - `templates/` présent mais pas de `settings.conf` (série d'avant la
   refonte) : un scaffold neuf est écrit pour le thème demandé — écrire
@@ -1924,7 +1924,7 @@ sémantique voulue par l'auteur. Le risque résiduel — des valeurs
 calibrées pour l'ancienne palette — est rendu **visible** (`audit`),
 jamais corrigé d'office.
 
-#### 9.4.3 `refresh-templates`
+#### 9.4.3 `template update`
 
 Sous le modèle de feuille composée, la feuille est toujours fraîche par
 construction : elle vient de l'exécutable courant à chaque build. Le seul
@@ -1968,7 +1968,7 @@ présentation, chacun vérifié :
    messages qu'au build, mais non bloquants ici) ; et un
    `scaffold-for:` différent du `theme:` déclaré — décommenter une ligne
    épinglerait une valeur du thème quitté ; l'avertissement renvoie à
-   `refresh-templates --scaffold` (§9.4.3), qui réaligne la surface
+   `template update --scaffold` (§9.4.3), qui réaligne la surface
    commentée sans perdre les épingles.
 
 `audit` énumère aussi, par article, les **balises d'instance** (§9.6) —
@@ -1987,14 +1987,14 @@ gras en encadré (`fact_weight`/`fact_style`/`fact_highlight`/
 `fact_decoration`/`fact_decoration_color`), un drapeau de polarité
 (`dark_background`), une intensité déclarée (`intensity`, §9.5.2), et des
 métadonnées purement éditoriales (étiquette affichable, source,
-remarque — §9.5.4) qui ne servent qu'à `themes-gallery` (§11.7).
+remarque — §9.5.4) qui ne servent qu'à `theme gallery` (§11.7).
 `fact_weight`, `fact_style` et `fact_highlight` sont toujours explicites
 dans chaque entrée, même à la valeur par défaut — un choix délibéré
 consigné, pas un oubli ; les deux clés de soulignement font exception :
 absentes, elles valent « pas de soulignement », le sens de « pas
 d'avis » pour un axe ajouté après coup. `THEMES` est la **seule** source
-de vérité : la couche appliquée par `install --theme`/`set-theme` et les
-aperçus de `themes-gallery` viennent de la même donnée et ne peuvent pas
+de vérité : la couche appliquée par `install --theme`/`series theme set` et les
+aperçus de `theme gallery` viennent de la même donnée et ne peuvent pas
 diverger par construction.
 
 Les neuf premières entrées reprennent des palettes d'éditeurs de code
@@ -2134,8 +2134,8 @@ les palettes du projet, pas le catalogue entier.
 
 **Facettes.** Passé une douzaine de palettes, une galerie cesse d'être
 un moyen de choisir et devient une chose à faire défiler. Trois facettes
-décrivent donc chaque entrée ; `themes-gallery` (§11.7) les expose en
-filtres, et la commande `themes` (§11.9) en options :
+décrivent donc chaque entrée ; `theme gallery` (§11.7) les expose en
+filtres, et la commande `theme list` (§11.9) en options :
 
 | Facette | Valeurs | Origine |
 |---|---|---|
@@ -2153,7 +2153,7 @@ les confondre rendrait la CLI intraduisible).
 Une même fonction, `theme_facets()`, alimente les deux surfaces. Un
 sélecteur dans un terminal et un sélecteur dans un navigateur ne peuvent
 donc pas diverger — propriété vérifiée par un test qui compare, pour
-chaque combinaison, la sortie de `themes` aux attributs `data-*` des
+chaque combinaison, la sortie de `theme list` aux attributs `data-*` des
 cartes de la galerie.
 
 L'intensité est déclarée parce que « à quel point est-ce criard » est un
@@ -2239,8 +2239,8 @@ coûte aucun contraste ; atténuer le texte en coûte toujours.
 #### 9.5.4 Le champ `note` d'un thème est du texte nu
 
 Chaque entrée de `THEMES` porte une `note`, et elle a **deux
-consommateurs aux besoins opposés** : `themes` (§11.9) l'imprime dans un
-terminal, `themes-gallery` (§11.7) la place dans une page HTML.
+consommateurs aux besoins opposés** : `theme list` (§11.9) l'imprime dans un
+terminal, `theme gallery` (§11.7) la place dans une page HTML.
 
 Elle est stockée **en texte nu**, en UTF-8, et c'est la galerie qui
 convertit — jamais l'inverse. Le sens de conversion n'est pas
@@ -2527,7 +2527,7 @@ qui migre ses propres séries.
   encore : le fichier n'est plus lu, la feuille est composée depuis
   `settings.conf` ; les valeurs vont dans `settings.conf`, les règles
   dans `custom.css`, puis le fichier se supprime.
-- **`refresh-templates`** répète l'avertissement et **crée** la surface
+- **`template update`** répète l'avertissement et **crée** la surface
   neuve manquante (scaffold + `custom.css` vides) sans jamais migrer les
   valeurs : ce sont les décisions de l'auteur, les déplacer lui revient
   (§9.4.3).
@@ -2547,8 +2547,8 @@ qui migre ses propres séries.
 
 Une série d'avant la refonte reste constructible sans rien faire (la
 feuille composée part des défauts intégrés) ; elle récupère la surface
-neuve au premier `refresh-templates`, ou directement le thème voulu par
-`set-theme` (qui écrit un scaffold frais quand `settings.conf` manque,
+neuve au premier `template update`, ou directement le thème voulu par
+`series theme set` (qui écrit un scaffold frais quand `settings.conf` manque,
 §9.4.2). L'hypothèse de travail est assumée : un seul utilisateur,
 capable de tout régénérer — l'architecture est conçue pour être juste,
 pas compatible.
@@ -2557,8 +2557,8 @@ pas compatible.
 
 ## 10. Pipeline GitLab CI
 
-Optionnel — `install` ne l'écrit que si `--gitlab-ci` est passé (§11.1) :
-`install` seul ne présuppose jamais un déploiement GitLab, pour ne pas
+Optionnel — `init` ne l'écrit que si `--gitlab-ci` est passé (§11.1) :
+`init` seul ne présuppose jamais un déploiement GitLab, pour ne pas
 rendre un projet dépendant de GitLab simplement parce qu'il a été
 scaffoldé. Le `.gitlab-ci.yml` que `--gitlab-ci` crée :
 
@@ -2577,23 +2577,23 @@ build:
 ```
 
 Le fichier `lightwebpres` est dans le dépôt, à la racine du répertoire de
-série lui-même (`install` l'y copie, §11.1). Le pipeline n'a besoin que de
+série lui-même (`init` l'y copie, §11.1). Le pipeline n'a besoin que de
 Python 3 (image `python:3.12-slim`), pas de `pip install`.
 
-Rien n'empêche d'ajouter une étape `python3 lightwebpres check .` avant le
+Rien n'empêche d'ajouter une étape `python3 lightwebpres verify .` avant le
 `build` : son code de sortie non nul en cas de différence (§11.4) en fait
 une porte de vérification utilisable dans ce même pipeline, pour détecter
 un `public/` non reconstruit avant de merge — pas fait par défaut par
-`install`, à ajouter à la main si voulu.
+`init`, à ajouter à la main si voulu.
 
 ---
 
 ## 11. Commandes de l'exécutable
 
-### 11.1 `install`
+### 11.1 `init`
 
 ```bash
-lightwebpres install [répertoire] [--lang fr] [--theme nom] [--gitlab-ci]
+lightwebpres init [répertoire] [--lang fr] [--theme nom] [--gitlab-ci]
 ```
 
 Crée la structure de travail dans `[répertoire]` :
@@ -2619,7 +2619,7 @@ Crée la structure de travail dans `[répertoire]` :
    rien n'est rendu tant qu'ils sont vides) et un tableau `articles`
    vide
 6. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
-   passé** — `install` seul ne présuppose jamais un déploiement GitLab
+   passé** — `init` seul ne présuppose jamais un déploiement GitLab
    (§10) ; par défaut, aucun fichier de CI n'est créé. La commande de
    build de ce fichier porte la langue choisie (`build . --lang <lang>`,
    `fr` par défaut)
@@ -2632,9 +2632,9 @@ la langue est un choix **par build** (`--lang` sur `build`/`demo`, ou
 qu'une chose : fixer la langue inscrite dans la commande de build du
 `.gitlab-ci.yml` généré (donc utile surtout avec `--gitlab-ci`).
 
-Si le répertoire existe déjà et contient déjà des fichiers, `install` refuse
+Si le répertoire existe déjà et contient déjà des fichiers, `init` refuse
 et s'arrête (erreur, code de sortie non nul), sauf avec `--force` qui laisse
-`install` procéder quand même. Pas d'invite interactive : l'outil est pensé
+`init` procéder quand même. Pas d'invite interactive : l'outil est pensé
 pour un usage scripté (LLM, CI, §13.5), une invite bloquerait ces usages en
 attendant une entrée qui ne viendra jamais.
 
@@ -2644,9 +2644,9 @@ attendant une entrée qui ne viendra jamais.
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
 ```
 
-Vérifie que `install` a été fait (présence de `templates/settings.conf`,
+Vérifie que `init` a été fait (présence de `templates/settings.conf`,
 ou de `templates/nav.js` pour qu'une série installée avant la refonte §9
-reste reconnue). Si non, erreur fatale invitant à lancer `install`
+reste reconnue). Si non, erreur fatale invitant à lancer `init`
 d'abord.
 
 Refuse de s'exécuter si l'un des 7 fichiers de démo (6 `.md` +
@@ -2654,7 +2654,7 @@ Refuse de s'exécuter si l'un des 7 fichiers de démo (6 `.md` +
 `series.json` liste déjà au moins un article** (erreur fatale dans les
 deux cas) — jamais d'écrasement silencieux d'un travail en cours :
 `demo` réécrit `series.json` entièrement, ce qui n'est inoffensif que
-sur le boilerplate d'un `install` frais (liste d'articles vide).
+sur le boilerplate d'un `init` frais (liste d'articles vide).
 
 Crée trois articles d'exemple, un pour chaque position de la navigation de
 série :
@@ -2826,10 +2826,10 @@ silencieusement écrasé par l'option la plus riche.
 
 **Jamais activé par défaut** : un horodatage vivant rend le build
 non-reproductible à l'octet près d'une exécution à l'autre, une propriété
-que `check` (§11.4) présuppose justement pour son diff exact.
+que `verify` (§11.4) présuppose justement pour son diff exact.
 
-**`check` ignore le marqueur, dans les deux sens, pour les deux
-variantes** : le HTML généré en mémoire par `check` pour comparaison
+**`verify` ignore le marqueur, dans les deux sens, pour les deux
+variantes** : le HTML généré en mémoire par `verify` pour comparaison
 n'inclut jamais de marqueur (ni la valeur de `--build-stamp` ni celle de
 `--build-stamp-minimal` n'atteint son propre appel à `build_article`), et
 le marqueur trouvé sur le fichier existant dans `public/` est retiré
@@ -2846,7 +2846,7 @@ réel trouvé en testant à la main juste après la première version : à
 l'époque du `templates/style.css` éditable, une série au fichier
 personnalisé (ou simplement scaffoldé avant l'existence de cette option)
 n'avait aucun moyen de récupérer une nouvelle règle intégrée sans passer
-par `refresh-templates`. La première version du marqueur dépendait d'une
+par `template update`. La première version du marqueur dépendait d'une
 règle `.build-stamp` dans la feuille partagée — absente de ce genre de
 série, la `<div>` se retrouvait sans style du tout : un bloc pleine
 largeur, texte de couleur par défaut, poussant la première fiche vers le
@@ -2881,7 +2881,7 @@ et sa priorité.
 le `page_dest` vaut ce même nom entre donc en collision avec lui, et
 jusqu'ici la page de l'article était écrite puis **écrasée par l'index,
 en silence, avec un code de sortie 0** : une série déclarant trois
-articles en livrait deux, et `check` n'y voyait rien. C'est la classe de
+articles en livrait deux, et `verify` n'y voyait rien. C'est la classe de
 défaut que §22.8 interdit déjà pour un fichier d'article manquant — une
 page corrompue livrée en vert — appliquée à une collision de noms.
 
@@ -2905,10 +2905,10 @@ alors le nom par défaut et ne réclame rien. Ou elle est seule chez elle,
 et `index.html` est le nom qui a du sens. **Le nom choisi est la
 déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
 
-### 11.4 `check`
+### 11.4 `verify`
 
 ```bash
-lightwebpres check [répertoire] [--lang fr] [--no-typography]
+lightwebpres verify [répertoire] [--lang fr] [--no-typography]
 ```
 
 Vérifie sans modifier :
@@ -2917,16 +2917,16 @@ Vérifie sans modifier :
    a le même effet que sur `build` (§11.3), sur ce build en mémoire —
    utile pour vérifier un `public/` déjà généré sans typographie, pas pour
    ignorer une vraie différence de typographie sur un `public/` généré
-   normalement (`check` comparerait alors deux HTML volontairement
+   normalement (`verify` comparerait alors deux HTML volontairement
    différents et signalerait un `[DRIFT]` correct, pas un faux positif)
 2. Compare la sortie générée avec l'existant : **chaque page d'article**
    contre `public/`, plus **`index.html`** (contre `public/`) et
    **`README.md`** (contre la racine du répertoire de série) — un
    changement de `series_meta` (titre, intro, ordre des articles) ne
-   modifie que ces deux derniers, et `check` restait vert dessus avant la
+   modifie que ces deux derniers, et `verify` restait vert dessus avant la
    v0.9.0 : c'était un trou dans la porte de CI. Quand un article unique
    porte le nom de l'index (§11.3.3), `build` ne produit aucun index de
-   série et `check` n'en compare pas non plus : la page d'article qui
+   série et `verify` n'en compare pas non plus : la page d'article qui
    occupe ce nom est déjà comparée à sa propre place, et confronter en
    plus un index fraîchement rendu à cette page signalerait un `[DRIFT]`
    permanent sur une série pourtant correctement construite, qu'aucune
@@ -2940,7 +2940,7 @@ Vérifie sans modifier :
    (N + M = nombre d'articles + 2 — + 1 quand aucun index de série n'est
    produit, §11.3.3)
 5. Code de sortie non nul (1) si au moins un fichier diffère ou est absent —
-   c'est ce qui permet d'utiliser `check` comme porte de vérification dans un
+   c'est ce qui permet d'utiliser `verify` comme porte de vérification dans un
    script ou une CI (§10) ; code de sortie 0 et « All files are up to
    date. » si tout est identique (M = 0)
 
@@ -2951,7 +2951,7 @@ lightwebpres audit [répertoire] [--lang fr]
 ```
 
 Vérifie des **conventions éditoriales non bloquantes**, sans jamais faire
-échouer la commande ni modifier de fichier (contrairement à `check`, qui
+échouer la commande ni modifier de fichier (contrairement à `verify`, qui
 compare le HTML généré à l'existant, §11.4) :
 
 1. Pour chaque article, lit et parse le `.md` source
@@ -2984,10 +2984,10 @@ exclu de l'audit (§20.6) — ni brouillons ni articles `ignored`, ces
 derniers étant même signalés nommément, parce que c'est le seul endroit
 de l'outil qui parlera jamais d'eux.
 
-### 11.6 `refresh-templates`
+### 11.6 `template update`
 
 ```bash
-lightwebpres refresh-templates [répertoire] [--scaffold]
+lightwebpres template update [répertoire] [--scaffold]
 ```
 
 Met à jour ce qui, dans `templates/`, appartient à l'outil — voir §9.4.3
@@ -2996,7 +2996,7 @@ toujours fraîche par construction (elle vient de l'exécutable courant à
 chaque build) ; le seul fichier de l'outil restant sur disque est
 `nav.js`.
 
-1. Erreur fatale si `templates/` n'existe pas (`install` pas encore fait)
+1. Erreur fatale si `templates/` n'existe pas (`init` pas encore fait)
 2. `templates/nav.js` : remplacé s'il diffère de la version intégrée
    (l'ancien est sauvegardé en `templates/nav.js.bak`), rapporté
    « already up to date » sinon
@@ -3018,10 +3018,10 @@ Ne relance pas `build` automatiquement : les fichiers HTML déjà générés
 dans `public/` restent inchangés tant que `build` n'est pas relancé à la
 main.
 
-### 11.7 `themes-gallery`
+### 11.7 `theme gallery`
 
 ```bash
-lightwebpres themes-gallery [chemin]
+lightwebpres theme gallery [chemin]
 ```
 
 Génère une page HTML autonome (aucune dépendance) documentant chaque
@@ -3061,7 +3061,7 @@ n'était lisible autrement qu'en scrutant deux lignes d'aperçu. Le
 soulignement n'est mentionné que lorsqu'il est présent — en annoncer
 l'absence sur chaque carte noierait les axes qui, eux, diffèrent.
 
-**L'aperçu est une vraie fiche.** Pas une imitation : `themes-gallery`
+**L'aperçu est une vraie fiche.** Pas une imitation : `theme gallery`
 fait passer une maquette écrite au format d'article réel (§4) par
 `parse_markdown_extended()` puis `render_slide()` — les fonctions
 qu'appelle `build` — et lui applique la feuille composée pour ce thème
@@ -3135,11 +3135,11 @@ nombre d'aperçus visibles et **désactive** toute facette qui ne mènerait
 à aucun résultat compte tenu des autres déjà actives — on ne peut donc
 pas se retrouver devant une page vide sans comprendre pourquoi.
 
-`chemin`, s'il est omis, vaut `themes-gallery.html` dans le répertoire
+`chemin`, s'il est omis, vaut `theme gallery.html` dans le répertoire
 courant — c'est ainsi que le fichier à la racine du dépôt lightwebpres
 lui-même est produit, et il n'a plus vocation à être modifié à la main
 (§9.5) : toute correction sur un thème (couleur, remarque) se fait dans
-`THEMES`, puis `themes-gallery` régénère le fichier.
+`THEMES`, puis `theme gallery` régénère le fichier.
 
 Le texte d'exemple de chaque aperçu (« Chapter 1 », « Temperature
 changes everything », etc.) est fixe, non localisé par `--lang` — la
@@ -3158,13 +3158,13 @@ thèmes, la liste était un rappel utile ; passé la trentaine, c'est un mur
 de noms qui ne dit rien de ce que chacun donne à l'écran — exactement le
 problème que les facettes existent pour résoudre, simplement déplacé de
 la galerie vers le terminal. L'aide renvoie donc aux deux commandes qui
-savent répondre à « lequel je veux » : `themes` et `themes-gallery`, et
-sur celle qui répond à « celui-là, il vaut quoi » : `theme-info`.
+savent répondre à « lequel je veux » : `theme list` et `theme gallery`, et
+sur celle qui répond à « celui-là, il vaut quoi » : `theme show`.
 
-### 11.9 `themes`
+### 11.9 `theme list`
 
 ```bash
-lightwebpres themes [--polarity light|dark] [--intensity sober|vivid|mono] [--hue <teinte>]
+lightwebpres theme list [--polarity light|dark] [--intensity sober|vivid|mono] [--hue <teinte>]
 ```
 
 Liste les thèmes intégrés depuis le terminal, avec pour chacun son slug,
@@ -3174,13 +3174,13 @@ options se combinent.
 
 Cette commande existe parce que **lightwebpres doit pouvoir être utilisé
 seul**. Les facettes n'ont d'abord vécu que dans le HTML produit par
-`themes-gallery`, ce qui imposait un aller-retour par un navigateur pour
+`theme gallery`, ce qui imposait un aller-retour par un navigateur pour
 choisir un thème — inacceptable pour un outil en ligne de commande, et
 d'autant plus que l'interface graphique est un projet séparé qui ne peut
 rien garantir ici.
 
 Le slug est mis en avant dans la sortie parce que c'est ce que
-`install --theme` et `set-theme` attendent : ce qu'on lit est
+`install --theme` et `series theme set` attendent : ce qu'on lit est
 directement ce qu'on retape.
 
 Deux cas se distinguent volontairement :
@@ -3193,11 +3193,11 @@ Deux cas se distinguent volontairement :
   succès, avec un message nommant la combinaison restée sans résultat.
   Ce n'est pas une erreur, c'est une réponse.
 
-### 11.9.1 `theme-info`
+### 11.9.1 `theme show`
 
 ```bash
-lightwebpres theme-info <slug> [--format text|json]
-lightwebpres theme-info [répertoire] [--format text|json]
+lightwebpres theme show <slug> [--format text|json]
+lightwebpres theme show [répertoire] [--format text|json]
 ```
 
 Décrit **un** thème sans rien installer : sa palette, ses facettes, et le
@@ -3229,10 +3229,10 @@ format ne change pas, `build` ne change pas.
 
 #### Deux cibles
 
-- **Un slug** (`theme-info nord`) : le thème intégré, tel qu'il est
+- **Un slug** (`theme show nord`) : le thème intégré, tel qu'il est
   livré. Aucun répertoire de série n'est nécessaire — c'est le cas
   « avant d'installer », celui qui sert à choisir.
-- **Un répertoire de série** (`theme-info .`) : le thème **effectif**,
+- **Un répertoire de série** (`theme show .`) : le thème **effectif**,
   c'est-à-dire après application des valeurs que la série épingle dans
   `templates/settings.conf`. Les deux réponses peuvent différer, et c'est
   précisément le renseignement utile : un auteur qui a épinglé trois
@@ -3328,7 +3328,7 @@ serait l'étiquette écrite à la main de nouveau.
 #### Facettes d'une cible répertoire
 
 Sur un slug, les facettes sont celles de `theme_facets()` telles quelles
-(§9.5.2) : `themes`, la galerie et cette commande ne peuvent pas diverger
+(§9.5.2) : `theme list`, la galerie et cette commande ne peuvent pas diverger
 sur la même entrée. Sur un répertoire, la question porte sur le thème
 *effectif* : la polarité et la teinte sont donc recalculées sur la page
 qu'un build peindrait réellement — épingler un `color.page` sombre sur un
@@ -3352,7 +3352,7 @@ produirait un texte moins lisible que l'un et moins fiable que l'autre.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.theme-info/1`. Ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | chaîne | `lightwebpres.theme show/1`. Ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `label` | chaîne ou `null` | l'étiquette affichable du thème ; `null` si aucun thème n'est nommé |
@@ -3435,10 +3435,10 @@ thème dans son sélecteur (sa spec §1.3). C'est un contrat entre les deux
 dépôts au sens de §1.2 : le nom des clés JSON est une surface publique,
 et le renommer casse le GUI sans que rien ne rougisse ici.
 
-### 11.10 `set-theme`
+### 11.10 `series theme set`
 
 ```bash
-lightwebpres set-theme [répertoire] --theme <slug>
+lightwebpres series theme set [répertoire] --theme <slug>
 ```
 
 Change le thème d'une série existante en réécrivant **la seule ligne de
@@ -3452,7 +3452,7 @@ l'auteur restent en place et s'appliquent par-dessus (§9.4.2).
 Comportements, tous vérifiés :
 
 - **Répertoire jamais installé** (pas de `templates/`) : erreur fatale
-  (code de sortie non nul) renvoyant vers `install` — `set-theme`
+  (code de sortie non nul) renvoyant vers `init` — `series theme set`
   configure une série existante, il n'en crée pas.
 - **`templates/` présent mais pas de `settings.conf`** (série installée
   avant la refonte §9) : un scaffold neuf est écrit pour le thème
@@ -3469,7 +3469,7 @@ Comportements, tous vérifiés :
   encore l'ancien (`audit` le signale, §9.4.4), et qu'un `build` doit
   être relancé pour que le changement atteigne `public/`.
 - **`<slug>` inconnu de `THEMES`** : erreur fatale qui renvoie vers
-  `lightwebpres themes` (avec le compte des slugs valides).
+  `lightwebpres theme list` (avec le compte des slugs valides).
 
 **`--force` n'existe plus** (le passer est une erreur fatale
 `Unknown option`, §2.4) : il ne protégeait que la réécriture partielle
@@ -3479,10 +3479,10 @@ rien n'écrit ni ne lit (§9.4.2, §9.8). De même, plus de notion de
 commande n'écrit que dans un fichier de données, sur une ligne qui lui
 appartient.
 
-### 11.11 `series-info`
+### 11.11 `status`
 
 ```bash
-lightwebpres series-info [répertoire] [--format text|json]
+lightwebpres status [répertoire] [--format text|json]
 ```
 
 Décrit **ce qu'il y a dans une série** sans rien construire : ses
@@ -3501,7 +3501,7 @@ Cette commande existe parce que **la cascade appartient au moteur**. Tout
 consommateur qui la réimplémente — `lightwebpres-gui` au premier chef —
 en produirait une copie qui dérive, et finirait par afficher un titre que
 le build ne donne pas. C'est la même raison qui a fait exister
-`theme-info` (§11.9.1) plutôt que de laisser un second calcul de
+`theme show` (§11.9.1) plutôt que de laisser un second calcul de
 contraste s'installer ailleurs : quand un consommateur a besoin d'une
 donnée que le moteur possède, **le moteur l'expose ; il ne se fait pas
 fouiller**. L'alternative était d'élargir la surface interne que le GUI
@@ -3509,7 +3509,7 @@ atteint déjà (§1.2), c'est-à-dire d'ajouter un symbole de plus dont la
 suite de tests d'ici ne voit pas le couplage.
 
 Elle répond aussi à une question que rien ne traitait en ligne de
-commande : « qu'y a-t-il dans cette série ? ». `check` compare, `audit`
+commande : « qu'y a-t-il dans cette série ? ». `verify` compare, `audit`
 avertit, `build` construit ; aucun ne se contente de dire ce qu'il y a.
 
 #### Ce qu'elle rapporte
@@ -3546,8 +3546,8 @@ besoin de porter aussi ce que personne n'y cherche.
 
 Elle **ne construit rien** et n'écrit rien. Elle ne valide pas non plus
 au-delà de ce que la résolution exige : une série dont un article est
-introuvable est une erreur de `build`, et le rester ; `series-info` n'a
-pas à devenir un second `check`.
+introuvable est une erreur de `build`, et le rester ; `status` n'a
+pas à devenir un second `verify`.
 
 **Un article illisible ne coûte pas le reste de la réponse.** Un
 `page_source` absent, illisible ou non-UTF-8 ne peut être lu ni pour son
@@ -3556,14 +3556,14 @@ ses champs repliés sur ce que `series.json` et les défauts donnent,
 `source_read` à `false`, et un `[WARN]` sur **stderr** — pour que stdout
 reste un document JSON unique. Le code de sortie reste 0 : le
 renseignement sur les autres articles est intact, et la faute est déjà
-fatale là où elle doit l'être (§20.3, `build` et `check`). La rendre
-fatale ici ferait de `series-info` le second `check` qu'elle refuse
+fatale là où elle doit l'être (§20.3, `build` et `verify`). La rendre
+fatale ici ferait de `status` le second `verify` qu'elle refuse
 d'être, et priverait une interface de toute la série pour un fichier
 manquant.
 
 #### Format
 
-`--format json` comme pour `theme-info`, et pour la même raison — la
+`--format json` comme pour `theme show`, et pour la même raison — la
 bibliothèque standard porte `json` et pas `yaml`. Les noms de clés sont
 une **surface publique** consommée par `lightwebpres-gui` : les renommer
 casse le GUI sans que rien ne rougisse ici, ce qui en fait un élément du
@@ -3575,7 +3575,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.series-info/1`. Même promesse que celle de `theme-info` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | chaîne | `lightwebpres.status/1`. Même promesse que celle de `theme show` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les six champs textuels de §20.5 — `title`, `subtitle`, `version`, `intro`, `author`, `license` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
@@ -3586,7 +3586,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `kind` | `"series"` | la seule cible de cette commande ; présent pour que le bloc ait la forme de celui de `theme-info` |
+| `kind` | `"series"` | la seule cible de cette commande ; présent pour que le bloc ait la forme de celui de `theme show` |
 | `directory` | chaîne | le chemin absolu de la série |
 | `theme` | chaîne ou `null` | le thème en vigueur, lu dans `templates/settings.conf` par le parseur du build ; `null` quand la série n'en nomme aucun (elle tourne alors sur les défauts du registre, §9.3) |
 
@@ -3639,7 +3639,7 @@ et les provenances que cette fonction a enregistrées **pendant** qu'elle
 résolvait. C'est la raison d'être de la commande retournée contre son
 implémentation : exposer la cascade en la réécrivant aurait installé
 dans cet exécutable la copie divergente qu'on refuse au GUI. Un test le
-tient (aucune fonction de `series-info` n'atteint l'analyseur d'article),
+tient (aucune fonction de `status` n'atteint l'analyseur d'article),
 parce que deux implémentations qui dérivent continuent chacune de passer
 ses propres tests.
 
@@ -3648,7 +3648,7 @@ ses propres tests.
 `lightwebpres-gui` s'en sert pour lister les articles d'une série avec
 leurs vrais titres, et pour distinguer un titre écrit d'un titre déduit.
 C'est un contrat entre les deux dépôts au sens de §1.2, exactement comme
-pour `theme-info`.
+pour `theme show`.
 
 ### 11.12 `resolve`
 
@@ -3671,7 +3671,7 @@ tête l'ordre dans lequel les trois se recouvrent. Pour savoir ce que vaut
 `page_title`, il faut lire `series.json`, puis le bloc meta, puis la
 fiche cover. Le moteur, lui, connaît la réponse : il vient de la calculer.
 
-`series-info` (§11.11) et `theme-info` (§11.9.1) répondent déjà, mais
+`status` (§11.11) et `theme show` (§11.9.1) répondent déjà, mais
 chacune par un **inventaire** : tous les articles, ou toutes les
 propriétés. Elles servent à peupler une interface. `resolve` sert à
 comprendre une surprise — « pourquoi ce titre-là ? », « pourquoi cette
@@ -3752,7 +3752,7 @@ champ possède. Sans `--article`, le relevé couvre la série entière.
 
 #### Ce qu'elle ne fait pas
 
-Elle ne construit rien et n'écrit rien. Comme `series-info`, elle ne
+Elle ne construit rien et n'écrit rien. Comme `status`, elle ne
 valide pas au-delà de ce que la résolution exige, et un article illisible
 n'est pas fatal : il est signalé sur stderr et le reste de la réponse
 tient. Elle ne prend pas de `--lang` : elle décrit des données, pas un
@@ -3820,7 +3820,7 @@ aurait été une uniformité de façade.
 
 #### Une seule cascade, encore
 
-Comme `series-info`, la commande ne résout rien elle-même : elle
+Comme `status`, la commande ne résout rien elle-même : elle
 interroge `resolve_article_fields()` et `resolve_theme_properties()`, les
 fonctions que le build appelle. Un test l'exige, pour la raison déjà
 donnée en §11.11 — deux implémentations qui dérivent continuent chacune
@@ -4095,11 +4095,11 @@ stables au sein d'une même version MAJEURE : les noms et la portée des
 champs (`GLOSSARY.md` § « Naming conventions », liste gelée en §20.2),
 la structure de `series.json`, le format de l'article `.md`, les commandes et options de la CLI, les variables `LWP_*`. Le
 **HTML produit**, lui, peut changer entre deux CORRECTIFs (amélioration de
-style, de sémantique, d'accessibilité) : c'est pourquoi `check` (§11.4)
+style, de sémantique, d'accessibilité) : c'est pourquoi `verify` (§11.4)
 signale une dérive normale après une montée de version, jusqu'au prochain
 `build` — ce n'est pas une régression, mais le comportement attendu. Un
 build reste **reproductible à l'octet pour une version donnée** (§13.3),
-ce dont `check` dépend ; la reproductibilité ne traverse pas les versions.
+ce dont `verify` dépend ; la reproductibilité ne traverse pas les versions.
 
 Avant la 1.0, toutes les releases sont des **préversions** : le format a
 pu bouger d'une mineure à l'autre (c'est la phase de stabilisation qui
@@ -4118,7 +4118,7 @@ au sens ci-dessus.
 cp lightwebpres /usr/local/bin/  # ou utiliser ./lightwebpres
 
 # 2. Créer une nouvelle série
-lightwebpres install ma-serie
+lightwebpres init ma-serie
 
 # 3. (Optionnel) Voir la démo
 lightwebpres demo ma-serie
@@ -4145,7 +4145,7 @@ open ma-serie/public/index.html
 lightwebpres build ma-serie
 
 # 3. Vérifier les changements
-lightwebpres check ma-serie
+lightwebpres verify ma-serie
 
 # 4. Si le résultat convient, livrer
 git add . && git commit && git push
@@ -4159,7 +4159,7 @@ git add . && git commit && git push
 # 2. L'LLM lit ma-serie/articles/snapchat.md
 # 3. L'LLM modifie le fichier
 # 4. L'LLM lance : lightwebpres build ma-serie
-# 5. L'LLM vérifie : lightwebpres check ma-serie
+# 5. L'LLM vérifie : lightwebpres verify ma-serie
 # 6. Si OK, l'LLM signale que la correction est faite
 ```
 
@@ -4210,7 +4210,7 @@ leur périmètre (1.0 ou post-1.0) n'est pas encore tranché.
 
 ### Phase 1 : Noyau (essentiel)
 
-1. CLI avec `install`, `build`, `check`
+1. CLI avec `init`, `build`, `verify`
 2. Parseur Markdown étendu
 3. Convertisseur Markdown → HTML
 4. Rendu des 4 types de slides
@@ -4228,7 +4228,7 @@ leur périmètre (1.0 ou post-1.0) n'est pas encore tranché.
 ### Phase 3 : Outils
 
 12. Commande `demo` (génération d'articles d'exemple)
-13. Commande `check` (comparaison)
+13. Commande `verify` (comparaison)
 14. Génération du README
 
 ### Phase 4 : CI et polish
@@ -4240,7 +4240,7 @@ leur périmètre (1.0 ou post-1.0) n'est pas encore tranché.
 
 ### Phase 5 : commande `audit` (implémentée)
 
-Voir §11.5. Contrairement à `check` (qui compare le HTML généré à
+Voir §11.5. Contrairement à `verify` (qui compare le HTML généré à
 l'existant, §11.4), `audit` vérifie des **conventions éditoriales non
 bloquantes** — un article sans aucune fiche `cover`, ou dont la première
 fiche n'est pas une `cover` — et n'émet que des avertissements informatifs,
@@ -4747,7 +4747,7 @@ elle qu'un auteur de pack doit suivre.
 ### 19.5 Packs par défaut embarqués dans l'exécutable
 
 L'exécutable contient en interne les packs `fr` et `en` (règles + chaînes)
-sous forme de strings JSON. La commande `install` les extrait dans
+sous forme de strings JSON. La commande `init` les extrait dans
 `language/fr.json` et `language/en.json`. L'utilisateur peut ensuite les
 modifier — en partie pour `strings` (§7.4).
 
@@ -4762,7 +4762,7 @@ Au moment du build, le moteur charge le pack de langue depuis :
 
 ### 19.6 Désactivation complète (`--no-typography`)
 
-`--no-typography`, sur `build` et `check` (§11.3/§11.4), saute entièrement
+`--no-typography`, sur `build` et `verify` (§11.3/§11.4), saute entièrement
 le chargement d'un moteur de règles pour ce lancement — aucune règle,
 qu'elle vienne du pack intégré ou d'un override (§7.4/§19.5), ne s'exécute
 sur aucun article ni sur l'index, pour toute la durée de ce build. C'est
@@ -4868,7 +4868,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 | `author` | string | non | pied de page de l'article + `<meta name="author">` | Auteur de l'article ; surcharge le bloc meta, qui surcharge le défaut `series_meta.author` (§20.3.1) |
 | `license` | string | non | pied de page de l'article | Licence du contenu ; même cascade que `author` (défaut `series_meta.license`) ; HTML brut autorisé (lien) |
 | `date` | string | non | pied de page de l'article (signature) | Date affichée telle quelle (texte libre) ; surcharge le bloc meta ; jamais déduite du mtime (§20.3.1) |
-| `status` | chaîne | non | build/check/series-info | `active` (défaut) \| `draft` \| `ignored` (§20.6) |
+| `status` | chaîne | non | build/check/status | `active` (défaut) \| `draft` \| `ignored` (§20.6) |
 | `comment` | string | non | aucun — jamais lu | Note de relecture ; ignorée par le build (§4.6) |
 
 ### 20.3 Règles de validation
@@ -4908,7 +4908,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
   incohérente) étant identique pour toute extension qui n'est ni l'une ni
   l'autre.
 - `page_source` doit pointer vers un fichier qui existe dans `articles/` —
-  sinon **erreur fatale**, pour `build` comme pour `check`, vérifiée en
+  sinon **erreur fatale**, pour `build` comme pour `verify`, vérifiée en
   amont avant toute écriture (aucune sortie partielle). Un article
   volontairement absent du build a ses mécanismes dédiés : `status: draft`
   et `status: ignored` (§20.6). `audit`, non bloquant par contrat, signale le fichier
@@ -4987,7 +4987,7 @@ ci-dessus, ils sont rendus hors des fiches :
   article restent sur les pages des articles.
 - `date` est affichée **telle quelle** (texte libre) et n'est jamais
   déduite du mtime du fichier : le build resterait sinon non reproductible
-  octet par octet, ce sur quoi `check` (§11.4) repose.
+  octet par octet, ce sur quoi `verify` (§11.4) repose.
 - Ces champs traversent le moteur typographique comme tout contenu visible ;
   absents partout, aucun pied de page n'est émis (pas de bloc vide).
 
@@ -5063,7 +5063,7 @@ déclaré dans le fichier. Avec trois mots nommés, aucune valeur n'est
   effectivement construite rendrait un même `series.json` légal ou
   illégal selon un drapeau de build. Un article `ignored` n'est pas un
   article de la série : il ne compte pas.
-- **`series-info` (§11.11).** Trois nombres, dont la somme est la liste
+- **`status` (§11.11).** Trois nombres, dont la somme est la liste
   entière — un article `ignored` est toujours *dans* le fichier de série,
   et un rapport qui le sortirait discrètement de l'arithmétique ferait
   paraître la série plus petite qu'elle n'est. Il reste **listé**, avec

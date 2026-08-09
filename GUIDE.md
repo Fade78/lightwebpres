@@ -36,7 +36,7 @@ templates current.
 
 The third is not an afterthought; the tool is shaped for it. **Every
 command runs unattended** — nothing ever blocks on an interactive prompt.
-**Every command has a meaningful exit code**: `check` exits non-zero the
+**Every command has a meaningful exit code**: `verify` exits non-zero the
 moment the built output differs from the sources, which is a real gate;
 `audit` never fails, because it is advice. **There is nothing to
 install**: one file, eleven modules from the Python standard library,
@@ -51,13 +51,13 @@ Section 8 has the shape of a pipeline that uses all of it.
 ## 2. Install & your first build
 
 ```bash
-./lightwebpres install my-series
+./lightwebpres init my-series
 ./lightwebpres demo my-series --lang en      # French by default
 ./lightwebpres build my-series --lang en
 xdg-open my-series/public/index.html         # `open` on macOS
 ```
 
-`install` scaffolds a working project — `articles/` (empty, for your
+`init` scaffolds a working project — `articles/` (empty, for your
 `.md` files), `templates/` (your customization surface: `settings.conf`,
 `custom.css`, `nav.js` — see section 5), `language/` (both the French and
 English packs — typography rules + interface strings), a starter
@@ -69,7 +69,7 @@ are always installed. Pass `--lang fr|en` to `build`/`demo`, or set
 `LWP_LANG`. French is the default, which is why the commands above say
 so explicitly.
 
-`demo` only works after `install` and refuses to overwrite existing
+`demo` only works after `init` and refuses to overwrite existing
 work. It drops three example articles (first, middle and last position in
 the navigation) plus a captioned image, so you have something real to
 look at before writing your own.
@@ -181,19 +181,19 @@ from a list, so you find one by facet: light or dark background, how loud
 it is, and what hue the page carries.
 
 ```bash
-./lightwebpres themes                                     # all 33, with facets
-./lightwebpres themes --polarity dark --intensity sober   # just the ones you mean
-./lightwebpres themes-gallery                             # every theme, rendered
+./lightwebpres theme list                                     # all 33, with facets
+./lightwebpres theme list --polarity dark --intensity sober   # just the ones you mean
+./lightwebpres theme gallery                             # every theme, rendered
 ```
 
 Apply one at install time, or change your mind later:
 
 ```bash
-./lightwebpres install my-series --theme evergreen
-./lightwebpres set-theme my-series --theme crimson
+./lightwebpres init my-series --theme evergreen
+./lightwebpres series theme set my-series --theme crimson
 ```
 
-A theme is a word in a data file: `set-theme` rewrites the one `theme:`
+A theme is a word in a data file: `series theme set` rewrites the one `theme:`
 line of `templates/settings.conf` and nothing else. No CSS is touched —
 the stylesheet is composed in memory at every build.
 
@@ -271,8 +271,8 @@ ceiling as well, so a table grows with the text inside it.
 (`manual | auto`) controls whether words break at end of line; it is
 `manual`, and nothing turns it on for you.
 
-After a `set-theme`, `audit` will note that the scaffold's *comments*
-show the old theme's values; `refresh-templates --scaffold` realigns them
+After a `series theme set`, `audit` will note that the scaffold's *comments*
+show the old theme's values; `template update --scaffold` realigns them
 while keeping every pinned line.
 
 ### Rules rather than values (`templates/custom.css`)
@@ -291,13 +291,13 @@ Two different checks, for two different moments:
 
 ```bash
 ./lightwebpres audit my-series   # editorial warnings, never blocks
-./lightwebpres check my-series   # rebuilds in memory, diffs against public/
+./lightwebpres verify my-series   # rebuilds in memory, diffs against public/
 ```
 
 `audit` flags things worth a second look — no cover slide, a scaffold
 whose comments predate your current theme, a retired CSS variable still
 referenced in `custom.css`, the instance tags in each article — but never
-fails; it's a nudge, not a gate. `check` is the opposite: it rebuilds
+fails; it's a nudge, not a gate. `verify` is the opposite: it rebuilds
 every article in memory and compares it byte-for-byte against `public/`,
 exiting non-zero the moment anything differs. That non-zero exit is what
 makes it a real CI gate — wire it in before `build` to catch a `public/`
@@ -348,18 +348,18 @@ into the chain.
 
 ## 7. Keeping templates current
 
-`lightwebpres` is a single file you copy into each project (`install`
+`lightwebpres` is a single file you copy into each project (`init`
 does this). When you drop in a newer copy, the built-in JS baked into
 `templates/` doesn't update on its own:
 
 ```bash
-./lightwebpres refresh-templates my-series
+./lightwebpres template update my-series
 ```
 
 The stylesheet is composed in memory from the current executable at every
 build, so it is fresh by construction, and your `settings.conf` and
 `custom.css` are yours — never touched. The one tool-owned file on disk
-is `nav.js`: `refresh-templates` replaces it if it differs from the
+is `nav.js`: `template update` replaces it if it differs from the
 built-in version (saving the old one as `nav.js.bak`) and reports
 `already up to date` otherwise. Your theme choice needs no reapplying:
 it's the `theme:` line of `settings.conf`, which an upgrade cannot
@@ -374,18 +374,18 @@ every line you uncommented.
 ### As a pipeline step
 
 The generated `.gitlab-ci.yml` (`install --gitlab-ci`, opt-in — a plain
-`install` never assumes a deployment) is the two-line version:
+`init` never assumes a deployment) is the two-line version:
 
 ```yaml
 build:
   script:
-    - python3 lightwebpres check .    # fails if public/ is stale
+    - python3 lightwebpres verify .    # fails if public/ is stale
     - python3 lightwebpres build .
   artifacts:
     paths: [public]
 ```
 
-`check` before `build` is the useful ordering: it catches a `public/`
+`verify` before `build` is the useful ordering: it catches a `public/`
 that was hand-edited or never rebuilt after a source change, **before**
 the build overwrites the evidence. Nothing here is GitLab-specific — the
 same two commands are the whole job on any runner.

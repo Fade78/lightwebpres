@@ -26,8 +26,8 @@
   --page-shadow-fg: #00000000;
   --page-shadow-blur: 0;
   --page-shadow-dy: 0;
-  --page-content-max: 50ch;
-  --page-block-max: min(84vw, 1100px);
+  --page-content-max: 84vw;
+  --page-block-max: min(84vw, max(1100px, 102vmin));
   --page-hyphens: manual;
   /* slide */
   --slide-rule-fg: #0000001A;
@@ -35,18 +35,18 @@
   /* slide.num */
   --slide-num-fg: #6B6B7DFF;
   --slide-num-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --slide-num-size: 13px;
+  --slide-num-size: max(13px, 1.625vmin);
   --slide-num-tracking: 1px;
   /* tag */
   --tag-fg: #6B6B7DFF;
   --tag-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --tag-size: 12px;
+  --tag-size: max(12px, 1.5vmin);
   --tag-weight: bold;
   --tag-tracking: 2px;
   --tag-transform: uppercase;
   /* title1 */
   --title1-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
-  --title1-size: clamp(28px, 4.5vmin, 52px);
+  --title1-size: max(28px, 6.1vmin);
   --title1-weight: bold;
   --title1-leading: 1.15;
   --title1-fg: #F8F8F5FF;
@@ -56,13 +56,13 @@
   --title1-align: left;
   /* title2 */
   --title2-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
-  --title2-size: clamp(24px, 3.5vmin, 40px);
+  --title2-size: max(24px, 4.7vmin);
   --title2-weight: bold;
   --title2-leading: 1.2;
   --title2-align: left;
   /* summary */
   --summary-fg: #1A1A2EFF;
-  --summary-size: clamp(16px, 2vmin, 22px);
+  --summary-size: max(16px, 2.7vmin);
   --summary-leading: 1.55;
   --summary-align: left;
   /* fact */
@@ -70,12 +70,12 @@
   --fact-rule-fg: #FFFC00FF;
   --fact-rule-width: 4px;
   --fact-fg: #1A1A2EFF;
-  --fact-size: clamp(15px, 1.6vmin, 18px);
+  --fact-size: max(15px, 2.2vmin);
   --fact-align: left;
   /* fact-label */
   --fact-label-fg: #6B6B7DFF;
   --fact-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --fact-label-size: 12px;
+  --fact-label-size: max(12px, 1.5vmin);
   --fact-label-weight: bold;
   --fact-label-tracking: 1.5px;
   --fact-label-transform: uppercase;
@@ -93,11 +93,11 @@
   /* source */
   --source-fg: #6B6B7DFF;
   --source-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --source-size: 12px;
+  --source-size: max(12px, 1.5vmin);
   /* footer */
   --footer-fg: #6B6B7DFF;
   --footer-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --footer-size: 12px;
+  --footer-size: max(12px, 1.5vmin);
   --footer-rule-fg: #0000001A;
   --footer-rule-width: 1px;
   /* cover */
@@ -131,14 +131,14 @@
   --footnote-call-fg-cover: #F8F8F5FF;
   /* note */
   --note-fg: #1A1A2EFF;
-  --note-size: 14px;
+  --note-size: max(14px, 1.75vmin);
   --note-leading: 1.55;
   --note-weight: normal;
   --note-style: normal;
   --note-marker-fg: #FF4757FF;
   --note-back-fg: #1A1A2EFF;
   /* note.local */
-  --note-local-size: 12px;
+  --note-local-size: max(12px, 1.5vmin);
   --note-local-rule-fg: #0000001A;
   --note-local-rule-width: 1px;
   /* note.page */
@@ -146,12 +146,12 @@
   --note-page-rule-fg: #0000001A;
   --note-page-rule-width: 2px;
   --note-page-title-fg: #1A1A2EFF;
-  --note-page-title-size: 28px;
+  --note-page-title-size: max(28px, 3.5vmin);
   --note-page-title-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   /* link */
   --link-decoration-color: #1A1A2EFF;
   /* table */
-  --table-size: clamp(13px, 1.4vmin, 16px);
+  --table-size: max(13px, 1.9vmin);
   --table-rule-fg: #0000001A;
   --table-rule-width: 1px;
   --table-cell-align: left;
@@ -161,7 +161,7 @@
   --table-head-rule-fg: #1A1A2EFF;
   --table-head-rule-width: 2px;
   --table-head-weight: bold;
-  --table-head-size: 13px;
+  --table-head-size: max(13px, 1.625vmin);
   --table-head-tracking: 0.5px;
   --table-head-align: left;
   /* verdict.yes */
@@ -189,21 +189,21 @@
   --caption-align: center;
   /* article */
   --article-bg: #FFFFFFB8;
-  --article-size: 15px;
+  --article-size: max(15px, 1.875vmin);
   --article-leading: 1.7;
   --article-align: left;
   --article-rule-fg: #0000001A;
   --article-rule-width: 1px;
   /* refs */
   --refs-fg: #1A1A2EFF;
-  --refs-size: 12px;
+  --refs-size: max(12px, 1.5vmin);
   --refs-leading: 1.5;
   --refs-weight: normal;
   --refs-style: normal;
   /* highlight */
   --highlight-fg: #1A1A2EFF;
   --highlight-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
-  --highlight-size: clamp(2.1rem, 8vmin, 3.4rem);
+  --highlight-size: max(2.1rem, 10.8vmin);
   --highlight-weight: bold;
   --highlight-leading: 1.05;
   --highlight-tracking: -0.01em;
@@ -214,7 +214,7 @@
   --highlight-align: center;
   /* highlight-caption */
   --highlight-caption-fg: #6B6B7DFF;
-  --highlight-caption-size: 0.9rem;
+  --highlight-caption-size: max(0.9rem, 1.8vmin);
   /* series-nav.current */
   --series-nav-current-bg: #0000000B;
   --series-nav-current-rule-fg: #00000029;
@@ -228,18 +228,18 @@
   /* series-nav.label */
   --series-nav-label-fg: #6B6B7DFF;
   --series-nav-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --series-nav-label-size: 12px;
+  --series-nav-label-size: max(12px, 1.5vmin);
   --series-nav-label-weight: bold;
   --series-nav-label-tracking: 1.5px;
   --series-nav-label-transform: uppercase;
   /* series-nav.title */
-  --series-nav-title-size: 18px;
+  --series-nav-title-size: max(18px, 2.25vmin);
   --series-nav-title-weight: bold;
   /* series-nav.desc */
   --series-nav-desc-fg: #6B6B7DFF;
-  --series-nav-desc-size: 14px;
+  --series-nav-desc-size: max(14px, 1.75vmin);
   /* series-nav.status */
-  --series-nav-status-size: 13px;
+  --series-nav-status-size: max(13px, 1.625vmin);
   --series-nav-status-weight: bold;
   --series-nav-status-fg-current: #6B6B7DFF;
   --series-nav-status-fg-link: #1A1A2EFF;
@@ -249,7 +249,7 @@
   --nav-btn-fg: #1A1A2EFF;
   --nav-btn-rule-fg: #00000029;
   --nav-btn-rule-width: 1px;
-  --nav-btn-size: 20px;
+  --nav-btn-size: max(20px, 2.5vmin);
   --nav-btn-ring: #FF4757FF;
   --nav-btn-ring-width: 3px;
   /* nav-dot */
@@ -260,7 +260,7 @@
   --share-bg: #F8F8F5FF;
   --share-fg: #1A1A2EFF;
   --share-quiet-fg: #6B6B7DFF;
-  --share-size: 13px;
+  --share-size: max(13px, 1.625vmin);
   --share-rule-fg: #00000029;
   --share-rule-width: 1px;
   --share-scrim: #0000008C;
@@ -274,38 +274,38 @@
   /* card.label */
   --card-label-fg: #6B6B7DFF;
   --card-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --card-label-size: 13px;
+  --card-label-size: max(13px, 1.625vmin);
   --card-label-weight: bold;
   --card-label-tracking: 2px;
   --card-label-transform: uppercase;
   /* card.title */
-  --card-title-size: 20px;
+  --card-title-size: max(20px, 2.5vmin);
   --card-title-weight: bold;
   /* card.desc */
   --card-desc-fg: #6B6B7DFF;
-  --card-desc-size: 15px;
+  --card-desc-size: max(15px, 1.875vmin);
   /* card.cta */
   --card-cta-fg: #1A1A2EFF;
-  --card-cta-size: 14px;
+  --card-cta-size: max(14px, 1.75vmin);
   --card-cta-weight: bold;
   /* header */
   --header-rule-fg: #FFFC00FF;
   --header-rule-width: 2px;
   /* header.title */
   --header-title-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
-  --header-title-size: clamp(28px, 4vmin, 44px);
+  --header-title-size: max(28px, 5.4vmin);
   --header-title-weight: bold;
   --header-title-leading: 1.2;
   /* header.subtitle */
   --header-subtitle-fg: #6B6B7DFF;
-  --header-subtitle-size: clamp(16px, 2vmin, 20px);
+  --header-subtitle-size: max(16px, 2.7vmin);
   /* version-tag */
   --version-tag-font: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   --version-tag-fg: #6B6B7DFF;
   --version-tag-bg: #0000000B;
-  --version-tag-size: 12px;
+  --version-tag-size: max(12px, 1.5vmin);
   /* intro */
-  --intro-size: 17px;
+  --intro-size: max(17px, 2.125vmin);
   --intro-leading: 1.7;
 }
 body {
@@ -731,7 +731,23 @@ html { scroll-behavior: smooth; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 60px 8vw;
+  /* The column is CENTRED in the card, and it is the padding that centres
+     it -- 8vw until the card is wider than the column, then whatever is
+     left over, split in two. Measured at 1920px before this line existed:
+     154px of margin on the left and 666px on the right, the whole card
+     hugging one edge.
+
+     Centring the padding box rather than the items, because
+     `align-items: center` on a flex column gives every item its own
+     CONTENT width: measured, a short heading landed at x=915 and the
+     summary under it at x=884, so the column stopped having one left edge
+     at all. Every child stays stretched to the same width; only the box
+     they stretch inside moves.
+
+     Reading --page-content-max rather than repeating its value: an author
+     who pins a different column width gets it centred too, with nothing
+     else to set. */
+  padding: 60px max(8vw, (100% - var(--page-content-max)) / 2);
   border-bottom-style: solid;
   position: relative;
 }
@@ -753,12 +769,22 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 /* Measured, not guessed: at the default offset the underline collides
    with the descenders, and inside a highlight it runs into the mark's
    lower edge. Both properties degrade silently on an old engine — the
-   rule falls back to its default position rather than disappearing. */
+   rule falls back to its default position rather than disappearing.
+
+   Every length here is a halo around a glyph: the coloured box a marked
+   run sits in, the rounding of its corners, the weight of the rule and
+   how far it clears the baseline. All four are drawn against the text,
+   so all four scale with it. In bare pixels the box hugged the glyphs
+   tighter the larger the screen got -- 4px of side padding reads as a
+   marker at 24px type and as a printing error at 47px. The floors keep
+   the two collisions above as measured: below roughly an 800px smaller
+   dimension these are the pixel values they were measured at, and above
+   it they hold the ratio they were measured at. */
 .fact-content strong {
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-  padding: 1px 4px;
-  border-radius: 2px;
+  text-decoration-thickness: max(2px, 0.25vmin);
+  text-underline-offset: max(3px, 0.375vmin);
+  padding: max(1px, 0.125vmin) max(4px, 0.5vmin);
+  border-radius: max(2px, 0.25vmin);
 }
 .fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
 .fact-content h1:first-child,
@@ -924,7 +950,15 @@ sup { vertical-align: super; line-height: 0; }
 .full-article .refs p { font-size: 13px; margin-bottom: 6px; }
 
 /* --- Series navigation --- */
-.series-list { max-width: 680px; }
+/* The column, like everything else on a card. A flat 680px left the
+   navigation at 42% of the column at 1920 and 21% at 3840, pinned to the
+   left edge of a card whose heading ran the full width -- and the
+   heading is what a series-nav slide puts directly above this list, so
+   any width narrower than the column is also a second centre on the one
+   card that has only two things on it. Reading --page-content-max gives
+   both of the things a narrow box was reaching for: it is wider, and it
+   is centred, because it IS the column. */
+.series-list { max-width: var(--page-content-max); }
 .series-item {
   display: block;
   padding: 20px 24px;
@@ -1016,17 +1050,34 @@ sup { vertical-align: super; line-height: 0; }
   .nav-buttons { bottom: 16px; right: 16px; }
 }
 
-/* --- The highlight block --- */
+/* --- The highlight block ---
+   --page-content-max, not --page-block-max, and NOT a flex column. Two
+   defects lived in the four lines this replaces, and both were measured
+   in a browser before and after.
+
+   The width: block-max caps at 1100px, so on a card whose text ran the
+   full column the key figure was centred inside a 1100px box pinned to
+   the column's left edge -- centred on a different thing from everything
+   above and below it. Measured off-centre by 55px at 1440, 256px at
+   1920 and 1063px at 3840. block-max is right for a table or a code
+   block: those are LEFT-aligned, so a narrower box still shares the
+   column's left edge and reads as deliberate. A centred box is the one
+   case where a different width becomes a different centre, which is why
+   this is the only consumer that had to move.
+
+   The flex: `align-items: center` centred the two children and, in doing
+   so, made highlight.align dead. That property emits `text-align` onto
+   this element, and text-align does nothing to flex items -- setting
+   `highlight.align: left` moved the figure by zero pixels, measured.
+   Plain blocks inherit text-align, so the property now does what the
+   registry has always advertised, and the default `center` centres the
+   figure and its caption on the column. */
 .highlight {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
   margin: 18px 0 22px;
-  max-width: var(--page-block-max);
+  max-width: var(--page-content-max);
 }
-.highlight-figure { overflow-wrap: anywhere; }
-.highlight-caption { max-width: var(--page-content-max); }
+.highlight-figure { display: block; overflow-wrap: anywhere; }
+.highlight-caption { display: block; margin-top: 6px; }
 
 /* --- Share popover and its QR modal --- */
 .share-popover {
@@ -1312,7 +1363,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <h2>Three commands to a built site</h2>
   <div class="fact-box">
     <div class="fact-label">The whole loop</div>
-    <div class="fact-content">  <p><code>install</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no runtime dependency, nothing to load.</p>
+    <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no runtime dependency, nothing to load.</p>
   <p>Language is chosen <strong>per build</strong>, never stored: pass <code>--lang en</code> or you get French.</p></div>
   </div>
   <p class="source">Source : Guide, section 2</p>
@@ -1355,7 +1406,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="fact-box">
     <div class="fact-label">Why facets rather than a list</div>
     <div class="fact-content">  <p>Thirty-three names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.</p>
-  <p><code>themes-gallery</code> renders every one of them against real slide content.</p></div>
+  <p><code>theme gallery</code> renders every one of them against real slide content.</p></div>
   </div>
 </section>
 
@@ -1366,7 +1417,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="highlight"><span class="highlight-figure">11</span><span class="highlight-caption">standard-library modules, and nothing else to install</span></div>
   <div class="fact-box">
     <div class="fact-label">What makes it pipeline-shaped</div>
-    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>check</code> fails on drift, <code>audit</code> never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
+    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>verify</code> fails on drift, <code>audit</code> never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
   <p>The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.</p></div>
   </div>
 </section>
@@ -1378,7 +1429,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="fact-box">
     <div class="fact-label">A nudge and a gate</div>
     <div class="fact-content">  <p><code>audit</code> flags what is worth a second look and <strong>never fails</strong> — a missing cover, a stale scaffold comment, a retired variable still referenced.</p>
-  <p><code>check</code> rebuilds in memory and diffs against <code>public/</code>, exiting non-zero on any difference. That exit code is what makes it a CI gate.</p></div>
+  <p><code>verify</code> rebuilds in memory and diffs against <code>public/</code>, exiting non-zero on any difference. That exit code is what makes it a CI gate.</p></div>
   </div>
 </section>
 
@@ -1414,18 +1465,18 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from</li>
   </ul>
   <p>  somewhere else entirely — a CMS export, a database, a generator, an   agent upstream — and LightWebPres is what turns it into publishable   pages.</p>
-  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>check</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit</code> never fails, because it is advice. <strong>There is nothing to install</strong>: one file, eleven modules from the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
+  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit</code> never fails, because it is advice. <strong>There is nothing to install</strong>: one file, eleven modules from the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Install &amp; your first build</h2>
   <pre><code class="language-bash">
-./lightwebpres install my-series
+./lightwebpres init my-series
 ./lightwebpres demo my-series --lang en      # French by default
 ./lightwebpres build my-series --lang en
 xdg-open my-series/public/index.html         # `open` on macOS
   </code></pre>
-  <p><code>install</code> scaffolds a working project — <code>articles/</code> (empty, for your <code>.md</code> files), <code>templates/</code> (your customization surface: <code>settings.conf</code>, <code>custom.css</code>, <code>nav.js</code> — see section 5), <code>language/</code> (both the French and English packs — typography rules + interface strings), a starter <code>series.json</code>, and a copy of the <code>lightwebpres</code> executable itself, so the project directory is self-sufficient.</p>
+  <p><code>init</code> scaffolds a working project — <code>articles/</code> (empty, for your <code>.md</code> files), <code>templates/</code> (your customization surface: <code>settings.conf</code>, <code>custom.css</code>, <code>nav.js</code> — see section 5), <code>language/</code> (both the French and English packs — typography rules + interface strings), a starter <code>series.json</code>, and a copy of the <code>lightwebpres</code> executable itself, so the project directory is self-sufficient.</p>
   <p><strong>Language is chosen per build, not stored in the project</strong> — both packs are always installed. Pass <code>--lang fr|en</code> to <code>build</code>/<code>demo</code>, or set <code>LWP_LANG</code>. French is the default, which is why the commands above say so explicitly.</p>
-  <p><code>demo</code> only works after <code>install</code> and refuses to overwrite existing work. It drops three example articles (first, middle and last position in the navigation) plus a captioned image, so you have something real to look at before writing your own.</p>
+  <p><code>demo</code> only works after <code>init</code> and refuses to overwrite existing work. It drops three example articles (first, middle and last position in the navigation) plus a captioned image, so you have something real to look at before writing your own.</p>
   <p><code>build</code> reads <code>series.json</code> and every article it lists, and writes <code>public/*.html</code> plus <code>public/index.html</code> and a generated <code>README.md</code>. Open <code>public/index.html</code> in a browser — no server needed, every page is a single self-contained file.</p>
   <h2>3. What a page is made of</h2>
   <p>A page is a sequence of <strong>slides</strong>, separated by <code>---</code>, preceded by one metadata block. There are four slide types, and inside a standard slide a small set of named components. This section names them and says how you reach each one; <code>SKILL.md</code> carries the exact syntax and every edge case.</p>
@@ -1461,6 +1512,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
       </tr>
     </tbody>
   </table>
+  <p>Four, and only four. Mistype one — <code>&lt;!-- lwp:slide:covre --&gt;</code> — and the build stops and tells you which slide, what you wrote, and what the four names are. You will not find out from the page.</p>
   <p><strong>The components inside a standard slide.</strong></p>
   <table class="comparison-table">
     <thead>
@@ -1544,16 +1596,16 @@ xdg-open my-series/public/index.html         # `open` on macOS
   <h3>Pick a theme (the whole series)</h3>
   <p>Thirty-three named colour themes ship pre-configured — too many to pick from a list, so you find one by facet: light or dark background, how loud it is, and what hue the page carries.</p>
   <pre><code class="language-bash">
-./lightwebpres themes                                     # all 33, with facets
-./lightwebpres themes --polarity dark --intensity sober   # just the ones you mean
-./lightwebpres themes-gallery                             # every theme, rendered
+./lightwebpres theme list                                     # all 33, with facets
+./lightwebpres theme list --polarity dark --intensity sober   # just the ones you mean
+./lightwebpres theme gallery                             # every theme, rendered
   </code></pre>
   <p>Apply one at install time, or change your mind later:</p>
   <pre><code class="language-bash">
-./lightwebpres install my-series --theme evergreen
-./lightwebpres set-theme my-series --theme crimson
+./lightwebpres init my-series --theme evergreen
+./lightwebpres series theme set my-series --theme crimson
   </code></pre>
-  <p>A theme is a word in a data file: <code>set-theme</code> rewrites the one <code>theme:</code> line of <code>templates/settings.conf</code> and nothing else. No CSS is touched — the stylesheet is composed in memory at every build.</p>
+  <p>A theme is a word in a data file: <code>series theme set</code> rewrites the one <code>theme:</code> line of <code>templates/settings.conf</code> and nothing else. No CSS is touched — the stylesheet is composed in memory at every build.</p>
   <h3>Change one phrase (an instance tag)</h3>
   <p>Inside any free text, for the one place that needs it:</p>
   <pre><code class="language-markdown">
@@ -1583,17 +1635,17 @@ style.page.content-max: 60ch
 tag.fg: call               ← uncommented: yours, and it stays
   </code></pre>
   <p>A bare word like <code>call</code> is looked up among the theme's shared values (<code>color.call</code>, since <code>fg</code> is a colour axis); a literal like <code>#8A4B00</code> works anywhere a colour does. A mistyped key or value is a named build error pointing at the file and key.</p>
-  <p>Two properties people look for by name: <strong><code>page.content-max</code></strong> is the text column width, <code>50ch</code> by default — a measure in characters, not a pixel width, so it stays right at every type size. <strong><code>page.hyphens</code></strong> (<code>manual | auto</code>) controls whether words break at end of line; it is <code>manual</code>, and nothing turns it on for you.</p>
-  <p>After a <code>set-theme</code>, <code>audit</code> will note that the scaffold's <em>comments</em> show the old theme's values; <code>refresh-templates --scaffold</code> realigns them while keeping every pinned line.</p>
+  <p>Three properties people look for by name: <strong><code>page.content-max</code></strong> is the text column width, <code>84vw</code> by default — proportional to the window, with no ceiling, so a deck shown full screen uses the screen. Every type size is proportional too — the tag, the fact label, the key figure's caption and the slide number as much as the title — which is what keeps the line length steady and the proportions between them fixed as the screen grows. Each size has a floor in pixels, and the floor is what governs a phone. <strong><code>page.block-max</code></strong> is the width of the things that are not running text — a table, a code block, a figure — sized by what they hold rather than by a count of characters; it has a floor rather than a ceiling as well, so a table grows with the text inside it. <strong><code>page.hyphens</code></strong> (<code>manual | auto</code>) controls whether words break at end of line; it is <code>manual</code>, and nothing turns it on for you.</p>
+  <p>After a <code>series theme set</code>, <code>audit</code> will note that the scaffold's <em>comments</em> show the old theme's values; <code>template update --scaffold</code> realigns them while keeping every pinned line.</p>
   <h3>Rules rather than values (<code>templates/custom.css</code>)</h3>
   <p>Full CSS, no subset, appended after the composed stylesheet so your rules win ties. New selectors, media queries, <code>@font-face</code> (name the family at the head of a stack in <code>settings.conf</code>, declare the face here). The composed sheet's <code>--component-axis</code> variables are usable in it (<code>border-color: var(--color-mark)</code>), and that is the recommended way to follow the theme. <code>templates/nav.js</code> overrides the navigation behaviour wholesale; the page and index HTML structure is fixed, not a template.</p>
   <h2>6. Verifying before you ship</h2>
   <p>Two different checks, for two different moments:</p>
   <pre><code class="language-bash">
 ./lightwebpres audit my-series   # editorial warnings, never blocks
-./lightwebpres check my-series   # rebuilds in memory, diffs against public/
+./lightwebpres verify my-series   # rebuilds in memory, diffs against public/
   </code></pre>
-  <p><code>audit</code> flags things worth a second look — no cover slide, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, the instance tags in each article — but never fails; it's a nudge, not a gate. <code>check</code> is the opposite: it rebuilds every article in memory and compares it byte-for-byte against <code>public/</code>, exiting non-zero the moment anything differs. That non-zero exit is what makes it a real CI gate — wire it in before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
+  <p><code>audit</code> flags things worth a second look — no cover slide, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, the instance tags in each article — but never fails; it's a nudge, not a gate. <code>verify</code> is the opposite: it rebuilds every article in memory and compares it byte-for-byte against <code>public/</code>, exiting non-zero the moment anything differs. That non-zero exit is what makes it a real CI gate — wire it in before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
   <h3>Asking why a value is what it is</h3>
   <p>Most of what ends up on a page was never written on that page: a title falls back through <code>series.json</code>, the meta block and the cover slide, a colour falls through <code>settings.conf</code>, the theme and the built-in defaults. When the result surprises you, ask:</p>
   <pre><code class="language-bash">
@@ -1618,24 +1670,24 @@ tag.fg — theme property
   <p>That second half is the one that solves problems. A line you wrote that changed nothing shows up here as a level holding nothing — still commented out, or beaten by a <code>series.json</code> entry you had forgotten.</p>
   <p>A slide field has no cascade, so <code>resolve fact-label</code> answers with the list of slides that set it instead — across the series, or within one article with <code>--article</code>. Add <code>--format json</code> for a machine, and pass <code>--article</code> to a theme property to fold that page's own <code>style.*</code> lines into the chain.</p>
   <h2>7. Keeping templates current</h2>
-  <p><code>lightwebpres</code> is a single file you copy into each project (<code>install</code> does this). When you drop in a newer copy, the built-in JS baked into <code>templates/</code> doesn't update on its own:</p>
+  <p><code>lightwebpres</code> is a single file you copy into each project (<code>init</code> does this). When you drop in a newer copy, the built-in JS baked into <code>templates/</code> doesn't update on its own:</p>
   <pre><code class="language-bash">
-./lightwebpres refresh-templates my-series
+./lightwebpres template update my-series
   </code></pre>
-  <p>The stylesheet is composed in memory from the current executable at every build, so it is fresh by construction, and your <code>settings.conf</code> and <code>custom.css</code> are yours — never touched. The one tool-owned file on disk is <code>nav.js</code>: <code>refresh-templates</code> replaces it if it differs from the built-in version (saving the old one as <code>nav.js.bak</code>) and reports <code>already up to date</code> otherwise. Your theme choice needs no reapplying: it's the <code>theme:</code> line of <code>settings.conf</code>, which an upgrade cannot revert.</p>
+  <p>The stylesheet is composed in memory from the current executable at every build, so it is fresh by construction, and your <code>settings.conf</code> and <code>custom.css</code> are yours — never touched. The one tool-owned file on disk is <code>nav.js</code>: <code>template update</code> replaces it if it differs from the built-in version (saving the old one as <code>nav.js.bak</code>) and reports <code>already up to date</code> otherwise. Your theme choice needs no reapplying: it's the <code>theme:</code> line of <code>settings.conf</code>, which an upgrade cannot revert.</p>
   <p><code>--scaffold</code> additionally regenerates <code>settings.conf</code>'s commented block against the current theme and the current property registry, keeping every line you uncommented.</p>
   <h2>8. Automation, CI/CD, and the browser</h2>
   <h3>As a pipeline step</h3>
-  <p>The generated <code>.gitlab-ci.yml</code> (<code>install --gitlab-ci</code>, opt-in — a plain <code>install</code> never assumes a deployment) is the two-line version:</p>
+  <p>The generated <code>.gitlab-ci.yml</code> (<code>install --gitlab-ci</code>, opt-in — a plain <code>init</code> never assumes a deployment) is the two-line version:</p>
   <pre><code class="language-yaml">
 build:
   script:
-    - python3 lightwebpres check .    # fails if public/ is stale
+    - python3 lightwebpres verify .    # fails if public/ is stale
     - python3 lightwebpres build .
   artifacts:
     paths: [public]
   </code></pre>
-  <p><code>check</code> before <code>build</code> is the useful ordering: it catches a <code>public/</code> that was hand-edited or never rebuilt after a source change, <strong>before</strong> the build overwrites the evidence. Nothing here is GitLab-specific — the same two commands are the whole job on any runner.</p>
+  <p><code>verify</code> before <code>build</code> is the useful ordering: it catches a <code>public/</code> that was hand-edited or never rebuilt after a source change, <strong>before</strong> the build overwrites the evidence. Nothing here is GitLab-specific — the same two commands are the whole job on any runner.</p>
   <p>For a pipeline where content arrives from upstream, three more things matter. <code>--only page</code> rebuilds a single article rather than the series, with <code>--nav-cache</code> holding the fingerprint that tells it whether the navigation still needs regenerating. <code>--build-stamp</code> marks every generated page with the version and time it came from, which is what you want when a page is published by a machine and questioned by a human three months later. And <code>status</code> in <code>series.json</code> decides what enters the build at all: <code>draft</code> until something upstream flips it, <code>ignored</code> for an article you want kept and not published.</p>
   <h3>In the browser</h3>
   <p><code>web/index.html</code>, one page with two tabs, runs the exact same engine as the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly), so the output is identical either way:</p>
@@ -1751,7 +1803,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
  *
  * This notice must travel with the code it covers. It lives inside the
  * template rather than beside it, so that it reaches every series scaffolded
- * by `lightwebpres install` and every page written by a build without anyone
+ * by `lightwebpres init` and every page written by a build without anyone
  * having to remember to copy it. Everything after the encoder is part of
  * lightwebpres itself.
  */

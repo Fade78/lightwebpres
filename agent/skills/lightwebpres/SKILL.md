@@ -591,7 +591,7 @@ as finished — don't guess at whether it would build.
 This skill covers only the LWP article format — writing and editing
 `.md` files. It's deliberately kept narrow to stay light on context; it
 does not cover installing, choosing a theme, building, verifying with
-`check`/`audit`, refreshing templates, or deploying. For all of that, if
+`verify`/`audit`, refreshing templates, or deploying. For all of that, if
 `GUIDE.md` is present alongside this project, read it — it's the full
 walkthrough, in the order it's actually needed.
 

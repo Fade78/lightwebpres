@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerates themes-gallery.png, the still that README.md embeds.
+"""Regenerates theme gallery.png, the still that README.md embeds.
 
 Two things this has to get right, and both were found the hard way.
 
@@ -22,14 +22,14 @@ import sys
 from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GALLERY = ROOT / 'themes-gallery.html'
-OUT = ROOT / 'themes-gallery.png'
+GALLERY = ROOT / 'theme gallery.html'
+OUT = ROOT / 'theme gallery.png'
 WIDTH = 1520
 
 
 def main(rows=4):
     if not GALLERY.exists():
-        sys.exit(f'{GALLERY} not found — run `lightwebpres themes-gallery` first')
+        sys.exit(f'{GALLERY} not found — run `lightwebpres theme gallery` first')
     with sync_playwright() as p:
         browser = p.chromium.launch(executable_path='/opt/pw-browsers/chromium')
         page = browser.new_page(viewport={'width': WIDTH, 'height': 1200})

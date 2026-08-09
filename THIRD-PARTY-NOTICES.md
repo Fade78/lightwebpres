@@ -15,7 +15,7 @@ It lives inside the `TEMPLATE_NAV_JS` template, and the MIT notice is
 embedded in that template rather than kept here alongside it. That is
 deliberate: MIT requires the copyright and permission notice to travel
 with every copy, and this code is copied into every series scaffolded by
-`lightwebpres install` (as `templates/nav.js`) and into every page a
+`lightwebpres init` (as `templates/nav.js`) and into every page a
 build writes. A notice that lived only in this file would be left behind
 by the very act of using the tool.
 

@@ -31,7 +31,7 @@ tag: Install
 fact-label: The whole loop
 source: Guide, section 2
 
-`install` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no runtime dependency, nothing to load.
+`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no runtime dependency, nothing to load.
 
 Language is chosen **per build**, never stored: pass `--lang en` or you get French.
 
@@ -79,7 +79,7 @@ fact-label: Why facets rather than a list
 
 Thirty-three names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.
 
-`themes-gallery` renders every one of them against real slide content.
+`theme gallery` renders every one of them against real slide content.
 
 ---
 
@@ -92,7 +92,7 @@ highlight-caption: standard-library modules, and nothing else to install
 
 fact-label: What makes it pipeline-shaped
 
-Every command runs unattended and returns a meaningful exit code. `check` fails on drift, `audit` never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.
+Every command runs unattended and returns a meaningful exit code. `verify` fails on drift, `audit` never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.
 
 The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.
 
@@ -106,7 +106,7 @@ fact-label: A nudge and a gate
 
 `audit` flags what is worth a second look and **never fails** — a missing cover, a stale scaffold comment, a retired variable still referenced.
 
-`check` rebuilds in memory and diffs against `public/`, exiting non-zero on any difference. That exit code is what makes it a CI gate.
+`verify` rebuilds in memory and diffs against `public/`, exiting non-zero on any difference. That exit code is what makes it a CI gate.
 
 ---
 

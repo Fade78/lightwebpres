@@ -38,7 +38,7 @@ const TIMEOUT = 120000;
 
 async function main() {
   if (!fs.existsSync(IN)) {
-    console.error(`missing ${IN} — run ./lightwebpres themes-gallery first`);
+    console.error(`missing ${IN} — run ./lightwebpres theme gallery first`);
     process.exit(2);
   }
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;

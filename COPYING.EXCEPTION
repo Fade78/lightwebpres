@@ -12,7 +12,7 @@ articles, and the HTML, CSS and JavaScript of every page it builds.
 In this exception, "Covered Output" means every file that lightwebpres
 writes or generates, and every portion of lightwebpres embedded in such a
 file -- but not any complete copy of the lightwebpres program itself, such
-as the copy of this executable that `lightwebpres install` places in the
+as the copy of this executable that `lightwebpres init` places in the
 series directory. That copy remains governed by the GNU General Public
 License, and if you distribute it -- for instance by publishing your series
 repository -- the License's conditions apply to it, including passing on a

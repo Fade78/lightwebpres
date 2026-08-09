@@ -29,7 +29,7 @@ python3 lightwebpres <command> [dir] [options]        # usage général
   - `PROPOSITION-CLI.md` — intention de conception
   - `DECISION-CLI.md` — arbitrages normatifs (référence pour les décisions)
   - `PLAN-CLI.md` — plan d'implémentation par phase
-- `themes-gallery.html` — généré par `lightwebpres themes-gallery` (artefact).
+- `theme gallery.html` — généré par `lightwebpres theme gallery` (artefact).
 
 ## Conventions
 

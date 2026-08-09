@@ -300,7 +300,7 @@ the dark-designed schemes to `dark_background` (which the per-colour
 measurements in `REVISION-THEMES.md` appendix A establish as a
 *restoration* of fidelity, not a loss), set their
 verdict/footnote inks to `ink`, retune the values, or declare-and-mark
-them (D6, still undone: nothing in `themes` or the gallery distinguishes
+them (D6, still undone: nothing in `theme list` or the gallery distinguishes
 the nine borrowed palettes from the twenty-four measured ones). Owner's
 call, one line per theme once made. The catalogue revision pass (B9) is
 the natural vehicle.
