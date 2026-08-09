@@ -71,7 +71,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.22.0"
+VERSION = "0.23.0"
 
 # Where this tool comes from. A constant because two places have to say
 # it and neither did: `--help` ended on "Full reference:
@@ -10877,14 +10877,164 @@ _COMMAND_OPTIONS = {
     'themes-gallery': set(),
 }
 
+# --- Refonte CLI v0.23.0 (DECISION-CLI.md / PLAN-CLI.md) ---------------------
+# Options accepted BEFORE the command (git-style). Phase 1 accepts them as
+# no-op until Phase 2 wires them to log()/behaviours; --version and --help act
+# immediately. The option nearest the command wins (DECISION §2: precedence).
+_GLOBAL_OPTIONS = frozenset({'--lang', '--quiet', '--verbose', '--no-color',
+                             '--timestamp', '--version', '--help'})
+_GLOBAL_FLAGS = frozenset({'--quiet', '--verbose', '--no-color', '--timestamp',
+                           '--version', '--help'})
+_GLOBAL_VALUES = frozenset({'--lang'})
 
-def parse_cli_options(command, rest):
+# Canonical commands are the source of truth (PROPOSITION §4.2). Shortcuts are
+# a root-level comfort layer; legacy aliases are the previous names, kept for
+# one MAJOR with a [WARN] on stderr (DECISION §1 Phase 1, §9 of PROPOSITION).
+# Each entry maps the user-facing token → the internal `cmd_*` dispatch key.
+# The dispatch key is also what _COMMAND_OPTIONS is indexed by, so the option
+# tables above stay valid without duplication.
+_SHORTCUTS = {
+    'init': 'install',
+    'demo': 'demo',
+    'build': 'build',
+    'verify': 'check',
+    'audit': 'audit',
+    'status': 'series-info',
+    'clean': 'clean',
+    'resolve': 'resolve',
+    'template': 'refresh-templates',
+    'watch': 'watch',
+}
+# Two-word shortcuts: `template update` → refresh-templates. Parsed by
+# _resolve_command when the first token is `template` and the second is
+# `update`; a lone `template` is NOT a shortcut (DECISION §3 abandoned the
+# `series template` reading command).
+# (No other two-word shortcuts yet — `template update` is handled inline.)
+# Legacy names → new dispatch key. Each emits a [WARN] on stderr naming the
+# new form. The dispatch key is the OLD cmd_* name (option tables stay valid).
+_LEGACY_ALIASES = {
+    'install': 'install',
+    'check': 'check',
+    'refresh-templates': 'refresh-templates',
+    'themes': 'themes',
+    'theme-info': 'theme-info',
+    'set-theme': 'set-theme',
+    'themes-gallery': 'themes-gallery',
+    'series-info': 'series-info',
+    'resolve': 'resolve',
+    'demo': 'demo',
+    'build': 'build',
+    'audit': 'audit',
+}
+# Map of legacy alias → recommended new invocation, for the [WARN] message.
+_LEGACY_REPLACEMENT = {
+    'install': 'init',
+    'check': 'verify',
+    'refresh-templates': 'template update',
+    'themes': 'theme list',
+    'theme-info': 'theme show <slug>  (or  series theme <dir>  for the effective theme)',
+    'set-theme': 'series theme set',
+    'themes-gallery': 'theme gallery',
+    'series-info': 'status',
+    'resolve': 'series resolve',
+    'demo': 'demo',
+    'build': 'build',
+    'audit': 'audit',
+}
+# Canonical `series <verbe>` and `theme <verbe>` forms. `series` is the
+# dominant object; almost every series verb has a root shortcut. `theme` is
+# the catalogue node and never touches a series.
+_SERIES_VERBS = {
+    'init': 'install', 'demo': 'demo', 'build': 'build', 'verify': 'check',
+    'audit': 'audit', 'status': 'series-info', 'clean': 'clean',
+    'watch': 'watch', 'resolve': 'resolve',
+    'theme': 'theme-info', 'template': 'refresh-templates',
+}
+_THEME_VERBS = {
+    'list': 'themes', 'show': 'theme-info', 'gallery': 'themes-gallery',
+}
+
+
+def _warn_legacy(alias):
+    print(f'[WARN] `{alias}` is deprecated; use `{_LEGACY_REPLACEMENT[alias]}` '
+          f'instead. (`{alias}` remains an alias until the next MAJOR version.)',
+          file=sys.stderr)
+
+
+def _resolve_command(args):
+    """Resolves the user's first token(s) to a dispatch key and the remaining
+    args. Returns (dispatch_key, remaining_args, is_legacy) or (None, args, False)
+    if no command is recognised.
+
+    Acceptance order (first match wins):
+      1. `--version` / `--help` / `-h` as a global flag (handled by main).
+      2. `series <verb>` / `theme <verb>` canonical forms.
+      3. Two-word shortcuts (`template update`).
+      4. Root shortcuts (`init`, `build`, ...).
+      5. Legacy aliases (`install`, `check`, ...).
+    """
+    if not args:
+        return None, args, False
+    head = args[0]
+
+    if head == 'series' and len(args) >= 2:
+        verb = args[1]
+        # `series theme set <dir> --theme X` — two-word series verb.
+        if verb == 'theme' and len(args) >= 3 and args[2] == 'set':
+            return 'set-theme', args[3:], False
+        if verb in _SERIES_VERBS:
+            return _SERIES_VERBS[verb], args[2:], False
+        print(f"[ERROR] Unknown series verb: `series {verb}`. "
+              f"Run `lightwebpres --help` for the command list.", file=sys.stderr)
+        sys.exit(1)
+
+    if head == 'theme' and len(args) >= 2:
+        verb = args[1]
+        if verb in _THEME_VERBS:
+            return _THEME_VERBS[verb], args[2:], False
+        # `theme set` is NOT a shortcut (DECISION §3): the `theme` node never
+        # touches a series. Point at the canonical form.
+        if verb == 'set':
+            print("[ERROR] `theme set` is not a root command: the `theme` "
+                  "node is the catalogue and never modifies a series. "
+                  "Use `lightwebpres series theme set [dir] --theme X`.",
+                  file=sys.stderr)
+            sys.exit(1)
+        print(f"[ERROR] Unknown theme verb: `theme {verb}`. "
+              f"Run `lightwebpres --help` for the command list.", file=sys.stderr)
+        sys.exit(1)
+
+    # Two-word shortcut: `template update`.
+    if head == 'template' and len(args) >= 2 and args[1] == 'update':
+        return 'refresh-templates', args[2:], False
+    # Lone `template` is NOT a shortcut (series template reading is abandoned).
+    if head == 'template':
+        print("[ERROR] `template` alone is not a command. Use "
+              "`lightwebpres template update [dir]` (the reading command "
+              "was replaced by `audit --templates`).", file=sys.stderr)
+        sys.exit(1)
+
+    if head in _SHORTCUTS:
+        return _SHORTCUTS[head], args[1:], False
+
+    if head in _LEGACY_ALIASES:
+        _warn_legacy(head)
+        return _LEGACY_ALIASES[head], args[1:], True
+
+    return None, args, False
+
+
+def parse_cli_options(command, rest, global_opts=None):
     """Parses `rest` into (opts, positional) against _COMMAND_OPTIONS.
 
     Fatal errors (exit 1): an option the command doesn't accept (whether
-    it exists elsewhere or not), and a value option with no value."""
+    it exists elsewhere or not), and a value option with no value.
+
+    `global_opts` (optional) is the dict of options already consumed before
+    the command. They are merged in, with the per-command option winning on
+    conflict (nearest-to-the-command wins, DECISION §2)."""
     allowed = _COMMAND_OPTIONS[command]
-    opts = {}
+    opts = dict(global_opts) if global_opts else {}
     positional = []
     i = 0
     while i < len(rest):
@@ -10922,19 +11072,67 @@ def parse_cli_options(command, rest):
     return opts, positional
 
 
+def _parse_global_options(args):
+    """Consumes global options (git-style) from the front of `args` until a
+    non-option is met. Returns (global_opts, remaining).
+
+    `--version` and `--help`/`-h` short-circuit: they print and exit. The
+    other globals are accepted as no-op in Phase 1 (Phase 2 wires them)."""
+    global_opts = {}
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if not arg.startswith('--'):
+            break
+        name, eq, inline_value = arg.partition('=')
+        if name not in _GLOBAL_OPTIONS:
+            # Not a global — leave it for the command parser. But stop here so
+            # the command can flag it if it's unknown to it either.
+            break
+        if name == '--version':
+            print(f'LightWebPres v{VERSION}')
+            sys.exit(0)
+        if name in ('--help', '-h'):
+            print_help()
+            sys.exit(0)
+        if name in _GLOBAL_FLAGS:
+            if eq:
+                print(f'[ERROR] Option {name} takes no value.', file=sys.stderr)
+                sys.exit(1)
+            global_opts[name] = True
+            i += 1
+        elif name in _GLOBAL_VALUES:
+            if eq:
+                global_opts[name] = inline_value
+                i += 1
+            elif i + 1 < len(args) and not args[i + 1].startswith('--'):
+                global_opts[name] = args[i + 1]
+                i += 2
+            else:
+                print(f'[ERROR] Option {name} requires a value.', file=sys.stderr)
+                sys.exit(1)
+        else:
+            break
+    return global_opts, args[i:]
+
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ('-h', '--help', 'help'):
         print_help()
         return
 
-    command = args[0]
-    if command not in _COMMAND_OPTIONS:
-        print(f'Unknown command: {command}', file=sys.stderr)
+    # Global options before the command (git-style). --version/--help short-
+    # circuit inside _parse_global_options.
+    global_opts, args = _parse_global_options(args)
+
+    command, rest, is_legacy = _resolve_command(args)
+    if command is None:
+        print(f'Unknown command: {args[0]}', file=sys.stderr)
         print_help()
         sys.exit(1)
 
-    opts, positional = parse_cli_options(command, args[1:])
+    opts, positional = parse_cli_options(command, rest, global_opts)
 
     target = positional[0] if positional else os.environ.get('LWP_SERIES_DIR', '.')
 
