@@ -72,7 +72,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.24.0"
+VERSION = "0.24.2"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -11011,7 +11011,56 @@ def print_help():
         'with `## Title`, or `# Title` on a cover; it is never a `key:` line.',
         width=_TERM_WIDTH - 2, initial_indent='  ', subsequent_indent='  ',
         break_on_hyphens=False)
-    print(f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
+
+    def _reflow(text):
+        """Re-wraps the help to _TERM_WIDTH. Only prose re-fills the
+        terminal width: a run of same-indent, non-tabular lines (a
+        multi-line description or a text paragraph) is joined and
+        re-wrapped. Everything else — column-aligned lines, command
+        examples, and their deeper continuations — keeps its shape, so
+        tabular material stays aligned. Single lines that overflow the
+        terminal are wrapped as a last resort."""
+        out = []
+        for para in text.split('\n\n'):
+            units = []
+            for raw in para.split('\n'):
+                stripped = raw.strip()
+                if not stripped:
+                    continue
+                indent = len(raw) - len(stripped)
+                joinable = (units
+                            and '  ' not in stripped
+                            and not stripped.startswith('lightwebpres ')
+                            and indent == units[-1][0]
+                            and '  ' not in units[-1][1][0].strip())
+                if joinable:
+                    units[-1][1].append(raw)
+                else:
+                    units.append([indent, [raw]])
+            for indent, lines in units:
+                if len(lines) > 1:
+                    joined = ' '.join(l.strip() for l in lines)
+                    out.append(textwrap.fill(
+                        joined, width=_TERM_WIDTH - indent,
+                        initial_indent=' ' * indent,
+                        subsequent_indent=' ' * indent,
+                        break_on_hyphens=False,
+                        break_long_words=False))
+                else:
+                    line = lines[0]
+                    if len(line) <= _TERM_WIDTH:
+                        out.append(line)
+                    else:
+                        out.append(textwrap.fill(
+                            line.strip(), width=_TERM_WIDTH - indent,
+                            initial_indent=' ' * indent,
+                            subsequent_indent=' ' * indent,
+                            break_on_hyphens=False,
+                            break_long_words=False))
+            out.append('')
+        return '\n'.join(out)
+
+    help_text = f'''LightWebPres v{VERSION} — framework for generating self-contained web pages.
 
 COMMANDS
   lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
@@ -11322,8 +11371,8 @@ The framework is a single executable file, with no external dependency.
 Python 3.8+ standard library only. Native UTF-8. On Windows
 (no shebang), run: python lightwebpres <command>.
 Full reference: specifications.md, in ''' + HOMEPAGE + '''
-where this tool is published and can be downloaded.''')
-
+where this tool is published and can be downloaded.'''
+    print(_reflow(help_text))
 
 # Which options each command accepts, and whether they take a value.
 # The parser consults this instead of guessing: a boolean flag never
@@ -11597,6 +11646,11 @@ def _parse_global_options(args):
 
 
 def main():
+    # Re-read the terminal width now: the one computed at import time may
+    # be stale (e.g. the module was imported in a narrow context but the
+    # user runs in a wide terminal).
+    global _TERM_WIDTH
+    _TERM_WIDTH = _shutil.get_terminal_size((80, 24)).columns
     args = sys.argv[1:]
     if not args or args[0] in ('-h', '--help', 'help'):
         print_help()
