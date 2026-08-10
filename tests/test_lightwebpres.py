@@ -1859,6 +1859,73 @@ class CliVersionAndShortcuts(unittest.TestCase):
                     '--version', '--help'):
             self.assertIn(opt, result.stdout)
 
+    def test_completion_stays_in_sync_with_command_tables(self):
+        """The completion script is generated from _SHORTCUTS,
+        _LEGACY_ALIASES, _SERIES_VERBS, _THEME_VERBS, and
+        _COMMAND_OPTIONS. If a command or option is added to those
+        tables but not to the completion script, this test fails —
+        so an evolution of the CLI does not silently break completion."""
+        lwp = load_lightwebpres_module()
+        script = run('completion', '--shell', 'bash').stdout
+        # Every shortcut and legacy alias must appear in the root list.
+        for name in set(lwp._SHORTCUTS) | set(lwp._LEGACY_ALIASES):
+            self.assertIn(name, script,
+                           f'completion script missing root command {name!r}')
+        # Every series verb must appear in the series list.
+        for verb in lwp._SERIES_VERBS:
+            self.assertIn(verb, script,
+                           f'completion script missing series verb {verb!r}')
+        # Every theme verb must appear in the theme list.
+        for verb in lwp._THEME_VERBS:
+            self.assertIn(verb, script,
+                           f'completion script missing theme verb {verb!r}')
+        # Every option from every command must appear in the options list.
+        all_opts = set()
+        for opts in lwp._COMMAND_OPTIONS.values():
+            all_opts |= opts
+        all_opts |= lwp._GLOBAL_OPTIONS
+        all_opts |= lwp._VALUE_OPTIONS
+        for opt in all_opts:
+            self.assertIn(opt, script,
+                           f'completion script missing option {opt!r}')
+
+    def test_completion_function_produces_correct_completions(self):
+        """Sources the bash completion script and tests the actual
+        completion function with simulated COMP_WORDS. This verifies
+        that the generated script is syntactically valid bash and that
+        the completion logic works (not just that the words are listed
+        in a comment)."""
+        import subprocess
+        script = run('completion', '--shell', 'bash').stdout
+        # Build a test harness: source the script, set COMP_WORDS,
+        # call the function, print COMPREPLY.
+        test_cases = [
+            # (COMP_CWORD, COMP_WORDS, expected_substring)
+            (1, ['lightwebpres', ''], 'init'),  # root: 'in' prefix not needed
+            (1, ['lightwebpres', 'b'], 'build'),
+            (2, ['lightwebpres', 'series', ''], 'build'),
+            (2, ['lightwebpres', 'theme', ''], 'list'),
+            (2, ['lightwebpres', 'template', ''], 'update'),
+            (2, ['lightwebpres', 'series', 'th'], 'theme'),
+            (3, ['lightwebpres', 'series', 'theme', ''], 'set'),
+        ]
+        for cword, words, expected in test_cases:
+            harness = (
+                script
+                + '\n'
+                + f'COMP_WORDS=({" ".join(repr(w) for w in words)})\n'
+                + f'COMP_CWORD={cword}\n'
+                + '_lightwebpres_completion\n'
+                + 'echo "${COMPREPLY[@]}"\n'
+            )
+            result = subprocess.run(
+                ['bash', '-c', harness], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0,
+                             f'bash failed for {words!r}:\n{result.stderr}')
+            self.assertIn(expected, result.stdout,
+                           f'completion of {words!r} (cword={cword}) '
+                           f'did not include {expected!r}; got: {result.stdout!r}')
+
 
 class MissingReferencedFilesAreFatal(unittest.TestCase):
     """§20.3/§22.8: a series.json entry whose page_source doesn't exist,

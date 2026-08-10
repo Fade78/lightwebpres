@@ -8670,6 +8670,12 @@ _lightwebpres_completion() {{
         return 0
     fi
 
+    # series theme set (three-word: series theme set)
+    if [ "${{COMP_WORDS[1]}}" = "series" ] && [ "${{COMP_WORDS[2]}}" = "theme" ] && [ "$COMP_CWORD" -eq 3 ]; then
+        COMPREPLY=($(compgen -W "set" -- "$cur"))
+        return 0
+    fi
+
     # Options (any position after the command)
     if [[ "$cur" == --* ]]; then
         COMPREPLY=($(compgen -W "{opts_list}" -- "$cur"))
