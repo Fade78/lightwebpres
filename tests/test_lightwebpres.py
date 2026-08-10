@@ -1826,6 +1826,39 @@ class CliVersionAndShortcuts(unittest.TestCase):
                          f'Bare filesystem writes outside helpers found:\n'
                          + '\n'.join(violations))
 
+    def test_completion_bash_generates_valid_script(self):
+        # `completion --shell bash` prints a bash completion script.
+        result = run('completion', '--shell', 'bash')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('_lightwebpres_completion', result.stdout)
+        self.assertIn('complete -F _lightwebpres_completion lightwebpres',
+                     result.stdout)
+        # The script lists the root commands.
+        self.assertIn('init', result.stdout)
+        self.assertIn('build', result.stdout)
+        self.assertIn('verify', result.stdout)
+
+    def test_completion_zsh_generates_valid_script(self):
+        result = run('completion', '--shell', 'zsh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('_lightwebpres_completion', result.stdout)
+        self.assertIn('compdef _lightwebpres_completion lightwebpres',
+                     result.stdout)
+
+    def test_completion_unknown_shell_is_fatal(self):
+        result = run('completion', '--shell', 'fish')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('bash', result.stderr)
+        self.assertIn('zsh', result.stderr)
+
+    def test_completion_lists_options(self):
+        result = run('completion', '--shell', 'bash')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # The script must list the global options.
+        for opt in ('--lang', '--quiet', '--verbose', '--dry-run',
+                    '--version', '--help'):
+            self.assertIn(opt, result.stdout)
+
 
 class MissingReferencedFilesAreFatal(unittest.TestCase):
     """§20.3/§22.8: a series.json entry whose page_source doesn't exist,
