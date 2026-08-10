@@ -2043,7 +2043,18 @@ en douce derrière le dos du thème, la couche le **dit** :
   l'encre peut tomber sous le seuil de lisibilité — un vert `affirm`
   sous l'encre par défaut mesure 3,14:1 sur High Contrast et 2,14:1 sur
   Pop Lemon, deux échecs AA — c'est exactement pourquoi l'axe `fg`
-  existe et pourquoi la paire est documentée ici ;
+  existe et pourquoi la paire est documentée ici. Deux axes solo
+  complètent le composant depuis la v0.25.0 : `fact.strong.pad` (longueur,
+  défaut `max(3px, 0.375vmin)`) est le padding latéral du surlignage —
+  l'air qui empêche le fond de couper le glyphe au bord ; il est mis à `0`
+  automatiquement quand le thème n'a pas de fond (`fact_highlight: None`),
+  car un surligneur sans encre n'a rien à haloer, et l'auteur peut
+  l'épingler pour surcharger. `fact.strong.absorb-punct` (`on`/`off`,
+  défaut `on`) absorbe la ponctuation simple qui suit immédiatement un
+  `**gras**` dans le mark — `**2000**,` devient `**2000,**` avant analyse,
+  donc la virgule est surlignée aussi, ce qui supprime l'écart visuel que
+  le padding ouvrait devant elle. Inactif quand le thème n'a pas de fond ;
+  un auteur qui préfère le Markdown tel qu'écrit le met à `off` ;
 - enfin, des **surcharges par slug** (`THEME_PROPERTY_OVERRIDES`)
   portent ce que l'ancienne forme d'entrée ne savait pas dire :
   `terminal` passe tout le texte en chasse fixe
