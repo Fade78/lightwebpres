@@ -331,22 +331,28 @@
 
 | # | Fichier | Problème | Priorité | Statut |
 |---|---|---|---|---|
-| 1 | lightwebpres:9366 | cmd_refresh_templates --scaffold dit "Run install" au lieu de "Run init" | haute | à faire |
-| 2 | lightwebpres:10634 | cmd_demo dit "has not been installed" au lieu de "has not been init'd" | haute | à faire |
-| 3 | lightwebpres:10842 | cmd_demo .mkdir bare (img/) bypass _mkdir → --dry-run contourne | haute | à faire |
-| 4 | lightwebpres:7847 | copy_images shutil.copytree bypass _copytree → --dry-run contourne | haute | à faire |
-| 5 | lightwebpres:9300 | cmd_install shutil.copy2 bypass _copy (guard manuel mais convention violée) | moyenne | à faire |
-| 6 | lightwebpres:~66 sites | print(..., file=sys.stderr) hors log() → --quiet/--timestamp sans effet | haute | à faire |
-| 7 | lightwebpres _cmd_build_only | fast path --only n'appelle pas _write_manifest | moyenne | à faire |
-| 8 | tests | test AST "aucune écriture nue hors helper" non écrit (PLAN livrable P3) | moyenne | à faire |
-| 9 | lightwebpres _SHORTCUTS | entrée `template` morte (shadowed par test ligne 11375) | basse | à faire |
-| 10 | README.md:193,196 | Table des commandes: `install`→`init`, `check`→`verify` | haute | à faire |
-| 11 | README.md:427,514 | `install --theme`→`init --theme`, "install, build"→"init, build" | haute | à faire |
-| 12 | GUIDE.md:189,376,450 | 3 occurrences "install" restantes | haute | à faire |
-| 13 | specifications.md:~15 | "install"/"check"/"à l'install" restants dans le texte | haute | à faire |
-| 14 | GLOSSARY.md:161 | "install, write, verify, ship"→"init, write, verify, ship" | moyenne | à faire |
-| 15 | docs/guide/.lwp-manifest.json | Artefact de build accidentellement commité | basse | à faire |
-| 16 | tests:9974,10618 | subprocess.run avec 'install' au lieu de 'init' (mineur, alias fonctionne) | basse | à faire |
+| 1 | lightwebpres:9366 | cmd_refresh_templates --scaffold dit "Run install" au lieu de "Run init" | haute | **corrigé** |
+| 2 | lightwebpres:10634 | cmd_demo dit "has not been installed" au lieu de "has not been init'd" | haute | **corrigé** |
+| 3 | lightwebpres:10842 | cmd_demo .mkdir bare (img/) bypass _mkdir → --dry-run contourne | haute | **corrigé** |
+| 4 | lightwebpres:7847 | copy_images shutil.copytree bypass _copytree → --dry-run contourne | haute | **corrigé** |
+| 5 | lightwebpres:9300 | cmd_install shutil.copy2 bypass _copy (guard manuel mais convention violée) | moyenne | **corrigé** |
+| 6 | lightwebpres:~66 sites | print(..., file=sys.stderr) hors log() → --quiet/--timestamp sans effet | haute | **corrigé** |
+| 7 | lightwebpres _cmd_build_only | fast path --only n'appelle pas _write_manifest | moyenne | **corrigé** |
+| 8 | tests | test AST "aucune écriture nue hors helper" non écrit (PLAN livrable P3) | moyenne | **corrigé** |
+| 9 | lightwebpres _SHORTCUTS | entrée `template` morte (shadowed par test ligne 11375) | basse | **corrigé** |
+| 10 | README.md:193,196 | Table des commandes: `install`→`init`, `check`→`verify` | haute | **corrigé** |
+| 11 | README.md:427,514 | `install --theme`→`init --theme`, "install, build"→"init, build" | haute | **corrigé** |
+| 12 | GUIDE.md:189,376,450 | 3 occurrences "install" restantes | haute | **corrigé** |
+| 13 | specifications.md:~15 | "install"/"check"/"à l'install" restants dans le texte | haute | **corrigé** |
+| 14 | GLOSSARY.md:161 | "install, write, verify, ship"→"init, write, verify, ship" | moyenne | **corrigé** |
+| 15 | docs/guide/.lwp-manifest.json | Artefact de build accidentellement commité | basse | **corrigé** |
+| 16 | tests:9974,10618 | subprocess.run avec 'install' au lieu de 'init' (mineur, alias fonctionne) | basse | **corrigé** |
+| 17 | tests:byte-identical | Test tautologique (comparait avec HEAD au lieu d'un tag) | haute | **corrigé** (compare v0.23.0) |
+| 18 | tests:AST helper | Test fragile (filtrage par ligne au lieu de fonction) | haute | **corrigé** (walk AST récursif) |
+| 19 | tests:help lists | Test vérifiait anciens noms au lieu des nouveaux | haute | **corrigé** |
+| 20 | lightwebpres:demo | Demo: `*bold*` produisait italique au lieu de gras | haute | **corrigé** (`**bold**`) |
+| 21 | lightwebpres:help | Largeurs codées en dur (textwrap) au lieu de largeur terminal | haute | **corrigé** (_TERM_WIDTH) |
+| 22 | lightwebpres | Pas de completion tab | haute | **corrigé** (cmd completion) |
 
 ---
 

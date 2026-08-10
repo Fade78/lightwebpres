@@ -72,7 +72,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.23.0"
+VERSION = "0.24.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -11329,7 +11329,7 @@ _COMMAND_OPTIONS = {
     'completion': {'--shell'},
 }
 
-# --- Refonte CLI v0.23.0 (DECISION-CLI.md / PLAN-CLI.md) ---------------------
+# --- Refonte CLI v0.24.0 (DECISION-CLI.md / PLAN-CLI.md) ---------------------
 # Options accepted BEFORE the command (git-style). Phase 1 accepts them as
 # no-op until Phase 2 wires them to log()/behaviours; --version and --help act
 # immediately. The option nearest the command wins (DECISION §2: precedence).

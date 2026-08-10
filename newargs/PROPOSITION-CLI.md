@@ -558,7 +558,7 @@ le fichier généré.
 
 ```bash
 lightwebpres --version
-# LightWebPres v0.23.0
+# LightWebPres v0.24.0
 ```
 
 Affiche le numéro de version et sort. Actuellement, la version n'est

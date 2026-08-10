@@ -1,4 +1,4 @@
-# Plan — Refonte CLI v0.23.0
+# Plan — Refonte CLI v0.24.0
 
 > État des lieux code vs spec, et chemin vers la prochaine version.
 > Références : `PROPOSITION-CLI.md` (intention), `DECISION-CLI.md` (décisions),
@@ -60,7 +60,7 @@ help | --help | -h
 | `series-info` → `status` | `cmd_series_info` | `series status` + raccourci `status` | Aucun (le GUI appelle le CLI, pas `cmd_*`) |
 | `refresh-templates` → `template update` | `cmd_refresh_templates` | `series template update` + raccourci `template update` | Aucun |
 | `resolve` → `series resolve` | `cmd_resolve` | `series resolve` + raccourci `resolve` | Aucun |
-| `--version` | absent | `lightwebpres --version` → `LightWebPres v0.23.0` | Aucun |
+| `--version` | absent | `lightwebpres --version` → `LightWebPres v0.24.0` | Aucun |
 | Alias de transition | absent | chaque ancien nom → `[WARN]` sur stderr + nouveau nom | 138 appels dans les tests |
 
 ### Phase 2 — Lecture seule

@@ -5528,28 +5528,20 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     callers.add(node.name)
         self.assertEqual(callers, self.CONTRAST_CALLERS)
 
-    @unittest.expectedFailure
     def test_a_built_page_is_byte_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.22.0,
-        before the CLI refonte), and by this one, compared byte for byte.
-        --build-stamp is off by default, so there is no timestamp to
-        excuse a difference.
-
-        Marked expectedFailure: the CLI refonte (v0.23.0) changed the
-        nav.js comment from `lightwebpres install` to `lightwebpres init`,
-        so built pages differ by that one string. Remove the decorator
-        once the next release is tagged AND the comparison target is
-        updated to that new tag.
+        by the executable as it stood at the last tagged release (v0.23.0),
+        and by this one, compared byte for byte. --build-stamp is off by
+        default, so there is no timestamp to excuse a difference.
 
         Skipped, loudly, when the previous version cannot be reached --
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.22.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.23.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.22.0 tag to read the previous version from')
+            self.skipTest('no v0.23.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
