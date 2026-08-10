@@ -180,8 +180,8 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   └── img/                       # Images copiées depuis articles/
 │       └── ...
 ├── README.md                      # Généré par build depuis series.json (§8.3)
-├── lightwebpres                   # Copie de l'exécutable (installée par install, §11.1)
-├── .gitlab-ci.yml                 # Pipeline CI (optionnel — install --gitlab-ci, §11.1)
+├── lightwebpres                   # Copie de l'exécutable (installée par init, §11.1)
+├── .gitlab-ci.yml                 # Pipeline CI (optionnel — init --gitlab-ci, §11.1)
 └── .lwp-cache/nav.json            # Empreinte de navigation pour build --only (§11.3.1)
 ```
 
@@ -1662,7 +1662,7 @@ est inlinée dans chaque page, il suffit d'en afficher la source.
 |---|---|---|
 | feuille émise | le système | régénérée à chaque build, jamais sur disque |
 | `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite (`series theme set` réécrit la seule ligne `theme:`, §9.4.2) |
-| `templates/custom.css` | l'auteur | **jamais** (créé vide à l'install) |
+| `templates/custom.css` | l'auteur | **jamais** (créé vide à l'init) |
 | `templates/nav.js` | l'outil | remplacé par `template update`, sauvegarde `.bak` (§9.4.3) |
 
 **C'est ce partage qui supprime l'appareillage.** Le marqueur de
@@ -1690,7 +1690,7 @@ clé inconnue, une valeur mal typée, un renvoi cassé sont des erreurs de
 `build` qui nomment la clé (§9.2). Un `theme:` inconnu nomme la ligne et
 renvoie vers `lightwebpres theme list`.
 
-**Le scaffold.** Le fichier est généré **une fois** (à l'install, §9.4.1)
+**Le scaffold.** Le fichier est généré **une fois** (à l'init, §9.4.1)
 avec **toutes** les propriétés présentes, en commentaire, à la valeur du
 thème choisi — les renvois montrés comme des mots
 (`# tag.fg: ink-quiet`), parce que c'est le vocabulaire que l'auteur
@@ -1886,14 +1886,14 @@ la feuille (§9.3), la recompose pour toute page portant des propriétés
 d'article (§9.6), et échoue avec une erreur nommée sur la première
 propriété invalide.
 
-#### 9.4.1 `install --theme`
+#### 9.4.1 `init --theme`
 
 `init` écrit les trois fichiers : `settings.conf` — le scaffold
 complet du thème choisi, avec sa ligne `theme: <slug>` et son
 `# scaffold-for: <slug>` (sans `--theme` : pas de ligne `theme:` active,
 scaffold aux défauts intégrés) —, `custom.css` (le gabarit commenté,
 vide de règles) et `nav.js`. Aucune substitution dans du CSS : choisir
-un thème à l'install, c'est écrire un mot dans un fichier de données. Un
+un thème à l'init, c'est écrire un mot dans un fichier de données. Un
 slug inconnu est une erreur fatale qui liste les slugs valides.
 
 #### 9.4.2 `series theme set`
@@ -1993,7 +1993,7 @@ dans chaque entrée, même à la valeur par défaut — un choix délibéré
 consigné, pas un oubli ; les deux clés de soulignement font exception :
 absentes, elles valent « pas de soulignement », le sens de « pas
 d'avis » pour un axe ajouté après coup. `THEMES` est la **seule** source
-de vérité : la couche appliquée par `install --theme`/`series theme set` et les
+de vérité : la couche appliquée par `init --theme`/`series theme set` et les
 aperçus de `theme gallery` viennent de la même donnée et ne peuvent pas
 diverger par construction.
 
@@ -2183,7 +2183,7 @@ porte le fond sombre, donc la même règle continue de s'appliquer sans
 cas particulier.
 
 Ces facettes ne changent rien au rendu : elles ne servent qu'à
-présenter et à choisir. `install --theme` continue de ne connaître que
+présenter et à choisir. `init --theme` continue de ne connaître que
 des slugs.
 
 #### 9.5.3 Les liens du corps de texte, et le plancher de contraste
@@ -2625,7 +2625,7 @@ Crée la structure de travail dans `[répertoire]` :
    `fr` par défaut)
 7. Copie l'exécutable `lightwebpres` dans le répertoire (pour autonomie)
 
-**`--lang` à l'install.** La langue n'est **pas** une propriété du projet
+**`--lang` à l'init.** La langue n'est **pas** une propriété du projet
 stockée quelque part : les deux packs (fr, en) sont toujours installés, et
 la langue est un choix **par build** (`--lang` sur `build`/`demo`, ou
 `$LWP_LANG`, `fr` par défaut — §7.1/§12.1). À l'install, `--lang` ne fait
@@ -3180,7 +3180,7 @@ d'autant plus que l'interface graphique est un projet séparé qui ne peut
 rien garantir ici.
 
 Le slug est mis en avant dans la sortie parce que c'est ce que
-`install --theme` et `series theme set` attendent : ce qu'on lit est
+`init --theme` et `series theme set` attendent : ce qu'on lit est
 directement ce qu'on retape.
 
 Deux cas se distinguent volontairement :
@@ -4166,7 +4166,7 @@ git add . && git commit && git push
 ### 14.4 Parcours de pipeline CI
 
 ```bash
-# Le .gitlab-ci.yml (créé par install --gitlab-ci, opt-in — §10/§11.1) fait :
+# Le .gitlab-ci.yml (créé par init --gitlab-ci, opt-in — §10/§11.1) fait :
 #   python3 lightwebpres build .
 #   artifacts: public/
 #
@@ -4868,7 +4868,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 | `author` | string | non | pied de page de l'article + `<meta name="author">` | Auteur de l'article ; surcharge le bloc meta, qui surcharge le défaut `series_meta.author` (§20.3.1) |
 | `license` | string | non | pied de page de l'article | Licence du contenu ; même cascade que `author` (défaut `series_meta.license`) ; HTML brut autorisé (lien) |
 | `date` | string | non | pied de page de l'article (signature) | Date affichée telle quelle (texte libre) ; surcharge le bloc meta ; jamais déduite du mtime (§20.3.1) |
-| `status` | chaîne | non | build/check/status | `active` (défaut) \| `draft` \| `ignored` (§20.6) |
+| `status` | chaîne | non | build/verify/status | `active` (défaut) \| `draft` \| `ignored` (§20.6) |
 | `comment` | string | non | aucun — jamais lu | Note de relecture ; ignorée par le build (§4.6) |
 
 ### 20.3 Règles de validation

@@ -158,6 +158,6 @@ description; the terms are fixed here, in English.
 
 - `specifications.md` — the authoritative behavioral spec; every §
   reference above points there.
-- `GUIDE.md` — task-oriented walkthrough (install, write, verify, ship).
+- `GUIDE.md` — task-oriented walkthrough (init, write, verify, ship).
 - `agent/skills/lightwebpres/SKILL.md` — LWP syntax reference for an
   agent writing or editing `.md` articles.

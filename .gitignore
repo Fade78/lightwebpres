@@ -7,6 +7,8 @@ private/
 # --- Sortie de build (régénérée par le pipeline, jamais committée) ---
 public/
 **/public/
+.lwp-manifest.json
+**/.lwp-manifest.json
 
 # --- Python ---
 __pycache__/

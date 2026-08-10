@@ -1451,7 +1451,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <span class="slide-num">10 / 10</span>
   <span class="slide-tag">Full article</span>
   <h1>LightWebPres — Guide</h1>
-  <p>This is the map of the tool: install it, see what a page is made of, wire a series, adjust the look, ship it. For what each command <em>exactly</em> does in every edge case, see <code>specifications.md</code>; for the precise article syntax, see <code>SKILL.md</code>. This guide is the path through all of it in the order you'll actually need it.</p>
+  <p>This is the map of the tool: init it, see what a page is made of, wire a series, adjust the look, ship it. For what each command <em>exactly</em> does in every edge case, see <code>specifications.md</code>; for the precise article syntax, see <code>SKILL.md</code>. This guide is the path through all of it in the order you'll actually need it.</p>
   <p><strong>What this guide does not do is teach you to write.</strong> LightWebPres is for people who already know how; it renders what you give it. Nothing here says what makes a good card, how to structure an argument or when a claim needs a source. A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for people who would like a method — an offered interface, not the core of what this does. Take it or leave it: [section 9](#9-going-further).</p>
   <h2>1. What LightWebPres is</h2>
   <p>LightWebPres turns an extended Markdown format into self-contained, scrollable HTML articles — a cover, a handful of fact-card slides, an optional long-form piece, cross-article navigation — with zero runtime dependencies. One executable, <code>lightwebpres</code>, does the whole job: scaffold a project, generate demo content, build, verify, and keep templates current.</p>
@@ -1600,7 +1600,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 ./lightwebpres theme list --polarity dark --intensity sober   # just the ones you mean
 ./lightwebpres theme gallery                             # every theme, rendered
   </code></pre>
-  <p>Apply one at install time, or change your mind later:</p>
+  <p>Apply one at init time, or change your mind later:</p>
   <pre><code class="language-bash">
 ./lightwebpres init my-series --theme evergreen
 ./lightwebpres series theme set my-series --theme crimson
@@ -1678,7 +1678,7 @@ tag.fg — theme property
   <p><code>--scaffold</code> additionally regenerates <code>settings.conf</code>'s commented block against the current theme and the current property registry, keeping every line you uncommented.</p>
   <h2>8. Automation, CI/CD, and the browser</h2>
   <h3>As a pipeline step</h3>
-  <p>The generated <code>.gitlab-ci.yml</code> (<code>install --gitlab-ci</code>, opt-in — a plain <code>init</code> never assumes a deployment) is the two-line version:</p>
+  <p>The generated <code>.gitlab-ci.yml</code> (<code>init --gitlab-ci</code>, opt-in — a plain <code>init</code> never assumes a deployment) is the two-line version:</p>
   <pre><code class="language-yaml">
 build:
   script:
@@ -1740,7 +1740,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
       </tr>
       <tr>
         <td><code>… is not empty. Use an empty or new directory, or pass --force</code></td>
-        <td>installing into a directory that already has files — <code>install . --force</code> is the normal in-place case</td>
+        <td>installing into a directory that already has files — <code>init . --force</code> is the normal in-place case</td>
       </tr>
       <tr>
         <td>the site is in French</td>

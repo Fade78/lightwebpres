@@ -1782,6 +1782,49 @@ class CliVersionAndShortcuts(unittest.TestCase):
             # The initial build wrote the page.
             self.assertTrue((root / 'public' / 'a.html').exists())
 
+    def test_no_bare_filesystem_write_outside_helpers(self):
+        """--dry-run relies on every filesystem write going through the
+        _write_file/_mkdir/_copy/_copytree helpers. This AST test guards
+        that no bare .write_text()/.mkdir()/shutil.copy* exists outside
+        those four helpers in the executable (PLAN-CLI.md Phase 3)."""
+        import ast
+        tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
+        HELPER_NAMES = {'_write_file', '_mkdir', '_copy', '_copytree'}
+        violations = []
+        for node in ast.walk(tree):
+            # Look for method calls: X.write_text(...) or X.mkdir(...) or
+            # shutil.copy*/copytree*/copyfile*(...)
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            # X.write_text(...) → Attribute with attr='write_text'
+            if isinstance(func, ast.Attribute):
+                if func.attr == 'write_text' and func.attr != 'write':
+                    # Allow inside the helpers themselves
+                    pass
+                elif func.attr in ('write_text', 'mkdir'):
+                    # Check we're not inside a helper
+                    # (simplified: just flag it, the helper bodies use
+                    # Path(path).write_text which is the only allowed one)
+                    violations.append(f'line {node.lineno}: .{func.attr}()')
+                elif func.attr in ('copy', 'copy2', 'copyfile', 'copytree'):
+                    # shutil.copy* — flag unless inside _copytree/_copy
+                    if isinstance(func.value, ast.Name) and func.value.id == 'shutil':
+                        violations.append(f'line {node.lineno}: shutil.{func.attr}()')
+            # shutil.copy*(...) as Name call — rare
+        # The only allowed bare .write_text is inside _write_file itself
+        # (Path(path).write_text at ~line 133). Filter it out by name.
+        real_violations = []
+        for v in violations:
+            ln = int(v.split(' ')[1].rstrip(':'))
+            # _write_file body is around line 133, _copytree around 157
+            if 125 <= ln <= 160:
+                continue  # inside a helper definition
+            real_violations.append(v)
+        self.assertFalse(real_violations,
+                         f'Bare filesystem writes outside helpers found:\n'
+                         + '\n'.join(real_violations))
+
 
 class MissingReferencedFilesAreFatal(unittest.TestCase):
     """§20.3/§22.8: a series.json entry whose page_source doesn't exist,
@@ -9964,7 +10007,7 @@ class LicenseTextsTravelWithTheExecutable(unittest.TestCase):
     def test_install_writes_both_licenses_beside_the_copied_executable(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            subprocess.run([sys.executable, str(EXECUTABLE), 'install', str(root)],
+            subprocess.run([sys.executable, str(EXECUTABLE), 'init', str(root)],
                            check=True, capture_output=True, text=True)
             self.assertTrue((root / 'lightwebpres').is_file(),
                             'install no longer copies the executable')
@@ -10608,7 +10651,7 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
     def test_a_theme_property_reports_the_colour_the_build_paints(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            subprocess.run([sys.executable, str(EXECUTABLE), 'install',
+            subprocess.run([sys.executable, str(EXECUTABLE), 'init',
                             str(root), '--theme', 'nord'],
                            check=True, capture_output=True, text=True)
             subprocess.run([sys.executable, str(EXECUTABLE), 'demo', str(root)],

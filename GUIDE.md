@@ -1,6 +1,6 @@
 # LightWebPres — Guide
 
-This is the map of the tool: install it, see what a page is made of, wire
+This is the map of the tool: init it, see what a page is made of, wire
 a series, adjust the look, ship it. For what each command *exactly* does
 in every edge case, see `specifications.md`; for the precise article
 syntax, see `SKILL.md`. This guide is the path through all of it in the
@@ -186,7 +186,7 @@ it is, and what hue the page carries.
 ./lightwebpres theme gallery                             # every theme, rendered
 ```
 
-Apply one at install time, or change your mind later:
+Apply one at init time, or change your mind later:
 
 ```bash
 ./lightwebpres init my-series --theme evergreen
@@ -373,7 +373,7 @@ every line you uncommented.
 
 ### As a pipeline step
 
-The generated `.gitlab-ci.yml` (`install --gitlab-ci`, opt-in — a plain
+The generated `.gitlab-ci.yml` (`init --gitlab-ci`, opt-in — a plain
 `init` never assumes a deployment) is the two-line version:
 
 ```yaml
@@ -447,7 +447,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 |---|---|
 | `lightwebpres: command not found` | it isn't on your `PATH` — run it as `./lightwebpres` |
 | `Permission denied` | `chmod +x lightwebpres` |
-| `… is not empty. Use an empty or new directory, or pass --force` | installing into a directory that already has files — `install . --force` is the normal in-place case |
+| `… is not empty. Use an empty or new directory, or pass --force` | installing into a directory that already has files — `init . --force` is the normal in-place case |
 | the site is in French | `--lang en` on `build`/`demo`; French is the default |
 | `open: command not found` | macOS-only — use `xdg-open` on Linux |
 | a `field:` line published as literal text | it came after prose in the same slide; the switch to free text is one-way (section 3) |

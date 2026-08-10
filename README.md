@@ -424,7 +424,7 @@ long-form article. Each panel is a real rendering at its true size, not a
 mock and not a scaled-down miniature, so a 14px note is 14px there too.
 It's generated straight from the tool's own `THEMES` data with
 `./lightwebpres theme gallery`, so it can never drift from what
-`install --theme` actually applies.
+`init --theme` actually applies.
 
 ## One browser-based tool, two tabs
 
@@ -511,7 +511,7 @@ tests/                # regression suite
 
 | Document | What it is |
 |---|---|
-| [`GUIDE.md`](GUIDE.md) | **Start here.** The walkthrough, in English: install, build, choose a look, write, verify, ship |
+| [`GUIDE.md`](GUIDE.md) | **Start here.** The walkthrough, in English: init, build, choose a look, write, verify, ship |
 | [`GLOSSARY.md`](GLOSSARY.md) | Every field, its default, and where it falls back from |
 | [`agent/skills/lightwebpres/SKILL.md`](agent/skills/lightwebpres/SKILL.md) | The exact article format — written for an agent, readable by a person |
 | [`agent/skills/sourced-presentation/SKILL.md`](agent/skills/sourced-presentation/SKILL.md) | One method the format suits — a sourced deck backed by a fully referenced article. Optional: nothing here is required to use LightWebPres |
