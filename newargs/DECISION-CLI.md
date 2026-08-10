@@ -40,7 +40,8 @@ l'ambiguïté que la refonte voulait tuer. `--format` ne concerne que
 ### `--dry-run` est globale
 `--dry-run` est une option **globale**, applicable à toute commande
 qui écrit (`build`, `init`, `theme set`, `template update`, `clean`).
-C'est la 7e globale. Voir §4 pour le mécanisme (helper unique).
+Elle est listée ci-dessus parmi les huit. Voir §4 pour le mécanisme
+(helper unique).
 
 ### Précédence
 L'option la plus proche de la commande gagne (conforme à git, docker) :
@@ -70,8 +71,8 @@ qu'il a produit. `clean` refuse de fonctionner sans ce fichier.
 Écoute sur `127.0.0.1` uniquement (jamais `0.0.0.0`). `--serve`
 active le serveur HTTP ; sans l'option, `watch` reconstruit seulement.
 `--port N` (défaut 8000) fixe le port du serveur HTTP local. `--open`
-ouvre le navigateur (premier `subprocess` de l'outil, surface de
-confiance à documenter).
+ouvre le navigateur via `webbrowser.open()` (déjà utilisé dans le code,
+pas de `subprocess` — surface de confiance plus simple).
 
 ### `theme set` → pas de raccourci racine
 `theme set` reste sous `series theme set` uniquement. Le nœud

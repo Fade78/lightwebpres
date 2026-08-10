@@ -170,38 +170,38 @@ python3 -m unittest tests.test_lightwebpres  # doit être vert (630 tests)
 ## 6. Livrables par phase
 
 ### Phase 1
-- [ ] Structure de sous-commandes dans `main()` + `_resolve_command()`
-- [ ] Tables `_SHORTCUTS`, `_LEGACY_ALIASES`, `_COMMAND_OPTIONS` (nouveau format)
-- [ ] `_GLOBAL_OPTIONS` définie (Phase 1 accepte `--lang`, `--version`, `--help` ; `--quiet`, `--verbose`, `--no-color`, `--timestamp` acceptées en no-op jusqu'en Phase 2 ; `--dry-run` ajoutée en Phase 3)
-- [ ] `parse_cli_options()` adapté
-- [ ] `_warn_legacy()` sur stderr
-- [ ] `--version`
-- [ ] Messages `install` → `init` dans `cmd_demo`, `cmd_refresh_templates`, `cmd_theme_info`, `cmd_set_theme`
-- [ ] `.gitlab-ci.yml` : `build` reste `build` (pas changé)
-- [ ] `themes-gallery.html` régénéré avec `init`
-- [ ] 138 appels de test migrés
-- [ ] Tests d'alias ajoutés
-- [ ] 630 tests verts
+- [x] Structure de sous-commandes dans `main()` + `_resolve_command()`
+- [x] Tables `_SHORTCUTS`, `_LEGACY_ALIASES`, `_COMMAND_OPTIONS` (nouveau format)
+- [x] `_GLOBAL_OPTIONS` définie (Phase 1 accepte `--lang`, `--version`, `--help` ; `--quiet`, `--verbose`, `--no-color`, `--timestamp` acceptées en no-op jusqu'en Phase 2 ; `--dry-run` ajoutée en Phase 3)
+- [x] `parse_cli_options()` adapté
+- [x] `_warn_legacy()` sur stderr
+- [x] `--version`
+- [x] Messages `install` → `init` dans `cmd_demo`, `cmd_refresh_templates`, `cmd_theme_info`, `cmd_set_theme`
+- [x] `.gitlab-ci.yml` : `build` reste `build` (pas changé)
+- [x] `themes-gallery.html` régénéré avec `init`
+- [x] 138 appels de test migrés
+- [x] Tests d'alias ajoutés
+- [x] 630 tests verts
 
 ### Phase 2
-- [ ] `log()` + `configure_logging()`
-- [ ] `--quiet`, `--verbose`, `--no-color`, `--timestamp` dans `_GLOBAL_OPTIONS`
-- [ ] `--strict` dans `cmd_audit`
-- [ ] `--all` + slugs multiples sur `theme show` / `theme gallery`
-- [ ] `series theme [dir]` extrait de `cmd_theme_info`
-- [ ] Nouveaux tests `--quiet`, `--verbose`, `--timestamp`, `--strict` à écrire
-- [ ] 630+ tests verts
+- [x] `log()` + `configure_logging()`
+- [x] `--quiet`, `--verbose`, `--no-color`, `--timestamp` dans `_GLOBAL_OPTIONS`
+- [x] `--strict` dans `cmd_audit`
+- [x] `--all` + slugs multiples sur `theme show` / `theme gallery`
+- [x] `series theme [dir]` extrait de `cmd_theme_info`
+- [x] Nouveaux tests `--quiet`, `--verbose`, `--timestamp`, `--strict` à écrire
+- [x] 630+ tests verts
 
 ### Phase 3
-- [ ] `include_nav` dans `build_article` + `cmd_build`
-- [ ] `--no-index`, `--no-readme`, `--no-nav`, `--drafts-only`, `--open` sur `build`
-- [ ] `--dry-run` ajoutée à `_GLOBAL_OPTIONS` + helpers `_write_file`, `_mkdir`
-- [ ] Test qui vérifie qu'aucune écriture nue n'existe
-- [ ] Manifeste `.lwp-manifest.json` écrit par `build`
-- [ ] `clean` avec manifeste (`--dry-run` par défaut, `--force` pour supprimer)
-- [ ] `watch` avec `--serve` en opt-in, `--port`, `127.0.0.1`
-- [ ] Tests pour chaque nouvelle option/commande
-- [ ] 630+ tests verts
+- [x] `include_nav` dans `build_article` + `cmd_build`
+- [x] `--no-index`, `--no-readme`, `--no-nav`, `--drafts-only`, `--open` sur `build`
+- [x] `--dry-run` ajoutée à `_GLOBAL_OPTIONS` + helpers `_write_file`, `_mkdir`
+- [ ] Test qui vérifie qu'aucune écriture nue n'existe (non implémenté — les helpers existent mais le test AST n'a pas été écrit)
+- [x] Manifeste `.lwp-manifest.json` écrit par `build`
+- [x] `clean` avec manifeste (`--dry-run` par défaut, `--force` pour supprimer)
+- [x] `watch` avec `--serve` en opt-in, `--port`, `127.0.0.1`
+- [x] Tests pour chaque nouvelle option/commande
+- [x] 630+ tests verts
 
 ## 7. Ce qui est exclu de cette version
 

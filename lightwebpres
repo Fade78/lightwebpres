@@ -149,12 +149,13 @@ def _copy(src, dst):
     shutil.copy(str(src), str(dst))
 
 
-def _copytree(src, dst):
-    """Copies a tree, unless --dry-run is active (then logs only)."""
+def _copytree(src, dst, **kwargs):
+    """Copies a tree, unless --dry-run is active (then logs only).
+    kwargs are forwarded to shutil.copytree (dirs_exist_ok, ignore, ...)."""
     if _LOG_STATE['dry_run']:
         log('info', f'would copytree {src} -> {dst}')
         return
-    shutil.copytree(str(src), str(dst))
+    shutil.copytree(str(src), str(dst), **kwargs)
 
 # Where this tool comes from. A constant because two places have to say
 # it and neither did: `--help` ended on "Full reference:
@@ -7844,8 +7845,8 @@ def copy_images(articles_dir, output_dir):
                     ignored.add(name)
         return ignored
 
-    shutil.copytree(img_src, img_dst, dirs_exist_ok=True,
-                    ignore=_refuse_escaping_symlinks)
+    _copytree(img_src, img_dst, dirs_exist_ok=True,
+              ignore=_refuse_escaping_symlinks)
     print(f'  Images copied: {img_dst}')
 
 
@@ -8593,6 +8594,8 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
+    _write_manifest(ctx.output_dir, ctx.articles,
+                    include_index=claimant is None)
     tail = ' + index' if claimant is None else ''
     print(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
 
@@ -9296,9 +9299,10 @@ def cmd_install(target_dir, args):
     # installed system-wide or found elsewhere on PATH).
     exe_src = Path(__file__).resolve()
     exe_dst = td / 'lightwebpres'
-    if exe_src.is_file() and exe_src != exe_dst and not _LOG_STATE['dry_run']:
-        shutil.copy2(exe_src, exe_dst)
-        exe_dst.chmod(exe_dst.stat().st_mode | 0o111)
+    if exe_src.is_file() and exe_src != exe_dst:
+        _copy(exe_src, exe_dst)
+        if not _LOG_STATE['dry_run']:
+            exe_dst.chmod(exe_dst.stat().st_mode | 0o111)
 
         # The copy above is a copy of a GPL-covered program, and section 4
         # requires whoever conveys it to pass the License on with it. People
@@ -9362,9 +9366,9 @@ def cmd_refresh_templates(target_dir, args):
 
     if args.get('--scaffold'):
         if not settings_path.exists():
-            print(f'[ERROR] {settings_path} not found — nothing to regenerate. '
-                  f'Run install (or refresh-templates without --scaffold to '
-                  f'create a fresh one).', file=sys.stderr)
+            log('error', f'{settings_path} not found — nothing to regenerate. '
+                  f'Run init (or template update without --scaffold to '
+                  f'create a fresh one).')
             sys.exit(1)
         old = read_text_file(settings_path)
         theme_key, _ = parse_settings_text(old)
@@ -10631,7 +10635,7 @@ def cmd_demo(target_dir, args):
     # surface; nav.js keeps a pre-rewrite series recognized as installed.
     if not ((td / 'templates' / SETTINGS_FILENAME).exists()
             or (td / 'templates' / 'nav.js').exists()):
-        log('error', f'{td} has not been installed. Run first: lightwebpres init {td}')
+        log('error', f'{td} has not been init\'d. Run first: lightwebpres init {td}')
         sys.exit(1)
 
     articles_dir = td / 'articles'
@@ -10839,7 +10843,7 @@ This is the full article for the third demo article [^1].
 
     # Write the files
     _write_file(articles_dir / 'first.md', demo1)
-    (articles_dir / 'img').mkdir(exist_ok=True)
+    _mkdir(articles_dir / 'img', exist_ok=True)
     _write_file(articles_dir / 'img' / 'demo-figure.svg', demo_figure_svg)
     _write_file(articles_dir / 'first_article.md', demo1_article)
     _write_file(articles_dir / 'middle.md', demo2)
@@ -11267,7 +11271,6 @@ _SHORTCUTS = {
     'status': 'series-info',
     'clean': 'clean',
     'resolve': 'resolve',
-    'template': 'refresh-templates',
     'watch': 'watch',
 }
 # Two-word shortcuts: `template update` → refresh-templates. Parsed by
@@ -11313,7 +11316,7 @@ _SERIES_VERBS = {
     'init': 'install', 'demo': 'demo', 'build': 'build', 'verify': 'check',
     'audit': 'audit', 'status': 'series-info', 'clean': 'clean',
     'watch': 'watch', 'resolve': 'resolve',
-    'theme': 'series-theme', 'template': 'refresh-templates',
+    'theme': 'series-theme',
 }
 _THEME_VERBS = {
     'list': 'themes', 'show': 'theme-info', 'gallery': 'themes-gallery',
