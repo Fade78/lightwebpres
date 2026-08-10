@@ -64,8 +64,8 @@ from html.parser import HTMLParser
 # dirs_exist_ok, which would otherwise only crash mid-build, and only on
 # a series that has images).
 if sys.version_info < (3, 8):
-    print('[ERROR] lightwebpres requires Python 3.8 or newer '
-          '(this is %d.%d).' % sys.version_info[:2], file=sys.stderr)
+    log('error', 'lightwebpres requires Python 3.8 or newer '
+          '(this is %d.%d).' % sys.version_info[:2])
     sys.exit(1)
 
 # ============================================================================
@@ -2961,19 +2961,18 @@ def series_style_context(templates_dir):
 
     legacy = templates_dir / 'style.css'
     if legacy.exists():
-        print(f'[WARN] templates/style.css is no longer read: the stylesheet '
+        log('error', f'[WARN] templates/style.css is no longer read: the stylesheet '
               f'is composed from {SETTINGS_FILENAME}. Move your values there '
-              f'(audit names the variable renames) and delete it.',
-              file=sys.stderr)
+              f'(audit names the variable renames) and delete it.')
 
     layers = [theme_property_layer(theme_key)] if theme_key else []
     layers.append(props)
 
     custom_file = _resolve_contained(templates_dir, CUSTOM_CSS_FILENAME)
     if custom_file is None and (templates_dir / CUSTOM_CSS_FILENAME).exists():
-        print(f'[ERROR] templates/{CUSTOM_CSS_FILENAME} resolves outside '
+        log('error', f'templates/{CUSTOM_CSS_FILENAME} resolves outside '
               f'templates/ (symlink); its contents would be published '
-              f'verbatim into every page.', file=sys.stderr)
+              f'verbatim into every page.')
         sys.exit(1)
     custom = (read_text_file(custom_file)
               if custom_file is not None and custom_file.exists() else '')
@@ -5840,16 +5839,16 @@ class TypoEngine:
         self.rules = []
         for i, rule in enumerate(rules_data.get('rules', []), 1):
             if not isinstance(rule, dict) or 'pattern' not in rule or 'replacement' not in rule:
-                print(f'[ERROR] language rule {i}: must be an object with '
-                      f'"pattern" and "replacement".', file=sys.stderr)
+                log('error', f'language rule {i}: must be an object with '
+                      f'"pattern" and "replacement".')
                 sys.exit(1)
             # pattern/replacement must be strings: a non-string used to
             # escape the `except re.error` below (re.compile on an int
             # raises TypeError, re.sub with an int replacement likewise) as
             # a raw traceback instead of a clean [ERROR].
             if not isinstance(rule['pattern'], str) or not isinstance(rule['replacement'], str):
-                print(f'[ERROR] language rule {i}: "pattern" and "replacement" '
-                      f'must be strings.', file=sys.stderr)
+                log('error', f'language rule {i}: "pattern" and "replacement" '
+                      f'must be strings.')
                 sys.exit(1)
             name = rule.get('name') or f'rule_{i}'
             pattern = rule['pattern']
@@ -5863,17 +5862,17 @@ class TypoEngine:
             flags_str = str(rule.get('flags', 'g'))
             unknown_flags = set(flags_str) - {'g', 'i'}
             if unknown_flags:
-                print(f'[ERROR] language rule {i} ("{name}"): unknown flag(s) '
+                log('error', f'language rule {i} ("{name}"): unknown flag(s) '
                       f'{"".join(sorted(unknown_flags))!r} — supported: '
-                      f'"g" (global), "i" (case-insensitive).', file=sys.stderr)
+                      f'"g" (global), "i" (case-insensitive).')
                 sys.exit(1)
             re_flags = re.IGNORECASE if 'i' in flags_str else 0
             count = 0 if 'g' in flags_str else 1
             try:
                 compiled = re.compile(pattern, re_flags)
             except re.error as e:
-                print(f'[ERROR] language rule {i}: invalid regex pattern '
-                      f'"{pattern}" ({e}).', file=sys.stderr)
+                log('error', f'language rule {i}: invalid regex pattern '
+                      f'"{pattern}" ({e}).')
                 sys.exit(1)
             self.rules.append((name, compiled, replacement, count))
 
@@ -5945,8 +5944,8 @@ def read_text_file(path):
     try:
         return Path(path).read_text(encoding='utf-8-sig')
     except UnicodeDecodeError as e:
-        print(f'[ERROR] {path}: not valid UTF-8 (byte offset {e.start}: '
-              f'{e.reason}).', file=sys.stderr)
+        log('error', f'{path}: not valid UTF-8 (byte offset {e.start}: '
+              f'{e.reason}).')
         sys.exit(1)
 
 
@@ -5997,8 +5996,8 @@ def load_language(lang_dir, lang='fr', language_file=None):
         # crashes apply_strings' str.replace with a raw TypeError.
         for key, val in strings.items():
             if not isinstance(val, str):
-                print(f'[ERROR] {lang_file}: strings["{key}"] must be a string '
-                      f'(got {type(val).__name__}).', file=sys.stderr)
+                log('error', f'{lang_file}: strings["{key}"] must be a string '
+                      f'(got {type(val).__name__}).')
                 sys.exit(1)
         return {
             'lang': override.get('lang', base.get('lang', lang)),
@@ -7120,8 +7119,7 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
     - more than one series-nav slide (§22.9)
     """
     if not has_meta_block:
-        print(f'[ERROR] {filename}: file must start with a <!-- lwp:meta --> block.',
-              file=sys.stderr)
+        log('error', f'{filename}: file must start with a <!-- lwp:meta --> block.')
         sys.exit(1)
 
     # §22.7: nothing but blank lines may precede the marker (a BOM is
@@ -7129,9 +7127,9 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
     # silently discarded — invisible data loss for a stray first line.
     if content_before_meta:
         preview = content_before_meta.splitlines()[0][:60]
-        print(f'[ERROR] {filename}: content found before the <!-- lwp:meta --> '
+        log('error', f'{filename}: content found before the <!-- lwp:meta --> '
               f'block (starting with: "{preview}"). The file must start with the '
-              f'marker; only blank lines may precede it.', file=sys.stderr)
+              f'marker; only blank lines may precede it.')
         sys.exit(1)
 
     if not slides:
@@ -7150,13 +7148,13 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
         # it here, naming what the types are.
         if slide.slide_type not in SLIDE_TYPES_BY_NAME:
             known = ', '.join(t.name for t in SLIDE_TYPES)
-            print(f'[ERROR] {filename}: slide {i} has an unknown type '
-                  f'"{slide.slide_type}" (known types: {known}).', file=sys.stderr)
+            log('error', f'{filename}: slide {i} has an unknown type '
+                  f'"{slide.slide_type}" (known types: {known}).')
             sys.exit(1)
 
         if slide.slide_type == 'cover' and slide.fact_content:
-            print(f'[ERROR] {filename}: slide {i} (cover) has content after its '
-                  f'fields, but a cover slide has no fact-box.', file=sys.stderr)
+            log('error', f'{filename}: slide {i} (cover) has content after its '
+                  f'fields, but a cover slide has no fact-box.')
             sys.exit(1)
 
         # A cover renders only tag / # title / summary (+ comment, never
@@ -7172,45 +7170,45 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
                        if name not in accepted
                        and getattr(slide, _SLIDE_FIELD_ATTRS[name]) is not None]
             if ignored:
-                print(f'[WARNING] {filename}: slide {i} (cover) has field(s) '
+                log('info', f'[WARNING] {filename}: slide {i} (cover) has field(s) '
                       f'{", ".join(ignored)} — parsed but never rendered on a '
-                      f'cover slide.', file=sys.stderr)
+                      f'cover slide.')
 
         # series-nav / full-article: any line that isn't a recognized
         # directive (article:, comment:) would be silently dropped from
         # the rendering — fatal instead (§22.9/§22.8).
         if slide.slide_type in ('series-nav', 'full-article') and slide.extra_content:
             preview = slide.extra_content.splitlines()[0][:60]
-            print(f'[ERROR] {filename}: slide {i} ({slide.slide_type}) has '
+            log('error', f'{filename}: slide {i} ({slide.slide_type}) has '
                   f'content that this slide type never renders (starting '
-                  f'with: "{preview}").', file=sys.stderr)
+                  f'with: "{preview}").')
             sys.exit(1)
 
         if slide.slide_type == 'full-article':
             full_article_positions.append(i)
             if not slide.article_file:
-                print(f'[ERROR] {filename}: slide {i} is a full-article slide '
-                      f'without an article: field.', file=sys.stderr)
+                log('error', f'{filename}: slide {i} is a full-article slide '
+                      f'without an article: field.')
                 sys.exit(1)
             if not _is_safe_relative_filename(slide.article_file):
-                print(f'[ERROR] {filename}: slide {i} has an unsafe article: '
+                log('error', f'{filename}: slide {i} has an unsafe article: '
                       f'value "{slide.article_file}" (must be a plain filename, '
-                      f'no path separators, no "..").', file=sys.stderr)
+                      f'no path separators, no "..").')
                 sys.exit(1)
 
         if slide.slide_type == 'series-nav':
             series_nav_positions.append(i)
 
     if len(full_article_positions) > 1:
-        print(f'[ERROR] {filename}: {len(full_article_positions)} full-article '
+        log('error', f'{filename}: {len(full_article_positions)} full-article '
               f'slides found (slides {full_article_positions}), only one is '
-              f'allowed per article.', file=sys.stderr)
+              f'allowed per article.')
         sys.exit(1)
 
     if len(series_nav_positions) > 1:
-        print(f'[ERROR] {filename}: {len(series_nav_positions)} series-nav '
+        log('error', f'{filename}: {len(series_nav_positions)} series-nav '
               f'slides found (slides {series_nav_positions}), only one is '
-              f'allowed per article.', file=sys.stderr)
+              f'allowed per article.')
         sys.exit(1)
 
 
@@ -7240,8 +7238,8 @@ def resolve_notes_settings(meta, series_meta, source_name):
             if key in source and str(source[key]).strip():
                 value = str(source[key]).strip().lower()
                 if value not in allowed:
-                    print(f'[ERROR] {origin}: {key}: {value!r} is not a valid '
-                          f'value ({" | ".join(sorted(allowed))}).', file=sys.stderr)
+                    log('error', f'{origin}: {key}: {value!r} is not a valid '
+                          f'value ({" | ".join(sorted(allowed))}).')
                     sys.exit(1)
                 return value
         return default
@@ -7690,14 +7688,12 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             # otherwise be read and embedded verbatim into the page.
             article_path = _resolve_contained(articles_dir, slide.article_file)
             if article_path is None:
-                print(f'[ERROR] {source_path.name}: article file "{slide.article_file}" '
-                      f'resolves outside articles/ (symlink or traversal).',
-                      file=sys.stderr)
+                log('error', f'{source_path.name}: article file "{slide.article_file}" '
+                      f'resolves outside articles/ (symlink or traversal).')
                 sys.exit(1)
             if not article_path.exists():
-                print(f'[ERROR] {source_path.name}: article file not found: '
-                      f'{slide.article_file} (referenced by its full-article slide).',
-                      file=sys.stderr)
+                log('error', f'{source_path.name}: article file not found: '
+                      f'{slide.article_file} (referenced by its full-article slide).')
                 sys.exit(1)
             article_md = read_text_file(article_path)
             # Name the file the author has to open. The deck's own text is
@@ -7839,9 +7835,8 @@ def copy_images(articles_dir, output_dir):
             if entry.is_symlink():
                 target = entry.resolve()
                 if not (target == src_root or src_root in target.parents):
-                    print(f'  [WARNING] img/: skipped symlink escaping the '
-                          f'image directory: {entry.relative_to(img_src)}',
-                          file=sys.stderr)
+                    log('info', f'  [WARNING] img/: skipped symlink escaping the '
+                          f'image directory: {entry.relative_to(img_src)}')
                     ignored.add(name)
         return ignored
 
@@ -7866,8 +7861,7 @@ def load_series_data(series_dir):
         sys.exit(1)
     articles = data.get('articles', data) if isinstance(data, dict) else data
     if not isinstance(articles, list) or not all(isinstance(e, dict) for e in articles):
-        print(f'[ERROR] {series_file}: "articles" must be a list of objects.',
-              file=sys.stderr)
+        log('error', f'{series_file}: "articles" must be a list of objects.')
         sys.exit(1)
     return data
 
@@ -7893,13 +7887,13 @@ def series_meta_of(series_data):
         return {}
     meta = series_data.get('series_meta', {})
     if not isinstance(meta, dict):
-        print(f'[ERROR] series.json: "series_meta" must be an object '
-              f'(got {type(meta).__name__}).', file=sys.stderr)
+        log('error', f'series.json: "series_meta" must be an object '
+              f'(got {type(meta).__name__}).')
         sys.exit(1)
     for field in _SERIES_META_STRING_FIELDS:
         if field in meta and meta[field] is not None and not isinstance(meta[field], str):
-            print(f'[ERROR] series.json: "series_meta.{field}" must be a string '
-                  f'(got {type(meta[field]).__name__}).', file=sys.stderr)
+            log('error', f'series.json: "series_meta.{field}" must be a string '
+                  f'(got {type(meta[field]).__name__}).')
             sys.exit(1)
     return meta
 
@@ -7934,8 +7928,8 @@ def validate_series(articles):
         # traceback instead of the clean error §20.3 promises for a
         # semi-trusted series.json.
         if not isinstance(entry, dict):
-            print(f'[ERROR] series.json: entry {i} must be an object '
-                  f'(got {type(entry).__name__}).', file=sys.stderr)
+            log('error', f'series.json: entry {i} must be an object '
+                  f'(got {type(entry).__name__}).')
             sys.exit(1)
         # Every known field below is text: a wrong (truthy non-string)
         # type — a number, list or object — used to sail past this
@@ -7943,37 +7937,37 @@ def validate_series(articles):
         # sink as a traceback. Reject it here with a clean message.
         for field in _SERIES_STRING_FIELDS:
             if field in entry and entry[field] is not None and not isinstance(entry[field], str):
-                print(f'[ERROR] series.json: entry {i} field "{field}" must be '
-                      f'a string (got {type(entry[field]).__name__}).', file=sys.stderr)
+                log('error', f'series.json: entry {i} field "{field}" must be '
+                      f'a string (got {type(entry[field]).__name__}).')
                 sys.exit(1)
         for legacy, renamed in _LEGACY_SERIES_FIELDS.items():
             if legacy in entry:
-                print(f'[ERROR] series.json: entry {i} uses "{legacy}", '
+                log('error', f'series.json: entry {i} uses "{legacy}", '
                       f'renamed to "{renamed}" in v0.7.0 — just rename the '
-                      f'key, the value is unchanged.', file=sys.stderr)
+                      f'key, the value is unchanged.')
                 sys.exit(1)
         if not entry.get('page_source'):
-            print(f'[ERROR] series.json: entry {i} is missing required '
-                  f'field "page_source".', file=sys.stderr)
+            log('error', f'series.json: entry {i} is missing required '
+                  f'field "page_source".')
             sys.exit(1)
         if not _is_safe_relative_filename(entry['page_source']):
-            print(f'[ERROR] series.json: entry {i} has an unsafe '
+            log('error', f'series.json: entry {i} has an unsafe '
                   f'"page_source" value "{entry["page_source"]}" (must be a '
-                  f'plain filename, no path separators, no "..").', file=sys.stderr)
+                  f'plain filename, no path separators, no "..").')
             sys.exit(1)
         if not entry['page_source'].lower().endswith('.md'):
-            print(f'[ERROR] series.json: entry {i} has a "page_source" value '
-                  f'"{entry["page_source"]}" that does not end in .md.', file=sys.stderr)
+            log('error', f'series.json: entry {i} has a "page_source" value '
+                  f'"{entry["page_source"]}" that does not end in .md.')
             sys.exit(1)
         if entry.get('page_dest') is not None:
             if not _is_safe_relative_filename(entry['page_dest']):
-                print(f'[ERROR] series.json: entry {i} has an unsafe '
+                log('error', f'series.json: entry {i} has an unsafe '
                       f'"page_dest" value "{entry["page_dest"]}" (must be a '
-                      f'plain filename, no path separators, no "..").', file=sys.stderr)
+                      f'plain filename, no path separators, no "..").')
                 sys.exit(1)
             if not entry['page_dest'].lower().endswith(('.html', '.htm')):
-                print(f'[ERROR] series.json: entry {i} has a "page_dest" value '
-                      f'"{entry["page_dest"]}" that does not end in .html or .htm.', file=sys.stderr)
+                log('error', f'series.json: entry {i} has a "page_dest" value '
+                      f'"{entry["page_dest"]}" that does not end in .html or .htm.')
                 sys.exit(1)
 
 
@@ -8180,9 +8174,9 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
             # validate_series; one that arrives here came from the meta
             # block or from page_source, and gets the same check now.
             if not _is_safe_relative_filename(entry['page_dest']) or not entry['page_dest'].lower().endswith(('.html', '.htm')):
-                print(f'[ERROR] {entry["page_source"]}: resolved "page_dest" value '
+                log('error', f'{entry["page_source"]}: resolved "page_dest" value '
                       f'"{entry["page_dest"]}" is not a safe .html/.htm filename '
-                      f'(from the article\'s own meta block).', file=sys.stderr)
+                      f'(from the article\'s own meta block).')
                 sys.exit(1)
 
         entry['page_title'] = take('page_title',
@@ -8225,9 +8219,9 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
             # value is named, not silently treated as the default — which
             # would leave an author reading a series that ignores what they
             # asked for, with nothing to say why.
-            print(f'[ERROR] {entry["page_source"]}: status: '
+            log('error', f'{entry["page_source"]}: status: '
                   f'{entry["status"]!r} is not a valid value '
-                  f'({" | ".join(ARTICLE_STATUSES)}).', file=sys.stderr)
+                  f'({" | ".join(ARTICLE_STATUSES)}).')
             sys.exit(1)
 
         resolution.append({'source_read': text is not None, 'origins': origins,
@@ -8242,9 +8236,9 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
         # platform-dependent data loss.
         f = entry['page_dest'].lower()
         if f in seen:
-            print(f'[ERROR] series.json: duplicate page_dest "{entry["page_dest"]}" '
+            log('error', f'series.json: duplicate page_dest "{entry["page_dest"]}" '
                   f'(articles {seen[f]} and {i} — compared case-insensitively: '
-                  f'they would be the same file on Windows/macOS).', file=sys.stderr)
+                  f'they would be the same file on Windows/macOS).')
             sys.exit(1)
         seen[f] = i
 
@@ -8467,8 +8461,8 @@ def load_build_context(series_dir, args):
                or not (articles_dir / e['page_source']).exists()]
     if missing:
         for name in missing:
-            print(f'[ERROR] Source not found: {articles_dir / name} '
-                  f'(listed in series.json).', file=sys.stderr)
+            log('error', f'Source not found: {articles_dir / name} '
+                  f'(listed in series.json).')
         sys.exit(1)
 
     return SimpleNamespace(
@@ -8532,13 +8526,13 @@ def resolve_index_claim(claim_articles, built_articles=None):
     claimant = next((e for e in claim_articles
                      if e['page_dest'].lower() == 'index.html'), None)
     if claimant is not None and len(claim_articles) > 1:
-        print(f'[ERROR] series.json: article "{claimant["page_source"]}" resolves '
+        log('error', f'series.json: article "{claimant["page_source"]}" resolves '
               f'to page_dest "{claimant["page_dest"]}", which collides with the '
               f'series index — with {len(claim_articles)} articles the index carries '
               f'the article list, so one of the two pages would overwrite the '
               f'other. Give this article another page_dest (in series.json, in '
               f'its own meta block, or by renaming the source); only a '
-              f'one-article series may take the index name.', file=sys.stderr)
+              f'one-article series may take the index name.')
         sys.exit(1)
     return claimant if claimant in built_articles else None
 
@@ -9238,13 +9232,11 @@ def cmd_install(target_dir, args):
     gitlab_ci = bool(args.get('--gitlab-ci'))
 
     if td.exists() and any(td.iterdir()) and not force:
-        print(f'[ERROR] {td} is not empty. Use an empty or new directory, or pass --force.',
-              file=sys.stderr)
+        log('error', f'{td} is not empty. Use an empty or new directory, or pass --force.')
         sys.exit(1)
 
     if theme_key is not None and theme_key not in THEMES:
-        print(f'[ERROR] Unknown theme: {theme_key!r}. Valid themes: {", ".join(sorted(THEMES))}',
-              file=sys.stderr)
+        log('error', f'Unknown theme: {theme_key!r}. Valid themes: {", ".join(sorted(THEMES))}')
         sys.exit(1)
 
     # Create the directories
@@ -9357,8 +9349,7 @@ def cmd_refresh_templates(target_dir, args):
     td = Path(target_dir).resolve()
     templates_dir = td / 'templates'
     if not templates_dir.is_dir():
-        print(f'[ERROR] {templates_dir} not found. Run init first.',
-              file=sys.stderr)
+        log('error', f'{templates_dir} not found. Run init first.')
         sys.exit(1)
 
     refreshed, up_to_date = [], []
@@ -9385,22 +9376,20 @@ def cmd_refresh_templates(target_dir, args):
               f'{theme_key or "default"}: commented surface refreshed, '
               f'{kept} pinned value(s) kept.')
         if unknown:
-            print(f'[WARN] {len(unknown)} pinned property(ies) no longer exist '
+            log('error', f'[WARN] {len(unknown)} pinned property(ies) no longer exist '
                   f'and were moved to the trailing section, commented out: '
                   f'{", ".join(unknown)}. A build would reject them; delete '
-                  f'or rename them (audit names the replacements).',
-                  file=sys.stderr)
+                  f'or rename them (audit names the replacements).')
         print()
         print('Run build again to apply.')
         return
 
     legacy = templates_dir / 'style.css'
     if legacy.exists():
-        print(f'[WARN] templates/style.css is no longer read (the stylesheet '
+        log('error', f'[WARN] templates/style.css is no longer read (the stylesheet '
               f'is composed at build time). Your values belong in '
               f'{SETTINGS_FILENAME}, your rules in {CUSTOM_CSS_FILENAME}; '
-              f'run audit for the variable renames, then delete it.',
-              file=sys.stderr)
+              f'run audit for the variable renames, then delete it.')
 
     settings_path = templates_dir / SETTINGS_FILENAME
     if not settings_path.exists():
@@ -9449,8 +9438,8 @@ def _facet_filters(args):
     for facet in FACET_VALUES:
         value = args.get(f'--{facet}')
         if value is not None and value not in FACET_VALUES[facet]:
-            print(f'[ERROR] Unknown --{facet}: {value!r}. Valid values: '
-                  f'{", ".join(FACET_VALUES[facet])}', file=sys.stderr)
+            log('error', f'Unknown --{facet}: {value!r}. Valid values: '
+                  f'{", ".join(FACET_VALUES[facet])}')
             sys.exit(1)
         filters[facet] = value
     return filters
@@ -9778,20 +9767,18 @@ def cmd_set_theme(target_dir, args):
     new_slug = args.get('--theme')
 
     if new_slug is None:
-        print(f'[ERROR] series theme set requires --theme <slug>. '
-              f'Run `lightwebpres theme list` to list them.', file=sys.stderr)
+        log('error', f'series theme set requires --theme <slug>. '
+              f'Run `lightwebpres theme list` to list them.')
         sys.exit(1)
     if new_slug not in THEMES:
-        print(f'[ERROR] Unknown theme: {new_slug!r}. '
-              f'Run `lightwebpres theme list` to list the {len(THEMES)} valid slugs.',
-              file=sys.stderr)
+        log('error', f'Unknown theme: {new_slug!r}. '
+              f'Run `lightwebpres theme list` to list the {len(THEMES)} valid slugs.')
         sys.exit(1)
 
     if not settings_path.parent.is_dir():
         # A directory that was never installed stays a clean error, as it
         # always was — set-theme configures a series, it does not create one.
-        print(f'[ERROR] {settings_path.parent} not found. Run init first.',
-              file=sys.stderr)
+        log('error', f'{settings_path.parent} not found. Run init first.')
         sys.exit(1)
     if not settings_path.exists():
         # Installed before the rewrite: nothing to preserve, write a fresh
@@ -9962,8 +9949,7 @@ def cmd_series_info(series_dir, args):
     an error and no answer at all."""
     fmt = args.get('--format', 'text')
     if fmt not in ('text', 'json'):
-        print(f'[ERROR] Unknown --format: {fmt!r}. Valid values: text, json',
-              file=sys.stderr)
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
 
     sd, articles_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
@@ -9990,9 +9976,9 @@ def cmd_series_info(series_dir, args):
     # and this command is not a second `check`.
     for article in report['articles']:
         if not article['source_read']:
-            print(f'[WARN] {articles_dir / article["page_source"]} could not be '
+            log('error', f'[WARN] {articles_dir / article["page_source"]} could not be '
                   f'read (absent, unreadable, or not UTF-8): its fields fall '
-                  f'back to series.json and the defaults.', file=sys.stderr)
+                  f'back to series.json and the defaults.')
 
     if fmt == 'json':
         print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=False))
@@ -10315,8 +10301,7 @@ def cmd_resolve(series_dir, name, args):
     disambiguation table to keep in step with four vocabularies."""
     fmt = args.get('--format', 'text')
     if fmt not in ('text', 'json'):
-        print(f'[ERROR] Unknown --format: {fmt!r}. Valid values: text, json',
-              file=sys.stderr)
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
 
     if name in _UNRESOLVABLE_NAMES:
@@ -10325,11 +10310,10 @@ def cmd_resolve(series_dir, name, args):
 
     kind = classify_resolve_name(name)
     if kind is None:
-        print(f'[ERROR] {name!r}: no field or property of that name. A bare '
+        log('error', f'{name!r}: no field or property of that name. A bare '
               f'word is looked up in the field vocabularies; a name with a '
               f'dot is a theme property, one with an underscore an article '
-              f'field, one with a hyphen a slide field (§20.0).',
-              file=sys.stderr)
+              f'field, one with a hyphen a slide field (§20.0).')
         sys.exit(1)
 
     sd, articles_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
@@ -10363,10 +10347,9 @@ def cmd_resolve(series_dir, name, args):
             if name not in PROPERTY_REGISTRY:
                 tail = name.split('.')[-1]
                 near = [k for k in PROPERTY_REGISTRY if k.split('.')[-1] == tail]
-                print(f'[ERROR] {name}: unknown theme property'
+                log('error', f'{name}: unknown theme property'
                       + (f' (did you mean {near[0]}?)' if near else '')
-                      + '. `theme-info` lists every one of them.',
-                      file=sys.stderr)
+                      + '. `theme-info` lists every one of them.')
                 sys.exit(1)
             resolution = resolve_theme_property(name, sd, article_meta, only or name)
         elif kind == 'slide-field':
@@ -10375,10 +10358,9 @@ def cmd_resolve(series_dir, name, args):
                 # is not offered here: a list that named it would send
                 # the reader straight into the next error.
                 known = sorted(set(_SLIDE_FIELD_ATTRS) - set(_UNRESOLVABLE_NAMES))
-                print(f'[ERROR] {name!r} was read as a slide field (its name is '
+                log('error', f'{name!r} was read as a slide field (its name is '
                       f'hyphenated, §20.0); no slide field has that name. The '
-                      f'ones that resolve are: {", ".join(known)}.',
-                      file=sys.stderr)
+                      f'ones that resolve are: {", ".join(known)}.')
                 sys.exit(1)
             resolution, unread = survey_slide_field(name, articles, articles_dir, only)
         elif name in _NOTES_FIELD_DEFAULTS:
@@ -10405,8 +10387,8 @@ def cmd_resolve(series_dir, name, args):
                          if e['page_source'] == only)
             resolution = resolve_article_field(name, articles[index], notes[index])
         else:
-            print(f'[ERROR] {name!r} was read as an article-level field (§20.0); '
-                  f'no article or series field has that name.', file=sys.stderr)
+            log('error', f'{name!r} was read as an article-level field (§20.0); '
+                  f'no article or series field has that name.')
             sys.exit(1)
     except PropertyError as exc:
         log('error', f'{exc}')
@@ -10423,9 +10405,9 @@ def cmd_resolve(series_dir, name, args):
     # stderr, so `--format json` stays one JSON document on stdout, and
     # exit 0, for the reason §11.11 gives: this is not a second `check`.
     for source in unread:
-        print(f'[WARN] {articles_dir / source} could not be read (absent, '
+        log('error', f'[WARN] {articles_dir / source} could not be read (absent, '
               f'unreadable, or not UTF-8): the levels it would have carried '
-              f'are missing from the answer.', file=sys.stderr)
+              f'are missing from the answer.')
 
     if fmt == 'json':
         print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=False))
@@ -10644,8 +10626,8 @@ def cmd_demo(target_dir, args):
                        'last.md', 'last_article.md', 'img/demo-figure.svg']
     existing = [f for f in demo_filenames if (articles_dir / f).exists()]
     if existing:
-        print(f'[ERROR] {td}/articles already has demo file(s): {", ".join(existing)}. '
-              f'Remove them first, or run demo in an empty series.', file=sys.stderr)
+        log('error', f'{td}/articles already has demo file(s): {", ".join(existing)}. '
+              f'Remove them first, or run demo in an empty series.')
         sys.exit(1)
 
     # demo rewrites series.json wholesale below — never over real work
@@ -10663,9 +10645,9 @@ def cmd_demo(target_dir, args):
         else:
             existing_articles = existing_series if isinstance(existing_series, list) else []
         if existing_articles:
-            print(f'[ERROR] {series_file} already lists {len(existing_articles)} '
+            log('error', f'{series_file} already lists {len(existing_articles)} '
                   f'article(s) — demo would overwrite it. Run demo in a fresh '
-                  f'series, or remove those entries first.', file=sys.stderr)
+                  f'series, or remove those entries first.')
             sys.exit(1)
 
     # Article 1: first — every display field set explicitly, as a
@@ -11324,9 +11306,8 @@ _THEME_VERBS = {
 
 
 def _warn_legacy(alias):
-    print(f'[WARN] `{alias}` is deprecated; use `{_LEGACY_REPLACEMENT[alias]}` '
-          f'instead. (`{alias}` remains an alias until the next MAJOR version.)',
-          file=sys.stderr)
+    log('error', f'[WARN] `{alias}` is deprecated; use `{_LEGACY_REPLACEMENT[alias]}` '
+          f'instead. (`{alias}` remains an alias until the next MAJOR version.)')
 
 
 def _resolve_command(args):
@@ -11413,8 +11394,8 @@ def parse_cli_options(command, rest, global_opts=None):
             if name not in allowed:
                 hint = f' (not an option of `{command}`)' if name in _VALUE_OPTIONS or any(
                     name in v for v in _COMMAND_OPTIONS.values()) else ''
-                print(f'[ERROR] Unknown option: {name}{hint}. '
-                      f'Run `lightwebpres --help` for the option list.', file=sys.stderr)
+                log('error', f'Unknown option: {name}{hint}. '
+                      f'Run `lightwebpres --help` for the option list.')
                 sys.exit(1)
             if name in _VALUE_OPTIONS:
                 if eq:
@@ -11424,8 +11405,8 @@ def parse_cli_options(command, rest, global_opts=None):
                     opts[name] = rest[i + 1]
                     i += 2
                 else:
-                    print(f'[ERROR] Option {name} requires a value '
-                          f'(`{name} VALUE` or `{name}=VALUE`).', file=sys.stderr)
+                    log('error', f'Option {name} requires a value '
+                          f'(`{name} VALUE` or `{name}=VALUE`).')
                     sys.exit(1)
             else:
                 if eq:
@@ -11549,15 +11530,15 @@ def main():
         # elsewhere. Read by count rather than by guessing which of the
         # two a lone argument looks like.
         if not positional:
-            print('[ERROR] resolve needs a name: '
+            log('error', 'resolve needs a name: '
                   '`lightwebpres resolve [directory] <name>`. The shape of '
                   'the name picks the cascade — dotted for a theme property, '
                   'snake_case for an article field, kebab-case for a slide '
-                  'field (§20.0).', file=sys.stderr)
+                  'field (§20.0).')
             sys.exit(1)
         if len(positional) > 2:
-            print(f'[ERROR] resolve takes at most a directory and a name; '
-                  f'got {len(positional)} arguments.', file=sys.stderr)
+            log('error', f'resolve takes at most a directory and a name; '
+                  f'got {len(positional)} arguments.')
             sys.exit(1)
         if len(positional) == 2:
             cmd_resolve(positional[0], positional[1], opts)
