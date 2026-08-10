@@ -1704,7 +1704,14 @@ build:
 python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
   </code></pre>
-  <h2>9. Going further</h2>
+  <h2>9. Shell completion (tab in the terminal)</h2>
+  <p><code>lightwebpres completion --shell bash</code> (or <code>zsh</code>) prints a script that makes your shell complete commands, subcommands, and options when you press Tab. Install it by adding this line to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
+  <pre><code class="language-bash">
+eval "$(lightwebpres completion --shell bash)"
+  </code></pre>
+  <p>Then <code>lightwebpres &lt;Tab&gt;</code> proposes <code>init</code>, <code>build</code>, <code>verify</code>, <code>audit</code>, <code>theme</code>, <code>series</code>, etc.; <code>lightwebpres series &lt;Tab&gt;</code> proposes <code>build</code>, <code>theme</code>, <code>status</code>, <code>resolve</code>...; and <code>lightwebpres build --&lt;Tab&gt;</code> proposes <code>--lang</code>, <code>--output</code>, <code>--no-typography</code>, etc.</p>
+  <p>The script is generated from the tool's own command tables, so it stays in sync with whatever commands the version you are running knows about.</p>
+  <h2>10. Going further</h2>
   <ul>
     <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/lightwebpres/</code>) — the precise mechanics</li>
   </ul>
@@ -1721,7 +1728,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
     <li><strong><code>lightwebpres --help</code></strong> — every command, every flag, every</li>
   </ul>
   <p>  environment variable.</p>
-  <h2>10. When something doesn't work</h2>
+  <h2>11. When something doesn't work</h2>
   <table class="comparison-table">
     <thead>
       <tr>

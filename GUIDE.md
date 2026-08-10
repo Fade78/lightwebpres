@@ -420,7 +420,26 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
 ```
 
-## 9. Going further
+## 9. Shell completion (tab in the terminal)
+
+`lightwebpres completion --shell bash` (or `zsh`) prints a script that
+makes your shell complete commands, subcommands, and options when you
+press Tab. Install it by adding this line to your `~/.bashrc` or
+`~/.zshrc`:
+
+```bash
+eval "$(lightwebpres completion --shell bash)"
+```
+
+Then `lightwebpres <Tab>` proposes `init`, `build`, `verify`, `audit`,
+`theme`, `series`, etc.; `lightwebpres series <Tab>` proposes `build`,
+`theme`, `status`, `resolve`...; and `lightwebpres build --<Tab>`
+proposes `--lang`, `--output`, `--no-typography`, etc.
+
+The script is generated from the tool's own command tables, so it stays
+in sync with whatever commands the version you are running knows about.
+
+## 10. Going further
 
 - **`SKILL.md`** (`agent/skills/lightwebpres/`) — the precise mechanics
   of the article format: every slide type and field, the meta block, the
@@ -441,7 +460,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 - **`lightwebpres --help`** — every command, every flag, every
   environment variable.
 
-## 10. When something doesn't work
+## 11. When something doesn't work
 
 | Symptom | Cause |
 |---|---|

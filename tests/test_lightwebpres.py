@@ -8812,7 +8812,7 @@ class TheGalleryInTheRepoIsTheGalleryTheToolMakes(unittest.TestCase):
             self.assertEqual(
                 out.read_bytes(), repo_copy.read_bytes(),
                 'themes-gallery.html is stale: re-run '
-                '`lightwebpres themes-gallery themes-gallery.html`')
+                '`lightwebpres theme gallery themes-gallery.html`')
 
 
 class TypedSurfaceCannotLeaveItsDeclaration(unittest.TestCase):

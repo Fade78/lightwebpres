@@ -17,6 +17,7 @@ python3 -m py_compile lightwebpres                    # doit afficher OK (silenc
 ```bash
 python3 lightwebpres --help                           # aide
 python3 lightwebpres <command> [dir] [options]        # usage général
+eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionnel)
 ```
 
 ## Structure du dépôt
