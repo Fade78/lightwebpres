@@ -72,7 +72,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.24.2"
+VERSION = "0.24.3"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -2982,14 +2982,14 @@ def series_style_context(templates_dir):
         sys.exit(1)
     custom = (read_text_file(custom_file)
               if custom_file is not None and custom_file.exists() else '')
-    return layers, custom
+    return layers, custom, theme_key
 
 
 def compose_with(style_context, page_props=None):
     """The CSS for one page: series layers, then the page's own properties
     (the article layer of the cascade), then the author's custom.css last so
     their rules win every same-specificity fight."""
-    layers, custom = style_context
+    layers, custom, _theme_key = style_context
     if page_props:
         layers = [*layers, page_props]
     css = compose_stylesheet(resolve_theme_properties(*layers))
@@ -3599,6 +3599,16 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
   text-underline-offset: max(3px, 0.375vmin);
   padding: max(1px, 0.125vmin) max(4px, 0.5vmin);
   border-radius: max(2px, 0.25vmin);
+}
+/* A theme with fact_highlight: None sets no ground under the bold run,
+   so the halo (the coloured box the padding and radius draw) has nothing
+   to halo. Without this override every **bold** in a fact-box carried a
+   4px side padding that read as a stray space before the comma that
+   follows it. The class is added at slide emission when the theme's
+   fact_highlight is None. */
+.fact-box.fact--no-highlight .fact-content strong {
+  padding: 0;
+  border-radius: 0;
 }
 .fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
 .fact-content h1:first-child,
@@ -7256,7 +7266,7 @@ def resolve_notes_settings(meta, series_meta, source_name):
 
 
 def render_slide(slide, slide_num, total_slides, typo_engine, strings,
-                 disabled=None, notes=None):
+                 disabled=None, notes=None, fact_no_highlight=False):
     """Generates the HTML for a slide."""
     num_str = f'{slide_num:02d} / {total_slides:02d}'
 
@@ -7318,6 +7328,12 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
             if slide.fact_label:
                 label = apply_typo(typo_engine, slide.fact_label, disabled)
                 fact_classes = 'fact-box'
+                # A theme with fact_highlight: None sets no ground under the
+                # bold run, so the mark's halo (padding/radius) would read as
+                # a stray space before the comma that follows a **bold**. The
+                # class lets the skeleton suppress it (see TEMPLATE_SKELETON).
+                if fact_no_highlight:
+                    fact_classes += ' fact--no-highlight'
                 if slide.fact_variant:
                     # The source names a MEANING (`fact-variant: warning`);
                     # what it looks like is the theme's or the author's to
@@ -7618,7 +7634,7 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True):
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, fact_no_highlight=False):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -7662,7 +7678,8 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             slide_notes = (page_notes if page_notes is not None
                            else NoteScope(f's{i}', tooltip=notes_tooltip))
             html = render_slide(slide, i, total_slides, article_typo_engine,
-                                strings, disabled_rules, slide_notes)
+                                strings, disabled_rules, slide_notes,
+                                fact_no_highlight=fact_no_highlight)
             slide_htmls.append(html)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
@@ -8406,6 +8423,12 @@ def load_build_context(series_dir, args):
     except PropertyError as exc:
         log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
+    # fact_highlight: None on five catalogue themes (no ground under the
+    # bold run), so the fact-box needs a class to suppress the mark's halo
+    # (padding/radius). See render_slide / TEMPLATE_SKELETON.
+    _, _, theme_key = style_context
+    fact_no_highlight = (theme_key in THEMES
+                         and THEMES[theme_key].get('fact_highlight') in (None, 'transparent'))
     nav_js_file = templates_dir / 'nav.js'
     nav_js = read_text_file(nav_js_file) if nav_js_file.exists() else TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
@@ -8478,6 +8501,7 @@ def load_build_context(series_dir, args):
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
         articles=articles, claim_articles=claim_articles,
         style_context=style_context, args=args,
+        fact_no_highlight=fact_no_highlight,
     )
 
 
@@ -8572,7 +8596,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'))
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), fact_no_highlight=ctx.fact_no_highlight)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -8919,7 +8943,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.articles_dir / source_file
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav)
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, fact_no_highlight=ctx.fact_no_highlight)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -9001,7 +9025,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context)
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, fact_no_highlight=ctx.fact_no_highlight)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -10566,11 +10590,14 @@ def build_theme_preview_document(theme_key, panel='card'):
     typo_engine = TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
     _, slides, _, _ = parse_markdown_extended(TEMPLATE_THEMES_GALLERY_MOCK)
+    fact_no_highlight = THEMES[theme_key].get('fact_highlight') in (None, 'transparent')
 
     if panel == 'cover':
-        body = render_slide(slides[0], 1, len(slides), typo_engine, strings)
+        body = render_slide(slides[0], 1, len(slides), typo_engine, strings,
+                            fact_no_highlight=fact_no_highlight)
     elif panel == 'card':
-        body = render_slide(slides[1], 2, len(slides), typo_engine, strings)
+        body = render_slide(slides[1], 2, len(slides), typo_engine, strings,
+                            fact_no_highlight=fact_no_highlight)
     elif panel == 'notes':
         # The real object, fed the real bodies: a scope that has been
         # called once per body, so the return links are there too.
