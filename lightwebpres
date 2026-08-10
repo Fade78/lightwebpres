@@ -72,7 +72,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.24.3"
+VERSION = "0.25.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -2025,7 +2025,25 @@ THEME_COMPONENTS = [
                   css='text-decoration'),
         ThemeProp('fact.strong.decoration-color', PROP_COLOR, 'fact.strong.fg',
                   css='text-decoration-color'),
-    ]),
+        # The side padding that keeps the mark's ground from cutting the
+        # glyph at its edge. Was 4px (v0.24.2, read as a stray space before
+        # the comma that follows a **bold**); 3px from v0.25.0 — safe again
+        # because absorb-punct pulls that comma into the mark, so the
+        # padding no longer opens a gap before it. The vertical stays
+        # fixed in the composite (no reason to expose it).
+        ThemeProp('fact.strong.pad', PROP_LENGTH, 'max(3px, 0.375vmin)'),
+        # When the mark carries a ground (fact.strong.bg is not
+        # transparent), absorb the simple punctuation that immediately
+        # follows a **bold** run into the mark — `**2000**,` becomes
+        # `**2000,**` before parsing, so the comma is highlighted too,
+        # which kills the visual gap the side padding opened before it.
+        # Off leaves the Markdown as written. No effect when there is no
+        # ground to carry the highlight.
+        ThemeProp('fact.strong.absorb-punct',
+                  ChoiceType('on', 'off', hint='on absorbs the punctuation '
+                             'that follows a bold run into the highlight; '
+                             'off leaves the Markdown as written'), 'on'),
+    ], composite=[('padding', 'max(1px, 0.125vmin) var(--fact-strong-pad)')]),
 
     ThemeComponent('body-heading',
                    '.fact-content h1, .fact-content h2, .fact-content h3, '
@@ -2694,6 +2712,10 @@ def theme_property_layer(theme_key):
     if highlight in (None, 'transparent'):
         layer['fact.strong.bg'] = 'transparent'
         layer['fact.strong.fg'] = 'ink'
+        # No ground to halo: the side padding reads as a stray space
+        # before the comma that follows a **bold**, so it is zero here.
+        # An author can still pin fact.strong.pad to override.
+        layer['fact.strong.pad'] = '0'
     else:
         layer['fact.strong.bg'] = _ROLE_TO_COLOR[highlight]
         # Text on a bright ground takes the dark tone: page on a dark
@@ -2982,14 +3004,14 @@ def series_style_context(templates_dir):
         sys.exit(1)
     custom = (read_text_file(custom_file)
               if custom_file is not None and custom_file.exists() else '')
-    return layers, custom, theme_key
+    return layers, custom
 
 
 def compose_with(style_context, page_props=None):
     """The CSS for one page: series layers, then the page's own properties
     (the article layer of the cascade), then the author's custom.css last so
     their rules win every same-specificity fight."""
-    layers, custom, _theme_key = style_context
+    layers, custom = style_context
     if page_props:
         layers = [*layers, page_props]
     css = compose_stylesheet(resolve_theme_properties(*layers))
@@ -3585,30 +3607,21 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
    lower edge. Both properties degrade silently on an old engine — the
    rule falls back to its default position rather than disappearing.
 
-   Every length here is a halo around a glyph: the coloured box a marked
-   run sits in, the rounding of its corners, the weight of the rule and
-   how far it clears the baseline. All four are drawn against the text,
-   so all four scale with it. In bare pixels the box hugged the glyphs
-   tighter the larger the screen got -- 4px of side padding reads as a
-   marker at 24px type and as a printing error at 47px. The floors keep
-   the two collisions above as measured: below roughly an 800px smaller
-   dimension these are the pixel values they were measured at, and above
-   it they hold the ratio they were measured at. */
+   The two lengths still here are a halo around a glyph: the weight of
+   the rule and how far it clears the baseline. Both are drawn against
+   the text, so both scale with it. The side padding is a pinnable
+   property (fact.strong.pad, emitted by the engine); the corner radius
+   stays here — no reason to expose it. The padding was 4px (v0.24.2) —
+   too wide, it read as a stray space before the comma that follows a
+   **bold**. It is 3px from v0.25.0: absorb-punct pulls that comma into
+   the mark, so the padding no longer opens a gap before it. Below
+   roughly an 800px smaller dimension these are the pixel values they
+   were measured at, and above it they hold the ratio they were
+   measured at. */
 .fact-content strong {
   text-decoration-thickness: max(2px, 0.25vmin);
   text-underline-offset: max(3px, 0.375vmin);
-  padding: max(1px, 0.125vmin) max(4px, 0.5vmin);
   border-radius: max(2px, 0.25vmin);
-}
-/* A theme with fact_highlight: None sets no ground under the bold run,
-   so the halo (the coloured box the padding and radius draw) has nothing
-   to halo. Without this override every **bold** in a fact-box carried a
-   4px side padding that read as a stray space before the comma that
-   follows it. The class is added at slide emission when the theme's
-   fact_highlight is None. */
-.fact-box.fact--no-highlight .fact-content strong {
-  padding: 0;
-  border-radius: 0;
 }
 .fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
 .fact-content h1:first-child,
@@ -6215,7 +6228,7 @@ class NoteScope:
         return '  <ol class="note-body">\n' + '\n'.join(items) + '\n  </ol>'
 
 
-def md_inline(text):
+def md_inline(text, absorb_punct=False):
     """Converts inline Markdown formatting to HTML."""
     # This function owns two control characters as internal placeholders
     # (U+0000 for code spans below, U+0002 for note calls). Neither is
@@ -6278,6 +6291,18 @@ def md_inline(text):
     # every opener -- measured 16s on 60kB, 4x per doubling.
     text = re.sub(r'!\[([^\]\[]*)\]\(([^)\s"\[(]+)(?:\s+"([^"]*)")?\)',
                   _inline_img, text)
+    # Absorb the simple punctuation that immediately follows a **bold**
+    # run into the mark: `**2000**,` becomes `**2000,**` before the bold
+    # regex below parses it, so the comma is highlighted too. Without
+    # this the side padding of the mark opens a visible gap before the
+    # comma. `absorb_punct` is set only by the fact-box path
+    # (convert_markdown called from render_slide), and only when the
+    # theme carries a ground (fact.strong.bg is not transparent) — a
+    # highlighter with no ink to highlight has nothing to absorb into.
+    # One punctuation char only: `**a**, b` absorbs the comma, not the
+    # space or the b.
+    if absorb_punct:
+        text = re.sub(r'\*\*(.+?)\*\*([,.!?;:])', r'**\1\2**', text)
     # Bold before italic
     text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<em>\1</em>', text)
@@ -6563,14 +6588,19 @@ def _is_paragraph_continuation(line, lines, idx, n):
 
 
 def convert_markdown(md_text, typo_engine=None, disabled=None,
-                     notes=None, strings=None):
+                     notes=None, strings=None, absorb_punct=False):
     """Converts the Markdown body to HTML.
 
     `notes` is the NoteScope this text's notes belong to. A deferred scope
     (the page-wide one of `notes_placement: page`) only collects here: its
     calls stay markers and its bodies are rendered by whoever owns the
     page. With no scope at all, the text is its own locality — which is
-    what an ad-hoc conversion wants."""
+    what an ad-hoc conversion wants.
+
+    `absorb_punct` passes through to md_inline(): when True, the simple
+    punctuation that follows a **bold** run is absorbed into the mark so
+    it is highlighted too (fact.strong.absorb-punct). Set only by the
+    fact-box path."""
     lines = md_text.split('\n')
     out = []
     in_list = None
@@ -6648,17 +6678,17 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             continue
 
         if line.startswith('# ') and not line.startswith('## '):
-            out.append(f'  <h1>{md_inline(strip_ws(line[2:]))}</h1>')
+            out.append(f'  <h1>{md_inline(strip_ws(line[2:]), absorb_punct=absorb_punct)}</h1>')
             i += 1
             continue
         if line.startswith('## '):
             close_list()
-            out.append(f'  <h2>{md_inline(strip_ws(line[3:]))}</h2>')
+            out.append(f'  <h2>{md_inline(strip_ws(line[3:]), absorb_punct=absorb_punct)}</h2>')
             i += 1
             continue
         if line.startswith('### '):
             close_list()
-            out.append(f'  <h3>{md_inline(strip_ws(line[4:]))}</h3>')
+            out.append(f'  <h3>{md_inline(strip_ws(line[4:]), absorb_punct=absorb_punct)}</h3>')
             i += 1
             continue
 
@@ -6683,7 +6713,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 href = html_escape(m_fig.group(4), quote=True)
                 img = f'<a href="{href}" target="_blank" rel="noopener">{img}</a>'
             if caption:
-                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption)}</figcaption></figure>')
+                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption, absorb_punct=absorb_punct)}</figcaption></figure>')
             else:
                 out.append(f'  <figure class="figure">{img}</figure>')
             i += 1
@@ -6713,7 +6743,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             while i < n and rstrip_ws(lines[i]).startswith('>'):
                 quote_lines.append(strip_ws(rstrip_ws(lines[i])[1:]))
                 i += 1
-            out.append(f'  <blockquote><p>{md_inline(" ".join(quote_lines))}</p></blockquote>')
+            out.append(f'  <blockquote><p>{md_inline(" ".join(quote_lines), absorb_punct=absorb_punct)}</p></blockquote>')
             continue
 
         # Table
@@ -6724,7 +6754,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             out.append('    <thead>')
             out.append('      <tr>')
             for cell in header_cells:
-                out.append(f'        <th>{md_inline(cell)}</th>')
+                out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct)}</th>')
             out.append('      </tr>')
             out.append('    </thead>')
             out.append('    <tbody>')
@@ -6733,7 +6763,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 row_cells = parse_table_row(lines[i])
                 out.append('      <tr>')
                 for cell in row_cells:
-                    out.append(f'        <td>{md_inline(cell)}</td>')
+                    out.append(f'        <td>{md_inline(cell, absorb_punct=absorb_punct)}</td>')
                 out.append('      </tr>')
                 i += 1
             out.append('    </tbody>')
@@ -6756,7 +6786,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 close_list()
                 out.append('  <ol>')
                 in_list = 'ol'
-            out.append(f'    <li>{md_inline(m_ol.group(1))}</li>')
+            out.append(f'    <li>{md_inline(m_ol.group(1), absorb_punct=absorb_punct)}</li>')
             i += 1
             continue
 
@@ -6767,7 +6797,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 close_list()
                 out.append('  <ul>')
                 in_list = 'ul'
-            out.append(f'    <li>{md_inline(m_ul.group(1))}</li>')
+            out.append(f'    <li>{md_inline(m_ul.group(1), absorb_punct=absorb_punct)}</li>')
             i += 1
             continue
 
@@ -6780,7 +6810,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             # written; it renders where its placement says (ARCHI-NOTES §2),
             # which is at the foot of this locality or in the page's notes
             # section. The scope is what carries it there.
-            scope.define(label, md_inline(txt))
+            scope.define(label, md_inline(txt, absorb_punct=absorb_punct))
             i += 1
             continue
 
@@ -6793,7 +6823,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         while i < n and _is_paragraph_continuation(rstrip_ws(lines[i]), lines, i, n):
             para_lines.append(rstrip_ws(lines[i]))
             i += 1
-        out.append(f'  <p>{md_inline(" ".join(para_lines))}</p>')
+        out.append(f'  <p>{md_inline(" ".join(para_lines), absorb_punct=absorb_punct)}</p>')
 
     close_list()
     # An unclosed BLOCK tag is not the same defect as an unclosed inline one.
@@ -7266,7 +7296,7 @@ def resolve_notes_settings(meta, series_meta, source_name):
 
 
 def render_slide(slide, slide_num, total_slides, typo_engine, strings,
-                 disabled=None, notes=None, fact_no_highlight=False):
+                 disabled=None, notes=None, absorb_punct=False):
     """Generates the HTML for a slide."""
     num_str = f'{slide_num:02d} / {total_slides:02d}'
 
@@ -7324,16 +7354,11 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
             # while the reader sees 1, 2, 3 in every card (ARCHI-NOTES §4).
             slide_notes = notes if notes is not None else NoteScope(f's{slide_num}')
             content_html = convert_markdown(slide.fact_content, typo_engine,
-                                            disabled, slide_notes, strings)
+                                            disabled, slide_notes, strings,
+                                            absorb_punct=absorb_punct)
             if slide.fact_label:
                 label = apply_typo(typo_engine, slide.fact_label, disabled)
                 fact_classes = 'fact-box'
-                # A theme with fact_highlight: None sets no ground under the
-                # bold run, so the mark's halo (padding/radius) would read as
-                # a stray space before the comma that follows a **bold**. The
-                # class lets the skeleton suppress it (see TEMPLATE_SKELETON).
-                if fact_no_highlight:
-                    fact_classes += ' fact--no-highlight'
                 if slide.fact_variant:
                     # The source names a MEANING (`fact-variant: warning`);
                     # what it looks like is the theme's or the author's to
@@ -7634,7 +7659,7 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, fact_no_highlight=False):
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -7651,6 +7676,20 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
+
+    # absorb-punct applies only when the mark carries a ground (the bg is
+    # not transparent) AND the property is on. A page can pin either, so
+    # this is resolved here against the page's own cascade, not passed in.
+    if style_context is not None:
+        try:
+            layers = [*style_context[0], *([page_props] if page_props else [])]
+            resolved = resolve_theme_properties(*layers)
+            bg = resolved.get('fact.strong.bg', '')
+            if (resolved.get('fact.strong.absorb-punct') == 'on'
+                    and not bg.endswith('00')):
+                absorb_punct = True
+        except PropertyError:
+            pass
 
     disabled_rules = typo_disabled_rules(meta)
     # typo: off (§4.5) is this article's own --no-typography: skip the
@@ -7679,7 +7718,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                            else NoteScope(f's{i}', tooltip=notes_tooltip))
             html = render_slide(slide, i, total_slides, article_typo_engine,
                                 strings, disabled_rules, slide_notes,
-                                fact_no_highlight=fact_no_highlight)
+                                absorb_punct=absorb_punct)
             slide_htmls.append(html)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
@@ -8423,12 +8462,6 @@ def load_build_context(series_dir, args):
     except PropertyError as exc:
         log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
-    # fact_highlight: None on five catalogue themes (no ground under the
-    # bold run), so the fact-box needs a class to suppress the mark's halo
-    # (padding/radius). See render_slide / TEMPLATE_SKELETON.
-    _, _, theme_key = style_context
-    fact_no_highlight = (theme_key in THEMES
-                         and THEMES[theme_key].get('fact_highlight') in (None, 'transparent'))
     nav_js_file = templates_dir / 'nav.js'
     nav_js = read_text_file(nav_js_file) if nav_js_file.exists() else TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
@@ -8501,7 +8534,6 @@ def load_build_context(series_dir, args):
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
         articles=articles, claim_articles=claim_articles,
         style_context=style_context, args=args,
-        fact_no_highlight=fact_no_highlight,
     )
 
 
@@ -8596,7 +8628,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), fact_no_highlight=ctx.fact_no_highlight)
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'))
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -8943,7 +8975,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.articles_dir / source_file
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, fact_no_highlight=ctx.fact_no_highlight)
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -9025,7 +9057,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, fact_no_highlight=ctx.fact_no_highlight)
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -10590,14 +10622,17 @@ def build_theme_preview_document(theme_key, panel='card'):
     typo_engine = TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
     _, slides, _, _ = parse_markdown_extended(TEMPLATE_THEMES_GALLERY_MOCK)
-    fact_no_highlight = THEMES[theme_key].get('fact_highlight') in (None, 'transparent')
+    # absorb-punct applies only when the mark carries a ground.
+    resolved = resolve_theme_properties(theme_property_layer(theme_key))
+    absorb_punct = (resolved.get('fact.strong.absorb-punct') == 'on'
+                    and not resolved.get('fact.strong.bg', '').endswith('00'))
 
     if panel == 'cover':
         body = render_slide(slides[0], 1, len(slides), typo_engine, strings,
-                            fact_no_highlight=fact_no_highlight)
+                            absorb_punct=absorb_punct)
     elif panel == 'card':
         body = render_slide(slides[1], 2, len(slides), typo_engine, strings,
-                            fact_no_highlight=fact_no_highlight)
+                            absorb_punct=absorb_punct)
     elif panel == 'notes':
         # The real object, fed the real bodies: a scope that has been
         # called once per body, so the return links are there too.

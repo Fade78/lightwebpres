@@ -4419,9 +4419,17 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         self.assertGreaterEqual(len(slides), 2, 'the mock lost its slides')
         pack = self.lwp.load_language(None, 'en')
         engine = self.lwp.TypoEngine(pack)
+        # absorb_punct must match what build_theme_preview_document computes
+        # for nord (which carries a ground), or the comma/point after a bold
+        # run is absorbed on one side and not the other.
+        resolved = self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer('nord'))
+        absorb = (resolved.get('fact.strong.absorb-punct') == 'on'
+                  and not resolved.get('fact.strong.bg', '').endswith('00'))
         for i, (slide, panel) in enumerate(zip(slides, ('cover', 'card')), 1):
             rendered = self.lwp.render_slide(slide, i, len(slides), engine,
-                                             pack.get('strings', {}))
+                                             pack.get('strings', {}),
+                                             absorb_punct=absorb)
             self.assertIn(rendered,
                           self.lwp.build_theme_preview_document('nord', panel),
                           f'{panel} panel')
@@ -4507,7 +4515,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         the suite green — under the engine the :root block is derived
         from the registry, and this pins that each of the six emphasis
         axes lands there at its theme-resolved value."""
-        axes = ('weight', 'style', 'bg', 'fg', 'decoration', 'decoration-color')
+        axes = ('weight', 'style', 'bg', 'fg', 'decoration', 'decoration-color', 'pad', 'absorb-punct')
         for slug in ('monochrome', 'graphite', 'nord'):
             resolved = self.lwp.resolve_theme_properties(
                 self.lwp.theme_property_layer(slug))
@@ -5528,28 +5536,20 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     callers.add(node.name)
         self.assertEqual(callers, self.CONTRAST_CALLERS)
 
-    @unittest.expectedFailure
     def test_a_built_page_is_byte_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.24.2),
+        by the executable as it stood at the last tagged release (v0.25.0),
         and by this one, compared byte for byte. --build-stamp is off by
         default, so there is no timestamp to excuse a difference.
-
-        Expected to fail until v0.24.3 is tagged: the fact-box bold
-        padding fix (no halo when fact_highlight is None) changes the
-        CSS emitted for pop-lemon, so the current build no longer
-        matches v0.24.2 byte for byte. Once v0.24.3 is tagged, repoint
-        this test at v0.24.3 and drop the @unittest.expectedFailure
-        decorator — the test graduates back into a regression guard.
 
         Skipped, loudly, when the previous version cannot be reached --
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.24.2:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.25.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.24.2 tag to read the previous version from')
+            self.skipTest('no v0.25.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -9215,15 +9215,17 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
         self.assertGreater(seen, 0, 'no glow found -- wrong store')
 
     def test_the_marker_box_grows_with_the_run_it_marks(self):
-        """4px of side padding reads as a marker at 24px type and as a
-        printing error at 47px. The underline thickness and its offset go
-        with it: they were measured against the descenders and against
-        the mark's lower edge, and a ratio measured once is only kept by
-        scaling both sides of it."""
+        """The underline thickness, its offset and the mark's corner
+        radius all scale with the type: they were measured against the
+        descenders, the mark's lower edge and the glyph's edge, and a
+        ratio measured once is only kept by scaling every side of it.
+        The side padding is a pinnable property (fact.strong.pad),
+        emitted by the engine — what stays in the skeleton is the
+        radius and the two underline lengths."""
         sk = self.lwp.TEMPLATE_SKELETON
         i = sk.index('.fact-content strong {')
         rule = sk[i:sk.index('}', i)]
-        for decl in ('padding', 'border-radius',
+        for decl in ('border-radius',
                      'text-decoration-thickness', 'text-underline-offset'):
             line = [l for l in rule.splitlines() if l.strip().startswith(decl + ':')]
             self.assertTrue(line, decl)
