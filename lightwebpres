@@ -50,6 +50,8 @@ import os
 import re
 import json
 import shutil
+import base64
+import mimetypes
 import difflib
 import hashlib
 from datetime import datetime
@@ -72,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.25.0"
+VERSION = "0.25.1"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -6228,7 +6230,7 @@ class NoteScope:
         return '  <ol class="note-body">\n' + '\n'.join(items) + '\n  </ol>'
 
 
-def md_inline(text, absorb_punct=False):
+def md_inline(text, absorb_punct=False, inline_images=False, articles_dir=None):
     """Converts inline Markdown formatting to HTML."""
     # This function owns two control characters as internal placeholders
     # (U+0000 for code spans below, U+0002 for note calls). Neither is
@@ -6268,6 +6270,14 @@ def md_inline(text, absorb_punct=False):
     def _inline_img(m):
         alt = m.group(1).replace('"', '&quot;')
         src = m.group(2).replace('"', '&quot;')
+        # --inline-images: replace the path with a base64 data URI so the
+        # page is fully self-contained. If the file cannot be read, the
+        # original src stays — a broken link is better than a silent
+        # missing image (nothing inlined as nothing would hide the error).
+        if inline_images and articles_dir is not None:
+            encoded = _encode_inline_image(src, articles_dir)
+            if encoded is not None:
+                src = encoded
         # The optional Markdown title becomes a title="" attribute (a
         # tooltip), never a <figcaption>: a caption is block-level and
         # this image sits inside a sentence (§6.1). Deliberately NOT run
@@ -6588,7 +6598,8 @@ def _is_paragraph_continuation(line, lines, idx, n):
 
 
 def convert_markdown(md_text, typo_engine=None, disabled=None,
-                     notes=None, strings=None, absorb_punct=False):
+                     notes=None, strings=None, absorb_punct=False,
+                     inline_images=False, articles_dir=None):
     """Converts the Markdown body to HTML.
 
     `notes` is the NoteScope this text's notes belong to. A deferred scope
@@ -6597,10 +6608,14 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
     page. With no scope at all, the text is its own locality — which is
     what an ad-hoc conversion wants.
 
-    `absorb_punct` passes through to md_inline(): when True, the simple
+    `absorb_punct` passes through to md_inline(inline_images=inline_images, articles_dir=articles_dir): when True, the simple
     punctuation that follows a **bold** run is absorbed into the mark so
     it is highlighted too (fact.strong.absorb-punct). Set only by the
-    fact-box path."""
+    fact-box path.
+
+    `inline_images` passes through to md_inline(): when True, image src
+    paths are replaced with base64 data URIs (--inline-images). The
+    `articles_dir` is needed to resolve the `img/...` path."""
     lines = md_text.split('\n')
     out = []
     in_list = None
@@ -6678,17 +6693,17 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             continue
 
         if line.startswith('# ') and not line.startswith('## '):
-            out.append(f'  <h1>{md_inline(strip_ws(line[2:]), absorb_punct=absorb_punct)}</h1>')
+            out.append(f'  <h1>{md_inline(strip_ws(line[2:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h1>')
             i += 1
             continue
         if line.startswith('## '):
             close_list()
-            out.append(f'  <h2>{md_inline(strip_ws(line[3:]), absorb_punct=absorb_punct)}</h2>')
+            out.append(f'  <h2>{md_inline(strip_ws(line[3:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h2>')
             i += 1
             continue
         if line.startswith('### '):
             close_list()
-            out.append(f'  <h3>{md_inline(strip_ws(line[4:]), absorb_punct=absorb_punct)}</h3>')
+            out.append(f'  <h3>{md_inline(strip_ws(line[4:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h3>')
             i += 1
             continue
 
@@ -6702,6 +6717,11 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             alt = html_escape(m_fig.group(1), quote=True)
             src = html_escape(m_fig.group(2), quote=True)
             caption = m_fig.group(3)
+            # --inline-images: same as mid-paragraph images above.
+            if inline_images and articles_dir is not None:
+                encoded = _encode_inline_image(src, articles_dir)
+                if encoded is not None:
+                    src = encoded
             img = f'<img src="{src}" alt="{alt}">'
             # A linked figure wraps the IMAGE only, never the caption. Two
             # reasons, and the second is the one that decides it: you click
@@ -6713,7 +6733,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 href = html_escape(m_fig.group(4), quote=True)
                 img = f'<a href="{href}" target="_blank" rel="noopener">{img}</a>'
             if caption:
-                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption, absorb_punct=absorb_punct)}</figcaption></figure>')
+                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</figcaption></figure>')
             else:
                 out.append(f'  <figure class="figure">{img}</figure>')
             i += 1
@@ -6743,7 +6763,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             while i < n and rstrip_ws(lines[i]).startswith('>'):
                 quote_lines.append(strip_ws(rstrip_ws(lines[i])[1:]))
                 i += 1
-            out.append(f'  <blockquote><p>{md_inline(" ".join(quote_lines), absorb_punct=absorb_punct)}</p></blockquote>')
+            out.append(f'  <blockquote><p>{md_inline(" ".join(quote_lines), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p></blockquote>')
             continue
 
         # Table
@@ -6754,7 +6774,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             out.append('    <thead>')
             out.append('      <tr>')
             for cell in header_cells:
-                out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct)}</th>')
+                out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</th>')
             out.append('      </tr>')
             out.append('    </thead>')
             out.append('    <tbody>')
@@ -6763,7 +6783,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 row_cells = parse_table_row(lines[i])
                 out.append('      <tr>')
                 for cell in row_cells:
-                    out.append(f'        <td>{md_inline(cell, absorb_punct=absorb_punct)}</td>')
+                    out.append(f'        <td>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</td>')
                 out.append('      </tr>')
                 i += 1
             out.append('    </tbody>')
@@ -6786,7 +6806,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 close_list()
                 out.append('  <ol>')
                 in_list = 'ol'
-            out.append(f'    <li>{md_inline(m_ol.group(1), absorb_punct=absorb_punct)}</li>')
+            out.append(f'    <li>{md_inline(m_ol.group(1), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</li>')
             i += 1
             continue
 
@@ -6797,7 +6817,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 close_list()
                 out.append('  <ul>')
                 in_list = 'ul'
-            out.append(f'    <li>{md_inline(m_ul.group(1), absorb_punct=absorb_punct)}</li>')
+            out.append(f'    <li>{md_inline(m_ul.group(1), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</li>')
             i += 1
             continue
 
@@ -6810,7 +6830,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             # written; it renders where its placement says (ARCHI-NOTES §2),
             # which is at the foot of this locality or in the page's notes
             # section. The scope is what carries it there.
-            scope.define(label, md_inline(txt, absorb_punct=absorb_punct))
+            scope.define(label, md_inline(txt, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir))
             i += 1
             continue
 
@@ -6823,7 +6843,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         while i < n and _is_paragraph_continuation(rstrip_ws(lines[i]), lines, i, n):
             para_lines.append(rstrip_ws(lines[i]))
             i += 1
-        out.append(f'  <p>{md_inline(" ".join(para_lines), absorb_punct=absorb_punct)}</p>')
+        out.append(f'  <p>{md_inline(" ".join(para_lines), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p>')
 
     close_list()
     # An unclosed BLOCK tag is not the same defect as an unclosed inline one.
@@ -7296,7 +7316,8 @@ def resolve_notes_settings(meta, series_meta, source_name):
 
 
 def render_slide(slide, slide_num, total_slides, typo_engine, strings,
-                 disabled=None, notes=None, absorb_punct=False):
+                 disabled=None, notes=None, absorb_punct=False,
+                 inline_images=False, articles_dir=None):
     """Generates the HTML for a slide."""
     num_str = f'{slide_num:02d} / {total_slides:02d}'
 
@@ -7355,7 +7376,9 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
             slide_notes = notes if notes is not None else NoteScope(f's{slide_num}')
             content_html = convert_markdown(slide.fact_content, typo_engine,
                                             disabled, slide_notes, strings,
-                                            absorb_punct=absorb_punct)
+                                            absorb_punct=absorb_punct,
+                                            inline_images=inline_images,
+                                            articles_dir=articles_dir)
             if slide.fact_label:
                 label = apply_typo(typo_engine, slide.fact_label, disabled)
                 fact_classes = 'fact-box'
@@ -7659,7 +7682,7 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False):
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -7718,7 +7741,9 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                            else NoteScope(f's{i}', tooltip=notes_tooltip))
             html = render_slide(slide, i, total_slides, article_typo_engine,
                                 strings, disabled_rules, slide_notes,
-                                absorb_punct=absorb_punct)
+                                absorb_punct=absorb_punct,
+                                inline_images=inline_images,
+                                articles_dir=articles_dir)
             slide_htmls.append(html)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
@@ -7869,6 +7894,23 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
 
     validate_html(html, current_file)
     return html
+
+
+def _encode_inline_image(src, articles_dir):
+    """Encodes an image file as a base64 data URI for --inline-images.
+
+    `src` is the path as written in the Markdown (`img/foo.png`), resolved
+    against `articles_dir` (where the img/ directory lives). Returns the
+    data URI string, or None if the file cannot be read — in which case
+    the caller leaves the original `src` in place so the broken link is
+    visible (a missing image inlined as nothing would hide the error)."""
+    img_path = articles_dir / src
+    try:
+        data = img_path.read_bytes()
+    except (OSError, ValueError):
+        return None
+    mime = mimetypes.guess_type(src)[0] or 'application/octet-stream'
+    return f'data:{mime};base64,{base64.b64encode(data).decode("ascii")}'
 
 
 def copy_images(articles_dir, output_dir):
@@ -8628,7 +8670,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'))
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False))
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -8647,7 +8689,10 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
     _write_file(ctx.sd / 'README.md', readme)
 
-    copy_images(ctx.articles_dir, ctx.output_dir)
+    # --inline-images: images are embedded as base64 data URIs, so the
+    # img/ directory is not copied to the output.
+    if not ctx.args.get('--inline-images'):
+        copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
     _write_manifest(ctx.output_dir, ctx.articles,
@@ -8975,7 +9020,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.articles_dir / source_file
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav)
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False))
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -8994,8 +9039,10 @@ def cmd_build(series_dir, args):
         readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
         _write_file(ctx.sd / 'README.md', readme)
 
-    # Copy the images
-    copy_images(ctx.articles_dir, ctx.output_dir)
+    # Copy the images (unless --inline-images: images are embedded as
+    # base64 data URIs, so the img/ directory is not copied to the output).
+    if not args.get('--inline-images'):
+        copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
 
@@ -9057,7 +9104,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context)
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, inline_images=ctx.args.get('--inline-images', False))
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -11258,6 +11305,10 @@ OPTIONS
     build: do not generate README.md
   --open
     build/watch: open the result in the browser after build
+  --inline-images
+    build: embed images as base64 data URIs — each page is fully
+    self-contained (no img/ directory copied to the output). The HTML
+    grows ~33% per image; a serving gzip recovers the overhead on the wire.
   --strict
     audit: exit non-zero if any warnings are emitted (CI gate)
   --serve
@@ -11452,7 +11503,7 @@ _COMMAND_OPTIONS = {
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
-              '--open'},
+              '--open', '--inline-images'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
               '--include-drafts'},
     'audit': {'--lang', '--strict'},

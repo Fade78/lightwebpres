@@ -1697,6 +1697,63 @@ class CliVersionAndShortcuts(unittest.TestCase):
                          '--open', env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_inline_images_embeds_base64_and_skips_img_dir(self):
+        # --inline-images: images are embedded as base64 data URIs, and
+        # the img/ directory is not copied to the output.
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: F\n## Fiche\nfact-label: L\n\n'
+            'Inline ![red](img/red.png) and standalone:\n\n'
+            '![Red](img/red.png "Cap")\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            # Create a minimal 1x1 PNG in articles/img/.
+            (root / 'articles' / 'img').mkdir()
+            (root / 'articles' / 'img' / 'red.png').write_bytes(
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+                b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
+                b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
+                b'\x8d\xa5K>\x00\x00\x00\x00IEND\xaeB`\x82')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--inline-images')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # Both images are embedded as data URIs.
+            self.assertEqual(html.count('data:image/png;base64,'), 2,
+                             f'expected 2 inlined images, got '
+                             f'{html.count("data:image/png;base64,")}')
+            # No img/ directory in the output.
+            self.assertFalse((root / 'public' / 'img').exists(),
+                             'img/ was copied despite --inline-images')
+
+    def test_inline_images_off_by_default(self):
+        # Without --inline-images: images stay as relative paths and
+        # img/ is copied to the output (the standard behaviour).
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntag: F\n## Fiche\nfact-label: L\n\n'
+            'Inline ![red](img/red.png) in text.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'img').mkdir()
+            (root / 'articles' / 'img' / 'red.png').write_bytes(
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+                b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
+                b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
+                b'\x8d\xa5K>\x00\x00\x00\x00IEND\xaeB`\x82')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('src="img/red.png"', html)
+            self.assertNotIn('data:image', html)
+            self.assertTrue((root / 'public' / 'img' / 'red.png').exists())
+
     def test_dry_run_writes_nothing(self):
         # --dry-run (DECISION §4): journal the writes without touching disk.
         with tempfile.TemporaryDirectory() as tmp:
