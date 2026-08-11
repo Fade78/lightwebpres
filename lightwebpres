@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.27.4"
+VERSION = "0.27.5"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5093,16 +5093,32 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.style.cursor = '';
     fsScheduleHideCursor();
   }
+  // Wake lock: prevents the screen from dimming/sleeping while the
+  // speaker presents. Released when fullscreen exits.
+  var wakeLock = null;
+  function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wakeLock = lock;
+      }).catch(function () {});
+    }
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+  }
+
   document.addEventListener('fullscreenchange', function () {
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
     if (fs) {
       window.getSelection().removeAllRanges();
       document.addEventListener('mousemove', fsShowCursor);
       fsScheduleHideCursor();
+      requestWakeLock();
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
       document.body.style.cursor = '';
+      releaseWakeLock();
     }
   });
   document.addEventListener('webkitfullscreenchange', function () {
@@ -5111,6 +5127,7 @@ document.addEventListener('DOMContentLoaded', function() {
       window.getSelection().removeAllRanges();
       document.addEventListener('mousemove', fsShowCursor);
       fsScheduleHideCursor();
+      requestWakeLock();
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
@@ -5183,7 +5200,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       clickTimer = setTimeout(function () {
         clickTimer = null;
-        runStepped(stepForward);
+        // Click always changes slide (never scrolls within the
+        // current one), so the speaker lands on the next card cleanly.
+        goTo(current + 1);
       }, CLICK_DELAY);
     }
   });
