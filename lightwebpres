@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.27.3"
+VERSION = "0.27.4"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5096,6 +5096,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('fullscreenchange', function () {
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
     if (fs) {
+      window.getSelection().removeAllRanges();
       document.addEventListener('mousemove', fsShowCursor);
       fsScheduleHideCursor();
     } else {
@@ -5107,6 +5108,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('webkitfullscreenchange', function () {
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
     if (fs) {
+      window.getSelection().removeAllRanges();
       document.addEventListener('mousemove', fsShowCursor);
       fsScheduleHideCursor();
     } else {
