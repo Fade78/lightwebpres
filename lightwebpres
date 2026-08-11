@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.26.0"
+VERSION = "0.26.1"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5079,6 +5079,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // Hide the cursor in fullscreen after 1s of idleness — the speaker
+  // does not want a cursor on the wall. Move the mouse to bring it back.
+  var fsCursorTimer = null;
+  function fsScheduleHideCursor() {
+    if (fsCursorTimer) clearTimeout(fsCursorTimer);
+    fsCursorTimer = setTimeout(function () {
+      document.body.style.cursor = 'none';
+    }, 1000);
+  }
+  function fsShowCursor() {
+    if (fsCursorTimer) clearTimeout(fsCursorTimer);
+    document.body.style.cursor = '';
+    fsScheduleHideCursor();
+  }
+  document.addEventListener('fullscreenchange', function () {
+    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) {
+      document.addEventListener('mousemove', fsShowCursor);
+      fsScheduleHideCursor();
+    } else {
+      document.removeEventListener('mousemove', fsShowCursor);
+      if (fsCursorTimer) clearTimeout(fsCursorTimer);
+      document.body.style.cursor = '';
+    }
+  });
+  document.addEventListener('webkitfullscreenchange', function () {
+    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) {
+      document.addEventListener('mousemove', fsShowCursor);
+      fsScheduleHideCursor();
+    } else {
+      document.removeEventListener('mousemove', fsShowCursor);
+      if (fsCursorTimer) clearTimeout(fsCursorTimer);
+      document.body.style.cursor = '';
+    }
+  });
+
   var btnFullscreen = document.getElementById('navFullscreen');
   if (btnFullscreen) {
     btnFullscreen.addEventListener('click', toggleFullscreen);
@@ -5105,11 +5142,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- Click to advance, double-click to go back ---
-  // A single click anywhere on a slide's content advances; a double-click
-  // goes back. We distinguish them with a 250ms timer (the standard
-  // double-click window). Buttons, links, images, and the pause overlay
-  // intercept the click so they keep working.
+  // --- Click to advance, right-click to go back, double-click for fullscreen ---
+  // The remote-mouse use case: the speaker clicks to advance, right-clicks
+  // to go back — two distinct buttons, no aiming, no timer latency. A
+  // double-click toggles fullscreen. We still need the 250ms timer to
+  // distinguish a single click (advance) from the first click of a
+  // double-click (fullscreen): if a second click arrives within the
+  // window, the first is cancelled and fullscreen toggles instead.
+  // Buttons, links, images, and the pause overlay intercept the click.
+  // The context menu is suppressed so right-click is a clean back gesture.
   var clickTimer = null;
   var CLICK_DELAY = 250;
   document.addEventListener('click', function (e) {
@@ -5118,16 +5159,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // A click on the pause overlay dismisses it.
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
     if (clickTimer) {
-      // Second click within the window: double-click = go back.
+      // Second click within the window: double-click = fullscreen.
       clearTimeout(clickTimer);
       clickTimer = null;
-      runStepped(stepBackward);
+      toggleFullscreen();
     } else {
       clickTimer = setTimeout(function () {
         clickTimer = null;
         runStepped(stepForward);
       }, CLICK_DELAY);
     }
+  });
+  document.addEventListener('contextmenu', function (e) {
+    // Right-click = go back, but only on slide content (not on buttons,
+    // links, or the pause overlay — those keep their native context menu).
+    if (e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal')) return;
+    if (pauseOverlay && pauseOverlay.contains(e.target)) return;
+    e.preventDefault();
+    runStepped(stepBackward);
   });
 
   // --- Touch swipe (mobile / tablet) ---
@@ -8672,7 +8721,22 @@ def load_build_context(series_dir, args):
         log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
     nav_js_file = templates_dir / 'nav.js'
-    nav_js = read_text_file(nav_js_file) if nav_js_file.exists() else TEMPLATE_NAV_JS
+    if nav_js_file.exists():
+        on_disk = read_text_file(nav_js_file)
+        # nav.js is tool-owned (§9.4.3): the build warns when it does
+        # not match the executable's own TEMPLATE_NAV_JS — the author
+        # may have customised it (the build still uses it as-is), or it
+        # may simply be stale from an old init. The warning names the
+        # fix (`template update`), which is the one command that does
+        # the replacement (with a .bak backup).
+        if on_disk != TEMPLATE_NAV_JS:
+            log('info', '  [NOTE] templates/nav.js differs from the '
+                'executable\'s built-in version — run '
+                '`lightwebpres template update .` to refresh it '
+                '(your custom.js and settings.conf are never touched)')
+        nav_js = on_disk
+    else:
+        nav_js = TEMPLATE_NAV_JS
     nav_js = apply_strings(nav_js, strings)
 
     series_data = load_series_data(sd)
