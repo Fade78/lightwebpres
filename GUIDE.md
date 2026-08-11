@@ -464,7 +464,7 @@ dark screen rather than flashing white.
 | Single click on content | Next slide |
 | Right-click on content | Previous slide |
 | Double-click on content | Enter fullscreen |
-| Middle-click anywhere | Toggle fullscreen |
+| Middle-click anywhere | Exit fullscreen (if in fullscreen) |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
 Clicks on links, images, buttons, and the share popover are not
@@ -474,9 +474,11 @@ left-clicks to advance, right-clicks to go back — two distinct buttons,
 no aiming. The native context menu is suppressed on slide content so
 right-click is a clean back gesture. Double-click enters fullscreen
 (the 250ms delay on the first click is the cost of detecting it);
-middle-click toggles fullscreen instantly. In fullscreen, left and
-right clicks are instant (no double-click to detect anymore). Esc
-exits fullscreen. The cursor hides after 1 second of idleness in
+middle-click exits fullscreen (entering via middle-click is not
+possible on Firefox, which blocks requestFullscreen from non-left
+clicks — use double-click, the ⛶ button, or F instead). In fullscreen,
+left and right clicks are instant (no double-click to detect anymore).
+Esc exits fullscreen. The cursor hides after 1 second of idleness in
 fullscreen.
 
 ### Touch (phone, tablet)

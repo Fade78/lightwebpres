@@ -1380,9 +1380,11 @@ touche de navigation les lève.
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
 slide précédent (deux boutons distincts, sans visée). En mode normal,
 le clic gauche a une latence de 250 ms pour détecter le double-clic
-qui entre en plein écran ; le clic milieu bascule le plein écran sans
-latence. En plein écran, les clics gauche et droit sont instantanés
-(plus de double-clic à détecter). Le menu contextuel natif est
+qui entre en plein écran ; le clic milieu sort du plein écran (y entrer
+via le clic milieu n'est pas possible sur Firefox, qui bloque
+requestFullscreen depuis un clic non-gauche — utiliser le double-clic,
+le bouton ⛶, ou F). En plein écran, les clics gauche et droit sont
+instantanés (plus de double-clic à détecter). Le menu contextuel natif est
 supprimé sur le contenu pour que le clic droit soit un geste propre.
 Les clics sur les liens, images et boutons ne sont pas interceptés.
 Un clic dans le coin bas-droite (la zone des boutons) qui ne vise pas
