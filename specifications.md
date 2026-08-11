@@ -1640,7 +1640,8 @@ historique `monospace, monospace` devient inutile.
   settings. Deux sauts se sont avérés trop courts le jour où le thème
   `terminal` du catalogue a eu besoin de `page.font → font.text →
   font.mono` : un thème ordinaire saturait la limite et ne laissait à
-  une série aucune indirection propre.
+  une série aucune indirection propre. `terminal` est désormais `code`
+  en chiffre fixe — le slug est resté pour le registre terminal.
 - **Les cycles sont détectés et nommés** : `tag.fg: reference cycle
   tag.fg -> summary.fg -> tag.fg`, jamais une boucle infinie ni un
   plantage obscur.
@@ -2110,6 +2111,7 @@ en douce derrière le dos du thème, la couche le **dit** :
   (`font.text`/`font.display`/`font.ui: mono` — trois lignes, c'est ce
   que le nom du thème promet) et pose un halo phosphore sur ses titres
   et son chiffre-clé (`title1.shadow.*`, `highlight.shadow.*`, §9.7) ;
+  `code`, la même palette sans la chiffre fixe, porte seulement le halo ;
   `dracula` et `tokyo-night` passent leur seul **appareil** en chasse
   fixe (`font.ui`), le corps restant sur la serif de lecture ; `monokai`
   y passe tout, et sort son rose du texte (`verdict.partial.fg`,
@@ -2444,8 +2446,8 @@ composants portent les axes : `page`, `title1` et `highlight`.
 `text-shadow` étant une propriété **héritée**, les axes posés sur `page`
 teintent tout le texte du site d'un coup — l'effet « aérien » global est
 trois lignes — et les composants qui portent leurs propres axes
-divergent localement : le halo vert de `terminal` sur ses titres et son
-chiffre-clé (§9.5.1), sans toucher au corps.
+  divergent localement : le halo vert de `terminal` et `code` sur leurs titres
+  et leur chiffre-clé (§9.5.1), sans toucher au corps.
 
 Le barré appartient à l'énumération de décoration (`line-through`), qui
 sert aussi aux balises d'instance (§9.6.3).
@@ -3335,7 +3337,7 @@ propriétés résolues, les fonds composités — donc il est juste par
 construction ou faux pour tout le monde en même temps.
 
 Corollaire assumé : **tous les thèmes n'ont pas à être conformes.** Un
-thème est un parti pris ; `terminal` avec son halo de phosphore et
+  thème est un parti pris ; `terminal` et `code` avec leur halo de phosphore et
 `synthwave` avec ses saturations sont des choix, et les rendre AAA les
 détruirait. Ce qui est exigé n'est pas que les 33 soient conformes, c'est
 qu'on **sache lequel l'est** au moment de choisir, et qu'il y en ait.

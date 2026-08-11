@@ -1331,13 +1331,22 @@ THEMES = {
         'note': "Deep violet, magenta, acid cyan — the cyber register in a light-background version, readable in a lit room.",
         'note_good': False,
     },
+    'code': {
+        'label': 'Code', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'dark_background': True,
+        'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
+        'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Green phosphor on black — the register for code and terminal alike.",
+        'note_good': False,
+    },
     'terminal': {
         'label': 'Terminal', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
         'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "Green phosphor on black — the terminal register, as is.",
+        'note': "Green phosphor on black — Code in fixed pitch, the terminal register as is.",
         'note_good': False,
     },
     'synthwave': {
@@ -2573,8 +2582,8 @@ _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
                   'ink': 'ink', 'ink-muted': 'ink-quiet', 'page': 'page'}
 
 # Per-slug property additions beyond what the old entry shape can say.
-# terminal's register is the owner's decision (fixed pitch is what the theme
-# is named for) plus its phosphor halo on display text.
+# code carries the phosphor halo on display text. terminal adds what it is
+# named for — fixed pitch — on top of code's register.
 #
 # The four `*.ring` entries are the focus indicators, and they are stated
 # here rather than on the palette on purpose: `call` also paints the
@@ -2619,6 +2628,16 @@ THEME_PROPERTY_OVERRIDES = {
     # `color.page` itself, so BOTH its rings were short, not just the
     # series-nav one.
     'vaporwave': {'nav-btn.ring': '#FF28B7', 'series-nav.link.ring': '#FF28B7'},
+    'code': {
+        # A glow is a halo around a glyph, so it is sized by the glyph.
+        # Left in bare pixels it was 10px around a 51px title at 1080p
+        # and the same 10px around a 132px one at 3840 -- the theme's
+        # one visual idea, gone on the screen it is presented on.
+        'title1.shadow.fg': '#33FF8866',
+        'title1.shadow.blur': 'max(10px, 1.25vmin)',
+        'highlight.shadow.fg': '#33FF8859',
+        'highlight.shadow.blur': 'max(8px, 1vmin)',
+    },
     'terminal': {
         'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
         # A glow is a halo around a glyph, so it is sized by the glyph.
@@ -2666,6 +2685,7 @@ THEME_NOTE_PROPS = {
     'evergreen': {'note.leading': '1.65', 'note.fg': '#889D8A', 'note.marker.fg': 'call', 'note.back.fg': '#889D8A', 'note.local.rule-fg': '#DDE9DC66', 'note.page.bg': '#DDE9DC1C', 'note.page.rule-fg': '#DDE9DC6A'},
     'sprout': {'note.fg': '#5C6B55', 'note.marker.fg': 'call', 'note.back.fg': '#5C6B55', 'note.local.rule-fg': '#1E2B1B84', 'note.page.bg': '#1E2B1B13', 'note.page.rule-fg': '#1E2B1B89'},
     'vaporwave': {'footnote-call.fg': 'ink', 'note.fg': '#65569E', 'note.marker.fg': 'ink', 'note.back.fg': '#65569E', 'note.local.rule-fg': '#16003B76', 'note.page.bg': '#16003B11', 'note.page.rule-fg': '#16003B79'},
+    'code': {'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D7FFE05E', 'note.page.bg': '#D7FFE018', 'note.page.rule-fg': '#D7FFE05F'},
     'terminal': {'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D7FFE05E', 'note.page.bg': '#D7FFE018', 'note.page.rule-fg': '#D7FFE05F'},
     'synthwave': {'note.fg': '#A28FC9', 'note.marker.fg': 'ink', 'note.back.fg': '#A28FC9', 'note.local.rule-fg': '#F2E9FF63', 'note.page.bg': '#F2E9FF1B', 'note.page.rule-fg': '#F2E9FF66'},
     'pop-red': {'note.fg': '#FBD5D7', 'note.marker.fg': 'call', 'note.back.fg': '#FBD5D7', 'note.local.rule-fg': '#FFF1F095', 'note.page.bg': '#FFF1F023', 'note.page.rule-fg': '#FFF1F09F'},
@@ -3841,6 +3861,14 @@ sup { vertical-align: super; line-height: 0; }
   z-index: 500;
 }
 .pause-overlay.open { display: block; }
+/* In fullscreen, disable text selection: rapid slide navigation (mouse
+   wheel, click-drag, keyboard) can be misread by the browser as a
+   double-click drag and leave a selection highlight across slide content
+   while the speaker is talking. */
+body.fs-noselect {
+  user-select: none;
+  -webkit-user-select: none;
+}
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -5130,6 +5158,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
     if (fs) {
       window.getSelection().removeAllRanges();
+      document.body.classList.add('fs-noselect');
       document.addEventListener('mousemove', fsShowCursor);
       fsScheduleHideCursor();
       requestWakeLock();
@@ -5137,6 +5166,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
       document.body.style.cursor = '';
+      document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
   });
@@ -5145,6 +5175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
     if (fs) {
       window.getSelection().removeAllRanges();
+      document.body.classList.add('fs-noselect');
       document.addEventListener('mousemove', fsShowCursor);
       fsScheduleHideCursor();
       requestWakeLock();
@@ -5152,6 +5183,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
       document.body.style.cursor = '';
+      document.body.classList.remove('fs-noselect');
     }
   });
 
@@ -5578,8 +5610,9 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
 
   .masthead {
-    max-width: 780px;
-    margin-bottom: 48px;
+    max-width: min(84vw, 72ch);
+    margin: 0 auto 48px;
+    text-align: center;
   }
   .eyebrow {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -5602,7 +5635,6 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     font-size: 16px;
     color: var(--ui-muted);
     margin: 0 0 8px;
-    max-width: 62ch;
   }
   /* The variable names read as colour names and are not — set apart so
      the answer is found before the question is asked twice. */
