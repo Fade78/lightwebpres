@@ -3889,7 +3889,11 @@ sup { vertical-align: super; line-height: 0; }
   display: flex;
   gap: 6px;
   z-index: 150;
+  transition: opacity 0.4s;
 }
+.nav-dots.idle { opacity: 0; }
+.nav-dots.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }
 .nav-dots a {
   width: 8px;
   height: 8px;
@@ -5260,34 +5264,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, { passive: true });
 
-  // --- Toggle nav buttons by clicking in the bottom-right corner ---
+  // --- Toggle nav chrome (buttons + dots) by clicking bottom-right ---
   // A click in the nav-buttons area that does NOT hit a button toggles
-  // the buttons' visibility. This lets the speaker hide distracting chrome
-  // on a large screen.
+  // the visibility of both the pagination dots and the nav buttons.
+  // This lets the speaker hide all distracting chrome on a large screen.
   var navButtons = document.querySelector('.nav-buttons');
+  function setNavIdle(isIdle) {
+    if (navButtons) navButtons.classList.toggle('idle', isIdle);
+    if (navDots) navDots.classList.toggle('idle', isIdle);
+  }
   if (navButtons) {
     navButtons.addEventListener('click', function (e) {
       if (e.target === navButtons) {
-        navButtons.classList.toggle('idle');
+        setNavIdle(!navButtons.classList.contains('idle'));
       }
     });
   }
 
-  // --- Auto-hide nav buttons after 3s of mouse idleness ---
+  // --- Auto-hide nav chrome after 3s of mouse idleness ---
   // The speaker does not want chrome on the wall while talking. Buttons
-  // fade out when the mouse stops, come back when it moves. Touch devices
-  // (no cursor) keep them — the @media (pointer: coarse) rule above
-  // overrides the .idle class.
+  // and dots fade out when the mouse stops, come back when it moves.
+  // Touch devices (no cursor) keep them — the @media (pointer: coarse)
+  // rules override the .idle class.
   if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
     var idleTimer = null;
     function scheduleHide() {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(function () {
-        if (navButtons) navButtons.classList.add('idle');
+        setNavIdle(true);
       }, 3000);
     }
     document.addEventListener('mousemove', function () {
-      if (navButtons) navButtons.classList.remove('idle');
+      setNavIdle(false);
       scheduleHide();
     });
     scheduleHide();
