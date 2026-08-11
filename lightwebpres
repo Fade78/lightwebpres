@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.26.2"
+VERSION = "0.26.3"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5179,8 +5179,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }, CLICK_DELAY);
     }
   });
-  document.addEventListener('auxclick', function (e) {
+  document.addEventListener('mousedown', function (e) {
     // Middle-click (button 1) toggles fullscreen, in any mode.
+    // Uses mousedown (not auxclick) because Firefox does not fire
+    // auxclick for the middle button reliably — it enters auto-scroll
+    // mode instead. mousedown fires before that, and preventDefault
+    // cancels the auto-scroll.
     if (e.button !== 1) return;
     if (isInteractive(e)) return;
     e.preventDefault();
