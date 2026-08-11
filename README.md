@@ -133,11 +133,11 @@ end — plus keyboard/scroll navigation, a "copy link to this slide" button,
 and (if there's more than one article) a cross-article navigation block,
 all generated automatically.
 
-Each page is also a presentation deck: click to advance, double-click
-to go back, swipe on touch, F for fullscreen, B/W/T for pause screens
-(black, white, or the theme's background — the speaker's remote-mouse
-use case). See the GUIDE's "Presenting" section for the full control
-list.
+Each page is also a presentation deck: click to advance, right-click to
+go back, double-click or middle-click for fullscreen, swipe on touch,
+B/W/T for pause screens (black, white, or the theme's background — the
+speaker's remote-mouse use case). See the GUIDE's "Presenting" section
+for the full control list.
 
 Since so much of that is derived rather than written, there is a way to
 ask what a series actually resolves to, without building it:
@@ -198,7 +198,7 @@ the series or within one article.
 |---|---|
 | `init [dir]` | Scaffolds a series directory (`articles/`, `templates/`, `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed) |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
-| `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1) |
+| `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide") and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build |
 | `template update [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
@@ -209,6 +209,8 @@ the series or within one article.
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `theme gallery.html`) |
+| `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
+| `watch [dir]` | Polls sources, rebuilds on change, optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 

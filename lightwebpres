@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.26.3"
+VERSION = "0.26.4"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5131,10 +5131,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var bg = 'black';
     if (kind === 'w') bg = 'white';
     else if (kind === 't') bg = getComputedStyle(document.body)
-      .getPropertyValue('--page-bg') || 'black';
+      .getPropertyValue('--page-bg').trim() || 'black';
     // Toggle: if already open with the same color, close; else switch.
     if (pauseOverlay.classList.contains('open')
-        && pauseOverlay.style.background === bg) {
+        && pauseOverlay.style.background.trim() === bg.trim()) {
       closePause();
     } else {
       pauseOverlay.style.background = bg;
@@ -5160,6 +5160,11 @@ document.addEventListener('DOMContentLoaded', function() {
   var clickTimer = null;
   var CLICK_DELAY = 250;
   document.addEventListener('click', function (e) {
+    // Only the left button (0) drives navigation; middle (1) and right
+    // (2) have their own handlers below. Firefox fires a click event
+    // for the middle button, so without this guard it would also
+    // advance the slide on top of the fullscreen toggle.
+    if (e.button !== 0) return;
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
     if (isFullscreen()) {
@@ -5181,14 +5186,14 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.addEventListener('mousedown', function (e) {
     // Middle-click (button 1) toggles fullscreen, in any mode.
-    // Uses mousedown (not auxclick) because Firefox does not fire
-    // auxclick for the middle button reliably — it enters auto-scroll
-    // mode instead. mousedown fires before that, and preventDefault
-    // cancels the auto-scroll.
     if (e.button !== 1) return;
     if (isInteractive(e)) return;
-    e.preventDefault();
+    // preventDefault on mousedown cancels the Firefox auto-scroll
+    // cursor, but must not cancel the user gesture (requestFullscreen
+    // needs to run inside it). Call toggleFullscreen first, then
+    // preventDefault.
     toggleFullscreen();
+    e.preventDefault();
   });
   document.addEventListener('contextmenu', function (e) {
     // Right-click = go back, but only on slide content.

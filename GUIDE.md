@@ -79,6 +79,11 @@ look at before writing your own.
 Open `public/index.html` in a browser — no server needed, every page is a
 single self-contained file.
 
+`--inline-images` embeds images as base64 data URIs so the HTML needs
+no `img/` directory at all — useful for emailing a single file or
+hosting where only static HTML is served. The HTML grows ~33% per
+image; a serving gzip recovers the overhead.
+
 ## 3. What a page is made of
 
 A page is a sequence of **slides**, separated by `---`, preceded by one
@@ -245,6 +250,15 @@ the theme you chose — the complete surface is under your eyes, no
 documentation needed. Uncomment a line to **pin** it: it survives every
 theme change and every executable upgrade, because `lightwebpres` never
 rewrites your file.
+
+Two properties control the fact-box bold (`**text**` in a fact-box):
+
+- `fact.strong.pad` — the side padding of the highlight box around the
+  bold text (default `max(3px, 0.375vmin)`, automatically 0 on themes
+  with no highlight ground).
+- `fact.strong.absorb-punct` — `on` (default) absorbs the punctuation
+  that follows a bold run into the highlight (`**2000**,` → the comma is
+  highlighted too); `off` leaves the Markdown as written.
 
 ```
 # tag.fg: ink-quiet        ← the scaffold, showing the theme's value
