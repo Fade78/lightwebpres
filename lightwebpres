@@ -5126,6 +5126,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   document.addEventListener('fullscreenchange', function () {
+    setNavIdle(false);
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
     if (fs) {
       window.getSelection().removeAllRanges();
@@ -5140,6 +5141,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   document.addEventListener('webkitfullscreenchange', function () {
+    setNavIdle(false);
     var fs = document.fullscreenElement || document.webkitFullscreenElement;
     if (fs) {
       window.getSelection().removeAllRanges();
