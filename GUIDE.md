@@ -449,17 +449,21 @@ dark screen rather than flashing white.
 |---|---|
 | Single click on content | Next slide |
 | Right-click on content | Previous slide |
-| Double-click on content | Toggle fullscreen |
+| Double-click on content | Enter fullscreen |
+| Middle-click anywhere | Toggle fullscreen |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
 Clicks on links, images, buttons, and the share popover are not
 intercepted — they keep working. The right-click to go back is the
 remote-mouse use case: the speaker with a wireless mouse in hand
-clicks to advance, right-clicks to go back — two distinct buttons, no
-aiming, no timer latency. The native context menu is suppressed on
-slide content so right-click is a clean back gesture. Double-click
-toggles fullscreen, so the speaker can enter presentation mode without
-a keyboard. The cursor hides after 1 second of idleness in fullscreen.
+left-clicks to advance, right-clicks to go back — two distinct buttons,
+no aiming. The native context menu is suppressed on slide content so
+right-click is a clean back gesture. Double-click enters fullscreen
+(the 250ms delay on the first click is the cost of detecting it);
+middle-click toggles fullscreen instantly. In fullscreen, left and
+right clicks are instant (no double-click to detect anymore). Esc
+exits fullscreen. The cursor hides after 1 second of idleness in
+fullscreen.
 
 ### Touch (phone, tablet)
 

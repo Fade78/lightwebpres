@@ -1375,15 +1375,17 @@ noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
 touche de navigation les lève.
 
-**Souris** : clic simple sur le contenu = slide suivant, clic droit =
-slide précédent (deux boutons distincts, sans visée, sans latence de
-timer — l'orateur n'a pas besoin de regarder l'écran pour viser un
-bouton), double-clic = bascule du plein écran. Le menu contextuel
-natif est supprimé sur le contenu pour que le clic droit soit un geste
-propre. Les clics sur les liens, images et boutons ne sont pas
-interceptés. Un clic dans le coin bas-droite (la zone des boutons) qui
-ne vise pas un bouton bascule leur visibilité. Le curseur se masque
-après 1 s d'inactivité en plein écran.
+**Souris** : clic gauche sur le contenu = slide suivant, clic droit =
+slide précédent (deux boutons distincts, sans visée). En mode normal,
+le clic gauche a une latence de 250 ms pour détecter le double-clic
+qui entre en plein écran ; le clic milieu bascule le plein écran sans
+latence. En plein écran, les clics gauche et droit sont instantanés
+(plus de double-clic à détecter). Le menu contextuel natif est
+supprimé sur le contenu pour que le clic droit soit un geste propre.
+Les clics sur les liens, images et boutons ne sont pas interceptés.
+Un clic dans le coin bas-droite (la zone des boutons) qui ne vise pas
+un bouton bascule leur visibilité. Esc quitte le plein écran. Le
+curseur se masque après 1 s d'inactivité en plein écran.
 
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.
