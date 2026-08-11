@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.27.5"
+VERSION = "0.27.6"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -4777,6 +4777,20 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var dots = navDots ? Array.prototype.slice.call(navDots.querySelectorAll('a')) : [];
 
+  function currentVisible() {
+    // Returns the index of the slide that contains the viewport's
+    // vertical midpoint — the real "what the user is looking at",
+    // independent of the `current` variable which may be stale during
+    // a smooth scroll.
+    var mid = window.innerHeight / 2;
+    var best = current;
+    slides.forEach(function(s, i) {
+      var rect = s.getBoundingClientRect();
+      if (rect.top <= mid && rect.bottom >= mid) best = i;
+    });
+    return best;
+  }
+
   function goTo(idx) {
     idx = Math.max(0, Math.min(slides.length - 1, idx));
     if (idx === current && isScrolling) return;
@@ -5188,8 +5202,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Only the left button (0) drives navigation from here on.
     if (e.button !== 0) return;
     if (isFullscreen()) {
-      // Instant in fullscreen — no double-click to detect.
-      runStepped(stepForward);
+      // Instant in fullscreen — no double-click to detect. Use
+      // currentVisible() because `current` may be stale during a
+      // smooth scroll (isScrolling blocks detectCurrent).
+      goTo(currentVisible() + 1);
       return;
     }
     if (clickTimer) {
@@ -5202,7 +5218,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clickTimer = null;
         // Click always changes slide (never scrolls within the
         // current one), so the speaker lands on the next card cleanly.
-        goTo(current + 1);
+        goTo(currentVisible() + 1);
       }, CLICK_DELAY);
     }
   });
@@ -5211,7 +5227,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) return;
     e.preventDefault();
-    runStepped(stepBackward);
+    goTo(currentVisible() - 1);
   });
   // Middle-click exits fullscreen. Firefox fires auxclick (not click)
   // for the middle button, and exitFullscreen needs no user gesture.
