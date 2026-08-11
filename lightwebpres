@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.27.0"
+VERSION = "0.27.1"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5128,16 +5128,20 @@ document.addEventListener('DOMContentLoaded', function() {
   function togglePause(kind) {
     if (!pauseOverlay) return;
     kind = (kind || '').toLowerCase();
-    var bg = 'black';
-    if (kind === 'w') bg = 'white';
-    else if (kind === 't') bg = getComputedStyle(document.body)
-      .getPropertyValue('--page-bg').trim() || 'black';
-    // Toggle: if already open with the same color, close; else switch.
+    // Toggle: if already open with the same kind, close; else switch.
+    // Uses a data attribute (not background comparison) because the
+    // browser normalises style.background (e.g. #F5F4EFFF → rgb(...)),
+    // which would break the equality check.
     if (pauseOverlay.classList.contains('open')
-        && pauseOverlay.style.background.trim() === bg.trim()) {
+        && pauseOverlay.dataset.pauseKind === kind) {
       closePause();
     } else {
+      var bg = 'black';
+      if (kind === 'w') bg = 'white';
+      else if (kind === 't') bg = getComputedStyle(document.body)
+        .getPropertyValue('--page-bg').trim() || 'black';
       pauseOverlay.style.background = bg;
+      pauseOverlay.dataset.pauseKind = kind;
       pauseOverlay.classList.add('open');
     }
   }
@@ -5160,13 +5164,20 @@ document.addEventListener('DOMContentLoaded', function() {
   var clickTimer = null;
   var CLICK_DELAY = 250;
   document.addEventListener('click', function (e) {
-    // Only the left button (0) drives navigation; middle (1) and right
-    // (2) have their own handlers below. Firefox fires a click event
-    // for the middle button, so without this guard it would also
-    // advance the slide on top of the fullscreen toggle.
-    if (e.button !== 0) return;
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
+    // Middle-click (button 1) toggles fullscreen. Must be handled here
+    // (not mousedown) because Firefox only allows requestFullscreen from
+    // a click handler, and only for the left button — but it DOES fire
+    // a click event for the middle button, and that click IS a valid
+    // user gesture for requestFullscreen.
+    if (e.button === 1) {
+      e.preventDefault();
+      toggleFullscreen();
+      return;
+    }
+    // Only the left button (0) drives navigation from here on.
+    if (e.button !== 0) return;
     if (isFullscreen()) {
       // Instant in fullscreen — no double-click to detect.
       runStepped(stepForward);
@@ -5183,17 +5194,6 @@ document.addEventListener('DOMContentLoaded', function() {
         runStepped(stepForward);
       }, CLICK_DELAY);
     }
-  });
-  document.addEventListener('mousedown', function (e) {
-    // Middle-click (button 1) toggles fullscreen, in any mode.
-    if (e.button !== 1) return;
-    if (isInteractive(e)) return;
-    // preventDefault on mousedown cancels the Firefox auto-scroll
-    // cursor, but must not cancel the user gesture (requestFullscreen
-    // needs to run inside it). Call toggleFullscreen first, then
-    // preventDefault.
-    toggleFullscreen();
-    e.preventDefault();
   });
   document.addEventListener('contextmenu', function (e) {
     // Right-click = go back, but only on slide content.
