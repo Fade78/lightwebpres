@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.27.2"
+VERSION = "0.27.3"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5166,15 +5166,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function (e) {
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
-    // Middle-click (button 1) exits fullscreen. Firefox blocks
-    // requestFullscreen from a non-left click, so middle-click cannot
-    // ENTER fullscreen — but exitFullscreen has no such restriction.
-    // Entering is done via double-click, the ⛶ button, or F.
-    if (e.button === 1) {
-      e.preventDefault();
-      if (isFullscreen()) toggleFullscreen();
-      return;
-    }
     // Only the left button (0) drives navigation from here on.
     if (e.button !== 0) return;
     if (isFullscreen()) {
@@ -5200,6 +5191,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (pauseOverlay && pauseOverlay.contains(e.target)) return;
     e.preventDefault();
     runStepped(stepBackward);
+  });
+  // Middle-click exits fullscreen. Firefox fires auxclick (not click)
+  // for the middle button, and exitFullscreen needs no user gesture.
+  document.addEventListener('auxclick', function (e) {
+    if (e.button !== 1) return;
+    if (isInteractive(e)) return;
+    e.preventDefault();
+    if (isFullscreen()) toggleFullscreen();
   });
 
   // --- Touch swipe (mobile / tablet) ---
