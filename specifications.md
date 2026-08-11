@@ -1364,9 +1364,11 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 
 ### 8.4 Pack présentateur (v0.26.0)
 
-Chaque page construite est aussi un deck de présentation pilotable au
-clavier, à la souris ou au tactile — pensé pour l'orateur qui se déplace
-avec une souris sans fil comme télécommande.
+Chaque page d'article construite est aussi un deck de présentation
+pilotable au clavier, à la souris ou au tactile — pensé pour l'orateur
+qui se déplace avec une souris sans fil comme télécommande. La page
+d'index a une navigation simplifiée (scroll + flèches + Home) sans le
+pack présentateur complet.
 
 **Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
 slide précédent, Home = retour à l'index, F = plein écran, B = écran
@@ -1991,6 +1993,12 @@ passe, commentée, dans une section « no longer recognized » en fin de
 fichier — préservée d'une régénération à la suivante, jamais
 silencieusement supprimée — avec un avertissement, car un build la
 rejetterait.
+
+`build` émet un `[NOTE]` si `templates/nav.js` diffère de la version
+intégrée à l'exécutable (`TEMPLATE_NAV_JS`) — soit parce qu'il est
+périermé d'un ancien `init`, soit parce que l'auteur l'a personnalisé.
+Le build utilise le fichier tel quel (un nav.js personnalisé est
+respecté) ; la note nomme `template update` comme remède.
 
 #### 9.4.4 `audit` (volet présentation)
 
@@ -2955,6 +2963,67 @@ alors le nom par défaut et ne réclame rien. Ou elle est seule chez elle,
 et `index.html` est le nom qui a du sens. **Le nom choisi est la
 déclaration d'intention**, et l'outil n'a pas à la deviner autrement.
 
+#### 11.3.4 `--no-nav`, `--no-index`, `--no-readme`
+
+Trois drapeaux qui suppriment des sorties générées :
+
+- `--no-nav` : le bloc de navigation de série (les cartes pointant vers
+  les autres articles) n'est pas inséré dans les pages. Le conteneur
+  (`<h2>` + `<div class="series-list">`) reste vide — la structure HTML
+  est préservée, le contenu est omis.
+- `--no-index` : `public/index.html` n'est pas écrit. Les pages d'article
+  sont construites normalement.
+- `--no-readme` : `README.md` n'est pas (re)généré. Un `README.md` existant
+  n'est pas touché non plus.
+
+Ces drapeaux permettent à une série d'être une brique dans un site plus
+large : l'auteur contrôle les sorties qu'il veut générer et celles qu'il
+tient lui-même.
+
+#### 11.3.5 `--drafts-only`
+
+```
+lightwebpres build [répertoire] --drafts-only
+```
+
+Ne construit que les articles marqués `status: draft` dans `series.json`.
+L'inverse de `--include-drafts` (qui construit tout, brouillons inclus) :
+ici les articles publiés sont exclus. Utile pour prévisualiser uniquement
+les brouillons en cours. Si aucun article n'est `draft`, la commande est
+une erreur (`No draft articles found`).
+
+#### 11.3.6 `--open`
+
+```
+lightwebpres build [répertoire] --open
+```
+
+Ouvre le navigateur sur le résultat après le build. L'URL est
+`index.html` dans le répertoire de sortie (ouvert via `file://` si
+`--serve` n'est pas actif). L'ouverture utilise le module `webbrowser`
+de la stdlib ; en CI, le BROWSER env var peut pointer vers `/bin/true`
+pour un no-op.
+
+#### 11.3.7 `--inline-images`
+
+```
+lightwebpres build [répertoire] --inline-images
+```
+
+Embarque les images référencées dans le Markdown (images inline
+`![alt](src)` et figures standalone) comme des data URIs base64 dans le
+HTML. Le répertoire `img/` n'est pas copié vers `public/` : chaque page
+est alors un seul fichier HTML autonome, distribuable sans dépendance
+externe.
+
+L'HTML grossit d'environ 33 % par image (l'encodage base64 ajoute 4
+octets pour 3). Un gzip de servage récupère ce surcoût sur le wire
+(l'alphabet de 64 caractères compresse bien). En ouverture locale
+(`file://`), le coût plein est payé sur disque.
+
+Désactivé par défaut : le build standard copie `articles/img/` vers
+`public/img/` et référence les images par chemin relatif.
+
 ### 11.4 `verify`
 
 ```bash
@@ -3875,6 +3944,77 @@ interroge `resolve_article_fields()` et `resolve_theme_properties()`, les
 fonctions que le build appelle. Un test l'exige, pour la raison déjà
 donnée en §11.11 — deux implémentations qui dérivent continuent chacune
 de passer ses propres tests.
+
+### 11.13 `clean`
+
+```
+lightwebpres clean [répertoire] [--force]
+```
+
+Purge les fichiers orphelins de `public/` — ceux qu'un build précédent
+a produits mais que le build courant ne produit plus (un article retiré
+de `series.json`, un `page_dest` renommé). La liste des fichiers déclarés
+provient du manifeste écrit par le dernier `build`
+(`public/.lwp-manifest.json`) ; tout fichier dans `public/` qui n'y
+figure pas est un orphelin.
+
+Dry-run par défaut : la commande liste les orphelins sans les supprimer.
+`--force` les supprime pour de vrai. Sans manifeste (pas de build
+préalable), la commande est une erreur : `clean` ne supprime que ce qu'un
+build a déclaré, et le manifeste est la déclaration.
+
+### 11.14 `watch`
+
+```
+lightwebpres watch [répertoire] [--serve] [--port 8000] [--open]
+```
+
+Surveille les sources (articles, `series.json`, `templates/`,
+`language/`) et reconstruit à chaque changement. Un build initial est
+exécuté au démarrage.
+
+`--serve` (opt-in) démarre un serveur HTTP local sur `127.0.0.1:--port`
+(servant `public/`). `--open` ouvre le navigateur sur le résultat. Ctrl-C
+quitte proprement (exit 0). Le serveur utilise `http.server` de la
+stdlib — pas de dépendance externe.
+
+### 11.15 `completion`
+
+```
+lightwebpres completion --shell bash|zsh
+```
+
+Imprime un script de completion shell. L'installer :
+
+```bash
+eval "$(lightwebpres completion --shell bash)"   # ou zsh
+```
+
+Le script complète les raccourcis racine (`init`, `build`, `verify`, …),
+les sous-commandes (`series <Tab>` → `build`, `theme`, `status`,
+`resolve`), et les options (`--lang`, `--output`, …). Il est généré
+depuis les tables de commandes de l'exécutable, donc reste synchrone
+avec la version en cours.
+
+### 11.16 Alias legacy
+
+Les anciens noms de commandes restent acceptés pendant une version
+MAJEURE complète, avec un `[WARN]` sur stderr nommant le nouveau forme :
+
+| Ancien nom | Nouveau forme |
+|---|---|
+| `install` | `init` |
+| `check` | `verify` |
+| `refresh-templates` | `template update` |
+| `themes` | `theme list` |
+| `theme-info` | `theme show <slug>` (ou `series theme <dir>`) |
+| `set-theme` | `series theme set` |
+| `themes-gallery` | `theme gallery` |
+| `series-info` | `status` |
+
+Un test automatique vérifie que chaque alias émet le `[WARN]` et
+exécute la commande canonique. Les alias seront retirés à la prochaine
+version MAJEURE (§13.9).
 
 ---
 

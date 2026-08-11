@@ -486,7 +486,6 @@ fullscreen.
 | Swipe left | Next slide |
 | Swipe right | Previous slide |
 | Tap on content | Next slide |
-| Tap bottom-right corner | Toggle navigation buttons |
 
 ### Navigation buttons
 

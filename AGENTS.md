@@ -4,7 +4,7 @@
 
 ### Tests (obligatoire avant et après chaque changement)
 ```bash
-python3 -m unittest tests.test_lightwebpres          # 630 tests, ~2 min
+python3 -m unittest tests.test_lightwebpres          # 683 tests, ~3 min
 python3 -m unittest tests.test_lightwebpres -v 2>&1 | tail -5   # résumé
 ```
 
@@ -22,8 +22,8 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 
 ## Structure du dépôt
 
-- `lightwebpres` — le code (un seul fichier Python, ~11 000 lignes). Pas de dépendances externes (stdlib uniquement, Python 3.8+).
-- `tests/test_lightwebpres.py` — 630 tests, black-box (subprocess). Helper `run(*args)` lance `lightwebpres <args>`.
+- `lightwebpres` — le code (un seul fichier Python, ~12 000 lignes). Pas de dépendances externes (stdlib uniquement, Python 3.8+).
+- `tests/test_lightwebpres.py` — 683 tests, black-box (subprocess). Helper `run(*args)` lance `lightwebpres <args>`.
 - `specifications.md` — spécification normative du format (référence).
 - `GUIDE.md`, `README.md` — documentation utilisateur.
 - `newargs/` — specs de la refonte CLI en cours (non suivies par git) :
