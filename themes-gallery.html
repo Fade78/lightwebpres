@@ -1441,6 +1441,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -1449,7 +1461,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -2748,6 +2767,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -2756,7 +2787,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -4066,6 +4104,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -4074,7 +4124,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -5374,6 +5431,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -5382,7 +5451,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -6736,6 +6812,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -6744,7 +6832,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -8043,6 +8138,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -8051,7 +8158,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -9361,6 +9475,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -9369,7 +9495,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -10669,6 +10802,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -10677,7 +10822,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -12031,6 +12183,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -12039,7 +12203,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -13338,6 +13509,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -13346,7 +13529,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -14656,6 +14846,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -14664,7 +14866,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -15964,6 +16173,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -15972,7 +16193,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -17326,6 +17554,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -17334,7 +17574,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -18633,6 +18880,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -18641,7 +18900,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -19951,6 +20217,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -19959,7 +20237,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -21259,6 +21544,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -21267,7 +21564,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -22621,6 +22925,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -22629,7 +22945,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -23928,6 +24251,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -23936,7 +24271,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -25246,6 +25588,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -25254,7 +25608,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -26554,6 +26915,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -26562,7 +26935,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -27916,6 +28296,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -27924,7 +28316,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -29223,6 +29622,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -29231,7 +29642,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -30541,6 +30959,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -30549,7 +30979,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -31849,6 +32286,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -31857,7 +32306,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -33211,6 +33667,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -33219,7 +33687,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -34518,6 +34993,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -34526,7 +35013,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -35836,6 +36330,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -35844,7 +36350,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -37144,6 +37657,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -37152,7 +37677,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -38506,6 +39038,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -38514,7 +39058,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -39813,6 +40364,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -39821,7 +40384,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -41131,6 +41701,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -41139,7 +41721,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -42439,6 +43028,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -42447,7 +43048,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -43801,6 +44409,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -43809,7 +44429,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -45108,6 +45735,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -45116,7 +45755,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -46426,6 +47072,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -46434,7 +47092,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -47734,6 +48399,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -47742,7 +48419,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -49096,6 +49780,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -49104,7 +49800,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -50403,6 +51106,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -50411,7 +51126,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -51721,6 +52443,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -51729,7 +52463,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -53029,6 +53770,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -53037,7 +53790,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -54391,6 +55151,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -54399,7 +55171,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -55698,6 +56477,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -55706,7 +56497,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -57016,6 +57814,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -57024,7 +57834,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -58324,6 +59141,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -58332,7 +59161,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -59686,6 +60522,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -59694,7 +60542,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -60993,6 +61848,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -61001,7 +61868,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -62311,6 +63185,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -62319,7 +63205,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -63619,6 +64512,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -63627,7 +64532,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -64981,6 +65893,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -64989,7 +65913,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -66288,6 +67219,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -66296,7 +67239,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -67606,6 +68556,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -67614,7 +68576,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -68914,6 +69883,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -68922,7 +69903,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -70276,6 +71264,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -70284,7 +71284,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -71583,6 +72590,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -71591,7 +72610,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -72901,6 +73927,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -72909,7 +73947,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -74209,6 +75254,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -74217,7 +75274,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -75571,6 +76635,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -75579,7 +76655,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -76878,6 +77961,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -76886,7 +77981,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -78196,6 +79298,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -78204,7 +79318,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -79504,6 +80625,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -79512,7 +80645,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -80866,6 +82006,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -80874,7 +82026,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -82173,6 +83332,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -82181,7 +83352,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -83491,6 +84669,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -83499,7 +84689,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -84799,6 +85996,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -84807,7 +86016,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -86161,6 +87377,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -86169,7 +87397,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -87468,6 +88703,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -87476,7 +88723,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -88786,6 +90040,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -88794,7 +90060,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -90094,6 +91367,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -90102,7 +91387,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -91456,6 +92748,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -91464,7 +92768,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -92763,6 +94074,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -92771,7 +94094,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -94081,6 +95411,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -94089,7 +95431,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -95389,6 +96738,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -95397,7 +96758,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -96751,6 +98119,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -96759,7 +98139,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -98058,6 +99445,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -98066,7 +99465,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -99376,6 +100782,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -99384,7 +100802,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -100684,6 +102109,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -100692,7 +102129,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -102046,6 +103490,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -102054,7 +103510,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -103353,6 +104816,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -103361,7 +104836,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -104671,6 +106153,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -104679,7 +106173,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -105979,6 +107480,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -105987,7 +107500,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -107341,6 +108861,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -107349,7 +108881,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -108648,6 +110187,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -108656,7 +110207,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -109966,6 +111524,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -109974,7 +111544,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -111274,6 +112851,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -111282,7 +112871,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -112636,6 +114232,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -112644,7 +114252,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -113943,6 +115558,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -113951,7 +115578,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -115261,6 +116895,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -115269,7 +116915,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -116569,6 +118222,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -116577,7 +118242,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -117931,6 +119603,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -117939,7 +119623,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -119238,6 +120929,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -119246,7 +120949,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -120556,6 +122266,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -120564,7 +122286,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -121864,6 +123593,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -121872,7 +123613,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -123226,6 +124974,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -123234,7 +124994,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -124533,6 +126300,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -124541,7 +126320,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -125851,6 +127637,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -125859,7 +127657,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -127159,6 +128964,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -127167,7 +128984,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -128521,6 +130345,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -128529,7 +130365,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -129828,6 +131671,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -129836,7 +131691,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -131146,6 +133008,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -131154,7 +133028,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -132454,6 +134335,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -132462,7 +134355,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -133816,6 +135716,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -133824,7 +135736,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -135123,6 +137042,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -135131,7 +137062,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -136441,6 +138379,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -136449,7 +138399,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -137749,6 +139706,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -137757,7 +139726,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -139111,6 +141087,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -139119,7 +141107,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -140418,6 +142413,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -140426,7 +142433,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -141736,6 +143750,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -141744,7 +143770,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -143044,6 +145077,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -143052,7 +145097,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -144406,6 +146458,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -144414,7 +146478,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -145713,6 +147784,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -145721,7 +147804,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -147031,6 +149121,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -147039,7 +149141,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -148339,6 +150448,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -148347,7 +150468,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -149701,6 +151829,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -149709,7 +151849,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -151008,6 +153155,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -151016,7 +153175,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -152326,6 +154492,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -152334,7 +154512,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -153634,6 +155819,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -153642,7 +155839,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -154996,6 +157200,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -155004,7 +157220,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -156303,6 +158526,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -156311,7 +158546,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -157621,6 +159863,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -157629,7 +159883,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -158929,6 +161190,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -158937,7 +161210,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -160291,6 +162571,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -160299,7 +162591,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -161598,6 +163897,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -161606,7 +163917,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -162916,6 +165234,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -162924,7 +165254,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -164224,6 +166561,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -164232,7 +166581,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -165586,6 +167942,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -165594,7 +167962,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -166893,6 +169268,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -166901,7 +169288,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -168211,6 +170605,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -168219,7 +170625,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -169519,6 +171932,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -169527,7 +171952,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -170881,6 +173313,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -170889,7 +173333,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -172188,6 +174639,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -172196,7 +174659,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -173506,6 +175976,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -173514,7 +175996,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -174814,6 +177303,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control&#x27;s glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience&#x27;s eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme&#x27;s --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -174822,7 +177323,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;

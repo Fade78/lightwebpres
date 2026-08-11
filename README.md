@@ -133,6 +133,12 @@ end — plus keyboard/scroll navigation, a "copy link to this slide" button,
 and (if there's more than one article) a cross-article navigation block,
 all generated automatically.
 
+Each page is also a presentation deck: click to advance, double-click
+to go back, swipe on touch, F for fullscreen, B/W/T for pause screens
+(black, white, or the theme's background — the speaker's remote-mouse
+use case). See the GUIDE's "Presenting" section for the full control
+list.
+
 Since so much of that is derived rather than written, there is a way to
 ask what a series actually resolves to, without building it:
 

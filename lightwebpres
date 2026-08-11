@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.25.1"
+VERSION = "0.26.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -1030,7 +1030,8 @@ LANG_FR = r'''{
     "share_scope_article": "Article",
     "share_scope_fiche": "Fiche",
     "qr_modal_title": "QR code du lien",
-    "qr_modal_close": "Fermer"
+    "qr_modal_close": "Fermer",
+    "nav_fullscreen": "Plein écran (touche F)"
   }
 }'''
 
@@ -1084,7 +1085,8 @@ LANG_EN = r'''{
     "share_scope_article": "Article",
     "share_scope_fiche": "Slide",
     "qr_modal_title": "QR code for this link",
-    "qr_modal_close": "Close"
+    "qr_modal_close": "Close",
+    "nav_fullscreen": "Fullscreen (F key)"
   }
 }'''
 
@@ -3827,6 +3829,18 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control's glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience's eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme's --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -3835,7 +3849,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -4871,12 +4892,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.addEventListener('keydown', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+    // If a pause screen is up, any navigation key dismisses it.
+    if (pauseOverlay && pauseOverlay.classList.contains('open')) {
+      if (e.key === 'b' || e.key === 'B' || e.key === 'w' || e.key === 'W'
+          || e.key === 't' || e.key === 'T') {
+        // Same key toggles off; others also dismiss.
+        togglePause(e.key);
+        e.preventDefault();
+      } else {
+        closePause();
+        e.preventDefault();
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
       e.preventDefault(); runStepped(stepForward);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
       e.preventDefault(); runStepped(stepBackward);
     } else if (e.key === 'Home') {
       e.preventDefault(); window.location.href = 'index.html';
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault(); toggleFullscreen();
+    } else if (e.key === 'b' || e.key === 'B') {
+      e.preventDefault(); togglePause('b');
+    } else if (e.key === 'w' || e.key === 'W') {
+      e.preventDefault(); togglePause('w');
+    } else if (e.key === 't' || e.key === 'T') {
+      e.preventDefault(); togglePause('t');
     }
   });
 
@@ -5021,6 +5063,128 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Escape') { closeSharePopover(); closeQrModal(); }
   });
 
+  // --- Presenter pack (v0.26.0) ---
+  // Click / double-click / swipe / fullscreen / pause screens, so the
+  // speaker can drive the deck with a mouse alone, a keyboard alone, or
+  // a touch device.
+
+  var pauseOverlay = document.getElementById('pauseOverlay');
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+      var el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    }
+  }
+
+  var btnFullscreen = document.getElementById('navFullscreen');
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+  }
+
+  function closePause() {
+    if (pauseOverlay) pauseOverlay.classList.remove('open');
+  }
+
+  function togglePause(kind) {
+    if (!pauseOverlay) return;
+    kind = (kind || '').toLowerCase();
+    var bg = 'black';
+    if (kind === 'w') bg = 'white';
+    else if (kind === 't') bg = getComputedStyle(document.body)
+      .getPropertyValue('--page-bg') || 'black';
+    // Toggle: if already open with the same color, close; else switch.
+    if (pauseOverlay.classList.contains('open')
+        && pauseOverlay.style.background === bg) {
+      closePause();
+    } else {
+      pauseOverlay.style.background = bg;
+      pauseOverlay.classList.add('open');
+    }
+  }
+
+  // --- Click to advance, double-click to go back ---
+  // A single click anywhere on a slide's content advances; a double-click
+  // goes back. We distinguish them with a 250ms timer (the standard
+  // double-click window). Buttons, links, images, and the pause overlay
+  // intercept the click so they keep working.
+  var clickTimer = null;
+  var CLICK_DELAY = 250;
+  document.addEventListener('click', function (e) {
+    // Ignore clicks on interactive elements.
+    if (e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal')) return;
+    // A click on the pause overlay dismisses it.
+    if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
+    if (clickTimer) {
+      // Second click within the window: double-click = go back.
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      runStepped(stepBackward);
+    } else {
+      clickTimer = setTimeout(function () {
+        clickTimer = null;
+        runStepped(stepForward);
+      }, CLICK_DELAY);
+    }
+  });
+
+  // --- Touch swipe (mobile / tablet) ---
+  var touchStartX = null, touchStartY = null, touchStartT = 0;
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartT = Date.now();
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (touchStartX === null) return;
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    var dy = e.changedTouches[0].clientY - touchStartY;
+    var dt = Date.now() - touchStartT;
+    touchStartX = null;
+    // Horizontal swipe dominates: 50px threshold, < 500ms, horizontal >
+    // vertical. Left = next, right = previous (convention: swipe the way
+    // the next slide comes FROM).
+    if (dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) runStepped(stepForward); else runStepped(stepBackward);
+    }
+  }, { passive: true });
+
+  // --- Toggle nav buttons by clicking in the bottom-right corner ---
+  // A click in the nav-buttons area that does NOT hit a button toggles
+  // the buttons' visibility. This lets the speaker hide distracting chrome
+  // on a large screen.
+  var navButtons = document.querySelector('.nav-buttons');
+  if (navButtons) {
+    navButtons.addEventListener('click', function (e) {
+      if (e.target === navButtons) {
+        navButtons.classList.toggle('idle');
+      }
+    });
+  }
+
+  // --- Auto-hide nav buttons after 3s of mouse idleness ---
+  // The speaker does not want chrome on the wall while talking. Buttons
+  // fade out when the mouse stops, come back when it moves. Touch devices
+  // (no cursor) keep them — the @media (pointer: coarse) rule above
+  // overrides the .idle class.
+  if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
+    var idleTimer = null;
+    function scheduleHide() {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () {
+        if (navButtons) navButtons.classList.add('idle');
+      }, 3000);
+    }
+    document.addEventListener('mousemove', function () {
+      if (navButtons) navButtons.classList.remove('idle');
+      scheduleHide();
+    });
+    scheduleHide();
+  }
+
   updateUI();
 })();
 });
@@ -5091,11 +5255,14 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 {{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
 
+<div class="pause-overlay" id="pauseOverlay"></div>
+
 <div class="nav-buttons">
   <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}">&#8593;</div>
   <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_nav_home}}" aria-label="{{str_nav_home}}">&#127968;</div>
   <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}">&#8595;</div>
   <div class="nav-btn" id="navShare" role="button" tabindex="0" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
+  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
 </div>
 
 <div class="share-popover" id="sharePopover">

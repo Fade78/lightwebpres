@@ -1357,10 +1357,43 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 2. Le sous-titre et l'intro (`series_meta.subtitle`, `series_meta.intro`),
    s'ils sont présents
 3. Un titre de section fixe `## Articles` (non localisé), puis une liste
-   numérotée des articles (`nav_title` — `nav_desc`, résolus comme en
-   §20.3.1), chacun lié vers son fichier HTML construit (chemin relatif
-   depuis le répertoire de série jusqu'à `--output`, toujours avec des
-   `/` même sous Windows)
+    numérotée des articles (`nav_title` — `nav_desc`, résolus comme en
+    §20.3.1), chacun lié vers son fichier HTML construit (chemin relatif
+    depuis le répertoire de série jusqu'à `--output`, toujours avec des
+    `/` même sous Windows)
+
+### 8.4 Pack présentateur (v0.26.0)
+
+Chaque page construite est aussi un deck de présentation pilotable au
+clavier, à la souris ou au tactile — pensé pour l'orateur qui se déplace
+avec une souris sans fil comme télécommande.
+
+**Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
+slide précédent, Home = retour à l'index, F = plein écran, B = écran
+noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
+écrans de pause (B/W/T) cachent la fiche pour ramener l'attention sur
+l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
+touche de navigation les lève.
+
+**Souris** : clic simple sur le contenu = slide suivant, double-clic =
+slide précédent (geste large, sans visée — l'orateur n'a pas besoin de
+regarder l'écran pour viser un bouton). Les clics sur les liens, images
+et boutons ne sont pas interceptés. Un clic dans le coin bas-droite
+(la zone des boutons) qui ne vise pas un bouton bascule leur visibilité.
+
+**Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
+50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.
+
+**Boutons** : ↑/🏠/↓/partage/⛶ (plein écran) en bas-droite. Auto-hide
+après 3 s d'inactivité souris (réapparaissent au mouvement) ; les
+tactiles les gardent visibles. Le bouton ⛶ donne accès au plein écran
+sans clavier.
+
+**`--inline-images`** (v0.25.1) : chaque image référencée dans le
+Markdown est embarquée comme un data URI base64, et le répertoire
+`img/` n'est pas copié. La page est alors un seul fichier HTML
+autonome. L'HTML grossit d'environ 33 % par image, mais un gzip de
+servage récupère ce surcoût sur le wire.
 
 ---
 

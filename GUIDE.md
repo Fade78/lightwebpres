@@ -420,7 +420,62 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
 ```
 
-## 9. Shell completion (tab in the terminal)
+## 9. Presenting
+
+Every page the build writes is a self-contained deck — keyboard, mouse,
+and touch all work. The controls below let the speaker drive the deck
+without looking at the screen.
+
+### Keyboard
+
+| Key | Action |
+|---|---|
+| ↓ / PageDown / → | Next slide |
+| ↑ / PageUp / ← / Backspace | Previous slide |
+| Home | Back to the index |
+| F | Fullscreen (Esc to exit) |
+| B | Black pause screen (press again to dismiss) |
+| W | White pause screen (press again to dismiss) |
+| T | Theme-background pause screen (press again to dismiss) |
+
+The B/W/T pause screens hide the slide so the audience's eye comes back
+to the speaker — the same feature PowerPoint and Keynote call "blank".
+T uses the theme's own background colour, so a dark theme pauses on a
+dark screen rather than flashing white.
+
+### Mouse
+
+| Gesto | Action |
+|---|---|
+| Single click on content | Next slide |
+| Double-click on content | Previous slide |
+| Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
+
+Clicks on links, images, buttons, and the share popover are not
+intercepted — they keep working. The double-click to go back is the
+remote-mouse use case: the speaker with a wireless mouse in hand
+clicks to advance, double-clicks to go back, without aiming at a small
+button.
+
+### Touch (phone, tablet)
+
+| Gesto | Action |
+|---|---|
+| Swipe left | Next slide |
+| Swipe right | Previous slide |
+| Tap on content | Next slide |
+| Tap bottom-right corner | Toggle navigation buttons |
+
+### Navigation buttons
+
+The round buttons in the bottom-right corner (↑ prev, 🏠 home, ↓ next,
+share, ⛶ fullscreen) are always there. After 3 seconds of mouse
+idleness they fade out — the speaker does not want chrome on the wall.
+Move the mouse to bring them back. Touch devices keep them visible
+(there is no cursor to wake them). Clicking the corner (not a button)
+toggles them on or off for good.
+
+## 10. Shell completion (tab in the terminal)
 
 `lightwebpres completion --shell bash` (or `zsh`) prints a script that
 makes your shell complete commands, subcommands, and options when you
@@ -439,7 +494,7 @@ proposes `--lang`, `--output`, `--no-typography`, etc.
 The script is generated from the tool's own command tables, so it stays
 in sync with whatever commands the version you are running knows about.
 
-## 10. Going further
+## 11. Going further
 
 - **`SKILL.md`** (`agent/skills/lightwebpres/`) — the precise mechanics
   of the article format: every slide type and field, the meta block, the
@@ -460,7 +515,7 @@ in sync with whatever commands the version you are running knows about.
 - **`lightwebpres --help`** — every command, every flag, every
   environment variable.
 
-## 11. When something doesn't work
+## 12. When something doesn't work
 
 | Symptom | Cause |
 |---|---|
