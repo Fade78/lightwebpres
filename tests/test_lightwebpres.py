@@ -707,6 +707,52 @@ class LanguagePackMergeSemantics(unittest.TestCase):
             self.assertIn('Custom prev', html)
 
 
+class EnglishTypographyPack(unittest.TestCase):
+    """§7.5: the English pack upgrades an EXISTING normal space (U+0020) to a
+    non-breaking space (U+00A0) for SI/metric units, unit words, initials and
+    math operators. It never inserts a space that wasn't there. Black-box:
+    build with --lang en and assert the U+00A0 reached the generated HTML."""
+
+    def _build_en(self, tmp, body):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: ' + body + '\n'
+        )
+        root = scaffold(tmp, md)
+        result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+    def test_en_metric_unit_space_is_non_breaking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_en(
+                tmp, 'The rover travelled 5 km and weighed 10 kg at 20 °C, 3 mL used.')
+            self.assertIn('5\xa0km', html)
+            self.assertIn('10\xa0kg', html)
+            self.assertIn('20\xa0°C', html)
+            self.assertIn('3\xa0mL', html)
+
+    def test_en_unit_word_space_is_non_breaking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_en(
+                tmp, 'It earned 3 million and cost 5 dollars, 2 thousand sold.')
+            self.assertIn('3\xa0million', html)
+            self.assertIn('5\xa0dollars', html)
+            self.assertIn('2\xa0thousand', html)
+
+    def test_en_initials_bound_together(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_en(tmp, 'J. K. Rowling wrote the book.')
+            self.assertIn('J.\xa0K. Rowling', html)
+
+    def test_en_operator_space_is_non_breaking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_en(
+                tmp, 'The formula gives 2 × 4 and ≈ 5 results.')
+            self.assertIn('2 ×\xa04', html)
+            self.assertIn('≈\xa05', html)
+
+
 class Axis4MarkdownGaps(unittest.TestCase):
     """Axis-4 sweep: Markdown-converter contracts that had no coverage."""
 
@@ -11148,6 +11194,243 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
                           'the human format has to mark the winner, or the '
                           'chain is a list of values with no verdict')
 
+
+class RegressionFixes(unittest.TestCase):
+    """Black-box regression tests for definite bugs that were fixed.
+
+    Each test asserts the CORRECT (post-fix) behaviour. They were written
+    after confirming the bug was reproducible (the buggy code failed the
+    assertion); they now pass and must never break again."""
+
+    def _series(self, tmp, articles, md_for):
+        root = Path(tmp)
+        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        series = []
+        for name, md in md_for.items():
+            dest = name.replace('.md', '.html')
+            (root / 'articles' / name).write_text(md, encoding='utf-8')
+            series.append({'page_dest': dest, 'page_source': name,
+                           'nav_title': name[0].upper(), 'nav_desc': name[0]})
+        (root / 'series.json').write_text(
+            json.dumps({'articles': series}), encoding='utf-8')
+        return root
+
+    def _build_html(self, tmp, md=None, extra=None):
+        root = scaffold(tmp, md or (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n# A\n'))
+        if extra:
+            extra(root)
+        r = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+    # --- A1: main() crash on global-options-only invocation ---
+    def test_a1_global_options_only_no_crash(self):
+        for opt in (['--quiet'], ['--lang', 'fr'], ['--dry-run']):
+            with self.subTest(opt=opt):
+                result = run(*opt)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('Traceback', result.stderr)
+                self.assertNotIn('IndexError', result.stderr)
+                self.assertIn('command', result.stderr.lower())
+
+    # --- A2: --drafts-only manifest undercount ---
+    def test_a2_drafts_only_manifest_keeps_active(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, None, {
+                'active.md': ('<!-- lwp:meta -->\npage_dest: active.html\n'
+                              'page_title: T\nnav_title: A\nnav_desc: A\n'
+                              'status: active\n---\n\n# A\n'),
+                'draft.md': ('<!-- lwp:meta -->\npage_dest: draft.html\n'
+                             'page_title: T\nnav_title: D\nnav_desc: D\n'
+                             'status: draft\n---\n\n# D\n'),
+            })
+            r1 = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(r1.returncode, 0, r1.stderr)
+            self.assertTrue((root / 'public' / 'active.html').exists())
+            r2 = run('build', str(root), '--drafts-only',
+                     '--output', str(root / 'public'))
+            self.assertEqual(r2.returncode, 0, r2.stderr)
+            r3 = run('clean', str(root), '--force')
+            self.assertEqual(r3.returncode, 0, r3.stderr)
+            self.assertTrue(
+                (root / 'public' / 'active.html').exists(),
+                'active.html was wrongly deleted as an orphan by clean --force')
+
+    # --- B2: GFM trailing-pipe must not add an empty column ---
+    def test_b2_table_trailing_pipe_no_extra_column(self):
+        md = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+              'nav_title: A\nnav_desc: A\n---\n\n# T\n\n'
+              '| H1 | H2 | H3 |\n| --- | --- | --- |\n'
+              '| a | b | c |\n| d | e | f |\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            r = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            m = re.search(r'<table[^>]*>.*?</table>', html, re.DOTALL)
+            self.assertIsNotNone(m, 'no table in output')
+            tbl = m.group(0)
+            self.assertEqual(tbl.count('<th>'), 3,
+                             f'header column count = {tbl.count("<th>")}')
+            self.assertEqual(tbl.count('<td>'), 6,
+                             f'body cell count = {tbl.count("<td>")}')
+
+    # --- B3: multi-dot numbers rejected by length/ratio/angle types ---
+    def test_b3_multi_dot_numbers_rejected(self):
+        cases = [
+            ('title1.size', '1.2.3rem', 'length'),
+            ('page.leading', '1.2.3', 'ratio'),
+            ('cover.bg.angle', '1.2.3deg', 'angle'),
+        ]
+        for prop, bad, kind in cases:
+            with self.subTest(prop=prop, bad=bad):
+                with tempfile.TemporaryDirectory() as tmp:
+                    root = scaffold(tmp, (
+                        '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                        'nav_title: A\nnav_desc: A\n---\n\n# A\n'))
+                    (root / 'templates').mkdir(exist_ok=True)
+                    (root / 'templates' / 'settings.conf').write_text(
+                        f'{prop}: {bad}\n', encoding='utf-8')
+                    r = run('build', str(root), '--output', str(root / 'public'))
+                    self.assertNotEqual(
+                        r.returncode, 0,
+                        f'{kind} {bad!r} should be rejected')
+                    self.assertNotIn('Traceback', r.stderr)
+                    out = ((root / 'public' / 'a.html').read_text()
+                            if (root / 'public' / 'a.html').exists() else '')
+                    self.assertNotIn(bad, out,
+                                     f'{bad!r} leaked into the output HTML')
+
+    # --- B4: corner click on .nav-buttons must not advance slide ---
+    def test_b4_nav_buttons_in_is_interactive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(tmp)
+            i = html.find('isInteractive')
+            self.assertNotEqual(i, -1)
+            seg = html[i:i + 250]
+            self.assertIn('.nav-buttons', seg)
+
+    # --- B5: wake lock released on webkitfullscreenchange ---
+    def test_b5_webkit_release_wake_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(tmp)
+            i = html.find('webkitfullscreenchange')
+            self.assertNotEqual(i, -1)
+            seg = html[i:i + 700]
+            self.assertIn('releaseWakeLock', seg)
+
+    # --- B6: releaseWakeLock() must have a .catch() ---
+    def test_b6_release_wakelock_catch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(tmp)
+            self.assertIn('release().catch', html)
+
+    # --- B7: contextmenu handler clears the pending left-click timer ---
+    def test_b7_contextmenu_clears_timer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(tmp)
+            i = html.find("'contextmenu'")
+            self.assertNotEqual(i, -1)
+            seg = html[i:i + 400]
+            self.assertIn('clearTimeout', seg)
+
+    # --- B9: audit must not false-positive a retired name as a prefix ---
+    def test_b9_audit_no_false_retired_prefix(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, None, {
+                'a.md': ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                         'nav_title: A\nnav_desc: A\n---\n\n# A\n'),
+            })
+            (root / 'templates').mkdir(exist_ok=True)
+            # --page-content-max is current; --content-max is retired and must
+            # NOT be flagged just because its name is a substring.
+            (root / 'templates' / 'custom.css').write_text(
+                'x { --page-content-max: 40rem; }\n', encoding='utf-8')
+            r = run('audit', str(root))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertNotIn('--content-max', r.stdout + r.stderr)
+            # Sanity: a genuine retired variable is still flagged.
+            (root / 'templates' / 'custom.css').write_text(
+                'x { --ink: #111; }\n', encoding='utf-8')
+            r2 = run('audit', str(root))
+            self.assertIn('--ink', r2.stdout + r2.stderr)
+
+    # --- B10: a bad property reference surfaces a clean error, no traceback ---
+    def test_b10_bad_reference_clean_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, None, {
+                'a.md': ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                         'nav_title: A\nnav_desc: A\n---\n\n# A\n'),
+            })
+            (root / 'templates').mkdir(exist_ok=True)
+            (root / 'templates' / 'settings.conf').write_text(
+                'tag.fg: notacolor\n', encoding='utf-8')
+            r = run('resolve', str(root), 'tag.fg')
+            self.assertNotEqual(r.returncode, 0)
+            self.assertNotIn('Traceback', r.stderr)
+            self.assertNotIn('KeyError', r.stderr)
+
+    # --- B18: check must honor --no-nav (else spurious [DRIFT]) ---
+    def test_b18_check_honors_no_nav(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, None, {
+                'a.md': ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                         'nav_title: A\nnav_desc: A\n---\n\n'
+                         '<!-- lwp:slide:cover -->\ntag: T\n# Title\n'
+                         'summary: S.\n\n---\n\n'
+                         '<!-- lwp:slide:series-nav -->\n'),
+                'b.md': ('<!-- lwp:meta -->\npage_dest: b.html\npage_title: T\n'
+                         'nav_title: B\nnav_desc: B\n---\n\n# B\n'),
+            })
+            r1 = run('build', str(root), '--no-nav',
+                     '--output', str(root / 'public'))
+            self.assertEqual(r1.returncode, 0, r1.stderr)
+            r2 = run('check', str(root), '--no-nav',
+                     '--output', str(root / 'public'))
+            self.assertEqual(r2.returncode, 0, r2.stderr)
+            self.assertNotIn('[DRIFT]', r2.stdout + r2.stderr)
+
+    # --- B21: copy_images must refuse a self-referential symlink ---
+    def test_b21_self_referential_symlink(self):
+        import subprocess as _sp
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, None, {
+                'a.md': ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                         'nav_title: A\nnav_desc: A\n---\n\n# A\n'),
+            })
+            img = root / 'articles' / 'img'
+            img.mkdir()
+            # Self-referential: img/loop -> img/  (would recurse forever).
+            (img / 'loop').symlink_to(img)
+            try:
+                proc = _sp.run(
+                    [sys.executable, str(EXECUTABLE), 'build', str(root),
+                     '--output', str(root / 'public')],
+                    capture_output=True, text=True, timeout=30)
+            except _sp.TimeoutExpired:
+                self.fail('build hung on self-referential symlink '
+                          '(infinite recursion)')
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+
+    def test_audit_templates_restricts_to_presentation(self):
+        # --templates (DECISION-CLI.md §3) restricts `audit` to the
+        # presentation/template layer and skips per-article editorial checks.
+        md = ('<!-- lwp:meta -->\npage_dest: a.html\npage_source: a.md\n'
+              'nav_title: A\nnav_desc: A\n---\n\n'
+              '<!-- lwp:slide:standard -->\n# Title\nsummary: S.\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md, source_name='a.md', file_name='a.html')
+            full = run('audit', str(root))
+            self.assertEqual(full.returncode, 0, full.stderr)
+            self.assertIn('no cover slide', full.stdout,
+                          'editorial check should fire without --templates')
+            tmpl = run('audit', str(root), '--templates')
+            self.assertEqual(tmpl.returncode, 0, tmpl.stderr)
+            self.assertNotIn('no cover slide', tmpl.stdout,
+                             '--templates must skip editorial checks')
 
 if __name__ == '__main__':
     unittest.main()

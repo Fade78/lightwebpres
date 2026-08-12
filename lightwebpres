@@ -1055,6 +1055,34 @@ LANG_EN = r'''{
       "pattern": "(?<=\\S) ([—–])(?! )",
       "replacement": " $1",
       "flags": "g"
+    },
+    {
+      "name": "nbsp_before_metric_unit",
+      "description": "Non-breaking space between a number and a following SI/metric unit symbol (km, m, g, L, s, °C, …) — the SI convention is a space, kept non-breaking so the value never splits across a line. Upgrades an existing normal space only.",
+      "pattern": "(?<=\\d) (?=(?:km|cm|mm|nm|µm|kg|mg|mL|µL|L|s|ms|µs|min|h|W|kW|MW|J|kJ|N|Pa|kPa|Hz|kHz|MHz|GHz|°C|°F|K|B|kB|MB|GB|TB|kb|Mb|Gb|m|g)\\b)",
+      "replacement": " ",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_before_unit_word",
+      "description": "Non-breaking space between a number and a following unit word (thousand(s), million(s), billion(s), trillion(s), dollar(s)). Upgrades an existing normal space only.",
+      "pattern": "(?<=\\d) (?=(?:thousand|million|billion|trillion|dollar)s?\\b)",
+      "replacement": " ",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_between_initials",
+      "description": "Non-breaking space between two single-letter initials (e.g. 'J. K. Rowling') so an initial is never orphaned from the next. Upgrades an existing normal space only.",
+      "pattern": "(?<=\\b[A-Z]\\.) (?=[A-Z]\\.)",
+      "replacement": " ",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_after_operator",
+      "description": "Non-breaking space between × or ≈ and a following number in math expressions. Upgrades an existing normal space only.",
+      "pattern": "(?<=[×≈]) (?=\\d)",
+      "replacement": " ",
+      "flags": "g"
     }
   ],
   "strings": {
@@ -1685,7 +1713,7 @@ class LengthType(PropType):
             return value
         if value in ('0', 'auto'):
             return value
-        m = re.match(r'^-?[\d.]+([a-z%]+)$', value)
+        m = re.match(r'^-?\d*\.?\d+([a-z%]+)$', value)
         if not m or m.group(1) not in LENGTH_UNITS:
             raise PropertyError(f'{key}: {value!r} is not a length '
                                 f'(units: {", ".join(LENGTH_UNITS)})')
@@ -1700,7 +1728,7 @@ class RatioType(PropType):
     name = 'ratio'
 
     def check(self, key, value):
-        if not re.match(r'^[\d.]+$', value):
+        if not re.match(r'^\d*\.?\d+$', value):
             raise PropertyError(f'{key}: {value!r} is not a ratio '
                                 f'(a unitless number, e.g. 1.5)')
         return value
@@ -1710,7 +1738,7 @@ class AngleType(PropType):
     name = 'angle'
 
     def check(self, key, value):
-        if not re.match(r'^-?[\d.]+(deg|rad|turn|grad)$', value):
+        if not re.match(r'^-?\d*\.?\d+(deg|rad|turn|grad)$', value):
             raise PropertyError(f'{key}: {value!r} is not an angle '
                                 f'(deg, rad, turn, grad)')
         return value
@@ -5150,7 +5178,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   function releaseWakeLock() {
-    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    if (wakeLock) { wakeLock.release().catch(function(){}); wakeLock = null; }
   }
 
   document.addEventListener('fullscreenchange', function () {
@@ -5184,6 +5212,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
       document.body.style.cursor = '';
       document.body.classList.remove('fs-noselect');
+      releaseWakeLock();
     }
   });
 
@@ -5230,7 +5259,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement);
   }
   function isInteractive(e) {
-    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal');
+    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .nav-buttons');
   }
   var clickTimer = null;
   var CLICK_DELAY = 250;
@@ -5265,6 +5294,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) return;
     e.preventDefault();
+    clearTimeout(clickTimer);
+    clickTimer = null;
     goTo(currentVisible() - 1);
   });
   // Middle-click exits fullscreen. Firefox fires auxclick (not click)
@@ -8255,7 +8286,7 @@ def copy_images(articles_dir, output_dir):
             entry = Path(dir_path) / name
             if entry.is_symlink():
                 target = entry.resolve()
-                if not (target == src_root or src_root in target.parents):
+                if target == src_root or src_root not in target.parents:
                     log('info', f'  [WARNING] img/: skipped symlink escaping the '
                           f'image directory: {entry.relative_to(img_src)}')
                     ignored.add(name)
@@ -9380,7 +9411,7 @@ def cmd_build(series_dir, args):
 
     # Manifest for `clean` (DECISION §3): lists every file this build
     # produced in public/, so clean can purge orphans without guessing.
-    _write_manifest(ctx.output_dir, articles_to_build,
+    _write_manifest(ctx.output_dir, ctx.articles,
                     include_index=claimant is None and not args.get('--no-index'))
 
     tail = ' + index' if claimant is None and not args.get('--no-index') else ''
@@ -9436,7 +9467,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, inline_images=ctx.args.get('--inline-images', False))
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False))
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -9557,6 +9588,10 @@ def cmd_audit(series_dir, args):
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    if args.get('--templates'):
+        # DECISION-CLI.md §3: `--templates` restricts audit to the
+        # presentation/template layer and skips per-article editorial checks.
+        articles = []
     # entry['page_dest'] below needs the resolution §20.3.1 describes
     # (derived from `page_source` when series.json omits it, the common
     # case) — without this, an entry that legitimately has no explicit
@@ -11837,8 +11872,8 @@ _COMMAND_OPTIONS = {
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
               '--open', '--inline-images'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
-              '--include-drafts'},
-    'audit': {'--lang', '--strict'},
+              '--include-drafts', '--no-nav'},
+    'audit': {'--lang', '--strict', '--templates'},
     'refresh-templates': {'--scaffold'},
     'themes': {'--polarity', '--intensity', '--hue'},
     'theme-info': {'--format', '--all'},
@@ -12107,7 +12142,10 @@ def main():
 
     command, rest, is_legacy = _resolve_command(args)
     if command is None:
-        log('error', f'Unknown command: {args[0]}')
+        if args:
+            log('error', f'Unknown command: {args[0]}')
+        else:
+            log('error', 'no command given — run `lightwebpres --help` to list commands')
         print_help()
         sys.exit(1)
 

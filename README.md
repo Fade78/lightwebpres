@@ -324,7 +324,7 @@ three font lines and a halo in its theme layer, no special case in the
 engine. The page/index HTML structure itself is fixed, not a template,
 so a build can't be broken by a malformed structural override.
 
-Thirty-three named color themes ship pre-configured. Nine borrow known
+Des dizaines de thèmes de couleur sont préconfigurés. Nine borrow known
 editor palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo
 Night, Monokai, Everforest, Rosé Pine); the rest are the project's own —
 high-contrast and monochrome sets, a red family, a green one, three cyber
@@ -345,13 +345,13 @@ clears AA; a syntax palette spreads hue at near-constant lightness by
 design, so it cannot paint text on paper. The five that remain light are
 unchanged.
 
-Thirty-three is too many to pick from a list, so themes are found by
+Des dizaines de thèmes, c'est trop pour en choisir dans une liste ; les thèmes se trouvent donc par
 facet — **polarity** (light or dark background), **intensity** (sober,
 vivid, mono), and **hue**, computed from the background in CIELAB rather
 than declared, so it can't drift when a color is tweaked:
 
 ```bash
-./lightwebpres theme list                              # all 33, with their facets
+./lightwebpres theme list                              # des dizaines de thèmes, avec leurs facettes
 ./lightwebpres theme list --polarity dark --intensity sober  # just the ones you mean
 ```
 
@@ -411,10 +411,10 @@ and focus rings).
 A body link deliberately has no palette colour of its own. It keeps the
 ink around it and is signalled by an underline, whose tint is the one
 exposed axis (`link.decoration-color`, defaulting to the text ink —
-the only pairing that passes AA and AAA on all 33 themes). Measured
+la seule association qui passe AA et AAA sur l'ensemble des thèmes). Mesuré
 across the catalogue before choosing: the browser default blue fails AA
 on 19 themes, and every palette colour that could replace it is either
-below AA on 15 of the 33 or already one of the three comparison-table
+sous le seuil AA pour 15 d'entre eux, ou déjà l'un des trois
 verdict colours.
 
 > **Coming from a series built before the typed-properties engine?**
@@ -427,7 +427,7 @@ verdict colours.
 ![Preview of the built-in color themes](theme gallery.png)
 
 The first four rows of [`theme gallery.html`](theme gallery.html) in
-this repo — open it directly in a browser for all thirty-three, where the
+ce dépôt — ouvrez-la directement dans un navigateur pour l'ensemble des thèmes, où la
 facets become filters. **One theme per row, four panels across:** the
 cover, a card carrying a note, the page-wide notes section, and the
 long-form article. Each panel is a real rendering at its true size, not a

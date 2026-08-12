@@ -1233,20 +1233,28 @@ pack par défaut. Le comportement diffère entre les deux blocs :
 
 ### 7.5 Règles insécables par défaut (`fr`)
 
-Le pack `fr` intégré contient six règles, appliquées dans cet ordre
-(§19.3). Les trois premières existaient déjà ; les trois dernières
-insèrent une espace insécable entre un nombre et ce qui le complète —
-un cas que les précédentes ne couvraient pas, car aucune d'elles ne
+Le pack `fr` intégré contient huit règles, appliquées dans cet ordre
+(§19.3) : les deux règles de tiret (`nbsp_inside_dash_incise`,
+`nbsp_before_lone_dash`) sont des règles de mise en page communes à tous
+les packs (§19.3.1) ; les six autres sont des règles de langue
+françaises. Parmi ces six, les trois premières
+(`nbsp_before_double_punctuation`, `nbsp_after_opening_quote`,
+`nbsp_before_percent`) existaient déjà ; les trois dernières
+(`nbsp_thousands_separator`, `nbsp_before_unit`, `nbsp_after_operator`)
+insèrent une espace insécable entre un nombre et ce qui le complète — un
+cas que les précédentes ne couvraient pas, car aucune d'elles ne
 regarde ce qui suit un nombre :
 
 | `name` | Avant | Après |
 |--------|-------|-------|
-| `nbsp_before_double_punctuation` | `Vraiment ?` | `Vraiment ?` |
-| `nbsp_after_opening_quote` | `« bonjour »` | `« bonjour »` |
-| `nbsp_before_percent` | `50 %` | `50 %` |
-| `nbsp_thousands_separator` | `170 000 vues` | `170 000 vues` |
-| `nbsp_before_unit` | `170 millions`, `20 dollars`, `5 $` | `170 millions`, `20 dollars`, `5 $` |
-| `nbsp_after_operator` | `≈ 5`, `× 4` | `≈ 5`, `× 4` |
+| `nbsp_before_double_punctuation` | `Vraiment ?` | `Vraiment ?` |
+| `nbsp_after_opening_quote` | `« bonjour »` | `« bonjour »` |
+| `nbsp_inside_dash_incise` | `Paris — capitale — France` | `Paris — capitale — France` |
+| `nbsp_before_lone_dash` | `word — rest` | `word — rest` |
+| `nbsp_before_percent` | `50 %` | `50 %` |
+| `nbsp_thousands_separator` | `170 000 vues` | `170 000 vues` |
+| `nbsp_before_unit` | `170 millions`, `20 dollars`, `5 $` | `170 millions`, `20 dollars`, `5 $` |
+| `nbsp_after_operator` | `≈ 5`, `× 4` | `≈ 5`, `× 4` |
 
 `nbsp_thousands_separator` ne fait qu'**upgrader une espace déjà présente**
 entre deux groupes de 3 chiffres consécutifs — elle ne regroupe jamais un
@@ -1270,9 +1278,30 @@ espace ni regroupement de chiffres qui n'existait pas dans la source, et
 une espace insécable déjà présente dans la source traverse tout le
 pipeline sans modification (§4.5, §7.6).
 
-Aucune de ces six règles n'existe dans le pack `en` intégré (`"rules": []`,
-§7.4) : ce sont des conventions typographiques françaises, sans équivalent
-anglais codifié de la même façon.
+Le pack `en` intégré ne contient **pas** les règles de langue françaises
+ci-dessus (pas d'insécable avant `; : ! ? »`, pas de guillemets `«`, pas
+de `%` espacé — l'anglais écrit `50%` —, pas de séparateur de milliers
+par espace, l'anglais groupant par virgules) : ce sont des conventions
+typographiques françaises sans équivalent anglais codifié. En revanche, le
+pack `en` porte les **deux règles de mise en page** sur les tirets
+(`nbsp_inside_dash_incise`, `nbsp_before_lone_dash`, communes à tous les
+packs, §19.3.1) **ainsi que** les règles de langue anglaises suivantes,
+qui elles aussi ne font qu'upgrader une espace déjà présente (§7.6) :
+
+- `nbsp_before_metric_unit` : espace insécable entre un nombre et un
+  symbole d'unité SI/métrique (`5 km`, `10 kg`, `20 °C`, `3 mL`) ;
+- `nbsp_before_unit_word` : espace insécable entre un nombre et un
+  mot-unité (`3 million`, `5 dollars`, `2 thousand`) ;
+- `nbsp_between_initials` : espace insécable entre deux initiales
+  (`J. K. Rowling`) ;
+- `nbsp_after_operator` : espace insécable entre `×`/`≈` et le nombre
+  qui suit (`2 × 4`).
+
+Le pack `en` intégré compte donc **six règles au total** (les deux de
+mise en page + les quatre de langue, §19.4) ; l'ancienne affirmation
+`"rules": []` (§7.4) est caduque et est ici rectifiée — elle contredisait
+déjà §19.3.1 et §19.4, qui listent les deux règles de tiret dans le pack
+`en`.
 
 ### 7.6 Préservation d'une espace insécable déjà présente dans la source
 
@@ -1282,7 +1311,7 @@ HTML généré strictement inchangée, que la typographie automatique soit
 active ou non (§4.5, §11.3). C'est une propriété structurelle du moteur,
 pas seulement l'absence de règle qui la supprimerait :
 
-- Les six règles de §7.5 ne remplacent jamais que des espaces normales
+- Toutes les règles de §7.5 ne remplacent jamais que des espaces normales
   (U+0020) — leur `pattern` ne reconnaît jamais U+00A0, donc une espace
   insécable déjà présente ne peut pas correspondre à un `pattern` et n'est
   jamais retouchée, y compris en cas d'application répétée (§19.3).
@@ -3403,6 +3432,18 @@ un compromis, c'est la ligne de partage du §9.1 :
   rien n'ait à être mis à jour ; la palette et les piles de polices de la
   sortie sont dérivées de `THEME_SHARED_PROPS`, donc une septième valeur
   partagée apparaîtrait le jour où elle existerait.
+
+ - **Estimation, pas mesure de rendu.** Le ratio de contraste lui-même est
+   le calcul WCAG 2.x exact (même formule qu'un outil de référence) ; en
+   revanche la **catégorie** (grand / corps) et le seuil appliqué utilisent
+   la taille *résolue* du texte, estimée à partir des valeurs déclarées —
+   pour un `clamp(a, b, c)` le plancher `a` est retenu, ce qui sous-estime
+   une taille responsive réelle. De même le ratio porte sur les couleurs
+   *déclarées* du thème, non sur les pixels réellement rendus (hinting,
+   antialiasing, zoom, taille viewport). L'audit est donc une vérification
+   statique sur couleurs résolues, pas un substitut à un outil officiel qui
+   mesure le contraste perçu du texte rendu dans un navigateur.
+
 - **L'oubli est impossible.** Toute propriété de type couleur du registre
   est soit dans un site, soit dans `CONTRAST_UNMEASURED` avec sa raison
   écrite — un test parcourt le registre contre les deux. Ajouter une
@@ -4748,6 +4789,21 @@ vocabulaire fixe des templates par défaut (`strings`).
       "flags": "g"
     },
     {
+    {
+      "name": "nbsp_inside_dash_incise",
+      "description": "Incise encadrée de tirets : espace insécable après le tiret ouvrant et avant le fermant (§7.5)",
+      "pattern": "([—–]) ([^—–]*?) ([—–])",
+      "replacement": "$1 $2 $3",
+      "flags": "g"
+    },
+    {
+      "name": "nbsp_before_lone_dash",
+      "description": "Tiret non apparié : espace insécable avant, pour qu'il ne commence jamais une ligne (§7.5)",
+      "pattern": "(?<=\\S) ([—–])(?! )",
+      "replacement": " $1",
+      "flags": "g"
+    },
+    {
       "name": "nbsp_before_percent",
       "description": "Espace insécable avant %",
       "pattern": " %",
@@ -4783,7 +4839,7 @@ vocabulaire fixe des templates par défaut (`strings`).
 }
 ```
 
-Les six règles ci-dessus sont exactement celles du pack `fr` intégré (§7.5) —
+Les huit règles ci-dessus sont exactement celles du pack `fr` intégré (§7.5) —
 contrairement à l'exemple de §7.1 (illustratif), celui-ci reflète le
 contenu réel embarqué dans l'exécutable.
 
@@ -4855,7 +4911,10 @@ réécrire pour chaque langue, le second est à recopier tel quel.
 | `nbsp_before_percent` | langue | Insécable avant `%` | fr |
 | `nbsp_thousands_separator` | langue | Insécable entre groupes de 3 chiffres **déjà espacés** — n'ajoute jamais de groupement à `170000` | fr |
 | `nbsp_before_unit` | langue | Insécable entre un nombre et `million(s)`, `milliard(s)`, `dollar(s)`, `$` | fr |
-| `nbsp_after_operator` | langue | Insécable entre `×`/`≈` et le nombre qui suit | fr |
+| `nbsp_after_operator` | langue | Insécable entre `×`/`≈` et le nombre qui suit | fr, **en** |
+| `nbsp_before_metric_unit` | langue | Insécable entre un nombre et un symbole d'unité SI/métrique (`5 km`, `10 kg`, `20 °C`) | **en** |
+| `nbsp_before_unit_word` | langue | Insécable entre un nombre et un mot-unité (`3 million`, `5 dollars`, `2 thousand`) | **en** |
+| `nbsp_between_initials` | langue | Insécable entre deux initiales (`J. K. Rowling`) | **en** |
 | `nbsp_inside_dash_incise` | **mise en page** | Incise encadrée de tirets : insécable **après** le tiret ouvrant et **avant** le fermant, sécable à l'extérieur | fr, **en** |
 | `nbsp_before_lone_dash` | **mise en page** | Tiret non apparié : insécable **avant**, pour qu'il ne puisse jamais commencer une ligne | fr, **en** |
 
@@ -4910,9 +4969,13 @@ d'union espacé, qui n'existe pas en français, en tiret d'incise :
 
 ### 19.4 Fichier `en.json` (anglais)
 
-L'anglais n'a **aucune règle de langue** — pas d'insécable avant la
-ponctuation, pas de guillemets français — mais il porte les **deux règles
-de mise en page** sur les tirets (§19.3.1), et un bloc `strings` aussi
+L'anglais porte les **deux règles de mise en page** sur les tirets
+(§19.3.1) et, en plus, **quatre règles de langue** propres à l'anglais
+(`nbsp_before_metric_unit`, `nbsp_before_unit_word`,
+`nbsp_between_initials`, `nbsp_after_operator`, §7.5) ; il n'a en revanche
+**pas** d'insécable avant `; : ! ? »`, pas de guillemets français `«`, pas
+de `%` espacé (l'anglais écrit `50%`), pas de séparateur de milliers par
+espace (l'anglais groupe par virgules). Il porte un bloc `strings` aussi
 complet que le français, puisque c'est lui qui sert de repli ultime
 (§7.1, §7.4) :
 
@@ -4922,7 +4985,11 @@ complet que le français, puisque c'est lui qui sert de repli ultime
   "name": "English",
   "rules": [
     { "name": "nbsp_inside_dash_incise",  "...": "..." },
-    { "name": "nbsp_before_lone_dash",    "...": "..." }
+    { "name": "nbsp_before_lone_dash",    "...": "..." },
+    { "name": "nbsp_before_metric_unit",  "...": "..." },
+    { "name": "nbsp_before_unit_word",    "...": "..." },
+    { "name": "nbsp_between_initials",    "...": "..." },
+    { "name": "nbsp_after_operator",      "...": "..." }
   ],
   "strings": {
     "nav_prev": "Previous slide",
@@ -4932,11 +4999,14 @@ complet que le français, puisque c'est lui qui sert de repli ultime
 ```
 
 Cette section a longtemps affirmé que `rules` était vide « car l'anglais
-n'a pas de règles typographiques spéciales ». C'était vrai des règles de
-langue et faux des règles de mise en page : un cadratin espacé, qui est
-la norme de l'écrit web anglophone, s'orpheline en fin de ligne dans les
-deux langues. La distinction est maintenant celle du §19.3.1, et c'est
-elle qu'un auteur de pack doit suivre.
+n'a pas de règles typographiques spéciales ». Partiellement vraie :
+l'anglais n'a pas les règles de langue *françaises* (insécable avant
+`; : ! ? »`, guillemets `«`, `%` espacé, milliers groupés par espace),
+mais il a les règles de mise en page sur les tirets **et**, depuis la
+réconciliation de §7.5, quatre règles de langue anglaises
+(`nbsp_before_metric_unit`, `nbsp_before_unit_word`,
+`nbsp_between_initials`, `nbsp_after_operator`). La distinction langue /
+mise en page du §19.3.1 reste celle qu'un auteur de pack doit suivre.
 
 ### 19.5 Packs par défaut embarqués dans l'exécutable
 

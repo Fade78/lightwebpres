@@ -181,12 +181,12 @@ that does the job.
 
 ### Pick a theme (the whole series)
 
-Thirty-three named colour themes ship pre-configured — too many to pick
+Des dizaines de thèmes de couleur sont préconfigurés — trop pour en choisir
 from a list, so you find one by facet: light or dark background, how loud
 it is, and what hue the page carries.
 
 ```bash
-./lightwebpres theme list                                     # all 33, with facets
+./lightwebpres theme list                                     # des dizaines de thèmes, avec facettes
 ./lightwebpres theme list --polarity dark --intensity sober   # just the ones you mean
 ./lightwebpres theme gallery                             # every theme, rendered
 ```
