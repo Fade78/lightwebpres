@@ -3706,6 +3706,15 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .slide-body h1 { font-size: 1.3em; }
 .slide-body h2 { font-size: 1.15em; }
 .slide-body h3 { font-size: 1.05em; }
+/* #### heading: rendered as a bold-font paragraph (body-heading styling,
+   not <strong> markdown emphasis). #####/###### render as plain text. */
+.fact-content .h4, .slide-body .h4 {
+  font-weight: bold;
+  margin: 14px 0 6px;
+  max-width: var(--page-content-max);
+}
+.fact-content .h4:first-child,
+.slide-body .h4:first-child { margin-top: 0; }
 
 .source { margin-top: 16px; max-width: var(--page-content-max); }
 .page-footer { padding: 20px 8vw 28px; border-top-style: solid; }
@@ -3816,6 +3825,7 @@ sup { vertical-align: super; line-height: 0; }
 .full-article h1 { font-size: 28px; margin-bottom: 8px; }
 .full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
 .full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+.full-article .h4 { font-weight: bold; margin-top: 20px; margin-bottom: 8px; }
 .full-article p { margin-bottom: 14px; max-width: var(--page-content-max); }
 .full-article ul, .full-article ol {
   margin-bottom: 14px;
@@ -7070,7 +7080,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             continue
         if line.startswith('#### '):
             close_list()
-            out.append(f'  <p><strong>{md_inline(strip_ws(line[5:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</strong></p>')
+            out.append(f'  <p class="h4">{md_inline(strip_ws(line[5:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p>')
             i += 1
             continue
         if line.startswith('##### ') or line.startswith('###### '):

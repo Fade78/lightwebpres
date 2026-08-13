@@ -782,11 +782,12 @@ class Axis4MarkdownGaps(unittest.TestCase):
         # Alignment colons are accepted but ignored: no align/style attr
         self.assertNotIn('align=', html.split('<table')[1].split('</table>')[0])
 
-    def test_h4_renders_as_bold_paragraph(self):
+    def test_h4_renders_as_bold_font_paragraph(self):
         html = self._html('#### Not a heading\n')
-        self.assertIn('<p><strong>Not a heading</strong></p>', html)
+        self.assertIn('<p class="h4">Not a heading</p>', html)
         self.assertNotIn('<h4>', html)
-        self.assertNotIn('####', html)
+        # Not rendered as markdown <strong> emphasis around the text
+        self.assertNotIn('<strong>Not a heading</strong>', html)
 
     def test_relative_link_stays_literal(self):
         html = self._html('See [other](other.html) page.\n')
@@ -2212,7 +2213,17 @@ class ImageFiguresAndCaptions(unittest.TestCase):
         # typography engine treating the "!" of "![D]" as high
         # punctuation and slipping a non-breaking space in front of it.
         self.assertNotIn('![', html)
-        self.assertNotIn(' ![', html)
+        self.assertNotIn(' ![', html)
+
+    def test_heading_levels_4_5_6_in_fact_box(self):
+        slide = ('<!-- lwp:slide -->\ntag: T\n## Title\nfact-label: The fact\n\n'
+                 '#### Level four\n\n##### Level five\n\n###### Level six\n')
+        html = self._build_article_html('', slide_body=slide)
+        self.assertIn('<p class="h4">Level four</p>', html)
+        self.assertNotIn('<h4>', html)
+        self.assertNotIn('<strong>Level four</strong>', html)
+        self.assertIn('<p>Level five</p>', html)
+        self.assertIn('<p>Level six</p>', html)
 
     def test_no_literal_bang_leaks(self):
         # The historical broken rendering: "!" left behind before the
@@ -2342,6 +2353,19 @@ class MarkdownConversion(unittest.TestCase):
         self.assertIn('<h1>H1 title</h1>', html)
         self.assertIn('<h2>H2 title</h2>', html)
         self.assertIn('<h3>H3 title</h3>', html)
+
+    def test_heading_levels_4_5_6_in_full_article(self):
+        html = self._build_article_html(
+            '#### Level four\n\n##### Level five\n\n###### Level six\n')
+        # h4: bold-font paragraph (not <strong> markdown emphasis)
+        self.assertIn('<p class="h4">Level four</p>', html)
+        self.assertNotIn('<h4>', html)
+        self.assertNotIn('<strong>Level four</strong>', html)
+        # h5/h6: plain paragraphs
+        self.assertIn('<p>Level five</p>', html)
+        self.assertIn('<p>Level six</p>', html)
+        self.assertNotIn('<h5>', html)
+        self.assertNotIn('<h6>', html)
 
     def test_bold_and_italic(self):
         html = self._build_article_html('A **bold** word and an *italic* word.\n')
