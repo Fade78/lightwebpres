@@ -782,10 +782,11 @@ class Axis4MarkdownGaps(unittest.TestCase):
         # Alignment colons are accepted but ignored: no align/style attr
         self.assertNotIn('align=', html.split('<table')[1].split('</table>')[0])
 
-    def test_h4_stays_literal_paragraph_text(self):
+    def test_h4_renders_as_bold_paragraph(self):
         html = self._html('#### Not a heading\n')
-        self.assertIn('<p>#### Not a heading</p>', html)
+        self.assertIn('<p><strong>Not a heading</strong></p>', html)
         self.assertNotIn('<h4>', html)
+        self.assertNotIn('####', html)
 
     def test_relative_link_stays_literal(self):
         html = self._html('See [other](other.html) page.\n')

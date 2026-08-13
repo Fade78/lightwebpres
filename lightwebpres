@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.28.2"
+VERSION = "0.28.3"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -7058,14 +7058,25 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             out.append(f'  <h1>{md_inline(strip_ws(line[2:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h1>')
             i += 1
             continue
-        if line.startswith('## '):
+        if line.startswith('## ') and not line.startswith('### '):
             close_list()
             out.append(f'  <h2>{md_inline(strip_ws(line[3:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h2>')
             i += 1
             continue
-        if line.startswith('### '):
+        if line.startswith('### ') and not line.startswith('#### '):
             close_list()
             out.append(f'  <h3>{md_inline(strip_ws(line[4:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h3>')
+            i += 1
+            continue
+        if line.startswith('#### '):
+            close_list()
+            out.append(f'  <p><strong>{md_inline(strip_ws(line[5:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</strong></p>')
+            i += 1
+            continue
+        if line.startswith('##### ') or line.startswith('###### '):
+            close_list()
+            level = 5 if line.startswith('##### ') else 6
+            out.append(f'  <p>{md_inline(strip_ws(line[level:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p>')
             i += 1
             continue
 
