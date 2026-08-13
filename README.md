@@ -21,6 +21,17 @@ framework in the output. Python 3.8+ (standard library only); on
 Windows, run `python lightwebpres <command>`. Every generated page is inline CSS + inline JS,
 one `.html` file, opens straight from disk or any static host.
 
+**Every page is a presentation deck.** Open it in a browser and you have
+a full-screen presenter experience: keyboard (↑/↓, Home, F for
+fullscreen, B/W/T for pause screens), mouse (click to advance,
+right-click to go back, double-click for fullscreen, middle-click to
+exit), and touch (swipe) all work out of the box. Navigation buttons fade
+after 3 seconds of idleness — the speaker sees only slides. The cursor
+hides after 1 second in fullscreen. The mouse becomes a remote:
+left-click advances, right-click goes back, two distinct buttons, no
+aiming. Fullscreen also neutralizes OS power-saving so the screen never
+dims mid-talk.
+
 ## Features
 
 - **Typography handled for you.** Non-breaking spaces before punctuation,
@@ -45,6 +56,14 @@ one `.html` file, opens straight from disk or any static host.
 - **Share in one click, at whatever scope you need.** Copyable link or QR
   code, for the whole series, the current article, or the exact slide
   being read — generated entirely client-side.
+- **Built-in presentation mode.** Every generated page is a full-screen
+  presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
+  screens), mouse (click advance, right-click back, double-click
+  fullscreen, middle-click exit), touch (swipe). Navigation chrome fades
+  after 3s idle; cursor hides after 1s in fullscreen. The mouse becomes
+  a remote — left-click advances, right-click goes back, two distinct
+  buttons, no aiming. Fullscreen neutralizes OS power-saving so the
+  screen never dims mid-talk.
 - **Comes with a companion web page, not just a CLI.** One browser-based
   tool, nothing to install: one tab builds a zip you drop in, the other
   pulls, builds, and pushes straight to a GitLab repository — both

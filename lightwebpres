@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.28.0"
+VERSION = "0.28.1"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5275,6 +5275,14 @@ document.addEventListener('DOMContentLoaded', function() {
       goTo(currentVisible() + 1);
       return;
     }
+    // If a click arrives while scrolling (from a previous click's
+    // goTo), cancel the pending double-click timer and navigate
+    // immediately — the speaker clicked again to skip the wait.
+    if (isScrolling) {
+      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+      goTo(currentVisible() + 1);
+      return;
+    }
     if (clickTimer) {
       // Second click within the window: double-click = enter fullscreen.
       clearTimeout(clickTimer);
@@ -5346,23 +5354,29 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // --- Auto-hide nav chrome after 3s of mouse idleness ---
+  // --- Auto-hide nav chrome after 3s of mouse idleness (1s in fullscreen) ---
   // The speaker does not want chrome on the wall while talking. Buttons
   // and dots fade out when the mouse stops, come back when it moves.
   // Touch devices (no cursor) keep them — the @media (pointer: coarse)
   // rules override the .idle class.
   if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
     var idleTimer = null;
+    function getIdleDelay() {
+      return isFullscreen() ? 1000 : 3000;
+    }
     function scheduleHide() {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(function () {
         setNavIdle(true);
-      }, 3000);
+      }, getIdleDelay());
     }
     document.addEventListener('mousemove', function () {
       setNavIdle(false);
       scheduleHide();
     });
+    // Reschedule on fullscreen change to use the correct delay
+    document.addEventListener('fullscreenchange', scheduleHide);
+    document.addEventListener('webkitfullscreenchange', scheduleHide);
     scheduleHide();
   }
 

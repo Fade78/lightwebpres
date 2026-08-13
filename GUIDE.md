@@ -46,6 +46,17 @@ variable** (`LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, `LWP_OUTPUT_DIR`,
 `LWP_TEMPLATES_DIR`, `LWP_LANGUAGE_DIR`, `LWP_LANG`), so a pipeline can
 lay the pieces out however it likes without passing a single flag.
 
+**Every page is also a presentation deck.** Open the generated HTML in a
+browser and you have a full-screen presenter experience: keyboard (↑/↓,
+Home, F for fullscreen, B/W/T for pause screens), mouse (click to
+advance, right-click to go back, double-click for fullscreen, middle-click
+to exit), and touch (swipe) all work out of the box. The navigation
+buttons fade after 3 seconds of idleness — the speaker sees only slides.
+The cursor hides after 1 second in fullscreen. The mouse becomes a
+remote: left-click advances, right-click goes back, two distinct buttons,
+no aiming. Fullscreen also neutralizes the OS power-saving so the screen
+never dims mid-talk.
+
 Section 8 has the shape of a pipeline that uses all of it.
 
 ## 2. Install & your first build
