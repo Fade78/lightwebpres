@@ -51,11 +51,13 @@ browser and you have a full-screen presenter experience: keyboard (↑/↓,
 Home, F for fullscreen, B/W/T for pause screens), mouse (click to
 advance, right-click to go back, double-click for fullscreen, middle-click
 to exit), and touch (swipe) all work out of the box. The navigation
-buttons fade after 3 seconds of idleness — the speaker sees only slides.
-The cursor hides after 1 second in fullscreen. The mouse becomes a
-remote: left-click advances, right-click goes back, two distinct buttons,
-no aiming. Fullscreen also neutralizes the OS power-saving so the screen
-never dims mid-talk.
+buttons fade after 3 seconds of idleness (1 second in fullscreen) — the
+speaker sees only slides. The cursor hides after 1 second of idleness in
+fullscreen, and only returns after the mouse has moved continuously for
+250 ms — a brush past the sensor never flashes it back. The mouse becomes
+a remote: left-click advances, right-click goes back, two distinct
+buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the
+screen never dims mid-talk.
 
 Section 8 has the shape of a pipeline that uses all of it.
 
@@ -124,7 +126,7 @@ names are. You will not find out from the page.
 | **source** | where the claim comes from | `source:` |
 | **comparison table** | a grid of verdicts read at a glance | a Markdown table; cells take `yes` / `no` / `partial` classes via inline HTML |
 | **figure** | a captioned image | `![alt](img/x.png "Caption")` alone on its line |
-| **headings** | structure within the fact-box body | `#` `##` `###` `####` `#####` `######` — up to level 6; level 4 renders as bold paragraph, levels 5–6 as plain paragraphs |
+| **headings** | structure within the fact-box body | `#` `##` `###` `####` `#####` `######` — up to level 6; `#`–`###` are true headings, `####` renders as a bold-font paragraph (not `<strong>` emphasis), `#####`/`######` as plain paragraphs |
 | **quote, code, list** | ordinary prose furniture | ordinary Markdown |
 | **note** | a reference the reader can reach | `[^label]` in the text, `[^label]: body` on its own line |
 | **long-form article** | the piece the cards summarise | a `full-article` slide pointing at a second `.md` file |
@@ -493,6 +495,11 @@ left and right clicks are instant (no double-click to detect anymore).
 Esc exits fullscreen. The cursor hides after 1 second of idleness in
 fullscreen.
 
+A left-click that lands while the deck is still scrolling from a previous
+click cancels the pending double-click timer and advances immediately —
+the speaker who clicks again to skip the wait is taken straight to the
+next slide without the 250 ms hold.
+
 ### Touch (phone, tablet)
 
 | Gesto | Action |
@@ -506,7 +513,8 @@ fullscreen.
 The round buttons in the bottom-right corner (↑ prev, 🏠 home, ↓ next,
 share, ⛶ fullscreen) are always there. After 3 seconds of mouse
 idleness they fade out — the speaker does not want chrome on the wall.
-Move the mouse to bring them back. Touch devices keep them visible
+In fullscreen they fade after just 1 second, in step with the cursor
+hide. Move the mouse to bring them back. Touch devices keep them visible
 (there is no cursor to wake them). Clicking the corner (not a button)
 toggles them on or off for good.
 

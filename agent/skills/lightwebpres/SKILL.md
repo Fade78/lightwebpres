@@ -320,8 +320,11 @@ Four limits the converter does not announce:
 - **A Markdown link must be `http://` or `https://`.** `[text](page.html)`
   or a `mailto:` matches nothing and is published as that literal text,
   with no warning. Use a raw `<a href="...">` for anything else.
-- **Headings stop at `###`.** `####` and deeper are published as literal
-  paragraph text, hashes included.
+- **Headings go up to level 6.** `#`–`###` are real headings; `####`
+  renders as a bold-font paragraph (a sub-heading look, **not** `<strong>`
+  markdown emphasis — it uses the bold typeface, not bold weight on
+  emphasized text); `#####` and `######` render as plain paragraphs. None
+  are left as literal text.
 - **Blockquotes are one paragraph.** Consecutive `>` lines merge into a
   single `<p>` inside one `<blockquote>`; multi-paragraph and nested
   quotes are not supported.

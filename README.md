@@ -26,10 +26,11 @@ a full-screen presenter experience: keyboard (↑/↓, Home, F for
 fullscreen, B/W/T for pause screens), mouse (click to advance,
 right-click to go back, double-click for fullscreen, middle-click to
 exit), and touch (swipe) all work out of the box. Navigation buttons fade
-after 3 seconds of idleness — the speaker sees only slides. The cursor
-hides after 1 second in fullscreen. The mouse becomes a remote:
-left-click advances, right-click goes back, two distinct buttons, no
-aiming. Fullscreen also neutralizes OS power-saving so the screen never
+after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
+only slides. The cursor hides after 1 second in fullscreen, and only
+returns after 250 ms of continuous mouse movement. The mouse becomes a
+remote: left-click advances, right-click goes back, two distinct buttons,
+no aiming. Fullscreen also neutralizes OS power-saving so the screen never
 dims mid-talk.
 
 ## Features
@@ -60,7 +61,8 @@ dims mid-talk.
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
   screens), mouse (click advance, right-click back, double-click
   fullscreen, middle-click exit), touch (swipe). Navigation chrome fades
-  after 3s idle; cursor hides after 1s in fullscreen. The mouse becomes
+  after 3s idle (1s in fullscreen); cursor hides after 1s in fullscreen
+  and returns only after 250ms of continuous movement. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the
   screen never dims mid-talk.
@@ -243,10 +245,12 @@ the series or within one article.
 - **`series-nav`** — cross-article navigation, generated from
   `series.json` (at most one per article).
 - **`full-article`** — includes a separate long-form Markdown file,
-  converted with full support for headings, bold/italic, links, notes
-  (see below), lists, tables, blockquotes, images with captions
-  (`![alt](src "Caption")` — small, centered, themed; wrap it in a link,
-  `[![alt](src "Caption")](url)`, and the picture becomes clickable while
+  converted with full support for headings (levels 1–6: `####` renders as
+  a bold-font paragraph, `#####`/`######` as plain text), bold/italic,
+  links, notes (see below), lists, tables, blockquotes, images with
+  captions (`![alt](src "Caption")` — small, centered, themed; wrap it in
+  a link, `[![alt](src "Caption")](url)`, and the picture becomes
+  clickable while
   the caption stays outside the link, as text about it; mid-sentence the
   same image stays inline and its title becomes a tooltip),
   inline/fenced code, and inline raw HTML.
