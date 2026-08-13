@@ -5172,10 +5172,31 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.style.cursor = 'none';
     }, 1000);
   }
+  // Require >250ms of continuous movement before the cursor reappears, so
+  // a single jitter or a brush past the sensor does not flash it back on
+  // the wall. On the first move of a burst, arm a 250ms timer that shows
+  // the cursor; if movement is continuous the timer (set once at the
+  // burst's start) fires after 250ms. A gap longer than 100ms cancels it
+  // and starts a new burst, so a brief twitch never reveals the cursor.
+  var fsMoveStart = 0;
+  var fsLastMove = 0;
+  var fsShowTimer = null;
   function fsShowCursor() {
-    if (fsCursorTimer) clearTimeout(fsCursorTimer);
-    document.body.style.cursor = '';
-    fsScheduleHideCursor();
+    var now = Date.now();
+    if (fsShowTimer === null) {
+      // First move of a burst: arm the reveal timer.
+      fsMoveStart = now;
+      fsShowTimer = setTimeout(function () {
+        document.body.style.cursor = '';
+        fsShowTimer = null;
+        fsScheduleHideCursor();
+      }, 250);
+    }
+    if (now - fsLastMove > 100) {
+      // Movement restarted: cancel the pending reveal, start fresh.
+      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
+    }
+    fsLastMove = now;
   }
   // Wake lock: prevents the screen from dimming/sleeping while the
   // speaker presents. Released when fullscreen exits.
@@ -5203,6 +5224,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
+      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
+      fsMoveStart = 0;
+      fsLastMove = 0;
       document.body.style.cursor = '';
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
@@ -5220,6 +5244,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
+      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
+      fsMoveStart = 0;
+      fsLastMove = 0;
       document.body.style.cursor = '';
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
