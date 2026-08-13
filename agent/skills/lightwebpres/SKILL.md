@@ -211,10 +211,29 @@ would not. `highlight` is a short standalone figure (a number, a stat, a
 quote) with an optional caption underneath; it renders above the free
 text, not instead of it.
 
+**The `source` field on a standard slide** is the designated place for
+the slide's citation. Write the reference there (e.g. `source: Baking
+guide, 2024 edition.`). You may optionally refer to it in the fact-box
+text with a short callout (e.g. `[see source]` or a note marker `[^1]`),
+but **do not write the full citation inline in the fact-box body**. The
+rendered page displays the `source` field in a consistent, styled location
+separate from the fact content — inline citations break that layout and
+are not accessible in the same way. For longer references, use a note
+(`[^1]`) whose body goes to the foot of the card (default) or the page
+end (`notes_placement: page` in the meta block).
+
 A cover slide **accepts** `fact-label`, `source`, `highlight` and
 `highlight-caption` without failing, and then never renders them — you
 get a `[WARNING]`, exit code 0, and a page missing what you wrote. Only
 free *text* on a cover is fatal.
+
+**Cover slides only accept** `tag`, `# Title`, `summary`, and `comment`.
+Any other field (the standard-slide fields: `highlight`, `highlight-caption`,
+`fact-label`, `fact-variant`, `source`) is parsed but **never rendered** on
+a cover — the build warns and continues. This is deliberate so you can
+toggle a slide between `cover` and `standard` while drafting without a
+build failure. When the slide is a cover, remove those fields; they do
+nothing.
 
 `<!-- lwp:slide:TYPE -->` is validated: a misspelt type
 (`lwp:slide:standrd`) is a fatal build error naming the slide's rank, the
