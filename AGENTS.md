@@ -72,10 +72,18 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
   comme modèles.
 - L'**intégration verticale** : un seul outil couvre toute la chaîne (écriture
   → build → thèmes → CI → présentation).
-- L'**intégration horizontale** : le GUI (`lightwebpres-gui`, projet séparé)
-  tourne sous Pyodide en réutilisant l'exécutable tel quel ; `web/` porte la
-  version navigateur (build/push GitLab). Le contrat est unidirectionnel :
-  `lightwebpres` est la source de vérité, le GUI suit (spec §1.2).
+- L'**intégration horizontale** se décline en deux niveaux :
+  - **`web/` dans l'arborescence** — un outil navigateur léger (deux onglets :
+    déposer un zip à construire, ou tirer/build/pousser vers un dépôt GitLab).
+    Tourne sous Pyodide en réutilisant l'exécutable `lightwebpres` tel quel,
+    sans le réimplémenter (`web/app.py`, `web/git_sync.py`, `web/index.html`).
+  - **`lightwebpres-gui`** (projet séparé, dépôt distinct hors de celui-ci) —
+    un éditeur complet : navigateur de fichiers, éditeur Markdown (CodeMirror),
+    bouton build, stockage persistant OPFS, PWA hors-ligne, chiffrement au repos
+    (AES-GCM-256 + Argon2id), import/export GitLab. Tourne aussi sous Pyodide
+    avec l'exécutable vendorisé.
+  Le contrat est unidirectionnel : `lightwebpres` est la source de vérité, le
+  GUI suit (spec §1.2).
 - L'**extension** (GPL) : quiconque peut modifier et redistribuer, sous les
   conditions de la GPL. L'Output Exception est la soupape qui distingue
   « utiliser l'outil » de « redistribuer l'outil ».
