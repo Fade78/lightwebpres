@@ -595,25 +595,99 @@ class PlaceholderNotSubstitutedInAuthorContent(unittest.TestCase):
 
 
 class SlideCounter(unittest.TestCase):
-    """§3.3/§12.3: every slide carries a zero-padded 'NN / NN' counter —
-    completely unasserted before axis 4 (a broken counter would ship on
-    every page unnoticed)."""
+    """The engraved top-right slide number (.slide-num) is opt-in and OFF by
+    default (the live bottom-left counter already shows current/total)."""
 
-    def test_counter_is_zero_padded_with_correct_total(self):
-        md = (
-            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
-            '<!-- lwp:slide -->\ntag: T\n## Two\nsummary: S.\n\n---\n\n'
-            '<!-- lwp:slide -->\ntag: T\n## Three\nsummary: S.\n'
-        )
+    _MD = (
+        '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+        '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n---\n\n'
+        '<!-- lwp:slide -->\ntag: T\n## Two\nsummary: S.\n\n---\n\n'
+        '<!-- lwp:slide -->\ntag: T\n## Three\nsummary: S.\n'
+    )
+
+    def test_num_absent_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._MD)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('<span class="slide-num">', html)
+
+    def test_num_present_with_cli_on(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._MD)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--slides-page-numbers', 'on')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<span class="slide-num">01 / 03</span>', html)
+            self.assertIn('<span class="slide-num">02 / 03</span>', html)
+            self.assertIn('<span class="slide-num">03 / 03</span>', html)
+
+    def test_num_absent_with_cli_off(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._MD)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--slides-page-numbers', 'off')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('<span class="slide-num">', html)
+
+    def test_num_present_with_front_matter(self):
+        md = self._MD.replace(
+            '<!-- lwp:meta -->\npage_dest: a.html\n',
+            '<!-- lwp:meta -->\npage_dest: a.html\nslide_page_numbers: true\n')
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('<span class="slide-num">01 / 03</span>', html)
-            self.assertIn('<span class="slide-num">02 / 03</span>', html)
-            self.assertIn('<span class="slide-num">03 / 03</span>', html)
+
+    def test_front_matter_off_wins_over_cli_on(self):
+        md = self._MD.replace(
+            '<!-- lwp:meta -->\npage_dest: a.html\n',
+            '<!-- lwp:meta -->\npage_dest: a.html\nslide_page_numbers: false\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--slides-page-numbers', 'on')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('<span class="slide-num">', html)
+
+    def test_front_matter_on_wins_over_cli_off(self):
+        md = self._MD.replace(
+            '<!-- lwp:meta -->\npage_dest: a.html\n',
+            '<!-- lwp:meta -->\npage_dest: a.html\nslide_page_numbers: true\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--slides-page-numbers', 'off')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<span class="slide-num">01 / 03</span>', html)
+
+    def test_series_json_enables_when_no_cli_or_fm(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._MD)
+            series = {'articles': [{'page_dest': 'a.html',
+                                    'page_source': 'a.md',
+                                    'nav_title': 'A', 'nav_desc': 'A'}],
+                      'series_meta': {'slide_page_numbers': True}}
+            (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('<span class="slide-num">01 / 03</span>', html)
+
+    def test_invalid_value_is_fatal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._MD)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--slides-page-numbers', 'maybe')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('slide_page_numbers', result.stderr)
 
 
 class OnlyAcceptsPageSourceForm(unittest.TestCase):
@@ -4557,7 +4631,8 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         for i, (slide, panel) in enumerate(zip(slides, ('cover', 'card')), 1):
             rendered = self.lwp.render_slide(slide, i, len(slides), engine,
                                              pack.get('strings', {}),
-                                             absorb_punct=absorb)
+                                             absorb_punct=absorb,
+                                             show_slide_num=True)
             self.assertIn(rendered,
                           self.lwp.build_theme_preview_document('nord', panel),
                           f'{panel} panel')
@@ -11439,25 +11514,33 @@ class RegressionFixes(unittest.TestCase):
     # Naive HTML-level assertions never catch this, so validate the script
     # for real when a JS engine is available.
     def test_b8_generated_script_is_valid_javascript(self):
-        import shutil
-        import subprocess
-        node = shutil.which('node')
-        if not node:
-            self.skipTest('node not available to validate the script')
+        lwp = load_lightwebpres_module()
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
-            scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)
-            self.assertTrue(scripts, 'no <script> block emitted')
-            for block in scripts:
-                if not block.strip():
-                    continue
-                path = Path(tmp) / 'nav.js'
-                path.write_text(block, encoding='utf-8')
-                r = subprocess.run([node, '--check', str(path)],
-                                   capture_output=True, text=True)
-                self.assertEqual(
-                    r.returncode, 0,
-                    'generated script is not valid JS:\n' + r.stderr[:500])
+            ok, detail = lwp.validate_page_scripts(html)
+            self.assertTrue(ok, detail)
+
+    def test_apply_strings_escapes_quotes_in_string_literals(self):
+        # Root cause of the fullscreen break: a locale string holding an
+        # apostrophe (or a quote, or a backslash) must not break the JS/HTML
+        # string literal it is substituted into. apply_strings must escape it
+        # quote/backslash-aware, so the placeholder can never again kill the
+        # whole <script>.
+        lwp = load_lightwebpres_module()
+        value = "l'index \"quote\" \\ back"
+        strings = {'weird': value}
+        for q in ("'", '"'):
+            tmpl = 'var s = ' + q + '{{str_weird}}' + q + ';'
+            out = lwp.apply_strings(tmpl, strings)
+            self.assertNotIn('{{str_weird}}', out)
+            escaped = value.replace('\\', '\\\\').replace(q, '\\' + q)
+            self.assertEqual(out, 'var s = ' + q + escaped + q + ';')
+            ok, detail = lwp.validate_page_scripts('<script>' + out + '</script>')
+            self.assertTrue(ok, detail)
+        # Bare (unquoted, HTML text) placeholder is substituted verbatim:
+        self.assertEqual(
+            lwp.apply_strings('<p>{{str_weird}}</p>', strings),
+            '<p>' + value + '</p>')
 
     # --- B7: contextmenu handler clears the pending left-click timer ---
     def test_b7_contextmenu_clears_timer(self):

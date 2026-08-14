@@ -50,6 +50,8 @@ import os
 import re
 import json
 import shutil
+import subprocess
+import tempfile
 import base64
 import mimetypes
 import difflib
@@ -6736,10 +6738,68 @@ def fill_placeholders(template, mapping):
 
 
 def apply_strings(text, strings):
-    """Replaces {{str_KEY}} placeholders in `text` with values from `strings`."""
+    """Replaces {{str_KEY}} placeholders in `text` with values from `strings`.
+
+    A placeholder enclosed in quotes — `'{{str_KEY}}'` or `"{{str_KEY}}"` — sits
+    inside a JS or HTML string literal, so its value is escaped quote/backslash-
+    aware (JSON-style) before insertion. This keeps any character in a locale
+    string (apostrophe, quote, backslash) from breaking the surrounding literal
+    — the class of bug that once killed the whole <script> (and with it
+    fullscreen, navigation and the presenter panel) when a French string held
+    `l'index`. Bare (unquoted) placeholders — used in HTML text content — are
+    substituted verbatim, as before.
+    """
     for key, value in strings.items():
-        text = text.replace('{{str_' + key + '}}', value)
+        token = '{{str_' + key + '}}'
+        for q in ("'", '"'):
+            quoted = q + token + q
+            if quoted in text:
+                escaped = value.replace('\\', '\\\\').replace(q, '\\' + q)
+                text = text.replace(quoted, q + escaped + q)
+        if token in text:
+            text = text.replace(token, value)
     return text
+
+
+_SCRIPT_VALIDITY_CACHE = {}
+
+
+def validate_page_scripts(html):
+    """Validate every <script> block in `html` as JavaScript via `node --check`.
+
+    Returns ``(ok, detail)``. A page that fails ships dead JS — fullscreen,
+    navigation and the presenter panel would all be inert — so callers must
+    treat ``ok is False`` as a hard build failure. ``node`` is optional: when
+    absent the check is skipped (and reported as a skip) rather than failing
+    the build. Results are cached by script content, so a series whose pages
+    share one identical script is checked only once.
+    """
+    node = shutil.which('node')
+    if not node:
+        return True, 'node not available; script not validated'
+    for block in re.findall(r'<script[^>]*>(.*?)</script>', html, re.S):
+        if not block.strip():
+            continue
+        sig = hashlib.md5(block.encode('utf-8')).hexdigest()
+        cached = _SCRIPT_VALIDITY_CACHE.get(sig)
+        if cached is not None:
+            if not cached:
+                return False, 'previously invalid <script> block (cached)'
+            continue
+        fd, path = tempfile.mkstemp(suffix='.js')
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as fh:
+                fh.write(block)
+            r = subprocess.run([node, '--check', path],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               universal_newlines=True)
+        finally:
+            os.unlink(path)
+        if r.returncode != 0:
+            _SCRIPT_VALIDITY_CACHE[sig] = False
+            return False, 'invalid <script> block:\n' + (r.stderr or '')[:2000]
+        _SCRIPT_VALIDITY_CACHE[sig] = True
+    return True, ''
 
 
 # ============================================================================
@@ -8035,11 +8095,44 @@ def resolve_notes_settings(meta, series_meta, source_name):
     return placement, tooltip == 'on'
 
 
+def resolve_slide_page_numbers(meta, series_meta, source_name, args):
+    """Whether the engraved top-right slide number (.slide-num) is rendered.
+
+    Cascade (most specific wins), mirroring resolve_notes_settings():
+    article front-matter > CLI `--slides-page-numbers` > series.json >
+    built-in default (off). The bottom-left live counter (.slide-counter) is
+    independent and always shown, so turning this off never loses the
+    current/total information — it only drops the static, redundant mark.
+
+    A wrong value is a build error naming the origin, the same bar every
+    other typed value in this tool is held to."""
+    def parse(value, origin):
+        s = str(value).strip().lower()
+        if s not in ('on', 'off', 'true', 'false', 'yes', 'no', '1', '0'):
+            log('error', f'{origin}: slide_page_numbers: {value!r} is not a '
+                  f'valid value (on | off).')
+            sys.exit(1)
+        return s in ('on', 'true', 'yes', '1')
+
+    if 'slide_page_numbers' in meta and str(meta['slide_page_numbers']).strip():
+        return parse(meta['slide_page_numbers'], source_name)
+    cli = args.get('--slides-page-numbers') if args else None
+    if cli is not None:
+        return parse(cli, 'command line')
+    if ('slide_page_numbers' in series_meta
+            and str(series_meta['slide_page_numbers']).strip()):
+        return parse(series_meta['slide_page_numbers'], 'series.json')
+    return False
+
+
 def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                  disabled=None, notes=None, absorb_punct=False,
-                 inline_images=False, articles_dir=None):
+                 inline_images=False, articles_dir=None, show_slide_num=False):
     """Generates the HTML for a slide."""
     num_str = f'{slide_num:02d} / {total_slides:02d}'
+    # The engraved top-right number is opt-in (off by default): the live
+    # bottom-left counter already carries current/total, so the static mark
+    # is redundant presentation most authors don't want.
 
     if slide.slide_type == 'cover':
         tag = apply_typo(typo_engine, slide.tag or '', disabled)
@@ -8047,7 +8140,8 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
         parts = [f'<section class="slide slide-cover" id="s{slide_num}">']
-        parts.append(f'  <span class="slide-num">{num_str}</span>')
+        if show_slide_num:
+            parts.append(f'  <span class="slide-num">{num_str}</span>')
         if tag:
             parts.append(f'  <span class="slide-tag">{tag}</span>')
         parts.append(f'  <h1>{h1}</h1>')
@@ -8066,7 +8160,10 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     elif slide.slide_type == 'full-article':
         # Content will be injected later
         tag_text = strings.get('full_article_tag', 'Full article')
-        return f'<section class="slide full-article" id="s{slide_num}">\n  <span class="slide-num">{num_str}</span>\n  <span class="slide-tag">{tag_text}</span>\n{{FULL_ARTICLE_PLACEHOLDER}}\n</section>'
+        return (f'<section class="slide full-article" id="s{slide_num}">\n'
+                + (f'  <span class="slide-num">{num_str}</span>\n'
+                   if show_slide_num else '')
+                + f'  <span class="slide-tag">{tag_text}</span>\n{{FULL_ARTICLE_PLACEHOLDER}}\n</section>')
 
     else:  # standard
         tag = apply_typo(typo_engine, slide.tag or '', disabled)
@@ -8074,7 +8171,8 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
         parts = [f'<section class="slide" id="s{slide_num}">']
-        parts.append(f'  <span class="slide-num">{num_str}</span>')
+        if show_slide_num:
+            parts.append(f'  <span class="slide-num">{num_str}</span>')
         if tag:
             parts.append(f'  <span class="slide-tag">{tag}</span>')
         if h2:
@@ -8409,7 +8507,7 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False):
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -8457,6 +8555,8 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                   if notes_placement == 'page' else None)
 
     total_slides = len(slides)
+    show_slide_num = resolve_slide_page_numbers(
+        meta, series_meta_of(series_data), source_path.name, args)
     slide_htmls = []
 
     # Instance tags and fact variants are validated during rendering; their
@@ -8470,7 +8570,8 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                 strings, disabled_rules, slide_notes,
                                 absorb_punct=absorb_punct,
                                 inline_images=inline_images,
-                                articles_dir=articles_dir)
+                                articles_dir=articles_dir,
+                                show_slide_num=show_slide_num)
             slide_htmls.append(html)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
@@ -9412,7 +9513,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False))
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -9424,6 +9525,11 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         print('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
+        ok, detail = validate_page_scripts(index_html)
+        if not ok:
+            log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
+                % (detail,))
+            sys.exit(1)
         _write_file(ctx.output_dir / 'index.html', index_html)
     else:
         print(_no_index_notice(claimant))
@@ -9699,6 +9805,15 @@ def cmd_watch(series_dir, args):
 def cmd_build(series_dir, args):
     """build command."""
     ctx = load_build_context(series_dir, args)
+    # Validate the one <script> every article page embeds (the nav script) once,
+    # before writing anything. We check the raw, un-escaped string we generate
+    # — not the page body — so author content (e.g. a <script> written in
+    # markdown, whose & and < get HTML-escaped) can never trip the guard.
+    ok, detail = validate_page_scripts('<script>' + ctx.nav_js + '</script>')
+    if not ok:
+        log('error', 'Build aborted: the generated nav script is invalid '
+            'JavaScript.\n%s' % (detail,))
+        sys.exit(1)
     # Opt-in, off by default (§11.3.2): embedding a live timestamp makes
     # every build non-reproducible byte-for-byte, which most workflows
     # (starting with `check`, see cmd_check) explicitly rely on NOT
@@ -9762,7 +9877,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.articles_dir / source_file
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False))
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -9773,6 +9888,11 @@ def cmd_build(series_dir, args):
     if claimant is None and not args.get('--no-index'):
         print('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
+        ok, detail = validate_page_scripts(index_html)
+        if not ok:
+            log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
+                % (detail,))
+            sys.exit(1)
         _write_file(ctx.output_dir / 'index.html', index_html)
     elif claimant is not None:
         print(_no_index_notice(claimant))
@@ -9846,7 +9966,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False))
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -11422,10 +11542,10 @@ def build_theme_preview_document(theme_key, panel='card'):
 
     if panel == 'cover':
         body = render_slide(slides[0], 1, len(slides), typo_engine, strings,
-                            absorb_punct=absorb_punct)
+                            absorb_punct=absorb_punct, show_slide_num=True)
     elif panel == 'card':
         body = render_slide(slides[1], 2, len(slides), typo_engine, strings,
-                            absorb_punct=absorb_punct)
+                            absorb_punct=absorb_punct, show_slide_num=True)
     elif panel == 'notes':
         # The real object, fed the real bodies: a scope that has been
         # called once per body, so the return links are there too.
@@ -11557,6 +11677,11 @@ def cmd_themes_gallery(positional, args):
         ))
 
     html = TEMPLATE_THEMES_GALLERY_HEAD + ''.join(cards) + TEMPLATE_THEMES_GALLERY_FOOT
+    ok, detail = validate_page_scripts(html)
+    if not ok:
+        log('error', 'Build aborted: themes gallery contains invalid JavaScript.\n%s'
+            % (detail,))
+        sys.exit(1)
     _write_file(out, html)
     print(f'Generated: {out}')
 
@@ -12241,7 +12366,8 @@ where this tool is published and can be downloaded.'''
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                             '--theme', '--only', '--nav-cache',
                             '--polarity', '--intensity', '--hue', '--format',
-                            '--article', '--port', '--shell'})
+                            '--article', '--port', '--shell',
+                            '--slides-page-numbers'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
@@ -12249,7 +12375,7 @@ _COMMAND_OPTIONS = {
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
-              '--open', '--inline-images'},
+              '--open', '--inline-images', '--slides-page-numbers'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
               '--include-drafts', '--no-nav'},
     'audit': {'--lang', '--strict', '--templates'},
@@ -12263,7 +12389,7 @@ _COMMAND_OPTIONS = {
     'themes-gallery': {'--all', '--output'},
     'clean': {'--force', '--dry-run'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
-              '--open'},
+              '--open', '--slides-page-numbers'},
     'completion': {'--shell'},
 }
 
