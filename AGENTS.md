@@ -6,6 +6,8 @@
 ```bash
 python3 -m unittest tests.test_lightwebpres          # 720 tests, ~6 min
 python3 -m unittest tests.test_lightwebpres -v 2>&1 | tail -5   # résumé
+python3 tests/run_tests.py                              # workers = CPUs disponibles - 2
+python3 tests/run_tests.py --workers 4                  # override explicite
 ```
 
 ### Vérification compilation

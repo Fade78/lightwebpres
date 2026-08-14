@@ -3,6 +3,8 @@
 
 Usage: python3 tests/run_tests.py
        python3 tests/run_tests.py --workers 8
+The default worker count is the process's available CPU count minus two,
+with a minimum of one. `--workers N` overrides it explicitly.
 Non-zero exit if a test fails unexpectedly (a regression), or if a test
 marked as a known bug starts passing without its @unittest.expectedFailure
 decorator having been removed.
@@ -10,6 +12,7 @@ decorator having been removed.
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+import os
 import subprocess
 import sys
 import unittest
@@ -26,6 +29,20 @@ def _iter_cases(suite):
             yield from _iter_cases(item)
         else:
             yield item
+
+
+def _default_workers():
+    """Leave two CPU slots for the test harness and the desktop.
+
+    Affinity is more useful than os.cpu_count() in a container or CI runner:
+    it reports the CPUs this process can actually schedule on. Platforms
+    without sched_getaffinity fall back to the portable CPU count.
+    """
+    try:
+        available = len(os.sched_getaffinity(0))
+    except AttributeError:
+        available = os.cpu_count() or 1
+    return max(1, available - 2)
 
 
 def _class_groups(suite):
@@ -93,17 +110,19 @@ def _run_parallel(suite, workers):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--workers', type=int, default=1,
-                        help='run test classes in N isolated workers')
+    parser.add_argument('--workers', type=int, default=None,
+                        help='run test classes in N isolated workers '
+                             '(default: available CPUs - 2, minimum 1)')
     args = parser.parse_args()
-    if args.workers < 1:
+    workers = _default_workers() if args.workers is None else args.workers
+    if workers < 1:
         parser.error('--workers must be at least 1')
 
     suite = unittest.TestLoader().discover(
         start_dir=str(TESTS),
         pattern='test_*.py',
     )
-    if args.workers > 1:
-        sys.exit(_run_parallel(suite, args.workers))
+    if workers > 1:
+        sys.exit(_run_parallel(suite, workers))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     sys.exit(0 if result.wasSuccessful() else 1)
