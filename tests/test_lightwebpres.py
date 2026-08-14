@@ -2058,24 +2058,34 @@ class CliVersionAndShortcuts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
             import subprocess as sp
+            import threading as _threading
             proc = sp.Popen([sys.executable, str(EXECUTABLE), 'watch',
                              str(root), '--output', str(root / 'public')],
-                            stdout=sp.PIPE, stderr=sp.PIPE, text=True)
+                            stdout=sp.PIPE, stderr=sp.PIPE, text=True,
+                            env={**os.environ, 'PYTHONUNBUFFERED': '1'})
             import time as _time
-            # Eight parallel workers can make the JavaScript syntax check take
-            # longer than the old fixed 1.5s grace period.
-            public = root / 'public'
+            output = []
+            reader = _threading.Thread(target=lambda: output.extend(proc.stdout),
+                                       daemon=True)
+            reader.start()
+            # Wait for the actual polling loop, not an intermediate file. A
+            # busy parallel runner can pause between the initial build and
+            # cmd_watch's KeyboardInterrupt handler.
             deadline = _time.time() + 15
-            while (_time.time() < deadline
-                   and (not (public / 'a.html').exists()
-                        or not (public / 'index.html').exists())):
+            while (_time.time() < deadline and
+                   not any('[watch] polling' in line for line in output)):
+                if proc.poll() is not None:
+                    break
                 _time.sleep(0.1)
-            self.assertTrue((root / 'public' / 'a.html').exists(),
-                            'watch did not complete its initial build')
-            self.assertTrue((root / 'public' / 'index.html').exists(),
-                            'watch did not complete its index build')
+            self.assertTrue(any('[watch] polling' in line for line in output),
+                            'watch did not enter its polling loop')
             proc.send_signal(signal.SIGINT)
-            out, err = proc.communicate(timeout=10)
+            proc.wait(timeout=10)
+            err = proc.stderr.read()
+            reader.join(timeout=2)
+            out = ''.join(output)
+            proc.stdout.close()
+            proc.stderr.close()
             self.assertEqual(proc.returncode, 0, err)
             self.assertIn('[watch]', out)
             # The initial build wrote the page.
