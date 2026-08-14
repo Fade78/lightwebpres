@@ -5971,28 +5971,25 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     callers.add(node.name)
         self.assertEqual(callers, self.CONTRAST_CALLERS)
 
-    @unittest.expectedFailure
     def test_a_built_page_is_byte_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.32.0),
+        by the executable as it stood at the last tagged release (v0.33.0),
         and by this one, compared byte for byte. --build-stamp is off by
         default, so there is no timestamp to excuse a difference.
 
-        Expected to fail until v0.33.0 is tagged: this release changes the
-        page CSS (the [hidden] overrides for the variant filter), the HTML
-        attribute escaping of language-pack strings, and the --lang
-        validation — all deliberate output changes. Once v0.33.0 is
-        tagged, repoint this test at v0.33.0 and drop the
-        @unittest.expectedFailure.
+        Repoint this test at the newest tag whenever a release
+        intentionally changes the output, keeping it green between
+        releases — the repoint IS the acknowledgement that the drift is
+        deliberate, not a regression.
 
         Skipped, loudly, when the previous version cannot be reached --
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.32.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.33.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.32.0 tag to read the previous version from')
+            self.skipTest('no v0.33.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
