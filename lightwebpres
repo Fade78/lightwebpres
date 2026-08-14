@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.30.0"
+VERSION = "0.31.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -1032,7 +1032,17 @@ LANG_FR = r'''{
     "qr_modal_title": "QR code du lien",
     "qr_modal_close": "Fermer",
     "nav_fullscreen": "Plein écran (touche F)",
-    "presenter_next": "Suivant :"
+    "presenter_next": "Suivant :",
+    "help_title": "Raccourcis clavier",
+    "help_next": "Slide suivante",
+    "help_prev": "Slide précédente",
+    "help_home": "Retour à l'index de la série",
+    "help_fullscreen": "Plein écran (Échap pour quitter)",
+    "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
+    "help_speaker": "Panneau présentateur : notes + slide suivante",
+    "help_jump": "Aller à la slide N (puis Entrée)",
+    "help_mouse": "Clic : suivant · clic droit : précédent · double-clic : plein écran · molette : défiler",
+    "help_close": "H ou Échap pour fermer"
   }
 }'''
 
@@ -1116,7 +1126,17 @@ LANG_EN = r'''{
     "qr_modal_title": "QR code for this link",
     "qr_modal_close": "Close",
     "nav_fullscreen": "Fullscreen (F key)",
-    "presenter_next": "Next:"
+    "presenter_next": "Next:",
+    "help_title": "Keyboard shortcuts",
+    "help_next": "Next slide",
+    "help_prev": "Previous slide",
+    "help_home": "Back to the series index",
+    "help_fullscreen": "Fullscreen (Esc to exit)",
+    "help_pause": "Pause screen: black (B), white (W), theme (T)",
+    "help_speaker": "Speaker panel: notes + next slide",
+    "help_jump": "Jump to slide N (then Enter)",
+    "help_mouse": "Click: next · right-click: back · double-click: fullscreen · wheel: scroll",
+    "help_close": "H or Esc to close"
   }
 }'''
 
@@ -4051,6 +4071,52 @@ body.fs-noselect {
   font-size: 0.9em;
 }
 
+/* Help overlay (key H): every keyboard shortcut and gesture. */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: inherit;
+  color: inherit;
+  display: none;
+  overflow: auto;
+  padding: 48px 24px;
+}
+.help-overlay.open { display: block; }
+.help-card {
+  max-width: 660px;
+  margin: 0 auto;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  background: inherit;
+}
+.help-title { font-weight: 700; font-size: 1.2em; margin-bottom: 16px; }
+.help-list { list-style: none; margin: 0; padding: 0; }
+.help-list li {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top-style: solid;
+  border-top-width: 1px;
+}
+.help-keys {
+  flex: 0 0 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+}
+.help-desc { flex: 1; }
+.help-foot {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.85em;
+}
+
 /* --- The highlight block ---
    --page-content-max, not --page-block-max, and NOT a flex column. Two
    defects lived in the four lines this replaces, and both were measured
@@ -4924,8 +4990,41 @@ document.addEventListener('DOMContentLoaded', function() {
   var presenterHead   = document.getElementById('presenterHead');
   var presenterNotes  = document.getElementById('presenterNotes');
   var presenterNext   = document.getElementById('presenterNext');
+  var helpOverlay     = document.getElementById('helpOverlay');
+  var helpList        = document.getElementById('helpList');
   var jumpBuffer = '';
   var jumpTimer = null;
+
+  // Help overlay (key H): every keyboard shortcut and gesture, built once.
+  var helpEntries = [
+    ['&darr; / PageDown / &rarr;', "{{str_help_next}}"],
+    ['&uarr; / PageUp / &larr; / Backspace', "{{str_help_prev}}"],
+    ['Home', "{{str_help_home}}"],
+    ['F', "{{str_help_fullscreen}}"],
+    ['B / W / T', "{{str_help_pause}}"],
+    ['N', "{{str_help_speaker}}"],
+    ['0&ndash;9 + Entr&eacute;e', "{{str_help_jump}}"],
+    ['H', "{{str_help_close}}"],
+    ['Souris / Molette', "{{str_help_mouse}}"]
+  ];
+  if (helpList) {
+    helpEntries.forEach(function (e) {
+      var li = document.createElement('li');
+      var k = document.createElement('span');
+      k.className = 'help-keys';
+      k.innerHTML = e[0];
+      var d = document.createElement('span');
+      d.className = 'help-desc';
+      d.textContent = e[1];
+      li.appendChild(k);
+      li.appendChild(d);
+      helpList.appendChild(li);
+    });
+  }
+  function toggleHelp() {
+    if (!helpOverlay) return;
+    helpOverlay.classList.toggle('open');
+  }
 
   function slideTitle(i) {
     var s = slides[i];
@@ -4946,9 +5045,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function updatePresenter() {
     if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
     var cur = slides[current];
-    var notesEl = cur ? cur.querySelector('.notes-local') : null;
+    var noteEl = cur ? cur.querySelector('.speaker-note') : null;
     if (presenterNotes) {
-      presenterNotes.textContent = notesEl ? notesEl.textContent.trim() : '—';
+      presenterNotes.textContent = noteEl ? noteEl.textContent.trim() : '—';
     }
     if (presenterHead) {
       presenterHead.textContent = slideTitle(current) + '  (' + (current + 1) + '/' + slides.length + ')';
@@ -5095,8 +5194,19 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
   }
 
-  document.addEventListener('keydown', function(e) {
+   document.addEventListener('keydown', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    // While the help overlay is open, only H/Esc close it; everything else
+    // is swallowed so a stray arrow does not navigate behind the panel.
+    if (helpOverlay && helpOverlay.classList.contains('open')) {
+      if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        toggleHelp();
+      } else {
+        e.preventDefault();
+      }
+      return;
+    }
     // If a pause screen is up, any navigation key dismisses it.
     if (pauseOverlay && pauseOverlay.classList.contains('open')) {
       if (e.key === 'b' || e.key === 'B' || e.key === 'w' || e.key === 'W'
@@ -5152,6 +5262,8 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); togglePause('t');
     } else if (e.key === 'n' || e.key === 'N') {
       e.preventDefault(); togglePresenter();
+    } else if (e.key === 'h' || e.key === 'H') {
+      e.preventDefault(); toggleHelp();
     }
   });
 
@@ -5644,6 +5756,14 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   <div class="pp-head" id="presenterHead"></div>
   <div class="pp-notes" id="presenterNotes"></div>
   <div class="pp-next" id="presenterNext"></div>
+</div>
+
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-card">
+    <div class="help-title">{{str_help_title}}</div>
+    <ul class="help-list" id="helpList"></ul>
+    <div class="help-foot">{{str_help_close}}</div>
+  </div>
 </div>
 
 <div class="nav-buttons">
@@ -7455,7 +7575,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
 # written `#`/`##`, never as a `key:` line.
 SLIDE_FIELD_NAMES = (
     'tag', 'summary', 'fact-label', 'fact-variant', 'source',
-    'highlight', 'highlight-caption', 'comment',
+    'highlight', 'highlight-caption', 'comment', 'note',
 )
 
 
@@ -7480,7 +7600,7 @@ class SlideType:
 # everywhere and rendered nowhere (GLOSSARY.md).
 SLIDE_TYPES = (
     SlideType(
-        'cover', '#', ('tag', 'summary', 'comment'), None,
+        'cover', '#', ('tag', 'summary', 'comment', 'note'), None,
         "The article's opening slide: a title, an optional tag above it, "
         'and the one sentence that says what the article is about.'),
     SlideType(
@@ -7521,6 +7641,7 @@ class Slide:
         self.highlight = None
         self.highlight_caption = None
         self.comment = None  # Review note (GLOSSARY.md) — parsed, never rendered
+        self.note = None  # Speaker note — parsed, not rendered; shown only in the presenter panel (key N)
         self.extra_content = None  # series-nav/full-article only: unrecognized lines (fatal)
         self.article_file = None  # For full-article
         self.raw_meta = {}  # Raw metadata
@@ -7610,13 +7731,25 @@ def parse_markdown_extended(md_text):
         # these two included.
         if slide.slide_type in ('series-nav', 'full-article'):
             extra_lines = []
+            ml_field = None
             for line in part.split('\n'):
+                raw = line
                 stripped = strip_ws(line)
                 if not stripped or stripped.startswith('<!-- lwp:slide'):
+                    continue
+                is_indented = bool(raw) and (raw[0] == ' ' or raw[0] == '\t')
+                if ml_field is not None and not is_indented and stripped:
+                    ml_field = None
+                if ml_field is not None and is_indented:
+                    attr = _SLIDE_FIELD_ATTRS[ml_field]
+                    cur = getattr(slide, attr) or ''
+                    setattr(slide, attr,
+                            (cur + '\n' + stripped) if cur else stripped)
                     continue
                 comment_match = re.match(r'^comment:[ \t]*(.*)', stripped)
                 if comment_match:
                     slide.comment = comment_match.group(1)
+                    ml_field = 'comment'
                     continue
                 if slide.slide_type == 'full-article':
                     article_match = re.match(r'^article:\s*(.+)$', stripped)
@@ -7633,12 +7766,28 @@ def parse_markdown_extended(md_text):
         lines = part.split('\n')
         content_lines = []
         in_content = False
+        ml_field = None  # active multi-line field ('note'/'comment'), if any
 
         for line in lines:
             stripped = strip_ws(line)
 
             # Ignore slide markers
             if stripped.startswith('<!-- lwp:slide'):
+                continue
+
+            # Multi-line continuation for `note:` / `comment:`: any line that
+            # starts with whitespace belongs to the value of the field opened
+            # above. The leading indentation is structural and dropped; an
+            # indented blank line is kept as a paragraph break. The block ends
+            # at the first unindented, non-empty line (a heading, the next
+            # field, or the fact-box) — handled just below.
+            is_indented = bool(line) and (line[0] == ' ' or line[0] == '\t')
+            if ml_field is not None and not is_indented and stripped:
+                ml_field = None
+            if ml_field is not None and is_indented:
+                attr = _SLIDE_FIELD_ATTRS[ml_field]
+                cur = getattr(slide, attr) or ''
+                setattr(slide, attr, (cur + '\n' + stripped) if cur else stripped)
                 continue
 
             # Detect key: value fields
@@ -7667,6 +7816,10 @@ def parse_markdown_extended(md_text):
                     slide.highlight_caption = value
                 elif key == 'comment':
                     slide.comment = value  # review note — never rendered (GLOSSARY.md)
+                    ml_field = 'comment'
+                elif key == 'note':
+                    slide.note = value  # speaker note — not rendered; presenter panel only
+                    ml_field = 'note'
             # `#` only ever means "this cover's own title" and `##` only
             # ever means "this non-cover slide's own title" — the other
             # heading level can never legitimately set anything here (a
@@ -7900,6 +8053,8 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         parts.append(f'  <h1>{h1}</h1>')
         if summary:
             parts.append(f'  <p class="summary">{summary}</p>')
+        if slide.note:
+            parts.append(f'  <div class="speaker-note" hidden>{html_escape(slide.note, quote=False)}</div>')
         parts.append('</section>')
         return '\n'.join(parts)
 
@@ -7993,6 +8148,11 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
             source_label = strings.get('source_label', 'Source')
             source_line = apply_typo(typo_engine, f'{source_label} : {slide.source}', disabled)
             parts.append(f'  <p class="source">{source_line}</p>')
+
+        # Speaker note — parsed, never shown to the reader; the presenter
+        # panel (key N) reads it back out of the DOM.
+        if slide.note:
+            parts.append(f'  <div class="speaker-note" hidden>{html_escape(slide.note, quote=False)}</div>')
 
         parts.append('</section>')
         return '\n'.join(parts)

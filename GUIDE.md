@@ -479,10 +479,30 @@ A small `X / N` counter sits in the bottom-left corner and fades out with
 the other chrome when the mouse is idle. Type a slide number and press
 **Enter** to jump there — handy once a deck passes ten slides and the
 arrow-key walk becomes a slog. Press **N** to open the speaker panel: it
-shows the current slide's speaker notes (the `[^n]` notes written inline
-in the article) and the title of the next slide, so you can read ahead
-without the audience seeing. The panel rides along as you navigate; press
-**N** again to close it.
+shows the current slide's `note:` field (the speaker note you wrote for
+that slide — see below) and the title of the next slide, so you can read
+ahead without the audience seeing it. The panel rides along as you
+navigate; press **N** again to close it.
+
+A speaker note is a `note:` field on the slide — distinct from a `[^n]`
+footnote, which is a *source* note printed for the reader:
+
+```markdown
+<!-- lwp:slide -->
+tag: Two
+## Slide two
+note: Mention the 2020 study — the audience asked for it last time.
+  Follow up with the 2023 replication.
+  
+  If time runs short, skip the appendix.
+```
+
+The `note:` value is parsed and withheld from the slide the reader sees;
+only the presenter panel surfaces it. A `note:` may run over several lines:
+any line that starts with whitespace continues the note, and an indented
+blank line marks a paragraph break. The block ends at the first
+non-indented, non-empty line (the next field or the slide's body), so the
+continuation lines are never captured as slide content.
 
 ### Printing and PDF
 

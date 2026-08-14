@@ -197,8 +197,8 @@ per-slide one below: recognized, never read, never published.
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `tag`, `# Title`, `summary`, `comment` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, then free Markdown text | As many as you want |
+| `cover` | `tag`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
@@ -379,12 +379,42 @@ Three things `audit` will tell you about, none of them fatal:
 Practical note for `local`: notes at the foot of a card take room on a
 screen that is already short. A card carrying five of them will scroll.
 
-**These notes are also your speaker cue.** While presenting, press **N** to
-open a speaker panel showing the current slide's notes and the next slide's
-title — a `source:`/reference footnote written inline doubles as the line
-you read aloud. The same deck prints one slide per sheet (Ctrl/Cmd+P →
-PDF), with the navigation chrome stripped and the theme colours kept, so a
-note-laden card and a clean handout come from the same source.
+These footnotes are **source notes** — they are printed for the reader at
+the foot of the card. They are not the speaker's cue; that is a separate
+field (below).
+
+## Speaker notes (`note:`)
+
+A footnote (`[^x]:`) is a *source* note the reader sees. A speaker note is a
+different thing: the line you say aloud, withheld from the slide the audience
+sees. Write it as a `note:` field on the slide:
+
+```markdown
+<!-- lwp:slide -->
+tag: Two
+## Slide two
+note: Mention the 2020 study — the audience asked for it last time.
+  Follow up with the 2023 replication.
+
+  If time runs short, skip the appendix.
+```
+
+`note:` is parsed and **never rendered into the slide** — the reader gets no
+marker, no footnote, nothing. It is held in the page and surfaced only by the
+**presenter panel**: while presenting, press **N** and the panel shows the
+current slide's `note:` text alongside the next slide's title, so you can read
+ahead unseen. The panel rides along as you navigate; press **N** again to
+close it. `note:` is accepted on `cover` and `standard` slides.
+
+A `note:` may span several lines: each continuation line starts with
+whitespace, and an indented blank line is a paragraph break. The block ends at
+the first non-indented, non-empty line (the next field or the slide body), so
+the extra lines never leak into the visible slide. `comment:` accepts the same
+multi-line form (it stays a review note, never rendered).
+
+The same deck prints one slide per sheet (Ctrl/Cmd+P → PDF), with the
+navigation chrome stripped and the theme colours kept, so a footnote-heavy
+card and a clean handout come from the same source.
 
 ## Per-slide look: `fact-variant`
 

@@ -72,8 +72,9 @@ handout at Ctrl/Cmd+P.
   screen never dims mid-talk.
 - **Speaker aids for long decks.** A `X / N` counter, a type-a-number
   jump (Enter to land on slide N), and a speaker panel (**N**) that shows
-  the current slide's notes with the next slide's title — all fighting for
-  the speaker's attention, not the audience's. Every page also prints one
+  the current slide's `note:` field (a speaker note withheld from the
+  audience) with the next slide's title — all fighting for the speaker's
+  attention, not the audience's. Every page also prints one
   slide per sheet (Ctrl/Cmd+P → PDF) with the theme colours kept and the
   navigation chrome stripped.
 - **Comes with a companion web page, not just a CLI.** One browser-based
@@ -273,9 +274,15 @@ anything else — `<!-- lwp:slide:covre -->` — stops the build with the
 slide's rank, the token you wrote, and the four names, rather than
 publishing a slide of the wrong kind.
 
-Every slide (and `series.json`/the article's own meta block) also
-accepts `comment:` — a review note, recognized but never rendered, never
-published, not even in the page's raw HTML source.
+ Every slide (and `series.json`/the article's own meta block) also
+ accepts `comment:` — a review note, recognized but never rendered, never
+ published, not even in the page's raw HTML source. A `note:` field is the
+ speaker note: also parsed and withheld from the slide the reader sees, but
+ surfaced by the presenter panel (**N**) for the person presenting. It is
+ distinct from a `[^label]` footnote, which is a source note printed for the
+ reader (see below). Both `note:` and `comment:` accept multi-line values:
+ each continuation line starts with whitespace, and an indented blank line is a
+ paragraph break; the block ends at the first non-indented, non-empty line.
 
 ## Notes
 

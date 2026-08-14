@@ -9159,6 +9159,86 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
                 self.assertLess(_coefficient(props['note.local.size']),
                                 _coefficient(props['note.size']), slug)
 
+    def test_speaker_note_field_is_hidden_and_only_for_the_presenter(self):
+        # A `note:` field is a SPEAKER note, distinct from a `[^x]` source
+        # footnote: it is parsed but withheld from the slide the reader sees,
+        # and only the presenter panel (key N) reads it back from the DOM.
+        deck = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: T\n# Title\nsummary: S.\n\n'
+            '---\n\n'
+            '<!-- lwp:slide -->\ntag: One\n## First\n'
+            'note: Say the 2020 figure aloud.\n\n'
+            'A visible claim[^kwh].\n\n[^kwh]: Measured at 230 V.\n'
+        )
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, deck)
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        self.assertIn('<div class="speaker-note" hidden>Say the 2020 figure aloud.</div>', html)
+        # Withheld from the slide: the speaker text appears exactly once,
+        # inside the hidden .speaker-note, never double-rendered visibly:
+        self.assertEqual(html.count('Say the 2020 figure aloud.'), 1)
+        # Reader-facing source footnotes still render independently:
+        self.assertIn('class="notes-local"', html)
+
+    def test_speaker_note_field_supports_multiline(self):
+        # `note:` may span several indented continuation lines, with an
+        # indented blank line marking a paragraph break. The whole block is
+        # one speaker note, withheld from the slide, shown only in the panel.
+        deck = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: One\n## First\n'
+            'note: First line, spoken aloud.\n'
+            '  Second line, on its own.\n'
+            '  \n'
+            '  Third line, after a paragraph break.\n'
+            'A visible claim.\n'
+        )
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, deck)
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        self.assertIn(
+            '<div class="speaker-note" hidden>First line, spoken aloud.\n'
+            'Second line, on its own.\n\n'
+            'Third line, after a paragraph break.</div>', html)
+        # The note text appears exactly once, only inside the hidden div:
+        self.assertEqual(html.count('First line, spoken aloud.'), 1)
+        self.assertEqual(html.count('Third line, after a paragraph break.'), 1)
+        # And it is NOT part of the visible slide body:
+        body = html.split('class="slide-body"', 1)[1]
+        visible = re.sub(r'<div class="speaker-note" hidden>.*?</div>', '',
+                         body, flags=re.S)
+        self.assertNotIn('First line, spoken aloud.', visible)
+        self.assertIn('A visible claim.', visible)
+
+    def test_comment_field_supports_multiline_and_stays_hidden(self):
+        # `comment:` (review note, GLOSSARY.md) also accepts indented
+        # continuation; like always it is parsed but rendered nowhere.
+        deck = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide -->\ntag: One\n## First\n'
+            'comment: Review point one.\n  Review point two.\n'
+            'A visible claim.\n'
+        )
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, deck)
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        # Never reaches the page, no matter how many continuation lines:
+        self.assertNotIn('Review point one.', html)
+        self.assertNotIn('Review point two.', html)
+
 
 class AlignmentReachesWhatItWraps(unittest.TestCase):
     """The instance layer has to WIN, not merely be emitted. Shipped once
@@ -11343,7 +11423,7 @@ class RegressionFixes(unittest.TestCase):
             html = self._build_html(tmp)
             i = html.find('webkitfullscreenchange')
             self.assertNotEqual(i, -1)
-            seg = html[i:i + 700]
+            seg = html[i:i + 850]
             self.assertIn('releaseWakeLock', seg)
 
     # --- B6: releaseWakeLock() must have a .catch() ---
@@ -11351,6 +11431,33 @@ class RegressionFixes(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
             self.assertIn('release().catch', html)
+
+    # --- B8: the generated <script> must be syntactically valid JS ---
+    # A single bad character (e.g. an unescaped apostrophe inside a
+    # single-quoted JS string literal) makes the whole script fail to parse,
+    # silently killing fullscreen, the presenter panel and every nav handler.
+    # Naive HTML-level assertions never catch this, so validate the script
+    # for real when a JS engine is available.
+    def test_b8_generated_script_is_valid_javascript(self):
+        import shutil
+        import subprocess
+        node = shutil.which('node')
+        if not node:
+            self.skipTest('node not available to validate the script')
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(tmp)
+            scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)
+            self.assertTrue(scripts, 'no <script> block emitted')
+            for block in scripts:
+                if not block.strip():
+                    continue
+                path = Path(tmp) / 'nav.js'
+                path.write_text(block, encoding='utf-8')
+                r = subprocess.run([node, '--check', str(path)],
+                                   capture_output=True, text=True)
+                self.assertEqual(
+                    r.returncode, 0,
+                    'generated script is not valid JS:\n' + r.stderr[:500])
 
     # --- B7: contextmenu handler clears the pending left-click timer ---
     def test_b7_contextmenu_clears_timer(self):
