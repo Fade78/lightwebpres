@@ -39,6 +39,18 @@ GIT_WORK_DIR = Path('/lwp_git_work')
 PUSH_CHUNK_SIZE = 100
 
 
+def _validate_zip_members(zf):
+    """Rejects hostile member names before extraction (zip-slip), the
+    same defence-in-depth check as web/app.py: the vendored runtime's
+    zipfile already sanitizes, but the intent should not depend on one
+    layer alone."""
+    for name in zf.namelist():
+        parts = Path(name.replace('\\', '/')).parts
+        if name.startswith(('/', '\\')) or '..' in parts:
+            raise RuntimeError(
+                'archive contains a path outside the extraction root: %r' % name)
+
+
 def _api_url(base_url, path, params=None):
     url = base_url.rstrip('/') + '/api/v4' + path
     if params:
@@ -105,6 +117,7 @@ async def pull(base_url, token, project_id, branch):
             params={'sha': branch}, want_json=False,
         )
         with zipfile.ZipFile(io.BytesIO(bytes(archive))) as zf:
+            _validate_zip_members(zf)
             zf.extractall(GIT_WORK_DIR)
         series_dir = _find_series_dir_in_archive(GIT_WORK_DIR)
         return str(series_dir), None

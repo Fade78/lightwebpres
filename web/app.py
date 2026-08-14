@@ -18,6 +18,20 @@ from pathlib import Path
 ZIP_WORK_DIR = Path('/lwp_web_work')
 
 
+def _validate_zip_members(zf):
+    """Rejects hostile member names before extraction (zip-slip).
+
+    The vendored runtime's zipfile already sanitizes `..` and absolute
+    paths, but that is one layer; the defence-in-depth check here makes
+    the intent explicit and keeps the glue safe on any runtime.
+    """
+    for name in zf.namelist():
+        parts = Path(name.replace('\\', '/')).parts
+        if name.startswith(('/', '\\')) or '..' in parts:
+            raise RuntimeError(
+                'archive contains a path outside the extraction root: %r' % name)
+
+
 def _find_series_dir_in_zip(root):
     """Locates the series directory inside the extracted zip.
 
@@ -53,6 +67,7 @@ def build_from_zip_bytes(data, lang='fr'):
 
     try:
         with zipfile.ZipFile(io.BytesIO(bytes(data))) as zf:
+            _validate_zip_members(zf)
             zf.extractall(ZIP_WORK_DIR)
 
         series_dir = _find_series_dir_in_zip(ZIP_WORK_DIR)

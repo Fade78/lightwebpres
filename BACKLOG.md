@@ -759,7 +759,7 @@ décision de périmètre. Non implémenté et volontairement absent.
 
 ---
 
-## C3 — Variantes filtrables par `tags:` — IMPLEMENTÉ, e2e À COMPLÉTER
+## C3 — Variantes filtrables par `tags:` — IMPLEMENTÉ, e2e ÉCRIT MAIS NON EXÉCUTÉ
 
 Le format accepte désormais des tags de variante sur les slides : `default`
 est implicite, `excluded` est retiré au build, et les autres tags sont filtrés
@@ -773,7 +773,57 @@ comme fallback. `audit` signale les tags invalides et les packs absents sans
 bloquer. Le comportement est couvert par les tests black-box et la
 documentation permanente.
 
-**Reste à faire :** ajouter le test navigateur du changement de variante dès
-que Playwright est disponible dans l'environnement de test.
+**Reste à faire :** exécuter le test navigateur du changement de variante
+(`tests/slide_tags_e2e.cjs`, écrit et skip proprement sans Playwright) dès
+qu'un environnement avec Node + Playwright global est disponible.
 
 **Status:** implémenté ; e2e navigateur en attente de l'outillage.
+
+---
+
+## C4 — Audit 2026-08 : décisions actées et dettes restantes — v0.33.0
+
+L'audit `docs/AUDIT-2026-08.md` (14/08/2026) a été dépouillé. Ce qui a été
+corrigé dans la release `v0.33.0` :
+
+- **D-1 (bloquant)** : le filtre de variantes ne masquait pas visuellement
+  les slides — `.slide[hidden], .nav-btn[hidden] { display: none }` ajouté
+  au squelette (même piège que la galerie avait déjà eu avec
+  `.theme-row[hidden]`).
+- **S-1** : les chaînes du pack de langue sont désormais échappées selon
+  le contexte (entités HTML dans les attributs, JSON dans le nav.js) —
+  un pack ne peut plus sortir d'un `title=`/`aria-label=`.
+- **S-2** : `--lang`/`LWP_LANG` validé (`[A-Za-z0-9_-]+`) avant d'atteindre
+  `<html lang="…">`.
+- **A-1** : `watch` accepte `--no-nav`/`--no-index`/`--no-readme`/
+  `--drafts-only` (le code était en retrait de la doc).
+- **A-6/A-7/A-8/A-9** : `--help` complété (`--slides-page-numbers`,
+  `--templates`, `--no-nav` sur verify, forme répertoire de `theme show`)
+  et verrouillé par un test contre les tables d'options ; AGENTS.md ne
+  prétend plus que l'aide est générée.
+- **B-5** : `resolve slide_page_numbers` résout de nouveau.
+- **P-1 (décision)** : la frontière de confiance du HTML brut est
+  désormais écrite (spec §6.2, README, SKILL) : pas de sanitizer intégré ;
+  le markdown tiers doit être assaini en amont.
+- **S-3** : la page web divulgue la persistance sessionStorage du jeton ;
+  **S-4** : validation explicite des membres de zip (zip-slip) ;
+  **S-5** : guillemets du chemin neutralisés dans la commande du garde
+  `file://` ; **S-6** : timeout sur `node --check` ; **S-7** :
+  `Options -Indexes` ; **S-8** : séquences de contrôle terminal
+  neutralisées dans `log()`.
+- **F-1** : le test byte-identité est repointé sur `v0.32.0` (à repointrer
+  sur `v0.33.0` après le tag, comme sa docstring le dit).
+
+Ce qui reste volontairement ouvert :
+
+- **CSP absent de `web/`** : décision documentée dans `web/.htaccess`
+  (inline scripts + wasm + connect-src arbitraire = protection faible pour
+  un risque de casse élevé ; pas de sink innerHTML à protéger). À revisiter
+  si la page passe à des scripts nonce'd.
+- **Déploiement « racine du dépôt »** : copier tout le dépôt tel quel sous
+  une racine HTTP expose `.git/`, `to-be-deleted/` et les tests ; la mise
+  en page sûre (servir `web/` seul) est documentée dans le README.
+- **E2e navigateur** (variantes, et les 12 autres tests Playwright) :
+  toujours en attente d'un environnement avec Node + Playwright global.
+
+**Status:** décisions actées ; dettes restantes listées ci-dessus.

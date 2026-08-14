@@ -753,6 +753,12 @@ html { scroll-behavior: smooth; }
   border-bottom-style: solid;
   position: relative;
 }
+/* The runtime variant filter hides slides (and the L button) via the
+   hidden attribute. An author-origin `display` above beats the UA rule
+   `[hidden] { display: none }` — the exact defeat the themes gallery once
+   had for .theme-row, and the same fix. Keep this override beside every
+   display on .slide/.nav-btn. */
+.slide[hidden], .nav-btn[hidden] { display: none; }
 .slide-num { position: absolute; top: 24px; right: 32px; }
 .slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }

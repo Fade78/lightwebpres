@@ -309,9 +309,10 @@ slide's title at all; a second one, or the wrong level for that slide
 type, always falls through to content (§22.2 in `specifications.md`).
 
 `series-nav` and `full-article` are **at most one each** per article —
-having two is a fatal build error, not "the second one wins." Any
-unrecognized non-blank line inside either one is also fatal, not ignored:
-a `series-nav` slide takes no fields at all, and a `full-article` slide
+having two is a fatal build error, not "the second one wins." Both also
+accept `tags:` and `comment:` like every other slide; beyond that, any
+unrecognized non-blank line inside either one is fatal, not ignored: a
+`series-nav` slide takes no content fields, and a `full-article` slide
 takes `article:` and nothing else.
 
 Those four names are the whole list. A marker naming anything else is a
@@ -465,8 +466,10 @@ slide's fact-box classes. The source names a *meaning*; what it looks like
 is defined by the series (a `.fact--warning` rule in
 `templates/custom.css`), so changing themes carries the variant along.
 The name must match `[a-z][a-z0-9-]*` — anything else is a fatal build
-error naming the file. Only meaningful together with `fact-label:` (no
-fact-box, no class to hook).
+error naming the file when the fact-box actually renders (a fact-label
+**and** body text). Only meaningful together with `fact-label:` (no
+fact-box, no class to hook); a variant on a slide with no fact-box body
+is ignored in silence, since there is nothing to class.
 
 ## Instance tags: character-level styling beyond Markdown
 
@@ -561,19 +564,29 @@ the index card's own `title` attribute — tags are stripped and replaced
 by a space, so the same value reads correctly in both places. Nothing
 else is stripped: an unclosed tag in a field value ends up in the page.
 
-## Typography: automatic non-breaking spaces (French only)
+**Trust boundary.** Raw HTML — a `<script>` included — passes through to
+the published page. That is the contract for the *author's own* text: the
+author already owns the page (custom.css, nav.js). If the markdown you
+are assembling comes from a source the author does not control (a CMS
+export, a database, another agent's output, a third-party translation),
+sanitize it upstream before the build — LightWebPres does not filter raw
+HTML and does not claim to.
+
+## Typography: automatic non-breaking spaces
 
 Under `--lang fr` (the default), `build` silently upgrades certain plain
 spaces already present in the text to non-breaking ones: before
 `; : ! ?` **and before a closing `»`**, after an opening `«`, before
-`%`, between groups of 3 digits
+`%`, around the spaced em/en dashes of an incise, between groups of 3 digits
 in a number you've already spaced out (`170 000`), between a number and
 `million(s)`/`milliard(s)`/`dollar(s)`/`$`, and after `×`/`≈` before a
 number. Nothing to do on your end — write ordinary spaces, the build
 handles the rest. It never *inserts* spacing or digit grouping that
 wasn't already there (don't add a space just to trigger the rule), and a
 non-breaking space you type yourself always passes through unchanged.
-`--lang en` has no typography rules at all — this is French-only. To mix
+`--lang en` has a smaller rule set of its own — the two dash rules, a
+number followed by a metric unit or a unit word, initials, and `×`/`≈` —
+it is **not** rule-free. To mix
 languages in one article, map variant tags to packs with
 `series_meta.lang_tags`, for example `{"fr": "fr", "en": "en"}`. The first
 mapped language tag on a slide chooses that pack; a slide without one uses

@@ -90,14 +90,14 @@ The stylesheet is composed in memory at every build, so nothing the tool writes 
 
 <!-- lwp:slide -->
 kicker: Look
-## Thirty-three themes, found by facet
+## Thirty-four themes, found by facet
 
-highlight: 33
+highlight: 34
 highlight-caption: themes, filtered by polarity, intensity and hue
 
 fact-label: Why facets rather than a list
 
-Thirty-three names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.
+Thirty-four names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.
 
 `theme gallery` renders every one of them against real slide content.
 
@@ -107,8 +107,8 @@ Thirty-three names tell you nothing. Light or dark, loud or sober, and what hue 
 kicker: Automation
 ## A step in a content pipeline
 
-highlight: 11
-highlight-caption: standard-library modules, and nothing else to install
+highlight: 0
+highlight-caption: dependencies to install — the Python standard library is all it uses
 
 fact-label: What makes it pipeline-shaped
 

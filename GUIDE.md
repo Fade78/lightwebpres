@@ -38,8 +38,10 @@ The third is not an afterthought; the tool is shaped for it. **Every
 command runs unattended** — nothing ever blocks on an interactive prompt.
 **Every command has a meaningful exit code**: `verify` exits non-zero the
 moment the built output differs from the sources, which is a real gate;
-`audit` never fails, because it is advice. **There is nothing to
-install**: one file, eleven modules from the Python standard library,
+`audit` never fails, because it is advice — the one exception is
+`audit --strict`, which asks for the opposite (non-zero on any warning)
+to build a CI gate out of the advice. **There is nothing to
+install**: one file, nothing beyond the Python standard library,
 no wheel, no lockfile, no network at build time — any image with
 `python3` in it can run it. And **every path is an environment
 variable** (`LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, `LWP_OUTPUT_DIR`,
@@ -512,7 +514,7 @@ without looking at the screen.
 | T | Theme-background pause screen (press again to dismiss) |
 | N | Toggle the speaker panel: the current slide's notes and the next slide's title |
 | 0–9 then Enter | Jump straight to slide N (1-based) — for decks of ten slides and up |
-| L | Open the variant menu when the article has at least two visible tags |
+| L | Open the variant menu when the article carries at least two tags across its slides |
 
 The B/W/T pause screens hide the slide so the audience's eye comes back
 to the speaker — the same feature PowerPoint and Keynote call "blank".

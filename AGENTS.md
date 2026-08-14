@@ -4,7 +4,7 @@
 
 ### Tests (obligatoire avant et après chaque changement)
 ```bash
-python3 -m unittest tests.test_lightwebpres          # 720 tests, ~6 min
+python3 -m unittest tests.test_lightwebpres          # 726 tests, ~6 min
 python3 -m unittest tests.test_lightwebpres -v 2>&1 | tail -5   # résumé
 python3 tests/run_tests.py                              # workers = CPUs disponibles - 2
 python3 tests/run_tests.py --workers 4                  # override explicite
@@ -25,9 +25,9 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 ## Structure du dépôt
 
 ### Code et tests
-- `lightwebpres` — le code (un seul fichier Python, ~12 800 lignes). Pas de
+- `lightwebpres` — le code (un seul fichier Python, ~13 200 lignes). Pas de
   dépendances externes (stdlib uniquement, Python 3.8+).
-- `tests/test_lightwebpres.py` — 720 tests, black-box (subprocess). Helper
+- `tests/test_lightwebpres.py` — 726 tests, black-box (subprocess). Helper
   `run(*args)` lance `lightwebpres <args>`.
 
 ### Documentation permanente (fait foi)
@@ -56,7 +56,8 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 
 - **Parseur CLI fait main** (pas d'argparse) — `parse_cli_options()` + tables
   `_COMMAND_OPTIONS`, `_VALUE_OPTIONS`, `_GLOBAL_OPTIONS`. L'aide (`--help`)
-  est générée depuis ces tables, donc reste synchrone avec le code.
+  est un template maintenu à la main ; un test la verrouille contre les
+  tables d'options pour qu'elle ne puisse pas dériver en silence.
 - **Tests black-box** : chaque test lance l'exécutable comme un utilisateur.
   Pas d'import direct des fonctions internes dans les tests.
 - **Versionnage sémantique** (spec §13.9) : MAJOR = incompatible, MINOR =

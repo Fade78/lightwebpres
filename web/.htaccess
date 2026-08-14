@@ -10,6 +10,9 @@
 AddType text/javascript .mjs
 AddType application/wasm .wasm
 
+# No directory listings: this folder is an application, not a file share.
+Options -Indexes
+
 # Defense-in-depth: stop the browser from MIME-sniffing a response into a
 # type it wasn't served as. Safe everywhere, no effect on how the page
 # functions. A Content-Security-Policy is deliberately NOT set here: the

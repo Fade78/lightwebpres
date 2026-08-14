@@ -228,9 +228,11 @@
       <label for="rememberToken">Remember this token on this device (persists after closing the tab)</label>
     </div>
     <div class="warn-note" id="rememberWarning">
-      The token will be stored in this browser's local storage, in clear
-      text, until you uncheck this box or clear it yourself. Anyone with
-      access to this device/profile can read it. Prefer leaving this
+      The token is kept in this tab's session storage (gone when the tab
+      closes), in clear text. With the box checked it is ALSO written to
+      this browser's local storage, in clear text, and stays there until
+      you uncheck this box or clear it yourself. Anyone with access to
+      this device/profile can read either copy. Prefer leaving this
       unchecked on a shared or public computer.
     </div>
   </fieldset>
@@ -317,7 +319,8 @@
   tabGit.addEventListener('click', () => selectTab('git'));
 
   // --- GitLab connection field persistence -------------------------------
-  // Always mirrored to sessionStorage (survives a reload of this tab).
+  // Always mirrored to sessionStorage (survives a reload of this tab;
+  // gone when the tab closes — the warning text above discloses this).
   // Only mirrored to localStorage (survives closing the tab) when the
   // "remember" checkbox is checked; unchecking it clears localStorage.
 
@@ -411,7 +414,12 @@
       const stripped = p.replace(/\/web\/index\.html$/, '');
       if (stripped !== p) repoRootHint = stripped;
     } catch (e) { /* fall back to the placeholder above */ }
-    return 'python3 -m http.server 8000 --directory "' + repoRootHint + '"';
+    // The path lands inside a double-quoted shell argument: escape the
+    // characters that would break it or expand there (quote, backslash,
+    // $ and backtick), so an exotic directory name can never turn the
+    // suggested command into shell syntax of its own.
+    const quoted = repoRootHint.replace(/["$`\\]/g, (ch) => '\\' + ch);
+    return 'python3 -m http.server 8000 --directory "' + quoted + '"';
   }
 
   // Renders the file:// guard as explanatory text plus the exact command

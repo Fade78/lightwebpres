@@ -176,6 +176,21 @@ class SlideTags(unittest.TestCase):
                 'data-tags="default"'):
             self.assertIn(fragment, html, fragment)
 
+    def test_generated_css_hides_filtered_slides_and_tag_button(self):
+        """The runtime filter sets slide.hidden; an author-origin
+        .slide { display: flex } beats the UA rule [hidden] { display:
+        none }, so the skeleton must carry its own override — the same
+        defeat the themes gallery once had for .theme-row, and the same
+        fix."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._tagged_article())
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        self.assertIn('.slide[hidden], .nav-btn[hidden] { display: none; }',
+                      html)
+
     def test_lang_tag_selects_a_different_typography_pack_per_slide(self):
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Tags\n'
@@ -372,6 +387,52 @@ class LanguageStrings(unittest.TestCase):
             run('build', str(root), '--lang', 'zz', '--output', str(root / 'public'))
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('title="Previous slide"', html)
+
+    def test_lang_value_is_validated_before_it_reaches_markup(self):
+        # A --lang value reaches <html lang="..."> and language/{lang}.json;
+        # an unvalidated value could break out of the attribute. Letters,
+        # digits, "-" and "_" only.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            result = run('build', str(root),
+                         '--lang', 'x"><script>alert(1)</script>',
+                         '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('invalid language value', result.stderr)
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+    def test_pack_strings_cannot_break_out_of_html_attributes(self):
+        # A language pack string lands in HTML attributes (title=,
+        # aria-label=) via the page template: JSON-style \" is not an HTML
+        # escape, so the HTML context needs entity escaping (&quot;).
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (root / 'language').mkdir()
+            (root / 'language' / 'fr.json').write_text(json.dumps({
+                'strings': {'nav_prev': '"><img src=x onerror=alert(1)>'},
+            }), encoding='utf-8')
+            result = run('build', str(root), '--lang', 'fr',
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"',
+                          html)
+            self.assertNotIn('"><img src=x onerror', html)
+
+
+class ResolveSlidePageNumbers(unittest.TestCase):
+    """slide_page_numbers resolves per article (§3.3.5) — `resolve` must
+    not reject it (it once did: the name was absent from
+    _ARTICLE_LEVEL_NAMES)."""
+
+    def test_resolve_reports_the_slide_page_numbers_cascade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('resolve', str(root), 'slide_page_numbers',
+                         '--article', 'a.md')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('slide_page_numbers', result.stdout)
+            self.assertIn('off', result.stdout)
 
 
 class InstallForce(unittest.TestCase):
@@ -2090,6 +2151,50 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertIn('[watch]', out)
             # The initial build wrote the page.
             self.assertTrue((root / 'public' / 'a.html').exists())
+
+    def test_watch_accepts_the_build_output_switches(self):
+        # README/GUIDE promise that watch takes the same output switches as
+        # build; the option table must agree (it used to reject them
+        # fatally as "Unknown option"). --drafts-only needs a draft in the
+        # series, or the initial build stops before the polling loop.
+        import signal
+        draft_md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\nstatus: draft\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, draft_md)
+            import subprocess as sp
+            import threading as _threading
+            proc = sp.Popen([sys.executable, str(EXECUTABLE), 'watch',
+                             str(root), '--output', str(root / 'public'),
+                             '--no-nav', '--no-index', '--no-readme',
+                             '--drafts-only'],
+                            stdout=sp.PIPE, stderr=sp.PIPE, text=True,
+                            env={**os.environ, 'PYTHONUNBUFFERED': '1'})
+            import time as _time
+            output = []
+            reader = _threading.Thread(target=lambda: output.extend(proc.stdout),
+                                       daemon=True)
+            reader.start()
+            deadline = _time.time() + 15
+            while (_time.time() < deadline and
+                   not any('[watch] polling' in line for line in output)):
+                if proc.poll() is not None:
+                    break
+                _time.sleep(0.1)
+            self.assertTrue(any('[watch] polling' in line for line in output),
+                            'watch did not enter its polling loop')
+            proc.send_signal(signal.SIGINT)
+            proc.wait(timeout=10)
+            err = proc.stderr.read()
+            reader.join(timeout=2)
+            out = ''.join(output)
+            proc.stdout.close()
+            proc.stderr.close()
+            self.assertEqual(proc.returncode, 0, err)
+            self.assertNotIn('Unknown option', out + err)
 
     def test_no_bare_filesystem_write_outside_helpers(self):
         """--dry-run relies on every filesystem write going through the
@@ -5869,24 +5974,25 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
     @unittest.expectedFailure
     def test_a_built_page_is_byte_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.26.0),
+        by the executable as it stood at the last tagged release (v0.32.0),
         and by this one, compared byte for byte. --build-stamp is off by
         default, so there is no timestamp to excuse a difference.
 
-        Expected to fail until v0.26.1 is tagged: the presenter pack
-        refinements (right-click to go back, double-click for fullscreen,
-        cursor hide in fullscreen, nav.js auto-update warning) change the
-        nav.js and the page template. Once v0.26.1 is tagged, repoint
-        this test at v0.26.1 and drop the @unittest.expectedFailure.
+        Expected to fail until v0.33.0 is tagged: this release changes the
+        page CSS (the [hidden] overrides for the variant filter), the HTML
+        attribute escaping of language-pack strings, and the --lang
+        validation — all deliberate output changes. Once v0.33.0 is
+        tagged, repoint this test at v0.33.0 and drop the
+        @unittest.expectedFailure.
 
         Skipped, loudly, when the previous version cannot be reached --
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.26.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.32.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.26.0 tag to read the previous version from')
+            self.skipTest('no v0.32.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -7013,6 +7119,23 @@ class HelpDoesNotDocumentRemovedH1H2FieldSyntax(unittest.TestCase):
         self.assertNotIn('h1 or', result.stdout)
         self.assertNotIn('h2 (or', result.stdout)
         self.assertIn('# Title', result.stdout)
+
+
+class HelpListsEveryAcceptedOption(unittest.TestCase):
+    """--help is the "Full reference" README promises (§11): an option the
+    tables accept must not be invisible there. These five drifted out
+    over time while the tables stayed authoritative."""
+
+    def test_help_names_the_options_the_tables_accept(self):
+        result = run('--help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for needle in (
+                '--slides-page-numbers on|off',
+                '--templates',
+                'build/watch/verify: do not generate the series navigation',
+                'build/watch: build only status: draft articles',
+                'restrict the audit to the presentation/template layer'):
+            self.assertIn(needle, result.stdout, needle)
         self.assertIn('## Title', result.stdout)
 
 

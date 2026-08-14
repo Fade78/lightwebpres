@@ -94,6 +94,7 @@ taking priority when both are set (§20.3.1).
 | `typo` | meta block only | Unset — typography stays on | `off` disables every typography rule (§4.5), for this article's own page only |
 | `typo_units` | meta block only | Unset — rule stays on | `off` disables only the units/`×`/`≈` typography rule, for this article only |
 | `typo_thousands` | meta block only | Unset — rule stays on | `off` disables only the thousands-grouping typography rule, for this article only |
+| `slide_page_numbers` | meta block, `series_meta`, or `--slides-page-numbers` | `off` (§3.3.5) | Engraves the top-right `NN / NN` slide number on every slide; cascade: meta block > CLI flag > `series_meta` > `off` |
 
 ## Cover slide fields
 
@@ -104,6 +105,7 @@ after these fields is a fatal error (§22.12).
 |---|---|---|
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
 | `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
+| `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
 | `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it (§22.2) | The slide's own heading, rendered `<h1>` |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
 
@@ -115,6 +117,7 @@ A standard slide's own header (default, or explicit `<!-- lwp:slide -->`).
 |---|---|---|
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
 | `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
+| `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
 | `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it (§22.2) | The slide's own heading, rendered `<h2>` |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
 | `highlight` | None — the whole highlight block is omitted if absent | Large standalone figure (a number, a stat, a quote) |

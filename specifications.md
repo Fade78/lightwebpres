@@ -212,13 +212,14 @@ Les options en ligne de commande **override** les variables d'environnement.
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts]
-lightwebpres audit [répertoire] [--lang fr]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off]
+lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav]
+lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres theme list [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
 lightwebpres series theme set [répertoire] --theme nom
-lightwebpres theme gallery [chemin]
+lightwebpres theme gallery [slug… | --all] [--output chemin]
 lightwebpres --help
 ```
 
@@ -377,7 +378,7 @@ sont activés (§3.3.5), et il est **absent par défaut**.
 #### 3.3.3 Fiche de navigation de série (`series-nav`)
 
 ```html
-<section class="slide" id="sN-series">
+<section class="slide" id="sN-series" data-tags="default">
   <h2>Cette série</h2>
   <div class="series-list">
     <!-- généré depuis series.json -->
@@ -394,7 +395,7 @@ Générée depuis `series.json`. L'article courant est marqué `series-current`.
 #### 3.3.4 Fiche d'article complet (`full-article`)
 
 ```html
-<section class="slide full-article" id="sN">
+<section class="slide full-article" id="sN" data-tags="default">
   <span class="slide-num">NN / NN</span>
   <span class="slide-kicker">Article complet</span>
   <!-- contenu converti depuis le fichier .md inclus -->
@@ -427,7 +428,8 @@ numéros de slide sont activés, selon la cascade (la plus spécifique gagne) :
 3. `series_meta.slide_page_numbers: true` dans `series.json` ;
 4. défaut intégré : `off`.
 
-Toute valeur hors `true`/`false` (front-matter) ou `on`/`off` (CLI) est
+Toute valeur hors `true`/`false`/`yes`/`no`/`1`/`0` (front-matter) ou
+`on`/`off` (CLI) est
 une erreur de build **fatale** nommant l'origine. Le compteur dynamique
 bas-gauche (`.slide-counter`, « X / N ») est **indépendant** et toujours
 affiché, même quand les numéros gravés sont désactivés. La résolution est
@@ -851,6 +853,15 @@ Le Markdown peut contenir du HTML inline directement (`<strong>`,
 `<br>`, `<a>`, `<sup>`, etc.). Ce HTML est préservé tel quel dans la
 conversion.
 
+**Frontière de confiance.** Ce passthrough est un contrat pour le texte
+de **l'auteur**, qui est déjà maître de sa page (comme de `custom.css` ou
+`nav.js`) : un `<script>` écrit dans un champ ou un corps de fiche est
+émis tel quel et s'exécute chez les lecteurs. Si le markdown provient
+d'une source que l'auteur ne contrôle pas — export CMS, base de données,
+générateur, agent amont, traduction tierce — cette source doit être
+assainie **en amont** avant le build : l'outil ne filtre pas le HTML brut,
+et ne prétend pas le faire (§13.8).
+
 Une ligne qui **commence** par une balise détermine son propre
 traitement : si la balise est de bloc (`<div>`, `<table>`, `<figure>`,
 `<section>`...), la ligne est passée telle quelle sans passer par la
@@ -1101,7 +1112,7 @@ lue comme du texte de plus, et **plus grande** que le bloc `.refs` trois
 lignes plus bas, qui est exactement le même rôle.
 
 `note.local.size` et `refs.size` sont donc tous deux à **12 px**, le
-plancher du design : aucune des 244 propriétés n'est en dessous. Une note
+plancher du design : aucune des 246 propriétés n'est en dessous. Une note
 sert à *détailler*, et sur une fiche le détail est de la place que le
 reste n'a pas ; mais en dessous il n'y a rien à gagner. Mesuré, passer de
 13 à 12 px fait gagner 3 px sur une fiche de 617 — 0,5 % — et à 11 px la
@@ -1120,7 +1131,8 @@ discret » ne peut pas devenir « illisible ».
 deux blocs sont le même rôle, à la même taille, sur la même page, donc un
 thème qui a rendu ses notes discrètes l'a dit pour ses références aussi.
 Cela ferme au passage un défaut antérieur aux notes et jamais mesuré :
-`ink-quiet` y était **sous AA sur 12 thèmes sur 33** (solarized à
+`ink-quiet` y était **sous AA sur 12 thèmes du catalogue de 33 de
+l'époque** (solarized à
 2,61:1), pour la même raison que sur les notes — ce gris a été dessiné
 pour du texte secondaire à 15-22 px, pas pour de l'appareil à 12.
 
@@ -1410,7 +1422,7 @@ Chaque carte d'article :
 Générée depuis `series.json`. Le bloc inclus dans chaque article :
 
 ```html
-<section class="slide" id="sN-series">
+<section class="slide" id="sN-series" data-tags="default">
   <h2>Cette série</h2>
   <div class="series-list">
     <a href="introduction.html" class="series-item series-link">
@@ -1594,7 +1606,7 @@ les systèmes de jetons et les catalogues de thèmes existants :
   regrette. Les générateurs comparables en ont deux (reveal.js, Quarto,
   mkdocs-material) ou zéro (Hugo, Zola, Eleventy).
 - Le seuil de rentabilité d'une couche sémantique se situe au **troisième
-  ou quatrième thème**. Ce catalogue en compte trente-trois : elle
+  ou quatrième thème**. Ce catalogue en compte trente-quatre : elle
   serait rentable ici, si elle n'était pas d'abord un troisième niveau.
 - La trajectoire **base16 → base17 → Tinted** est le précédent le plus
   proche, et il est allé à son terme : seize emplacements à sémantique
@@ -2255,10 +2267,12 @@ l'impression qu'ils font :
   marqueur de forme (WCAG 1.4.1).
 
 **Cette section décrit le critère d'admission, pas un état vérifié du
-catalogue, et la différence a été mesurée.** Cinq entrées du projet sont
+catalogue, et la différence a été mesurée.** Sept entrées du projet sont
 aujourd'hui **en dessous** et n'ont pas été corrigées : `blueprint`,
-`sage`, `sprout`, `dread` et `vaporwave`, sur neuf rôles au total
-(textes secondaires ou accents entre 2,02:1 et 4,52:1). Le critère
+`blueprint-night`, `code`, `dread`, `sage`, `sprout` et `vaporwave`
+(textes secondaires ou accents entre 2,02:1 et 4,79:1 — le
+`blueprint-night` y a été ajouté le 2026-08-12 avec `code`, tous deux
+encore sous le plancher AAA de leur corps). Le critère
 « filets ≥ 3 » n'est pas davantage tenu par `mark` sur les thèmes clairs
 du projet, où il est fait pour servir de fond avant de servir de trait —
 le §9.5.1 le dit déjà dans ses propres termes. Les mesures et la
@@ -2285,7 +2299,7 @@ filtres, et la commande `theme list` (§11.9) en options :
 | Facette | Valeurs | Origine |
 |---|---|---|
 | polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.1) |
-| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée ; absente, vaudrait `sober`, mais les 33 entrées la déclarent — le repli n'est pas exercé par le catalogue |
+| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée ; absente, vaudrait `sober`, mais les 34 entrées la déclarent — le repli n'est pas exercé par le catalogue |
 | hue | `neutral`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta` | **calculée** à partir du fond |
 
 Les noms de facettes et leurs valeurs sont en anglais, comme tout
@@ -2348,8 +2362,8 @@ doit jamais viser `a` nu : cela soulignerait aussi les pastilles de
 progression, les cartes de la navigation entre articles et celles de
 l'index.
 
-Mesuré sur les 33 thèmes avant de choisir, et c'est ce qui a écarté les
-autres options :
+Mesuré sur le catalogue de 33 thèmes de l'époque avant de choisir, et
+c'est ce qui a écarté les autres options :
 
 - Le bleu par défaut du navigateur, livré jusqu'à la v0.12.1, échoue AA
   sur **19** thèmes et tombe à 1,03:1 sur `pop-violet`. Contrairement
@@ -2374,7 +2388,7 @@ garde son atténuation de 0,78 parce que le résultat composité vaut
 5,05:1 au pire (catppuccin) — mais elle est désormais portée par l'alpha
 de la couleur elle-même (`cover.summary.fg`, alpha `C7`), pas par une
 `opacity` du squelette, et la conversion de thème la réénonce contre la
-palette réelle (§9.5.1) ; un test recalcule cette valeur sur les 33
+palette réelle (§9.5.1) ; un test recalcule cette valeur sur les 34
 thèmes à chaque exécution. Le texte secondaire de couverture
 (`cover.num.fg`) suit la même règle : c'était un `rgba` fixe jamais
 mesuré, à 2,37:1 au pire ; ses alphas sont calculés pour tenir AA sur
@@ -3153,12 +3167,15 @@ Vérifie sans modifier :
 ### 11.5 `audit`
 
 ```bash
-lightwebpres audit [répertoire] [--lang fr]
+lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 ```
 
 Vérifie des **conventions éditoriales non bloquantes**, sans jamais faire
 échouer la commande ni modifier de fichier (contrairement à `verify`, qui
-compare le HTML généré à l'existant, §11.4) :
+compare le HTML généré à l'existant, §11.4) — sauf `--strict`, qui inverse
+le code de sortie sur le moindre avertissement pour en faire une porte de
+CI, et `--templates`, qui restreint l'audit au volet présentation (§9.4.4)
+et saute les contrôles éditoriaux par article :
 
 1. Pour chaque article, lit et parse le `.md` source
 2. Note (`[NOTE]`, informatif, non compté comme avertissement) les
@@ -3227,7 +3244,7 @@ main.
 ### 11.7 `theme gallery`
 
 ```bash
-lightwebpres theme gallery [chemin]
+lightwebpres theme gallery [slug… | --all] [--output chemin]
 ```
 
 Génère une page HTML autonome (aucune dépendance) documentant chaque
@@ -3341,11 +3358,13 @@ nombre d'aperçus visibles et **désactive** toute facette qui ne mènerait
 à aucun résultat compte tenu des autres déjà actives — on ne peut donc
 pas se retrouver devant une page vide sans comprendre pourquoi.
 
-`chemin`, s'il est omis, vaut `theme gallery.html` dans le répertoire
-courant — c'est ainsi que le fichier à la racine du dépôt lightwebpres
-lui-même est produit, et il n'a plus vocation à être modifié à la main
-(§9.5) : toute correction sur un thème (couleur, remarque) se fait dans
-`THEMES`, puis `theme gallery` régénère le fichier.
+`--output chemin`, s'il est omis, vaut `themes-gallery.html` dans le
+répertoire courant — c'est ainsi que le fichier à la racine du dépôt
+lightwebpres lui-même est produit, et il n'a plus vocation à être modifié
+à la main (§9.5) : toute correction sur un thème (couleur, remarque) se
+fait dans `THEMES`, puis `theme gallery` régénère le fichier. Sans
+`--output`, `slug…` et `--all` choisissent quels thèmes documenter (tous
+par défaut).
 
 Le texte d'exemple de chaque aperçu (« Chapter 1 », « Temperature
 changes everything », etc.) est fixe, non localisé par `--lang` — la
@@ -3422,7 +3441,7 @@ construction ou faux pour tout le monde en même temps.
 Corollaire assumé : **tous les thèmes n'ont pas à être conformes.** Un
   thème est un parti pris ; `terminal` et `code` avec leur halo de phosphore et
 `synthwave` avec ses saturations sont des choix, et les rendre AAA les
-détruirait. Ce qui est exigé n'est pas que les 33 soient conformes, c'est
+détruirait. Ce qui est exigé n'est pas que les 34 soient conformes, c'est
 qu'on **sache lequel l'est** au moment de choisir, et qu'il y en ait.
 
 #### Ce que la commande ne fait pas
@@ -3534,7 +3553,7 @@ d'un contrôle qui porte déjà un libellé ou un glyphe — lesquels sont
 mesurés, eux, sur le remplissage du contrôle —, les états au survol (le
 clavier a l'anneau, qui est mesuré), et le voile de modale, dont le
 métier est justement de ne pas se voir. Exiger le bord des contrôles en
-plus mettrait les 33 thèmes à `fail` pour un motif qu'aucun lecteur
+plus mettrait les 34 thèmes à `fail` pour un motif qu'aucun lecteur
 n'éprouve : ces bords sont tous un voile à 16 %, par construction.
 
 **Ce que la mesure ne voit pas.** `templates/custom.css` n'est pas
@@ -3627,15 +3646,15 @@ Le corollaire du §9.5.2 se lit maintenant en chiffres, et il est net :
 la catégorie est décidée par sa **pire** paire, or le petit appareil
 textuel (`ink-quiet` et les couleurs de verdict à 12-14 px sur un voile
 de carte) est le point bas de tous les thèmes. Aucune entrée du
-catalogue n'atteint donc AAA en texte courant ; **douze** franchissent AA
+catalogue n'atteint donc AAA en texte courant ; **treize** franchissent AA
 et **vingt et une** échouent, sur les couleurs de verdict, les libellés
 de navigation de série, les étiquettes d'encadré et les légendes. En non
-textuel, **seize** passent et **dix-sept** échouent, presque toujours sur
+textuel, **dix-sept** passent et **dix-sept** échouent, presque toujours sur
 la pastille de fiche courante peinte en `mark` — la faiblesse que le
 §9.5.1 nomme déjà dans ses propres termes (« un `mark` fait pour servir
 de fond est souvent trop pâle pour servir de trait »), et qui frappe les
-thèmes clairs. **Dix** entrées tiennent les deux à la fois :
-`blueprint-night`, `ember`, `evergreen`, `gold-leaf`, `graphite`,
+thèmes clairs. **Onze** entrées tiennent les deux à la fois :
+`blueprint-night`, `code`, `ember`, `evergreen`, `gold-leaf`, `graphite`,
 `pop-fuchsia`, `pop-red`, `synthwave`, `terminal`, `tokyo-night` — toutes
 sombres, ce qui n'est pas une coïncidence mais la même cause vue de
 l'autre côté. Le grand texte est AAA partout, ce qui est attendu : c'est

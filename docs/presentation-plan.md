@@ -51,7 +51,7 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 | Intégrateur | Completion shell | `completion --shell bash\|zsh` (tab sur commandes/options) | README, GUIDE §10 |
 | Intégrateur | Alias legacy | Anciens noms acceptés 1 version MAJEURE + `[WARN]` (scripts existants ne cassent pas) | spec §11.16, README |
 | **Designer / thèmeur** | Thémer sans CSS | Propriétés typées (`component.axis: value`), 5 couches (défaut → thème → settings.conf → style.* → instance) | spec §9, GUIDE §5 |
-| Designer | Catalogue prêt | 33 thèmes intégrés, mesurés WCAG | `theme list`, spec §9.5 |
+| Designer | Catalogue prêt | 34 thèmes intégrés, mesurés WCAG | `theme list`, spec §9.5 |
 | Designer | Voir les thèmes | `theme gallery` (HTML auto-contenu, 4 panneaux : cover/card+note/notes/full-article, filtres facets) | README, spec §11.7 |
 | Designer | Inspecter un thème | `theme show <slug>` (palette, fonts, facets, contrastes mesurés par catégorie, `--format json`) | README, GUIDE §5 |
 | Designer | Thème effectif | `series theme [dir]` (après les pins de settings.conf) | README |
@@ -86,9 +86,9 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 | **Extendeur / contributeur** | Modifier/redistribuer | GPL v3 : extension ouverte | COPYING, AGENTS |
 | Extendeur | Diffuser ses présentations | Output Exception : la sortie est sous la licence de l'auteur du texte, pas celle du logiciel (sauf si l'œuvre est elle-même un générateur) | COPYING.EXCEPTION, AGENTS |
 | Extendeur | Intégrer | Intégration verticale (un outil toute la chaîne) + horizontale (web/ léger + GUI lourd sous Pyodide) | AGENTS, spec §1.2/§23 |
-| **Mainteneur** | Code unique | Single-file Python, stdlib only, ~12 800 lignes | AGENTS, spec |
-| Mainteneur | Tests black-box | 720 tests subprocess (l'outil vu comme un utilisateur) | AGENTS, tests/ |
-| Mainteneur | Aide synchrone | `--help` généré depuis les tables (`_COMMAND_OPTIONS` etc.) | AGENTS, spec §11 |
+| **Mainteneur** | Code unique | Single-file Python, stdlib only, ~13 200 lignes | AGENTS, spec |
+| Mainteneur | Tests black-box | 739 tests en découverte (726 dans test_lightwebpres, 13 skippés Playwright) | AGENTS, tests/ |
+| Mainteneur | Aide synchrone | `--help` maintenu à la main mais verrouillé par test contre les tables d'options | AGENTS, spec §11 |
 | Mainteneur | Versionnage | Semver (spec §13.9) ; VERSION dans l'exécutable | AGENTS, spec |
 | Mainteneur | Push contrôlé | Commit substantiel puis push vers `newargs`, sans push forcé | AGENTS |
 
@@ -99,7 +99,7 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 1. **Vue d'ensemble** — « Markdown in, présentation auto-contenue out » (l'idée unificatrice).
 2. **Écrire** — le format LWP, les 4 types de fiche, la cascade de champs (rôle auteur).
 3. **Présenter** — mode orateur, B/W/T réorientation, panneau N, compteur, impression (rôle orateur).
-4. **Thémer** — propriétés typées, 5 couches, 33 thèmes, galerie, accessibilité mesurée (rôle designer).
+4. **Thémer** — propriétés typées, 5 couches, 34 thèmes, galerie, accessibilité mesurée (rôle designer).
 5. **Automatiser** — CI gate, verify, clean, watch, env vars, exit codes (rôle DevOps).
 6. **Étendre** — GPL + Output Exception, intégrations verticale/horizontale, web/ + GUI (rôle extendeur).
 7. **Agents & accessibilité** — skills, CLI non-interactif, `--format json` ; accessibilité « juge pas concepteur ».
@@ -138,7 +138,7 @@ L'ancien champ `tag:` devient `kicker:`. Le composant thème `tag` devient
 
 | Tag | Effet |
 |---|---|
-| `default` | Tag **automatique** attribué à toute slide qui n'a pas de `tags:`. Une slide sans `tags:` est visible quand `default` est sélectionné. `default` est **toujours dans le menu**. Un auteur peut aussi l'écrire explicitement (`tags: default fr`) pour qu'une slide apparaisse dans le default **et** dans fr. |
+| `default` | Tag **automatique** attribué à toute slide qui n'a pas de `tags:`. Une slide sans `tags:` est visible quand `default` est sélectionné. `default` est **toujours dans le menu**. À noter : une slide portant `default` (implicite ou écrit explicitement) apparaît sous **tout** tag sélectionné, pas seulement `default` — l'écrire (`tags: default fr`) ne la borne pas à deux variantes. |
 | `excluded` | La slide **n'est pas compilée** — absente du HTML final. C'est une exclusion au build, pas un filtre runtime. Permet de commenter une slide dans la source sans la supprimer. |
 
 ### Comportement runtime (nav.js)
@@ -252,8 +252,19 @@ parsing/validation, tags système, rendu `data-tags`, moteurs typographiques
 par slide, filtrage runtime et audit non bloquant. Le menu est masqué lorsqu'un
 article ne porte qu'une seule variante.
 
-Le livrable 10 est couvert par 720 tests black-box (tags, exclusion,
+Le livrable 10 est couvert par 739 tests en découverte (tags, exclusion,
 validation, menu généré, typographie par slide et audit) ; il reste le test
 navigateur du changement de variante quand Playwright est disponible. Le
 livrable 11 est terminé : les contrats permanents, le guide source,
 `docs/guide/` et l'entrée BACKLOG C3 sont à jour.
+
+### Statut au 15 août 2026 (post-audit)
+
+L'audit `docs/AUDIT-2026-08.md` a trouvé un défaut bloquant sur le filtrage
+visuel des variantes (règle CSS `[hidden]` battue par `display: flex`) et
+un lot de dérives docs/code. La release `v0.33.0` corrige l'ensemble :
+règle `.slide[hidden], .nav-btn[hidden]`, échappement HTML des chaînes de
+pack, validation de `--lang`, options de `watch` alignées sur la doc,
+`--help` complet, compteurs remesurés (34 thèmes, 246 propriétés,
+13/21/17/17/11), et documentation mise en cohérence (spec, README, GUIDE,
+SKILL, GLOSSARY, AGENTS).

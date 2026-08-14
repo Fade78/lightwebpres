@@ -76,7 +76,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.32.0"
+VERSION = "0.33.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -85,6 +85,11 @@ VERSION = "0.32.0"
 # silence the chatter without silencing the answer (DECISION §4).
 _LOG_STATE = {'quiet': False, 'verbose': False, 'no_color': False,
               'timestamp': False, 'dry_run': False}
+
+# ANSI escape sequences stripped from log() messages: author-controlled
+# strings (filenames, titles, field values) pass through the logger, and
+# must not be able to paint the operator's terminal.
+_ANSI_RE = re.compile(r'\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[@-Z\\-_]')
 
 # Terminal width for text wrapping. Initialised once at import time and
 # re-read by configure_logging() (called from main()). Falls back to 80
@@ -110,7 +115,11 @@ def log(level, msg):
     'verbose' (only with --verbose), 'error' (always shown, even by --quiet).
     Each level carries its own prefix tag so the output stays greppable.
     --timestamp prepends an RFC 3339 timestamp. --no-color strips ANSI (the
-    codebase emits none yet, but the flag is wired for the future)."""
+    codebase emits none yet, but the flag is wired for the future).
+    Author-controlled strings (filenames, titles) pass through here, so
+    ANSI escapes and C0 control characters are stripped from the message
+    itself: a hostile series must not be able to paint the operator's
+    terminal or fake log lines."""
     if level == 'error':
         prefix = '[ERROR] '
     elif level == 'info':
@@ -127,6 +136,8 @@ def log(level, msg):
         from datetime import datetime
         ts = datetime.now().astimezone().isoformat(timespec='seconds')
         prefix = f'{ts} {prefix}'
+    msg = _ANSI_RE.sub('', str(msg))
+    msg = ''.join(ch for ch in msg if ch in '\n\t\r' or ord(ch) >= 32)
     print(prefix + msg, file=sys.stderr)
 
 
@@ -3669,6 +3680,12 @@ html { scroll-behavior: smooth; }
   border-bottom-style: solid;
   position: relative;
 }
+/* The runtime variant filter hides slides (and the L button) via the
+   hidden attribute. An author-origin `display` above beats the UA rule
+   `[hidden] { display: none }` — the exact defeat the themes gallery once
+   had for .theme-row, and the same fix. Keep this override beside every
+   display on .slide/.nav-btn. */
+.slide[hidden], .nav-btn[hidden] { display: none; }
 .slide-num { position: absolute; top: 24px; right: 32px; }
 .slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
@@ -6955,27 +6972,39 @@ def fill_placeholders(template, mapping):
     return _PLACEHOLDER_RE.sub(lambda m: mapping.get(m.group(1), m.group(0)), template)
 
 
-def apply_strings(text, strings):
+def apply_strings(text, strings, html_context=False):
     """Replaces {{str_KEY}} placeholders in `text` with values from `strings`.
 
     A placeholder enclosed in quotes — `'{{str_KEY}}'` or `"{{str_KEY}}"` — sits
-    inside a JS or HTML string literal, so its value is escaped quote/backslash-
-    aware (JSON-style) before insertion. This keeps any character in a locale
-    string (apostrophe, quote, backslash) from breaking the surrounding literal
-    — the class of bug that once killed the whole <script> (and with it
-    fullscreen, navigation and the presenter panel) when a French string held
-    `l'index`. Bare (unquoted) placeholders — used in HTML text content — are
-    substituted verbatim, as before.
+    inside a literal, and the escaping must match the literal's language:
+
+    - in a JS template (`html_context=False`), JSON-style quote/backslash
+      escaping, because the surrounding literal is a JS string — the class
+      of bug that once killed the whole <script> when a French string held
+      `l'index`;
+    - in an HTML template (`html_context=True`), entity escaping
+      (`&quot;`, `&lt;`…), because `\\"` is not an HTML escape: a quote in a
+      locale string would otherwise close the attribute and let the rest
+      become real markup (attribute injection).
+
+    Bare (unquoted) placeholders are text content: substituted verbatim in
+    JS templates, HTML-escaped in HTML templates so a `<` in a locale
+    string can never become markup.
     """
     for key, value in strings.items():
         token = '{{str_' + key + '}}'
         for q in ("'", '"'):
             quoted = q + token + q
             if quoted in text:
-                escaped = value.replace('\\', '\\\\').replace(q, '\\' + q)
+                if html_context:
+                    escaped = (html_escape(value, quote=True)
+                               .replace("'", '&#39;'))
+                else:
+                    escaped = value.replace('\\', '\\\\').replace(q, '\\' + q)
                 text = text.replace(quoted, q + escaped + q)
         if token in text:
-            text = text.replace(token, value)
+            text = text.replace(token, html_escape(value)
+                                if html_context else value)
     return text
 
 
@@ -7008,11 +7037,18 @@ def validate_page_scripts(html):
         try:
             with os.fdopen(fd, 'w', encoding='utf-8') as fh:
                 fh.write(block)
-            r = subprocess.run([node, '--check', path],
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               universal_newlines=True)
+            try:
+                r = subprocess.run([node, '--check', path],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   universal_newlines=True, timeout=30)
+            except subprocess.TimeoutExpired:
+                r = None
         finally:
             os.unlink(path)
+        if r is None:
+            _SCRIPT_VALIDITY_CACHE[sig] = False
+            return False, 'node --check timed out after 30s'
         if r.returncode != 0:
             _SCRIPT_VALIDITY_CACHE[sig] = False
             return False, 'invalid <script> block:\n' + (r.stderr or '')[:2000]
@@ -8645,8 +8681,8 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     # literal {{str_KEY}} / {{css}} / {{cards}} inside series_meta or card
     # text stays literal instead of being re-substituted into the
     # tag-stripped <title> or a card (§18.4).
-    html = apply_strings(TEMPLATE_INDEX, strings)
-    index_extra = apply_strings(index_extra, strings)
+    html = apply_strings(TEMPLATE_INDEX, strings, html_context=True)
+    index_extra = apply_strings(index_extra, strings, html_context=True)
     # No visible empty pill when series_meta has no version: drop the
     # whole span (the index markup is fixed, §18.2, so this line-level
     # removal can't break a user template).
@@ -9019,7 +9055,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # re-scanned each injected value, letting author content inject the
     # stylesheet/other markers into the tag-stripped <title> and escaped
     # <meta> sinks, bypassing their guard (§18.4).
-    html = apply_strings(TEMPLATE_PAGE, strings)
+    html = apply_strings(TEMPLATE_PAGE, strings, html_context=True)
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
         'css': css, 'slides': slides_html, 'page_footer': page_footer,
@@ -9571,6 +9607,10 @@ def resolve_paths(series_dir, args):
     lang_dir = Path(os.environ.get('LWP_LANGUAGE_DIR', sd / 'language'))
     output_dir = Path(args.get('--output', os.environ.get('LWP_OUTPUT_DIR', sd / 'public')))
     lang = args.get('--lang', os.environ.get('LWP_LANG', 'fr'))
+    if not re.fullmatch(r'[A-Za-z0-9_-]+', str(lang)):
+        log('error', f'--lang/LWP_LANG: invalid language value {str(lang)!r} '
+              f'(letters, digits, "-" and "_" only).')
+        sys.exit(1)
     language_file = args.get('--language-file')
 
     return sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file
@@ -11516,7 +11556,8 @@ _TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
 # one and unknown to the other.
 _ARTICLE_LEVEL_NAMES = frozenset(
     _RESOLVED_FIELDS + _EDITORIAL_FIELDS + _TYPO_FIELD_NAMES
-    + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'status'))
+    + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'status',
+                                      'slide_page_numbers'))
 
 
 def _chain_link(level, value, note=None):
@@ -11653,6 +11694,21 @@ def resolve_notes_field(name, series_meta, article_meta):
                     'not consulted — pass --article'),
         _chain_link('series-default', series_meta.get(name, '')),
         _chain_link('default', _NOTES_FIELD_DEFAULTS[name]),
+    ]
+    winner = _crown(chain)
+    return {'value': winner['value'], 'source': winner['level'], 'chain': chain}
+
+
+def survey_slide_page_numbers(series_meta, article_meta):
+    """`slide_page_numbers` (§3.3.5) for the `resolve` command. The meta
+    block, the series-wide default, the built-in `off` — the CLI flag is a
+    build switch, not a level this command consults."""
+    chain = [
+        _chain_link('article', (article_meta or {}).get('slide_page_numbers', ''),
+                    note=None if article_meta is not None else
+                    'not consulted — pass --article'),
+        _chain_link('series-default', series_meta.get('slide_page_numbers', '')),
+        _chain_link('default', 'off'),
     ]
     winner = _crown(chain)
     return {'value': winner['value'], 'source': winner['level'], 'chain': chain}
@@ -11846,6 +11902,8 @@ def cmd_resolve(series_dir, name, args):
             resolution, unread = survey_slide_field(name, articles, articles_dir, only)
         elif name in _NOTES_FIELD_DEFAULTS:
             resolution = resolve_notes_field(name, series_meta, article_meta)
+        elif name == 'slide_page_numbers':
+            resolution = survey_slide_page_numbers(series_meta, article_meta)
         elif name in _TYPO_FIELD_NAMES:
             resolution = resolve_typo_field(name, article_meta)
         elif name in _SERIES_META_STRING_FIELDS and only is None:
@@ -12471,7 +12529,9 @@ COMMANDS
   lightwebpres theme show <slug> [<slug>...] [--all] [--format text|json]
     Describes one or more themes without installing: palette, fonts,
     facets, and the WCAG contrast level it actually reaches, measured
-    (see §11.9.1)
+    (see §11.9.1). Pass a series [directory] instead of a slug to read
+    its EFFECTIVE theme (same as `series theme`, kept as the legacy
+    form).
   lightwebpres series theme [directory] [--format text|json]
     Same, for the EFFECTIVE theme of an installed series — after the
     values it pins in templates/settings.conf
@@ -12577,13 +12637,13 @@ OPTIONS
   --include-drafts
     build/verify: also build articles marked status: draft
   --drafts-only
-    build: build only status: draft articles (preview, not publication)
+    build/watch: build only status: draft articles (preview, not publication)
   --no-nav
-    build: do not generate the series navigation block
+    build/watch/verify: do not generate the series navigation block
   --no-index
-    build: do not generate index.html
+    build/watch: do not generate index.html
   --no-readme
-    build: do not generate README.md
+    build/watch: do not generate README.md
   --open
     build/watch: open the result in the browser after build
   --inline-images
@@ -12592,6 +12652,13 @@ OPTIONS
     grows ~33% per image; a serving gzip recovers the overhead on the wire.
   --strict
     audit: exit non-zero if any warnings are emitted (CI gate)
+  --templates
+    audit: restrict the audit to the presentation/template layer and
+    skip per-article editorial checks (DECISION-CLI §3)
+  --slides-page-numbers on|off
+    build/watch: engrave the top-right NN / NN slide number (off by
+    default; the article front-matter slide_page_numbers and
+    series_meta.slide_page_numbers also enable it, spec §3.3.5)
   --serve
     watch: start a local HTTP server on 127.0.0.1 (opt-in)
   --port N
@@ -12695,11 +12762,13 @@ FIELDS RECOGNIZED IN A SLIDE
 ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
   page_source (required, series.json only), page_dest, page_title, page_desc,
   card_title, card_desc, card_label, nav_title, nav_desc, author, license,
-  date, status, notes_placement, notes_tooltip, comment — see GLOSSARY.md
+  date, status, comment — see GLOSSARY.md
   for every field's scope and
   fallback chain. author/license default from series_meta for the whole
   series; author/date/license are displayed (page footer + <meta> tags),
-  page_desc feeds <meta name="description">.
+  page_desc feeds <meta name="description">. notes_placement, notes_tooltip
+  and slide_page_numbers are set in series_meta or the article's meta
+  block — never in an articles[] entry.
 
   Only page_source is ever required: every other field falls back to the
   .md meta block, then to what the article already says (its cover's
@@ -12799,14 +12868,15 @@ _COMMAND_OPTIONS = {
     'themes-gallery': {'--all', '--output'},
     'clean': {'--force', '--dry-run'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
-              '--open', '--slides-page-numbers'},
+              '--open', '--slides-page-numbers',
+              '--no-nav', '--no-index', '--no-readme', '--drafts-only'},
     'completion': {'--shell'},
 }
 
 # --- Refonte CLI v0.24.0 (DECISION-CLI.md / PLAN-CLI.md) ---------------------
-# Options accepted BEFORE the command (git-style). Phase 1 accepts them as
-# no-op until Phase 2 wires them to log()/behaviours; --version and --help act
-# immediately. The option nearest the command wins (DECISION §2: precedence).
+# Options accepted BEFORE the command (git-style): --lang, the logging
+# switches and --version/--help act immediately. The option nearest the
+# command wins (DECISION §2: precedence).
 _GLOBAL_OPTIONS = frozenset({'--lang', '--quiet', '--verbose', '--no-color',
                              '--timestamp', '--dry-run', '--version', '--help'})
 _GLOBAL_FLAGS = frozenset({'--quiet', '--verbose', '--no-color', '--timestamp',
@@ -12847,12 +12917,10 @@ _LEGACY_ALIASES = {
     'set-theme': 'set-theme',
     'themes-gallery': 'themes-gallery',
     'series-info': 'series-info',
-    'resolve': 'resolve',
-    'demo': 'demo',
-    'build': 'build',
-    'audit': 'audit',
 }
 # Map of legacy alias → recommended new invocation, for the [WARN] message.
+# (Tokens that are also canonical shortcuts — demo, build, audit, resolve —
+# never reach this table: _SHORTCUTS is consulted first.)
 _LEGACY_REPLACEMENT = {
     'install': 'init',
     'check': 'verify',
@@ -12862,10 +12930,6 @@ _LEGACY_REPLACEMENT = {
     'set-theme': 'series theme set',
     'themes-gallery': 'theme gallery',
     'series-info': 'status',
-    'resolve': 'series resolve',
-    'demo': 'demo',
-    'build': 'build',
-    'audit': 'audit',
 }
 # Canonical `series <verbe>` and `theme <verbe>` forms. `series` is the
 # dominant object; almost every series verb has a root shortcut. `theme` is

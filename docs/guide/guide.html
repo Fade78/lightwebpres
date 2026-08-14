@@ -754,6 +754,12 @@ html { scroll-behavior: smooth; }
   border-bottom-style: solid;
   position: relative;
 }
+/* The runtime variant filter hides slides (and the L button) via the
+   hidden attribute. An author-origin `display` above beats the UA rule
+   `[hidden] { display: none }` — the exact defeat the themes gallery once
+   had for .theme-row, and the same fix. Keep this override beside every
+   display on .slide/.nav-btn. */
+.slide[hidden], .nav-btn[hidden] { display: none; }
 .slide-num { position: absolute; top: 24px; right: 32px; }
 .slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
@@ -1627,11 +1633,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 <section class="slide" id="s7" data-tags="default">
   <span class="slide-kicker">Look</span>
-  <h2>Thirty-three themes, found by facet</h2>
-  <div class="highlight"><span class="highlight-figure">33</span><span class="highlight-caption">themes, filtered by polarity, intensity and hue</span></div>
+  <h2>Thirty-four themes, found by facet</h2>
+  <div class="highlight"><span class="highlight-figure">34</span><span class="highlight-caption">themes, filtered by polarity, intensity and hue</span></div>
   <div class="fact-box">
     <div class="fact-label">Why facets rather than a list</div>
-    <div class="fact-content">  <p>Thirty-three names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.</p>
+    <div class="fact-content">  <p>Thirty-four names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.</p>
   <p><code>theme gallery</code> renders every one of them against real slide content.</p></div>
   </div>
 </section>
@@ -1639,7 +1645,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 <section class="slide" id="s8" data-tags="default">
   <span class="slide-kicker">Automation</span>
   <h2>A step in a content pipeline</h2>
-  <div class="highlight"><span class="highlight-figure">11</span><span class="highlight-caption">standard-library modules, and nothing else to install</span></div>
+  <div class="highlight"><span class="highlight-figure">0</span><span class="highlight-caption">dependencies to install — the Python standard library is all it uses</span></div>
   <div class="fact-box">
     <div class="fact-label">What makes it pipeline-shaped</div>
     <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>verify</code> fails on drift, <code>audit</code> never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
@@ -1688,7 +1694,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from</li>
   </ul>
   <p>  somewhere else entirely — a CMS export, a database, a generator, an   agent upstream — and LightWebPres is what turns it into publishable   pages.</p>
-  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit</code> never fails, because it is advice. <strong>There is nothing to install</strong>: one file, eleven modules from the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
+  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit</code> never fails, because it is advice — the one exception is <code>audit --strict</code>, which asks for the opposite (non-zero on any warning) to build a CI gate out of the advice. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
   <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides after 1 second of idleness in fullscreen, and only returns after the mouse has moved continuously for 250 ms — a brush past the sensor never flashes it back. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Set up &amp; your first build</h2>
@@ -2020,7 +2026,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
       </tr>
       <tr>
         <td>L</td>
-        <td>Open the variant menu when the article has at least two visible tags</td>
+        <td>Open the variant menu when the article carries at least two tags across its slides</td>
       </tr>
     </tbody>
   </table>

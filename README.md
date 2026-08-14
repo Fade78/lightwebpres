@@ -92,11 +92,16 @@ handout at Ctrl/Cmd+P.
   in it.
 - **Made to sit in a content pipeline.** Every command runs unattended
   and returns a meaningful exit code — `verify` fails on drift and is a
-  real CI gate, `audit` never fails because it is advice. Nothing to
-  install: one file, eleven standard-library modules, no wheel, no
+  real CI gate, `audit` never fails (unless you pass `--strict`) because
+  it is advice. Nothing to
+  install: one file, the Python standard library only, no wheel, no
   lockfile, no network at build time, so any image with `python3` runs
   it. Every path is an environment variable (`LWP_SERIES_DIR`,
   `LWP_OUTPUT_DIR`, …), and `--only page` rebuilds a single article. The
+  Markdown can come from anywhere — a CMS export, a database, a
+  generator, an agent upstream — but see the trust boundary below: raw
+  HTML in such markdown passes through, so untrusted sources must be
+  sanitized before the build.
   Markdown can come from a CMS export, a database, a generator or an
   agent upstream; this is the step that turns it into publishable
   pages.
@@ -293,6 +298,7 @@ the series or within one article.
 | `watch [dir]` | Polls sources, rebuilds on change, optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
+| `--version` | Prints the version (`LightWebPres vX.Y.Z`) and exits |
 
 ## Options
 
@@ -307,9 +313,10 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--no-index` | `build`, `watch` | skips `index.html` |
 | `--no-readme` | `build`, `watch` | skips the generated `README.md` |
 | `--drafts-only` | `build`, `watch` | builds only `status: draft` articles |
-| `--open` | `build` | opens the result in the browser |
+| `--open` | `build`, `watch` | opens the result in the browser |
 | `--include-drafts` | `build`, `verify` | builds draft articles too |
 | `--strict` | `audit` | exits non-zero on any warning |
+| `--templates` | `audit` | restricts the audit to the presentation/template layer, skipping per-article editorial checks |
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
 | `--only file.html` | `build` | rebuilds a single article |
 | `--inline-images` | `build` | embeds images as base64 data URIs |
@@ -405,12 +412,15 @@ slides with no mapped language tag use `--lang`. English is the ultimate
 fallback for any language without a pack.
 
 The French pack automatically upgrades an existing space to a
-non-breaking one before `; : ! ?`, after `«`, before `%`, between
+non-breaking one before `; : ! ?` and a closing `»`, after an opening
+`«`, before `%`, around the spaced em/en dashes of an incise, between
 thousands-grouped digits (`170 000`, only if the source already spaces it
 out), between a number and `million(s)`/`milliard(s)`/`dollar(s)`/`$`, and
 after `×`/`≈` before a number — it never inserts spacing or digit
 grouping that wasn't already there, and a non-breaking space already in
-your source always passes through unchanged. This alters generated
+your source always passes through unchanged. The English pack carries its
+own smaller rule set (metric units, unit words, initials, `×`/`≈`, the
+two dash rules). This alters generated
 content, so it's controllable at three levels: per-article meta fields
 `typo_units: off` / `typo_thousands: off` (just those rules) or `typo:
 off` (every rule, that article's page only), and the CLI flag
@@ -451,8 +461,9 @@ palettes, and an eight-strong Pop family whose backgrounds carry the
 color themselves. Every project-owned palette is designed against a measured floor: AAA
 contrast for body text, AA for secondary text and accents, 3:1 for rules,
 and comparison verdicts checked for separability under simulated
-deuteranopia and protanopia. Five entries — `blueprint`, `sage`,
-`sprout`, `dread`, `vaporwave` — are still **below** that floor and open
+deuteranopia and protanopia. Seven entries — `blueprint`,
+`blueprint-night`, `code`, `dread`, `sage`, `sprout`, `vaporwave` — are
+still **below** that floor and open
 in `BACKLOG.md` B9: it is the admission criterion, not a verified state
 of the catalogue.
 
@@ -543,9 +554,9 @@ verdict colours.
 > referenced, each with its replacement, and `template update` creates
 > the new files if they're missing.
 
-![Preview of the built-in color themes](theme gallery.png)
+![Preview of the built-in color themes](themes-gallery.png)
 
-The first four rows of [`theme gallery.html`](theme gallery.html) in
+The first four rows of [`themes-gallery.html`](themes-gallery.html) in
 ce dépôt — ouvrez-la directement dans un navigateur pour l'ensemble des thèmes, où la
 facets become filters. **One theme per row, four panels across:** the
 cover, a card carrying a note, the page-wide notes section, and the
@@ -628,8 +639,8 @@ for both tabs of the browser-based tool.
 ```
 lightwebpres          # the executable — the only thing you need to run this
 specifications.md     # full reference specification (French)
-theme gallery.html   # preview of every built-in color theme (generated, see below)
-theme gallery.png    # a rendered snapshot of the above, for this README
+themes-gallery.html   # preview of every built-in color theme (generated, see below)
+themes-gallery.png    # a rendered snapshot of the above, for this README
 web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
 agent/skills/         # two packaged skills: the article format, and one optional editorial method
 tools/                # maintenance scripts (regenerating the gallery snapshot above)
