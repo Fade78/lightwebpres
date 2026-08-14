@@ -42,7 +42,7 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
   y va, et y reste au travers des releases. Référencé par cette
   spécification (B3, B5, B9).
 
-Les autres fichiers `.md` de la racine ne font **pas** partie de ce
+Les autres fichiers `.md` ne font **pas** partie de ce
 contrat, et se répartissent en deux familles :
 
 - **transitoire** — `JOURNAL-1.0.md`, la mémoire de travail de la 1.0 :
@@ -57,6 +57,11 @@ contrat, et se répartissent en deux familles :
   absorber : des mesures avec leurs conditions, les hypothèses qu'elles
   ont tuées, et une enquête datée. Ils n'obligent rien ; en cas de
   divergence, ce document fait foi.
+
+  Ces documents transitoires et relevés sont rangés dans `to-be-deleted/`
+  (miroir de la racine) : ils restent accessibles pour consultation, mais
+  ne font plus partie de l'arborescence active. git en conserve
+  l'historique ; la suppression définitive se fera plus tard.
 
   **Un document de conception, lui, ne survit pas à son absorption.** Une
   fois son raisonnement versé ici — raisonnement compris, pas seulement

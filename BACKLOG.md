@@ -739,7 +739,7 @@ someone decides that default.
 ## C1 — Test AST « aucune écriture nue hors helpers » — OPEN
 
 **Type:** test d'architecture manquant.
-**Signalé dans:** `newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
+**Signalé dans:** `to-be-deleted/newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
 implémenté. Un test *runtime* `test_no_bare_filesystem_write_outside_helpers`
 (`tests/test_lightwebpres.py`) existe et couvre le comportement attendu ;
 il reste à confirmer qu'il équivaut à l'intention AST (balayage statique
@@ -751,7 +751,7 @@ suffit, fermer l'entrée ; sinon, écrire l'AST.
 
 ## C2 — `series article add/remove/set` — EXCLU (décision)
 
-Hors périmètre de la refonte CLI v0.24 (`newargs/PLAN-CLI.md` §7).
+Hors périmètre de la refonte CLI v0.24 (`to-be-deleted/newargs/PLAN-CLI.md` §7).
 Nécessite son propre cahier des charges ; ce n'est pas une dette mais une
 décision de périmètre. Non implémenté et volontairement absent.
 
