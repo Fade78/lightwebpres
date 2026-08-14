@@ -87,10 +87,10 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 | Extendeur | Diffuser ses présentations | Output Exception : la sortie est sous la licence de l'auteur du texte, pas celle du logiciel (sauf si l'œuvre est elle-même un générateur) | COPYING.EXCEPTION, AGENTS |
 | Extendeur | Intégrer | Intégration verticale (un outil toute la chaîne) + horizontale (web/ léger + GUI lourd sous Pyodide) | AGENTS, spec §1.2/§23 |
 | **Mainteneur** | Code unique | Single-file Python, stdlib only, ~12 800 lignes | AGENTS, spec |
-| Mainteneur | Tests black-box | 714 tests subprocess (l'outil vu comme un utilisateur) | AGENTS, tests/ |
+| Mainteneur | Tests black-box | 720 tests subprocess (l'outil vu comme un utilisateur) | AGENTS, tests/ |
 | Mainteneur | Aide synchrone | `--help` généré depuis les tables (`_COMMAND_OPTIONS` etc.) | AGENTS, spec §11 |
 | Mainteneur | Versionnage | Semver (spec §13.9) ; VERSION dans l'exécutable | AGENTS, spec |
-| Mainteneur | Pas de push | Commit local uniquement (droits) | AGENTS |
+| Mainteneur | Push contrôlé | Commit substantiel puis push vers `newargs`, sans push forcé | AGENTS |
 
 ---
 
@@ -128,9 +128,10 @@ L'ancien champ `tag:` devient `kicker:`. Le composant thème `tag` devient
 
 - **Suite de mots séparés par des espaces** : `tags: fr fr-expert longversion`.
 - **Case-insensitive** (normalisés en minuscules au build).
-- **Caractères autorisés** : lettres (accents autorisés), chiffres, `-`, `_`.
+- **Caractères autorisés** : caractères de mot Unicode, chiffres, `-`, `_`.
 - **Interdit** de commencer par `_` (réservé aux tags internes futurs).
-- Regex : `[a-zA-Z0-9][a-zA-Z0-9_-]*` après normalisation Unicode (accents OK).
+- Après `casefold()`, le premier caractère doit être un caractère de mot autre
+  que `_`; les suivants sont des caractères de mot ou `-`.
 - Valeur invalide → erreur de build fatale nommant la fiche et le tag fautif.
 
 ### Tags système
@@ -179,8 +180,8 @@ slide** selon son tag de langue.
   Le tag `fr` utilise le pack de typo FR,
   le tag `en` le pack EN. Un tag non déclaré (ex. `expert`, `longversion`)
   n'est pas un tag de langue : il n'affecte pas la typo.
-- Une slide sans tag de langue utilise la **langue par défaut** de la série
-  (`series_meta.lang` ou `--lang`).
+- Une slide sans tag de langue utilise la **langue par défaut** du build
+  (`--lang` ou `LWP_LANG`).
 - **Plusieurs engines typo** instanciés au build (un par langue déclarée) ;
   `apply_typo` reçoit l'engine correspondant au tag de langue de la slide.
 - `audit` signale : un tag déclaré dans `lang_tags` qui n'a pas de pack de
@@ -245,15 +246,14 @@ filtrage + typo par slide sont des ajouts (inclus dans le même MAJOR).
 
 ### Statut au 14 août 2026
 
-Le chantier A (`tag` → `kicker`) est terminé et vérifié. L'étape courante est
-le chantier B (`tags` + variantes), avec les livrables 4 à 8 implémentés :
+Le chantier A (`tag` → `kicker`) est terminé et vérifié. Le chantier B
+(`tags` + variantes) a maintenant ses livrables 4 à 9 implémentés :
 parsing/validation, tags système, rendu `data-tags`, moteurs typographiques
-par slide et filtrage runtime. Le menu est masqué lorsqu'un article ne porte
-qu'une seule variante.
+par slide, filtrage runtime et audit non bloquant. Le menu est masqué lorsqu'un
+article ne porte qu'une seule variante.
 
-Le livrable 10 est partiellement couvert par les tests black-box (tags,
-exclusion, validation, menu généré et typographie par slide). Il reste à
-ajouter le test navigateur du changement de variante quand Playwright est
-disponible. Les livrables 9 (audit dédié) et 11 (documentation complète des
-tags, entrée BACKLOG C3 et guide régénéré) restent à faire avant la
-présentation internationale.
+Le livrable 10 est couvert par 720 tests black-box (tags, exclusion,
+validation, menu généré, typographie par slide et audit) ; il reste le test
+navigateur du changement de variante quand Playwright est disponible. Le
+livrable 11 est terminé : les contrats permanents, le guide source,
+`docs/guide/` et l'entrée BACKLOG C3 sont à jour.

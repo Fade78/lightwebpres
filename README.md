@@ -158,6 +158,54 @@ The last slide points at a **second** file, `articles/apple-pie_article.md`,
 holding the long-form text — `build` fails if it isn't there. Drop the
 `full-article` slide if you don't want one.
 
+### Variants in one page
+
+Use the slide-level `tags:` field when one article must carry several
+languages, audiences, or detail levels. Tags are space-separated, normalized
+case-insensitively, and may contain Unicode letters, digits, `-`, and `_` (but
+not a leading `_`). A slide without tags belongs to `default`, which is the
+shared content shown with every selected variant.
+
+```json
+{
+  "series_meta": {
+    "lang_tags": {"fr": "fr", "en": "en"}
+  },
+  "articles": [{"page_source": "apple-pie.md"}]
+}
+```
+
+```markdown
+<!-- lwp:slide:cover -->
+kicker: Guide
+tags: fr
+# La tarte aux pommes
+summary: Version française.
+
+---
+
+<!-- lwp:slide:cover -->
+kicker: Guide
+tags: en
+# The apple pie
+summary: English version.
+
+---
+
+<!-- lwp:slide -->
+kicker: Common
+## Shared slide
+summary: Visible in every variant because it has no `tags:` field.
+```
+
+Press **L** in the generated page to choose a variant. The menu appears only
+when at least two tags exist; the choice is retained in
+`localStorage['lwp-active-tag']`. Navigation, slide counts, anchors, and the
+presenter panel operate on the visible subset. `tags: excluded` removes a
+slide at build time and never emits it in the HTML. `audit` reports malformed
+tags and language tags whose declared pack is missing without blocking the
+build.
+
 That builds into a scrollable page: a cover slide inverted against the
 page, a fact-card slide
 with a highlighted figure, and a full long-form article appended at the
@@ -232,7 +280,7 @@ the series or within one article.
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
-| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide") and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build |
+| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide"), variant tags/language packs, and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build |
 | `template update [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `theme list` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
@@ -276,10 +324,10 @@ version.
 
 ## Slide types
 
-- **`cover`** — title slide: kicker, `# Title`, summary. Free position and
+- **`cover`** — title slide: kicker, optional `tags:`, `# Title`, summary. Free position and
   count — `build` doesn't enforce a layout, `audit` just flags it if you
   want a reminder.
-- **`standard`** — kicker, `## Title`, summary, an optional highlighted
+- **`standard`** — kicker, optional `tags:`, `## Title`, summary, an optional highlighted
   figure (`highlight`/`highlight-caption`), and a Markdown fact-box.
 - **`series-nav`** — cross-article navigation, generated from
   `series.json` (at most one per article).
@@ -348,10 +396,13 @@ long argument the reader takes in as a whole.
 
 Built-in French and English packs (typography rules — non-breaking
 spaces, etc. — plus every UI string: nav button tooltips, "copy link",
-series navigation labels). `--lang fr|en` picks one; a
+series navigation labels). `--lang fr|en` picks the build-wide fallback; a
 `language/{lang}.json` file lets you override just the keys you care
-about, falling back to the built-in pack for the rest. English is the
-ultimate fallback for any language without a pack.
+about, falling back to the built-in pack for the rest. `series_meta.lang_tags`
+maps slide tags to packs so typography can change per slide, for example
+`{"fr": "fr", "en": "en"}`. The first mapped language tag on a slide wins;
+slides with no mapped language tag use `--lang`. English is the ultimate
+fallback for any language without a pack.
 
 The French pack automatically upgrades an existing space to a
 non-breaking one before `; : ! ?`, after `«`, before `%`, between

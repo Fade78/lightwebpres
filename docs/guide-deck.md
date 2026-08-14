@@ -33,7 +33,9 @@ source: Guide, section 2
 
 `init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no runtime dependency, nothing to load.
 
-Language is chosen **per build**, never stored: pass `--lang en` or you get French.
+`--lang en` chooses the build-wide fallback. For one article to carry several
+languages, `tags:` selects a variant and `series_meta.lang_tags` can select a
+typography pack per slide.
 
 ---
 
@@ -53,6 +55,24 @@ The switch from fields to free text is **one-way within a slide**: once a line i
 A note[^note] is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.
 
 [^note]: `[^label]` calls it, `[^label]: text` defines it. `notes_placement: local` — the default — lands the body at the foot of the unit that called it, which is why this one is here rather than at the end of the page. Set `notes_placement: page` to gather every note of an article into one section instead, and `notes_tooltip: on` to put the text in the call's tooltip as well. Both cascade: built-in default, then `series_meta`, then the article's own meta block.
+
+---
+
+<!-- lwp:slide -->
+kicker: Variants
+## Several versions, one HTML page
+
+fact-label: The variant axis
+
+`tags: fr` and `tags: en` put adjacent language versions in one source file.
+A slide without tags is `default`, shared by every selection; `excluded` is
+removed at build time. Press **L** to select a tag without reloading. The
+choice is stored in `localStorage['lwp-active-tag']`, and counts/navigation
+follow the visible subset.
+
+Declare `series_meta.lang_tags: {"fr": "fr", "en": "en"}` when typography
+must follow the selected language. The first mapped tag on a slide wins; the
+build's `--lang` remains the fallback.
 
 ---
 

@@ -10434,6 +10434,53 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
     return warnings
 
 
+def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
+                     language_file=None):
+    """Audits the variant vocabulary without duplicating build validation.
+
+    `build` must reject malformed tags; `audit` instead reports every bad
+    token and keeps going so an author can fix a whole article in one pass.
+    Language-pack references are similarly advisory here: built-in French and
+    English packs always exist, while other names need a file in `language/`.
+    """
+    warnings = 0
+    lang_tags = series_meta.get('lang_tags', {}) if series_meta else {}
+
+    def pack_exists(pack):
+        if pack.casefold() in ('fr', 'en'):
+            return True
+        if language_file and pack.casefold() == str(default_lang).casefold():
+            return Path(language_file).exists()
+        return bool(lang_dir and (Path(lang_dir) / f'{pack}.json').exists())
+
+    missing_packs = {}
+    for tag, pack in lang_tags.items():
+        if not pack_exists(pack):
+            missing_packs[tag] = pack
+            print(f'[WARNING] {filename}: series_meta.lang_tags tag '
+                  f'{tag!r} points to missing language pack {pack!r} in '
+                  f'language/.')
+            warnings += 1
+
+    for number, slide in enumerate(slides, 1):
+        raw = str(slide.tags or '').strip()
+        if not raw:
+            continue
+        for token in raw.split():
+            canonical = token.casefold()
+            if (canonical.startswith('_')
+                    or not _TAG_TOKEN_RE.fullmatch(canonical)):
+                print(f'[WARNING] {filename}: slide {number}: invalid tag '
+                      f'{token!r} (build will reject this tags: value).')
+                warnings += 1
+            elif canonical in missing_packs:
+                print(f'[WARNING] {filename}: slide {number} uses language '
+                      f'tag {canonical!r}, but its pack '
+                      f'{missing_packs[canonical]!r} is missing.')
+                warnings += 1
+    return warnings
+
+
 def cmd_audit(series_dir, args):
     """audit command — flags editorial conventions that are not respected.
 
@@ -10507,6 +10554,9 @@ def cmd_audit(series_dir, args):
                   f"{len(instance_tags)} instance tag(s) ({counts}) — "
                   f"author interventions that survive theme changes.")
         meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
+        warnings += audit_slide_tags(
+            entry['page_source'], slides, series_meta, lang_dir, lang,
+            language_file)
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
         if not has_cover:

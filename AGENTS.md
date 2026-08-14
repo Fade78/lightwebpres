@@ -4,7 +4,7 @@
 
 ### Tests (obligatoire avant et après chaque changement)
 ```bash
-python3 -m unittest tests.test_lightwebpres          # 714 tests, ~6 min
+python3 -m unittest tests.test_lightwebpres          # 720 tests, ~6 min
 python3 -m unittest tests.test_lightwebpres -v 2>&1 | tail -5   # résumé
 ```
 
@@ -25,7 +25,7 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 ### Code et tests
 - `lightwebpres` — le code (un seul fichier Python, ~12 800 lignes). Pas de
   dépendances externes (stdlib uniquement, Python 3.8+).
-- `tests/test_lightwebpres.py` — 714 tests, black-box (subprocess). Helper
+- `tests/test_lightwebpres.py` — 720 tests, black-box (subprocess). Helper
   `run(*args)` lance `lightwebpres <args>`.
 
 ### Documentation permanente (fait foi)
@@ -61,7 +61,8 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
   rétrocompatible. La constante `VERSION` est dans `lightwebpres`.
 - **Style de commit** : voir `git log --oneline -10` pour le style en vigueur
   (préfixes `feat:`, `Docs:`, `Chore:`, ou `vX.Y.Z:` pour les versions).
-- **Pas de push** : l'agent n'a pas les droits. Commit local uniquement.
+- **Push contrôlé** : après un commit substantiel, pousser vers le remote
+  `newargs` si le workflow de la session le demande ; jamais de push forcé.
 
 ## Licence et extension
 

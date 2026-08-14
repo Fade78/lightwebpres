@@ -119,8 +119,8 @@ reach each one; `SKILL.md` carries the exact syntax and every edge case.
 
 | Type | Carries | How many |
 |---|---|---|
-| `cover` | `kicker`, `# Title`, `summary` | any number, anywhere — it is a look, not a structural marker |
-| standard *(the default)* | `kicker`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, then free Markdown | as many as you want |
+| `cover` | `kicker`, `tags:`, `# Title`, `summary` | any number, anywhere — it is a look, not a structural marker |
+| standard *(the default)* | `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, then free Markdown | as many as you want |
 | `series-nav` | nothing — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` | 0 or 1 per article |
 
@@ -167,6 +167,39 @@ body, a body nothing calls, and a body written inside a raw HTML block
 Register every article that should appear in navigation in
 `series.json` — next section.
 
+### Variants in one article
+
+`tags:` is a slide header field, not an instance styling tag. Its value is a
+space-separated list of case-insensitive variant names. Unicode letters,
+digits, `-`, and `_` are allowed, except that a name cannot start with `_`.
+The field is one physical line, like every structural field.
+
+- No `tags:` (or an empty value) means `default`, the shared content.
+- `tags: excluded` removes the slide during the build; it is never emitted.
+- Other tags are written to the section's `data-tags` attribute and filtered
+  in the browser.
+- Press **L** to open the variant menu. It is hidden for a single-variant
+  article and persists the choice in `localStorage['lwp-active-tag']`.
+- The selected tag shows its own slides and shared `default` slides; counts,
+  navigation, anchors, and the presenter panel use the visible slides.
+
+For language-specific typography, map tags to packs in `series_meta`:
+
+```json
+{
+  "series_meta": {
+    "lang_tags": {"fr": "fr", "en": "en"}
+  },
+  "articles": [{"page_source": "guide.md"}]
+}
+```
+
+The first mapped language tag on a slide selects its pack. A slide without a
+mapped language tag uses the build's `--lang`/`LWP_LANG` fallback. Built-in
+`fr` and `en` packs are available; another pack name refers to
+`language/<name>.json`. `audit` reports invalid tags and missing packs without
+blocking, while `build` rejects malformed declarations.
+
 ## 4. Organizing a series
 
 `series.json` lists the articles and holds series-wide metadata:
@@ -176,7 +209,8 @@ Register every article that should appear in navigation in
   "series_meta": {
     "title": "My article series",
     "subtitle": "Series subtitle",
-    "intro": "Series introduction."
+    "intro": "Series introduction.",
+    "lang_tags": {"fr": "fr", "en": "en"}
   },
   "articles": [
     {"page_source": "apple-pie.md"}
@@ -478,6 +512,7 @@ without looking at the screen.
 | T | Theme-background pause screen (press again to dismiss) |
 | N | Toggle the speaker panel: the current slide's notes and the next slide's title |
 | 0–9 then Enter | Jump straight to slide N (1-based) — for decks of ten slides and up |
+| L | Open the variant menu when the article has at least two visible tags |
 
 The B/W/T pause screens hide the slide so the audience's eye comes back
 to the speaker — the same feature PowerPoint and Keynote call "blank".
@@ -508,7 +543,6 @@ kicker: Two
 ## Slide two
 note: Mention the 2020 study — the audience asked for it last time.
   Follow up with the 2023 replication.
-  
   If time runs short, skip the appendix.
 ```
 

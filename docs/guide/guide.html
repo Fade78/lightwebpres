@@ -37,13 +37,13 @@
   --slide-num-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --slide-num-size: max(13px, 1.625vmin);
   --slide-num-tracking: 1px;
-  /* tag */
-  --tag-fg: #6B6B7DFF;
-  --tag-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --tag-size: max(12px, 1.5vmin);
-  --tag-weight: bold;
-  --tag-tracking: 2px;
-  --tag-transform: uppercase;
+  /* kicker */
+  --kicker-fg: #6B6B7DFF;
+  --kicker-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --kicker-size: max(12px, 1.5vmin);
+  --kicker-weight: bold;
+  --kicker-tracking: 2px;
+  --kicker-transform: uppercase;
   /* title1 */
   --title1-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   --title1-size: max(28px, 6.1vmin);
@@ -86,6 +86,8 @@
   --fact-strong-fg: #1A1A2EFF;
   --fact-strong-decoration: none;
   --fact-strong-decoration-color: #1A1A2EFF;
+  --fact-strong-pad: max(3px, 0.375vmin);
+  --fact-strong-absorb-punct: on;
   /* body-heading */
   --body-heading-fg: #1A1A2EFF;
   --body-heading-weight: bold;
@@ -108,8 +110,8 @@
   --cover-align: left;
   /* cover.summary */
   --cover-summary-fg: #F8F8F5C7;
-  /* cover.tag */
-  --cover-tag-fg: #FFFC00FF;
+  /* cover.kicker */
+  --cover-kicker-fg: #FFFC00FF;
   /* cover.num */
   --cover-num-fg: #FFFFFFB3;
   /* quote */
@@ -326,13 +328,13 @@ body {
   font-size: var(--slide-num-size);
   letter-spacing: var(--slide-num-tracking);
 }
-.slide-tag {
-  color: var(--tag-fg);
-  font-family: var(--tag-font);
-  font-size: var(--tag-size);
-  font-weight: var(--tag-weight);
-  letter-spacing: var(--tag-tracking);
-  text-transform: var(--tag-transform);
+.slide-kicker {
+  color: var(--kicker-fg);
+  font-family: var(--kicker-font);
+  font-size: var(--kicker-size);
+  font-weight: var(--kicker-weight);
+  letter-spacing: var(--kicker-tracking);
+  text-transform: var(--kicker-transform);
 }
 h1 {
   text-shadow: 0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg);
@@ -377,6 +379,7 @@ h2 {
   text-transform: var(--fact-label-transform);
 }
 .fact-content strong {
+  padding: max(1px, 0.125vmin) var(--fact-strong-pad);
   font-weight: var(--fact-strong-weight);
   font-style: var(--fact-strong-style);
   background: var(--fact-strong-bg);
@@ -409,8 +412,8 @@ h2 {
 .slide-cover .summary {
   color: var(--cover-summary-fg);
 }
-.slide-cover .slide-tag {
-  color: var(--cover-tag-fg);
+.slide-cover .slide-kicker {
+  color: var(--cover-kicker-fg);
 }
 .slide-cover .slide-num {
   color: var(--cover-num-fg);
@@ -752,7 +755,7 @@ html { scroll-behavior: smooth; }
   position: relative;
 }
 .slide-num { position: absolute; top: 24px; right: 32px; }
-.slide-tag { display: inline-block; margin-bottom: 16px; }
+.slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
 h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .summary { max-width: var(--page-content-max); margin-bottom: 32px; }
@@ -771,19 +774,20 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
    lower edge. Both properties degrade silently on an old engine — the
    rule falls back to its default position rather than disappearing.
 
-   Every length here is a halo around a glyph: the coloured box a marked
-   run sits in, the rounding of its corners, the weight of the rule and
-   how far it clears the baseline. All four are drawn against the text,
-   so all four scale with it. In bare pixels the box hugged the glyphs
-   tighter the larger the screen got -- 4px of side padding reads as a
-   marker at 24px type and as a printing error at 47px. The floors keep
-   the two collisions above as measured: below roughly an 800px smaller
-   dimension these are the pixel values they were measured at, and above
-   it they hold the ratio they were measured at. */
+   The two lengths still here are a halo around a glyph: the weight of
+   the rule and how far it clears the baseline. Both are drawn against
+   the text, so both scale with it. The side padding is a pinnable
+   property (fact.strong.pad, emitted by the engine); the corner radius
+   stays here — no reason to expose it. The padding was 4px (v0.24.2) —
+   too wide, it read as a stray space before the comma that follows a
+   **bold**. It is 3px from v0.25.0: absorb-punct pulls that comma into
+   the mark, so the padding no longer opens a gap before it. Below
+   roughly an 800px smaller dimension these are the pixel values they
+   were measured at, and above it they hold the ratio they were
+   measured at. */
 .fact-content strong {
   text-decoration-thickness: max(2px, 0.25vmin);
   text-underline-offset: max(3px, 0.375vmin);
-  padding: max(1px, 0.125vmin) max(4px, 0.5vmin);
   border-radius: max(2px, 0.25vmin);
 }
 .fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
@@ -817,6 +821,15 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .slide-body h1 { font-size: 1.3em; }
 .slide-body h2 { font-size: 1.15em; }
 .slide-body h3 { font-size: 1.05em; }
+/* #### heading: rendered as a bold-font paragraph (body-heading styling,
+   not <strong> markdown emphasis). #####/###### render as plain text. */
+.fact-content .h4, .slide-body .h4 {
+  font-weight: bold;
+  margin: 14px 0 6px;
+  max-width: var(--page-content-max);
+}
+.fact-content .h4:first-child,
+.slide-body .h4:first-child { margin-top: 0; }
 
 .source { margin-top: 16px; max-width: var(--page-content-max); }
 .page-footer { padding: 20px 8vw 28px; border-top-style: solid; }
@@ -927,6 +940,7 @@ sup { vertical-align: super; line-height: 0; }
 .full-article h1 { font-size: 28px; margin-bottom: 8px; }
 .full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
 .full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+.full-article .h4 { font-weight: bold; margin-top: 20px; margin-bottom: 8px; }
 .full-article p { margin-bottom: 14px; max-width: var(--page-content-max); }
 .full-article ul, .full-article ol {
   margin-bottom: 14px;
@@ -988,6 +1002,26 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control's glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience's eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme's --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
+/* In fullscreen, disable text selection: rapid slide navigation (mouse
+   wheel, click-drag, keyboard) can be misread by the browser as a
+   double-click drag and leave a selection highlight across slide content
+   while the speaker is talking. */
+body.fs-noselect {
+  user-select: none;
+  -webkit-user-select: none;
+}
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -996,7 +1030,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -1021,6 +1062,44 @@ sup { vertical-align: super; line-height: 0; }
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
 .nav-btn-home { font-size: 17px; }
+.tag-menu {
+  position: fixed;
+  right: 82px;
+  bottom: 24px;
+  z-index: 250;
+  display: none;
+  min-width: 180px;
+  max-width: min(320px, calc(100vw - 110px));
+  padding: 10px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 10px;
+  background: inherit;
+  color: inherit;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+}
+.tag-menu.open { display: block; }
+.tag-menu-title {
+  margin: 2px 4px 8px;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tag-menu-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-option {
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: inherit;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85em;
+}
+.tag-option.active { font-weight: 700; }
+.tag-option:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-dots {
   position: fixed;
   bottom: 20px;
@@ -1029,7 +1108,11 @@ sup { vertical-align: super; line-height: 0; }
   display: flex;
   gap: 6px;
   z-index: 150;
+  transition: opacity 0.4s;
 }
+.nav-dots.idle { opacity: 0; }
+.nav-dots.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }
 .nav-dots a {
   width: 8px;
   height: 8px;
@@ -1048,6 +1131,121 @@ sup { vertical-align: super; line-height: 0; }
   .slide { padding: 40px 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: 16px; right: 16px; }
+}
+
+/* Print / PDF ("Print this page", specifications.md §9.4): one slide per
+   sheet, no navigation chrome, theme colors preserved. Slides are sized to
+   their own content (not 100vh) so a short slide does not blank a page. */
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
+  .pause-overlay { display: none !important; }
+  .slide {
+    page-break-after: always;
+    break-after: page;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    scroll-snap-align: none !important;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  @page { margin: 1.5cm; }
+}
+
+/* Speaker counter (X / N) + presenter notes panel (key N). */
+.slide-counter {
+  position: fixed;
+  bottom: 22px;
+  left: 28px;
+  z-index: 150;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border-style: solid;
+  border-width: 1px;
+  background: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
+  transition: opacity 0.4s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.slide-counter.idle { opacity: 0; }
+.slide-counter.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }
+.presenter-panel {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-height: 44vh;
+  z-index: 300;
+  padding: 16px 28px 20px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  background: inherit;
+  color: inherit;
+  box-shadow: 0 -4px 22px rgba(0,0,0,0.20);
+  overflow: auto;
+  display: none;
+}
+.presenter-panel.open { display: block; }
+.presenter-panel .pp-head {
+  font-weight: 700;
+  font-size: 0.95em;
+  margin-bottom: 10px;
+}
+.presenter-panel .pp-notes { font-size: 0.95em; line-height: 1.5; white-space: pre-wrap; }
+.presenter-panel .pp-next {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.9em;
+}
+
+/* Help overlay (key H): every keyboard shortcut and gesture. */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: inherit;
+  color: inherit;
+  display: none;
+  overflow: auto;
+  padding: 48px 24px;
+}
+.help-overlay.open { display: block; }
+.help-card {
+  max-width: 660px;
+  margin: 0 auto;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  background: inherit;
+}
+.help-title { font-weight: 700; font-size: 1.2em; margin-bottom: 16px; }
+.help-list { list-style: none; margin: 0; padding: 0; }
+.help-list li {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top-style: solid;
+  border-top-width: 1px;
+}
+.help-keys {
+  flex: 0 0 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+}
+.help-desc { flex: 1; }
+.help-foot {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.85em;
 }
 
 /* --- The highlight block ---
@@ -1304,11 +1502,35 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 <nav class="nav-dots"></nav>
 
+<div class="pause-overlay" id="pauseOverlay"></div>
+
+<div class="slide-counter" id="slideCounter"></div>
+<div class="presenter-panel" id="presenterPanel">
+  <div class="pp-head" id="presenterHead"></div>
+  <div class="pp-notes" id="presenterNotes"></div>
+  <div class="pp-next" id="presenterNext"></div>
+</div>
+
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-card">
+    <div class="help-title">Keyboard shortcuts</div>
+    <ul class="help-list" id="helpList"></ul>
+    <div class="help-foot">H or Esc to close</div>
+  </div>
+</div>
+
 <div class="nav-buttons">
   <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" aria-label="Previous slide">&#8593;</div>
   <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Back to index (Home key)" aria-label="Back to index (Home key)">&#127968;</div>
   <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" aria-label="Next slide">&#8595;</div>
   <div class="nav-btn" id="navShare" role="button" tabindex="0" title="Share" aria-label="Share this page"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
+  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" aria-label="Fullscreen (F key)"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
+  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="Filter by tag (L key)" aria-label="Filter by tag (L key)">L</div>
+</div>
+
+<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filter slides">
+  <div class="tag-menu-title" id="tagMenuTitle">Filter slides</div>
+  <div class="tag-menu-list" id="tagMenuList"></div>
 </div>
 
 <div class="share-popover" id="sharePopover">
@@ -1339,16 +1561,14 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </div>
 
-<section class="slide slide-cover" id="s1">
-  <span class="slide-num">01 / 10</span>
-  <span class="slide-tag">Guide</span>
+<section class="slide slide-cover" id="s1" data-tags="default">
+  <span class="slide-kicker">Guide</span>
   <h1>LightWebPres</h1>
   <p class="summary">Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.</p>
 </section>
 
-<section class="slide" id="s2">
-  <span class="slide-num">02 / 10</span>
-  <span class="slide-tag">Scope</span>
+<section class="slide" id="s2" data-tags="default">
+  <span class="slide-kicker">Scope</span>
   <h2>What it does, and what it leaves to you</h2>
   <div class="fact-box">
     <div class="fact-label">The line</div>
@@ -1357,27 +1577,25 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="s3">
-  <span class="slide-num">03 / 10</span>
-  <span class="slide-tag">Install</span>
+<section class="slide" id="s3" data-tags="default">
+  <span class="slide-kicker">Install</span>
   <h2>Three commands to a built site</h2>
   <div class="fact-box">
     <div class="fact-label">The whole loop</div>
     <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no runtime dependency, nothing to load.</p>
-  <p>Language is chosen <strong>per build</strong>, never stored: pass <code>--lang en</code> or you get French.</p></div>
+  <p><code>--lang en</code> chooses the build-wide fallback. For one article to carry several languages, <code>tags:</code> selects a variant and <code>series_meta.lang_tags</code> can select a typography pack per slide.</p></div>
   </div>
   <p class="source">Source : Guide, section 2</p>
 </section>
 
-<section class="slide" id="s4">
-  <span class="slide-num">04 / 10</span>
-  <span class="slide-tag">Anatomy</span>
+<section class="slide" id="s4" data-tags="default">
+  <span class="slide-kicker">Anatomy</span>
   <h2>A page is slides, a slide has components</h2>
   <div class="highlight"><span class="highlight-figure">4</span><span class="highlight-caption">slide types — cover, standard, series-nav, full-article</span></div>
   <div class="fact-box">
     <div class="fact-label">What is in a standard slide</div>
     <div class="fact-content">  <p>A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS.</p>
-  <p>The switch from fields to free text is <strong>one-way within a slide</strong>: once a line is not a <code>field:</code> line, everything after it is prose.</p>
+  <p>The switch from fields to free text is <strong>one-way within a slide:</strong> once a line is not a <code>field:</code> line, everything after it is prose.</p>
   <p>A note<sup class="note-call"><a id="noteref-s4-1" href="#note-s4-1" role="doc-noteref">1</a></sup> is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.</p>
   <div class="notes-local">
   <ol class="note-body">
@@ -1387,9 +1605,18 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="s5">
-  <span class="slide-num">05 / 10</span>
-  <span class="slide-tag">Look</span>
+<section class="slide" id="s5" data-tags="default">
+  <span class="slide-kicker">Variants</span>
+  <h2>Several versions, one HTML page</h2>
+  <div class="fact-box">
+    <div class="fact-label">The variant axis</div>
+    <div class="fact-content">  <p><code>tags: fr</code> and <code>tags: en</code> put adjacent language versions in one source file. A slide without tags is <code>default</code>, shared by every selection; <code>excluded</code> is removed at build time. Press <strong>L</strong> to select a tag without reloading. The choice is stored in <code>localStorage['lwp-active-tag']</code>, and counts/navigation follow the visible subset.</p>
+  <p>Declare <code>series_meta.lang_tags: {"fr": "fr", "en": "en"}</code> when typography must follow the selected language. The first mapped tag on a slide wins; the build's <code>--lang</code> remains the fallback.</p></div>
+  </div>
+</section>
+
+<section class="slide" id="s6" data-tags="default">
+  <span class="slide-kicker">Look</span>
   <h2>Four gestures, smallest first</h2>
   <div class="fact-box">
     <div class="fact-label">Pick the smallest one that does the job</div>
@@ -1398,9 +1625,8 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="s6">
-  <span class="slide-num">06 / 10</span>
-  <span class="slide-tag">Look</span>
+<section class="slide" id="s7" data-tags="default">
+  <span class="slide-kicker">Look</span>
   <h2>Thirty-three themes, found by facet</h2>
   <div class="highlight"><span class="highlight-figure">33</span><span class="highlight-caption">themes, filtered by polarity, intensity and hue</span></div>
   <div class="fact-box">
@@ -1410,9 +1636,8 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="s7">
-  <span class="slide-num">07 / 10</span>
-  <span class="slide-tag">Automation</span>
+<section class="slide" id="s8" data-tags="default">
+  <span class="slide-kicker">Automation</span>
   <h2>A step in a content pipeline</h2>
   <div class="highlight"><span class="highlight-figure">11</span><span class="highlight-caption">standard-library modules, and nothing else to install</span></div>
   <div class="fact-box">
@@ -1422,9 +1647,8 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="s8">
-  <span class="slide-num">08 / 10</span>
-  <span class="slide-tag">Shipping</span>
+<section class="slide" id="s9" data-tags="default">
+  <span class="slide-kicker">Shipping</span>
   <h2>Two checks, two different moments</h2>
   <div class="fact-box">
     <div class="fact-label">A nudge and a gate</div>
@@ -1433,7 +1657,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="s9-series">
+<section class="slide" id="s10-series" data-tags="default">
   <h2>This series</h2>
   <div class="series-list">
     <div class="series-item series-current">
@@ -1447,9 +1671,8 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide full-article" id="s10">
-  <span class="slide-num">10 / 10</span>
-  <span class="slide-tag">Full article</span>
+<section class="slide full-article" id="s11" data-tags="default">
+  <span class="slide-kicker">Full article</span>
   <h1>LightWebPres — Guide</h1>
   <p>This is the map of the tool: init it, see what a page is made of, wire a series, adjust the look, ship it. For what each command <em>exactly</em> does in every edge case, see <code>specifications.md</code>; for the precise article syntax, see <code>SKILL.md</code>. This guide is the path through all of it in the order you'll actually need it.</p>
   <p><strong>What this guide does not do is teach you to write.</strong> LightWebPres is for people who already know how; it renders what you give it. Nothing here says what makes a good card, how to structure an argument or when a claim needs a source. A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for people who would like a method — an offered interface, not the core of what this does. Take it or leave it: [section 9](#9-going-further).</p>
@@ -1466,8 +1689,9 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </ul>
   <p>  somewhere else entirely — a CMS export, a database, a generator, an   agent upstream — and LightWebPres is what turns it into publishable   pages.</p>
   <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit</code> never fails, because it is advice. <strong>There is nothing to install</strong>: one file, eleven modules from the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
+  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides after 1 second of idleness in fullscreen, and only returns after the mouse has moved continuously for 250 ms — a brush past the sensor never flashes it back. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
-  <h2>2. Install &amp; your first build</h2>
+  <h2>2. Set up &amp; your first build</h2>
   <pre><code class="language-bash">
 ./lightwebpres init my-series
 ./lightwebpres demo my-series --lang en      # French by default
@@ -1478,6 +1702,8 @@ xdg-open my-series/public/index.html         # `open` on macOS
   <p><strong>Language is chosen per build, not stored in the project</strong> — both packs are always installed. Pass <code>--lang fr|en</code> to <code>build</code>/<code>demo</code>, or set <code>LWP_LANG</code>. French is the default, which is why the commands above say so explicitly.</p>
   <p><code>demo</code> only works after <code>init</code> and refuses to overwrite existing work. It drops three example articles (first, middle and last position in the navigation) plus a captioned image, so you have something real to look at before writing your own.</p>
   <p><code>build</code> reads <code>series.json</code> and every article it lists, and writes <code>public/*.html</code> plus <code>public/index.html</code> and a generated <code>README.md</code>. Open <code>public/index.html</code> in a browser — no server needed, every page is a single self-contained file.</p>
+  <p><code>--inline-images</code> embeds images as base64 data URIs so the HTML needs no <code>img/</code> directory at all — useful for emailing a single file or hosting where only static HTML is served. The HTML grows ~33% per image; a serving gzip recovers the overhead.</p>
+  <p><code>build</code> also accepts a handful of switches that change what it writes: <code>--no-index</code> (skip <code>index.html</code>), <code>--no-readme</code> (skip the generated <code>README.md</code>), <code>--no-nav</code> (omit the cross-article navigation block), <code>--drafts-only</code> (build only <code>status: draft</code> articles), <code>--open</code> (open the result in the browser), and <code>--slides-page-numbers on</code> to engrave the top-right <code>NN / NN</code> slide number — <strong>off by default</strong> (the article front-matter <code>slide_page_numbers</code> and <code>series_meta.slide_page_numbers</code> also turn it on; see specifications.md §3.3.5). <code>watch</code> takes the same output switches and adds <code>--serve</code> (opt-in HTTP server on <code>127.0.0.1</code>, <code>--port 8000</code>).</p>
   <h2>3. What a page is made of</h2>
   <p>A page is a sequence of <strong>slides</strong>, separated by <code>---</code>, preceded by one metadata block. There are four slide types, and inside a standard slide a small set of named components. This section names them and says how you reach each one; <code>SKILL.md</code> carries the exact syntax and every edge case.</p>
   <p><strong>The four slide types.</strong></p>
@@ -1492,12 +1718,12 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <tbody>
       <tr>
         <td><code>cover</code></td>
-        <td><code>tag</code>, <code># Title</code>, <code>summary</code></td>
+        <td><code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code></td>
         <td>any number, anywhere — it is a look, not a structural marker</td>
       </tr>
       <tr>
         <td>standard <em>(the default)</em></td>
-        <td><code>tag</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, then free Markdown</td>
+        <td><code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, then free Markdown</td>
         <td>as many as you want</td>
       </tr>
       <tr>
@@ -1549,6 +1775,11 @@ xdg-open my-series/public/index.html         # `open` on macOS
         <td><code>![alt](img/x.png "Caption")</code> alone on its line</td>
       </tr>
       <tr>
+        <td><strong>headings</strong></td>
+        <td>structure within the fact-box body</td>
+        <td><code>#</code> <code>##</code> <code>###</code> <code>####</code> <code>#####</code> <code>######</code> — up to level 6; <code>#</code>–<code>###</code> are true headings, <code>####</code> renders as a bold-font paragraph (not <code>&lt;strong&gt;</code> emphasis), <code>#####</code>/<code>######</code> as plain paragraphs</td>
+      </tr>
+      <tr>
         <td><strong>quote, code, list</strong></td>
         <td>ordinary prose furniture</td>
         <td>ordinary Markdown</td>
@@ -1576,6 +1807,32 @@ xdg-open my-series/public/index.html         # `open` on macOS
   <p>  renders as plain paragraphs — which is often what you want.</p>
   <p><strong>Notes.</strong> <code>[^label]</code> calls a note, <code>[^label]: text</code> on its own line is its body. The label is a key, never displayed — the reader sees a position — so you never renumber when you insert one. By default a body lands at the foot of the unit that called it (the card, or the end of the long-form article) and numbering restarts in each card, because a card is shareable on its own and a reader may arrive at it having read nothing else. <code>notes_placement: page</code> in the meta block instead collects every body into one notes section at the end of the page; <code>notes_tooltip: on</code> additionally puts the text on the call. <code>audit</code> names a call with no body, a body nothing calls, and a body written inside a raw HTML block (where it ships as literal text).</p>
   <p>Register every article that should appear in navigation in <code>series.json</code> — next section.</p>
+  <h3>Variants in one article</h3>
+  <p><code>tags:</code> is a slide header field, not an instance styling tag. Its value is a space-separated list of case-insensitive variant names. Unicode letters, digits, <code>-</code>, and <code>_</code> are allowed, except that a name cannot start with <code>_</code>. The field is one physical line, like every structural field.</p>
+  <ul>
+    <li>No <code>tags:</code> (or an empty value) means <code>default</code>, the shared content.</li>
+    <li><code>tags: excluded</code> removes the slide during the build; it is never emitted.</li>
+    <li>Other tags are written to the section's <code>data-tags</code> attribute and filtered</li>
+  </ul>
+  <p>  in the browser.</p>
+  <ul>
+    <li>Press <strong>L</strong> to open the variant menu. It is hidden for a single-variant</li>
+  </ul>
+  <p>  article and persists the choice in <code>localStorage['lwp-active-tag']</code>.</p>
+  <ul>
+    <li>The selected tag shows its own slides and shared <code>default</code> slides; counts,</li>
+  </ul>
+  <p>  navigation, anchors, and the presenter panel use the visible slides.</p>
+  <p>For language-specific typography, map tags to packs in <code>series_meta</code>:</p>
+  <pre><code class="language-json">
+{
+  "series_meta": {
+    "lang_tags": {"fr": "fr", "en": "en"}
+  },
+  "articles": [{"page_source": "guide.md"}]
+}
+  </code></pre>
+  <p>The first mapped language tag on a slide selects its pack. A slide without a mapped language tag uses the build's <code>--lang</code>/<code>LWP_LANG</code> fallback. Built-in <code>fr</code> and <code>en</code> packs are available; another pack name refers to <code>language/&lt;name&gt;.json</code>. <code>audit</code> reports invalid tags and missing packs without blocking, while <code>build</code> rejects malformed declarations.</p>
   <h2>4. Organizing a series</h2>
   <p><code>series.json</code> lists the articles and holds series-wide metadata:</p>
   <pre><code class="language-json">
@@ -1583,7 +1840,8 @@ xdg-open my-series/public/index.html         # `open` on macOS
   "series_meta": {
     "title": "My article series",
     "subtitle": "Series subtitle",
-    "intro": "Series introduction."
+    "intro": "Series introduction.",
+    "lang_tags": {"fr": "fr", "en": "en"}
   },
   "articles": [
     {"page_source": "apple-pie.md"}
@@ -1594,9 +1852,9 @@ xdg-open my-series/public/index.html         # `open` on macOS
   <h2>5. Adjusting the look</h2>
   <p>Four gestures, from the smallest to the largest. Pick the smallest one that does the job.</p>
   <h3>Pick a theme (the whole series)</h3>
-  <p>Thirty-three named colour themes ship pre-configured — too many to pick from a list, so you find one by facet: light or dark background, how loud it is, and what hue the page carries.</p>
+  <p>Des dizaines de thèmes de couleur sont préconfigurés — trop pour en choisir from a list, so you find one by facet: light or dark background, how loud it is, and what hue the page carries.</p>
   <pre><code class="language-bash">
-./lightwebpres theme list                                     # all 33, with facets
+./lightwebpres theme list                                     # des dizaines de thèmes, avec facettes
 ./lightwebpres theme list --polarity dark --intensity sober   # just the ones you mean
 ./lightwebpres theme gallery                             # every theme, rendered
   </code></pre>
@@ -1630,12 +1888,21 @@ style.page.content-max: 60ch
   <p>And <code>fact-variant: warning</code> on a standard slide gives that one fact box a named look, rather than a hand-tuned colour.</p>
   <h3>Change the whole series (<code>templates/settings.conf</code>)</h3>
   <p>Every visual decision is a typed property, <code>component.axis: value</code>, and <code>settings.conf</code> lists <strong>all</strong> of them, commented out, at the values of the theme you chose — the complete surface is under your eyes, no documentation needed. Uncomment a line to <strong>pin</strong> it: it survives every theme change and every executable upgrade, because <code>lightwebpres</code> never rewrites your file.</p>
+  <p>Two properties control the fact-box bold (<code>**text**</code> in a fact-box):</p>
+  <ul>
+    <li><code>fact.strong.pad</code> — the side padding of the highlight box around the</li>
+  </ul>
+  <p>  bold text (default <code>max(3px, 0.375vmin)</code>, automatically 0 on themes   with no highlight ground).</p>
+  <ul>
+    <li><code>fact.strong.absorb-punct</code> — <code>on</code> (default) absorbs the punctuation</li>
+  </ul>
+  <p>  that follows a bold run into the highlight (<code>**2000**,</code> → the comma is   highlighted too); <code>off</code> leaves the Markdown as written.</p>
   <pre><code>
-# tag.fg: ink-quiet        ← the scaffold, showing the theme's value
-tag.fg: call               ← uncommented: yours, and it stays
+# kicker.fg: ink-quiet      ← the scaffold, showing the theme's value
+kicker.fg: call             ← uncommented: yours, and it stays
   </code></pre>
   <p>A bare word like <code>call</code> is looked up among the theme's shared values (<code>color.call</code>, since <code>fg</code> is a colour axis); a literal like <code>#8A4B00</code> works anywhere a colour does. A mistyped key or value is a named build error pointing at the file and key.</p>
-  <p>Three properties people look for by name: <strong><code>page.content-max</code></strong> is the text column width, <code>84vw</code> by default — proportional to the window, with no ceiling, so a deck shown full screen uses the screen. Every type size is proportional too — the tag, the fact label, the key figure's caption and the slide number as much as the title — which is what keeps the line length steady and the proportions between them fixed as the screen grows. Each size has a floor in pixels, and the floor is what governs a phone. <strong><code>page.block-max</code></strong> is the width of the things that are not running text — a table, a code block, a figure — sized by what they hold rather than by a count of characters; it has a floor rather than a ceiling as well, so a table grows with the text inside it. <strong><code>page.hyphens</code></strong> (<code>manual | auto</code>) controls whether words break at end of line; it is <code>manual</code>, and nothing turns it on for you.</p>
+  <p>Three properties people look for by name: <strong><code>page.content-max</code></strong> is the text column width, <code>84vw</code> by default — proportional to the window, with no ceiling, so a deck shown full screen uses the screen. Every type size is proportional too — the kicker, the fact label, the key figure's caption and the slide number as much as the title — which is what keeps the line length steady and the proportions between them fixed as the screen grows. Each size has a floor in pixels, and the floor is what governs a phone. <strong><code>page.block-max</code></strong> is the width of the things that are not running text — a table, a code block, a figure — sized by what they hold rather than by a count of characters; it has a floor rather than a ceiling as well, so a table grows with the text inside it. <strong><code>page.hyphens</code></strong> (<code>manual | auto</code>) controls whether words break at end of line; it is <code>manual</code>, and nothing turns it on for you.</p>
   <p>After a <code>series theme set</code>, <code>audit</code> will note that the scaffold's <em>comments</em> show the old theme's values; <code>template update --scaffold</code> realigns them while keeping every pinned line.</p>
   <h3>Rules rather than values (<code>templates/custom.css</code>)</h3>
   <p>Full CSS, no subset, appended after the composed stylesheet so your rules win ties. New selectors, media queries, <code>@font-face</code> (name the family at the head of a stack in <code>settings.conf</code>, declare the face here). The composed sheet's <code>--component-axis</code> variables are usable in it (<code>border-color: var(--color-mark)</code>), and that is the recommended way to follow the theme. <code>templates/nav.js</code> overrides the navigation behaviour wholesale; the page and index HTML structure is fixed, not a template.</p>
@@ -1650,12 +1917,12 @@ tag.fg: call               ← uncommented: yours, and it stays
   <p>Most of what ends up on a page was never written on that page: a title falls back through <code>series.json</code>, the meta block and the cover slide, a colour falls through <code>settings.conf</code>, the theme and the built-in defaults. When the result surprises you, ask:</p>
   <pre><code class="language-bash">
 ./lightwebpres resolve my-series page_title --article apple-pie.md
-./lightwebpres resolve my-series tag.fg
+./lightwebpres resolve my-series kicker.fg
   </code></pre>
   <p>Nothing tells it what kind of name you passed — the name does. A dot means a theme property, an underscore an article or series field, a hyphen a slide field.</p>
   <p>The answer shows the level that decided <strong>and every level that didn't</strong>, strongest first:</p>
   <pre><code>
-tag.fg — theme property
+kicker.fg — theme property
   value: #BF616AFF
   from:  settings
   via:   color.call
@@ -1704,14 +1971,140 @@ build:
 python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
   </code></pre>
-  <h2>9. Shell completion (tab in the terminal)</h2>
+  <h2>9. Presenting</h2>
+  <p>Every page the build writes is a self-contained deck — keyboard, mouse, and touch all work. The controls below let the speaker drive the deck without looking at the screen.</p>
+  <h3>Keyboard</h3>
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>↓ / PageDown / →</td>
+        <td>Next slide</td>
+      </tr>
+      <tr>
+        <td>↑ / PageUp / ← / Backspace</td>
+        <td>Previous slide</td>
+      </tr>
+      <tr>
+        <td>Home</td>
+        <td>Back to the index</td>
+      </tr>
+      <tr>
+        <td>F</td>
+        <td>Fullscreen (Esc to exit)</td>
+      </tr>
+      <tr>
+        <td>B</td>
+        <td>Black pause screen (press again to dismiss)</td>
+      </tr>
+      <tr>
+        <td>W</td>
+        <td>White pause screen (press again to dismiss)</td>
+      </tr>
+      <tr>
+        <td>T</td>
+        <td>Theme-background pause screen (press again to dismiss)</td>
+      </tr>
+      <tr>
+        <td>N</td>
+        <td>Toggle the speaker panel: the current slide's notes and the next slide's title</td>
+      </tr>
+      <tr>
+        <td>0–9 then Enter</td>
+        <td>Jump straight to slide N (1-based) — for decks of ten slides and up</td>
+      </tr>
+      <tr>
+        <td>L</td>
+        <td>Open the variant menu when the article has at least two visible tags</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>The B/W/T pause screens hide the slide so the audience's eye comes back to the speaker — the same feature PowerPoint and Keynote call "blank". T uses the theme's own background colour, so a dark theme pauses on a dark screen rather than flashing white.</p>
+  <h3>Speaker panel and slide counter</h3>
+  <p>A small <code>X / N</code> counter sits in the bottom-left corner and fades out with the other chrome when the mouse is idle. Type a slide number and press <strong>Enter</strong> to jump there — handy once a deck passes ten slides and the arrow-key walk becomes a slog. That live counter is <strong>always</strong> shown and is independent of the engraved top-right <code>NN / NN</code> slide number, which is opt-in (off by default) and turned on only by <code>--slides-page-numbers on</code>, the article front-matter <code>slide_page_numbers</code>, or <code>series_meta.slide_page_numbers</code> (see specifications.md §3.3.5). Press <strong>N</strong> to open the speaker panel: it shows the current slide's <code>note:</code> field (the speaker note you wrote for that slide — see below) and the title of the next slide, so you can read ahead without the audience seeing it. The panel rides along as you navigate; press <strong>N</strong> again to close it.</p>
+  <p>A speaker note is a <code>note:</code> field on the slide — distinct from a <code>[^n]</code> footnote, which is a <em>source</em> note printed for the reader:</p>
+  <pre><code class="language-markdown">
+&lt;!-- lwp:slide --&gt;
+kicker: Two
+## Slide two
+note: Mention the 2020 study — the audience asked for it last time.
+  Follow up with the 2023 replication.
+  If time runs short, skip the appendix.
+  </code></pre>
+  <p>The <code>note:</code> value is parsed and withheld from the slide the reader sees; only the presenter panel surfaces it. A <code>note:</code> may run over several lines: any line that starts with whitespace continues the note, and an indented blank line marks a paragraph break. The block ends at the first non-indented, non-empty line (the next field or the slide's body), so the continuation lines are never captured as slide content.</p>
+  <h3>Printing and PDF</h3>
+  <p>Each page is print-ready. <strong>Print</strong> from the browser (Ctrl/Cmd+P) and choose "Save as PDF": every slide lands on its own sheet, the navigation chrome is stripped, and the theme colours are kept. A short slide no longer blanks a page — each sheet sizes to its own content.</p>
+  <h3>Mouse</h3>
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Gesto</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Single click on content</td>
+        <td>Next slide</td>
+      </tr>
+      <tr>
+        <td>Right-click on content</td>
+        <td>Previous slide</td>
+      </tr>
+      <tr>
+        <td>Double-click on content</td>
+        <td>Enter fullscreen</td>
+      </tr>
+      <tr>
+        <td>Middle-click anywhere</td>
+        <td>Exit fullscreen (if in fullscreen)</td>
+      </tr>
+      <tr>
+        <td>Click in the bottom-right corner</td>
+        <td>Toggle the navigation buttons (hide/show)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Clicks on links, images, buttons, and the share popover are not intercepted — they keep working. The right-click to go back is the remote-mouse use case: the speaker with a wireless mouse in hand left-clicks to advance, right-clicks to go back — two distinct buttons, no aiming. The native context menu is suppressed on slide content so right-click is a clean back gesture. Double-click enters fullscreen (the 250ms delay on the first click is the cost of detecting it); middle-click exits fullscreen (entering via middle-click is not possible on Firefox, which blocks requestFullscreen from non-left clicks — use double-click, the ⛶ button, or F instead). In fullscreen, left and right clicks are instant (no double-click to detect anymore). Esc exits fullscreen. The cursor hides after 1 second of idleness in fullscreen.</p>
+  <p>A left-click that lands while the deck is still scrolling from a previous click cancels the pending double-click timer and advances immediately — the speaker who clicks again to skip the wait is taken straight to the next slide without the 250 ms hold.</p>
+  <h3>Touch (phone, tablet)</h3>
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Gesto</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Swipe left</td>
+        <td>Next slide</td>
+      </tr>
+      <tr>
+        <td>Swipe right</td>
+        <td>Previous slide</td>
+      </tr>
+      <tr>
+        <td>Tap on content</td>
+        <td>Next slide</td>
+      </tr>
+    </tbody>
+  </table>
+  <h3>Navigation buttons</h3>
+  <p>The round buttons in the bottom-right corner (↑ prev, 🏠 home, ↓ next, share, ⛶ fullscreen) are always there. After 3 seconds of mouse idleness they fade out — the speaker does not want chrome on the wall. In fullscreen they fade after just 1 second, in step with the cursor hide. Move the mouse to bring them back. Touch devices keep them visible (there is no cursor to wake them). Clicking the corner (not a button) toggles them on or off for good.</p>
+  <h2>10. Shell completion (tab in the terminal)</h2>
   <p><code>lightwebpres completion --shell bash</code> (or <code>zsh</code>) prints a script that makes your shell complete commands, subcommands, and options when you press Tab. Install it by adding this line to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
   <pre><code class="language-bash">
 eval "$(lightwebpres completion --shell bash)"
   </code></pre>
   <p>Then <code>lightwebpres &lt;Tab&gt;</code> proposes <code>init</code>, <code>build</code>, <code>verify</code>, <code>audit</code>, <code>theme</code>, <code>series</code>, etc.; <code>lightwebpres series &lt;Tab&gt;</code> proposes <code>build</code>, <code>theme</code>, <code>status</code>, <code>resolve</code>...; and <code>lightwebpres build --&lt;Tab&gt;</code> proposes <code>--lang</code>, <code>--output</code>, <code>--no-typography</code>, etc.</p>
   <p>The script is generated from the tool's own command tables, so it stays in sync with whatever commands the version you are running knows about.</p>
-  <h2>10. Going further</h2>
+  <h2>11. Going further</h2>
   <ul>
     <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/lightwebpres/</code>) — the precise mechanics</li>
   </ul>
@@ -1728,7 +2121,7 @@ eval "$(lightwebpres completion --shell bash)"
     <li><strong><code>lightwebpres --help</code></strong> — every command, every flag, every</li>
   </ul>
   <p>  environment variable.</p>
-  <h2>11. When something doesn't work</h2>
+  <h2>12. When something doesn't work</h2>
   <table class="comparison-table">
     <thead>
       <tr>
@@ -2361,8 +2754,10 @@ function qrEncode(text, errorCorrectLevel) {
 
 document.addEventListener('DOMContentLoaded', function() {
 (function(){
-  var slides   = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var slides   = allSlides.slice();
   var current  = 0;
+  var selectedTag = 'default';
   var isScrolling = false;
   // Separate from isScrolling (which only guards goTo()'s own scroll
   // animation, and only against re-targeting the SAME slide): holding
@@ -2388,25 +2783,268 @@ document.addEventListener('DOMContentLoaded', function() {
   var btnNext    = document.getElementById('navNext');
   var btnHome    = document.getElementById('navHome');
   var navDots    = document.querySelector('.nav-dots');
+  var btnTags    = document.getElementById('navTags');
+  var tagMenu    = document.getElementById('tagMenu');
+  var tagMenuList = document.getElementById('tagMenuList');
+  var tagMenuTitle = document.getElementById('tagMenuTitle');
+  var tagStorageKey = 'lwp-active-tag';
+  var dots = [];
 
-  if (navDots) {
-    slides.forEach(function(s, i) {
+  function slideTags(slide) {
+    var raw = slide ? slide.getAttribute('data-tags') : '';
+    var tags = raw ? raw.toLowerCase().split(/\s+/) : [];
+    return tags.length ? tags : ['default'];
+  }
+
+  function tagList() {
+    var seen = {};
+    var tags = [];
+    allSlides.forEach(function (slide) {
+      slideTags(slide).forEach(function (tag) {
+        if (!seen[tag]) { seen[tag] = true; tags.push(tag); }
+      });
+    });
+    if (!seen.default) tags.unshift('default');
+    return tags;
+  }
+
+  function slideMatchesTag(slide, tag) {
+    var tags = slideTags(slide);
+    if (tag === 'default') return tags.indexOf('default') !== -1;
+    return tags.indexOf('default') !== -1 || tags.indexOf(tag) !== -1;
+  }
+
+  function readStoredTag() {
+    try {
+      var stored = window.localStorage.getItem(tagStorageKey);
+      if (stored && tagList().indexOf(stored.toLowerCase()) !== -1) {
+        return stored.toLowerCase();
+      }
+    } catch (e) {}
+    return 'default';
+  }
+
+  function writeStoredTag(tag) {
+    try { window.localStorage.setItem(tagStorageKey, tag); } catch (e) {}
+  }
+
+  function renderTagMenu() {
+    if (!tagMenuList) return;
+    var tags = tagList();
+    if (tags.length < 2) {
+      if (btnTags) {
+        btnTags.hidden = true;
+        btnTags.setAttribute('aria-hidden', 'true');
+      }
+      closeTagMenu();
+      return;
+    }
+    if (btnTags) {
+      btnTags.hidden = false;
+      btnTags.removeAttribute('aria-hidden');
+    }
+    tagMenuList.innerHTML = '';
+    tags.forEach(function (tag) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tag-option';
+      button.setAttribute('data-tag', tag);
+      button.textContent = tag;
+      button.addEventListener('click', function () {
+        selectTag(tag, true);
+        closeTagMenu();
+      });
+      tagMenuList.appendChild(button);
+    });
+    if (tagMenuTitle) tagMenuTitle.textContent = 'Filter slides';
+  }
+
+  function updateTagMenu() {
+    if (!tagMenuList) return;
+    Array.prototype.forEach.call(tagMenuList.querySelectorAll('.tag-option'), function (button) {
+      var active = button.getAttribute('data-tag') === selectedTag;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (btnTags) btnTags.setAttribute('aria-expanded', tagMenu && tagMenu.classList.contains('open') ? 'true' : 'false');
+  }
+
+  function closeTagMenu() {
+    if (tagMenu) tagMenu.classList.remove('open');
+    updateTagMenu();
+  }
+
+  function toggleTagMenu() {
+    if (!tagMenu || tagList().length < 2) return;
+    tagMenu.classList.toggle('open');
+    updateTagMenu();
+  }
+
+  function rebuildDots() {
+    if (!navDots) { dots = []; return; }
+    navDots.innerHTML = '';
+    slides.forEach(function (slide, i) {
       var a = document.createElement('a');
-      a.href = '#' + (s.id || ('s'+(i+1)));
-      var tagEl = s.querySelector('.slide-tag');
-      var headEl = s.querySelector('h2, h1');
-      a.title = tagEl ? tagEl.textContent : (headEl ? headEl.textContent : ('Slide ' + (i+1)));
+      a.href = '#' + (slide.id || ('s' + (i + 1)));
+      var kickerEl = slide.querySelector('.slide-kicker');
+      var headEl = slide.querySelector('h2, h1');
+      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : ('Slide ' + (i + 1)));
       a.addEventListener('click', function(e){ e.preventDefault(); goTo(i); });
       navDots.appendChild(a);
     });
+    dots = Array.prototype.slice.call(navDots.querySelectorAll('a'));
   }
-  var dots = navDots ? Array.prototype.slice.call(navDots.querySelectorAll('a')) : [];
+
+  function applyTagFilter(scrollToCurrent) {
+    var available = tagList();
+    if (available.indexOf(selectedTag) === -1) selectedTag = 'default';
+    var previous = slides[current];
+    slides = allSlides.filter(function (slide) { return slideMatchesTag(slide, selectedTag); });
+    allSlides.forEach(function (slide) {
+      var visible = slides.indexOf(slide) !== -1;
+      slide.hidden = !visible;
+      slide.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    });
+    var next = previous ? slides.indexOf(previous) : -1;
+    current = next >= 0 ? next : 0;
+    rebuildDots();
+    updateTagMenu();
+    updateUI();
+    if (scrollToCurrent && slides.length) goTo(current);
+  }
+
+  function selectTag(tag, scrollToCurrent) {
+    selectedTag = String(tag || 'default').toLowerCase();
+    writeStoredTag(selectedTag);
+    applyTagFilter(scrollToCurrent);
+  }
+
+  function applyHash() {
+    var id = window.location.hash ? window.location.hash.slice(1) : '';
+    if (!id) return;
+    var target = allSlides.find(function (slide) { return slide.id === id; });
+    if (!target) return;
+    if (!slideMatchesTag(target, selectedTag)) {
+      var candidate = slideTags(target).find(function (tag) {
+        return tag !== 'default' && tagList().indexOf(tag) !== -1;
+      });
+      if (candidate) selectTag(candidate, false);
+    }
+    var index = slides.indexOf(target);
+    if (index >= 0) goTo(index);
+  }
+
+  selectedTag = readStoredTag();
+
+  // --- Speaker counter (X / N) + number-jump + presenter notes panel (key N) ---
+  var slideCounter    = document.getElementById('slideCounter');
+  var presenterPanel  = document.getElementById('presenterPanel');
+  var presenterHead   = document.getElementById('presenterHead');
+  var presenterNotes  = document.getElementById('presenterNotes');
+  var presenterNext   = document.getElementById('presenterNext');
+  var helpOverlay     = document.getElementById('helpOverlay');
+  var helpList        = document.getElementById('helpList');
+  var jumpBuffer = '';
+  var jumpTimer = null;
+
+  // Help overlay (key H): every keyboard shortcut and gesture, built once.
+  var helpEntries = [
+    ['&darr; / PageDown / &rarr;', "Next slide"],
+    ['&uarr; / PageUp / &larr; / Backspace', "Previous slide"],
+    ['Home', "Back to the series index"],
+    ['F', "Fullscreen (Esc to exit)"],
+    ['B / W / T', "Pause screen: black (B), white (W), theme (T)"],
+    ['N', "Speaker panel: notes + next slide"],
+    ['L', "Filter by tag and remember the selection"],
+    ['0&ndash;9 + Entr&eacute;e', "Jump to slide N (then Enter)"],
+    ['H', "H or Esc to close"],
+    ['Souris / Molette', "Click: next · right-click: back · double-click: fullscreen · wheel: scroll"]
+  ];
+  if (helpList) {
+    helpEntries.forEach(function (e) {
+      var li = document.createElement('li');
+      var k = document.createElement('span');
+      k.className = 'help-keys';
+      k.innerHTML = e[0];
+      var d = document.createElement('span');
+      d.className = 'help-desc';
+      d.textContent = e[1];
+      li.appendChild(k);
+      li.appendChild(d);
+      helpList.appendChild(li);
+    });
+  }
+  function toggleHelp() {
+    if (!helpOverlay) return;
+    helpOverlay.classList.toggle('open');
+  }
+
+  function slideTitle(i) {
+    var s = slides[i];
+    if (!s) return '';
+    var t = s.querySelector('.slide-kicker');
+    if (t) return t.textContent;
+    var h = s.querySelector('h2, h1');
+    return h ? h.textContent : ('Slide ' + (i + 1));
+  }
+
+  function updateCounter() {
+    if (!slideCounter) return;
+    slideCounter.textContent = jumpBuffer
+      ? '→ ' + jumpBuffer
+      : ((current + 1) + ' / ' + slides.length);
+  }
+
+  function updatePresenter() {
+    if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
+    var cur = slides[current];
+    var noteEl = cur ? cur.querySelector('.speaker-note') : null;
+    if (presenterNotes) {
+      presenterNotes.textContent = noteEl ? noteEl.textContent.trim() : '—';
+    }
+    if (presenterHead) {
+      presenterHead.textContent = slideTitle(current) + '  (' + (current + 1) + '/' + slides.length + ')';
+    }
+    if (presenterNext) {
+      presenterNext.textContent = (current + 1 < slides.length)
+        ? 'Next: ' + slideTitle(current + 1)
+        : '—';
+    }
+  }
+
+  function togglePresenter() {
+    if (!presenterPanel) return;
+    presenterPanel.classList.toggle('open');
+    updatePresenter();
+  }
+
+  function currentVisible() {
+    // Returns the index of the slide that contains the viewport's
+    // vertical midpoint — the real "what the user is looking at",
+    // independent of the `current` variable which may be stale during
+    // a smooth scroll.
+    var mid = window.innerHeight / 2;
+    var best = current;
+    slides.forEach(function(s, i) {
+      var rect = s.getBoundingClientRect();
+      if (rect.top <= mid && rect.bottom >= mid) best = i;
+    });
+    return best;
+  }
 
   function goTo(idx) {
+    if (!slides.length) {
+      current = 0;
+      updateUI();
+      return;
+    }
     idx = Math.max(0, Math.min(slides.length - 1, idx));
     if (idx === current && isScrolling) return;
     current = idx;
     focusedCard = -1;
+    if (slides[idx].id && window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + slides[idx].id);
+    }
     isScrolling = true;
     slides[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
     updateUI();
@@ -2483,10 +3121,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateUI() {
-    btnPrev.classList.toggle('disabled', current === 0);
-    btnNext.classList.toggle('disabled', current === slides.length - 1);
+    if (btnPrev) btnPrev.classList.toggle('disabled', !slides.length || current === 0);
+    if (btnNext) btnNext.classList.toggle('disabled', !slides.length || current === slides.length - 1);
     dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
     updateShareFicheState();
+    updateCounter();
+    updatePresenter();
   }
 
   btnPrev.addEventListener('click', function(){ goTo(current - 1); });
@@ -2515,14 +3155,89 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
   }
 
-  document.addEventListener('keydown', function(e) {
+   document.addEventListener('keydown', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+    // While the help overlay is open, only H/Esc close it; everything else
+    // is swallowed so a stray arrow does not navigate behind the panel.
+    if (helpOverlay && helpOverlay.classList.contains('open')) {
+      if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        toggleHelp();
+      } else {
+        e.preventDefault();
+      }
+      return;
+    }
+    if (tagMenu && tagMenu.classList.contains('open')) {
+      if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        closeTagMenu();
+      } else if (e.target && e.target.closest && e.target.closest('.tag-menu')) {
+        return;
+      } else {
+        e.preventDefault();
+      }
+      return;
+    }
+    // If a pause screen is up, any navigation key dismisses it.
+    if (pauseOverlay && pauseOverlay.classList.contains('open')) {
+      if (e.key === 'b' || e.key === 'B' || e.key === 'w' || e.key === 'W'
+          || e.key === 't' || e.key === 'T') {
+        // Same key toggles off; others also dismiss.
+        togglePause(e.key);
+        e.preventDefault();
+      } else {
+        closePause();
+        e.preventDefault();
+      }
+      return;
+    }
+    // Number jump: type digits, Enter jumps to that slide (1-based).
+    // Escape cancels the pending buffer. The buffer auto-expires.
+    if (e.key >= '0' && e.key <= '9') {
+      jumpBuffer = (jumpBuffer + e.key).slice(-3);
+      updateCounter();
+      if (jumpTimer) clearTimeout(jumpTimer);
+      jumpTimer = setTimeout(function(){ jumpBuffer = ''; updateCounter(); }, 2500);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Enter' && jumpBuffer) {
+      var jumpN = parseInt(jumpBuffer, 10);
+      jumpBuffer = '';
+      if (jumpTimer) clearTimeout(jumpTimer);
+      if (jumpN >= 1 && jumpN <= slides.length) goTo(jumpN - 1);
+      updateCounter();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape' && jumpBuffer) {
+      jumpBuffer = '';
+      if (jumpTimer) clearTimeout(jumpTimer);
+      updateCounter();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
       e.preventDefault(); runStepped(stepForward);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
       e.preventDefault(); runStepped(stepBackward);
     } else if (e.key === 'Home') {
       e.preventDefault(); window.location.href = 'index.html';
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault(); toggleFullscreen();
+    } else if (e.key === 'b' || e.key === 'B') {
+      e.preventDefault(); togglePause('b');
+    } else if (e.key === 'w' || e.key === 'W') {
+      e.preventDefault(); togglePause('w');
+    } else if (e.key === 't' || e.key === 'T') {
+      e.preventDefault(); togglePause('t');
+    } else if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault(); togglePresenter();
+    } else if (e.key === 'l' || e.key === 'L') {
+      e.preventDefault(); toggleTagMenu();
+    } else if (e.key === 'h' || e.key === 'H') {
+      e.preventDefault(); toggleHelp();
     }
   });
 
@@ -2667,6 +3382,282 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Escape') { closeSharePopover(); closeQrModal(); }
   });
 
+  // --- Presenter pack (v0.26.0) ---
+  // Click / double-click / swipe / fullscreen / pause screens, so the
+  // speaker can drive the deck with a mouse alone, a keyboard alone, or
+  // a touch device.
+
+  var pauseOverlay = document.getElementById('pauseOverlay');
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+      var el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    }
+  }
+
+  // Hide the cursor in fullscreen after 1s of idleness — the speaker
+  // does not want a cursor on the wall. Move the mouse to bring it back.
+  var fsCursorTimer = null;
+  function fsScheduleHideCursor() {
+    if (fsCursorTimer) clearTimeout(fsCursorTimer);
+    fsCursorTimer = setTimeout(function () {
+      document.body.style.cursor = 'none';
+    }, 1000);
+  }
+  // Require >250ms of continuous movement before the cursor reappears, so
+  // a single jitter or a brush past the sensor does not flash it back on
+  // the wall. On the first move of a burst, arm a 250ms timer that shows
+  // the cursor; if movement is continuous the timer (set once at the
+  // burst's start) fires after 250ms. A gap longer than 100ms cancels it
+  // and starts a new burst, so a brief twitch never reveals the cursor.
+  var fsMoveStart = 0;
+  var fsLastMove = 0;
+  var fsShowTimer = null;
+  function fsShowCursor() {
+    var now = Date.now();
+    if (fsShowTimer === null) {
+      // First move of a burst: arm the reveal timer.
+      fsMoveStart = now;
+      fsShowTimer = setTimeout(function () {
+        document.body.style.cursor = '';
+        fsShowTimer = null;
+        fsScheduleHideCursor();
+      }, 250);
+    }
+    if (now - fsLastMove > 100) {
+      // Movement restarted: cancel the pending reveal, start fresh.
+      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
+    }
+    fsLastMove = now;
+  }
+  // Wake lock: prevents the screen from dimming/sleeping while the
+  // speaker presents. Released when fullscreen exits.
+  var wakeLock = null;
+  function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wakeLock = lock;
+      }).catch(function () {});
+    }
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release().catch(function(){}); wakeLock = null; }
+  }
+
+  document.addEventListener('fullscreenchange', function () {
+    setNavIdle(false);
+    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) {
+      window.getSelection().removeAllRanges();
+      document.body.classList.add('fs-noselect');
+      document.addEventListener('mousemove', fsShowCursor);
+      fsScheduleHideCursor();
+      requestWakeLock();
+    } else {
+      document.removeEventListener('mousemove', fsShowCursor);
+      if (fsCursorTimer) clearTimeout(fsCursorTimer);
+      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
+      fsMoveStart = 0;
+      fsLastMove = 0;
+      document.body.style.cursor = '';
+      document.body.classList.remove('fs-noselect');
+      releaseWakeLock();
+    }
+  });
+  document.addEventListener('webkitfullscreenchange', function () {
+    setNavIdle(false);
+    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) {
+      window.getSelection().removeAllRanges();
+      document.body.classList.add('fs-noselect');
+      document.addEventListener('mousemove', fsShowCursor);
+      fsScheduleHideCursor();
+      requestWakeLock();
+    } else {
+      document.removeEventListener('mousemove', fsShowCursor);
+      if (fsCursorTimer) clearTimeout(fsCursorTimer);
+      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
+      fsMoveStart = 0;
+      fsLastMove = 0;
+      document.body.style.cursor = '';
+      document.body.classList.remove('fs-noselect');
+      releaseWakeLock();
+    }
+  });
+
+  var btnFullscreen = document.getElementById('navFullscreen');
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+  }
+
+  function closePause() {
+    if (pauseOverlay) pauseOverlay.classList.remove('open');
+  }
+
+  function togglePause(kind) {
+    if (!pauseOverlay) return;
+    kind = (kind || '').toLowerCase();
+    // Toggle: if already open with the same kind, close; else switch.
+    // Uses a data attribute (not background comparison) because the
+    // browser normalises style.background (e.g. #F5F4EFFF → rgb(...)),
+    // which would break the equality check.
+    if (pauseOverlay.classList.contains('open')
+        && pauseOverlay.dataset.pauseKind === kind) {
+      closePause();
+    } else {
+      var bg = 'black';
+      if (kind === 'w') bg = 'white';
+      else if (kind === 't') bg = getComputedStyle(document.body)
+        .getPropertyValue('--page-bg').trim() || 'black';
+      pauseOverlay.style.background = bg;
+      pauseOverlay.dataset.pauseKind = kind;
+      pauseOverlay.classList.add('open');
+    }
+  }
+
+  // --- Click to advance, right-click to go back, double-click / middle-click for fullscreen ---
+  // The remote-mouse use case. In normal mode: left-click advances
+  // (with a 250ms timer to detect a double-click → enter fullscreen),
+  // right-click goes back (instant, no timer — no double right-click),
+  // middle-click toggles fullscreen (instant). In fullscreen: left and
+  // right are instant (no double-click to detect anymore), so the
+  // speaker gets zero-latency navigation while presenting. Esc exits
+  // fullscreen (native browser). Buttons, links, images, and the pause
+  // overlay intercept clicks so they keep working.
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+  function isInteractive(e) {
+    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .nav-buttons');
+  }
+  var clickTimer = null;
+  var CLICK_DELAY = 250;
+  document.addEventListener('click', function (e) {
+    if (isInteractive(e)) return;
+    if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
+    // Only the left button (0) drives navigation from here on.
+    if (e.button !== 0) return;
+    if (isFullscreen()) {
+      // Instant in fullscreen — no double-click to detect. Use
+      // currentVisible() because `current` may be stale during a
+      // smooth scroll (isScrolling blocks detectCurrent).
+      goTo(currentVisible() + 1);
+      return;
+    }
+    // If a click arrives while scrolling (from a previous click's
+    // goTo), cancel the pending double-click timer and navigate
+    // immediately — the speaker clicked again to skip the wait.
+    if (isScrolling) {
+      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+      goTo(currentVisible() + 1);
+      return;
+    }
+    if (clickTimer) {
+      // Second click within the window: double-click = enter fullscreen.
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      toggleFullscreen();
+    } else {
+      clickTimer = setTimeout(function () {
+        clickTimer = null;
+        // Click always changes slide (never scrolls within the
+        // current one), so the speaker lands on the next card cleanly.
+        goTo(currentVisible() + 1);
+      }, CLICK_DELAY);
+    }
+  });
+  document.addEventListener('contextmenu', function (e) {
+    // Right-click = go back, but only on slide content.
+    if (isInteractive(e)) return;
+    if (pauseOverlay && pauseOverlay.contains(e.target)) return;
+    e.preventDefault();
+    clearTimeout(clickTimer);
+    clickTimer = null;
+    goTo(currentVisible() - 1);
+  });
+  // Middle-click exits fullscreen. Firefox fires auxclick (not click)
+  // for the middle button, and exitFullscreen needs no user gesture.
+  document.addEventListener('auxclick', function (e) {
+    if (e.button !== 1) return;
+    if (isInteractive(e)) return;
+    e.preventDefault();
+    if (isFullscreen()) toggleFullscreen();
+  });
+
+  // --- Touch swipe (mobile / tablet) ---
+  var touchStartX = null, touchStartY = null, touchStartT = 0;
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartT = Date.now();
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (touchStartX === null) return;
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    var dy = e.changedTouches[0].clientY - touchStartY;
+    var dt = Date.now() - touchStartT;
+    touchStartX = null;
+    // Horizontal swipe dominates: 50px threshold, < 500ms, horizontal >
+    // vertical. Left = next, right = previous (convention: swipe the way
+    // the next slide comes FROM).
+    if (dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) runStepped(stepForward); else runStepped(stepBackward);
+    }
+  }, { passive: true });
+
+  // --- Toggle nav chrome (buttons + dots) by clicking bottom-right ---
+  // A click in the nav-buttons area that does NOT hit a button toggles
+  // the visibility of both the pagination dots and the nav buttons.
+  // This lets the speaker hide all distracting chrome on a large screen.
+  var navButtons = document.querySelector('.nav-buttons');
+  function setNavIdle(isIdle) {
+    if (navButtons) navButtons.classList.toggle('idle', isIdle);
+    if (navDots) navDots.classList.toggle('idle', isIdle);
+    if (slideCounter) slideCounter.classList.toggle('idle', isIdle);
+  }
+  if (navButtons) {
+    navButtons.addEventListener('click', function (e) {
+      if (e.target === navButtons) {
+        setNavIdle(!navButtons.classList.contains('idle'));
+      }
+    });
+  }
+
+  // --- Auto-hide nav chrome after 3s of mouse idleness (1s in fullscreen) ---
+  // The speaker does not want chrome on the wall while talking. Buttons
+  // and dots fade out when the mouse stops, come back when it moves.
+  // Touch devices (no cursor) keep them — the @media (pointer: coarse)
+  // rules override the .idle class.
+  if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
+    var idleTimer = null;
+    function getIdleDelay() {
+      return isFullscreen() ? 1000 : 3000;
+    }
+    function scheduleHide() {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(function () {
+        setNavIdle(true);
+      }, getIdleDelay());
+    }
+    document.addEventListener('mousemove', function () {
+      setNavIdle(false);
+      scheduleHide();
+    });
+    // Reschedule on fullscreen change to use the correct delay
+    document.addEventListener('fullscreenchange', scheduleHide);
+    document.addEventListener('webkitfullscreenchange', scheduleHide);
+    scheduleHide();
+  }
+
+  if (btnTags) btnTags.addEventListener('click', toggleTagMenu);
+  renderTagMenu();
+  applyTagFilter(false);
+  window.addEventListener('hashchange', applyHash);
+  applyHash();
   updateUI();
 })();
 });

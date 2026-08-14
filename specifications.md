@@ -336,7 +336,7 @@ fiches sont :
 #### 3.3.1 Fiche de couverture (`cover`)
 
 ```html
-<section class="slide slide-cover" id="s1">
+<section class="slide slide-cover" id="s1" data-tags="default">
   <span class="slide-num">01 / 12</span>
   <span class="slide-kicker">Recette</span>
   <h1>La tarte aux pommes</h1>
@@ -355,7 +355,7 @@ sont activés (§3.3.5), et il est **absent par défaut**.
 #### 3.3.2 Fiche standard
 
 ```html
-<section class="slide" id="s2">
+<section class="slide" id="s2" data-tags="default">
   <span class="slide-num">02 / 12</span>
   <span class="slide-kicker">Cuisson</span>
   <h2>La température change tout</h2>
@@ -561,6 +561,34 @@ paragraphe avant) ne redéfinit pas le titre de la slide — voir §22.2 pour
 la règle exacte.
 Chaque champ `clé: valeur`, à l'inverse, tient toujours sur une seule ligne
 physique (§4.1).
+
+#### 4.3.1 Variantes d'une fiche (`tags:`)
+
+Le champ `tags:` est accepté dans l'en-tête de toute fiche. Sa valeur est une
+suite de mots séparés par des espaces. Chaque mot est normalisé avec
+`casefold()` puis doit contenir uniquement des caractères de mot Unicode ou
+`-`; le premier caractère ne peut pas être `_`. Une valeur invalide est une
+erreur fatale de build qui nomme la fiche et le tag fautif. Les tags ne sont
+pas les tags d'instance de §9.6.3, ni le `version` tag de la série.
+
+Une fiche sans `tags:` (ou avec une valeur vide) reçoit le tag `default`.
+Les doublons sont supprimés après normalisation. Le tag `excluded` est traité
+avant la validation du reste de la fiche et supprime la fiche du HTML final :
+elle n'est ni compilée, ni numérotée, ni incluse dans les ancres ou la
+navigation. C'est donc le moyen de conserver une fiche provisoirement hors de
+la publication, pas un filtre exécuté dans le navigateur.
+
+Pour toute autre fiche, les tags normalisés sont émis sur la section :
+
+```html
+<section class="slide" id="s2" data-tags="default fr">
+```
+
+Le navigateur collecte les valeurs `data-tags`. La touche `L` ouvre le menu
+si au moins deux tags sont présents ; le tag sélectionné affiche les fiches
+qui le portent et les fiches `default`. La sélection est conservée dans
+`localStorage['lwp-active-tag']`. Le compteur, les numéros, la navigation, les
+ancres et le panneau présentateur travaillent sur le sous-ensemble visible.
 
 **Champ dupliqué : le dernier gagne.** Si la même clé apparaît deux fois
 dans l'en-tête d'une fiche (ou d'un bloc meta), la dernière occurrence
@@ -5309,11 +5337,25 @@ direct (rétrocompatible avec un format de série déjà utilisé).
 | `author` | string | non | Auteur par défaut de toute la série (§20.3.1) ; affiché en pied de la page d'index, et sur chaque article qui ne le surcharge pas |
 | `license` | string | non | Licence par défaut de toute la série (§20.3.1) ; même affichage que `author` ; HTML brut autorisé (lien) |
 | `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
+| `lang_tags` | object `{tag: pack}` | non | Déclare les tags qui sélectionnent un moteur typographique, par exemple `{"fr": "fr", "en": "en"}`. Les clés suivent la syntaxe de `tags:` ; les noms de packs sont des identifiants sûrs et désignent `language/<pack>.json` ou un pack intégré (§7.5) |
 
 Le template d'index enveloppe `intro` dans un unique `<p>` fixe
 (`<p>{{series_intro}}</p>`) : pour plusieurs paragraphes, insérer
 `</p>\n<p>` dans la valeur — HTML brut passthrough, cohérent avec le
 reste (§6.2).
+
+### 20.5.1 Typographie par tag de langue
+
+Lorsqu'une fiche porte un tag présent dans `series_meta.lang_tags`, le premier
+de ces tags dans l'ordre de la valeur de `tags:` choisit le pack correspondant
+pour le contenu visible de cette fiche. Une fiche qui ne porte aucun tag de
+langue utilise la langue par défaut du build (`--lang`, ou `LWP_LANG`) et les
+options `typo`, `typo_units` et `typo_thousands` restent prioritaires.
+
+Les packs `fr` et `en` sont intégrés. Tout autre nom est recherché comme un
+fichier `language/<pack>.json`. `audit` avertit si une déclaration
+`lang_tags` pointe vers un pack absent et si une fiche utilise ce tag ; il ne
+bloque jamais le build, tandis que le build refuse une déclaration mal formée.
 
 ### 20.6 Statut d'un article (`status`)
 

@@ -27,7 +27,7 @@ where to download it from, and the only address to trust for it.
 LWP text is **two different grammars stitched together**, and mixing them
 up is the single most common way to lose content silently:
 
-1. **Structural fields** (`kicker: ...`, `summary: ...`, `highlight: ...`,
+1. **Structural fields** (`kicker: ...`, `tags: ...`, `summary: ...`, `highlight: ...`,
    etc.) — each one is **exactly one physical line**. No wrapping, no
    continuation. If a value needs a line break, that's not a field
    anymore.
@@ -204,12 +204,43 @@ will not catch it for you.
 `comment:` here works too, for an article-wide note — same rule as the
 per-slide one below: recognized, never read, never published.
 
+## Slide variants: `tags:`
+
+`tags:` is a slide-level variant field, separate from the inline instance tags
+described later. Its value is one physical line containing space-separated
+names. Names are normalized case-insensitively; Unicode word characters,
+digits, `-`, and `_` are accepted, except a name may not begin with `_`.
+
+- No `tags:` or an empty value assigns `default`, the shared variant.
+- `tags: excluded` removes the slide during build, before the rest of the
+  slide is validated and before numbering or anchors are generated.
+- Other values are emitted as `data-tags="..."` on the slide section.
+- In the generated page, press **L** to choose a tag when at least two exist.
+  The selected tag keeps its own slides and `default` slides, and is persisted
+  in `localStorage['lwp-active-tag']`.
+
+If tags select different languages, declare their typography packs in
+`series.json`:
+
+```json
+{
+  "series_meta": {
+    "lang_tags": {"fr": "fr", "en": "en"}
+  },
+  "articles": [{"page_source": "guide.md"}]
+}
+```
+
+The first mapped language tag on a slide selects its pack. Slides without one
+use the build-wide `--lang`/`LWP_LANG` fallback. `audit` warns about malformed
+slide tags and missing mapped packs; it does not block the build.
+
 ## Slide types
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `kicker`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `kicker`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
+| `cover` | `kicker`, `tags`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
@@ -542,7 +573,12 @@ number. Nothing to do on your end — write ordinary spaces, the build
 handles the rest. It never *inserts* spacing or digit grouping that
 wasn't already there (don't add a space just to trigger the rule), and a
 non-breaking space you type yourself always passes through unchanged.
-`--lang en` has no typography rules at all — this is French-only.
+`--lang en` has no typography rules at all — this is French-only. To mix
+languages in one article, map variant tags to packs with
+`series_meta.lang_tags`, for example `{"fr": "fr", "en": "en"}`. The first
+mapped language tag on a slide chooses that pack; a slide without one uses
+the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and `en` packs are
+available, and another pack name refers to `language/<name>.json`.
 
 This alters generated content, so it can be turned off per article, in
 that article's meta block: `typo_units: off` (numbers/units and `×`/`≈`
@@ -596,13 +632,17 @@ Any non-string value for one of these fields is fatal as well.
 
 `series_meta`, the object beside `articles`, holds what belongs to the
 series rather than to one article: `title`, `subtitle`, `version`,
-`intro`, `author`, `license`. The first four drive the generated index
+`intro`, `author`, `license`, and optional `lang_tags`. The first four drive the generated index
 page and `README.md`; the last two are the fallback for every article's
 byline and licence line.
 
 ```json
 {
-  "series_meta": {"title": "My series", "intro": "What it is about."},
+  "series_meta": {
+    "title": "My series",
+    "intro": "What it is about.",
+    "lang_tags": {"fr": "fr", "en": "en"}
+  },
   "articles": [{"page_source": "apple-pie.md"}]
 }
 ```

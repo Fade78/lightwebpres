@@ -36,13 +36,13 @@
   --slide-num-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --slide-num-size: max(13px, 1.625vmin);
   --slide-num-tracking: 1px;
-  /* tag */
-  --tag-fg: #6B6B7DFF;
-  --tag-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
-  --tag-size: max(12px, 1.5vmin);
-  --tag-weight: bold;
-  --tag-tracking: 2px;
-  --tag-transform: uppercase;
+  /* kicker */
+  --kicker-fg: #6B6B7DFF;
+  --kicker-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --kicker-size: max(12px, 1.5vmin);
+  --kicker-weight: bold;
+  --kicker-tracking: 2px;
+  --kicker-transform: uppercase;
   /* title1 */
   --title1-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   --title1-size: max(28px, 6.1vmin);
@@ -85,6 +85,8 @@
   --fact-strong-fg: #1A1A2EFF;
   --fact-strong-decoration: none;
   --fact-strong-decoration-color: #1A1A2EFF;
+  --fact-strong-pad: max(3px, 0.375vmin);
+  --fact-strong-absorb-punct: on;
   /* body-heading */
   --body-heading-fg: #1A1A2EFF;
   --body-heading-weight: bold;
@@ -107,8 +109,8 @@
   --cover-align: left;
   /* cover.summary */
   --cover-summary-fg: #F8F8F5C7;
-  /* cover.tag */
-  --cover-tag-fg: #FFFC00FF;
+  /* cover.kicker */
+  --cover-kicker-fg: #FFFC00FF;
   /* cover.num */
   --cover-num-fg: #FFFFFFB3;
   /* quote */
@@ -325,13 +327,13 @@ body {
   font-size: var(--slide-num-size);
   letter-spacing: var(--slide-num-tracking);
 }
-.slide-tag {
-  color: var(--tag-fg);
-  font-family: var(--tag-font);
-  font-size: var(--tag-size);
-  font-weight: var(--tag-weight);
-  letter-spacing: var(--tag-tracking);
-  text-transform: var(--tag-transform);
+.slide-kicker {
+  color: var(--kicker-fg);
+  font-family: var(--kicker-font);
+  font-size: var(--kicker-size);
+  font-weight: var(--kicker-weight);
+  letter-spacing: var(--kicker-tracking);
+  text-transform: var(--kicker-transform);
 }
 h1 {
   text-shadow: 0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg);
@@ -376,6 +378,7 @@ h2 {
   text-transform: var(--fact-label-transform);
 }
 .fact-content strong {
+  padding: max(1px, 0.125vmin) var(--fact-strong-pad);
   font-weight: var(--fact-strong-weight);
   font-style: var(--fact-strong-style);
   background: var(--fact-strong-bg);
@@ -408,8 +411,8 @@ h2 {
 .slide-cover .summary {
   color: var(--cover-summary-fg);
 }
-.slide-cover .slide-tag {
-  color: var(--cover-tag-fg);
+.slide-cover .slide-kicker {
+  color: var(--cover-kicker-fg);
 }
 .slide-cover .slide-num {
   color: var(--cover-num-fg);
@@ -751,7 +754,7 @@ html { scroll-behavior: smooth; }
   position: relative;
 }
 .slide-num { position: absolute; top: 24px; right: 32px; }
-.slide-tag { display: inline-block; margin-bottom: 16px; }
+.slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
 h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .summary { max-width: var(--page-content-max); margin-bottom: 32px; }
@@ -770,19 +773,20 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
    lower edge. Both properties degrade silently on an old engine — the
    rule falls back to its default position rather than disappearing.
 
-   Every length here is a halo around a glyph: the coloured box a marked
-   run sits in, the rounding of its corners, the weight of the rule and
-   how far it clears the baseline. All four are drawn against the text,
-   so all four scale with it. In bare pixels the box hugged the glyphs
-   tighter the larger the screen got -- 4px of side padding reads as a
-   marker at 24px type and as a printing error at 47px. The floors keep
-   the two collisions above as measured: below roughly an 800px smaller
-   dimension these are the pixel values they were measured at, and above
-   it they hold the ratio they were measured at. */
+   The two lengths still here are a halo around a glyph: the weight of
+   the rule and how far it clears the baseline. Both are drawn against
+   the text, so both scale with it. The side padding is a pinnable
+   property (fact.strong.pad, emitted by the engine); the corner radius
+   stays here — no reason to expose it. The padding was 4px (v0.24.2) —
+   too wide, it read as a stray space before the comma that follows a
+   **bold**. It is 3px from v0.25.0: absorb-punct pulls that comma into
+   the mark, so the padding no longer opens a gap before it. Below
+   roughly an 800px smaller dimension these are the pixel values they
+   were measured at, and above it they hold the ratio they were
+   measured at. */
 .fact-content strong {
   text-decoration-thickness: max(2px, 0.25vmin);
   text-underline-offset: max(3px, 0.375vmin);
-  padding: max(1px, 0.125vmin) max(4px, 0.5vmin);
   border-radius: max(2px, 0.25vmin);
 }
 .fact-content h1, .fact-content h2, .fact-content h3 { margin: 14px 0 6px; }
@@ -816,6 +820,15 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .slide-body h1 { font-size: 1.3em; }
 .slide-body h2 { font-size: 1.15em; }
 .slide-body h3 { font-size: 1.05em; }
+/* #### heading: rendered as a bold-font paragraph (body-heading styling,
+   not <strong> markdown emphasis). #####/###### render as plain text. */
+.fact-content .h4, .slide-body .h4 {
+  font-weight: bold;
+  margin: 14px 0 6px;
+  max-width: var(--page-content-max);
+}
+.fact-content .h4:first-child,
+.slide-body .h4:first-child { margin-top: 0; }
 
 .source { margin-top: 16px; max-width: var(--page-content-max); }
 .page-footer { padding: 20px 8vw 28px; border-top-style: solid; }
@@ -926,6 +939,7 @@ sup { vertical-align: super; line-height: 0; }
 .full-article h1 { font-size: 28px; margin-bottom: 8px; }
 .full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
 .full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+.full-article .h4 { font-weight: bold; margin-top: 20px; margin-bottom: 8px; }
 .full-article p { margin-bottom: 14px; max-width: var(--page-content-max); }
 .full-article ul, .full-article ol {
   margin-bottom: 14px;
@@ -987,6 +1001,26 @@ sup { vertical-align: super; line-height: 0; }
 
 /* --- Navigation chrome. The opacities below fade a control's glyph, not
    running text, which is why they are allowed to stay literal. --- */
+/* Pause overlay (B/W/T keys): a solid screen that hides the slide so the
+   speaker draws the audience's eye. Sits above the slides, below the
+   nav buttons (so the speaker can still navigate). The background is
+   set by JS (black, white, or the theme's --page-bg) — never a colour
+   literal here, the skeleton carries no content colour. */
+.pause-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.pause-overlay.open { display: block; }
+/* In fullscreen, disable text selection: rapid slide navigation (mouse
+   wheel, click-drag, keyboard) can be misread by the browser as a
+   double-click drag and leave a selection highlight across slide content
+   while the speaker is talking. */
+body.fs-noselect {
+  user-select: none;
+  -webkit-user-select: none;
+}
 .nav-buttons {
   position: fixed;
   bottom: 24px;
@@ -995,7 +1029,14 @@ sup { vertical-align: super; line-height: 0; }
   flex-direction: column;
   gap: 8px;
   z-index: 200;
+  transition: opacity 0.4s;
 }
+/* Auto-hide in presentation: the buttons fade out after 3s of mouse
+   idleness and come back on mousemove. Touch devices keep them — there
+   is no cursor to wake them. */
+.nav-buttons.idle { opacity: 0; }
+.nav-buttons.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
 .nav-btn {
   width: 44px;
   height: 44px;
@@ -1020,6 +1061,44 @@ sup { vertical-align: super; line-height: 0; }
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
 .nav-btn-home { font-size: 17px; }
+.tag-menu {
+  position: fixed;
+  right: 82px;
+  bottom: 24px;
+  z-index: 250;
+  display: none;
+  min-width: 180px;
+  max-width: min(320px, calc(100vw - 110px));
+  padding: 10px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 10px;
+  background: inherit;
+  color: inherit;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+}
+.tag-menu.open { display: block; }
+.tag-menu-title {
+  margin: 2px 4px 8px;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tag-menu-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-option {
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: inherit;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85em;
+}
+.tag-option.active { font-weight: 700; }
+.tag-option:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-dots {
   position: fixed;
   bottom: 20px;
@@ -1028,7 +1107,11 @@ sup { vertical-align: super; line-height: 0; }
   display: flex;
   gap: 6px;
   z-index: 150;
+  transition: opacity 0.4s;
 }
+.nav-dots.idle { opacity: 0; }
+.nav-dots.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }
 .nav-dots a {
   width: 8px;
   height: 8px;
@@ -1047,6 +1130,121 @@ sup { vertical-align: super; line-height: 0; }
   .slide { padding: 40px 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: 16px; right: 16px; }
+}
+
+/* Print / PDF ("Print this page", specifications.md §9.4): one slide per
+   sheet, no navigation chrome, theme colors preserved. Slides are sized to
+   their own content (not 100vh) so a short slide does not blank a page. */
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
+  .pause-overlay { display: none !important; }
+  .slide {
+    page-break-after: always;
+    break-after: page;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    scroll-snap-align: none !important;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  @page { margin: 1.5cm; }
+}
+
+/* Speaker counter (X / N) + presenter notes panel (key N). */
+.slide-counter {
+  position: fixed;
+  bottom: 22px;
+  left: 28px;
+  z-index: 150;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border-style: solid;
+  border-width: 1px;
+  background: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
+  transition: opacity 0.4s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.slide-counter.idle { opacity: 0; }
+.slide-counter.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }
+.presenter-panel {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-height: 44vh;
+  z-index: 300;
+  padding: 16px 28px 20px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  background: inherit;
+  color: inherit;
+  box-shadow: 0 -4px 22px rgba(0,0,0,0.20);
+  overflow: auto;
+  display: none;
+}
+.presenter-panel.open { display: block; }
+.presenter-panel .pp-head {
+  font-weight: 700;
+  font-size: 0.95em;
+  margin-bottom: 10px;
+}
+.presenter-panel .pp-notes { font-size: 0.95em; line-height: 1.5; white-space: pre-wrap; }
+.presenter-panel .pp-next {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.9em;
+}
+
+/* Help overlay (key H): every keyboard shortcut and gesture. */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: inherit;
+  color: inherit;
+  display: none;
+  overflow: auto;
+  padding: 48px 24px;
+}
+.help-overlay.open { display: block; }
+.help-card {
+  max-width: 660px;
+  margin: 0 auto;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  background: inherit;
+}
+.help-title { font-weight: 700; font-size: 1.2em; margin-bottom: 16px; }
+.help-list { list-style: none; margin: 0; padding: 0; }
+.help-list li {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top-style: solid;
+  border-top-width: 1px;
+}
+.help-keys {
+  flex: 0 0 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+}
+.help-desc { flex: 1; }
+.help-foot {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.85em;
 }
 
 /* --- The highlight block ---

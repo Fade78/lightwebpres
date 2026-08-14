@@ -756,3 +756,24 @@ Nécessite son propre cahier des charges ; ce n'est pas une dette mais une
 décision de périmètre. Non implémenté et volontairement absent.
 
 **Status:** exclu.
+
+---
+
+## C3 — Variantes filtrables par `tags:` — IMPLEMENTÉ, e2e À COMPLÉTER
+
+Le format accepte désormais des tags de variante sur les slides : `default`
+est implicite, `excluded` est retiré au build, et les autres tags sont filtrés
+dans le navigateur avec la touche `L`. Le renommage éditorial `tag:` →
+`kicker:` est séparé de cet axe et ne doit pas être confondu avec les tags
+d'instance ou le version tag.
+
+`series_meta.lang_tags` associe un tag à un pack typographique ; le premier tag
+de langue porté par une slide sélectionne son moteur, avec `--lang`/`LWP_LANG`
+comme fallback. `audit` signale les tags invalides et les packs absents sans
+bloquer. Le comportement est couvert par les tests black-box et la
+documentation permanente.
+
+**Reste à faire :** ajouter le test navigateur du changement de variante dès
+que Playwright est disponible dans l'environnement de test.
+
+**Status:** implémenté ; e2e navigateur en attente de l'outillage.

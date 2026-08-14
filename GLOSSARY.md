@@ -66,6 +66,7 @@ Once per series, in `series.json`'s `series_meta` object.
 | `intro` | `''` — omitted from the page if absent | Intro paragraph on `index.html` and `README.md` |
 | `author` | `''` — nothing shown | Series-wide default author (§20.3.1); shown in the index page's footer, and on every article that doesn't override it |
 | `license` | `''` — nothing shown | Series-wide default license; same display as `author`; raw HTML allowed (a link) |
+| `lang_tags` | `{}` — no tag selects a language pack | Object mapping a slide variant tag to a typography/UI pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 
 ## Article-level fields
 
@@ -101,7 +102,8 @@ after these fields is a fatal error (§22.12).
 
 | Field | Default | Description |
 |---|---|---|
-| `tag` | `''` — omitted from the render if absent | Small label above the slide's own heading |
+| `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
+| `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it (§22.2) | The slide's own heading, rendered `<h1>` |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
 
@@ -111,7 +113,8 @@ A standard slide's own header (default, or explicit `<!-- lwp:slide -->`).
 
 | Field | Default | Description |
 |---|---|---|
-| `tag` | `''` — omitted from the render if absent | Small label above the slide's own heading |
+| `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
+| `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it (§22.2) | The slide's own heading, rendered `<h2>` |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
 | `highlight` | None — the whole highlight block is omitted if absent | Large standalone figure (a number, a stat, a quote) |
@@ -137,7 +140,7 @@ description; the terms are fixed here, in English.
 | Term | Meaning |
 |---|---|
 | **property** | One typed setting, named `component.axis` (`kicker.fg`, `cover.bg.angle`). The only vocabulary an author writes. |
-| **component** | A thing the format names that the page renders — `tag`, `summary`, `verdict.partial`. Properties belong to components; there is no intermediate semantic layer. |
+| **component** | A thing the format names that the page renders — `kicker`, `summary`, `verdict.partial`. Properties belong to components; there is no intermediate semantic layer. |
 | **axis** | The last segment of a property key: what it sets (`fg`, `size`, `weight`, `shadow.blur`). The axis fixes the type; the type fixes where a bare-word reference is looked up. |
 | **shared value** | A palette colour (`color.*`) or font stack (`font.*`) themes provide and properties reference. Never read by an emitted rule directly. |
 | **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`kicker.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
@@ -151,6 +154,7 @@ description; the terms are fixed here, in English.
 | **article properties** | `style.<property>: value` lines in an article's meta block — the same vocabulary, scoped to that page alone (§9.6.1). |
 | **instance tag** | A format-defined tag in free text — the instance-scoped fifth layer, same types as everywhere, enumerated by `audit` (§9.6.3). Inline (`{color:mark}…{/color}`, `{sc}…{/sc}`) or, for alignment alone, **block-level**: `{align:center}` and `{/align}` each on their own line, because `text-align` on an inline span does nothing. |
 | **variant** | A named look for a component instance (`fact-variant: warning` → class `fact--warning`), defined once per series in `custom.css` — the source carries meaning, not visual values (§9.6.2). |
+| **slide variant tag** | A normalized word from `tags:`. `default` is the implicit shared variant; a selected tag keeps shared slides plus slides carrying that tag. This is unrelated to instance tags or the version tag. |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
 | **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |
 

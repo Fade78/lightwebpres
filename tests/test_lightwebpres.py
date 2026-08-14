@@ -423,6 +423,24 @@ class AuditCommand(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('is not a cover', result.stdout)
 
+    def test_audit_reports_bad_tags_and_missing_language_pack_without_blocking(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntags: _private xx\n# Title\n'
+            'summary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'lang_tags': {'xx': 'missing-pack'}}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('audit', str(root))
+            self.assertEqual(result.returncode, 0, 'audit must never block')
+            self.assertIn("invalid tag '_private'", result.stdout)
+            self.assertIn("points to missing language pack 'missing-pack'", result.stdout)
+            self.assertIn("uses language tag 'xx'", result.stdout)
+
     def test_audit_names_the_scaffold_theme_drift_after_a_set_theme(self):
         """§9 rewrite: set-theme changes the theme line and leaves the
         commented values showing the OLD theme — by design, since the

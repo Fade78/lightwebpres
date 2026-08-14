@@ -28,6 +28,7 @@ LWP_LOOKUP_SCRIPT = Path(__file__).resolve().parent / 'lightwebpres_lookup_e2e.c
 GALLERY_FACETS_SCRIPT = Path(__file__).resolve().parent / 'themes_gallery_facets_e2e.cjs'
 GALLERY_PANELS_SCRIPT = Path(__file__).resolve().parent / 'gallery_panels_e2e.cjs'
 NOTE_PROPERTIES_SCRIPT = Path(__file__).resolve().parent / 'note_properties_e2e.cjs'
+SLIDE_TAGS_SCRIPT = Path(__file__).resolve().parent / 'slide_tags_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -127,6 +128,65 @@ class WebBuild(unittest.TestCase):
         html = self._build('en')
         self.assertIn('Built entirely in the browser.', html)
         self.assertIn('Previous slide', html)
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
+class SlideTagsRuntime(unittest.TestCase):
+    """The variant menu must change the visible slide subset and persist it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmpdir = tempfile.TemporaryDirectory()
+        root = Path(cls.tmpdir.name)
+        (root / 'articles').mkdir()
+        (root / 'series.json').write_text(json.dumps({
+            'articles': [{'page_source': 'a.md'}],
+        }), encoding='utf-8')
+        (root / 'articles' / 'a.md').write_text(
+            '<!-- lwp:meta -->\npage_title: Slide tags\n'
+            'nav_title: Tags\nnav_desc: Runtime tags\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: Shared\n# Shared\n'
+            'summary: Shared cover.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntags: en\nkicker: English\n'
+            '## English\nsummary: English variant.\n\n---\n\n'
+            '<!-- lwp:slide -->\ntags: fr\nkicker: Français\n'
+            '## Français\nsummary: French variant.\n\n---\n\n'
+            '<!-- lwp:slide -->\nkicker: Common\n## Common\n'
+            'summary: Shared content.\n',
+            encoding='utf-8',
+        )
+        output_dir = root / 'public'
+        result = subprocess.run(
+            [sys.executable, str(REPO_ROOT / 'lightwebpres'), 'build',
+             str(root), '--output', str(output_dir)],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+        cls.httpd = HTTPServer(
+            ('127.0.0.1', 0),
+            lambda *a: _QuietHandler(*a, directory=str(output_dir)),
+        )
+        cls.port = cls.httpd.server_address[1]
+        cls.thread = threading.Thread(target=cls.httpd.serve_forever,
+                                      daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.thread.join(timeout=5)
+        cls.tmpdir.cleanup()
+
+    def test_menu_switches_and_persists_variant(self):
+        result = subprocess.run(
+            ['node', str(SLIDE_TAGS_SCRIPT),
+             'http://127.0.0.1:%d/a.html' % self.port],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
@@ -277,6 +337,7 @@ class ThemesGalleryFacets(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class GalleryPanelsShowWhatTheyName(unittest.TestCase):
     """§11.7: each row is four panels, and each panel is an iframe with a
     real viewport at scale 1.0.
@@ -308,6 +369,7 @@ class GalleryPanelsShowWhatTheyName(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class EveryNoteAxisLandsWhereItIsAimed(unittest.TestCase):
     """§9/§6.5: an axis that is emitted but loses is worse than one that
     does not exist — `settings.conf` lists it, `audit` counts it, and it
