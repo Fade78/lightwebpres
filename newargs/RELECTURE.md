@@ -160,6 +160,7 @@
 - [OK] 11. theme show --all/multiple/unknown/no-args
 - [OK] 12. theme gallery restrict/--output
 - [OK] 13. --no-nav, --no-index, --no-readme, --drafts-only, --open
+- [OK] 13b. --slides-page-numbers (on/off, front-matter, series_meta, cascade, valeur invalide fatale) — implémenté hors phases 1-3
 - [OK] 14. --dry-run (build, init, theme gallery)
 - [OK] 15. clean (dry-run, --force, no manifest, no orphans)
 - [OK] 16. watch (initial build + SIGINT)

@@ -341,9 +341,11 @@ fiches sont :
 
 Générée à partir des champs `tag:` et `# Titre` (`slide_title`, rendu
 `<h1>` — GLOSSARY.md) de la fiche `cover` elle-même, et de son `summary:`
-— ces champs vivent uniquement dans le `.md`, jamais dans `series.json`
+ — ces champs vivent uniquement dans le `.md`, jamais dans `series.json`
 (§3.1). Le numéro de slide est calculé
-automatiquement (`01 / NN` où NN est le nombre total de slides).
+automatiquement (`01 / NN` où NN est le nombre total de slides) ; il n'est
+gravé dans un `<span class="slide-num">` que lorsque les numéros de slide
+sont activés (§3.3.5), et il est **absent par défaut**.
 
 #### 3.3.2 Fiche standard
 
@@ -407,6 +409,25 @@ Générée depuis `series.json`. L'article courant est marqué `series-current`.
 
 Le contenu est inclus depuis un fichier Markdown externe pointé par la
 directive `article:` dans le Markdown étendu.
+
+#### 3.3.5 Numéros de slide gravés (opt-in)
+
+Le `<span class="slide-num">NN / NN</span>` en haut à droite de chaque
+fiche (`cover`, `standard`, `full-article` — pas `series-nav`) est
+**opt-in**. Par défaut il est **absent** du HTML. Il n'apparaît que si les
+numéros de slide sont activés, selon la cascade (la plus spécifique gagne) :
+
+1. `slide_page_numbers: true` dans le bloc meta de l'article (front-matter) ;
+2. `--slides-page-numbers on` (commandes `build` / `watch`) ;
+3. `series_meta.slide_page_numbers: true` dans `series.json` ;
+4. défaut intégré : `off`.
+
+Toute valeur hors `true`/`false` (front-matter) ou `on`/`off` (CLI) est
+une erreur de build **fatale** nommant l'origine. Le compteur dynamique
+bas-gauche (`.slide-counter`, « X / N ») est **indépendant** et toujours
+affiché, même quand les numéros gravés sont désactivés. La résolution est
+faite une fois par article (`resolve_slide_page_numbers`) et transmise à
+chaque renderer (§12.3).
 
 ---
 
@@ -4085,6 +4106,8 @@ build(répertoire):
      c. html_slides = []
      d. slide_num = 0
      e. total_slides = count_slides(slides)
+     e2. show_slide_num = resolve_slide_page_numbers(meta, args, series_meta)  # §3.3.5
+         # show_slide_num est transmis à chaque renderer (cover/standard/full-article)
 
      f. FOR each slide IN slides:
         slide_num += 1
@@ -4117,6 +4140,11 @@ build(répertoire):
 
   9. generate_readme(series, répertoire/README.md)
   10. copy_images(répertoire/articles/img/, répertoire/public/img/)  # merge, never wipe
+
+  # Sorties optionnelles (commandes build / watch) : `--no-index` saute
+  # l'étape 7-8, `--no-readme` saute l'étape 9, `--no-nav` vide le
+  # placeholder de navigation inter-articles (§11.3.3). `--drafts-only`
+  # ne construit que les articles `status: draft`. Voir DECISION-CLI.md.
 ```
 
 ### 12.2 Parseur Markdown étendu
@@ -4135,9 +4163,10 @@ parse_markdown(text):
 ### 12.3 Rendu d'une fiche standard
 
 ```
-render_standard(slide, slide_num, total_slides, language):
+render_standard(slide, slide_num, total_slides, language, show_slide_num):
   1. html = '<section class="slide" id="s{slide_num}">'
-  2. html += '<span class="slide-num">{slide_num} / {total_slides}</span>'
+  2. IF show_slide_num:
+       html += '<span class="slide-num">{slide_num} / {total_slides}</span>'
   3. IF slide.tag:
      html += '<span class="slide-tag">{tag}</span>'
   4. IF slide.h2:

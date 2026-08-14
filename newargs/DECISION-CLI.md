@@ -122,6 +122,15 @@ Slugs inconnus → erreur fatale qui liste les slugs valides.
 L'index et la navigation inter-articles pointent vers des pages non
 construites. Accepté : c'est un aperçu, pas une publication.
 
+### `--slides-page-numbers`
+Opt-in (défaut `off`). Valeurs `on`/`off`. S'applique à `build` et
+`watch`. Cascade : `slide_page_numbers:` du front-matter de l'article >
+ce flag > `series_meta.slide_page_numbers` dans `series.json` > défaut
+`off`. Toute valeur hors `true`/`false` (front-matter) ou `on`/`off` (CLI)
+est une erreur de build fatale nommant l'origine. Distinct du compteur
+live bas-gauche (`.slide-counter`, toujours affiché). Référence :
+`resolve_slide_page_numbers` dans `lightwebpres`. Voir specifications.md §3.3.5.
+
 ### `--dry-run`
 Toute écriture (fichier, répertoire) passe par un helper unique.
 Un test vérifie qu'aucun `open(…, 'w')`, `write_text`, `mkdir`,

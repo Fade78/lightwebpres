@@ -694,6 +694,22 @@ lightwebpres build my-series --open
 Ouvre automatiquement le navigateur sur le résultat (`xdg-open` sur
 Linux, `open` sur macOS) après le build.
 
+### 7.6 `--slides-page-numbers on|off` sur `series build` / `series watch` (NOUVEAU, IMPLÉMENTÉ)
+
+```bash
+lightwebpres build my-series --slides-page-numbers on
+```
+
+Numéro de slide gravé en haut à droite (`<span class="slide-num">NN / NN</span>`),
+**opt-in, défaut `off`**. Se compose avec la clé de front-matter
+`slide_page_numbers: true|false` et la clé `series_meta.slide_page_numbers`
+de `series.json` ; précédence (la plus spécifique gagne) :
+front-matter article > `--slides-page-numbers` > `series_meta` > défaut
+`off`. Toute valeur hors `true`/`false` (front-matter) ou `on`/`off` (CLI)
+est une erreur de build fatale nommant l'origine. Distinct du compteur
+live bas-gauche (`.slide-counter`, toujours affiché). Voir
+`specifications.md` §3.3.5 et `DECISION-CLI.md` §`--slides-page-numbers`.
+
 ---
 
 ## 8. Grouper le vocabulaire : le tableau complet
@@ -983,6 +999,7 @@ Pour être explicite sur le périmètre :
 | `--serve` | series watch | active le serveur HTTP (opt-in) |
 | `--port` | series watch | port du serveur (défaut 8000) |
 | `--open` | series watch, series build | ouvre le navigateur |
+| `--slides-page-numbers` | series build, series watch | numéro de slide gravé en haut à droite (opt-in, défaut off) |
 | `--quiet` / `--verbose` | globale | contrôle la verbosité |
 | `--dry-run` | globale | ne rien écrire sur disque |
 | `--no-color` | globale | désactive les couleurs ANSI |

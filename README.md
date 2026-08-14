@@ -246,6 +246,34 @@ the series or within one article.
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 
+## Options
+
+Global options (accepted before the command, like `git`): `--lang fr|en`,
+`--quiet`, `--verbose`, `--no-color`, `--dry-run`, `--timestamp`,
+`--version`, `--help`. The option nearest the command wins.
+
+| Option | Command(s) | Effect |
+|---|---|---|
+| `--slides-page-numbers on\|off` | `build`, `watch` | engraves the top-right `NN / NN` slide number — opt-in, default `off`; the article front-matter `slide_page_numbers` and `series_meta.slide_page_numbers` also enable it (see specifications.md §3.3.5) |
+| `--no-nav` | `build`, `watch` | omits the cross-article navigation block |
+| `--no-index` | `build`, `watch` | skips `index.html` |
+| `--no-readme` | `build`, `watch` | skips the generated `README.md` |
+| `--drafts-only` | `build`, `watch` | builds only `status: draft` articles |
+| `--open` | `build` | opens the result in the browser |
+| `--include-drafts` | `build`, `verify` | builds draft articles too |
+| `--strict` | `audit` | exits non-zero on any warning |
+| `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
+| `--only file.html` | `build` | rebuilds a single article |
+| `--inline-images` | `build` | embeds images as base64 data URIs |
+| `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
+| `--format json` | `resolve`, `status`, `theme show`, `series theme` | machine-readable output |
+
+Legacy command names (`install`, `check`, `themes`, `theme-info`,
+`set-theme`, `series-info`, `refresh-templates`, `themes-gallery`) remain
+usable as aliases and print a `[WARN]` on stderr pointing to the new name;
+they are kept for existing scripts and will be dropped in a later major
+version.
+
 ## Slide types
 
 - **`cover`** — title slide: tag, `# Title`, summary. Free position and

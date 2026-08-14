@@ -61,7 +61,7 @@ screen never dims mid-talk.
 
 Section 8 has the shape of a pipeline that uses all of it.
 
-## 2. Install & your first build
+## 2. Set up & your first build
 
 ```bash
 ./lightwebpres init my-series
@@ -96,6 +96,17 @@ single self-contained file.
 no `img/` directory at all — useful for emailing a single file or
 hosting where only static HTML is served. The HTML grows ~33% per
 image; a serving gzip recovers the overhead.
+
+`build` also accepts a handful of switches that change what it writes:
+`--no-index` (skip `index.html`), `--no-readme` (skip the generated
+`README.md`), `--no-nav` (omit the cross-article navigation block),
+`--drafts-only` (build only `status: draft` articles), `--open` (open the
+result in the browser), and `--slides-page-numbers on` to engrave the
+top-right `NN / NN` slide number — **off by default** (the article
+front-matter `slide_page_numbers` and `series_meta.slide_page_numbers`
+also turn it on; see specifications.md §3.3.5). `watch` takes the same
+output switches and adds `--serve` (opt-in HTTP server on `127.0.0.1`,
+`--port 8000`).
 
 ## 3. What a page is made of
 
@@ -478,7 +489,11 @@ dark screen rather than flashing white.
 A small `X / N` counter sits in the bottom-left corner and fades out with
 the other chrome when the mouse is idle. Type a slide number and press
 **Enter** to jump there — handy once a deck passes ten slides and the
-arrow-key walk becomes a slog. Press **N** to open the speaker panel: it
+arrow-key walk becomes a slog. That live counter is **always** shown and
+is independent of the engraved top-right `NN / NN` slide number, which is
+opt-in (off by default) and turned on only by `--slides-page-numbers on`,
+the article front-matter `slide_page_numbers`, or `series_meta.slide_page_numbers`
+(see specifications.md §3.3.5). Press **N** to open the speaker panel: it
 shows the current slide's `note:` field (the speaker note you wrote for
 that slide — see below) and the title of the next slide, so you can read
 ahead without the audience seeing it. The panel rides along as you

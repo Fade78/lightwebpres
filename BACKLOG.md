@@ -9,6 +9,23 @@ goes here, not in the journal.
 Every entry says what has been **verified** and what remains to be
 **decided**.
 
+## Révision du registre (2026-08-14)
+
+Ce registre a été passé en revue lors de la remise en cohérence
+docs/CLI (réintégration de la refonte CLI newargs/ dans
+`specifications.md`, `README.md`, `GUIDE.md` et le skill) :
+
+- **Résolus (à archiver)** : B1 (FIXED v0.12.0), B2 (SETTLED v0.12.0),
+  B3 (FIXED v0.12.2), B4 (DONE via B7), B7 (DONE), B13 (DONE), B14 (DONE).
+  Ils portent déjà la mention DONE/FIXED/SETTLED en en-tête ; ils n'ont
+  plus leur place dans un registre de dette active et peuvent être
+  déplacés dans une annexe « Résolu ».
+- **Toujours ouverts / notés** : B5, B6, B8, B9 (partie appliquée),
+  B10, B11, B12, B15, B16, B17, B18.
+- **Nouveaux (cette révision)** : C1 (test AST anti-écriture nue hors
+  helpers), C2 (`series article add/remove/set` hors périmètre — décision,
+  pas dette).
+
 ---
 
 ## B1 — Mid-paragraph image with a title — FIXED in v0.12.0
@@ -716,3 +733,26 @@ popover's fill, so the 1px border is the only thing saying "button" — but
 fixing it means moving the registry default `#00000029`, which touches
 every light theme at once. Dark and light are asymmetric there until
 someone decides that default.
+
+---
+
+## C1 — Test AST « aucune écriture nue hors helpers » — OPEN
+
+**Type:** test d'architecture manquant.
+**Signalé dans:** `newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
+implémenté. Un test *runtime* `test_no_bare_filesystem_write_outside_helpers`
+(`tests/test_lightwebpres.py`) existe et couvre le comportement attendu ;
+il reste à confirmer qu'il équivaut à l'intention AST (balayage statique
+du source pour interdire tout `open(…, 'w')` / `write_text` / `mkdir` /
+`copytree` hors des helpers `_write_file` / `_mkdir`). Si le test runtime
+suffit, fermer l'entrée ; sinon, écrire l'AST.
+
+**Status:** ouvert.
+
+## C2 — `series article add/remove/set` — EXCLU (décision)
+
+Hors périmètre de la refonte CLI v0.24 (`newargs/PLAN-CLI.md` §7).
+Nécessite son propre cahier des charges ; ce n'est pas une dette mais une
+décision de périmètre. Non implémenté et volontairement absent.
+
+**Status:** exclu.

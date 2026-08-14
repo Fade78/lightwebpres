@@ -183,6 +183,17 @@ and emitted as `<meta>` tags:
   as a tooltip. It composes with either placement and is never the only
   carrier: the body stays in the document regardless. Off by default.
 
+**Slide-number field** (opt-in, off by default):
+
+- `slide_page_numbers: true | false` — shows the engraved top-right
+  `<span class="slide-num">NN / NN</span>` on every slide. Resolves down
+  the same cascade shape as the other article fields: the article's
+  front-matter wins over the `--slides-page-numbers on|off` CLI flag, which
+  wins over `series_meta.slide_page_numbers` in `series.json`, which wins
+  over the built-in default (`off`). An invalid value is a fatal build
+  error naming the article. This is **not** the always-on bottom-left live
+  `X / N` counter — that one needs no setting and is never suppressed.
+
 **A key this block does not recognize is accepted in silence** — no
 error, no warning, and no effect. `page-title:` instead of `page_title:`
 builds cleanly and falls back as though you had written nothing. This is

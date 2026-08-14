@@ -212,3 +212,20 @@ python3 -m unittest tests.test_lightwebpres  # doit être vert (630 tests)
 - `--name` — rejeté, on garde `--theme` partout
 - `--clean` sur `build` — rejeté (DECISION-CLI.md) : cacher une suppression dans un build est le pire endroit
 - `--no-serve` (opt-out) — inversé en `--serve` (opt-in) (DECISION-CLI.md)
+
+## 8. Suite (post-v0.24)
+
+- **`--slides-page-numbers on|off`** (numéro de slide gravé, opt-in, défaut
+  `off`) : **implémenté** hors des trois phases, avec cascade
+  `slide_page_numbers:` (front-matter) > `--slides-page-numbers` (CLI) >
+  `series_meta.slide_page_numbers` > défaut `off`, et validation stricte
+  (erreur fatale sur valeur invalide). Documenté dans `specifications.md`
+  §3.3.5, `README.md`, `GUIDE.md` et `agent/skills/lightwebpres/SKILL.md`.
+- **Test AST « aucune écriture nue hors helpers »** (§6 Phase 3, ligne 199)
+  : **non implémenté** en tant qu'AST ; un test *runtime*
+  `test_no_bare_filesystem_write_outside_helpers` couvre le cas — à
+  confirmer s'il équivaut. Reste en BACKLOG (C1).
+- La refonte CLI (phases 1-3) est **complète** et absorbée dans
+  `specifications.md` / `README.md` / `GUIDE.md` /
+  `agent/skills/lightwebpres/SKILL.md`. Ces fichiers `newargs/` restent la
+  référence historique de l'intention et des décisions.
