@@ -692,7 +692,7 @@ forces the exemption out with it.
 Same class as B9's five themes: a palette value below AA, needing a
 measured replacement rather than a mechanism.
 
-## B18 — `cover.tag.fg` is below AA on three themes — NOTED
+## B18 — `cover.kicker.fg` is below AA on three themes — NOTED
 
 Found while fixing B17, and it is the same pair seen from the other side.
 The cover tag is `mark` painted on the cover ground, which on a light
@@ -700,7 +700,7 @@ theme *is* `ink` — so catppuccin's tag measured the identical 3.05:1 as
 its fact box, and moving `color.mark` fixed both at once. Three other
 themes are below the floor for the same reason and were not touched:
 
-| theme | `cover.tag.fg` on the cover ground |
+| theme | `cover.kicker.fg` on the cover ground |
 |---|---|
 | pop-tangerine | **2.19:1** |
 | pop-lemon | **3.22:1** |
@@ -720,7 +720,7 @@ a backlog entry saying someone meant to deal with it. A pinned set alone
 would have been a headstone that reads like a decision. Recording it here
 is what makes it a debt rather than a shrug.
 
-Deliberately not fixed with B17: a `cover.tag.fg` literal per theme is
+Deliberately not fixed with B17: a `cover.kicker.fg` literal per theme is
 one line each, but the values are an artistic choice on three palettes,
 and B17's decided route (move `color.mark`) does not transfer — on
 pop-tangerine it would take `mark`-on-page from 3.80:1 to 1.85:1, which

@@ -27,7 +27,7 @@ where to download it from, and the only address to trust for it.
 LWP text is **two different grammars stitched together**, and mixing them
 up is the single most common way to lose content silently:
 
-1. **Structural fields** (`tag: ...`, `summary: ...`, `highlight: ...`,
+1. **Structural fields** (`kicker: ...`, `summary: ...`, `highlight: ...`,
    etc.) — each one is **exactly one physical line**. No wrapping, no
    continuation. If a value needs a line break, that's not a field
    anymore.
@@ -39,7 +39,7 @@ up is the single most common way to lose content silently:
 The switch from (1) to (2) is **one-way and permanent within a slide**:
 the moment a line in a slide's header isn't a recognized field, the
 parser stops looking for fields entirely for the rest of that slide —
-even a later line that looks exactly like `tag: something` is just text
+even a later line that looks exactly like `kicker: something` is just text
 from then on. So: put every field before any body text, one per line,
 and never expect a field to wrap.
 
@@ -60,14 +60,14 @@ nav_desc: Pastry, baking, and plating
 ---
 
 <!-- lwp:slide:cover -->
-tag: Recipe
+kicker: Recipe
 # The apple pie
 summary: Nine things that make or break a homemade apple pie.
 
 ---
 
 <!-- lwp:slide -->
-tag: Baking
+kicker: Baking
 ## Temperature changes everything
 summary: An oven that's too hot cooks the surface before the center is ready.
 fact-label: The takeaway
@@ -208,12 +208,12 @@ per-slide one below: recognized, never read, never published.
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `tag`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
+| `cover` | `kicker`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `kicker`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
 | `series-nav` | none — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` (required) | 0 or 1 per article |
 
-`tag`, `summary`, `fact-label`, `source`, `highlight`/`highlight-caption`
+`kicker`, `summary`, `fact-label`, `source`, `highlight`/`highlight-caption`
 are all optional — omit the line if you don't need it. An empty value
 behaves like omitting it everywhere **except on a cover slide**, where
 the parser tests whether a field was *set*, not whether it has content:
@@ -238,7 +238,7 @@ A cover slide **accepts** `fact-label`, `source`, `highlight` and
 get a `[WARNING]`, exit code 0, and a page missing what you wrote. Only
 free *text* on a cover is fatal.
 
-**Cover slides only accept** `tag`, `# Title`, `summary`, and `comment`.
+**Cover slides only accept** `kicker`, `# Title`, `summary`, and `comment`.
 Any other field (the standard-slide fields: `highlight`, `highlight-caption`,
 `fact-label`, `fact-variant`, `source`) is parsed but **never rendered** on
 a cover — the build warns and continues. This is deliberate so you can
@@ -402,7 +402,7 @@ sees. Write it as a `note:` field on the slide:
 
 ```markdown
 <!-- lwp:slide -->
-tag: Two
+kicker: Two
 ## Slide two
 note: Mention the 2020 study — the audience asked for it last time.
   Follow up with the 2023 replication.
@@ -634,7 +634,7 @@ as finished — don't guess at whether it would build.
   won't; the second line becomes free text instead (a fatal build error
   on a `cover` slide, since it has no fact-box for that text to go into
   — at least you'll get a clear error, not silent data loss).
-- Writing `tag:`, `summary:`, etc. **after** the fact-box body has
+- Writing `kicker:`, `summary:`, etc. **after** the fact-box body has
   started — those lines are already free text at that point, not fields.
   Same for a `#`/`##` heading appearing after body content has started:
   it becomes a heading rendered *inside* the fact-box, not a rewrite of

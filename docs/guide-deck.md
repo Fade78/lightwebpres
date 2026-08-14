@@ -6,14 +6,14 @@ nav_desc: Install, anatomy of a page, series, look, shipping
 ---
 
 <!-- lwp:slide:cover -->
-tag: Guide
+kicker: Guide
 # LightWebPres
 summary: Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.
 
 ---
 
 <!-- lwp:slide -->
-tag: Scope
+kicker: Scope
 ## What it does, and what it leaves to you
 
 fact-label: The line
@@ -25,7 +25,7 @@ A second skill, `sourced-presentation`, ships alongside as a courtesy for anyone
 ---
 
 <!-- lwp:slide -->
-tag: Install
+kicker: Install
 ## Three commands to a built site
 
 fact-label: The whole loop
@@ -38,7 +38,7 @@ Language is chosen **per build**, never stored: pass `--lang en` or you get Fren
 ---
 
 <!-- lwp:slide -->
-tag: Anatomy
+kicker: Anatomy
 ## A page is slides, a slide has components
 
 highlight: 4
@@ -57,7 +57,7 @@ A note[^note] is reached the standard way, and its number is a position rather t
 ---
 
 <!-- lwp:slide -->
-tag: Look
+kicker: Look
 ## Four gestures, smallest first
 
 fact-label: Pick the smallest one that does the job
@@ -69,7 +69,7 @@ The stylesheet is composed in memory at every build, so nothing the tool writes 
 ---
 
 <!-- lwp:slide -->
-tag: Look
+kicker: Look
 ## Thirty-three themes, found by facet
 
 highlight: 33
@@ -84,7 +84,7 @@ Thirty-three names tell you nothing. Light or dark, loud or sober, and what hue 
 ---
 
 <!-- lwp:slide -->
-tag: Automation
+kicker: Automation
 ## A step in a content pipeline
 
 highlight: 11
@@ -99,7 +99,7 @@ The Markdown can come from anywhere — a CMS export, a database, a generator, a
 ---
 
 <!-- lwp:slide -->
-tag: Shipping
+kicker: Shipping
 ## Two checks, two different moments
 
 fact-label: A nudge and a gate

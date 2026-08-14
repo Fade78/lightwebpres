@@ -65,7 +65,7 @@ def _make_test_zip(zip_path):
         (root / 'articles' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Web test\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Web build test\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Web build test\n'
             'summary: Built entirely in the browser.\n\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: a_article.md\n',
             encoding='utf-8',

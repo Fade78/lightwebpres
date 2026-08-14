@@ -119,8 +119,8 @@ reach each one; `SKILL.md` carries the exact syntax and every edge case.
 
 | Type | Carries | How many |
 |---|---|---|
-| `cover` | `tag`, `# Title`, `summary` | any number, anywhere — it is a look, not a structural marker |
-| standard *(the default)* | `tag`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, then free Markdown | as many as you want |
+| `cover` | `kicker`, `# Title`, `summary` | any number, anywhere — it is a look, not a structural marker |
+| standard *(the default)* | `kicker`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, then free Markdown | as many as you want |
 | `series-nav` | nothing — generated from `series.json` | 0 or 1 per article |
 | `full-article` | `article: filename.md` | 0 or 1 per article |
 
@@ -286,8 +286,8 @@ Two properties control the fact-box bold (`**text**` in a fact-box):
   highlighted too); `off` leaves the Markdown as written.
 
 ```
-# tag.fg: ink-quiet        ← the scaffold, showing the theme's value
-tag.fg: call               ← uncommented: yours, and it stays
+# kicker.fg: ink-quiet      ← the scaffold, showing the theme's value
+kicker.fg: call             ← uncommented: yours, and it stays
 ```
 
 A bare word like `call` is looked up among the theme's shared values
@@ -298,7 +298,7 @@ error pointing at the file and key.
 Three properties people look for by name: **`page.content-max`** is the
 text column width, `84vw` by default — proportional to the window, with
 no ceiling, so a deck shown full screen uses the screen. Every type size
-is proportional too — the tag, the fact label, the key figure's caption
+is proportional too — the kicker, the fact label, the key figure's caption
 and the slide number as much as the title — which is what keeps the line
 length steady and the proportions between them fixed as the screen
 grows. Each size has a floor in pixels, and the floor is what governs a
@@ -351,7 +351,7 @@ defaults. When the result surprises you, ask:
 
 ```bash
 ./lightwebpres resolve my-series page_title --article apple-pie.md
-./lightwebpres resolve my-series tag.fg
+./lightwebpres resolve my-series kicker.fg
 ```
 
 Nothing tells it what kind of name you passed — the name does. A dot
@@ -362,7 +362,7 @@ The answer shows the level that decided **and every level that didn't**,
 strongest first:
 
 ```
-tag.fg — theme property
+kicker.fg — theme property
   value: #BF616AFF
   from:  settings
   via:   color.call
@@ -504,7 +504,7 @@ footnote, which is a *source* note printed for the reader:
 
 ```markdown
 <!-- lwp:slide -->
-tag: Two
+kicker: Two
 ## Slide two
 note: Mention the 2020 study — the audience asked for it last time.
   Follow up with the 2023 replication.

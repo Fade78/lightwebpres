@@ -136,11 +136,11 @@ description; the terms are fixed here, in English.
 
 | Term | Meaning |
 |---|---|
-| **property** | One typed setting, named `component.axis` (`tag.fg`, `cover.bg.angle`). The only vocabulary an author writes. |
+| **property** | One typed setting, named `component.axis` (`kicker.fg`, `cover.bg.angle`). The only vocabulary an author writes. |
 | **component** | A thing the format names that the page renders — `tag`, `summary`, `verdict.partial`. Properties belong to components; there is no intermediate semantic layer. |
 | **axis** | The last segment of a property key: what it sets (`fg`, `size`, `weight`, `shadow.blur`). The axis fixes the type; the type fixes where a bare-word reference is looked up. |
 | **shared value** | A palette colour (`color.*`) or font stack (`font.*`) themes provide and properties reference. Never read by an emitted rule directly. |
-| **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`tag.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
+| **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`kicker.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
 | **layer** | One dictionary of properties in the cascade (§9.3): built-in defaults, theme, settings, article, instance — merged in that order before emission. |
 | **theme** | A named layer of properties applied over the built-in defaults. |
 | **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Never written by the tool except on explicit request (`series theme set` rewrites only the `theme:` line). |

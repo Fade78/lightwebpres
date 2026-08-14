@@ -102,10 +102,10 @@ class KeyboardNav(unittest.TestCase):
         (tall_root / 'articles' / 'tall.md').write_text(
             '<!-- lwp:meta -->\npage_dest: tall.html\npage_title: Tall test\n'
             'nav_title: Tall\nnav_desc: Tall\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Tall test\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Tall test\n'
             'summary: Cover slide.\n\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: tall_article.md\n\n---\n\n'
-            '<!-- lwp:slide -->\ntag: T2\n## Trailing slide\n'
+            '<!-- lwp:slide -->\nkicker: T2\n## Trailing slide\n'
             'summary: Reachable only once the overflowing slide before it has been scrolled through.\n',
             encoding='utf-8',
         )
@@ -126,9 +126,9 @@ class KeyboardNav(unittest.TestCase):
         (nav_root / 'articles' / 'nav.md').write_text(
             '<!-- lwp:meta -->\npage_dest: nav.html\npage_title: Nav test\n'
             'nav_title: Nav\nnav_desc: Nav\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Nav test\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Nav test\n'
             'summary: Cover slide.\n\n---\n\n'
-            '<!-- lwp:slide -->\ntag: T2\n## Standard slide\n'
+            '<!-- lwp:slide -->\nkicker: T2\n## Standard slide\n'
             'summary: One ordinary slide before the series-nav slide.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n',
             encoding='utf-8',
@@ -137,7 +137,7 @@ class KeyboardNav(unittest.TestCase):
             (nav_root / 'articles' / ('%s.md' % letter)).write_text(
                 '<!-- lwp:meta -->\npage_dest: %s.html\npage_title: Article %s\n'
                 'nav_title: %s\nnav_desc: %s\n---\n\n'
-                '<!-- lwp:slide:cover -->\ntag: T\n# Article %s\n'
+                '<!-- lwp:slide:cover -->\nkicker: T\n# Article %s\n'
                 'summary: Cover slide.\n' % (letter, letter.upper(), letter.upper(), letter.upper(), letter.upper()),
                 encoding='utf-8',
             )
@@ -166,12 +166,12 @@ class KeyboardNav(unittest.TestCase):
         (held_root / 'articles' / 'held.md').write_text(
             '<!-- lwp:meta -->\npage_dest: held.html\npage_title: Held test\n'
             'nav_title: Held\nnav_desc: Held\n---\n\n'
-            '<!-- lwp:slide:cover -->\ntag: T\n# Held test\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Held test\n'
             'summary: Cover slide.\n\n---\n\n'
-            '<!-- lwp:slide -->\ntag: T2\n## Standard slide\n'
+            '<!-- lwp:slide -->\nkicker: T2\n## Standard slide\n'
             'summary: One ordinary slide before the series-nav slide.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\n\n---\n\n'
-            '<!-- lwp:slide -->\ntag: T3\n## Trailing slide\n'
+            '<!-- lwp:slide -->\nkicker: T3\n## Trailing slide\n'
             'summary: Only reached by racing all the way through the series-nav cards.\n',
             encoding='utf-8',
         )
@@ -179,7 +179,7 @@ class KeyboardNav(unittest.TestCase):
             (held_root / 'articles' / ('%s.md' % letter)).write_text(
                 '<!-- lwp:meta -->\npage_dest: %s.html\npage_title: Article %s\n'
                 'nav_title: %s\nnav_desc: %s\n---\n\n'
-                '<!-- lwp:slide:cover -->\ntag: T\n# Article %s\n'
+                '<!-- lwp:slide:cover -->\nkicker: T\n# Article %s\n'
                 'summary: Cover slide.\n' % (letter, letter.upper(), letter.upper(), letter.upper(), letter.upper()),
                 encoding='utf-8',
             )

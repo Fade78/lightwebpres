@@ -39,9 +39,9 @@ BRANCH = 'main'
 ARTICLE_MD = (
     '<!-- lwp:meta -->\npage_title: Git sync test\nnav_title: A\n'
     'nav_desc: A\n---\n\n'
-    '<!-- lwp:slide:cover -->\ntag: T\n# Git sync test\n'
+    '<!-- lwp:slide:cover -->\nkicker: T\n# Git sync test\n'
     'summary: Built by pulling from a mock GitLab repository.\n\n---\n\n'
-    '<!-- lwp:slide -->\ntag: Fact\n## A highlighted fact\n'
+    '<!-- lwp:slide -->\nkicker: Fact\n## A highlighted fact\n'
     'highlight: 100 %\nhighlight-caption: pulled, built and pushed in one browser tab\n'
 )
 

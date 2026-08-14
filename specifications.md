@@ -295,7 +295,7 @@ contient, pour chaque article, deux catégories de champs bien distinctes
   article), `author`/`license`/`date` (champs éditoriaux affichés,
   §20.3.1), `status` (§20.6).
 
-Le contenu d'une fiche `cover` (tag, titre, summary) vient exclusivement des
+Le contenu d'une fiche `cover` (kicker, titre, summary) vient exclusivement des
 champs de la fiche elle-même dans le `.md` (§3.3.1) — `series.json` ne porte
 jamais de contenu de page, seulement les champs structurels et les
 surcharges d'affichage ci-dessus.
@@ -338,13 +338,13 @@ fiches sont :
 ```html
 <section class="slide slide-cover" id="s1">
   <span class="slide-num">01 / 12</span>
-  <span class="slide-tag">Recette</span>
+  <span class="slide-kicker">Recette</span>
   <h1>La tarte aux pommes</h1>
   <p class="summary">Neuf repères pour réussir une tarte aux pommes maison, de la pâte à la cuisson...</p>
 </section>
 ```
 
-Générée à partir des champs `tag:` et `# Titre` (`slide_title`, rendu
+Générée à partir des champs `kicker:` et `# Titre` (`slide_title`, rendu
 `<h1>` — GLOSSARY.md) de la fiche `cover` elle-même, et de son `summary:`
  — ces champs vivent uniquement dans le `.md`, jamais dans `series.json`
 (§3.1). Le numéro de slide est calculé
@@ -357,7 +357,7 @@ sont activés (§3.3.5), et il est **absent par défaut**.
 ```html
 <section class="slide" id="s2">
   <span class="slide-num">02 / 12</span>
-  <span class="slide-tag">Cuisson</span>
+  <span class="slide-kicker">Cuisson</span>
   <h2>La température change tout</h2>
   <p class="summary">Un four trop chaud cuit la surface avant que le centre ne soit prêt...</p>
   <div class="highlight">
@@ -396,7 +396,7 @@ Générée depuis `series.json`. L'article courant est marqué `series-current`.
 ```html
 <section class="slide full-article" id="sN">
   <span class="slide-num">NN / NN</span>
-  <span class="slide-tag">Article complet</span>
+  <span class="slide-kicker">Article complet</span>
   <!-- contenu converti depuis le fichier .md inclus -->
   <h1>Titre de l'article</h1>
   <h2>Introduction</h2>
@@ -480,7 +480,7 @@ s'applique aux champs LWP.
 **La bascule champ → texte libre est à sens unique.** Dès qu'une ligne d'une
 fiche n'est pas reconnue comme un champ LWP, le parseur cesse définitivement
 de chercher des champs pour le reste de la fiche (voir §22.2) : tout le
-reste, y compris une ligne qui ressemblerait à un champ (`tag: ...`), est
+  reste, y compris une ligne qui ressemblerait à un champ (`kicker: ...`), est
 traité comme du texte Markdown.
 
 ### 4.2 Exemple complet
@@ -496,14 +496,14 @@ card_desc: Température de cuisson, temps de repos de la pâte, et astuces de dr
 ---
 
 <!-- lwp:slide:cover -->
-tag: Recette
+kicker: Recette
 # La tarte aux pommes
 summary: Neuf repères pour réussir une tarte aux pommes maison, de la pâte brisée à la cuisson, en passant par le choix des pommes et le dressage.
 
 ---
 
 <!-- lwp:slide -->
-tag: Cuisson
+kicker: Cuisson
 ## La température change tout
 summary: Un four trop chaud cuit la surface avant que le centre ne soit prêt : c'est le piège le plus courant de la tarte maison.
 fact-label: Le repère
@@ -525,7 +525,7 @@ Le temps de cuisson varie ensuite selon l'**épaisseur** des pommes et la hauteu
 article: tarte-aux-pommes_article.md
 ```
 
-Chaque champ (`summary:`, `tag:`, etc.) reste sur sa seule ligne physique,
+Chaque champ (`summary:`, `kicker:`, etc.) reste sur sa seule ligne physique,
 même long — c'est la règle LWP de §4.1. En revanche, le texte libre de la
 seconde fiche ci-dessus contient volontairement **deux paragraphes Markdown**
 séparés par une ligne vide (« Le four doit être préchauffé... » et « Le
@@ -537,7 +537,7 @@ doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 
 | Champ           | HTML généré                              | Obligatoire |
 |-----------------|------------------------------------------|-------------|
-| `tag`           | `<span class="slide-tag">VALEUR</span>`  | Non         |
+| `kicker`        | `<span class="slide-kicker">VALEUR</span>` | Non       |
 | `## `           | `<h2>VALEUR</h2>`                        | Non         |
 | `summary`        | `<p class="summary">VALEUR</p>`          | Non         |
 | `fact-label`     | `<div class="fact-label">VALEUR</div>`   | Non         |
@@ -1536,8 +1536,8 @@ avec le projet GUI :
 
 | Terme | Définition |
 |---|---|
-| **propriété** | Un réglage typé, nommé `composant.axe` (`tag.fg`, `cover.bg.angle`). Le seul vocabulaire qu'un auteur écrit. |
-| **composant** | Une chose que le format nomme et que la page rend — `tag`, `summary`, `verdict.partial`. Les propriétés appartiennent aux composants. |
+| **propriété** | Un réglage typé, nommé `composant.axe` (`kicker.fg`, `cover.bg.angle`). Le seul vocabulaire qu'un auteur écrit. |
+| **composant** | Une chose que le format nomme et que la page rend — `kicker`, `summary`, `verdict.partial`. Les propriétés appartiennent aux composants. |
 | **axe** | Le dernier segment d'une clé : ce qu'elle règle (`fg`, `size`, `weight`, `shadow.blur`). L'axe fixe le type, le type fixe l'espace de recherche des renvois (§9.2). |
 | **valeur partagée** | Une couleur (`color.*`) ou une pile de polices (`font.*`) fournie par le thème et référencée par les propriétés. Jamais lue directement par une règle émise. |
 | **couche** | Un dictionnaire de propriétés dans la cascade (§9.3) : défauts, thème, settings, article, instance. |
@@ -1545,7 +1545,7 @@ avec le projet GUI :
 | **squelette** | Le CSS statique de mise en page qu'aucune propriété ne pilote : flex, grid, espacements, media queries. Pas une surface éditable. |
 
 **Pas de couche sémantique.** Une propriété porte le nom du **composant**
-qu'elle peint, repris du vocabulaire que le format fixe déjà — `tag`,
+qu'elle peint, repris du vocabulaire que le format fixe déjà — `kicker`,
 `summary`, `highlight`, `fact-label`, `source`, les verdicts, la
 couverture. Ce sont des faits, pas des jugements : on peut pointer la
 chose du doigt. Aucune catégorie intermédiaire n'est inventée : le seul
@@ -1596,13 +1596,13 @@ composant :
 |---|---|
 | `color.page` | fond de page (`page.bg`), encre de couverture sur thème clair (`cover.fg`), fond des contrôles de partage |
 | `color.ink` | texte courant (`page.fg`), **résumé de fiche (`summary.fg`)**, contenu d'encadré, titres du corps, tête de tableau, trait des liens (`link.decoration-color`) |
-| `color.ink-quiet` | tag, numéro de fiche, étiquette d'encadré, source, pied de page, citation, légende, références, verdict « non », libellés et descriptions de cartes |
-| `color.mark` | filet d'encadré (`fact.rule-fg`), tag de couverture, fond du gras d'encadré (`fact.strong.bg`), filet d'en-tête d'index, point de navigation actif, colonne `col-snap` |
+| `color.ink-quiet` | kicker, numéro de fiche, étiquette d'encadré, source, pied de page, citation, légende, références, verdict « non », libellés et descriptions de cartes |
+| `color.mark` | filet d'encadré (`fact.rule-fg`), kicker de couverture, fond du gras d'encadré (`fact.strong.bg`), filet d'en-tête d'index, point de navigation actif, colonne `col-snap` |
 | `color.call` | appel de note, verdict « partiellement », anneaux de focus |
 | `color.affirm` | verdict « oui » |
 | `font.text` | le corps (`page.font`) ; `font.display` y renvoie par défaut — `font.ui` est une pile sans distincte depuis B9 (§9.5.1) |
 | `font.display` | titres (`title1.font`, `title2.font`), chiffre-clé, en-tête d'index |
-| `font.ui` | tags, étiquettes, sources, pieds de page — le petit appareil textuel |
+| `font.ui` | kickers, étiquettes, sources, pieds de page — le petit appareil textuel |
 | `font.mono` | code, pastille de version — la seule pile monospace correcte, écrite une fois |
 
 Deux précisions, chacune corrigeant une erreur qui a coûté cher :
@@ -1682,7 +1682,7 @@ historique `monospace, monospace` devient inutile.
 à la fusion — il ne survit jamais dans la sortie :
 
 - **Un mot nu est cherché dans l'espace de son type** : l'axe fixe le
-  type, le type fixe l'espace. `tag.fg: ink-quiet` se lit
+  type, le type fixe l'espace. `kicker.fg: ink-quiet` se lit
   `color.ink-quiet` parce que `fg` est une couleur ;
   `page.font: mono` se lit `font.mono`. C'est toute la règle — le
   moteur ne devine jamais si une valeur « ressemble » à une clé : un
@@ -1697,8 +1697,8 @@ historique `monospace, monospace` devient inutile.
   font.mono` : un thème ordinaire saturait la limite et ne laissait à
   une série aucune indirection propre. `terminal` est désormais `code`
   en chiffre fixe — le slug est resté pour le registre terminal.
-- **Les cycles sont détectés et nommés** : `tag.fg: reference cycle
-  tag.fg -> summary.fg -> tag.fg`, jamais une boucle infinie ni un
+- **Les cycles sont détectés et nommés** : `kicker.fg: reference cycle
+  kicker.fg -> summary.fg -> kicker.fg`, jamais une boucle infinie ni un
   plantage obscur.
 - **Une clé inconnue est une erreur** qui suggère la clé voisine quand
   l'axe correspond (`did you mean …?`) ; un renvoi vers une propriété
@@ -1733,7 +1733,7 @@ ligne, donc par la cascade. La couture est là, entre « par page » et
 **La feuille composée** est faite de trois parts, dans cet ordre :
 
 1. le bloc `:root` — une variable CSS par propriété
-   (`tag.fg` → `--tag-fg`), toutes valeurs résolues ;
+   (`kicker.fg` → `--kicker-fg`), toutes valeurs résolues ;
 2. les règles pilotées, dérivées du registre — chaque règle ne lit que
    des variables de composant, jamais une valeur partagée directement
    (un seul saut jusqu'à une valeur, le CSS reste lisible tel quel) ;
@@ -1792,7 +1792,7 @@ renvoie vers `lightwebpres theme list`.
 **Le scaffold.** Le fichier est généré **une fois** (à l'init, §9.4.1)
 avec **toutes** les propriétés présentes, en commentaire, à la valeur du
 thème choisi — les renvois montrés comme des mots
-(`# tag.fg: ink-quiet`), parce que c'est le vocabulaire que l'auteur
+(`# kicker.fg: ink-quiet`), parce que c'est le vocabulaire que l'auteur
 écrit. Décommenter une ligne l'**épingle** : elle survit à tout
 changement de thème et à toute montée de version. Le scaffold règle
 trois problèmes d'un coup : la découvrabilité — la surface complète est
@@ -2549,7 +2549,7 @@ identique à l'octet près.
 **Toutes** les tailles suivent cette forme `max(<plancher>, <N>vmin)` —
 les trente-cinq, pas seulement les huit du corps de texte. Une taille
 figée en pixels rétrécit *relativement* à tout ce qui l'entoure à mesure
-que l'écran grandit : mesuré à 3840, le rapport `tag`/`summary` valait
+que l'écran grandit : mesuré à 3840, le rapport `kicker`/`summary` valait
 0,206 pour 0,556 voulu, c'est-à-dire une étiquette presque trois fois
 trop petite. Le coefficient de chaque taille vaut sa valeur en pixels
 divisée par 8, ce qui redonne à 1920×1080 exactement le rapport que le
@@ -3579,7 +3579,7 @@ Une **paire** :
 
 | Clé | Type | Sens |
 |---|---|---|
-| `site` | chaîne | où cela se passe dans la page, en clair (`cover tag`, `verdict "yes"`) |
+| `site` | chaîne | où cela se passe dans la page, en clair (`cover kicker`, `verdict "yes"`) |
 | `foreground` | chaîne | la clé de propriété peinte |
 | `foreground_color` | chaîne | sa valeur résolue, `#RRGGBBAA` |
 | `ground` | liste de chaînes | la pile de propriétés de fond, de l'intérieur vers l'extérieur, `page.bg` implicite en base ; `[]` = à même la page |
@@ -3855,7 +3855,7 @@ moitié utile de la réponse, **elle montre aussi les niveaux perdants**.
 Ce format porte quatre cascades — les champs d'article (§20.3.1), les
 propriétés de thème (§9.3), les réglages de notes (§6.5), les champs
 éditoriaux — et aucune n'écrit son résultat nulle part. Aujourd'hui, pour
-savoir ce que vaut `tag.fg` dans une série, il faut lire `settings.conf`,
+ savoir ce que vaut `kicker.fg` dans une série, il faut lire `settings.conf`,
 puis la table du thème, puis les défauts du registre, et reconstituer de
 tête l'ordre dans lequel les trois se recouvrent. Pour savoir ce que vaut
 `page_title`, il faut lire `series.json`, puis le bloc meta, puis la
@@ -3884,7 +3884,7 @@ dit déjà (§20.0) :
 
 | Forme du `<nom>` | Cascade interrogée |
 |---|---|
-| pointé — `tag.fg`, `card.title.size` | les propriétés de thème (§9.3) |
+| pointé — `kicker.fg`, `card.title.size` | les propriétés de thème (§9.3) |
 | `snake_case` — `page_title`, `notes_placement` | les champs d'article et de série (§20.3.1, §6.5) |
 | `kebab-case` — `fact-label`, `highlight-caption` | les champs de diapositive (§4.3) |
 
@@ -4172,8 +4172,8 @@ render_standard(slide, slide_num, total_slides, language, show_slide_num):
   1. html = '<section class="slide" id="s{slide_num}">'
   2. IF show_slide_num:
        html += '<span class="slide-num">{slide_num} / {total_slides}</span>'
-  3. IF slide.tag:
-     html += '<span class="slide-tag">{tag}</span>'
+  3. IF slide.kicker:
+     html += '<span class="slide-kicker">{kicker}</span>'
   4. IF slide.h2:
      html += '<h2>{h2}</h2>'
   5. IF slide.summary:
@@ -5402,7 +5402,7 @@ comme procédure de validation de référence.
 
 Le cas test n'est pas un template : c'est un fichier réel, avec du vrai
 contenu, qui exerce tous les types de slides (cover, standard avec highlight,
-standard sans highlight, series-nav, full-article), tous les champs (tag, summary,
+standard sans highlight, series-nav, full-article), tous les champs (kicker, summary,
 fact-label, source, highlight, highlight-caption), et l'inclusion d'un article
 complet avec footnotes (`[^N]`), tableaux, listes, gras et italique.
 
@@ -5416,9 +5416,9 @@ Si `---` apparaît seul sur une ligne dans le texte d'une fact-box, c'est un
 séparateur de slide (thematic break Markdown). Pour inclure un trait
 horizontal dans le texte, utiliser `<hr>` en HTML inline.
 
-### 22.2 `tag:` dans le texte d'une fact-box
+### 22.2 `kicker:` dans le texte d'une fact-box
 
-Les métadonnées (`tag:`, `summary:`, `fact-label:`, `source:`, `highlight:`,
+Les métadonnées (`kicker:`, `summary:`, `fact-label:`, `source:`, `highlight:`,
 `highlight-caption:`, `article:`) ne sont reconnues que **dans l'en-tête** de la
 slide (les premières lignes avant le premier paragraphe de contenu). Une fois
 que le parseur a rencontré une ligne de contenu (paragraphe, liste, titre), il
@@ -5450,9 +5450,9 @@ sans que celui-ci soit avalé comme titre de la slide :
   jamais pour ce type de fiche, et disparaîtrait silencieusement au lieu de
   devenir un titre visible dans le fact-box.
 
-### 22.3 Slide sans `tag:`
+### 22.3 Slide sans `kicker:`
 
-Autorisé. Le tag est omis dans le HTML (pas de `<span class="slide-tag">`).
+Autorisé. Le kicker est omis dans le HTML (pas de `<span class="slide-kicker">`).
 
 ### 22.4 Slide `cover` sans `summary:`
 
@@ -5522,13 +5522,13 @@ Erreur fatale. Le fichier doit contenir au moins une slide.
 Autorisé, et non significatif : les lignes concernées appartiennent au même
 paragraphe et sont fusionnées (§6.1). Ce n'est ni une nouvelle fiche, ni un
 nouveau paragraphe, ni une erreur — c'est le comportement Markdown standard.
-Ne pas confondre avec un champ LWP (`summary:`, `tag:`...), qui lui ne
+Ne pas confondre avec un champ LWP (`summary:`, `kicker:`...), qui lui ne
 tolère aucune continuation (§4.1) : une ligne suivant un champ sans être
 elle-même un champ reconnu bascule immédiatement en texte libre.
 
 ### 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover`
 
-Erreur fatale. Une fiche `cover` n'a pas de fact-box : `tag`, `slide_title`
+Erreur fatale. Une fiche `cover` n'a pas de fact-box : `kicker`, `slide_title`
 (écrit `# Titre`), `summary` et `comment` (§4.6, jamais rendu) sont ses
 seuls champs. Si du texte suit ces champs sans être lui-même un champ
 reconnu, le build s'arrête avec un message indiquant le fichier et le

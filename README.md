@@ -130,14 +130,14 @@ nav_desc: Pastry, baking, and plating
 ---
 
 <!-- lwp:slide:cover -->
-tag: Recipe
+kicker: Recipe
 # The apple pie
 summary: Nine things that make or break a homemade apple pie, from pastry to bake.
 
 ---
 
 <!-- lwp:slide -->
-tag: Baking
+kicker: Baking
 ## Temperature changes everything
 summary: An oven that's too hot cooks the surface before the center is ready.
 fact-label: The takeaway
@@ -195,7 +195,7 @@ held:
 
 ```bash
 ./lightwebpres resolve my-series page_title --article apple-pie.md
-./lightwebpres resolve my-series tag.fg
+./lightwebpres resolve my-series kicker.fg
 ./lightwebpres resolve my-series fact-label
 ```
 
@@ -207,7 +207,7 @@ wrote changed nothing, and a chain showing your `settings.conf` entry
 still commented out does.
 
 ```
-tag.fg — theme property
+kicker.fg — theme property
   value: #BF616AFF
   from:  settings
   via:   color.call
@@ -276,10 +276,10 @@ version.
 
 ## Slide types
 
-- **`cover`** — title slide: tag, `# Title`, summary. Free position and
+- **`cover`** — title slide: kicker, `# Title`, summary. Free position and
   count — `build` doesn't enforce a layout, `audit` just flags it if you
   want a reminder.
-- **`standard`** — tag, `## Title`, summary, an optional highlighted
+- **`standard`** — kicker, `## Title`, summary, an optional highlighted
   figure (`highlight`/`highlight-caption`), and a Markdown fact-box.
 - **`series-nav`** — cross-article navigation, generated from
   `series.json` (at most one per article).
@@ -456,7 +456,7 @@ dropped below the floor without anyone noticing, and only the directory
 form sees that. (`custom.css` is free CSS, outside the typed surface, so
 it is not measured — the output says so when the file has rules in it.)
 
-None of this ever reaches a built page. No tag, no class, no mention: the
+None of this ever reaches a built page. No kicker, no class, no mention: the
 reader of a presentation is never told the contrast level of the theme
 chosen for them.
 

@@ -913,7 +913,7 @@ by the GNU General Public License without this exception.
 # A name that has to be un-learned to be used is worse than no name.
 #
 # A palette colour cannot be named after a component, because each one
-# serves several: --marker draws the fact-box rule, the cover tag, the
+# serves several: --marker draws the fact-box rule, the cover kicker, the
 # header underline, the active nav dot and the emphasized column. The
 # component-scoped properties are separate and keep their own names in
 # the engine's registry (--cover-bg-from, --fact-strong-*, --fact-bg...).
@@ -1018,7 +1018,7 @@ LANG_FR = r'''{
     "series_back_to_index": "Retour à l'index",
     "series_untitled_fallback": "Série d'articles",
     "draft_banner": "Brouillon",
-    "full_article_tag": "Article complet",
+    "full_article_kicker": "Article complet",
     "notes_section_title": "Notes",
     "note_back": "Revenir au texte",
     "source_label": "Source",
@@ -1034,6 +1034,9 @@ LANG_FR = r'''{
     "qr_modal_title": "QR code du lien",
     "qr_modal_close": "Fermer",
     "nav_fullscreen": "Plein écran (touche F)",
+    "tags_button": "Filtrer par tag (touche L)",
+    "tags_menu": "Filtrer les slides",
+    "help_tags": "Filtrer par tag et mémoriser la sélection",
     "presenter_next": "Suivant :",
     "help_title": "Raccourcis clavier",
     "help_next": "Slide suivante",
@@ -1112,7 +1115,7 @@ LANG_EN = r'''{
     "series_back_to_index": "Back to index",
     "series_untitled_fallback": "Article series",
     "draft_banner": "Draft",
-    "full_article_tag": "Full article",
+    "full_article_kicker": "Full article",
     "notes_section_title": "Notes",
     "note_back": "Back to the text",
     "source_label": "Source",
@@ -1128,6 +1131,9 @@ LANG_EN = r'''{
     "qr_modal_title": "QR code for this link",
     "qr_modal_close": "Close",
     "nav_fullscreen": "Fullscreen (F key)",
+    "tags_button": "Filter by tag (L key)",
+    "tags_menu": "Filter slides",
+    "help_tags": "Filter by tag and remember the selection",
     "presenter_next": "Next:",
     "help_title": "Keyboard shortcuts",
     "help_next": "Next slide",
@@ -1203,7 +1209,7 @@ THEMES = {
     'catppuccin': {
         'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin', 'intensity': 'sober',
         # Latte Yellow (#DF8E1D) put `color.ink` on `color.mark` at 3.05:1 --
-        # every bold run in a fact box, and the cover tag, which is the same
+        # every bold run in a fact box, and the cover kicker, which is the same
         # two colours the other way round. Lightened until both clear AA
         # (4.51:1). The cost is that mark-on-page drops 2.31:1 -> 1.56:1,
         # which is the fact-box rule, the header rule and the active slide
@@ -1868,7 +1874,7 @@ PROP_DECORATION = ChoiceType('none', 'underline', 'line-through',
 
 class ThemeProp:
     def __init__(self, key, type_, default, css=None, selector=None):
-        self.key = key            # 'tag.fg'
+        self.key = key            # 'kicker.fg'
         self.type = type_
         self.default = default    # a literal, or a reference written as a word
         self.css = css            # CSS declaration it feeds, None if composite
@@ -2018,13 +2024,13 @@ THEME_COMPONENTS = [
         ThemeProp('slide.num.tracking', PROP_LENGTH, '1px',       css='letter-spacing'),
     ]),
 
-    ThemeComponent('tag', '.slide-tag', [
-        ThemeProp('tag.fg',        PROP_COLOR,  'ink-quiet', css='color'),
-        ThemeProp('tag.font',      PROP_FONT,   'ui',        css='font-family'),
-        ThemeProp('tag.size',      PROP_LENGTH, 'max(12px, 1.5vmin)',      css='font-size'),
-        ThemeProp('tag.weight',    PROP_WEIGHT, 'bold',      css='font-weight'),
-        ThemeProp('tag.tracking',  PROP_LENGTH, '2px',       css='letter-spacing'),
-        ThemeProp('tag.transform', PROP_CASE,   'uppercase', css='text-transform'),
+    ThemeComponent('kicker', '.slide-kicker', [
+        ThemeProp('kicker.fg',        PROP_COLOR,  'ink-quiet', css='color'),
+        ThemeProp('kicker.font',      PROP_FONT,   'ui',        css='font-family'),
+        ThemeProp('kicker.size',      PROP_LENGTH, 'max(12px, 1.5vmin)',      css='font-size'),
+        ThemeProp('kicker.weight',    PROP_WEIGHT, 'bold',      css='font-weight'),
+        ThemeProp('kicker.tracking',  PROP_LENGTH, '2px',       css='letter-spacing'),
+        ThemeProp('kicker.transform', PROP_CASE,   'uppercase', css='text-transform'),
     ]),
 
     # The generic h1 also seeds the full-article h1 (weight, leading) before
@@ -2145,8 +2151,8 @@ THEME_COMPONENTS = [
     ThemeComponent('cover.summary', '.slide-cover .summary', [
         ThemeProp('cover.summary.fg', PROP_COLOR, '#F8F8F5C7', css='color'),
     ]),
-    ThemeComponent('cover.tag', '.slide-cover .slide-tag', [
-        ThemeProp('cover.tag.fg', PROP_COLOR, 'mark', css='color'),
+    ThemeComponent('cover.kicker', '.slide-cover .slide-kicker', [
+        ThemeProp('cover.kicker.fg', PROP_COLOR, 'mark', css='color'),
     ]),
     ThemeComponent('cover.num', '.slide-cover .slide-num', [
         ThemeProp('cover.num.fg', PROP_COLOR, '#FFFFFFB3', css='color'),
@@ -2247,7 +2253,7 @@ THEME_COMPONENTS = [
         # at the foot of the article. Below that there is nothing: 12px is
         # the floor of the whole design, and at 11px the reference -- the
         # one thing this tool exists to make reachable -- would be the
-        # smallest thing on the card, under the slide number and the tag.
+        # smallest thing on the card, under the slide number and the kicker.
         #
         # What replaces size as the way to recede is `note.fg`,
         # `note.weight` and `note.style`. The notes SECTION keeps
@@ -2966,7 +2972,7 @@ def build_settings_scaffold(theme_key=None, pinned=None):
 
     Generated from the registry — the same structure that emits the CSS — so
     it cannot drift from what the engine accepts. Values are shown RAW
-    (references as bare words, `tag.fg: ink-quiet`), because that is the
+    (references as bare words, `kicker.fg: ink-quiet`), because that is the
     vocabulary the author writes.
 
     `pinned` (a {property: raw value} dict) regenerates in place: a pinned
@@ -3314,8 +3320,8 @@ CONTRAST_SITES = [
     ContrastSite('slide title', 'page.fg', [_G_PAGE],
                  size='title2.size', weight='title2.weight'),
     ContrastSite('slide number', 'slide.num.fg', [_G_PAGE], size='slide.num.size'),
-    ContrastSite('slide tag', 'tag.fg', [_G_PAGE],
-                 size='tag.size', weight='tag.weight'),
+    ContrastSite('slide kicker', 'kicker.fg', [_G_PAGE],
+                 size='kicker.size', weight='kicker.weight'),
     ContrastSite('slide summary', 'summary.fg', [_G_PAGE], size='summary.size'),
     ContrastSite('source line', 'source.fg', [_G_PAGE], size='source.size'),
     ContrastSite('page footer', 'footer.fg', [_G_PAGE], size='footer.size'),
@@ -3330,8 +3336,8 @@ CONTRAST_SITES = [
                  size='title1.size', weight='title1.weight'),
     ContrastSite('cover summary', 'cover.summary.fg', _G_COVERS,
                  size='summary.size'),
-    ContrastSite('cover tag', 'cover.tag.fg', _G_COVERS,
-                 size='tag.size', weight='tag.weight'),
+    ContrastSite('cover kicker', 'cover.kicker.fg', _G_COVERS,
+                 size='kicker.size', weight='kicker.weight'),
     ContrastSite('cover number', 'cover.num.fg', _G_COVERS, size='slide.num.size'),
     ContrastSite('note call on the cover', 'footnote-call.fg-cover', _G_COVERS,
                  size='footnote-call.size'),
@@ -3664,7 +3670,7 @@ html { scroll-behavior: smooth; }
   position: relative;
 }
 .slide-num { position: absolute; top: 24px; right: 32px; }
-.slide-tag { display: inline-block; margin-bottom: 16px; }
+.slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
 h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 .summary { max-width: var(--page-content-max); margin-bottom: 32px; }
@@ -3971,6 +3977,44 @@ body.fs-noselect {
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
 .nav-btn-home { font-size: 17px; }
+.tag-menu {
+  position: fixed;
+  right: 82px;
+  bottom: 24px;
+  z-index: 250;
+  display: none;
+  min-width: 180px;
+  max-width: min(320px, calc(100vw - 110px));
+  padding: 10px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 10px;
+  background: inherit;
+  color: inherit;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+}
+.tag-menu.open { display: block; }
+.tag-menu-title {
+  margin: 2px 4px 8px;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tag-menu-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-option {
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: inherit;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85em;
+}
+.tag-option.active { font-weight: 700; }
+.tag-option:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-dots {
   position: fixed;
   bottom: 20px;
@@ -4009,7 +4053,7 @@ body.fs-noselect {
    their own content (not 100vh) so a short slide does not blank a page. */
 @media print {
   html, body { overflow: visible !important; height: auto !important; }
-  .nav-buttons, .nav-dots, .nav-btn, .slide-counter,
+  .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
   .pause-overlay { display: none !important; }
   .slide {
     page-break-after: always;
@@ -4945,8 +4989,10 @@ function qrEncode(text, errorCorrectLevel) {
 
 document.addEventListener('DOMContentLoaded', function() {
 (function(){
-  var slides   = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var slides   = allSlides.slice();
   var current  = 0;
+  var selectedTag = 'default';
   var isScrolling = false;
   // Separate from isScrolling (which only guards goTo()'s own scroll
   // animation, and only against re-targeting the SAME slide): holding
@@ -4972,19 +5018,158 @@ document.addEventListener('DOMContentLoaded', function() {
   var btnNext    = document.getElementById('navNext');
   var btnHome    = document.getElementById('navHome');
   var navDots    = document.querySelector('.nav-dots');
+  var btnTags    = document.getElementById('navTags');
+  var tagMenu    = document.getElementById('tagMenu');
+  var tagMenuList = document.getElementById('tagMenuList');
+  var tagMenuTitle = document.getElementById('tagMenuTitle');
+  var tagStorageKey = 'lwp-active-tag';
+  var dots = [];
 
-  if (navDots) {
-    slides.forEach(function(s, i) {
+  function slideTags(slide) {
+    var raw = slide ? slide.getAttribute('data-tags') : '';
+    var tags = raw ? raw.toLowerCase().split(/\s+/) : [];
+    return tags.length ? tags : ['default'];
+  }
+
+  function tagList() {
+    var seen = {};
+    var tags = [];
+    allSlides.forEach(function (slide) {
+      slideTags(slide).forEach(function (tag) {
+        if (!seen[tag]) { seen[tag] = true; tags.push(tag); }
+      });
+    });
+    if (!seen.default) tags.unshift('default');
+    return tags;
+  }
+
+  function slideMatchesTag(slide, tag) {
+    var tags = slideTags(slide);
+    if (tag === 'default') return tags.indexOf('default') !== -1;
+    return tags.indexOf('default') !== -1 || tags.indexOf(tag) !== -1;
+  }
+
+  function readStoredTag() {
+    try {
+      var stored = window.localStorage.getItem(tagStorageKey);
+      if (stored && tagList().indexOf(stored.toLowerCase()) !== -1) {
+        return stored.toLowerCase();
+      }
+    } catch (e) {}
+    return 'default';
+  }
+
+  function writeStoredTag(tag) {
+    try { window.localStorage.setItem(tagStorageKey, tag); } catch (e) {}
+  }
+
+  function renderTagMenu() {
+    if (!tagMenuList) return;
+    var tags = tagList();
+    if (tags.length < 2) {
+      if (btnTags) {
+        btnTags.hidden = true;
+        btnTags.setAttribute('aria-hidden', 'true');
+      }
+      closeTagMenu();
+      return;
+    }
+    if (btnTags) {
+      btnTags.hidden = false;
+      btnTags.removeAttribute('aria-hidden');
+    }
+    tagMenuList.innerHTML = '';
+    tags.forEach(function (tag) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tag-option';
+      button.setAttribute('data-tag', tag);
+      button.textContent = tag;
+      button.addEventListener('click', function () {
+        selectTag(tag, true);
+        closeTagMenu();
+      });
+      tagMenuList.appendChild(button);
+    });
+    if (tagMenuTitle) tagMenuTitle.textContent = '{{str_tags_menu}}';
+  }
+
+  function updateTagMenu() {
+    if (!tagMenuList) return;
+    Array.prototype.forEach.call(tagMenuList.querySelectorAll('.tag-option'), function (button) {
+      var active = button.getAttribute('data-tag') === selectedTag;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (btnTags) btnTags.setAttribute('aria-expanded', tagMenu && tagMenu.classList.contains('open') ? 'true' : 'false');
+  }
+
+  function closeTagMenu() {
+    if (tagMenu) tagMenu.classList.remove('open');
+    updateTagMenu();
+  }
+
+  function toggleTagMenu() {
+    if (!tagMenu || tagList().length < 2) return;
+    tagMenu.classList.toggle('open');
+    updateTagMenu();
+  }
+
+  function rebuildDots() {
+    if (!navDots) { dots = []; return; }
+    navDots.innerHTML = '';
+    slides.forEach(function (slide, i) {
       var a = document.createElement('a');
-      a.href = '#' + (s.id || ('s'+(i+1)));
-      var tagEl = s.querySelector('.slide-tag');
-      var headEl = s.querySelector('h2, h1');
-      a.title = tagEl ? tagEl.textContent : (headEl ? headEl.textContent : ('{{str_nav_dot_fallback}} ' + (i+1)));
+      a.href = '#' + (slide.id || ('s' + (i + 1)));
+      var kickerEl = slide.querySelector('.slide-kicker');
+      var headEl = slide.querySelector('h2, h1');
+      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : ('{{str_nav_dot_fallback}} ' + (i + 1)));
       a.addEventListener('click', function(e){ e.preventDefault(); goTo(i); });
       navDots.appendChild(a);
     });
+    dots = Array.prototype.slice.call(navDots.querySelectorAll('a'));
   }
-  var dots = navDots ? Array.prototype.slice.call(navDots.querySelectorAll('a')) : [];
+
+  function applyTagFilter(scrollToCurrent) {
+    var available = tagList();
+    if (available.indexOf(selectedTag) === -1) selectedTag = 'default';
+    var previous = slides[current];
+    slides = allSlides.filter(function (slide) { return slideMatchesTag(slide, selectedTag); });
+    allSlides.forEach(function (slide) {
+      var visible = slides.indexOf(slide) !== -1;
+      slide.hidden = !visible;
+      slide.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    });
+    var next = previous ? slides.indexOf(previous) : -1;
+    current = next >= 0 ? next : 0;
+    rebuildDots();
+    updateTagMenu();
+    updateUI();
+    if (scrollToCurrent && slides.length) goTo(current);
+  }
+
+  function selectTag(tag, scrollToCurrent) {
+    selectedTag = String(tag || 'default').toLowerCase();
+    writeStoredTag(selectedTag);
+    applyTagFilter(scrollToCurrent);
+  }
+
+  function applyHash() {
+    var id = window.location.hash ? window.location.hash.slice(1) : '';
+    if (!id) return;
+    var target = allSlides.find(function (slide) { return slide.id === id; });
+    if (!target) return;
+    if (!slideMatchesTag(target, selectedTag)) {
+      var candidate = slideTags(target).find(function (tag) {
+        return tag !== 'default' && tagList().indexOf(tag) !== -1;
+      });
+      if (candidate) selectTag(candidate, false);
+    }
+    var index = slides.indexOf(target);
+    if (index >= 0) goTo(index);
+  }
+
+  selectedTag = readStoredTag();
 
   // --- Speaker counter (X / N) + number-jump + presenter notes panel (key N) ---
   var slideCounter    = document.getElementById('slideCounter');
@@ -5005,6 +5190,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['F', "{{str_help_fullscreen}}"],
     ['B / W / T', "{{str_help_pause}}"],
     ['N', "{{str_help_speaker}}"],
+    ['L', "{{str_help_tags}}"],
     ['0&ndash;9 + Entr&eacute;e', "{{str_help_jump}}"],
     ['H', "{{str_help_close}}"],
     ['Souris / Molette', "{{str_help_mouse}}"]
@@ -5031,7 +5217,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function slideTitle(i) {
     var s = slides[i];
     if (!s) return '';
-    var t = s.querySelector('.slide-tag');
+    var t = s.querySelector('.slide-kicker');
     if (t) return t.textContent;
     var h = s.querySelector('h2, h1');
     return h ? h.textContent : ('{{str_nav_dot_fallback}} ' + (i + 1));
@@ -5082,10 +5268,18 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function goTo(idx) {
+    if (!slides.length) {
+      current = 0;
+      updateUI();
+      return;
+    }
     idx = Math.max(0, Math.min(slides.length - 1, idx));
     if (idx === current && isScrolling) return;
     current = idx;
     focusedCard = -1;
+    if (slides[idx].id && window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + slides[idx].id);
+    }
     isScrolling = true;
     slides[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
     updateUI();
@@ -5162,8 +5356,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateUI() {
-    btnPrev.classList.toggle('disabled', current === 0);
-    btnNext.classList.toggle('disabled', current === slides.length - 1);
+    if (btnPrev) btnPrev.classList.toggle('disabled', !slides.length || current === 0);
+    if (btnNext) btnNext.classList.toggle('disabled', !slides.length || current === slides.length - 1);
     dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
     updateShareFicheState();
     updateCounter();
@@ -5204,6 +5398,17 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
         e.preventDefault();
         toggleHelp();
+      } else {
+        e.preventDefault();
+      }
+      return;
+    }
+    if (tagMenu && tagMenu.classList.contains('open')) {
+      if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        closeTagMenu();
+      } else if (e.target && e.target.closest && e.target.closest('.tag-menu')) {
+        return;
       } else {
         e.preventDefault();
       }
@@ -5264,6 +5469,8 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); togglePause('t');
     } else if (e.key === 'n' || e.key === 'N') {
       e.preventDefault(); togglePresenter();
+    } else if (e.key === 'l' || e.key === 'L') {
+      e.preventDefault(); toggleTagMenu();
     } else if (e.key === 'h' || e.key === 'H') {
       e.preventDefault(); toggleHelp();
     }
@@ -5559,7 +5766,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement);
   }
   function isInteractive(e) {
-    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .nav-buttons');
+    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .nav-buttons');
   }
   var clickTimer = null;
   var CLICK_DELAY = 250;
@@ -5681,6 +5888,11 @@ document.addEventListener('DOMContentLoaded', function() {
     scheduleHide();
   }
 
+  if (btnTags) btnTags.addEventListener('click', toggleTagMenu);
+  renderTagMenu();
+  applyTagFilter(false);
+  window.addEventListener('hashchange', applyHash);
+  applyHash();
   updateUI();
 })();
 });
@@ -5774,6 +5986,12 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}">&#8595;</div>
   <div class="nav-btn" id="navShare" role="button" tabindex="0" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
   <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
+  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="{{str_tags_button}}" aria-label="{{str_tags_button}}">L</div>
+</div>
+
+<div class="tag-menu" id="tagMenu" role="dialog" aria-label="{{str_tags_menu}}">
+  <div class="tag-menu-title" id="tagMenuTitle">{{str_tags_menu}}</div>
+  <div class="tag-menu-list" id="tagMenuList"></div>
 </div>
 
 <div class="share-popover" id="sharePopover">
@@ -6361,14 +6579,14 @@ nav_desc: Theme preview
 ---
 
 <!-- lwp:slide:cover -->
-tag: Chapter 1
+kicker: Chapter 1
 # Sugar is not only a matter of taste
 summary: What changes in the oven, and why the middle stays raw.
 
 ---
 
 <!-- lwp:slide -->
-tag: Baking
+kicker: Baking
 ## Temperature changes everything
 summary: An oven that is too hot cooks the surface before the centre is ready.
 highlight: 180 °C
@@ -7634,7 +7852,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
 # the shape its level requires. `slide_title` is absent on purpose — it is
 # written `#`/`##`, never as a `key:` line.
 SLIDE_FIELD_NAMES = (
-    'tag', 'summary', 'fact-label', 'fact-variant', 'source',
+    'kicker', 'tags', 'summary', 'fact-label', 'fact-variant', 'source',
     'highlight', 'highlight-caption', 'comment', 'note',
 )
 
@@ -7660,19 +7878,19 @@ class SlideType:
 # everywhere and rendered nowhere (GLOSSARY.md).
 SLIDE_TYPES = (
     SlideType(
-        'cover', '#', ('tag', 'summary', 'comment', 'note'), None,
-        "The article's opening slide: a title, an optional tag above it, "
+        'cover', '#', ('kicker', 'tags', 'summary', 'comment', 'note'), None,
+        "The article's opening slide: a title, an optional kicker above it, "
         'and the one sentence that says what the article is about.'),
     SlideType(
         'standard', '##', SLIDE_FIELD_NAMES, 'fact-box',
         'The ordinary slide, and the only one that takes free text: '
         'anything written below the fields becomes its fact-box.'),
     SlideType(
-        'series-nav', None, ('comment',), None,
+        'series-nav', None, ('tags', 'comment'), None,
         'The list of the other articles in the series, generated from '
         'series.json — you place the marker, the build writes the list.'),
     SlideType(
-        'full-article', None, ('article', 'comment'), None,
+        'full-article', None, ('article', 'tags', 'comment'), None,
         'Pulls in a long-form .md file named by its `article:` field. '
         'Required field, and at most one such slide per article.'),
 )
@@ -7690,7 +7908,8 @@ _SLIDE_FIELD_ATTRS['article'] = 'article_file'
 class Slide:
     def __init__(self, slide_type='standard'):
         self.slide_type = slide_type  # one of SLIDE_TYPES (validated per article)
-        self.tag = None
+        self.kicker = None
+        self.tags = None
         self.h2 = None
         self.h1 = None
         self.summary = None
@@ -7811,6 +8030,10 @@ def parse_markdown_extended(md_text):
                     slide.comment = comment_match.group(1)
                     ml_field = 'comment'
                     continue
+                tags_match = re.match(r'^tags:[ \t]*(.*)', stripped)
+                if tags_match:
+                    slide.tags = tags_match.group(1)
+                    continue
                 if slide.slide_type == 'full-article':
                     article_match = re.match(r'^article:\s*(.+)$', stripped)
                     if article_match:
@@ -7860,8 +8083,10 @@ def parse_markdown_extended(md_text):
             if field_match and not in_content:
                 key = field_match.group(1)
                 value = field_match.group(2)
-                if key == 'tag':
-                    slide.tag = value
+                if key == 'kicker':
+                    slide.kicker = value
+                elif key == 'tags':
+                    slide.tags = value
                 elif key == 'summary':
                     slide.summary = value
                 elif key == 'fact-label':
@@ -7949,6 +8174,52 @@ def _resolve_contained(base_dir, value):
     return None
 
 
+_TAG_TOKEN_RE = re.compile(r'^[\w-]+$', re.UNICODE)
+
+
+def _slide_tag_set(slide):
+    """Returns the canonical tag set before full slide validation.
+
+    Field resolution reads article slides before `validate_slides()` runs, so
+    it needs the same default/excluded decision without turning malformed
+    author input into a second validation path. The later validator replaces
+    the raw value with an ordered canonical list.
+    """
+    if isinstance(slide.tags, (list, tuple, set)):
+        return {str(tag).casefold() for tag in slide.tags}
+    raw = str(slide.tags or '').strip()
+    return {token.casefold() for token in raw.split()} or {'default'}
+
+
+def normalize_slide_tags(slide, filename, slide_number):
+    """Validate and canonicalize one slide's `tags:` field.
+
+    Tags are deliberately a small lexical surface: Unicode word characters
+    (letters, accents, digits and underscores) plus hyphens. Case folding
+    makes matching and persistence independent of how the author capitalizes
+    a tag. A missing or empty field is the shared `default` tag.
+    """
+    raw = str(slide.tags or '').strip()
+    if not raw:
+        slide.tags = ['default']
+        return slide.tags
+
+    tags = []
+    seen = set()
+    for token in raw.split():
+        canonical = token.casefold()
+        if canonical.startswith('_') or not _TAG_TOKEN_RE.fullmatch(canonical):
+            log('error', f'{filename}: slide {slide_number} has invalid tag '
+                f'{token!r} in tags: (allowed: letters, accents, digits, '
+                f'"-" and "_"; a tag cannot start with "_").')
+            sys.exit(1)
+        if canonical not in seen:
+            seen.add(canonical)
+            tags.append(canonical)
+    slide.tags = tags or ['default']
+    return slide.tags
+
+
 def validate_slides(slides, filename, has_meta_block=True, content_before_meta=''):
     """Rejects the parser edge cases the spec (§22) says must be fatal,
     instead of letting them silently corrupt or truncate the build:
@@ -7986,6 +8257,9 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
     series_nav_positions = []
 
     for i, slide in enumerate(slides, 1):
+        normalize_slide_tags(slide, filename, i)
+        if 'excluded' in slide.tags:
+            continue
         # A type this build does not know renders as a standard slide —
         # `render_slide()` treats everything that is not one of the three
         # special types as standard. So `<!-- lwp:slide:covre -->` used to
@@ -8003,7 +8277,7 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
                   f'fields, but a cover slide has no fact-box.')
             sys.exit(1)
 
-        # A cover renders only tag / # title / summary (+ comment, never
+        # A cover renders only kicker / # title / summary (+ comment, never
         # rendered anywhere). The other standard-slide fields are parsed
         # but never rendered on a cover — warn, don't fail: toggling a
         # slide between standard and cover while drafting is a normal
@@ -8126,24 +8400,29 @@ def resolve_slide_page_numbers(meta, series_meta, source_name, args):
 
 
 def render_slide(slide, slide_num, total_slides, typo_engine, strings,
-                 disabled=None, notes=None, absorb_punct=False,
-                 inline_images=False, articles_dir=None, show_slide_num=False):
+                  disabled=None, notes=None, absorb_punct=False,
+                  inline_images=False, articles_dir=None, show_slide_num=False):
     """Generates the HTML for a slide."""
+    if 'excluded' in _slide_tag_set(slide):
+        return ''
+    tags = slide.tags if isinstance(slide.tags, (list, tuple)) else sorted(_slide_tag_set(slide))
+    data_tags = html_escape(' '.join(tags), quote=True)
     num_str = f'{slide_num:02d} / {total_slides:02d}'
     # The engraved top-right number is opt-in (off by default): the live
     # bottom-left counter already carries current/total, so the static mark
     # is redundant presentation most authors don't want.
 
     if slide.slide_type == 'cover':
-        tag = apply_typo(typo_engine, slide.tag or '', disabled)
+        kicker = apply_typo(typo_engine, slide.kicker or '', disabled)
         h1 = apply_typo(typo_engine, slide.h1 or '', disabled)
         summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
-        parts = [f'<section class="slide slide-cover" id="s{slide_num}">']
+        parts = [f'<section class="slide slide-cover" id="s{slide_num}" '
+                 f'data-tags="{data_tags}">']
         if show_slide_num:
             parts.append(f'  <span class="slide-num">{num_str}</span>')
-        if tag:
-            parts.append(f'  <span class="slide-tag">{tag}</span>')
+        if kicker:
+            parts.append(f'  <span class="slide-kicker">{kicker}</span>')
         parts.append(f'  <h1>{h1}</h1>')
         if summary:
             parts.append(f'  <p class="summary">{summary}</p>')
@@ -8155,26 +8434,31 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     elif slide.slide_type == 'series-nav':
         # Will be generated later by the navigation engine
         title = strings.get('series_nav_title', 'This series')
-        return f'<section class="slide" id="s{slide_num}-series">\n  <h2>{title}</h2>\n  <div class="series-list">\n{{SERIES_NAV_PLACEHOLDER}}\n  </div>\n</section>'
+        return (f'<section class="slide" id="s{slide_num}-series" '
+                f'data-tags="{data_tags}">\n  <h2>{title}</h2>\n'
+                f'  <div class="series-list">\n{{SERIES_NAV_PLACEHOLDER}}\n'
+                f'  </div>\n</section>')
 
     elif slide.slide_type == 'full-article':
         # Content will be injected later
-        tag_text = strings.get('full_article_tag', 'Full article')
-        return (f'<section class="slide full-article" id="s{slide_num}">\n'
+        tag_text = strings.get('full_article_kicker', 'Full article')
+        return (f'<section class="slide full-article" id="s{slide_num}" '
+                f'data-tags="{data_tags}">\n'
                 + (f'  <span class="slide-num">{num_str}</span>\n'
                    if show_slide_num else '')
-                + f'  <span class="slide-tag">{tag_text}</span>\n{{FULL_ARTICLE_PLACEHOLDER}}\n</section>')
+                + f'  <span class="slide-kicker">{tag_text}</span>\n{{FULL_ARTICLE_PLACEHOLDER}}\n</section>')
 
     else:  # standard
-        tag = apply_typo(typo_engine, slide.tag or '', disabled)
+        kicker = apply_typo(typo_engine, slide.kicker or '', disabled)
         h2 = apply_typo(typo_engine, slide.h2 or '', disabled)
         summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
-        parts = [f'<section class="slide" id="s{slide_num}">']
+        parts = [f'<section class="slide" id="s{slide_num}" '
+                 f'data-tags="{data_tags}">']
         if show_slide_num:
             parts.append(f'  <span class="slide-num">{num_str}</span>')
-        if tag:
-            parts.append(f'  <span class="slide-tag">{tag}</span>')
+        if kicker:
+            parts.append(f'  <span class="slide-kicker">{kicker}</span>')
         if h2:
             parts.append(f'  <h2>{h2}</h2>')
         if summary:
@@ -8507,7 +8791,21 @@ def typo_disabled_rules(meta):
     return disabled
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None):
+def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
+    """Selects the first language pack named by a slide tag.
+
+    Tags are ordered as written, so a slide carrying several non-language
+    tags remains unaffected, while a deliberately multi-language slide has a
+    deterministic winner. Slides without a mapped language tag use the
+    build's `--lang` engine.
+    """
+    for tag in slide.tags or ('default',):
+        if lang_tag_engines and tag in lang_tag_engines:
+            return lang_tag_engines[tag]
+    return fallback
+
+
+def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -8544,6 +8842,8 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # engine entirely for its page, the same `None` the CLI flag passes
     # for a whole build, not just the two rules disabled_rules can name.
     article_typo_engine = None if str(meta.get('typo', '')).strip().lower() == 'off' else typo_engine
+    article_lang_tag_engines = (lang_tag_engines
+                                if article_typo_engine is not None else {})
 
     # Notes: where the bodies land, and whether the call carries the text
     # as well. One page-wide scope under `page`, one scope per locality
@@ -8554,7 +8854,10 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     page_notes = (NoteScope('p', tooltip=notes_tooltip, endnotes=True, deferred=True)
                   if notes_placement == 'page' else None)
 
-    total_slides = len(slides)
+    # `excluded` is a source-level omission, not a runtime filter: no section,
+    # anchor, note scope, or slide number is created for it.
+    visible_slides = [slide for slide in slides if 'excluded' not in slide.tags]
+    total_slides = len(visible_slides)
     show_slide_num = resolve_slide_page_numbers(
         meta, series_meta_of(series_data), source_path.name, args)
     slide_htmls = []
@@ -8563,10 +8866,12 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # errors carry the article's name for the same reason the style.* ones
     # do above.
     try:
-        for i, slide in enumerate(slides, 1):
+        for i, slide in enumerate(visible_slides, 1):
+            slide_typo_engine = typo_engine_for_slide(
+                slide, article_typo_engine, article_lang_tag_engines)
             slide_notes = (page_notes if page_notes is not None
                            else NoteScope(f's{i}', tooltip=notes_tooltip))
-            html = render_slide(slide, i, total_slides, article_typo_engine,
+            html = render_slide(slide, i, total_slides, slide_typo_engine,
                                 strings, disabled_rules, slide_notes,
                                 absorb_punct=absorb_punct,
                                 inline_images=inline_images,
@@ -8595,7 +8900,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # Inject the full article. A missing file is fatal (§22.8): the page
     # would otherwise be published with the literal placeholder text in
     # place of the article, and exit 0 — a corrupted page shipped green.
-    for i, slide in enumerate(slides):
+    for i, slide in enumerate(visible_slides):
         if slide.slide_type == 'full-article' and slide.article_file:
             # Realpath containment on top of the name-shape guard: the
             # name check already ran at parse time, but a bare name that
@@ -8618,7 +8923,9 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             try:
                 article_notes = (page_notes if page_notes is not None
                                  else NoteScope('article', tooltip=notes_tooltip))
-                article_html = convert_markdown(article_md, article_typo_engine,
+                slide_typo_engine = typo_engine_for_slide(
+                    slide, article_typo_engine, article_lang_tag_engines)
+                article_html = convert_markdown(article_md, slide_typo_engine,
                                                 disabled_rules, article_notes,
                                                 strings)
             except PropertyError as exc:
@@ -8827,6 +9134,33 @@ def series_meta_of(series_data):
             log('error', f'series.json: "series_meta.{field}" must be a string '
                   f'(got {type(meta[field]).__name__}).')
             sys.exit(1)
+    lang_tags = meta.get('lang_tags', {})
+    if lang_tags is None:
+        lang_tags = {}
+    if not isinstance(lang_tags, dict):
+        log('error', f'series.json: "series_meta.lang_tags" must be an object '
+              f'(got {type(lang_tags).__name__}).')
+        sys.exit(1)
+    normalized_lang_tags = {}
+    for tag, pack in lang_tags.items():
+        if not isinstance(tag, str) or not isinstance(pack, str):
+            log('error', 'series.json: "series_meta.lang_tags" must map '
+                  'string tags to string language pack names.')
+            sys.exit(1)
+        canonical = tag.strip().casefold()
+        pack = pack.strip()
+        if (not canonical or canonical.startswith('_')
+                or not _TAG_TOKEN_RE.fullmatch(canonical)):
+            log('error', f'series.json: series_meta.lang_tags has invalid tag '
+                  f'{tag!r}.')
+            sys.exit(1)
+        if (not pack
+                or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]*', pack)):
+            log('error', f'series.json: series_meta.lang_tags[{tag!r}] has an '
+                  f'invalid language pack name {pack!r}.')
+            sys.exit(1)
+        normalized_lang_tags[canonical] = pack
+    meta['lang_tags'] = normalized_lang_tags
     return meta
 
 
@@ -8939,7 +9273,9 @@ def _find_cover_slide(slides):
     for a couple of the fallbacks below (its own slide_title/summary),
     since a well-formed article almost always has one even if it never
     sets any of the more specific display fields."""
-    return next((s for s in slides if s.slide_type == 'cover'), None)
+    return next((s for s in slides
+                 if s.slide_type == 'cover'
+                 and 'excluded' not in _slide_tag_set(s)), None)
 
 
 # Where a resolved value came from, as `series-info` reports it (§11.11).
@@ -9305,6 +9641,27 @@ def strip_build_stamp(html):
     return _BUILD_STAMP_RE.sub('', html)
 
 
+def load_lang_tag_engines(series_meta, lang_dir, default_lang,
+                          default_engine):
+    """Loads the optional per-slide typography packs from `lang_tags`.
+
+    The build's `--lang` pack remains the fallback. A mapping value is the
+    language-pack name (`fr`, `en`, or a JSON file in `language/`); mapping a
+    tag to the fallback pack reuses the already loaded engine, including a
+    custom `--language-file` override.
+    """
+    mapping = series_meta.get('lang_tags', {}) if series_meta else {}
+    engines = {}
+    for tag, pack in mapping.items():
+        if default_engine is None:
+            engines[tag] = None
+        elif pack.casefold() == str(default_lang).casefold():
+            engines[tag] = default_engine
+        else:
+            engines[tag] = TypoEngine(load_language(lang_dir, pack))
+    return engines
+
+
 def load_build_context(series_dir, args):
     """Shared setup for build and check (§11.3/§11.4): resolves paths,
     loads the language pack/typo engine, the CSS/nav.js (built-in or
@@ -9353,6 +9710,8 @@ def load_build_context(series_dir, args):
 
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
+    lang_tag_engines = load_lang_tag_engines(
+        series_meta, lang_dir, lang, typo_engine)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
     resolve_article_fields(articles, articles_dir, series_meta)
@@ -9419,6 +9778,7 @@ def load_build_context(series_dir, args):
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
         articles=articles, claim_articles=claim_articles,
         style_context=style_context, args=args,
+        lang_tag_engines=lang_tag_engines,
     )
 
 
@@ -9513,7 +9873,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args)
+    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -9877,7 +10237,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.articles_dir / source_file
 
         print(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args)
+        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -9966,7 +10326,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args)
+        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -11561,8 +11921,8 @@ def build_theme_preview_document(theme_key, panel='card'):
         article = convert_markdown(TEMPLATE_THEMES_GALLERY_ARTICLE,
                                    typo_engine, None, NoteScope('article'), strings)
         body = (f'<section class="slide full-article" id="s1">\n'
-                f'  <span class="slide-tag">'
-                f'{html_escape(strings.get("full_article_tag", "Full article"))}'
+                f'  <span class="slide-kicker">'
+                f'{html_escape(strings.get("full_article_kicker", "Full article"))}'
                 f'</span>\n{article}\n</section>')
     else:
         raise ValueError(f'unknown preview panel: {panel!r}')
@@ -11751,14 +12111,14 @@ comment: A review note — recognized everywhere, never published (check this pa
 ---
 
 <!-- lwp:slide:cover -->
-tag: First
+kicker: First
 # First article
 summary: This is the first demo article. It tests the "first" position in navigation.
 
 ---
 
 <!-- lwp:slide -->
-tag: A fact
+kicker: A fact
 ## First fact
 summary: A short summary.
 fact-label: The fact
@@ -11816,14 +12176,14 @@ card_label: Article 2
 ---
 
 <!-- lwp:slide:cover -->
-tag: Middle
+kicker: Middle
 # Middle article
 summary: This article tests the "middle" position in navigation.
 
 ---
 
 <!-- lwp:slide -->
-tag: Highlight
+kicker: Highlight
 ## A slide with a highlight
 summary: This slide tests the highlight component.
 highlight: 42 %
@@ -11869,14 +12229,14 @@ This is the full article for the second demo article [^1].
 ---
 
 <!-- lwp:slide:cover -->
-tag: Last
+kicker: Last
 # Last article
 summary: This article tests the "last" position in navigation.
 
 ---
 
 <!-- lwp:slide -->
-tag: Inline HTML
+kicker: Inline HTML
 ## Inline HTML test
 summary: This slide tests inline HTML directly in Markdown.
 fact-label: The fact
@@ -12232,11 +12592,11 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
                   four stacks; each must end on a CSS generic family
   Component properties name what they paint — a few of the {property_count}:
     verdict.partial.fg: #8a4b00     one verdict, nothing else moves
-    tag.transform: none             tags stop being uppercase
+    kicker.transform: none          kickers stop being uppercase
     cover.bg.to: #44475A            the cover becomes a gradient
     title1.shadow.fg: #33FF8866     a halo (a shadow with no offset)
     fact.strong.weight: normal      un-bold the fact-box emphasis
-  A bare word is looked up in its type's namespace (`tag.fg: ink-quiet`);
+  A bare word is looked up in its type's namespace (`kicker.fg: ink-quiet`);
   a dotted word references another property (`title1.fg: cover.fg`).
   Errors name the file and the key — a mistyped property is a build error,
   never a silent no-op. CSS rules (new selectors, @font-face, media
@@ -12301,7 +12661,7 @@ ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
 
   For ONE name, with the levels that lost as well as the one that won:
     lightwebpres resolve my-series page_title --article intro.md
-    lightwebpres resolve my-series tag.fg
+    lightwebpres resolve my-series kicker.fg
     lightwebpres resolve my-series fact-label
 
 NOTES (specifications.md §6.5)
