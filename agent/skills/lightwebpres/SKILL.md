@@ -379,6 +379,13 @@ Three things `audit` will tell you about, none of them fatal:
 Practical note for `local`: notes at the foot of a card take room on a
 screen that is already short. A card carrying five of them will scroll.
 
+**These notes are also your speaker cue.** While presenting, press **N** to
+open a speaker panel showing the current slide's notes and the next slide's
+title — a `source:`/reference footnote written inline doubles as the line
+you read aloud. The same deck prints one slide per sheet (Ctrl/Cmd+P →
+PDF), with the navigation chrome stripped and the theme colours kept, so a
+note-laden card and a clean handout come from the same source.
+
 ## Per-slide look: `fact-variant`
 
 `fact-variant: warning` on a standard slide adds `fact--warning` to that

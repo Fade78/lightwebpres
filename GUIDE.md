@@ -465,11 +465,31 @@ without looking at the screen.
 | B | Black pause screen (press again to dismiss) |
 | W | White pause screen (press again to dismiss) |
 | T | Theme-background pause screen (press again to dismiss) |
+| N | Toggle the speaker panel: the current slide's notes and the next slide's title |
+| 0–9 then Enter | Jump straight to slide N (1-based) — for decks of ten slides and up |
 
 The B/W/T pause screens hide the slide so the audience's eye comes back
 to the speaker — the same feature PowerPoint and Keynote call "blank".
 T uses the theme's own background colour, so a dark theme pauses on a
 dark screen rather than flashing white.
+
+### Speaker panel and slide counter
+
+A small `X / N` counter sits in the bottom-left corner and fades out with
+the other chrome when the mouse is idle. Type a slide number and press
+**Enter** to jump there — handy once a deck passes ten slides and the
+arrow-key walk becomes a slog. Press **N** to open the speaker panel: it
+shows the current slide's speaker notes (the `[^n]` notes written inline
+in the article) and the title of the next slide, so you can read ahead
+without the audience seeing. The panel rides along as you navigate; press
+**N** again to close it.
+
+### Printing and PDF
+
+Each page is print-ready. **Print** from the browser (Ctrl/Cmd+P) and
+choose "Save as PDF": every slide lands on its own sheet, the navigation
+chrome is stripped, and the theme colours are kept. A short slide no
+longer blanks a page — each sheet sizes to its own content.
 
 ### Mouse
 

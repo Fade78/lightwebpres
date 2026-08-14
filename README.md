@@ -31,7 +31,11 @@ only slides. The cursor hides after 1 second in fullscreen, and only
 returns after 250 ms of continuous mouse movement. The mouse becomes a
 remote: left-click advances, right-click goes back, two distinct buttons,
 no aiming. Fullscreen also neutralizes OS power-saving so the screen never
-dims mid-talk.
+dims mid-talk. A `X / N` counter and a direct number-jump (type the slide
+number, press Enter) keep you oriented in long decks; **N** opens a speaker
+panel with the current slide's notes and the next slide's title, so you can
+read ahead unseen. And every page prints one slide per sheet — a clean PDF
+handout at Ctrl/Cmd+P.
 
 ## Features
 
@@ -66,6 +70,12 @@ dims mid-talk.
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the
   screen never dims mid-talk.
+- **Speaker aids for long decks.** A `X / N` counter, a type-a-number
+  jump (Enter to land on slide N), and a speaker panel (**N**) that shows
+  the current slide's notes with the next slide's title — all fighting for
+  the speaker's attention, not the audience's. Every page also prints one
+  slide per sheet (Ctrl/Cmd+P → PDF) with the theme colours kept and the
+  navigation chrome stripped.
 - **Comes with a companion web page, not just a CLI.** One browser-based
   tool, nothing to install: one tab builds a zip you drop in, the other
   pulls, builds, and pushes straight to a GitLab repository — both

@@ -74,7 +74,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.29.0"
+VERSION = "0.30.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -1031,7 +1031,8 @@ LANG_FR = r'''{
     "share_scope_fiche": "Fiche",
     "qr_modal_title": "QR code du lien",
     "qr_modal_close": "Fermer",
-    "nav_fullscreen": "Plein écran (touche F)"
+    "nav_fullscreen": "Plein écran (touche F)",
+    "presenter_next": "Suivant :"
   }
 }'''
 
@@ -1114,7 +1115,8 @@ LANG_EN = r'''{
     "share_scope_fiche": "Slide",
     "qr_modal_title": "QR code for this link",
     "qr_modal_close": "Close",
-    "nav_fullscreen": "Fullscreen (F key)"
+    "nav_fullscreen": "Fullscreen (F key)",
+    "presenter_next": "Next:"
   }
 }'''
 
@@ -3980,6 +3982,75 @@ body.fs-noselect {
   .nav-buttons { bottom: 16px; right: 16px; }
 }
 
+/* Print / PDF ("Print this page", specifications.md §9.4): one slide per
+   sheet, no navigation chrome, theme colors preserved. Slides are sized to
+   their own content (not 100vh) so a short slide does not blank a page. */
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  .nav-buttons, .nav-dots, .nav-btn, .slide-counter,
+  .pause-overlay { display: none !important; }
+  .slide {
+    page-break-after: always;
+    break-after: page;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    scroll-snap-align: none !important;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  @page { margin: 1.5cm; }
+}
+
+/* Speaker counter (X / N) + presenter notes panel (key N). */
+.slide-counter {
+  position: fixed;
+  bottom: 22px;
+  left: 28px;
+  z-index: 150;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border-style: solid;
+  border-width: 1px;
+  background: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
+  transition: opacity 0.4s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.slide-counter.idle { opacity: 0; }
+.slide-counter.idle:hover { opacity: 1; }
+@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }
+.presenter-panel {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-height: 44vh;
+  z-index: 300;
+  padding: 16px 28px 20px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  background: inherit;
+  color: inherit;
+  box-shadow: 0 -4px 22px rgba(0,0,0,0.20);
+  overflow: auto;
+  display: none;
+}
+.presenter-panel.open { display: block; }
+.presenter-panel .pp-head {
+  font-weight: 700;
+  font-size: 0.95em;
+  margin-bottom: 10px;
+}
+.presenter-panel .pp-notes { font-size: 0.95em; line-height: 1.5; white-space: pre-wrap; }
+.presenter-panel .pp-next {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.9em;
+}
+
 /* --- The highlight block ---
    --page-content-max, not --page-block-max, and NOT a flex column. Two
    defects lived in the four lines this replaces, and both were measured
@@ -4847,6 +4918,54 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var dots = navDots ? Array.prototype.slice.call(navDots.querySelectorAll('a')) : [];
 
+  // --- Speaker counter (X / N) + number-jump + presenter notes panel (key N) ---
+  var slideCounter    = document.getElementById('slideCounter');
+  var presenterPanel  = document.getElementById('presenterPanel');
+  var presenterHead   = document.getElementById('presenterHead');
+  var presenterNotes  = document.getElementById('presenterNotes');
+  var presenterNext   = document.getElementById('presenterNext');
+  var jumpBuffer = '';
+  var jumpTimer = null;
+
+  function slideTitle(i) {
+    var s = slides[i];
+    if (!s) return '';
+    var t = s.querySelector('.slide-tag');
+    if (t) return t.textContent;
+    var h = s.querySelector('h2, h1');
+    return h ? h.textContent : ('{{str_nav_dot_fallback}} ' + (i + 1));
+  }
+
+  function updateCounter() {
+    if (!slideCounter) return;
+    slideCounter.textContent = jumpBuffer
+      ? '→ ' + jumpBuffer
+      : ((current + 1) + ' / ' + slides.length);
+  }
+
+  function updatePresenter() {
+    if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
+    var cur = slides[current];
+    var notesEl = cur ? cur.querySelector('.notes-local') : null;
+    if (presenterNotes) {
+      presenterNotes.textContent = notesEl ? notesEl.textContent.trim() : '—';
+    }
+    if (presenterHead) {
+      presenterHead.textContent = slideTitle(current) + '  (' + (current + 1) + '/' + slides.length + ')';
+    }
+    if (presenterNext) {
+      presenterNext.textContent = (current + 1 < slides.length)
+        ? '{{str_presenter_next}} ' + slideTitle(current + 1)
+        : '—';
+    }
+  }
+
+  function togglePresenter() {
+    if (!presenterPanel) return;
+    presenterPanel.classList.toggle('open');
+    updatePresenter();
+  }
+
   function currentVisible() {
     // Returns the index of the slide that contains the viewport's
     // vertical midpoint — the real "what the user is looking at",
@@ -4946,6 +5065,8 @@ document.addEventListener('DOMContentLoaded', function() {
     btnNext.classList.toggle('disabled', current === slides.length - 1);
     dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
     updateShareFicheState();
+    updateCounter();
+    updatePresenter();
   }
 
   btnPrev.addEventListener('click', function(){ goTo(current - 1); });
@@ -4989,6 +5110,32 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       return;
     }
+    // Number jump: type digits, Enter jumps to that slide (1-based).
+    // Escape cancels the pending buffer. The buffer auto-expires.
+    if (e.key >= '0' && e.key <= '9') {
+      jumpBuffer = (jumpBuffer + e.key).slice(-3);
+      updateCounter();
+      if (jumpTimer) clearTimeout(jumpTimer);
+      jumpTimer = setTimeout(function(){ jumpBuffer = ''; updateCounter(); }, 2500);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Enter' && jumpBuffer) {
+      var jumpN = parseInt(jumpBuffer, 10);
+      jumpBuffer = '';
+      if (jumpTimer) clearTimeout(jumpTimer);
+      if (jumpN >= 1 && jumpN <= slides.length) goTo(jumpN - 1);
+      updateCounter();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape' && jumpBuffer) {
+      jumpBuffer = '';
+      if (jumpTimer) clearTimeout(jumpTimer);
+      updateCounter();
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
       e.preventDefault(); runStepped(stepForward);
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
@@ -5003,6 +5150,8 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); togglePause('w');
     } else if (e.key === 't' || e.key === 'T') {
       e.preventDefault(); togglePause('t');
+    } else if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault(); togglePresenter();
     }
   });
 
@@ -5382,6 +5531,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function setNavIdle(isIdle) {
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
+    if (slideCounter) slideCounter.classList.toggle('idle', isIdle);
   }
   if (navButtons) {
     navButtons.addEventListener('click', function (e) {
@@ -5488,6 +5638,13 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <nav class="nav-dots"></nav>
 
 <div class="pause-overlay" id="pauseOverlay"></div>
+
+<div class="slide-counter" id="slideCounter"></div>
+<div class="presenter-panel" id="presenterPanel">
+  <div class="pp-head" id="presenterHead"></div>
+  <div class="pp-notes" id="presenterNotes"></div>
+  <div class="pp-next" id="presenterNext"></div>
+</div>
 
 <div class="nav-buttons">
   <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}">&#8593;</div>
