@@ -2061,9 +2061,19 @@ class CliVersionAndShortcuts(unittest.TestCase):
             proc = sp.Popen([sys.executable, str(EXECUTABLE), 'watch',
                              str(root), '--output', str(root / 'public')],
                             stdout=sp.PIPE, stderr=sp.PIPE, text=True)
-            # Give it time to build once.
             import time as _time
-            _time.sleep(1.5)
+            # Eight parallel workers can make the JavaScript syntax check take
+            # longer than the old fixed 1.5s grace period.
+            public = root / 'public'
+            deadline = _time.time() + 15
+            while (_time.time() < deadline
+                   and (not (public / 'a.html').exists()
+                        or not (public / 'index.html').exists())):
+                _time.sleep(0.1)
+            self.assertTrue((root / 'public' / 'a.html').exists(),
+                            'watch did not complete its initial build')
+            self.assertTrue((root / 'public' / 'index.html').exists(),
+                            'watch did not complete its index build')
             proc.send_signal(signal.SIGINT)
             out, err = proc.communicate(timeout=10)
             self.assertEqual(proc.returncode, 0, err)
