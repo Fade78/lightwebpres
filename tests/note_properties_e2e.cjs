@@ -54,6 +54,21 @@ function argbToRgb(v) {
   return a >= 0.999 ? `rgb(${r}, ${g}, ${b})` : { r, g, b, a };
 }
 
+async function resolvedDeclared(page, axis) {
+  // The theme ships fluid sizes (`max(12px, 1.5vmin)`); a raw custom
+  // property string can never equal a used value. Resolve it through a
+  // temp element's width, which evaluates the expression into px.
+  const name = '--' + axis.replace(/\./g, '-');
+  return page.evaluate((v) => {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:absolute;visibility:hidden;width:var(' + v + ');';
+    document.body.appendChild(el);
+    const w = getComputedStyle(el).width;
+    el.remove();
+    return w;
+  }, name);
+}
+
 async function checkPage(page, url, table, label) {
   await page.goto(url);
   for (const [axis, [sel, prop, kind]] of Object.entries(table)) {
@@ -75,8 +90,9 @@ async function checkPage(page, url, table, label) {
         fail(`${label}: ${axis} declared ${declared} but computed ${computed} — the axis is inert`);
       }
     } else if (kind === 'length') {
-      if (computed !== declared) {
-        fail(`${label}: ${axis} declared ${declared} but computed ${computed} — the axis is inert`);
+      const resolved = await resolvedDeclared(page, axis);
+      if (computed !== resolved) {
+        fail(`${label}: ${axis} declared ${declared} but computed ${computed} (resolved ${resolved}) — the axis is inert`);
       }
     } else {
       const want = argbToRgb(declared);

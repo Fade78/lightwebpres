@@ -759,7 +759,7 @@ décision de périmètre. Non implémenté et volontairement absent.
 
 ---
 
-## C3 — Variantes filtrables par `tags:` — IMPLEMENTÉ, e2e ÉCRIT MAIS NON EXÉCUTÉ
+## C3 — Variantes filtrables par `tags:` — IMPLEMENTÉ ET TESTÉ EN NAVIGATEUR
 
 Le format accepte désormais des tags de variante sur les slides : `default`
 est implicite, `excluded` est retiré au build, et les autres tags sont filtrés
@@ -770,12 +770,11 @@ d'instance ou le version tag.
 `series_meta.lang_tags` associe un tag à un pack typographique ; le premier tag
 de langue porté par une slide sélectionne son moteur, avec `--lang`/`LWP_LANG`
 comme fallback. `audit` signale les tags invalides et les packs absents sans
-bloquer. Le comportement est couvert par les tests black-box et la
-documentation permanente.
+bloquer. Le comportement est couvert par les tests black-box, le test
+navigateur (`tests/slide_tags_e2e.cjs`, menu, filtrage, persistance,
+rechargement) et la documentation permanente.
 
-**Reste à faire :** exécuter le test navigateur du changement de variante
-(`tests/slide_tags_e2e.cjs`, écrit et skip proprement sans Playwright) dès
-qu'un environnement avec Node + Playwright global est disponible.
+**Status:** implémenté ; e2e exécuté le 2026-08-15 (Playwright installé).
 
 **Status:** implémenté ; e2e navigateur en attente de l'outillage.
 
@@ -823,7 +822,10 @@ Ce qui reste volontairement ouvert :
 - **Déploiement « racine du dépôt »** : copier tout le dépôt tel quel sous
   une racine HTTP expose `.git/`, `to-be-deleted/` et les tests ; la mise
   en page sûre (servir `web/` seul) est documentée dans le README.
-- **E2e navigateur** (variantes, et les 12 autres tests Playwright) :
-  toujours en attente d'un environnement avec Node + Playwright global.
+- **E2e navigateur** : exécuté le 2026-08-15 sur un poste avec Node +
+  Playwright global — les 13 tests du volet navigateur passent (dont le
+  menu de variantes et les axes `note.*` ; le comparateur du test `note`
+  a été corrigé pour résoudre les valeurs fluides `max()`/`clamp()` au
+  lieu de comparer la chaîne brute).
 
 **Status:** décisions actées ; dettes restantes listées ci-dessus.

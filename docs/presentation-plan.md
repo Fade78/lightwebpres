@@ -87,7 +87,7 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 | Extendeur | Diffuser ses présentations | Output Exception : la sortie est sous la licence de l'auteur du texte, pas celle du logiciel (sauf si l'œuvre est elle-même un générateur) | COPYING.EXCEPTION, AGENTS |
 | Extendeur | Intégrer | Intégration verticale (un outil toute la chaîne) + horizontale (web/ léger + GUI lourd sous Pyodide) | AGENTS, spec §1.2/§23 |
 | **Mainteneur** | Code unique | Single-file Python, stdlib only, ~13 200 lignes | AGENTS, spec |
-| Mainteneur | Tests black-box | 739 tests en découverte (726 dans test_lightwebpres, 13 skippés Playwright) | AGENTS, tests/ |
+| Mainteneur | Tests black-box | 739 tests en découverte (726 dans test_lightwebpres) + 13 tests navigateur Playwright | AGENTS, tests/ |
 | Mainteneur | Aide synchrone | `--help` maintenu à la main mais verrouillé par test contre les tables d'options | AGENTS, spec §11 |
 | Mainteneur | Versionnage | Semver (spec §13.9) ; VERSION dans l'exécutable | AGENTS, spec |
 | Mainteneur | Push contrôlé | Commit substantiel puis push vers `newargs`, sans push forcé | AGENTS |
@@ -253,8 +253,9 @@ par slide, filtrage runtime et audit non bloquant. Le menu est masqué lorsqu'un
 article ne porte qu'une seule variante.
 
 Le livrable 10 est couvert par 739 tests en découverte (tags, exclusion,
-validation, menu généré, typographie par slide et audit) ; il reste le test
-navigateur du changement de variante quand Playwright est disponible. Le
+validation, menu généré, typographie par slide et audit) ; le test
+navigateur du changement de variante est exécuté depuis le 2026-08-15
+(Playwright installé). Le
 livrable 11 est terminé : les contrats permanents, le guide source,
 `docs/guide/` et l'entrée BACKLOG C3 sont à jour.
 
