@@ -285,7 +285,7 @@ the series or within one article.
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
-| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide"), variant tags/language packs, and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build |
+| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide"), variant tags/language packs, and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build unless `--strict` is passed |
 | `template update [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `theme list` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
@@ -293,7 +293,7 @@ the series or within one article.
 | `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
-| `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `theme gallery.html`) |
+| `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
 | `watch [dir]` | Polls sources, rebuilds on change, optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
@@ -337,8 +337,10 @@ version.
 - **`standard`** — kicker, optional `tags:`, `## Title`, summary, an optional highlighted
   figure (`highlight`/`highlight-caption`), and a Markdown fact-box.
 - **`series-nav`** — cross-article navigation, generated from
-  `series.json` (at most one per article).
-- **`full-article`** — includes a separate long-form Markdown file,
+  `series.json` (at most one per article); it accepts optional `tags:` and
+  `comment:` fields but no free body.
+- **`full-article`** — includes a separate long-form Markdown file, accepts
+  `article:` plus optional `tags:` and `comment:`, and has no free body;
   converted with full support for headings (levels 1–6: `####` renders as
   a bold-font paragraph, `#####`/`######` as plain text), bold/italic,
   links, notes (see below), lists, tables, blockquotes, images with
@@ -361,11 +363,17 @@ publishing a slide of the wrong kind.
  accepts `comment:` — a review note, recognized but never rendered, never
  published, not even in the page's raw HTML source. A `note:` field is the
  speaker note: also parsed and withheld from the slide the reader sees, but
- surfaced by the presenter panel (**N**) for the person presenting. It is
+  surfaced by the presenter panel (**N**) for the person presenting. `note:`
+  is accepted on `cover` and standard slides. It is
  distinct from a `[^label]` footnote, which is a source note printed for the
  reader (see below). Both `note:` and `comment:` accept multi-line values:
  each continuation line starts with whitespace, and an indented blank line is a
- paragraph break; the block ends at the first non-indented, non-empty line.
+  paragraph break; the block ends at the first non-indented, non-empty line.
+
+The former visible-label field `tag:` is not an alias. Use `kicker:` for the
+label above a slide title, and `tags:` for variant filtering. On a standard
+slide an old `tag:` line becomes body text; on a cover, `build` reports the
+unknown field and prints the two current choices.
 
 ## Notes
 

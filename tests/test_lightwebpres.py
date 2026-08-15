@@ -292,6 +292,17 @@ class FatalErrorCases(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
+    def test_unknown_slide_type_is_fatal_even_when_excluded(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:bogus -->\ntags: excluded\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unknown type "bogus"', result.stderr)
+
     def test_md_must_start_with_meta_block(self):
         md = '---\n\n<!-- lwp:slide:cover -->\nkicker: T\n# Title\n'
         with tempfile.TemporaryDirectory() as tmp:
@@ -7825,6 +7836,43 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             root = scaffold(tmp, md)
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
+
+    def test_cover_unknown_field_error_lists_cover_fields(self):
+        """A field-shaped typo on a cover gets an actionable migration hint
+        instead of only the generic no-fact-box error."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\ntag: Visible label\n# Title\n'
+            'summary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unrecognized field "tag:"', result.stderr)
+            self.assertIn(
+                'kicker:, tags:, summary:, comment:, note:', result.stderr)
+            self.assertIn(
+                'Use "kicker:" for a visible label or "tags:" for variant filtering.',
+                result.stderr,
+            )
+
+    def test_cover_generic_unknown_field_error_lists_cover_fields(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nmystery: value\n# Title\n'
+            'summary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unrecognized field "mystery:"', result.stderr)
+            self.assertIn(
+                'kicker:, tags:, summary:, comment:, note:', result.stderr)
+            self.assertNotIn('Use "kicker:" for a visible label', result.stderr)
 
 
 class FactLabelOptional(unittest.TestCase):

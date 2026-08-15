@@ -1648,7 +1648,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="highlight"><span class="highlight-figure">0</span><span class="highlight-caption">dependencies to install — the Python standard library is all it uses</span></div>
   <div class="fact-box">
     <div class="fact-label">What makes it pipeline-shaped</div>
-    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>verify</code> fails on drift, <code>audit</code> never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
+    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>verify</code> fails on drift, <code>audit</code> reports advice without failing unless <code>--strict</code> is passed. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
   <p>The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.</p></div>
   </div>
 </section>
@@ -1658,7 +1658,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <h2>Two checks, two different moments</h2>
   <div class="fact-box">
     <div class="fact-label">A nudge and a gate</div>
-    <div class="fact-content">  <p><code>audit</code> flags what is worth a second look and <strong>never fails</strong> — a missing cover, a stale scaffold comment, a retired variable still referenced.</p>
+    <div class="fact-content">  <p><code>audit</code> flags what is worth a second look and <strong>normally does not fail</strong> — a missing cover, a stale scaffold comment, a retired variable still referenced. Pass <code>--strict</code> when those warnings must fail CI.</p>
   <p><code>verify</code> rebuilds in memory and diffs against <code>public/</code>, exiting non-zero on any difference. That exit code is what makes it a CI gate.</p></div>
   </div>
 </section>
@@ -1681,7 +1681,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <span class="slide-kicker">Full article</span>
   <h1>LightWebPres — Guide</h1>
   <p>This is the map of the tool: init it, see what a page is made of, wire a series, adjust the look, ship it. For what each command <em>exactly</em> does in every edge case, see <code>specifications.md</code>; for the precise article syntax, see <code>SKILL.md</code>. This guide is the path through all of it in the order you'll actually need it.</p>
-  <p><strong>What this guide does not do is teach you to write.</strong> LightWebPres is for people who already know how; it renders what you give it. Nothing here says what makes a good card, how to structure an argument or when a claim needs a source. A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for people who would like a method — an offered interface, not the core of what this does. Take it or leave it: [section 9](#9-going-further).</p>
+  <p><strong>What this guide does not do is teach you to write.</strong> LightWebPres is for people who already know how; it renders what you give it. Nothing here says what makes a good card, how to structure an argument or when a claim needs a source. A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for people who would like a method — an offered interface, not the core of what this does. Take it or leave it: [section 11](#11-going-further).</p>
   <h2>1. What LightWebPres is</h2>
   <p>LightWebPres turns an extended Markdown format into self-contained, scrollable HTML articles — a cover, a handful of fact-card slides, an optional long-form piece, cross-article navigation — with zero runtime dependencies. One executable, <code>lightwebpres</code>, does the whole job: scaffold a project, generate demo content, build, verify, and keep templates current.</p>
   <p><strong>Three ways it gets used, and the tool does not care which.</strong></p>
@@ -1724,22 +1724,22 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <tbody>
       <tr>
         <td><code>cover</code></td>
-        <td><code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code></td>
+        <td><code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code>, <code>comment</code>, <code>note</code></td>
         <td>any number, anywhere — it is a look, not a structural marker</td>
       </tr>
       <tr>
         <td>standard <em>(the default)</em></td>
-        <td><code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, then free Markdown</td>
+        <td><code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, <code>comment</code>, <code>note</code>, then free Markdown</td>
         <td>as many as you want</td>
       </tr>
       <tr>
         <td><code>series-nav</code></td>
-        <td>nothing — generated from <code>series.json</code></td>
+        <td><code>tags:</code>, <code>comment:</code> — the navigation itself is generated from <code>series.json</code></td>
         <td>0 or 1 per article</td>
       </tr>
       <tr>
         <td><code>full-article</code></td>
-        <td><code>article: filename.md</code></td>
+        <td><code>article: filename.md</code>, optional <code>tags:</code> and <code>comment:</code></td>
         <td>0 or 1 per article</td>
       </tr>
     </tbody>
@@ -1808,6 +1808,10 @@ xdg-open my-series/public/index.html         # `open` on macOS
   </ul>
   <p>  Once a line is not a <code>field:</code> line, everything after it is prose — so a   <code>highlight:</code> placed after a paragraph is published as the literal text   <code>highlight: 3 000 W</code>. Fields first, prose after.</p>
   <ul>
+    <li>Structural fields occupy one physical line, except <code>note:</code> and <code>comment:</code>:</li>
+  </ul>
+  <p>  an indented continuation line belongs to the preceding note/review field.</p>
+  <ul>
     <li><strong>A fact box appears only with <code>fact-label:</code>.</strong> Free text without it</li>
   </ul>
   <p>  renders as plain paragraphs — which is often what you want.</p>
@@ -1829,6 +1833,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <li>The selected tag shows its own slides and shared <code>default</code> slides; counts,</li>
   </ul>
   <p>  navigation, anchors, and the presenter panel use the visible slides.</p>
+  <p>The former visible-label field <code>tag:</code> is not an alias. Use <code>kicker:</code> for the label above a slide title, and <code>tags:</code> for variant filtering. On a standard slide an old <code>tag:</code> line becomes body text; on a cover, <code>build</code> reports the unknown field and prints the two current choices.</p>
   <p>For language-specific typography, map tags to packs in <code>series_meta</code>:</p>
   <pre><code class="language-json">
 {

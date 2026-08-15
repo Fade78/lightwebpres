@@ -112,7 +112,7 @@ highlight-caption: dependencies to install — the Python standard library is al
 
 fact-label: What makes it pipeline-shaped
 
-Every command runs unattended and returns a meaningful exit code. `verify` fails on drift, `audit` never fails because it is advice. Every path is an environment variable, so a runner lays the pieces out as it likes.
+Every command runs unattended and returns a meaningful exit code. `verify` fails on drift, `audit` reports advice without failing unless `--strict` is passed. Every path is an environment variable, so a runner lays the pieces out as it likes.
 
 The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.
 
@@ -124,7 +124,7 @@ kicker: Shipping
 
 fact-label: A nudge and a gate
 
-`audit` flags what is worth a second look and **never fails** — a missing cover, a stale scaffold comment, a retired variable still referenced.
+`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced. Pass `--strict` when those warnings must fail CI.
 
 `verify` rebuilds in memory and diffs against `public/`, exiting non-zero on any difference. That exit code is what makes it a CI gate.
 

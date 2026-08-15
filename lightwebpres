@@ -76,7 +76,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.33.1"
+VERSION = "0.33.2"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -8293,9 +8293,6 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
     series_nav_positions = []
 
     for i, slide in enumerate(slides, 1):
-        normalize_slide_tags(slide, filename, i)
-        if 'excluded' in slide.tags:
-            continue
         # A type this build does not know renders as a standard slide —
         # `render_slide()` treats everything that is not one of the three
         # special types as standard. So `<!-- lwp:slide:covre -->` used to
@@ -8308,9 +8305,29 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
                   f'"{slide.slide_type}" (known types: {known}).')
             sys.exit(1)
 
+        normalize_slide_tags(slide, filename, i)
+        if 'excluded' in slide.tags:
+            continue
+
         if slide.slide_type == 'cover' and slide.fact_content:
-            log('error', f'{filename}: slide {i} (cover) has content after its '
-                  f'fields, but a cover slide has no fact-box.')
+            message = (f'{filename}: slide {i} (cover) has content after its '
+                       f'fields, but a cover slide has no fact-box.')
+            field_like = next(
+                (line.strip() for line in slide.fact_content.splitlines()
+                 if re.match(r'^[A-Za-z][A-Za-z0-9_-]*:', line.strip())),
+                None,
+            )
+            if field_like:
+                field_name = field_like.split(':', 1)[0]
+                cover_fields = ', '.join(
+                    f'{name}:' for name in SLIDE_TYPES_BY_NAME['cover'].fields)
+                message += (f' The line starts with the unrecognized field '
+                            f'"{field_name}:". Cover fields are: {cover_fields}; '
+                            f'the title uses "# Title".')
+                if field_name == 'tag':
+                    message += (' Use "kicker:" for a visible label or "tags:" '
+                                'for variant filtering.')
+            log('error', message)
             sys.exit(1)
 
         # A cover renders only kicker / # title / summary (+ comment, never

@@ -132,7 +132,20 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 
 | Field | Default | Description |
 |---|---|---|
+| `tags` | `default` when absent or empty | Optional variant tags; `excluded` removes the generated slide before rendering |
 | `article` | None — required on this slide type | External `.md` file included as the article's long-form body |
+
+## Series-navigation slide fields
+
+A `<!-- lwp:slide:series-nav -->` slide has no author-written body. Its
+navigation cards are generated from `series.json`; it accepts the shared
+`tags` field for variant filtering. `comment` is documented above because it
+is accepted on every slide type and is never rendered.
+
+The historical `tag:` field is not an alias for either current field. Use
+`kicker:` for the visible label above a slide title, and `tags:` for variant
+filtering. On a standard slide, an old `tag:` line becomes body text; on a
+cover, `build` reports the unknown field and suggests the two current choices.
 
 ## Presentation vocabulary
 

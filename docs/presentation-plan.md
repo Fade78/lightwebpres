@@ -46,7 +46,7 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 | Intégrateur | Logs horodatés | `--timestamp` (RFC 3339), `--quiet`/`--verbose` | README Options |
 | Intégrateur | Config par env | `LWP_SERIES_DIR`, `LWP_OUTPUT_DIR`, `LWP_LANG`, `LWP_TEMPLATES_DIR`… | README, spec |
 | Intégrateur | CI prêt à l'emploi | `.gitlab-ci.yml` généré (`init --gitlab-ci`, opt-in) | GUIDE §8 |
-| Intégrateur | Exit codes significatifs | Toute commande : exit non-zero sur erreur ; `audit` jamais bloquant | README, GUIDE §8 |
+| Intégrateur | Exit codes significatifs | Toute commande : exit non-zero sur erreur ; `audit` non bloquant sauf `--strict` | README, GUIDE §8 |
 | Intégrateur | Reproductibilité | stdlib only, pas de réseau au build, pas de wheel/lockfile | README, AGENTS |
 | Intégrateur | Completion shell | `completion --shell bash\|zsh` (tab sur commandes/options) | README, GUIDE §10 |
 | Intégrateur | Alias legacy | Anciens noms acceptés 1 version MAJEURE + `[WARN]` (scripts existants ne cassent pas) | spec §11.16, README |
@@ -86,8 +86,8 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 | **Extendeur / contributeur** | Modifier/redistribuer | GPL v3 : extension ouverte | COPYING, AGENTS |
 | Extendeur | Diffuser ses présentations | Output Exception : la sortie est sous la licence de l'auteur du texte, pas celle du logiciel (sauf si l'œuvre est elle-même un générateur) | COPYING.EXCEPTION, AGENTS |
 | Extendeur | Intégrer | Intégration verticale (un outil toute la chaîne) + horizontale (web/ léger + GUI lourd sous Pyodide) | AGENTS, spec §1.2/§23 |
-| **Mainteneur** | Code unique | Single-file Python, stdlib only, ~13 200 lignes | AGENTS, spec |
-| Mainteneur | Tests black-box | 739 tests en découverte (726 dans test_lightwebpres) + 13 tests navigateur Playwright | AGENTS, tests/ |
+| **Mainteneur** | Code unique | Single-file Python, stdlib only, ~13 300 lignes | AGENTS, spec |
+| Mainteneur | Tests black-box | 742 tests en découverte (729 dans test_lightwebpres) + 13 tests navigateur Playwright | AGENTS, tests/ |
 | Mainteneur | Aide synchrone | `--help` maintenu à la main mais verrouillé par test contre les tables d'options | AGENTS, spec §11 |
 | Mainteneur | Versionnage | Semver (spec §13.9) ; VERSION dans l'exécutable | AGENTS, spec |
 | Mainteneur | Push contrôlé | Commit substantiel puis push vers `newargs`, sans push forcé | AGENTS |
@@ -252,7 +252,7 @@ parsing/validation, tags système, rendu `data-tags`, moteurs typographiques
 par slide, filtrage runtime et audit non bloquant. Le menu est masqué lorsqu'un
 article ne porte qu'une seule variante.
 
-Le livrable 10 est couvert par 739 tests en découverte (tags, exclusion,
+Le livrable 10 est couvert par 742 tests en découverte (tags, exclusion,
 validation, menu généré, typographie par slide et audit) ; le test
 navigateur du changement de variante est exécuté depuis le 2026-08-15
 (Playwright installé). Le

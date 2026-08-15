@@ -464,11 +464,13 @@ de reconnaître sans ambiguïté qu'ils appartiennent à LWP et de les ignorer
 explicitement, plutôt que de risquer une collision avec sa propre
 convention `<!-- meta -->` ou `<!-- slide -->`.
 
-Chaque élément LWP — instruction ou champ — tient sur **une seule ligne
-physique**, quelle que soit sa longueur : il n'y a pas de valeur étalée sur
-plusieurs lignes. Si un éditeur replie visuellement une ligne trop longue
-(word-wrap), c'est un effet d'affichage de l'éditeur ; le fichier ne contient
-toujours qu'une seule ligne logique à cet endroit.
+Chaque instruction LWP et chaque champ scalaire tient sur **une seule ligne
+physique**, quelle que soit sa longueur. Les champs `note:` et `comment:` sont
+les deux exceptions : une ligne suivante indentée continue leur valeur, et
+une ligne vide indentée sépare deux paragraphes. Si un éditeur replie
+visuellement une ligne trop longue (word-wrap), c'est un effet d'affichage de
+l'éditeur ; le fichier ne contient toujours qu'une seule ligne logique à cet
+endroit.
 
 **Le texte libre** (5. — ni `clé: valeur`, ni `<!-- -->`, ni `---`) : tout ce
 qui n'est reconnu ni comme commentaire LWP ni comme champ `clé: valeur`
@@ -527,8 +529,9 @@ Le temps de cuisson varie ensuite selon l'**épaisseur** des pommes et la hauteu
 article: tarte-aux-pommes_article.md
 ```
 
-Chaque champ (`summary:`, `kicker:`, etc.) reste sur sa seule ligne physique,
-même long — c'est la règle LWP de §4.1. En revanche, le texte libre de la
+Chaque champ scalaire (`summary:`, `kicker:`, etc.) reste sur sa seule ligne
+physique, même long — c'est la règle LWP de §4.1. `note:` et `comment:` sont
+les seules exceptions et acceptent des continuations indentées. En revanche, le texte libre de la
 seconde fiche ci-dessus contient volontairement **deux paragraphes Markdown**
 séparés par une ligne vide (« Le four doit être préchauffé... » et « Le
 temps de cuisson varie... ») : c'est le cas normal d'usage, et les deux
@@ -5479,9 +5482,10 @@ horizontal dans le texte, utiliser `<hr>` en HTML inline.
 
 ### 22.2 `kicker:` dans le texte d'une fact-box
 
-Les métadonnées (`kicker:`, `summary:`, `fact-label:`, `source:`, `highlight:`,
-`highlight-caption:`, `article:`) ne sont reconnues que **dans l'en-tête** de la
-slide (les premières lignes avant le premier paragraphe de contenu). Une fois
+Les métadonnées (`kicker:`, `tags:`, `summary:`, `fact-label:`, `fact-variant:`,
+`source:`, `highlight:`, `highlight-caption:`, `comment:`, `note:`, `article:`)
+ne sont reconnues que **dans l'en-tête** de la slide (les premières lignes avant
+le premier paragraphe de contenu). Une fois
 que le parseur a rencontré une ligne de contenu (paragraphe, liste, titre), il
 cesse de chercher des métadonnées.
 
@@ -5551,9 +5555,10 @@ Erreur fatale. Un article ne peut contenir qu'une seule navigation de série.
 ### 22.9.1 Contenu non reconnu dans une fiche `series-nav` ou `full-article`
 
 Erreur fatale. Ces deux types de fiche ne rendent **aucun** contenu
-propre : leurs seules lignes reconnues sont leurs directives —
-`article:` (fiche `full-article` uniquement) et `comment:` (§4.6,
-reconnu sur tout type, jamais rendu). Toute autre ligne non vide
+propre : leurs seules lignes reconnues sont leurs directives — `tags:` et
+`comment:` (tous les deux sur les deux types), plus `article:` (fiche
+`full-article` uniquement) (§4.6, `comment` est reconnu sur tout type et
+jamais rendu). Toute autre ligne non vide
 (du texte, un champ de fiche standard, un `article:` sur une
 `series-nav`...) arrête le build avec un message citant le début de la
 ligne fautive, plutôt que de disparaître silencieusement du rendu.
@@ -5589,18 +5594,24 @@ elle-même un champ reconnu bascule immédiatement en texte libre.
 
 ### 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover`
 
-Erreur fatale. Une fiche `cover` n'a pas de fact-box : `kicker`, `slide_title`
-(écrit `# Titre`), `summary` et `comment` (§4.6, jamais rendu) sont ses
-seuls champs. Si du texte suit ces champs sans être lui-même un champ
+Erreur fatale. Une fiche `cover` n'a pas de fact-box : `kicker`, `tags`,
+`slide_title` (écrit `# Titre`), `summary`, `comment` et `note` sont ses
+champs d'en-tête. Si du texte suit ces champs sans être lui-même un champ
 reconnu, le build s'arrête avec un message indiquant le fichier et le
 numéro de fiche, plutôt que d'ignorer silencieusement ce texte.
 
 Cas voisin, traité plus doucement : les **champs** de fiche standard
-posés sur une cover (`fact-label`, `source`, `highlight`,
+posés sur une cover (`fact-label`, `fact-variant`, `source`, `highlight`,
 `highlight-caption`) sont parsés mais jamais rendus — **avertissement**
 au build, pas d'erreur. Basculer une fiche entre standard et cover
 pendant l'écriture est un aller-retour normal ; l'avertissement signale
 la perte d'affichage sans casser la source.
+
+Si le contenu inattendu contient une ligne qui commence par un identifiant
+suivi de `:`, le diagnostic rappelle qu'il s'agit peut-être d'un champ mal
+écrit et énumère les champs reconnus par une cover (`kicker:`, `tags:`,
+`summary:`, `comment:`, `note:`). Pour l'ancien `tag:`, il précise que
+`kicker:` désigne le libellé visible et `tags:` le filtrage par variante.
 
 ### 22.13 Nombre et position des fiches `cover`
 

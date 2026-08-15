@@ -65,8 +65,9 @@ it.
 
 ## Keeping them current
 
-Both are plain Markdown with a YAML front matter carrying a `version`.
-`lightwebpres/SKILL.md` changes when the format does, and the test suite
-will tell you if it lags. `sourced-presentation/SKILL.md` is maintained
-outside this repository and synced in; its version number is the one to
-compare when you wonder whether a copy is stale.
+Both are plain Markdown with YAML front matter. `lightwebpres/SKILL.md`
+changes when the executable format does and is checked by the test suite;
+the executable and specification are its version authority. The
+`sourced-presentation/SKILL.md` copy is maintained outside this repository
+and carries its own `metadata.version`, which is the number to compare when
+you wonder whether that method copy is stale.

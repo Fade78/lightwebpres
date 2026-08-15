@@ -12,7 +12,7 @@ here says what makes a good card, how to structure an argument or when a
 claim needs a source. A second skill, `sourced-presentation`, ships
 alongside as a courtesy for people who would like a method — an offered
 interface, not the core of what this does. Take it or leave it:
-[section 9](#9-going-further).
+[section 11](#11-going-further).
 
 ## 1. What LightWebPres is
 
@@ -121,10 +121,10 @@ reach each one; `SKILL.md` carries the exact syntax and every edge case.
 
 | Type | Carries | How many |
 |---|---|---|
-| `cover` | `kicker`, `tags:`, `# Title`, `summary` | any number, anywhere — it is a look, not a structural marker |
-| standard *(the default)* | `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, then free Markdown | as many as you want |
-| `series-nav` | nothing — generated from `series.json` | 0 or 1 per article |
-| `full-article` | `article: filename.md` | 0 or 1 per article |
+| `cover` | `kicker`, `tags:`, `# Title`, `summary`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
+| standard *(the default)* | `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown | as many as you want |
+| `series-nav` | `tags:`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
+| `full-article` | `article: filename.md`, optional `tags:` and `comment:` | 0 or 1 per article |
 
 Four, and only four. Mistype one — `<!-- lwp:slide:covre -->` — and the
 build stops and tells you which slide, what you wrote, and what the four
@@ -151,6 +151,8 @@ people:
   Once a line is not a `field:` line, everything after it is prose — so a
   `highlight:` placed after a paragraph is published as the literal text
   `highlight: 3 000 W`. Fields first, prose after.
+- Structural fields occupy one physical line, except `note:` and `comment:`:
+  an indented continuation line belongs to the preceding note/review field.
 - **A fact box appears only with `fact-label:`.** Free text without it
   renders as plain paragraphs — which is often what you want.
 
@@ -184,6 +186,11 @@ The field is one physical line, like every structural field.
   article and persists the choice in `localStorage['lwp-active-tag']`.
 - The selected tag shows its own slides and shared `default` slides; counts,
   navigation, anchors, and the presenter panel use the visible slides.
+
+The former visible-label field `tag:` is not an alias. Use `kicker:` for the
+label above a slide title, and `tags:` for variant filtering. On a standard
+slide an old `tag:` line becomes body text; on a cover, `build` reports the
+unknown field and prints the two current choices.
 
 For language-specific typography, map tags to packs in `series_meta`:
 

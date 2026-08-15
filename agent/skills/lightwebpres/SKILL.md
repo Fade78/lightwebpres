@@ -28,9 +28,9 @@ LWP text is **two different grammars stitched together**, and mixing them
 up is the single most common way to lose content silently:
 
 1. **Structural fields** (`kicker: ...`, `tags: ...`, `summary: ...`, `highlight: ...`,
-   etc.) — each one is **exactly one physical line**. No wrapping, no
-   continuation. If a value needs a line break, that's not a field
-   anymore.
+   etc.) — each scalar field is **exactly one physical line**. The two
+   review/presenter fields `comment:` and `note:` may have indented
+   continuation lines; no other field does.
 2. **Free Markdown text** — a standard slide's trailing body (fact-box or
    bare paragraphs, see "Slide types" below) and the full-article file.
    Ordinary CommonMark rules apply here: consecutive non-blank lines
@@ -212,12 +212,18 @@ names. Names are normalized case-insensitively; Unicode word characters,
 digits, `-`, and `_` are accepted, except a name may not begin with `_`.
 
 - No `tags:` or an empty value assigns `default`, the shared variant.
-- `tags: excluded` removes the slide during build, before the rest of the
-  slide is validated and before numbering or anchors are generated.
+- `tags: excluded` removes the slide during build, after its slide type has
+  been validated but before the rest of the slide is validated and before
+  numbering or anchors are generated.
 - Other values are emitted as `data-tags="..."` on the slide section.
 - In the generated page, press **L** to choose a tag when at least two exist.
   The selected tag keeps its own slides and `default` slides, and is persisted
   in `localStorage['lwp-active-tag']`.
+
+The former visible-label field `tag:` is not an alias. Use `kicker:` for the
+label above a slide title, and `tags:` for variant filtering. On a standard
+slide an old `tag:` line becomes body text; on a cover, `build` reports the
+unknown field and prints the two current choices.
 
 If tags select different languages, declare their typography packs in
 `series.json`:
@@ -241,11 +247,12 @@ slide tags and missing mapped packs; it does not block the build.
 |---|---|---|
 | `cover` | `kicker`, `tags`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
 | standard (default, or explicit `<!-- lwp:slide -->`) | `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
-| `series-nav` | none — generated from `series.json` | 0 or 1 per article |
-| `full-article` | `article: filename.md` (required) | 0 or 1 per article |
+| `series-nav` | `tags`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
+| `full-article` | `article: filename.md` (required), `tags`, `comment` | 0 or 1 per article |
 
-`kicker`, `summary`, `fact-label`, `source`, `highlight`/`highlight-caption`
-are all optional — omit the line if you don't need it. An empty value
+`kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
+`highlight`/`highlight-caption`, `comment`, and `note` are all optional — omit
+the line if you don't need it. An empty value
 behaves like omitting it everywhere **except on a cover slide**, where
 the parser tests whether a field was *set*, not whether it has content:
 a bare `fact-label:` on a cover raises a warning that omitting the line
@@ -264,18 +271,18 @@ are not accessible in the same way. For longer references, use a note
 (`[^1]`) whose body goes to the foot of the card (default) or the page
 end (`notes_placement: page` in the meta block).
 
-A cover slide **accepts** `fact-label`, `source`, `highlight` and
-`highlight-caption` without failing, and then never renders them — you
+A cover slide **accepts** `fact-label`, `fact-variant`, `source`, `highlight`
+and `highlight-caption` without failing, and then never renders them — you
 get a `[WARNING]`, exit code 0, and a page missing what you wrote. Only
 free *text* on a cover is fatal.
 
-**Cover slides only accept** `kicker`, `# Title`, `summary`, and `comment`.
-Any other field (the standard-slide fields: `highlight`, `highlight-caption`,
-`fact-label`, `fact-variant`, `source`) is parsed but **never rendered** on
-a cover — the build warns and continues. This is deliberate so you can
-toggle a slide between `cover` and `standard` while drafting without a
-build failure. When the slide is a cover, remove those fields; they do
-nothing.
+**Cover slides only accept** `kicker`, `tags`, `# Title`, `summary`,
+`comment`, and `note` as their own header fields. Any standard-slide field
+(`highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`)
+is parsed but **never rendered** on a cover — the build warns and continues.
+This is deliberate so you can toggle a slide between `cover` and `standard`
+while drafting without a build failure. When the slide is a cover, remove
+those standard-only fields; they do nothing.
 
 `<!-- lwp:slide:TYPE -->` is validated: a misspelt type
 (`lwp:slide:standrd`) is a fatal build error naming the slide's rank, the
@@ -312,8 +319,8 @@ type, always falls through to content (§22.2 in `specifications.md`).
 having two is a fatal build error, not "the second one wins." Both also
 accept `tags:` and `comment:` like every other slide; beyond that, any
 unrecognized non-blank line inside either one is fatal, not ignored: a
-`series-nav` slide takes no content fields, and a `full-article` slide
-takes `article:` and nothing else.
+`series-nav` slide takes no free body, and a `full-article` slide takes
+`article:` plus those two optional fields.
 
 Those four names are the whole list. A marker naming anything else is a
 fatal build error citing the slide's rank, the token you wrote, and the

@@ -4,10 +4,10 @@
 
 ### Tests (obligatoire avant et après chaque changement)
 ```bash
-python3 -m unittest tests.test_lightwebpres          # 726 tests, ~6 min
-python3 -m unittest tests.test_lightwebpres -v 2>&1 | tail -5   # résumé
-python3 tests/run_tests.py                              # workers = CPUs disponibles - 2
+python3 tests/run_tests.py                              # obligatoire : parallèle, CPUs disponibles - 2
 python3 tests/run_tests.py --workers 4                  # override explicite
+python3 -m unittest tests.test_lightwebpres              # diagnostic séquentiel : fichier principal seul
+python3 -m unittest tests.test_lightwebpres -v          # diagnostic verbeux séquentiel
 ```
 
 ### Vérification compilation
@@ -17,7 +17,7 @@ python3 -m py_compile lightwebpres                    # silencieux = OK
 
 ### Lancer l'outil
 ```bash
-python3 lightwebpres --help                           # aide (lit les tables en live)
+python3 lightwebpres --help                           # aide : registre live + texte de référence maintenu à la main
 python3 lightwebpres <command> [dir] [options]        # usage général
 eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionnel)
 ```
@@ -25,10 +25,11 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 ## Structure du dépôt
 
 ### Code et tests
-- `lightwebpres` — le code (un seul fichier Python, ~13 200 lignes). Pas de
+- `lightwebpres` — le code (un seul fichier Python, ~13 300 lignes). Pas de
   dépendances externes (stdlib uniquement, Python 3.8+).
-- `tests/test_lightwebpres.py` — 726 tests, black-box (subprocess). Helper
-  `run(*args)` lance `lightwebpres <args>`.
+- `tests/test_lightwebpres.py` — 729 tests, black-box (subprocess). La suite
+  complète découverte par `tests/run_tests.py` en compte 742. Helper `run(*args)`
+  lance `lightwebpres <args>`.
 
 ### Documentation permanente (fait foi)
 - `specifications.md` — spécification normative du format (référence).

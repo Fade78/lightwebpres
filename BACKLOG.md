@@ -451,12 +451,13 @@ order, and its audit story. Do not build before the external-theme-format
 question (out of scope of the §9 refactor by decision) is opened on its
 own.
 
-## B9 — Typographic revision of the 33-theme catalogue — PARTLY APPLIED
+## B9 — Typographic revision of the historical 33-theme catalogue — PARTLY APPLIED
 
 **Report delivered and verified** (`c4156e8`): `REVISION-THEMES.md`, with
 31 validated property layers in `themes-revision/`.
 
-**Two of the three decisions applied.** The catalogue keeps **33 themes**.
+**Two of the three decisions applied.** The revision report concerned the
+historical catalogue of **33 themes**; the live registry now contains 34.
 
 1. **Four borrowed palettes returned to their own ground.** `dracula`,
    `tokyo-night`, `monokai` and `everforest` are `dark_background`.
@@ -810,8 +811,8 @@ corrigé dans la release `v0.33.0` :
   `file://` ; **S-6** : timeout sur `node --check` ; **S-7** :
   `Options -Indexes` ; **S-8** : séquences de contrôle terminal
   neutralisées dans `log()`.
-- **F-1** : le test byte-identité est repointé sur `v0.32.0` (à repointrer
-  sur `v0.33.0` après le tag, comme sa docstring le dit).
+- **F-1** : le test byte-identité est repointé sur `v0.33.0` ; la dette est
+  close.
 
 Ce qui reste volontairement ouvert :
 
@@ -828,4 +829,6 @@ Ce qui reste volontairement ouvert :
   a été corrigé pour résoudre les valeurs fluides `max()`/`clamp()` au
   lieu de comparer la chaîne brute).
 
-**Status:** décisions actées ; dettes restantes listées ci-dessus.
+**Status:** décisions actées ; dettes restantes listées ci-dessus. Le statut
+« e2e navigateur en attente de l'outillage » de l'ancienne section C3 est
+historique et ne s'applique plus.
