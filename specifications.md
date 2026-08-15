@@ -2378,10 +2378,11 @@ c'est ce qui a écarté les autres options :
 - `affirm` et `ink-quiet` sont les deux autres couleurs de verdict.
   Aucune valeur partagée n'est donc libre, sauf `mark`, utilisable sur
   **18** thèmes sur 33 — tous les sombres.
-- `ink` sur `page` est le seul couple sur lequel **tout** thème est
-  admis (§9.5.2). Un lien est donc AA et AAA partout par construction, et
-  WCAG 1.4.1 est satisfait par le soulignement, qui n'est pas une
-  couleur.
+- `ink` sur `page` est le couple structurel utilisé pour les liens : le lien
+  hérite de l'encre autour de lui et reçoit un soulignement. Le résultat WCAG
+  dépend de la palette résolue et est rapporté par `theme show`; le moteur ne
+  retouche pas la couleur du thème. WCAG 1.4.1 est satisfait par le
+  soulignement, qui n'est pas une couleur.
 
 **Plancher général.** Aucune règle portant du texte courant ne s'atténue
 par `opacity`. Deux le faisaient et échouaient : la carte « en cours de
@@ -3441,11 +3442,12 @@ qualifier. Le calcul emprunte le même chemin que le reste du moteur — les
 propriétés résolues, les fonds composités — donc il est juste par
 construction ou faux pour tout le monde en même temps.
 
-Corollaire assumé : **tous les thèmes n'ont pas à être conformes.** Un
-  thème est un parti pris ; `terminal` et `code` avec leur halo de phosphore et
-`synthwave` avec ses saturations sont des choix, et les rendre AAA les
-détruirait. Ce qui est exigé n'est pas que les 34 soient conformes, c'est
-qu'on **sache lequel l'est** au moment de choisir, et qu'il y en ait.
+Corollaire assumé : **tous les thèmes n'ont pas à atteindre le haut
+standard.** Un thème est un parti pris ; `terminal` et `code` avec leur halo
+de phosphore et `synthwave` avec ses saturations sont des choix, et les
+rendre AAA les détruirait. Ce qui est exigé est double : tous doivent rester
+lisibles, et l'auteur doit **savoir lequel atteint quel niveau** au moment
+de choisir.
 
 #### Ce que la commande ne fait pas
 
@@ -4499,10 +4501,17 @@ git add . && git commit && git push
 
 ## 15. Limites (volontairement non couvertes)
 
-- **Live reload** : pas de serveur de développement (le build est un script)
-- **Présentation orale** : pas de mode présentateur, pas de fullscreen
-- **Multi-langue dans une même page** : une langue par build
-- **Images inline** : les images restent en chemin relatif
+- **Rechargement automatique du navigateur** : `watch` sonde les sources,
+  reconstruit et peut servir le résultat avec `--serve`, mais n'injecte pas de
+  mécanisme de rechargement dans le navigateur
+- **Présentation orale** : couverte par le deck d'article (§8.4), avec
+  navigation, notes présentateur et plein écran ; l'index n'a pas ce pack
+  complet
+- **Langues multiples dans une même page** : une langue d'interface par build
+  ; les règles typographiques peuvent toutefois varier par slide via
+  `lang_tags` (§7.5)
+- **Images inline par défaut** : les images restent en chemin relatif par
+  défaut ; `--inline-images` les embarque en data URI (§8.4)
 - **Recherche full-text** : pas de moteur de recherche
 - **Commentaires** : pas de système de commentaires de lecteurs (discussion
   publique sur un article publié) — à ne pas confondre avec le champ
@@ -4647,10 +4656,14 @@ tranchés — à spécifier avant implémentation.
 
 ### 17.6 Ce qui n'est PAS couvert (volontairement)
 
-- **Live reload** : pas de serveur de développement ✓ (documenté)
-- **Présentation orale** : pas de mode présentateur ✓ (documenté)
-- **Multi-langue dans une même page** : une langue par build ✓ (documenté)
-- **Images inline** : les images restent en chemin relatif ✓ (documenté)
+- **Rechargement automatique du navigateur** : `watch` reconstruit et peut
+  servir localement, mais ne recharge pas automatiquement la page ✓
+- **Présentation orale** : deck d'article avec mode présentateur et plein
+  écran ; pas de pack présentateur complet sur l'index ✓
+- **Langues multiples dans une même page** : une langue d'interface par build,
+  avec sélection typographique par slide via `lang_tags` ✓
+- **Images inline par défaut** : chemin relatif par défaut ; `--inline-images`
+  permet l'embarquement en data URI ✓
 - **Recherche full-text** : pas de moteur de recherche ✓ (documenté)
 - **Commentaires** : pas de système de commentaires de lecteurs (discussion
   publique sur un article publié) — à ne pas confondre avec le champ

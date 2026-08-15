@@ -16,15 +16,15 @@ docs/CLI (réintégration de la refonte CLI newargs/ dans
 `specifications.md`, `README.md`, `GUIDE.md` et le skill) :
 
 - **Résolus (à archiver)** : B1 (FIXED v0.12.0), B2 (SETTLED v0.12.0),
-  B3 (FIXED v0.12.2), B4 (DONE via B7), B7 (DONE), B13 (DONE), B14 (DONE).
+  B3 (FIXED v0.12.2), B4 (DONE via B7), B7 (DONE), B13 (DONE), B14 (DONE),
+  C1 (DONE v0.33.2).
   Ils portent déjà la mention DONE/FIXED/SETTLED en en-tête ; ils n'ont
   plus leur place dans un registre de dette active et peuvent être
   déplacés dans une annexe « Résolu ».
 - **Toujours ouverts / notés** : B5, B6, B8, B9 (partie appliquée),
   B10, B11, B12, B15, B16, B17, B18.
-- **Nouveaux (cette révision)** : C1 (test AST anti-écriture nue hors
-  helpers), C2 (`series article add/remove/set` hors périmètre — décision,
-  pas dette).
+- **Nouveaux (cette révision)** : C2 (`series article add/remove/set` hors
+  périmètre — décision, pas dette).
 
 ---
 
@@ -224,9 +224,9 @@ colours, so of the six roles only `--marker` is unspoken for — usable on
 13 themes of 33, all dark.
 
 Settled: the link keeps the ink around it and is signalled by an
-underline. `--ink` on `--page` is the one pair every theme is admitted on
-(§9.5.3), so the text is AA and AAA everywhere by construction, and
-WCAG 1.4.1 is satisfied by shape rather than colour.
+underline. `--ink` on `--page` is the structural pair used by the renderer
+(§9.5.3); its actual ratio remains a measured property of the resolved
+palette. WCAG 1.4.1 is satisfied by shape rather than colour.
 `--link-decoration-color` lets a theme tint the rule where it has
 measured one that works; it defaults to `currentColor`, which cannot
 fail. Measured on real pages after the fix: 13.92 (solarized), 13.36
@@ -272,10 +272,10 @@ below WCAG AA (4.5:1) against `--page` on a third of the catalogue:
 | `--accent` | footnote call and definition, the "partial" verdict | 11/33 | 2.05 (tokyo-night) |
 
 **Not a stylesheet defect.** Every rule that dimmed text has been fixed
-(§9.5.3); these are the palette values themselves. The admission criteria
-in §9.5.2 promise "AA for secondary text and accents" — they were applied
-to the twenty-four project-owned palettes and **never retro-applied to
-the nine borrowed ones**, which predate them.
+(§9.5.3); these are palette values themselves. The criteria in §9.5.2 are
+a catalogue target, not a renderer guarantee: they were applied to the
+twenty-four project-owned palettes and **never retro-applied to the nine
+borrowed ones**, which predate them.
 
 **Re-measured after B9, and this entry's own numbers were stale.** The
 failure counts above describe the pre-B9 catalogue: `ink-quiet` now fails
@@ -311,8 +311,8 @@ change forced on everyone at once. And the engine's own weight rule (only
 carries the yes/partial distinction alone — the user's argument below is
 now an architectural fact, not an opinion.
 
-**What remains is editorial, not mechanical**: revise the nine borrowed
-catalogue entries. Per entry, the coherent outcomes are unchanged — flip
+**What remains is editorial, not mechanical**: revise the affected catalogue
+entries. Per entry, the coherent outcomes are unchanged — flip
 the dark-designed schemes to `dark_background` (which the per-colour
 measurements in `REVISION-THEMES.md` appendix A establish as a
 *restoration* of fidelity, not a loss), set their
@@ -342,7 +342,7 @@ They also note the change costs them nothing, since their cells are
 regenerated at every build. That is one user, not a mandate — but it
 removes the objection the entry was weighing against option 3.
 
-## B6 — The slide-progress dots are below 3:1 everywhere — OPEN
+## B6 — The slide-progress dots miss the 3:1 readability floor — OPEN
 
 **Narrowed by measurement (B9, 2026-08-04): there is no single-value fix,
 for either dot.** The revision proposed one opaque grey (`#7A7A7A`) for
@@ -478,10 +478,20 @@ historical catalogue of **33 themes**; the live registry now contains 34.
    and `red` are the closest dark pair at 26°, with different `mark` and
    `affirm`: not a duplicate. Nothing measured supports a removal.
 
+**Policy decided 2026-08-15:** every built-in theme must meet a readability
+floor (AA for informative text, 3:1 for informative non-text), but only a
+subset must meet the higher project standard (AAA body text, AA secondary
+text and accents, informative rules at 3:1, and colour-independent verdict
+separation). Visual families such as `pop`, halo and monochrome are editorial
+categories, not accessibility levels. `theme show` remains the measured
+report for both dimensions.
+
 **Still open from the report:** the per-theme typographic blocks (named
 display faces, tracking, cover gradients, the two extra halos) and the
-five project themes that miss the AA floor spec §9.5.2 promises. The
-blocks are in `themes-revision/`, all 31 verified to resolve.
+themes that miss the new readability floor or the high standard. The blocks
+are in `themes-revision/`, all 31 verified to resolve. B5, B6 and B18 now
+belong to the readability-floor pass; the remaining catalogue choices belong
+to the high-standard and visual-family pass.
 
 Original framing follows.
 
@@ -491,15 +501,16 @@ The engine gave themes fonts, shadows and per-component axes; only
 `terminal` uses them (fixed pitch plus phosphor halo, the owner's
 decision). The architecture records that all 33 entries are to be
 reviewed under this light — theme-construction work, out of the engine's
-scope. Natural vehicle for the per-theme value choices of B5 (verdict
-inks on borrowed palettes) and B6 (nav-dot values), and for D6 (mark the
-nine borrowed palettes as offered for fidelity, not measured
-accessibility). 32 entries remaining.
+scope. Natural vehicle for the per-theme value choices of B5 (readable
+verdict and secondary inks), B6 (nav-dot values), and B18 (cover kicker
+values), plus the visual-family metadata that distinguishes fidelity from
+accessibility level. 32 entries remaining.
 
 ## B10 — Gamut mapping for lightness-shifted inks — NOTED
 
-The ink solver (kept as a prototype in `tools/ink_solver_prototype.py`;
-the shipped engine deliberately computes no colour) shifts OKLCh
+The former ink solver was a historical prototype, not used by the executable;
+it has been removed from the active tree. The shipped engine deliberately
+computes no colour. The experiment shifted OKLCh
 lightness at constant chroma and hue, and the shift sometimes leaves the
 sRGB gamut, where per-channel clipping distorts chroma — `#008500` is the
 recorded case. A real gamut map would reduce chroma instead. Only
@@ -683,8 +694,9 @@ in it. Verified on the tree as it stood before any of the notes changes.
 It surfaces here because `footnote-call.fg-marked` defaults to
 `fact.strong.fg` — the tone the theme already chose for text on that
 ground — so the call inherits the palette's own shortfall. That default is
-right by construction on the other 32; catppuccin is the one place where
-what the theme already chose is itself below the floor.
+structurally coherent on the other 32; it is not a guarantee of contrast.
+catppuccin was the one place where what the theme had chosen was itself
+below the floor.
 
 `EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith` pins it as an exact
 set rather than a floor, so fixing the palette makes that test fail and
@@ -737,18 +749,17 @@ someone decides that default.
 
 ---
 
-## C1 — Test AST « aucune écriture nue hors helpers » — OPEN
+## C1 — Test AST « aucune écriture nue hors helpers » — DONE in v0.33.2
 
-**Type:** test d'architecture manquant.
+**Type:** test d'architecture.
 **Signalé dans:** `to-be-deleted/newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
-implémenté. Un test *runtime* `test_no_bare_filesystem_write_outside_helpers`
-(`tests/test_lightwebpres.py`) existe et couvre le comportement attendu ;
-il reste à confirmer qu'il équivaut à l'intention AST (balayage statique
-du source pour interdire tout `open(…, 'w')` / `write_text` / `mkdir` /
-`copytree` hors des helpers `_write_file` / `_mkdir`). Si le test runtime
-suffit, fermer l'entrée ; sinon, écrire l'AST.
+implémenté. Le test `test_no_bare_filesystem_write_outside_helpers`
+(`tests/test_lightwebpres.py`) est bien un balayage AST du source : il
+interdit `.write_text()` et `.mkdir()`, ainsi que les copies `shutil`, hors
+des helpers `_write_file`, `_mkdir`, `_copy` et `_copytree`. Il couvre donc
+l'intention de l'entrée ; aucun second test AST n'est nécessaire.
 
-**Status:** ouvert.
+**Status:** résolu ; vérifié le 2026-08-15.
 
 ## C2 — `series article add/remove/set` — EXCLU (décision)
 
@@ -775,9 +786,8 @@ bloquer. Le comportement est couvert par les tests black-box, le test
 navigateur (`tests/slide_tags_e2e.cjs`, menu, filtrage, persistance,
 rechargement) et la documentation permanente.
 
-**Status:** implémenté ; e2e exécuté le 2026-08-15 (Playwright installé).
-
-**Status:** implémenté ; e2e navigateur en attente de l'outillage.
+**Status:** implémenté et vérifié ; les 13 tests e2e navigateur ont été
+exécutés le 2026-08-15 avec Node + Playwright.
 
 ---
 

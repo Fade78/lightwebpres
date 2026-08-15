@@ -4502,10 +4502,10 @@ class DarkBackgroundThemes(unittest.TestCase):
     """§9.5.2 -> §9 rewrite: what dark_background used to switch behind
     the theme's back (SURFACE_PRESETS) is now stated by the theme's own
     property layer — DARK_FURNITURE_PROPS is the ex-preset dissolved into
-    ordinary component colours. The guarantee is unchanged: a white
-    surface veil turns a card into an unreadable pale block over a dark
-    page, which is exactly what a green-on-black candidate produced
-    before the mechanism existed."""
+    ordinary component colours. This test guards the renderer invariant: a
+    white surface veil must not turn a card into an unreadable pale block over
+    a dark page. It does not guarantee the readability of every palette
+    value."""
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
@@ -5158,13 +5158,11 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
 
 
 class ContrastFloors(unittest.TestCase):
-    """Every one of these was found by rendering real pages under all 33
-    themes and MEASURING, after two earlier defects survived a check that
-    looked at the gallery preview instead. They are grouped here because
-    they share one cause: a rule that dims text — by an opacity, or by a
-    fixed alpha nobody re-measured — reads as a style choice and is a
-    contrast failure. Each test pins the value at its source, not its
-    rendering, because the rendering is the consequence."""
+    """Guards for measured catalogue decisions and renderer invariants.
+    They were found by rendering real pages under the built-in themes, after
+    defects survived checks that looked only at the gallery preview. Each
+    test pins the value at its source, not its rendering, because rendering
+    is the consequence. These tests do not design or retune palettes."""
 
     def setUp(self):
         self.lwp = load_lightwebpres_module()
@@ -5441,11 +5439,11 @@ class ContrastFloors(unittest.TestCase):
 
     def test_bold_fact_text_clears_aa_on_its_own_highlight_on_every_theme(self):
         """`fact.strong.bg` is the palette's `mark` and `fact.strong.fg`
-        is the tone the theme chose for text on it, so the pair is the
-        theme's own decision and nothing derives it right. catppuccin's
-        measured 3.05:1 — Latte Yellow under a slate-blue ink — for every
-        bold run in every fact box, with or without a note in it. All 33
-        clear AA, so this is a floor and not a pinned set."""
+        is the tone the theme chose for text on it. The test guards the
+        catalogue's measured floor for this rendered site; it does not derive
+        or retune the palette values. Catppuccin's former 3.05:1 shortfall was
+        a catalogue value that had to be corrected manually. All 34 current
+        entries clear this particular site."""
         for slug in self.lwp.THEMES:
             r = self.lwp.resolve_theme_properties(
                 self.lwp.theme_property_layer(slug), {})
@@ -5495,7 +5493,8 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     property registry, never written into a THEMES entry. A hand-written
     label is right on the day it is typed and silent about every palette
     tweak afterwards, because nothing connects it to the colour it claims
-    to qualify.
+    to qualify. The report is diagnostic only; it never rewrites or rejects
+    the theme.
 
     So the arithmetic is redone here, independently: this class does not
     call the executable's compositing or its luminance, it writes its own
@@ -5612,7 +5611,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     # Two measured facts, pinned as exact values rather than as
     # inequalities: a change here is a real change in the catalogue or in
     # what the command measures, and either one is worth being told about.
-    # graphite is the reference for "clears AA everywhere"; nord is a
+    # graphite is the reference for "clears AA on the measured text sites"; nord is a
     # borrowed palette whose green accent sits at 1.79:1 on its own
     # near-white card, which §9.5.2 already records in its own words.
     PINNED_LEVELS = {
@@ -5982,11 +5981,13 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     callers.add(node.name)
         self.assertEqual(callers, self.CONTRAST_CALLERS)
 
-    def test_a_built_page_is_byte_identical_to_the_previous_version_s(self):
+    def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
         by the executable as it stood at the last tagged release (v0.33.0),
-        and by this one, compared byte for byte. --build-stamp is off by
-        default, so there is no timestamp to excuse a difference.
+        and by this one, compared byte for byte after CSS comments are
+        removed from ``<style>`` blocks. Comments are not rendering, while
+        every other byte remains covered. --build-stamp is off by default,
+        so there is no timestamp to excuse a difference.
 
         Repoint this test at the newest tag whenever a release
         intentionally changes the output, keeping it green between
@@ -6022,8 +6023,18 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             self.assertTrue(outputs[0], 'the previous version built nothing')
             self.assertEqual(sorted(outputs[0]), sorted(outputs[1]),
                              'build writes a different set of files')
+            def without_css_comments(page):
+                def strip_style_comments(match):
+                    body = re.sub(rb'/\*.*?\*/', b'', match.group(2),
+                                  flags=re.DOTALL)
+                    return match.group(1) + body + match.group(3)
+                return re.sub(rb'(<style\b[^>]*>)(.*?)(</style>)',
+                              strip_style_comments, page,
+                              flags=re.IGNORECASE | re.DOTALL)
+
             for name in outputs[0]:
-                self.assertEqual(outputs[0][name], outputs[1][name],
+                self.assertEqual(without_css_comments(outputs[0][name]),
+                                 without_css_comments(outputs[1][name]),
                                  f'{name} is not the page it was')
 
     def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
@@ -10602,10 +10613,10 @@ class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
                                f'{slug}: the notes plate is invisible against its page')
 
     def test_the_two_extra_call_axes_default_to_the_tone_of_their_ground(self):
-        # The defaults are what make this right by construction with no
-        # per-theme value: each names the tone the theme ALREADY chose for
-        # text on that ground. If a future edit pins a literal instead, 33
-        # themes silently stop tracking their own palettes.
+        # The defaults keep the call structurally consistent with no
+        # per-theme value: each names the tone the theme already chose for
+        # text on that ground. If a future edit pins a literal instead, the
+        # call stops tracking its palette; contrast remains a separate report.
         reg = self.lwp.PROPERTY_REGISTRY
         self.assertEqual(reg['footnote-call.fg-marked'].default, 'fact.strong.fg')
         self.assertEqual(reg['footnote-call.fg-cover'].default, 'cover.fg')

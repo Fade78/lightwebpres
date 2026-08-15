@@ -1875,6 +1875,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 ./lightwebpres series theme set my-series --theme crimson
   </code></pre>
   <p>A theme is a word in a data file: <code>series theme set</code> rewrites the one <code>theme:</code> line of <code>templates/settings.conf</code> and nothing else. No CSS is touched — the stylesheet is composed in memory at every build.</p>
+  <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme or of the effective theme after the series' pins.</p>
   <h3>Change one phrase (an instance tag)</h3>
   <p>Inside any free text, for the one place that needs it:</p>
   <pre><code class="language-markdown">

@@ -50,17 +50,17 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 | Intégrateur | Reproductibilité | stdlib only, pas de réseau au build, pas de wheel/lockfile | README, AGENTS |
 | Intégrateur | Completion shell | `completion --shell bash\|zsh` (tab sur commandes/options) | README, GUIDE §10 |
 | Intégrateur | Alias legacy | Anciens noms acceptés 1 version MAJEURE + `[WARN]` (scripts existants ne cassent pas) | spec §11.16, README |
-| **Designer / thèmeur** | Thémer sans CSS | Propriétés typées (`component.axis: value`), 5 couches (défaut → thème → settings.conf → style.* → instance) | spec §9, GUIDE §5 |
-| Designer | Catalogue prêt | 34 thèmes intégrés, mesurés WCAG | `theme list`, spec §9.5 |
-| Designer | Voir les thèmes | `theme gallery` (HTML auto-contenu, 4 panneaux : cover/card+note/notes/full-article, filtres facets) | README, spec §11.7 |
-| Designer | Inspecter un thème | `theme show <slug>` (palette, fonts, facets, contrastes mesurés par catégorie, `--format json`) | README, GUIDE §5 |
-| Designer | Thème effectif | `series theme [dir]` (après les pins de settings.conf) | README |
-| Designer | Changer de thème | `series theme set --theme X` (réécrit la ligne `theme:`, pins conservés) | GUIDE §5, spec §11.10 |
-| Designer | Personnaliser finement | `templates/settings.conf` (propriétés) + `templates/custom.css` (règles) | GUIDE §5, spec §9.4 |
-| Designer | Comprendre une valeur | `resolve <name>` (cascade + niveaux perdants ; forme du nom = type de cascade) | GUIDE §6, spec §11.12 |
-| Designer | Audit thème/templates | `audit --templates` (dérive scaffold, variables retirées) | README, DECISION |
-| Designer | Accessibilité mesurée | `audit` + contrastes mesurés ; verdicts forme+couleur (WCAG 1.4.1) | spec §9.5, BACKLOG |
-| Designer | Énumérer les instances | `audit` compte les tags d'instance par article | skill, spec §9.6.3 |
+| **Auteur / curateur de thème** | Appliquer un thème sans CSS | Propriétés typées (`component.axis: value`), 5 couches (défaut → thème → settings.conf → style.* → instance) | spec §9, GUIDE §5 |
+| Curateur | Catalogue fourni | 34 thèmes intégrés, rendus et mesurés ; la construction des palettes reste éditoriale | `theme list`, spec §9.5 |
+| Curateur | Inspecter visuellement | `theme gallery` (HTML auto-contenu, 4 panneaux : cover/card+note/notes/full-article, filtres facets) | README, spec §11.7 |
+| Curateur | Mesurer un thème | `theme show <slug>` (palette, fonts, facets, contrastes mesurés par catégorie, `--format json`) ; rapport seulement | README, GUIDE §5 |
+| Curateur | Thème effectif | `series theme [dir]` (après les pins de settings.conf) | README |
+| Curateur | Sélectionner un thème | `series theme set --theme X` (réécrit la ligne `theme:`, pins conservés) | GUIDE §5, spec §11.10 |
+| Auteur | Personnaliser finement | `templates/settings.conf` (propriétés) + `templates/custom.css` (règles) | GUIDE §5, spec §9.4 |
+| Auteur | Comprendre une valeur | `resolve <name>` (cascade + niveaux perdants ; forme du nom = type de cascade) | GUIDE §6, spec §11.12 |
+| Mainteneur | Auditer les templates | `audit --templates` (dérive scaffold, variables retirées) ; pas une correction de palette | README, DECISION |
+| Curateur | Lire les mesures d'accessibilité | `theme show` / `series theme` ; verdicts forme+couleur (WCAG 1.4.1) | spec §9.5, BACKLOG |
+| Auteur | Énumérer les instances | `audit` compte les tags d'instance par article | skill, spec §9.6.3 |
 | **Agent IA** | Format lisible | Markdown + champs one-line ; commentaires `lwp:` namespacés | skill, spec §4 |
 | Agent | CLI non-interactif | Jamais de prompt bloquant ; tout en flags/exit codes | README, AGENTS |
 | Agent | Auto-vérification | `audit`/`verify`/`resolve` pour valider ce qu'il écrit | skill, GUIDE §6 |
@@ -99,7 +99,7 @@ Document d'étape (à supprimer ou absorber une fois la série faite).
 1. **Vue d'ensemble** — « Markdown in, présentation auto-contenue out » (l'idée unificatrice).
 2. **Écrire** — le format LWP, les 4 types de fiche, la cascade de champs (rôle auteur).
 3. **Présenter** — mode orateur, B/W/T réorientation, panneau N, compteur, impression (rôle orateur).
-4. **Thémer** — propriétés typées, 5 couches, 34 thèmes, galerie, accessibilité mesurée (rôle designer).
+4. **Appliquer et inspecter les thèmes** — propriétés typées, 5 couches, 34 thèmes, galerie, accessibilité mesurée (rôle auteur/curateur ; la direction artistique est externe).
 5. **Automatiser** — CI gate, verify, clean, watch, env vars, exit codes (rôle DevOps).
 6. **Étendre** — GPL + Output Exception, intégrations verticale/horizontale, web/ + GUI (rôle extendeur).
 7. **Agents & accessibilité** — skills, CLI non-interactif, `--format json` ; accessibilité « juge pas concepteur ».

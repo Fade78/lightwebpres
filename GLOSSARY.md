@@ -167,6 +167,9 @@ description; the terms are fixed here, in English.
 | **pin** | Uncommenting a scaffold line (or writing one): the value now overrides every theme and survives theme changes and upgrades (§9.3.1). |
 | **override** | The relation between layers: a value in a later layer covering an earlier one. |
 | **customization** | The author's act of overriding — via settings, per-article properties, instance tags, or `custom.css`. |
+| **theme construction** | The editorial and artistic choice of palette values, fonts, shadows, and their relationships. It is catalogue work outside the renderer. |
+| **measurement** | The static report produced by `theme show` or `series theme` from resolved properties and composited grounds. It reports; it does not rewrite or reject a theme. |
+| **renderer** | The part that resolves layers, composes properties, and emits CSS/HTML. It applies the values it receives and does not retune them. |
 | **article properties** | `style.<property>: value` lines in an article's meta block — the same vocabulary, scoped to that page alone (§9.6.1). |
 | **instance tag** | A format-defined tag in free text — the instance-scoped fifth layer, same types as everywhere, enumerated by `audit` (§9.6.3). Inline (`{color:mark}…{/color}`, `{sc}…{/sc}`) or, for alignment alone, **block-level**: `{align:center}` and `{/align}` each on their own line, because `text-align` on an inline span does nothing. |
 | **variant** | A named look for a component instance (`fact-variant: warning` → class `fact--warning`), defined once per series in `custom.css` — the source carries meaning, not visual values (§9.6.2). |

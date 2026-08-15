@@ -270,6 +270,10 @@ A theme is a word in a data file: `series theme set` rewrites the one `theme:`
 line of `templates/settings.conf` and nothing else. No CSS is touched —
 the stylesheet is composed in memory at every build.
 
+These commands inspect and select existing theme values. They do not design,
+retune or repair a palette. Use `theme show` to read the measured contrast of
+the shipped theme or of the effective theme after the series' pins.
+
 ### Change one phrase (an instance tag)
 
 Inside any free text, for the one place that needs it:

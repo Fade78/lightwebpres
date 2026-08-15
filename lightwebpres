@@ -76,7 +76,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.33.2"
+VERSION = "0.33.3"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -1268,10 +1268,12 @@ THEMES = {
     },
     # --- Original palettes: higher-contrast, monochrome, or pop ---
     # The nine above reuse well-known colour schemes and credit their
-    # origin. The ones that follow belong to this project: drawn, then
-    # MEASURED before being kept — body text at AAA, secondary text and
-    # accents at AA, rules at 3:1, and a table's verdicts checked for
-    # separation in deuteranopic and protanopic vision (§9.5.3).
+    # origin. The ones that follow belong to this project: their values are
+    # catalogue work, measured after selection. The renderer applies them;
+    # it does not design or retune palettes. A subset targets the higher
+    # profile: body text at AAA, secondary text and accents at AA, rules at
+    # 3:1, and verdicts separated in deuteranopic and protanopic vision
+    # (§9.5.2).
     'high-contrast': {
         'label': 'High Contrast', 'source': 'lightwebpres', 'intensity': 'vivid',
         'marker': '#FFD500', 'ink': '#000000', 'ink-muted': '#4A4A4A',
@@ -2199,18 +2201,16 @@ THEME_COMPONENTS = [
         # 1.00:1, where `fact.strong.bg` IS `call`, so the number is
         # painted exactly its own ground and disappears.
         #
-        # This is not fixable with a value on any theme. Scanning the whole
+        # This is not fixed by a value derived by the renderer. Scanning the whole
         # luminance range for one colour clearing 4.5:1 on BOTH grounds
         # finds none on 17 themes for the marked run and 14 for the cover:
         # the two admissible windows do not intersect. So it takes an axis,
         # and the registry already has the idiom
         # (`series-nav.status.fg-current` / `.fg-link`).
         #
-        # Defaulting each to the tone the theme ALREADY chose for text on
-        # that ground makes it right by construction, with no per-theme
-        # value anywhere: 1 of 33 remains (catppuccin at 3.05, which is
-        # what ALL its bold fact-box text measures today -- a pre-existing
-        # palette defect, not one the call introduces).
+        # Defaulting each to the tone the theme already chose for text on
+        # that ground keeps the call structurally consistent. It does not
+        # guarantee AA; the resolved pair remains a catalogue measurement.
         ThemeProp('footnote-call.fg-marked', PROP_COLOR, 'fact.strong.fg',
                   css='color', selector='.fact-content strong sup'),
         ThemeProp('footnote-call.fg-cover',  PROP_COLOR, 'cover.fg',
@@ -3569,7 +3569,8 @@ def measure_contrast(resolved):
 
     Returns {category: {level, threshold_aa, threshold_aaa, pairs_measured,
     worst, failures}}. `worst` is the pair that decides the level, so a
-    category sitting at AA names the one pair to fix to reach AAA.
+    category sitting at AA names the limiting pair whose ratio would have to
+    change for the category to reach AAA; the report does not change it.
 
     Comparisons are made on the UNROUNDED ratio: 2.9970 rounds to 3.00
     without ever reaching 3."""
@@ -6495,7 +6496,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 
   <div class="masthead">
     <p class="eyebrow">lightwebpres &middot; colour themes</p>
-    <h1>Named palettes, ready to use</h1>
+    <h1>Built-in themes, rendered for inspection</h1>
     <p class="dek">
       One theme per row, four panels across: the cover, a card carrying a
       note, the page-wide notes section, and the long-form article. Each
@@ -12706,10 +12707,12 @@ THEMES ({theme_count} built in, see specifications.md §9.5)
     lightwebpres theme show evergreen
     lightwebpres series theme my-series      the effective theme, after
                                               the values that series pins
-  Not every theme is meant to be conformant — a theme is a stance — but
-  which ones are is a fact, and this is where it is read. None of it ever
-  reaches a built page: the reader of a presentation is never told the
-  contrast level of the theme chosen for them.
+  The catalogue has a readability target, but not every theme is meant to
+  reach the higher accessibility profile — a theme is a stance. The measured
+  categories and ratios show which level it reaches; this report does not
+  modify or reject a theme. None of it ever reaches a built page: the reader
+  of a presentation is never told the contrast level of the theme chosen for
+  them.
 
 SETTINGS (templates/settings.conf, see specifications.md §9)
   Every visual decision is a typed property, `component.axis: value`, and

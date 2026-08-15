@@ -466,22 +466,20 @@ editor palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo
 Night, Monokai, Everforest, Rosé Pine); the rest are the project's own —
 high-contrast and monochrome sets, a red family, a green one, three cyber
 palettes, and an eight-strong Pop family whose backgrounds carry the
-color themselves. Every project-owned palette is designed against a measured floor: AAA
-contrast for body text, AA for secondary text and accents, 3:1 for rules,
-and comparison verdicts checked for separability under simulated
-deuteranopia and protanopia. Seven entries — `blueprint`,
-`blueprint-night`, `code`, `dread`, `sage`, `sprout`, `vaporwave` — are
-still **below** that floor and open
-in `BACKLOG.md` B9: it is the admission criterion, not a verified state
-of the catalogue.
+color themselves. Project-owned palettes have a documented readability
+target, checked by measurement. The higher accessibility standard adds AAA
+body text, AA secondary text and accents, 3:1 informative rules, and
+colour-independent verdict separation. The current catalogue still contains
+documented exceptions; they are catalogue-maintenance decisions in
+`BACKLOG.md`, not values that the renderer derives or repairs.
 
-The nine borrowed palettes are offered for **fidelity**, as their editors
-ship them, and those criteria were never retro-applied. Four of them —
-Dracula, Tokyo Night, Monokai, Everforest — have since been returned to
-the dark grounds they were drawn for, where every one of their text roles
-clears AA; a syntax palette spreads hue at near-constant lightness by
-design, so it cannot paint text on paper. The five that remain light are
-unchanged.
+The nine borrowed palettes are also measured. They may remain outside the
+higher standard to preserve **fidelity**, as their editors ship them, but
+they are not exempt from the readability target. Four of them — Dracula,
+Tokyo Night, Monokai, Everforest — have since been returned to the dark
+grounds they were drawn for. The catalogue's visual families — Pop, halo,
+monochrome and others — describe editorial intent, not an automatic colour
+correction strategy.
 
 Des dizaines de thèmes, c'est trop pour en choisir dans une liste ; les thèmes se trouvent donc par
 facet — **polarity** (light or dark background), **intensity** (sober,
@@ -516,9 +514,13 @@ not do. It comes per WCAG category rather than as a single letter — a
 theme can be faultless on running text and fail on its focus rings — and
 every failing category is printed with the offending pairs and their
 ratios, because a level without counter-examples is not something you
-can act on. Not every theme is meant to be conformant: a theme is a
-stance, and making `terminal`'s phosphor halo AAA would destroy it. What
-matters is knowing which ones are.
+can act on. Every shipped theme is expected to remain readable, but not
+every theme is meant to reach the higher accessibility standard: a theme
+is a stance, and making `terminal`'s phosphor halo AAA would destroy it.
+What matters is knowing which themes meet the readability floor, which
+reach the higher standard, and what visual family each one belongs to.
+This is reporting only: no palette value is rewritten and `build` does not
+reject a theme because of its measured level.
 
 The two targets answer different questions, and the difference is the
 point: a series that pins three colors in `settings.conf` may have
