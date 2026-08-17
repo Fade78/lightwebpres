@@ -6631,9 +6631,13 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     # graphite is the reference for "clears AA on the measured text sites"; nord is a
     # borrowed palette whose green accent sits at 1.79:1 on its own
     # near-white card, which §9.5.2 already records in its own words.
+    # nord's non-text was `fail` here until its active navigation dot --
+    # `mark` on a near-white card, 1.06:1 -- was given the theme's ink. The
+    # body text still fails and that is the palette; the dot was not the
+    # palette, it was a default that suited almost none of it.
     PINNED_LEVELS = {
         'graphite': ('AA', 'AAA', 'pass'),
-        'nord': ('fail', 'AAA', 'fail'),
+        'nord': ('fail', 'AAA', 'pass'),
     }
 
     def test_the_levels_of_two_named_themes_are_what_was_measured(self):
@@ -7053,10 +7057,43 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                               strip_style_comments, page,
                               flags=re.IGNORECASE | re.DOTALL)
 
+            # Deliberate drift since the tag, declared line for line. The
+            # docstring says to repoint at the newest tag when a release
+            # intentionally changes the output -- but between releases
+            # there is no newer tag to point at, and a version number that
+            # has not been released is not one this file may invent. So the
+            # change is named instead: everything outside these lines is
+            # still compared byte for byte, and the set of lines that
+            # actually differ has to be exactly the set declared here. A
+            # second unannounced change fails on the second assertion even
+            # though the first one now passes.
+            #
+            # pop-lemon's active navigation dot was `mark` -- the pale
+            # highlighter -- and measured 2.63:1 against the rail it sits
+            # in. It is now `call`.
+            drift = {b'--nav-dot-bg-active: #7A6A00FF;':
+                     b'--nav-dot-bg-active: #8F0049FF;'}
+
+            def normalise(page):
+                page = without_css_comments(page)
+                for was, now in drift.items():
+                    page = page.replace(was, now)
+                return page
+
+            seen = set()
             for name in outputs[0]:
-                self.assertEqual(without_css_comments(outputs[0][name]),
-                                 without_css_comments(outputs[1][name]),
+                before_lines = without_css_comments(outputs[0][name]).split(b'\n')
+                after_lines = without_css_comments(outputs[1][name]).split(b'\n')
+                if len(before_lines) == len(after_lines):
+                    seen.update((a.strip(), b.strip())
+                                for a, b in zip(before_lines, after_lines)
+                                if a != b)
+                self.assertEqual(normalise(outputs[0][name]),
+                                 normalise(outputs[1][name]),
                                  f'{name} is not the page it was')
+            self.assertEqual(seen, set(drift.items()),
+                             'the drift since v0.34.0 is not the drift this '
+                             'test declares')
 
     def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
         """The narrower statement the sweep cannot make: measuring a
@@ -7292,9 +7329,26 @@ class ThemesCommand(unittest.TestCase):
         self.assertIn('red', result.stderr)
 
     def test_an_empty_but_legitimate_combination_says_so_and_succeeds(self):
-        result = run('theme', 'list', '--polarity', 'dark', '--hue', 'orange')
+        """The combination is derived, not named. This test used to ask for
+        dark + orange, and adding one candlelit theme filled that cell and
+        broke a test that was never about oranges -- so it now asks the
+        catalogue which cell is empty and probes that one. If the catalogue
+        ever covers every cell the empty branch becomes unreachable, and
+        the test says so rather than passing on nothing."""
+        filled = set()
+        for theme in self.lwp.THEMES.values():
+            f = self.lwp.theme_facets(theme)
+            filled.add((f['polarity'], f['hue']))
+        empty = [(p, h)
+                 for p in self.lwp.FACET_VALUES['polarity']
+                 for h in self.lwp.FACET_VALUES['hue']
+                 if (p, h) not in filled]
+        self.assertTrue(empty, 'every polarity x hue cell is filled -- the '
+                               'empty-result message can no longer be reached')
+        polarity, hue = empty[0]
+        result = run('theme', 'list', '--polarity', polarity, '--hue', hue)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('No theme matches', result.stdout)
+        self.assertIn('No theme matches', result.stdout, (polarity, hue))
 
     def test_help_no_longer_dumps_the_flat_slug_list(self):
         """At nine themes it was a reminder; past thirty it is the same
@@ -10819,7 +10873,20 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
         on, so both scale with it. terminal is the one theme with a glow
         and it stated 10px flat -- around a 51px title at 1080p and the
         same 10px around a 132px one at 3840, which is the theme's single
-        visual idea gone on the screen a deck is shown on."""
+        visual idea gone on the screen a deck is shown on.
+
+        Both halo lengths are checked, not just the blur. `dy` was used by
+        no theme at all when this guard was written, so it could be added
+        later as a flat px and the guard would not have noticed -- and the
+        two light-family themes that carry a drop shadow rather than a glow
+        are exactly the ones whose offset is the visible part.
+
+        `em` counts as well as `vmin`, and is the better of the two: it
+        resolves against the glyph's OWN size rather than the viewport's,
+        so one declaration gives every title the same ratio. Written in
+        viewport units the same declaration gave the two h1 of one page
+        0.70 and 1.21 of blur relative to their size; in `em` both read
+        0.26."""
         seen = 0
         for store in (self.lwp.THEME_PROPERTY_OVERRIDES,
                       self.lwp.THEME_NOTE_PROPS,
@@ -10828,12 +10895,16 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
                 if not isinstance(props, dict):
                     continue
                 for key, value in props.items():
-                    if not key.endswith('.shadow.blur'):
+                    if not (key.endswith('.shadow.blur')
+                            or key.endswith('.shadow.dy')):
                         continue
                     if str(value) in ('0', '0px'):
                         continue
                     seen += 1
-                    self.assertIn('vmin', value, f'{slug} {key}')
+                    self.assertTrue(
+                        'vmin' in value or value.rstrip().endswith('em'),
+                        f'{slug} {key}: {value!r} is a length the glyph '
+                        f'does not decide')
         # A test that iterates the wrong store passes on an empty set. The
         # first version of this one read THEMES, which holds a theme's
         # label and palette rather than its property overrides, so it went
@@ -11641,6 +11712,40 @@ class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
             plate = self._over(self._rgba(r['note.page.bg']), page)
             self.assertGreater(self._ratio(plate, page), 1.10,
                                f'{slug}: the notes plate is invisible against its page')
+
+    def test_the_dot_that_says_where_you_are_can_be_seen(self):
+        """`nav-dot.bg-active` and `table.col-snap.rule-fg` both default to
+        `mark`, and on most palettes `mark` is a highlighter -- a wash pale
+        enough for text to survive on top of it. As a solid dot on the page
+        it therefore vanishes: eighteen themes measured below 3:1 and four
+        below 1.10:1, vaporwave's dot at 1.007:1 being its own ground and
+        high-contrast, the theme whose whole claim is contrast, at 1.022:1.
+
+        Not a report but a floor, because the dot is the only thing that
+        says which slide of the deck is open. Both grounds are measured:
+        the page, and the veiled rail the row of dots sits in. Measured
+        with every override removed, the rail is the binding one on every
+        theme that fails -- nord's dot reads 1.355:1 on its page and
+        1.064:1 on its rail -- and the page stays in the check so the
+        guard does not rest on that continuing to hold.
+
+        `theme show` reports this too, and the report is per theme and
+        advisory: §11.9.1 lets a theme miss AA deliberately, so a reader who
+        chooses one accepts what they were shown. Nobody chooses an
+        invisible dot, which is why this one is a test."""
+        for slug in self.lwp.THEMES:
+            r, page, _ = self._checks(slug)
+            rail = self._over(self._rgba(r['nav-dot.bg']), page)
+            snap = self._over(self._rgba(r['table.col-snap.bg']),
+                              self._over(self._rgba(r['fact.bg']), page))
+            for name, grounds in (('nav-dot.bg-active', (page, rail)),
+                                  ('table.col-snap.rule-fg', (snap,))):
+                fg = self._rgba(r[name])
+                low = min(self._ratio(fg, g) for g in grounds)
+                self.assertGreaterEqual(
+                    round(low, 2), 3.0,
+                    f'{slug} {name} at {low:.3f}:1 -- the reader cannot see '
+                    f'where they are in the deck')
 
     def test_the_two_extra_call_axes_default_to_the_tone_of_their_ground(self):
         # The defaults keep the call structurally consistent with no

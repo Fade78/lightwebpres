@@ -1380,6 +1380,21 @@ THEMES = {
         'note': "Pure black on pure white, a single red. Aiming at AAA: readable in direct sunlight, on a projector, and in low vision.",
         'note_good': True,
     },
+    # The same profile inverted. Light sensitivity is as much an
+    # accessibility need as low vision is, and until now the one theme
+    # aiming at AAA was also the brightest page in the catalogue -- the two
+    # readers who need the most contrast had one answer between them.
+    'high-contrast-night': {
+        'family': 'desk', 'label': 'High Contrast Night', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#FFD500', 'ink': '#FFFFFF', 'ink-muted': '#C8C8C8',
+        'page': '#000000', 'accent': '#FFB000', 'positive': '#00D26A',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "High Contrast for a reader who cannot take the white page. "
+                "The accent turns amber: a red at this size goes out against "
+                "black, which is the whole reason Blueprint Night has one too.",
+        'note_good': True,
+    },
     'blueprint': {
         'family': 'desk', 'label': 'Blueprint', 'source': 'lightwebpres', 'intensity': 'sober',
         'marker': '#F2C14E', 'ink': '#0B2545', 'ink-muted': '#5A7184',
@@ -1441,6 +1456,32 @@ THEMES = {
         'note': "Black and gold: cream ink on deep black, gilded rules and highlight. The register of an annual report, an invitation, a fine edition.",
         'note_good': False,
     },
+    # Two plain ones. Everything else in `desk` has a register -- technical,
+    # editorial, gilded, or no colour at all -- and none of them is simply
+    # "a working document". Ledger is that in a lit room, Chalkboard in a
+    # dark one, and between them they are the family's ordinary answer.
+    'ledger': {
+        'family': 'desk', 'label': 'Ledger', 'source': 'lightwebpres',
+        'intensity': 'sober',
+        'marker': '#FFE9A3', 'ink': '#1A1A1A', 'ink-muted': '#5A5A57',
+        'page': '#FAFAF7', 'accent': '#1F3A8A', 'positive': '#166534',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "A ruled register: black on near-white, one navy for the "
+                "references, and the green and red a balance sheet already "
+                "uses for its verdicts.",
+        'note_good': True,
+    },
+    'chalkboard': {
+        'family': 'desk', 'label': 'Chalkboard', 'source': 'lightwebpres',
+        'intensity': 'sober', 'dark_background': True,
+        'marker': '#F0D77A', 'ink': '#EDF0EA', 'ink-muted': '#A0AB9F',
+        'page': '#1C2320', 'accent': '#8FC3E8', 'positive': '#A8DDA0',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "A board worked through rather than a slide presented. The "
+                "palette is the box of chalk: white, yellow, blue, green — no "
+                "colour that a stick of chalk does not come in.",
+        'note_good': True,
+    },
     'crimson': {
         'family': 'heat', 'label': 'Crimson', 'source': 'lightwebpres', 'intensity': 'sober',
         'marker': '#E8B4A0', 'ink': '#3B0A12', 'ink-muted': '#8A6A6E',
@@ -1490,6 +1531,63 @@ THEMES = {
         'page': '#FBFDF7', 'accent': '#6D28D9', 'positive': '#3F8F29',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "New-shoot green on off-white. The violet accent is a measured choice: a terracotta blurred into the green.",
+        'note_good': True,
+    },
+    # The rest of the material world. Sage, Evergreen and Sprout were the
+    # family's growing things; these four are what grows on, and what we
+    # build with. No halo anywhere in `terrain` -- earth and stone do not
+    # emit, and that is what separates this family from `light`.
+    'loam': {
+        'family': 'terrain', 'label': 'Loam', 'source': 'lightwebpres',
+        'intensity': 'sober', 'dark_background': True,
+        'marker': '#D9A441', 'ink': '#F2E8DA', 'ink-muted': '#B29B82',
+        'page': '#1E140C', 'accent': '#E38B4F', 'positive': '#9CBF6E',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Turned earth, seen close. Ochre and wheat on wet soil, and "
+                "the one brown ground in the catalogue.",
+        'note_good': True,
+    },
+    'clay': {
+        'family': 'terrain', 'label': 'Clay', 'source': 'lightwebpres',
+        'intensity': 'sober',
+        'marker': '#F3C48F', 'ink': '#3B2A20', 'ink-muted': '#6E574A',
+        'page': '#F2E7DE', 'accent': '#A34A21', 'positive': '#3D6B3A',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Earth once it has been fired. Unglazed terracotta on slip — "
+                "warm where Sage is cool, and the same quiet register.",
+        'note_good': True,
+    },
+    'concrete': {
+        'family': 'terrain', 'label': 'Concrete', 'source': 'lightwebpres',
+        'intensity': 'sober',
+        'marker': '#FFD34D', 'ink': '#26292B', 'ink-muted': '#555A5D',
+        # Site orange, one step down from #B0431A: that measured 4.49:1 on
+        # this ground -- a value that rounds to AA without reaching it.
+        'page': '#E3E4E1', 'accent': '#A63D14', 'positive': '#1F5C3A',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Cast, cured, left as it came out of the formwork. The accent "
+                "is site orange — the one colour anyone puts on a slab.",
+        'note_good': True,
+    },
+    'slate': {
+        'family': 'terrain', 'label': 'Slate', 'source': 'lightwebpres',
+        'intensity': 'sober', 'dark_background': True,
+        'marker': '#8FB3D9', 'ink': '#E6ECF2', 'ink-muted': '#9AA8B6',
+        'page': '#151C24', 'accent': '#E0A24C', 'positive': '#87C9A0',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Split stone: grey with the blue it actually has, not the "
+                "neutral it is usually drawn as. Concrete's dark counterpart.",
+        'note_good': True,
+    },
+    'canopy': {
+        'family': 'terrain', 'label': 'Canopy', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#7FD65A', 'ink': '#E4F5E0', 'ink-muted': '#9FC29C',
+        'page': '#0B1A0E', 'accent': '#F2B441', 'positive': '#B8F0A8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Under the trees, looking up. Where Evergreen is night in the "
+                "undergrowth this is daylight coming through leaves, so the "
+                "green is lit rather than deep.",
         'note_good': True,
     },
     'vaporwave': {
@@ -1596,6 +1694,136 @@ THEMES = {
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Deep fuchsia, yellow accent, mint verdicts — unapologetic, editorial.",
         'note_good': False,
+    },
+    # --- family `light`: where the light comes from, and at what hour ----
+    # Nine hues, one family. Every halo below is written in `em`, so it is
+    # drawn against the glyph it surrounds rather than against the
+    # viewport: the same declaration used to give two h1 on one page 0.70
+    # and 1.21 of blur relative to their own size.
+
+    # The sky, one place at three hours. The grounds are three points on
+    # one arc, and each had to be checked against the hue bands: the day
+    # sky started one step inside `cyan`, which would have split the
+    # triptych across two facets.
+    'daybreak': {
+        'family': 'light', 'label': 'Daybreak', 'source': 'lightwebpres',
+        'intensity': 'vivid',
+        'marker': '#FFD166', 'ink': '#14304A', 'ink-muted': '#36597A',
+        'page': '#A8C7EC', 'accent': '#A63D0F', 'positive': '#0F5132',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Full daylight sky. A glow would be invisible on a light "
+                "ground, so the title carries a soft blue shadow instead — "
+                "the same family, the other mechanism.",
+        'note_good': True,
+    },
+    'dusk': {
+        'family': 'light', 'label': 'Dusk', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#4CC9F0', 'ink': '#D8ECFF', 'ink-muted': '#94BEE0',
+        'page': '#081524', 'accent': '#FFC46B', 'positive': '#7CE0B0',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "The hour the sky goes deep and the first lights come on. "
+                "The accent is warm gold and not a third blue: without it "
+                "the card turns monochrome and the hierarchy goes with it.",
+        'note_good': True,
+    },
+    'midnight': {
+        'family': 'light', 'label': 'Midnight', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#58D5FF', 'ink': '#DCEEFF', 'ink-muted': '#8FB6D8',
+        'page': '#030711', 'accent': '#FFC46B', 'positive': '#7CE0B0',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Dusk gone all the way down. The ground is nearly black and "
+                "the glow does the work — the darkest of the catalogue, for "
+                "a room with the lights off.",
+        'note_good': True,
+    },
+
+    # Light people make, and light the earth makes.
+    'candlelight': {
+        'family': 'light', 'label': 'Candlelight', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#FFA94D', 'ink': '#FFEEDC', 'ink-muted': '#D9B48C',
+        'page': '#1C1004', 'accent': '#FF8A6B', 'positive': '#9CC5A1',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "One flame, and the room ends where it stops. The warmest "
+                "ground here, for reading rather than presenting.",
+        'note_good': True,
+    },
+    'lantern': {
+        'family': 'light', 'label': 'Lantern', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#FFD43B', 'ink': '#FFF6DC', 'ink-muted': '#D6C28E',
+        'page': '#1A1405', 'accent': '#FF9F45', 'positive': '#A6D49F',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Light you carry. Brighter and more portable than "
+                "Candlelight, and the only yellow ground that is not a Pop.",
+        'note_good': True,
+    },
+    'lava': {
+        'family': 'light', 'label': 'Lava', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#FF6B3D', 'ink': '#FFE3DC', 'ink-muted': '#E0A99C',
+        'page': '#1A0709', 'accent': '#FFC145', 'positive': '#8FD9A8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Rock lit from inside. Not a fire someone lit — the "
+                "strongest halo of the family, and the only one where the "
+                "ground itself reads as hot.",
+        'note_good': True,
+    },
+
+    # What is above, and what is below.
+    'aurora': {
+        'family': 'light', 'label': 'Aurora', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#45E0A8', 'ink': '#DCFFE9', 'ink-muted': '#93C7AC',
+        'page': '#061A12', 'accent': '#9D8DF1', 'positive': '#C3F0D8',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "The northern lights, deliberately not Terminal's phosphor: "
+                "softer, bluer, and with the violet an aurora actually "
+                "carries alongside its green.",
+        'note_good': True,
+    },
+    'nebula': {
+        'family': 'light', 'label': 'Nebula', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#A78BFA', 'ink': '#EEE2FF', 'ink-muted': '#B9A3D6',
+        'page': '#12071F', 'accent': '#FFB3D9', 'positive': '#8FE3C0',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Deep sky. Where Synthwave is a violet someone chose, this "
+                "is a violet that emits.",
+        'note_good': True,
+    },
+    'abyss': {
+        'family': 'light', 'label': 'Abyss', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#22D3EE', 'ink': '#D6F4FF', 'ink-muted': '#8FBACB',
+        'page': '#04161C', 'accent': '#FFB86C', 'positive': '#7CE0B0',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Light at depth, where the only source is what lives there. "
+                "The one cyan ground outside the Pop family.",
+        'note_good': True,
+    },
+    'pink-dream': {
+        'family': 'light', 'label': 'Pink Dream', 'source': 'lightwebpres',
+        'intensity': 'vivid', 'dark_background': True,
+        'marker': '#FF5FA2', 'ink': '#FFD9EC', 'ink-muted': '#D79FC0',
+        'page': '#1A0B17', 'accent': '#FFB86C', 'positive': '#7CE0B0',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "A magenta glow on deep plum. The ground had to move off "
+                "violet to stop it colliding with Nebula's.",
+        'note_good': True,
+    },
+    'cloudy': {
+        'family': 'light', 'label': 'Cloudy', 'source': 'lightwebpres',
+        'intensity': 'sober',
+        'marker': '#FFD966', 'ink': '#1F2933', 'ink-muted': '#52606D',
+        'page': '#EDF1F5', 'accent': '#B54708', 'positive': '#0F5132',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Diffuse daylight, no source you can point at. Everything "
+                "casts a soft shadow downward and nothing glows — the light "
+                "family's one sober member.",
+        'note_good': True,
     },
 }
 
@@ -2810,6 +3038,41 @@ _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
 # control it outlines -- the ring is drawn outside the border edge, so it
 # lands on both.
 THEME_PROPERTY_OVERRIDES = {
+    # --- the dot that says where you are ----------------------------------
+    # `nav-dot.bg-active` and `table.col-snap.rule-fg` both default to
+    # `mark`, and on most palettes `mark` is a highlighter -- a wash that has
+    # to stay pale enough for text to survive on top of it. As a solid dot
+    # against the page it therefore disappears: measured across the
+    # catalogue, eighteen themes were below 3:1 and four of them below
+    # 1.10:1 -- vaporwave's dot at 1.007:1 is its own ground, and
+    # high-contrast, the theme whose entire claim is contrast, sat at
+    # 1.022:1. The reader could not see which slide they were on.
+    #
+    # The fix is per theme rather than a change of default, because which
+    # tone works is a palette question: `call` where the accent has the
+    # depth, `ink` where it does not. Each pairing below was measured
+    # against both grounds the dot lands on -- the page, and the darkened
+    # rail the row of dots sits in -- and clears 3:1 on the worse of them.
+    'nord': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
+    'solarized': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
+    'gruvbox': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'catppuccin': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'rose-pine': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
+    'high-contrast': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'blueprint': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
+    # Still no hue: monochrome's `call` is a grey, like everything else it
+    # owns. What changes is lightness, which is the only axis it has.
+    'monochrome': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'newsprint': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'crimson': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'sage': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
+    'sprout': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    # Four Pop themes whose dot was short but whose snapshot marker was not.
+    'pop-tangerine': {'nav-dot.bg-active': 'call'},
+    'pop-lemon': {'nav-dot.bg-active': 'call'},
+    'pop-lime': {'nav-dot.bg-active': 'call'},
+    'pop-lagoon': {'nav-dot.bg-active': 'ink'},
+
     # Two editor palettes that say so: the apparatus in fixed pitch, the body
     # still in the reading serif. The gesture reads "this came from a
     # terminal" without making the article hard to read.
@@ -2841,7 +3104,10 @@ THEME_PROPERTY_OVERRIDES = {
     # The one light theme in the four: #FF2FB9 measured 2.94:1 against
     # `color.page` itself, so BOTH its rings were short, not just the
     # series-nav one.
-    'vaporwave': {'nav-btn.ring': '#FF28B7', 'series-nav.link.ring': '#FF28B7'},
+    # The catalogue's worst two: dot and snapshot marker both measured
+    # 1.00:1 -- #E0FF4F on a page it is a shade away from.
+    'vaporwave': {'nav-btn.ring': '#FF28B7', 'series-nav.link.ring': '#FF28B7',
+                  'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'ink'},
     'code': {
         # A glow is a halo around a glyph, so it is sized by the glyph.
         # Left in bare pixels it was 10px around a 51px title at 1080p
@@ -2862,6 +3128,120 @@ THEME_PROPERTY_OVERRIDES = {
         'title1.shadow.blur': 'max(10px, 1.25vmin)',
         'highlight.shadow.fg': '#33FF8859',
         'highlight.shadow.blur': 'max(8px, 1vmin)',
+    },
+
+    # Third light theme with the same pale-highlighter-as-dot problem.
+    'ledger': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+
+    # --- family `terrain` ------------------------------------------------
+    # No halos here: earth and stone do not emit. What the two light members
+    # need is the same fix Cloudy and Daybreak needed -- the active
+    # navigation dot and the snapshot-column marker both default to `mark`,
+    # and `mark` on a light theme is a pale highlighter that has to stay
+    # pale, so as a solid dot it measured 1.19:1 and 1.23:1.
+    'clay': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'concrete': {'nav-dot.bg-active': 'call',
+                 'table.col-snap.rule-fg': 'call'},
+
+    # --- family `light`: the halos -------------------------------------
+    # Every length below is in `em`, so the halo is drawn against the glyph
+    # it surrounds. Written in viewport units the same declaration gave the
+    # two h1 of one page 0.70 and 1.21 of blur relative to their own size;
+    # in `em` both read 0.26.
+    #
+    # `page.shadow` is the ambient one, and it behaves differently from the
+    # other two: text-shadow inherits, so its `em` resolves ONCE at the root
+    # and then propagates as an absolute length -- 0.14em is 2.2px on every
+    # glyph on the page, whatever its size. It is therefore an atmosphere,
+    # not a halo, and it is kept faint. It also reaches the chrome (nav
+    # pills, counter, presenter panel), which for an atmospheric theme is
+    # the intent rather than an accident.
+    #
+    # On a LIGHT ground a glow does nothing -- light on light is not an
+    # effect -- so the two light members carry a drop shadow instead: same
+    # anchors, same units, `dy` set. They are the first themes in the
+    # catalogue to use `shadow.dy` at all.
+
+    # The sky at three hours. Daybreak drops, the other two glow, and the
+    # glow deepens as the ground does.
+    'daybreak': {
+        # Both non-text sites default to `mark`, and `mark` here is the pale
+        # yellow that has to stay pale because it is also the highlighter
+        # behind text. On a light ground that yellow measures 1.21:1 as the
+        # active navigation dot -- you cannot see which slide you are on.
+        # The accent itself is not enough -- the dot rail is a dark veil over
+        # an already-mid ground, and #A63D0F measured 2.57:1 there. One step
+        # deeper in the same burnt orange clears it: 3.92:1 on the rail,
+        # 5.57:1 on the page.
+        'nav-dot.bg-active': '#7A2A08', 'table.col-snap.rule-fg': '#7A2A08',
+        'page.shadow.fg': '#14304A26',
+        'page.shadow.blur': '0.13em', 'page.shadow.dy': '0.05em',
+        'title1.shadow.fg': '#2E6B9E66',
+        'title1.shadow.blur': '0.28em', 'title1.shadow.dy': '0.10em',
+        'highlight.shadow.fg': '#2E6B9E59',
+        'highlight.shadow.blur': '0.16em', 'highlight.shadow.dy': '0.06em',
+    },
+    'dusk': {
+        'title1.shadow.fg': '#4CC9F080', 'title1.shadow.blur': '0.30em',
+        'highlight.shadow.fg': '#4CC9F06B', 'highlight.shadow.blur': '0.20em',
+    },
+    'midnight': {
+        'page.shadow.fg': '#58D5FF1F', 'page.shadow.blur': '0.14em',
+        'title1.shadow.fg': '#58D5FF8C', 'title1.shadow.blur': '0.30em',
+        'highlight.shadow.fg': '#58D5FF73', 'highlight.shadow.blur': '0.20em',
+    },
+
+    # Fire, in the order of how much of the room it lights.
+    'candlelight': {
+        'page.shadow.fg': '#FFA94D1A', 'page.shadow.blur': '0.12em',
+        'title1.shadow.fg': '#FFA94D80', 'title1.shadow.blur': '0.28em',
+        'highlight.shadow.fg': '#FFA94D66', 'highlight.shadow.blur': '0.18em',
+    },
+    'lantern': {
+        'page.shadow.fg': '#FFD43B1F', 'page.shadow.blur': '0.13em',
+        'title1.shadow.fg': '#FFD43B8C', 'title1.shadow.blur': '0.30em',
+        'highlight.shadow.fg': '#FFD43B73', 'highlight.shadow.blur': '0.20em',
+    },
+    # The strongest halo in the catalogue: the ground is not lit from
+    # outside, it is the source.
+    'lava': {
+        'page.shadow.fg': '#FF6B3D29', 'page.shadow.blur': '0.16em',
+        'title1.shadow.fg': '#FF6B3DA6', 'title1.shadow.blur': '0.36em',
+        'highlight.shadow.fg': '#FF6B3D8C', 'highlight.shadow.blur': '0.24em',
+    },
+
+    # What is above, and what is below.
+    'aurora': {
+        'page.shadow.fg': '#45E0A81F', 'page.shadow.blur': '0.15em',
+        'title1.shadow.fg': '#45E0A88C', 'title1.shadow.blur': '0.34em',
+        'highlight.shadow.fg': '#45E0A873', 'highlight.shadow.blur': '0.22em',
+    },
+    'nebula': {
+        'page.shadow.fg': '#A78BFA24', 'page.shadow.blur': '0.15em',
+        'title1.shadow.fg': '#A78BFA99', 'title1.shadow.blur': '0.32em',
+        'highlight.shadow.fg': '#A78BFA80', 'highlight.shadow.blur': '0.21em',
+    },
+    # At depth the light is local: almost no atmosphere, a hard glow on the
+    # glyph that carries it.
+    'abyss': {
+        'page.shadow.fg': '#22D3EE14', 'page.shadow.blur': '0.10em',
+        'title1.shadow.fg': '#22D3EE99', 'title1.shadow.blur': '0.32em',
+        'highlight.shadow.fg': '#22D3EE80', 'highlight.shadow.blur': '0.22em',
+    },
+    'pink-dream': {
+        'title1.shadow.fg': '#FF5FA277', 'title1.shadow.blur': '0.30em',
+        'highlight.shadow.fg': '#FF5FA266', 'highlight.shadow.blur': '0.20em',
+    },
+    'cloudy': {
+        # Same as Daybreak: a pale highlighter cannot double as the active
+        # navigation dot on a light ground (1.20:1).
+        'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call',
+        'page.shadow.fg': '#1F293329',
+        'page.shadow.blur': '0.13em', 'page.shadow.dy': '0.05em',
+        'title1.shadow.fg': '#1F293366',
+        'title1.shadow.blur': '0.26em', 'title1.shadow.dy': '0.10em',
+        'highlight.shadow.fg': '#1F29334D',
+        'highlight.shadow.blur': '0.13em', 'highlight.shadow.dy': '0.05em',
     },
 }
 
@@ -2892,12 +3272,23 @@ THEME_NOTE_PROPS = {
     'graphite': {'note.fg': '#969696', 'note.marker.fg': 'call', 'note.back.fg': '#969696', 'note.local.rule-fg': '#EDEDED62', 'note.page.bg': '#EDEDED1C', 'note.page.rule-fg': '#EDEDED65'},
     'newsprint': {'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.fg': '#625F5A', 'note.marker.fg': 'call', 'note.back.fg': '#625F5A', 'note.local.rule-fg': '#1A1A187F', 'note.page.bg': '#1A1A1813', 'note.page.rule-fg': '#1A1A1882'},
     'gold-leaf': {'note.fg': '#9C917A', 'note.marker.fg': 'call', 'note.back.fg': '#9C917A', 'note.local.rule-fg': '#F3EDDF62', 'note.page.bg': '#F3EDDF1F', 'note.page.rule-fg': '#F3EDDF64'},
+    # The night twin restates the same enlarged notes and thickened rules as
+    # High Contrast: the profile is the point of both, and a reader who
+    # switched to the dark one to keep it would have lost it.
+    'high-contrast-night': {'note.size': 'max(16px, 2vmin)', 'note.local.size': 'max(14px, 1.75vmin)', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': 'max(30px, 3.75vmin)', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFFFFF5A', 'note.page.bg': '#FFFFFF16', 'note.page.rule-fg': '#FFFFFF5A'},
+    'ledger': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1A1A1A79', 'note.page.bg': '#1A1A1A13', 'note.page.rule-fg': '#1A1A1A79'},
+    'chalkboard': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#EDF0EA5C', 'note.page.bg': '#EDF0EA0F', 'note.page.rule-fg': '#EDF0EA5C'},
     'crimson': {'note.leading': '1.65', 'note.fg': '#7D5B5F', 'note.marker.fg': 'call', 'note.back.fg': '#7D5B5F', 'note.local.rule-fg': '#3B0A127B', 'note.page.bg': '#3B0A1212', 'note.page.rule-fg': '#3B0A127F'},
     'ember': {'note.fg': '#AB8D81', 'note.marker.fg': 'call', 'note.back.fg': '#AB8D81', 'note.local.rule-fg': '#FFEDE261', 'note.page.bg': '#FFEDE21E', 'note.page.rule-fg': '#FFEDE262'},
     'dread': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#96928A', 'note.marker.fg': 'ink', 'note.back.fg': '#96928A', 'note.local.rule-fg': '#D6D2C86F', 'note.page.bg': '#D6D2C824', 'note.page.rule-fg': '#D6D2C873'},
     'sage': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#58655B', 'note.marker.fg': 'ink', 'note.back.fg': '#58655B', 'note.local.rule-fg': '#26302A8A', 'note.page.bg': '#26302A15', 'note.page.rule-fg': '#26302A8F'},
     'evergreen': {'note.leading': '1.65', 'note.fg': '#889D8A', 'note.marker.fg': 'call', 'note.back.fg': '#889D8A', 'note.local.rule-fg': '#DDE9DC66', 'note.page.bg': '#DDE9DC1C', 'note.page.rule-fg': '#DDE9DC6A'},
     'sprout': {'note.fg': '#5C6B55', 'note.marker.fg': 'call', 'note.back.fg': '#5C6B55', 'note.local.rule-fg': '#1E2B1B84', 'note.page.bg': '#1E2B1B13', 'note.page.rule-fg': '#1E2B1B89'},
+    'loam': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#F2E8DA5E', 'note.page.bg': '#F2E8DA11', 'note.page.rule-fg': '#F2E8DA5E'},
+    'clay': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#3B2A2088', 'note.page.bg': '#3B2A2015', 'note.page.rule-fg': '#3B2A2088'},
+    'concrete': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#26292B85', 'note.page.bg': '#26292B16', 'note.page.rule-fg': '#26292B85'},
+    'slate': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#E6ECF25D', 'note.page.bg': '#E6ECF210', 'note.page.rule-fg': '#E6ECF25D'},
+    'canopy': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#E4F5E05B', 'note.page.bg': '#E4F5E010', 'note.page.rule-fg': '#E4F5E05B'},
     'vaporwave': {'footnote-call.fg': 'ink', 'note.fg': '#65569E', 'note.marker.fg': 'ink', 'note.back.fg': '#65569E', 'note.local.rule-fg': '#16003B76', 'note.page.bg': '#16003B11', 'note.page.rule-fg': '#16003B79'},
     'code': {'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D7FFE05E', 'note.page.bg': '#D7FFE018', 'note.page.rule-fg': '#D7FFE05F'},
     'terminal': {'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D7FFE05E', 'note.page.bg': '#D7FFE018', 'note.page.rule-fg': '#D7FFE05F'},
@@ -2910,6 +3301,24 @@ THEME_NOTE_PROPS = {
     'pop-cobalt': {'note.fg': '#D5DEF8', 'note.marker.fg': 'call', 'note.back.fg': '#D5DEF8', 'note.local.rule-fg': '#F0F4FF90', 'note.page.bg': '#F0F4FF1E', 'note.page.rule-fg': '#F0F4FF9A'},
     'pop-violet': {'note.fg': '#DED1F6', 'note.marker.fg': 'call', 'note.back.fg': '#DED1F6', 'note.local.rule-fg': '#F6F1FF8A', 'note.page.bg': '#F6F1FF21', 'note.page.rule-fg': '#F6F1FF96'},
     'pop-fuchsia': {'note.fg': '#F8D6EA', 'note.marker.fg': 'call', 'note.back.fg': '#F8D6EA', 'note.local.rule-fg': '#FFF0FA92', 'note.page.bg': '#FFF0FA25', 'note.page.rule-fg': '#FFF0FA9F'},
+    # Family `light`. Same derivation as above, run against each palette:
+    # the plate is a veil of the theme's own ink at the lightest alpha that
+    # still departs from the page (the floor is 1.10 -- cloudy's default
+    # veil measured 1.0955, a plate you cannot see is a rule with text
+    # under it), the two rules are the same ink at the alpha that clears
+    # 3:1, and the note body keeps `ink-quiet` wherever `ink-quiet` clears
+    # 4.5:1 on all three grounds a note can land on.
+    'daybreak': {'footnote-call.fg': 'ink', 'note.fg': '#2A4A69', 'note.marker.fg': 'ink', 'note.back.fg': '#2A4A69', 'note.local.rule-fg': '#14304A96', 'note.page.bg': '#14304A17', 'note.page.rule-fg': '#14304A96'},
+    'dusk': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D8ECFF5E', 'note.page.bg': '#D8ECFF12', 'note.page.rule-fg': '#D8ECFF5E'},
+    'midnight': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#DCEEFF5F', 'note.page.bg': '#DCEEFF16', 'note.page.rule-fg': '#DCEEFF5F'},
+    'candlelight': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFEEDC5B', 'note.page.bg': '#FFEEDC11', 'note.page.rule-fg': '#FFEEDC5B'},
+    'lantern': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFF6DC59', 'note.page.bg': '#FFF6DC11', 'note.page.rule-fg': '#FFF6DC59'},
+    'lava': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFE3DC60', 'note.page.bg': '#FFE3DC14', 'note.page.rule-fg': '#FFE3DC60'},
+    'aurora': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#DCFFE958', 'note.page.bg': '#DCFFE910', 'note.page.rule-fg': '#DCFFE958'},
+    'nebula': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#EEE2FF61', 'note.page.bg': '#EEE2FF15', 'note.page.rule-fg': '#EEE2FF61'},
+    'abyss': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D6F4FF5C', 'note.page.bg': '#D6F4FF11', 'note.page.rule-fg': '#D6F4FF5C'},
+    'pink-dream': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFD9EC62', 'note.page.bg': '#FFD9EC14', 'note.page.rule-fg': '#FFD9EC62'},
+    'cloudy': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1F293382', 'note.page.bg': '#1F293315', 'note.page.rule-fg': '#1F293382'},
 }
 
 

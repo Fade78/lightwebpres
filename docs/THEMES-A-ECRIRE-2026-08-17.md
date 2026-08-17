@@ -1,10 +1,19 @@
 # Six thèmes à écrire — décisions arrêtées le 2026-08-17
 
-Issus d'un aller-retour sur maquettes. **Rien n'est encore dans le
-catalogue** : ce document est l'état des décisions, pas leur mise en
-œuvre. Toutes les valeurs ci-dessous ont été rendues et mesurées à
-l'instrument 2 (`tests/test_rendered_contrast.py`), sur la page
-`middle.html` de la démo à 1440×900.
+Issus d'un aller-retour sur maquettes. Toutes les valeurs ci-dessous ont
+été rendues et mesurées à l'instrument 2
+(`tests/test_rendered_contrast.py`), sur la page `middle.html` de la démo
+à 1440×900.
+
+> **État : implémenté**, sauf `pop-rose`. Les slugs ont changé au
+> moment d'écrire la famille `light`, qui les a absorbés dans un ensemble
+> plus large : `sky-dream` → **`dusk`**, `night` → **`midnight`**,
+> `daydream` → **`daybreak`**. `pink-dream` et `cloudy` gardent leur nom.
+> Le fond de `daybreak` a bougé de `#A8CBEC` à `#A8C7EC` (il tombait dans
+> la bande `cyan`, ce qui aurait coupé le triptyque du ciel en deux
+> facettes) et celui de `pink-dream` de `#1A0B1F` à `#1A0B17` (il tombait
+> dans `violet`, où il percutait `nebula`). Voir la section finale pour
+> ce qui a été livré autour.
 
 ## Pourquoi ces thèmes-là
 
@@ -174,3 +183,49 @@ Rien n'avertit l'auteur. À traiter, au minimum dans le GUIDE.
   sans bruit — exactement le défaut 5.8 qu'on vient de corriger.
 - Le compte de thèmes est dérivé du registre à plusieurs endroits
   (`--help`, `theme list`, README) : vérifier qu'aucun ne le code en dur.
+
+## Ce qui a effectivement été livré
+
+Les six thèmes ci-dessus sont devenus **dix-neuf**, répartis dans trois
+familles. Le catalogue passe de 34 à 53.
+
+**`light` — d'où vient la lumière, et à quelle heure** (11 nouveaux,
+15 en tout). Le ciel à trois heures : `daybreak`, `dusk`, `midnight`. Le
+feu, dans l'ordre de ce qu'il éclaire : `candlelight`, `lantern`, `lava`.
+Ce qui est au-dessus et au-dessous : `aurora`, `nebula`, `abyss`,
+`pink-dream`. Et `cloudy`, seul membre sobre de la famille. C'est la
+seule famille du catalogue qui remplit **les neuf cases de teinte**.
+
+**`terrain` — le monde matériel** (5 nouveaux, 8 en tout). `loam` (la
+terre retournée, le seul fond brun du catalogue), `clay` (la terre
+cuite), `concrete` (le béton, accent orange de chantier), `slate` (la
+pierre, contrepartie sombre de `concrete`), `canopy` (sous les arbres,
+là où `evergreen` est la nuit dans le sous-bois). Aucun halo : la terre
+et la pierre n'émettent pas, et c'est ce qui sépare cette famille de
+`light`.
+
+**`desk` — le registre du travail** (3 nouveaux, 10 en tout).
+`high-contrast-night` complète la paire de `high-contrast` : la
+photophobie est un besoin d'accessibilité au même titre que la
+malvoyance, et le seul thème qui visait AAA était aussi la page la plus
+claire du catalogue. `ledger` et `chalkboard` sont la paire ordinaire —
+tous les autres membres de `desk` ont un registre (technique, éditorial,
+doré, ou sans couleur du tout) et aucun n'était simplement « un document
+de travail ».
+
+**Le défaut trouvé en chemin.** `nav-dot.bg-active` et
+`table.col-snap.rule-fg` prennent tous deux `mark` par défaut, et `mark`
+est presque partout un surligneur — un lavis assez pâle pour que du texte
+survive dessus. En pastille pleine il disparaît : **dix-huit thèmes**
+mesuraient sous 3:1, quatre sous 1,10:1, `vaporwave` à **1,007:1** (sa
+pastille est son propre fond) et `high-contrast`, dont c'est toute la
+promesse, à **1,022:1**. Le lecteur ne voyait pas où il en était dans le
+deck. Corrigé thème par thème — `call` là où l'accent a la profondeur,
+`ink` sinon — parce que le ton qui marche est une question de palette. Un
+garde balaie désormais le catalogue et mesure les deux fonds : la page,
+et le rail voilé où la rangée de pastilles est posée.
+
+Conséquence sur les tests : `nord` passe `fail` → `pass` en non-texte, et
+le contrôle d'identité de rendu contre `v0.34.0` déclare sa seule dérive
+ligne à ligne (`--nav-dot-bg-active` sous `pop-lemon`), le reste restant
+comparé octet par octet.

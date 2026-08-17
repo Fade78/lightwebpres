@@ -1640,7 +1640,7 @@ les systèmes de jetons et les catalogues de thèmes existants :
   regrette. Les générateurs comparables en ont deux (reveal.js, Quarto,
   mkdocs-material) ou zéro (Hugo, Zola, Eleventy).
 - Le seuil de rentabilité d'une couche sémantique se situe au **troisième
-  ou quatrième thème**. Ce catalogue en compte trente-quatre : elle
+  ou quatrième thème**. Ce catalogue en compte cinquante-trois : elle
   serait rentable ici, si elle n'était pas d'abord un troisième niveau.
 - La trajectoire **base16 → base17 → Tinted** est le précédent le plus
   proche, et il est allé à son terme : seize emplacements à sémantique
@@ -3597,8 +3597,9 @@ d'un contrôle qui porte déjà un libellé ou un glyphe — lesquels sont
 mesurés, eux, sur le remplissage du contrôle —, les états au survol (le
 clavier a l'anneau, qui est mesuré), et le voile de modale, dont le
 métier est justement de ne pas se voir. Exiger le bord des contrôles en
-plus mettrait les 34 thèmes à `fail` pour un motif qu'aucun lecteur
-n'éprouve : ces bords sont tous un voile à 16 %, par construction.
+plus mettrait tous les thèmes du catalogue à `fail` pour un motif
+qu'aucun lecteur n'éprouve : ces bords sont tous un voile à 16 %, par
+construction.
 
 **Ce que la mesure ne voit pas.** `templates/custom.css` n'est pas
 mesuré : c'est du CSS libre, hors de la surface typée, et rien n'y est
