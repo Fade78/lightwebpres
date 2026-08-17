@@ -249,13 +249,14 @@ that does the job.
 
 ### Pick a theme (the whole series)
 
-Des dizaines de thèmes de couleur sont préconfigurés — trop pour en choisir
-from a list, so you find one by facet: light or dark background, how loud
-it is, and what hue the page carries.
+Dozens of colour themes are preconfigured — too many to pick from a list,
+so you find one by facet: which family it belongs to, whether its
+background is light or dark, and what hue that background carries.
 
 ```bash
-./lightwebpres theme list                                     # des dizaines de thèmes, avec facettes
-./lightwebpres theme list --polarity dark --intensity sober   # just the ones you mean
+./lightwebpres theme list                                     # the whole catalogue, with facets
+./lightwebpres theme list --family terrain                    # one editorial family
+./lightwebpres theme list --polarity dark --hue green          # just the ones you mean
 ./lightwebpres theme gallery                             # every theme, rendered
 ```
 

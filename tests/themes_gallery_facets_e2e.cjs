@@ -71,10 +71,10 @@ async function main() {
     }
 
     // A second facet narrows further rather than replacing the first.
-    await page.click('[data-facet="intensity"][data-value="vivid"]');
+    await page.click('[data-facet="family"][data-value="light"]');
     const both = await visible();
     if (both === 0 || both > dark) {
-      throw new Error('Adding intensity=vivid should narrow ' + dark + ', got ' + both);
+      throw new Error('Adding family=light should narrow ' + dark + ', got ' + both);
     }
 
     // A facet leading nowhere is disabled, so no click can empty the page.
@@ -82,14 +82,14 @@ async function main() {
       (els, ctx) => els.filter((b) => {
         const v = b.getAttribute('data-value');
         if (!v) return false;
-        const trial = { polarity: 'dark', intensity: 'vivid', hue: '' };
+        const trial = { polarity: 'dark', family: 'light', hue: '' };
         trial[b.getAttribute('data-facet')] = v;
         return !ctx.some((c) => Object.keys(trial).every(
           (k) => !trial[k] || c[k] === trial[k]));
       }).map((b) => b.getAttribute('data-facet') + '=' + b.getAttribute('data-value')),
       await page.$$eval('.theme-row', (els) => els.map((e) => ({
         polarity: e.getAttribute('data-polarity'),
-        intensity: e.getAttribute('data-intensity'),
+        family: e.getAttribute('data-family'),
         hue: e.getAttribute('data-hue'),
       }))));
     if (deadEnabled.length) {
@@ -115,7 +115,7 @@ async function main() {
 
     // "All" restores the full gallery: no card is lost along the way.
     await page.click('[data-facet="polarity"][data-value=""]');
-    await page.click('[data-facet="intensity"][data-value=""]');
+    await page.click('[data-facet="family"][data-value=""]');
     const restored = await visible();
     if (restored !== total) {
       throw new Error('Resetting the facets should show all ' + total +

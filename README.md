@@ -287,7 +287,7 @@ the series or within one article.
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide"), variant tags/language packs, and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build unless `--strict` is passed |
 | `template update [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
-| `theme list` | Lists the built-in color themes with their facets; `--polarity`/`--intensity`/`--hue` narrow the list |
+| `theme list` | Lists the built-in color themes with their facets; `--family`/`--polarity`/`--hue` narrow the list |
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
 | `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` |
 | `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
@@ -461,34 +461,36 @@ three font lines and a halo in its theme layer, no special case in the
 engine. The page/index HTML structure itself is fixed, not a template,
 so a build can't be broken by a malformed structural override.
 
-Des dizaines de thèmes de couleur sont préconfigurés. Nine borrow known
-editor palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo
-Night, Monokai, Everforest, Rosé Pine); the rest are the project's own —
-high-contrast and monochrome sets, a red family, a green one, three cyber
-palettes, and an eight-strong Pop family whose backgrounds carry the
-color themselves. Project-owned palettes have a documented readability
+Dozens of colour themes are preconfigured. Some borrow known editor
+palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo Night,
+Monokai, Everforest, Rosé Pine); the rest are the project's own —
+high-contrast and monochrome sets, skies at three hours, firelight, earth
+and stone, and a Pop family whose backgrounds carry the colour
+themselves. Project-owned palettes have a documented readability
 target, checked by measurement. The higher accessibility standard adds AAA
 body text, AA secondary text and accents, 3:1 informative rules, and
 colour-independent verdict separation. The current catalogue still contains
 documented exceptions; they are catalogue-maintenance decisions in
 `BACKLOG.md`, not values that the renderer derives or repairs.
 
-The nine borrowed palettes are also measured. They may remain outside the
+The borrowed palettes are also measured. They may remain outside the
 higher standard to preserve **fidelity**, as their editors ship them, but
-they are not exempt from the readability target. Four of them — Dracula,
+they are not exempt from the readability target. Some of them — Dracula,
 Tokyo Night, Monokai, Everforest — have since been returned to the dark
-grounds they were drawn for. The catalogue's visual families — Pop, halo,
-monochrome and others — describe editorial intent, not an automatic colour
-correction strategy.
+grounds they were drawn for. A theme's family — `desk`, `light`,
+`terrain`, `heat`, `pop`, `ported` — states editorial intent, not an
+automatic colour correction strategy.
 
-Des dizaines de thèmes, c'est trop pour en choisir dans une liste ; les thèmes se trouvent donc par
-facet — **polarity** (light or dark background), **intensity** (sober,
-vivid, mono), and **hue**, computed from the background in CIELAB rather
-than declared, so it can't drift when a color is tweaked:
+That is far too many to pick from a list, so themes are found by facet —
+**family**, the one facet a theme declares, against a closed vocabulary;
+**polarity** (light or dark background); and **hue**, computed from the
+background in CIELAB rather than declared, so neither can drift when a
+colour is tweaked:
 
 ```bash
-./lightwebpres theme list                              # des dizaines de thèmes, avec leurs facettes
-./lightwebpres theme list --polarity dark --intensity sober  # just the ones you mean
+./lightwebpres theme list                                    # the whole catalogue, with its facets
+./lightwebpres theme list --family terrain                   # one editorial family
+./lightwebpres theme list --polarity dark --hue green       # just the ones you mean
 ```
 
 Apply one when scaffolding, or change your mind later:
@@ -550,12 +552,12 @@ and focus rings).
 
 A body link deliberately has no palette colour of its own. It keeps the
 ink around it and is signalled by an underline, whose tint is the one
-exposed axis (`link.decoration-color`, defaulting to the text ink —
-la seule association qui passe AA et AAA sur l'ensemble des thèmes). Mesuré
-across the catalogue before choosing: the browser default blue fails AA
-on 19 themes, and every palette colour that could replace it is either
-sous le seuil AA pour 15 d'entre eux, ou déjà l'un des trois
-verdict colours.
+exposed axis (`link.decoration-color`, defaulting to the text ink — the
+one pairing that clears AA and AAA on every theme in the catalogue).
+Measured across the catalogue before choosing: the browser's default blue
+misses AA on well over half of the themes, and every palette colour that
+could replace it either falls short on a large part of the catalogue too,
+or is already one of the verdict colours.
 
 > **Inherited a series whose `templates/` looks nothing like this?**
 > `lightwebpres audit` reads it and names every variable it references
@@ -565,9 +567,9 @@ verdict colours.
 
 ![Preview of the built-in color themes](themes-gallery.png)
 
-The first four rows of [`themes-gallery.html`](themes-gallery.html) in
-ce dépôt — ouvrez-la directement dans un navigateur pour l'ensemble des thèmes, où la
-facets become filters. **One theme per row, four panels across:** the
+Above are the first rows of [`themes-gallery.html`](themes-gallery.html)
+in this repository — open it in a browser for the whole catalogue, where
+the facets become filters. **One theme per row, four panels across:** the
 cover, a card carrying a note, the page-wide notes section, and the
 long-form article. Each panel is a real rendering at its true size, not a
 mock and not a scaled-down miniature, so a 14px note is 14px there too.

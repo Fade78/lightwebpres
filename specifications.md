@@ -246,7 +246,7 @@ lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav]
 lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
-lightwebpres theme list [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
+lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
 lightwebpres clean [répertoire] [--output public/] [--force]
@@ -265,7 +265,7 @@ lightwebpres --help
 - `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
 - `--force` : `init` seulement — procède même si le répertoire cible n'est pas vide (`series theme set` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
 - `--theme` : `init`/`series theme set` — applique une palette prédéfinie (§9.5)
-- `--polarity` / `--intensity` / `--hue` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
+- `--polarity` / `--hue` / `--family` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
@@ -2164,7 +2164,7 @@ Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
 `ink-muted`, `marker`, `accent`, `positive`), les propriétés de rendu du
 gras en encadré (`fact_weight`/`fact_style`/`fact_highlight`/
 `fact_decoration`/`fact_decoration_color`), un drapeau de polarité
-(`dark_background`), une intensité déclarée (`intensity`, §9.5.2), et des
+(`dark_background`), une famille déclarée (`family`, §9.5.2), et des
 métadonnées purement éditoriales (étiquette affichable, source,
 remarque — §9.5.4) qui ne servent qu'à `theme gallery` (§11.7).
 `fact_weight`, `fact_style` et `fact_highlight` sont toujours explicites
@@ -2333,13 +2333,13 @@ filtres, et la commande `theme list` (§11.9) en options :
 | Facette | Valeurs | Origine |
 |---|---|---|
 | polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.1) |
-| intensity | `sober`, `vivid`, `mono` | déclarée dans l'entrée ; absente, vaudrait `sober`, mais les 34 entrées la déclarent — le repli n'est pas exercé par le catalogue |
+| family | `desk`, `light`, `terrain`, `heat`, `pop`, `ported` | **déclarée** dans l'entrée, contre un vocabulaire clos ; une valeur inconnue est refusée par son nom, et une entrée qui n'en déclare aucune vaut `null` plutôt qu'un défaut silencieux |
 | hue | `neutral`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta` | **calculée** à partir du fond |
 
 Les noms de facettes et leurs valeurs sont en anglais, comme tout
 identifiant que la ligne de commande accepte — et comme la galerie
 elle-même, page anglaise depuis la v0.12.1 (ses libellés d'affichage,
-« Light », « Sober », restent séparés des valeurs sur lesquelles elle
+« Light », « Dark », restent séparés des valeurs sur lesquelles elle
 filtre : une chaîne affichée et une clé ne sont pas la même chose, et
 les confondre rendrait la CLI intraduisible).
 
@@ -2349,11 +2349,22 @@ donc pas diverger — propriété vérifiée par un test qui compare, pour
 chaque combinaison, la sortie de `theme list` aux attributs `data-*` des
 cartes de la galerie.
 
-L'intensité est déclarée parce que « à quel point est-ce criard » est un
-jugement éditorial, pas une grandeur mesurable. La teinte, elle, est
-calculée : une étiquette écrite à la main dérive dès que quelqu'un
-retouche une couleur, et rien ne justifie de croire une prose plutôt que
-la valeur qu'elle prétend décrire.
+La famille est déclarée parce qu'« ceci est le registre du travail » est
+un énoncé d'intention, pas une grandeur mesurable : aucun calcul ne le
+retrouve à partir de six valeurs hexadécimales. Étant déclarée, elle est
+clôturée — le vocabulaire est fermé et une valeur hors liste est une
+erreur nommée, non un silence.
+
+Une facette déclarée de plus, `intensity` (`sober`/`vivid`/`mono`), a
+existé depuis la v0.12.1 avant d'être retirée. Elle disait la même sorte de chose que
+`family` — un jugement éditorial que rien ne vérifie — sans le vocabulaire
+clos ni le refus d'une valeur inconnue. Deux axes éditoriaux déclarés à la
+main pour un même catalogue est un de trop ; celui qui reste est celui qui
+est clôturé.
+
+La teinte, elle, est calculée : une étiquette écrite à la main dérive dès
+que quelqu'un retouche une couleur, et rien ne justifie de croire une
+prose plutôt que la valeur qu'elle prétend décrire.
 
 Le calcul se fait en **CIELAB**, pas en RVB. En RVB, une teinte est un
 angle, et un crème pâle occupe le même angle qu'une orange pleine — ce
@@ -3385,7 +3396,7 @@ d'aperçu contient exactement la sortie de `render_slide()` et exactement
 la feuille composée pour ce thème.
 
 En tête de page, une barre de **facettes** (§9.5.2) filtre les aperçus
-par polarité, intensité et teinte. Elle est produite en HTML statique
+par famille, polarité et teinte. Elle est produite en HTML statique
 mais masquée par défaut, et révélée par le script inline de la page :
 sans JavaScript, la galerie reste une liste complète et lisible plutôt
 qu'une barre de boutons inertes. Le script affiche en permanence le
@@ -3424,7 +3435,7 @@ sur celle qui répond à « celui-là, il vaut quoi » : `theme show`.
 ### 11.9 `theme list`
 
 ```bash
-lightwebpres theme list [--polarity light|dark] [--intensity sober|vivid|mono] [--hue <teinte>]
+lightwebpres theme list [--polarity light|dark] [--hue <teinte>] [--family <nom>]
 ```
 
 Liste les thèmes intégrés depuis le terminal, avec pour chacun son slug,
@@ -3614,7 +3625,7 @@ Sur un slug, les facettes sont celles de `theme_facets()` telles quelles
 sur la même entrée. Sur un répertoire, la question porte sur le thème
 *effectif* : la polarité et la teinte sont donc recalculées sur la page
 qu'un build peindrait réellement — épingler un `color.page` sombre sur un
-thème clair change les deux. L'intensité, elle, est déclarée et ne se
+thème clair change les deux. La famille, elle, est déclarée et ne se
 dérive de rien (§9.5.2) : elle reste le mot du thème, et vaut `null`
 quand aucun thème n'est nommé.
 
@@ -3640,7 +3651,7 @@ produirait un texte moins lisible que l'un et moins fiable que l'autre.
 | `label` | chaîne ou `null` | l'étiquette affichable du thème ; `null` si aucun thème n'est nommé |
 | `note` | chaîne ou `null` | la remarque éditoriale, **en texte nu** (§9.5.4) |
 | `source` | chaîne ou `null` | la provenance de la palette (`lightwebpres`, `nord`, …) |
-| `facets` | objet | `polarity`, `intensity`, `hue` (§9.5.2) ; `intensity` vaut `null` sur un répertoire sans thème |
+| `facets` | objet | `polarity`, `hue`, `family` (§9.5.2) ; `family` vaut `null` sur un répertoire sans thème |
 | `palette` | objet | les six valeurs partagées **résolues**, clés sans le préfixe `color.` : `page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`. Valeurs en `#RRGGBBAA` |
 | `fonts` | objet | les quatre piles résolues : `text`, `display`, `ui`, `mono` |
 | `accessibility` | objet | les trois catégories (ci-dessous) |

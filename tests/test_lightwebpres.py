@@ -5369,7 +5369,7 @@ class Themes(unittest.TestCase):
             self.assertEqual(open_tags, expected)
             self.assertEqual(open_tags, close_tags)
             # Every card must be filterable, or the facet bar lies.
-            for facet in ('data-polarity=', 'data-intensity=', 'data-hue='):
+            for facet in ('data-polarity=', 'data-hue=', 'data-family='):
                 self.assertEqual(html.count(facet), expected)
 
     def test_themed_build_actually_uses_the_declared_theme(self):
@@ -5686,20 +5686,11 @@ class ThemeFacets(unittest.TestCase):
                 f'{hex_colour} should read as {expected}',
             )
 
-    def test_every_theme_declares_its_intensity_rather_than_defaulting(self):
-        """Intensity is the one facet that cannot be derived, so a silent
-        default is a silent lie. The nine editor palettes omitted the key
-        and all fell to `sober` — which put Monokai's card at
-        [light/sober/neutral] directly above its own note, "among the most
-        vivid of the lot"."""
-        for slug, theme in self.lwp.THEMES.items():
-            self.assertIn('intensity', theme, f'{slug} relies on the default')
-
     def test_every_theme_declares_a_family_from_the_closed_vocabulary(self):
         """Family is the one facet that is DECLARED, not measured.
 
-        Polarity, intensity and hue are read off the palette, so a theme
-        cannot lie about them and a colour change moves the facet with it.
+        Polarity and hue are read off the palette, so a theme cannot lie
+        about them and a colour change moves the facet with it.
         "This is the register of work" is an editorial statement no amount
         of CIELAB recovers from six hex values — so it is declared, and
         therefore fenced: the vocabulary is closed and every theme must
@@ -5761,12 +5752,18 @@ class ThemeFacets(unittest.TestCase):
         self.assertEqual(self.lwp.neutral_chroma_threshold(0),
                          self.lwp.NEUTRAL_CHROMA_FLOOR)
 
-    def test_every_theme_carries_the_three_facets(self):
+    def test_every_theme_carries_every_facet_FACET_VALUES_declares(self):
+        """Driven by FACET_VALUES rather than by a list written here.
+
+        This used to be `..._the_three_facets` and checked exactly three,
+        so `family` arriving made the name wrong and the body blind on the
+        same day. A retired facet or a new one now moves this test on its
+        own."""
         for key, theme in self.lwp.THEMES.items():
             facets = self.lwp.theme_facets(theme)
-            self.assertIn(facets['polarity'], ('light', 'dark'), key)
-            self.assertIn(facets['intensity'], ('sober', 'vivid', 'mono'), key)
-            self.assertIsInstance(facets['hue'], str)
+            self.assertEqual(set(facets), set(self.lwp.FACET_VALUES), key)
+            for name, allowed in self.lwp.FACET_VALUES.items():
+                self.assertIn(facets[name], allowed, (key, name))
 
     def test_polarity_facet_agrees_with_the_furniture_actually_applied(self):
         """The facet is a label; the property layer drives real CSS. If
@@ -6720,7 +6717,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     def test_a_directory_target_needs_no_theme_line_at_all(self):
         """A series installed without a theme runs on the registry's own
         defaults. That is an answer, not an error: `theme` is null and
-        the intensity facet — the one that is declared and cannot be
+        the family facet — the one that is declared and cannot be
         derived (§9.5.2) — is null with it."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
@@ -6732,7 +6729,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
                 encoding='utf-8')
             report = self._report(str(root))
             self.assertIsNone(report['target']['theme'])
-            self.assertIsNone(report['facets']['intensity'])
+            self.assertIsNone(report['facets']['family'])
             self.assertIsNone(report['label'])
             self.assertIn(report['facets']['polarity'], ('light', 'dark'))
 
@@ -6771,13 +6768,13 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         removed one, and the GUI is entitled to know which it is from the
         `schema` string."""
         report = self._report('nord')
-        self.assertEqual(report['schema'], 'lightwebpres.theme-info/2')
+        self.assertEqual(report['schema'], 'lightwebpres.theme-info/3')
         self.assertEqual(report['lightwebpres_version'],
                          self.lwp.VERSION)
         self.assertEqual(set(report), self.ROOT_KEYS)
         self.assertEqual(set(report['target']), self.TARGET_KEYS)
         self.assertEqual(set(report['facets']),
-                         {'polarity', 'intensity', 'hue', 'family'})
+                         {'polarity', 'hue', 'family'})
         self.assertEqual(set(report['palette']),
                          {'page', 'ink', 'ink-quiet', 'mark', 'call', 'affirm'})
         self.assertEqual(set(report['fonts']),
@@ -6826,7 +6823,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
             facets = self._report(slug)['facets']
             trio, family = printed[slug]
             self.assertEqual(
-                '/'.join(facets[k] for k in ('polarity', 'intensity', 'hue')),
+                '/'.join(facets[k] for k in ('polarity', 'hue')),
                 trio, slug)
             # The declared facet has to agree across surfaces too -- more
             # so than the measured three, since nothing recomputes it.
@@ -7156,7 +7153,7 @@ class PaletteRoleNames(unittest.TestCase):
         them. The fact_* emphasis keys are matched by prefix rather than
         listed: an axis added later is legitimately new metadata, but a
         stray colour key still has to fail here."""
-        meta_keys = {'label', 'source', 'note', 'note_good', 'intensity',
+        meta_keys = {'label', 'source', 'note', 'note_good', 'family',
                      'dark_background', 'family'}
         for slug, theme in self.lwp.THEMES.items():
             colour_keys = [k for k in theme
@@ -7301,7 +7298,7 @@ class ThemesCommand(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         for slug, theme in self.lwp.THEMES.items():
             facets = self.lwp.theme_facets(theme)
-            trio = '/'.join((facets['polarity'], facets['intensity'], facets['hue']))
+            trio = '/'.join((facets['polarity'], facets['hue']))
             self.assertIn(f'{slug}  [{trio}]', result.stdout, slug)
 
     def test_a_facet_filter_narrows_the_list_to_exactly_the_matching_themes(self):
@@ -7326,18 +7323,18 @@ class ThemesCommand(unittest.TestCase):
             html = out.read_text(encoding='utf-8')
 
         cards = re.findall(
-            r'data-polarity="([^"]*)" data-intensity="([^"]*)" data-hue="([^"]*)" '
+            r'data-polarity="([^"]*)" data-hue="([^"]*)" data-family="([^"]*)" '
             r'data-name="(\S+) ', html)
         self.assertEqual(len(cards), len(self.lwp.THEMES))
 
-        for polarity, intensity, hue in {(c[0], c[1], c[2]) for c in cards}:
+        for polarity, hue, family in {(c[0], c[1], c[2]) for c in cards}:
             from_gallery = sorted(c[3] for c in cards
-                                  if (c[0], c[1], c[2]) == (polarity, intensity, hue))
+                                  if (c[0], c[1], c[2]) == (polarity, hue, family))
             result = run('theme', 'list', '--polarity', polarity,
-                         '--intensity', intensity, '--hue', hue)
+                         '--hue', hue, '--family', family)
             self.assertEqual(result.returncode, 0, result.stderr)
             from_cli = sorted(re.findall(r'^  (\S+)  \[', result.stdout, re.MULTILINE))
-            self.assertEqual(from_cli, from_gallery, (polarity, intensity, hue))
+            self.assertEqual(from_cli, from_gallery, (polarity, hue, family))
 
     def test_an_unknown_facet_value_is_a_fatal_error_that_lists_the_valid_ones(self):
         """Not an empty result: 'rouge' is a typo for 'red', and quietly
