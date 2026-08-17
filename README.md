@@ -370,10 +370,10 @@ publishing a slide of the wrong kind.
  each continuation line starts with whitespace, and an indented blank line is a
   paragraph break; the block ends at the first non-indented, non-empty line.
 
-The former visible-label field `tag:` is not an alias. Use `kicker:` for the
-label above a slide title, and `tags:` for variant filtering. On a standard
-slide an old `tag:` line becomes body text; on a cover, `build` reports the
-unknown field and prints the two current choices.
+`tag:` is not a field, and not an alias for one. Use `kicker:` for the label
+above a slide title, and `tags:` for variant filtering. A `tag:` line becomes
+body text on a standard slide; on a cover, `build` reports the unknown field
+and prints the two choices.
 
 ## Notes
 
@@ -445,7 +445,7 @@ own registry; `--help` shows it live). Uncomment a line to pin it: it
 survives every theme change and every executable upgrade, because the
 tool never writes in your file. The stylesheet itself is composed in
 memory at every build; a mistyped key or value is a named build error,
-never a silent no-op. Three one-liners that used to be friction:
+never a silent no-op. Three one-liners:
 
 ```conf
 verdict.partial.fg: #8A4B00   # recolor one verdict — footnote calls and focus rings don't move
@@ -557,12 +557,11 @@ on 19 themes, and every palette colour that could replace it is either
 sous le seuil AA pour 15 d'entre eux, ou déjà l'un des trois
 verdict colours.
 
-> **Coming from a series built before the typed-properties engine?**
-> `templates/style.css` is no longer read: values move to
-> `settings.conf`, rules to `custom.css`, and no variable aliases were
-> kept — `lightwebpres audit` names every retired variable still
-> referenced, each with its replacement, and `template update` creates
-> the new files if they're missing.
+> **Inherited a series whose `templates/` looks nothing like this?**
+> `lightwebpres audit` reads it and names every variable it references
+> that the registry does not define, each with the property that carries
+> it now; `template update` writes `settings.conf` and `custom.css` if
+> they are missing.
 
 ![Preview of the built-in color themes](themes-gallery.png)
 

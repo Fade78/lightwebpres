@@ -32,7 +32,7 @@ pas par symptôme.
 | 1 | Le contrat CLI qui ment | v0.34.0 | **fait** |
 | 4 | Les dix tests morts | avec chaque correctif | **fait** (`952f232`, `4454cbc`) |
 | 2, 5.5–5.8 | Robustesse du build, alignement, longueurs | v0.34.x | **fait** (2.2 réfuté par la mesure) |
-| 3 | Documentation et artefacts générés | continu | à faire |
+| 3 | Documentation et artefacts générés | continu | **fait** |
 
 ---
 
@@ -395,9 +395,45 @@ aux trois largeurs, y compris pour les fiches taguées et à variantes.
 
 **Sans dérive** : `SKILL.md` — tous les champs, les restrictions par type de
 fiche, les niveaux de titre, les balises d'instance correspondent exactement
-au code. Mais son test de garde ne lit **jamais `SLIDE_TYPES`** : les quatre
-noms de types et la répartition des champs par type ne sont couverts par
-aucune assertion.
+au code. Mais son test de garde ne lisait **jamais `SLIDE_TYPES`** : les
+quatre noms de types et la répartition des champs par type n'étaient couverts
+par aucune assertion.
+
+---
+
+## Lot 3 — fait
+
+| # | Ce qui a été fait |
+|---|---|
+| 3.1 | Le GUIDE montre le `.gitlab-ci.yml` réellement écrit (un stage, une commande). L'ordre `verify` puis `build` reste documenté, mais comme un ajout que le lecteur fait s'il publie un `public/` versionné — et le paragraphe dit pourquoi il n'est pas dans le fichier généré |
+| 3.2 | L'en-tête de `settings.conf` nomme `series theme set` et `template update --scaffold` |
+| 3.3 | Les listes de complétion sont dérivées des tables et de **rien d'autre**. `theme set` (refusé par l'outil) et le second `theme` sous `series` ont disparu |
+| 3.4 | Le message de `nav.js` nomme `CUSTOM_CSS_FILENAME`, pas un fichier inexistant |
+| 3.5 | La docstring du module liste `clean`, `watch`, `completion` et les huit options globales |
+| 3.6 | Trois formulations historiques retirées de README/GUIDE. `README:326` est **conservé** : les alias existent, avertissent, et un utilisateur avec d'anciens scripts a besoin de le savoir — c'est du comportement présent, pas de l'histoire |
+| 3.7 | `specifications.md` §2.4.1 : les huit options globales, `--`, et la règle stdout/stderr qui fait que `--quiet` n'avale jamais la réponse |
+| 3.8 | §11.9.1 documente `<slug>…` et `--all`, et le refus de mélanger répertoire et slugs. `--help` ne cite plus `DECISION-CLI` (rangé dans `to-be-deleted/`), ne dit plus `created by install`, `set-theme`, ni `build/check` |
+| — | Le garde de `SKILL.md` lit `SLIDE_TYPES` : les quatre noms, la ligne du tableau par type, et chaque champ que ce type accepte |
+
+**Trois gardes ajoutés, chacun mordant** :
+
+1. **La complétion dans les deux sens.** Le test existant parcourt les tables
+   et cherche chaque nom dans le script — donc tout ce qui est ajouté à la
+   main lui est invisible. Le nouveau compare les ensembles, et vérifie que
+   chaque verbe proposé est accepté par l'outil.
+2. **Chaque option de `--help` face à la commande qui la prend.** Le bloc
+   OPTIONS introduit chaque option par les commandes concernées
+   (`build:`, `demo/build/verify/watch:`) ; ces préfixes sont des données, et
+   rien ne les confrontait à l'aiguilleur. Le test exige un nom canonique
+   **et** que la commande accepte réellement l'option. Il attrape les deux
+   mutations : `build/check` (nom retiré) et `build/verify/demo` (commande qui
+   ne prend pas l'option).
+3. **La docstring du module face aux tables.** Elle ignorait trois commandes
+   pendant que `print_help()` était complet — donc rien ne le voyait.
+
+**Trouvé en corrigeant** : `--help` écrivait `theme show/gallery:`, une
+abréviation de préfixe commun que ni le test ni un lecteur ne peut lever.
+Écrit en entier.
 
 ---
 

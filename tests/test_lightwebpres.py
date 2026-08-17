@@ -3115,6 +3115,107 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertIn(opt, script,
                            f'completion script missing option {opt!r}')
 
+    def test_completion_offers_nothing_the_tool_refuses(self):
+        """The lists are derived from the tables in BOTH directions.
+
+        The sync test above walks the tables and looks for each name in
+        the script, so anything appended by hand is invisible to it. Two
+        things had been appended: `theme set`, which the tool refuses by
+        name -- "the theme node is the catalogue and never modifies a
+        series" -- and a second `theme` under `series`, where the verb
+        table already has one. A completion that offers a refused command
+        is the program telling you to type what it will reject."""
+        lwp = load_lightwebpres_module()
+        script = run('completion', '--shell', 'bash').stdout
+        self.assertEqual(
+            sorted(self._complete(script, ['lightwebpres', 'theme', ''], 2)),
+            sorted(lwp._THEME_VERBS))
+        self.assertEqual(
+            sorted(self._complete(script, ['lightwebpres', 'series', ''], 2)),
+            sorted(lwp._SERIES_VERBS))
+        # And the offer is real: every verb offered must be one the tool
+        # accepts. `theme set` exits non-zero with a message that names
+        # the right spelling.
+        for verb in self._complete(script, ['lightwebpres', 'theme', ''], 2):
+            result = run('theme', verb, '--help')
+            self.assertEqual(result.returncode, 0,
+                             f'completion offers `theme {verb}`, which the '
+                             f'tool refuses: {result.stderr}')
+
+    def test_the_module_docstring_lists_every_command(self):
+        """The usage block at the top of the source -- what a reader of
+        the file sees first, and what `pydoc` prints -- knew nothing
+        about `clean`, `watch` or `completion`. `print_help()` was
+        complete the whole time, so nothing noticed.
+
+        Canonical names only: the docstring is not the place to teach a
+        deprecated alias."""
+        lwp = load_lightwebpres_module()
+        usage = lwp.__doc__
+        for name in sorted({lwp.canonical(v) for v in lwp._SHORTCUTS.values()}):
+            self.assertIn(f'lightwebpres {name}', usage,
+                          f'the usage block does not mention {name!r}')
+        for opt in sorted(lwp._GLOBAL_OPTIONS):
+            self.assertIn(opt, usage,
+                          f'the usage block does not mention {opt!r}')
+
+    def test_help_names_each_option_against_a_command_that_takes_it(self):
+        """Every option in the OPTIONS block is introduced by the commands
+        it belongs to -- `build:`, `demo/build/verify/watch:`,
+        `init/series theme set:`. Those prefixes are data, and nothing
+        checked them against the dispatcher.
+
+        `--no-typography` was documented as `(build/check)` -- `check` is
+        the retired spelling the program itself prints a [WARNING] about,
+        so the help recommended the command the program tells you not to
+        use. Two more of the same kind sat beside it: `SERIES DIRECTORY
+        (created by install)` and `set-theme touches only the theme:
+        line`.
+
+        Checked here: the name is a canonical command, and the option is
+        one that command actually accepts."""
+        lwp = load_lightwebpres_module()
+        help_text = run('--help').stdout
+        block = help_text.split('OPTIONS', 1)[1]
+        # The block ends at the next all-caps heading in column 0.
+        block = re.split(r'\n[A-Z][A-Z /()]+\n', block)[0]
+        canonical_names = ({lwp.canonical(v) for v in lwp._SHORTCUTS.values()}
+                           | {'series theme set', 'series theme',
+                              'template update', 'theme list', 'theme show',
+                              'theme gallery'})
+        checked = 0
+        lines = block.splitlines()
+        for i, line in enumerate(lines):
+            m = re.match(r'^  (--[a-z-]+)', line)
+            if not m or i + 1 >= len(lines):
+                continue
+            opt = m.group(1)
+            intro = re.match(r'^    ([a-z][a-z /-]*(?:/[a-z][a-z /-]*)*):',
+                             lines[i + 1])
+            if not intro:
+                continue  # "Global:", "Print the version" -- not a command list
+            for name in intro.group(1).split('/'):
+                # `build --only:` qualifies a command by the flag it is
+                # used with; the command is the part before the flag.
+                name = name.split(' --')[0].strip()
+                if name in ('Global', 'For theme gallery'):
+                    continue
+                checked += 1
+                self.assertIn(
+                    name, canonical_names,
+                    f'{opt} is documented against {name!r}, which is not a '
+                    f'command a user should type')
+                takes = lwp._COMMAND_OPTIONS.get(
+                    lwp._SHORTCUTS.get(name, name), set())
+                if takes:
+                    self.assertIn(
+                        opt, takes | lwp._GLOBAL_OPTIONS,
+                        f'the help says {opt} belongs to {name!r}, which '
+                        f'does not accept it')
+        self.assertGreater(checked, 10,
+                           'the OPTIONS block was not parsed -- its shape '
+                           'changed and this test stopped reading it')
+
     def test_completion_function_produces_correct_completions(self):
         """Sources the bash completion script and tests the actual
         completion function with simulated COMP_WORDS. This verifies
@@ -5954,6 +6055,44 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
             self.assertIn(f'.{cls}', css, f'{cls} left the stylesheet')
             self.assertIn(f'`{cls}`', self.skill, cls)
         self.assertIn('comparison-table', self.skill)
+
+    def test_every_slide_type_and_its_own_fields_are_named(self):
+        """The four type names and the split of fields between them are
+        the skill's most load-bearing table, and nothing read SLIDE_TYPES.
+
+        The class derived its lists from SLIDE_FIELD_NAMES,
+        _SERIES_STRING_FIELDS and the composed stylesheet, so the fields
+        were all covered SOMEWHERE -- and which type accepts which was
+        covered nowhere. An agent that puts `highlight:` on a cover gets
+        a fatal build error the skill would have been correct to prevent.
+
+        Read per row: each type's row must name each field that type
+        takes. The rows are matched by the type name, so reordering the
+        table is free and dropping a row is not."""
+        types = self.lwp.SLIDE_TYPES
+        self.assertEqual(len(types), 4, 'the type list moved')
+        rows = [line for line in self.skill.splitlines()
+                if line.startswith('|') and line.count('|') >= 4]
+        for t in types:
+            self.assertIn(f'`{t.name}`' if t.name != 'standard' else 'standard',
+                          self.skill, f'slide type {t.name} is not named')
+            row = next((r for r in rows if t.name in r.split('|')[1]), None)
+            self.assertIsNotNone(
+                row, f'the slide-types table has no row for {t.name!r}')
+            for field in t.fields:
+                # `article` or `article: filename.md` -- the row may show
+                # the value form, so the name is matched up to the closing
+                # backtick or the colon.
+                self.assertRegex(
+                    row, r'`' + re.escape(field) + r'[`:]',
+                    f'{t.name} takes `{field}` and its row does not say so')
+        # The marker spelling itself, which is what an agent types.
+        for t in types:
+            if t.name == 'standard':
+                self.assertIn('<!-- lwp:slide -->', self.skill)
+            else:
+                self.assertIn(f'<!-- lwp:slide:{t.name} -->', self.skill,
+                              f'the marker for {t.name} is never shown')
 
     def test_the_skill_does_not_promise_that_nothing_is_fatal(self):
         """It said so twice, and page_dest has three fatal paths."""

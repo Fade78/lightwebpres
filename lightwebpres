@@ -42,7 +42,14 @@ Usage:
   lightwebpres resolve [directory] <name> [--article file.md] [--format text|json]
   lightwebpres series theme set [directory] --theme name
   lightwebpres theme gallery [path]
+  lightwebpres clean [directory] [--output public/] [--force]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open]
+  lightwebpres completion --shell bash|zsh
   lightwebpres --version | --help | -h
+
+Global options, accepted before or after the command:
+  --lang, --no-color, --timestamp, --quiet, --verbose, --dry-run,
+  --version, --help
 """
 
 import sys
@@ -3116,10 +3123,10 @@ def build_settings_scaffold(theme_key=None, pinned=None):
 
     lines = [
         '# lightwebpres settings — plain `key: value` properties, one per line.',
-        '# lightwebpres never writes this file (set-theme rewrites only the',
-        '# theme line below, refresh-templates --scaffold refreshes the',
-        '# commented surface and keeps your uncommented lines). Uncomment a',
-        '# line to pin it: it survives every theme change and every upgrade.',
+        '# lightwebpres never writes this file (`series theme set` rewrites',
+        '# only the theme line below, `template update --scaffold` refreshes',
+        '# the commented surface and keeps your uncommented lines). Uncomment',
+        '# a line to pin it: it survives every theme change and every upgrade.',
         f'# CSS rules belong in {CUSTOM_CSS_FILENAME}.',
         '',
         f'theme: {theme_key}' if theme_key else '# theme: <slug>   (default theme)',
@@ -10050,7 +10057,8 @@ def load_build_context(series_dir, args):
             log('info', '  [NOTE] templates/nav.js differs from the '
                 'executable\'s built-in version — run '
                 '`lightwebpres template update .` to refresh it '
-                '(your custom.js and settings.conf are never touched)')
+                '(your {custom_css} and settings.conf are never touched)'
+                .format(custom_css=CUSTOM_CSS_FILENAME))
         nav_js = on_disk
     else:
         nav_js = TEMPLATE_NAV_JS
@@ -10285,9 +10293,16 @@ def cmd_completion(args):
     all_opts = sorted(_VALUE_OPTIONS | set().union(*_COMMAND_OPTIONS.values())
                       | _GLOBAL_OPTIONS)
 
+    # Derived from the tables and NOTHING else, which is what the GUIDE
+    # and the spec both promise. Appending by hand offered `theme set`,
+    # which the tool refuses by name ("the theme node is the catalogue and
+    # never modifies a series"), and listed `theme` twice under `series`,
+    # where _SERIES_VERBS already has it. A completion that offers a
+    # refused command is worse than one that offers nothing: it is the
+    # program telling you to type what the program will reject.
     root_list = ' '.join(root_cmds + ['series', 'theme', 'template'])
-    series_list = ' '.join(series_verbs + ['theme'])
-    theme_list = ' '.join(theme_verbs + ['set'])
+    series_list = ' '.join(series_verbs)
+    theme_list = ' '.join(theme_verbs)
     opts_list = ' '.join(all_opts)
 
     if shell == 'bash':
@@ -13034,7 +13049,7 @@ OPTIONS
     audit: exit non-zero if any warnings are emitted (CI gate)
   --templates
     audit: restrict the audit to the presentation/template layer and
-    skip per-article editorial checks (DECISION-CLI §3)
+    skip per-article editorial checks
   --slides-page-numbers on|off
     build/watch: engrave the top-right NN / NN slide number (off by
     default; the article front-matter slide_page_numbers and
@@ -13046,7 +13061,7 @@ OPTIONS
   --shell bash|zsh
     completion: which shell to generate the script for
   --all
-    theme show/gallery: describe/generate every built-in theme
+    theme show/theme gallery: describe/generate every built-in theme
 
 THEMES ({theme_count} built in, see specifications.md §9.5)
   Themes are chosen by slug, and found by facet — polarity (light/dark),
@@ -13081,7 +13096,7 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
   settings.conf lists ALL of them, commented out at the current theme's
   values. Uncomment a line to pin it: it survives every theme change and
   every executable upgrade, and lightwebpres never rewrites your file
-  (set-theme touches only the `theme:` line).
+  (`series theme set` touches only the `theme:` line).
   Shared values themes provide, referenced by bare words:
     color.page    the page background
     color.ink     body text          color.ink-quiet   secondary text
@@ -13111,7 +13126,7 @@ ENVIRONMENT VARIABLES
                       [directory] argument is given
   LWP_LANGUAGE_DIR    Language directory (default: $LWP_SERIES_DIR/language)
 
-SERIES DIRECTORY (created by install)
+SERIES DIRECTORY (created by `init`)
   series.json          List of articles + series metadata
   articles/*.md         One .md file per article (+ *_article.md for the full article)
   articles/img/          Article images (copied to public/img/ on build)
@@ -13208,7 +13223,7 @@ TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specific
                           scoped to one article)
   Any other value, or the field's absence, leaves the rule on (default).
 
-  --no-typography (build/check) disables the whole engine for that run —
+  --no-typography (build/verify) disables the whole engine for that run —
   every rule, on every article, not just the fields above — for when you
   need the generated HTML to match the Markdown source's spacing exactly.
 

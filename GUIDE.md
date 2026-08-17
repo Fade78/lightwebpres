@@ -187,10 +187,10 @@ The field is one physical line, like every structural field.
 - The selected tag shows its own slides and shared `default` slides; counts,
   navigation, anchors, and the presenter panel use the visible slides.
 
-The former visible-label field `tag:` is not an alias. Use `kicker:` for the
-label above a slide title, and `tags:` for variant filtering. On a standard
-slide an old `tag:` line becomes body text; on a cover, `build` reports the
-unknown field and prints the two current choices.
+`tag:` is not a field, and not an alias for one. Use `kicker:` for the label
+above a slide title, and `tags:` for variant filtering. A `tag:` line becomes
+body text on a standard slide; on a cover, `build` reports the unknown field
+and prints the two choices.
 
 For language-specific typography, map tags to packs in `series_meta`:
 
@@ -460,21 +460,39 @@ every line you uncommented.
 ### As a pipeline step
 
 The generated `.gitlab-ci.yml` (`init --gitlab-ci`, opt-in — a plain
-`init` never assumes a deployment) is the two-line version:
+`init` never assumes a deployment) is one stage and one command:
 
 ```yaml
+stages:
+  - build
+
 build:
+  stage: build
+  image: python:3.12-slim
   script:
-    - python3 lightwebpres verify .    # fails if public/ is stale
-    - python3 lightwebpres build .
+    - python3 lightwebpres build . --lang fr
   artifacts:
-    paths: [public]
+    paths:
+      - public/
 ```
 
-`verify` before `build` is the useful ordering: it catches a `public/`
-that was hand-edited or never rebuilt after a source change, **before**
-the build overwrites the evidence. Nothing here is GitLab-specific — the
-same two commands are the whole job on any runner.
+Nothing here is GitLab-specific — that one command is the whole job on
+any runner.
+
+If your `public/` is committed rather than built from scratch, put
+`verify` in front of `build`:
+
+```yaml
+  script:
+    - python3 lightwebpres verify .    # fails if public/ is stale
+    - python3 lightwebpres build . --lang fr
+```
+
+That ordering catches a `public/` that was hand-edited or never rebuilt
+after a source change, **before** the build overwrites the evidence. It
+is left out of the generated file because a pipeline that builds into a
+fresh checkout has nothing stale to catch, and a job that fails on its
+first run teaches the reader to delete the line rather than to trust it.
 
 For a pipeline where content arrives from upstream, three more things
 matter. `--only page` rebuilds a single article rather than the series,

@@ -209,6 +209,35 @@ série.
 
 Les options en ligne de commande **override** les variables d'environnement.
 
+#### 2.4.1 Options globales
+
+Huit options ne dépendent d'aucune commande et sont acceptées **avant ou
+après** elle — `lightwebpres --quiet build .` et `lightwebpres build .
+--quiet` sont le même lancement. Elles s'ajoutent aux options propres à la
+commande ; aucune commande ne peut les refuser.
+
+| Option | Effet |
+|---|---|
+| `--lang <code>` | Langue : règles typographiques et chaînes d'interface (défaut `fr`, ou `$LWP_LANG`) |
+| `--quiet` | Coupe la progression sur stdout. **Ne coupe ni la réponse d'une commande qui répond** (`resolve`, `status`, `theme list`…), **ni les avertissements, ni les erreurs** |
+| `--verbose` | Nomme sur stderr chaque fichier écrit, créé, copié ou supprimé |
+| `--dry-run` | N'écrit, ne crée, ne copie et ne supprime **rien** : journalise ce qui serait fait. Vaut pour toute commande, y compris `clean --force` |
+| `--no-color` | N'émet aucune séquence ANSI |
+| `--timestamp` | Préfixe chaque ligne de journal d'un horodatage |
+| `--version` | Écrit `LightWebPres v<version>` sur stdout et sort à 0 |
+| `--help`, `-h` | Aide. Seule, l'aide générale ; après une commande ou un nœud (`series`, `theme`), l'aide de celle-ci |
+
+`--` termine les options : tout ce qui suit est un argument positionnel,
+même commençant par `-`.
+
+Les quatre premiers niveaux de journal — erreur, avertissement,
+information, détail — vont sur **stderr** ; la progression et la réponse
+d'une commande vont sur **stdout**. C'est ce qui permet à
+`lightwebpres resolve . page.bg --format json | jq` de fonctionner sans
+`--quiet`, et à `--quiet` de ne jamais avaler ce qu'on est venu chercher.
+
+#### 2.4.2 Synopsis
+
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
@@ -220,6 +249,8 @@ lightwebpres template update [répertoire] [--scaffold]
 lightwebpres theme list [--polarity light|dark] [--intensity sober|vivid|mono] [--hue teinte]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
+lightwebpres clean [répertoire] [--output public/] [--force]
+lightwebpres completion --shell bash|zsh
 lightwebpres --help
 ```
 
@@ -3425,12 +3456,20 @@ Deux cas se distinguent volontairement :
 ### 11.9.1 `theme show`
 
 ```bash
-lightwebpres theme show <slug> [--format text|json]
+lightwebpres theme show <slug>… [--format text|json]
+lightwebpres theme show --all [--format text|json]
 lightwebpres theme show [répertoire] [--format text|json]
 ```
 
-Décrit **un** thème sans rien installer : sa palette, ses facettes, et le
-niveau de contraste qu'il atteint réellement, mesuré.
+Décrit un thème, plusieurs, ou tout le catalogue (`--all`), sans rien
+installer : la palette, les facettes, et le niveau de contraste
+réellement atteint, mesuré.
+
+Les trois formes ne se mélangent pas. Un répertoire de série **et** des
+slugs dans le même lancement est une erreur fatale : les deux demandent
+des choses différentes — « décris le thème de cette série » et « décris
+ces thèmes du catalogue » — et en choisir une silencieusement revient à
+répondre à une question que personne n'a posée.
 
 #### Pourquoi la mesure et non une étiquette
 
