@@ -6046,7 +6046,7 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
             self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             html = out.read_text(encoding='utf-8')
         roles = re.findall(r'<div class="swatch-role">([^<]*)</div>', html)
-        self.assertEqual(len(roles), 6 * len(self.lwp.THEMES))
+        self.assertEqual(len(roles), len(self.lwp.PALETTE_ROLES) * len(self.lwp.THEMES))
         for name in self.lwp.PALETTE_ROLES:
             self.assertNotIn(name, roles, f'{name!r} is a variable name, not a role')
         # The swatch shows the settings.conf property name — the one an
@@ -6768,7 +6768,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         removed one, and the GUI is entitled to know which it is from the
         `schema` string."""
         report = self._report('nord')
-        self.assertEqual(report['schema'], 'lightwebpres.theme-info/3')
+        self.assertEqual(report['schema'], 'lightwebpres.theme-info/4')
         self.assertEqual(report['lightwebpres_version'],
                          self.lwp.VERSION)
         self.assertEqual(set(report), self.ROOT_KEYS)
@@ -6776,7 +6776,8 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         self.assertEqual(set(report['facets']),
                          {'polarity', 'hue', 'family'})
         self.assertEqual(set(report['palette']),
-                         {'page', 'ink', 'ink-quiet', 'mark', 'call', 'affirm'})
+                         {'page', 'ink', 'ink-quiet', 'mark', 'call', 'affirm',
+                          'nav'})
         self.assertEqual(set(report['fonts']),
                          {'text', 'display', 'ui', 'mono'})
         self.assertEqual(set(report['accessibility']),
@@ -7088,19 +7089,48 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # pop-lemon's active navigation dot was `mark` -- the pale
             # highlighter -- and measured 2.63:1 against the rail it sits
             # in. It is now `call`.
+            # The rule under a series-nav card moved with the dot: both
+            # took `mark` and both now take `nav`. The two focus rings
+            # moved too and show no drift here, because this theme had
+            # already pinned its dot to `call` and `nav` inherited that
+            # value -- which is the whole argument for the role.
             drift = {b'--nav-dot-bg-active: #7A6A00FF;':
-                     b'--nav-dot-bg-active: #8F0049FF;'}
+                     b'--nav-dot-bg-active: #8F0049FF;',
+                     b'--series-nav-link-rule-fg: #7A6A00FF;':
+                     b'--series-nav-link-rule-fg: #8F0049FF;'}
+
+            # Deliberate ADDITIONS since the tag, declared by property
+            # name. A new registry key inserts a line rather than
+            # replacing one, which the substitution table above cannot
+            # express: the line counts stop matching, the per-line diff
+            # is skipped, and every later line reads as changed. Naming
+            # the property lets the comparison resume on everything else.
+            # A property added without being named here still fails, and
+            # a name left here after its property is gone fails too.
+            #
+            # `color.nav` is the seventh shared colour (§9.5.7): the
+            # navigation furniture stopped borrowing `mark` and `call`,
+            # which carry constraints of their own, and forty-one
+            # per-theme pins went with it.
+            added = {b'--color-nav'}
+
+            def strip_added(page):
+                return b'\n'.join(
+                    line for line in page.split(b'\n')
+                    if not any(line.strip().startswith(name + b':')
+                               for name in added))
 
             def normalise(page):
                 page = without_css_comments(page)
                 for was, now in drift.items():
                     page = page.replace(was, now)
-                return page
+                return strip_added(page)
 
             seen = set()
             for name in outputs[0]:
                 before_lines = without_css_comments(outputs[0][name]).split(b'\n')
-                after_lines = without_css_comments(outputs[1][name]).split(b'\n')
+                after_lines = strip_added(
+                    without_css_comments(outputs[1][name])).split(b'\n')
                 if len(before_lines) == len(after_lines):
                     seen.update((a.strip(), b.strip())
                                 for a, b in zip(before_lines, after_lines)
@@ -7108,6 +7138,11 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 self.assertEqual(normalise(outputs[0][name]),
                                  normalise(outputs[1][name]),
                                  f'{name} is not the page it was')
+            for name in added:
+                self.assertTrue(
+                    any(name + b':' in page for page in outputs[1].values()),
+                    f'{name.decode()} is declared as added and is in none of '
+                    f'the built files: the declaration is stale')
             self.assertEqual(seen, set(drift.items()),
                              'the drift since v0.34.0 is not the drift this '
                              'test declares')
@@ -7128,7 +7163,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
 
 class PaletteRoleNames(unittest.TestCase):
-    """§9.1: the six palette variables are named for what they DO. Until
+    """§9.1: the palette variables are named for what they DO. Until
     v0.12.0 they were named for the values they happened to hold in the
     very first theme, so the names lied on every theme that moved away
     from it. Renamed with no compatibility aliases — a deliberate choice,

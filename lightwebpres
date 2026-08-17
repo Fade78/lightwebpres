@@ -1024,7 +1024,8 @@ by the GNU General Public License without this exception.
 # header underline, the active nav dot and the emphasized column. The
 # component-scoped properties are separate and keep their own names in
 # the engine's registry (--cover-bg-from, --fact-strong-*, --fact-bg...).
-PALETTE_ROLES = ('page', 'ink', 'ink-muted', 'marker', 'accent', 'positive')
+PALETTE_ROLES = ('page', 'ink', 'ink-muted', 'marker', 'accent', 'positive',
+                 'nav')
 
 # The settings.conf property each old role name corresponds to — what the
 # gallery shows under a swatch, because that is the name an author can
@@ -1032,6 +1033,7 @@ PALETTE_ROLES = ('page', 'ink', 'ink-muted', 'marker', 'accent', 'positive')
 PROPERTY_NAME_OF_ROLE = {
     'page': 'color.page', 'ink': 'color.ink', 'ink-muted': 'color.ink-quiet',
     'marker': 'color.mark', 'accent': 'color.call', 'positive': 'color.affirm',
+    'nav': 'color.nav',
 }
 
 # What each one does, for themes-gallery (§11.7).
@@ -1042,6 +1044,7 @@ PALETTE_ROLE_LABELS = {
     'marker': 'Rules &amp; markers',
     'accent': 'Accent &amp; focus',
     'positive': 'The &ldquo;yes&rdquo; verdict',
+    'nav': 'Navigation furniture',
 }
 
 
@@ -1286,6 +1289,7 @@ THEMES = {
         'family': 'ported', 'label': 'Nord', 'source': 'nordtheme.com',
         'marker': '#EBCB8B', 'ink': '#2E3440', 'ink-muted': '#4C566A',
         'page': '#ECEFF4', 'accent': '#BF616A', 'positive': '#A3BE8C',
+        'nav': '#2E3440',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A deliberately desaturated “arctic” palette — the yellow (nord13) stays mustard, never fluorescent.",
         'note_good': False,
@@ -1295,6 +1299,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#F1FA8C', 'ink': '#F8F8F2', 'ink-muted': '#8B9CC7',
         'page': '#282A36', 'accent': '#FF5555', 'positive': '#50FA7B',
+        'nav': '#F1FA8C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
         'note': "`color.page` is Dracula’s own ground again. Rendered on a light page its accents measured 1.29:1 — a syntax palette spreads hue at near-constant lightness by design, so it cannot paint text on paper. The muted tone is the official comment blue lightened two steps: Dracula means its comments to recede, a card summary must not.",
         'note_good': True,
@@ -1303,6 +1308,7 @@ THEMES = {
         'family': 'ported', 'label': 'Solarized Light', 'source': 'ethanschoonover.com',
         'marker': '#B58900', 'ink': '#002B36', 'ink-muted': '#93A1A1',
         'page': '#FDF6E3', 'accent': '#DC322F', 'positive': '#859900',
+        'nav': '#002B36',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': None,
         'note': "Deliberately low-contrast accents (the original CIELAB calibration) — the yellow stays muted gold, never highlighter.",
         'note_good': False,
@@ -1311,6 +1317,7 @@ THEMES = {
         'family': 'ported', 'label': 'Gruvbox Light', 'source': 'github.com/morhetz',
         'marker': '#D79921', 'ink': '#282828', 'ink-muted': '#928374',
         'page': '#FBF1C7', 'accent': '#CC241D', 'positive': '#98971A',
+        'nav': '#CC241D',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Background and text designed together for a light background — no colour borrowed from another variant.",
         'note_good': True,
@@ -1325,6 +1332,7 @@ THEMES = {
         # dot: decorative, ungraded, and quieter than it was.
         'marker': '#EDBA72', 'ink': '#4C4F69', 'ink-muted': '#6C6F85',
         'page': '#EFF1F5', 'accent': '#D20F39', 'positive': '#40A02B',
+        'nav': '#D20F39',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': 'marker',
         'note': "The only light-background-first palette here with a true green — `color.ink` is a slate blue, not a pure black (a less striking cover slide).",
         'note_good': False,
@@ -1334,6 +1342,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#E0AF68', 'ink': '#C0CAF5', 'ink-muted': '#8C94BC',
         'page': '#1A1B26', 'accent': '#F7768E', 'positive': '#9ECE6A',
+        'nav': '#E0AF68',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': 'accent',
         'note': "Night, whole — `color.page` included. It used to be a chimera — the ground from “Day”, the accents from “Night” — which is neither palette and measured 1.41:1 on the affirm role. On its own ground every accent clears AA without a single value being retouched.",
         'note_good': True,
@@ -1343,6 +1352,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#E6DB74', 'ink': '#F8F8F2', 'ink-muted': '#9B9483',
         'page': '#272822', 'accent': '#F92672', 'positive': '#A6E22E',
+        'nav': '#E6DB74',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Twenty years without a light variant is not an oversight, and it is why this now renders on Monokai’s own ground. The pink stays — it *is* Monokai — but at 3.93:1 it paints rules and rings, not text.",
         'note_good': True,
@@ -1352,6 +1362,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#DBBC7F', 'ink': '#D3C6AA', 'ink-muted': '#9DA9A0',
         'page': '#2D353B', 'accent': '#E67E80', 'positive': '#A7C080',
+        'nav': '#DBBC7F',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'positive',
         'note': "Sage green is the palette’s signature and the strongest anchor here for `color.affirm`. This used to mix three values from the dark variant into the light one; soft contrast is Everforest’s declared project, so rendering it light meant either betraying that or shipping something unreadable. On its own dark ground every role clears AA, ink at AAA.",
         'note_good': True,
@@ -1360,6 +1371,7 @@ THEMES = {
         'family': 'ported', 'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com',
         'marker': '#EA9D34', 'ink': '#464261', 'ink-muted': '#797593',
         'page': '#FAF4ED', 'accent': '#B4637A', 'positive': '#6D8F89',
+        'nav': '#464261',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
         'note': "The softest of the set — `color.ink` is a muted plum rather than a true black, and `color.affirm` (“leaf”) leans teal.",
         'note_good': False,
@@ -1376,6 +1388,7 @@ THEMES = {
         'family': 'desk', 'label': 'High Contrast', 'source': 'lightwebpres',
         'marker': '#FFD500', 'ink': '#000000', 'ink-muted': '#4A4A4A',
         'page': '#FFFFFF', 'accent': '#D00000', 'positive': '#006B2C',
+        'nav': '#D00000',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         # Underlined ON TOP OF the ground, which is this theme's doctrine
         # rather than a flourish: never let one channel carry a signal
@@ -1397,6 +1410,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFD500', 'ink': '#FFFFFF', 'ink-muted': '#C8C8C8',
         'page': '#000000', 'accent': '#FFB000', 'positive': '#00D26A',
+        'nav': '#FFB000',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "High Contrast for a reader who cannot take the white page. "
                 "The accent turns amber: a red at this size goes out against "
@@ -1407,6 +1421,7 @@ THEMES = {
         'family': 'desk', 'label': 'Blueprint', 'source': 'lightwebpres',
         'marker': '#F2C14E', 'ink': '#0B2545', 'ink-muted': '#5A7184',
         'page': '#EEF2F7', 'accent': '#D64045', 'positive': '#136F63',
+        'nav': '#0B2545',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Midnight-blue ink on tracing paper — the register of a technical note, a plan, a piece of documentation.",
         'note_good': False,
@@ -1416,6 +1431,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#F2C14E', 'ink': '#DCE6F2', 'ink-muted': '#7B8FA8',
         'page': '#0A1626', 'accent': '#FF8A5B', 'positive': '#5BC0A8',
+        'nav': '#FF8A5B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Blueprint after dark: a backlit plotting table. The accent is orange, because a red would go out on this background.",
         'note_good': False,
@@ -1424,6 +1440,7 @@ THEMES = {
         'family': 'desk', 'label': 'Monochrome', 'source': 'lightwebpres',
         'marker': '#D8D8D8', 'ink': '#111111', 'ink-muted': '#707070',
         'page': '#FAFAFA', 'accent': '#2B2B2B', 'positive': '#000000',
+        'nav': '#2B2B2B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         # The line stays in currentColor: on a theme that rules out hue,
         # detaching it by colour would make no sense. It used to be drawn
@@ -1441,6 +1458,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#C9C9C9', 'ink': '#EDEDED', 'ink-muted': '#8A8A8A',
         'page': '#121212', 'accent': '#FFFFFF', 'positive': '#B8B8B8',
+        'nav': '#FFFFFF',
         # Underlined INSTEAD OF the highlight, the exact counterpart of
         # Monochrome: a grey wash on a black background clogs, a line
         # does not. Between them the two mono themes cover both ways of
@@ -1454,6 +1472,7 @@ THEMES = {
         'family': 'desk', 'label': 'Newsprint', 'source': 'lightwebpres',
         'marker': '#E4DAC2', 'ink': '#1A1A18', 'ink-muted': '#6B6862',
         'page': '#F4F1EA', 'accent': '#8C2F1E', 'positive': '#3E5641',
+        'nav': '#8C2F1E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': "A warm monochrome with a single red ink held in reserve — the grammar of a printed daily, which emphasises with weight and never with a wash. The beige band this carried measured 17.6 against the page, second-least visible in the catalogue, and a press has no felt-tip anyway.",
         'note_good': True,
@@ -1463,6 +1482,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#E8C874', 'ink': '#F3EDDF', 'ink-muted': '#8E8269',
         'page': '#0B0B0D', 'accent': '#D4AF37', 'positive': '#A8B26A',
+        'nav': '#D4AF37',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Black and gold: cream ink on deep black, gilded rules and highlight. The register of an annual report, an invitation, a fine edition.",
         'note_good': False,
@@ -1475,6 +1495,7 @@ THEMES = {
         'family': 'desk', 'label': 'Ledger', 'source': 'lightwebpres',
         'marker': '#FFE9A3', 'ink': '#1A1A1A', 'ink-muted': '#5A5A57',
         'page': '#FAFAF7', 'accent': '#1F3A8A', 'positive': '#166534',
+        'nav': '#1F3A8A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A ruled register: black on near-white, one navy for the "
                 "references, and the green and red a balance sheet already "
@@ -1485,6 +1506,7 @@ THEMES = {
         'family': 'desk', 'label': 'Old Journal', 'source': 'lightwebpres',
         'marker': '#D4BC7E', 'ink': '#2E2820', 'ink-muted': '#585040',
         'page': '#E0D4B4', 'accent': '#5E3A78', 'positive': '#35592F',
+        'nav': '#5E3A78',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': "Newsprint that has browned, set in fixed pitch throughout. "
                 "The desk family already holds three near-white papers, and "
@@ -1506,6 +1528,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#F0D77A', 'ink': '#EDF0EA', 'ink-muted': '#A0AB9F',
         'page': '#1C2320', 'accent': '#8FC3E8', 'positive': '#A8DDA0',
+        'nav': '#8FC3E8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A board worked through rather than a slide presented. The "
                 "palette is the box of chalk: white, yellow, blue, green — no "
@@ -1516,6 +1539,7 @@ THEMES = {
         'family': 'heat', 'label': 'Crimson', 'source': 'lightwebpres',
         'marker': '#FFA98A', 'ink': '#3B0A12', 'ink-muted': '#8A6A6E',
         'page': '#FFF6F0', 'accent': '#B00020', 'positive': '#5C7A3F',
+        'nav': '#B00020',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Deep carmine on rosy cream — the register of a letter, an opera, an intimate epic.",
         'note_good': False,
@@ -1524,6 +1548,7 @@ THEMES = {
         'family': 'heat', 'label': 'Vermilion', 'source': 'lightwebpres',
         'marker': '#FFE9A0', 'ink': '#3A1410', 'ink-muted': '#6E3A33',
         'page': '#FDBDB5', 'accent': '#8C1D0C', 'positive': '#1F5C34',
+        'nav': '#8C1D0C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Lacquer, seen from inside the box. Heat had three members "
                 "and one light one, and Crimson keeps its warmth in reserve "
@@ -1537,6 +1562,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFC24D', 'ink': '#FFEDE2', 'ink-muted': '#A08074',
         'page': '#140A08', 'accent': '#F4622E', 'positive': '#8CBF5A',
+        'nav': '#FFC24D',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Embers on charcoal. The vermilion is chosen because it stays luminous even in protanopic vision, where a deep red goes out.",
         'note_good': True,
@@ -1546,6 +1572,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#B9C46A', 'ink': '#D6D2C8', 'ink-muted': '#6E6A64',
         'page': '#0B0A0C', 'accent': '#C1121F', 'positive': '#7F9440',
+        'nav': '#B9C46A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Deep black, desaturated bone ink, blood, and a sickly green for the positive — the grammar of giallo and the thriller.",
         'note_good': False,
@@ -1554,6 +1581,7 @@ THEMES = {
         'family': 'terrain', 'label': 'Sage', 'source': 'lightwebpres',
         'marker': '#EAD968', 'ink': '#26302A', 'ink-muted': '#7C8B7E',
         'page': '#F3F5EF', 'accent': '#B4652A', 'positive': '#4F7A52',
+        'nav': '#26302A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A calmed grey-green on linen. The terracotta accent avoids the all-green trap and keeps the verdicts distinct.",
         'note_good': False,
@@ -1562,6 +1590,7 @@ THEMES = {
         'family': 'terrain', 'label': 'Glacier', 'source': 'lightwebpres',
         'marker': '#FFE066', 'ink': '#0F2E38', 'ink-muted': '#34565F',
         'page': '#96EDFB', 'accent': '#0B5E8C', 'positive': '#116149',
+        'nav': '#0B5E8C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Névé, and the blue a crevasse turns at depth. This family "
                 "had earth, stone, concrete and trees and no water at all; "
@@ -1575,6 +1604,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#E8C35A', 'ink': '#D8ECE0', 'ink-muted': '#7FA08D',
         'page': '#032612', 'accent': '#E0A32E', 'positive': '#6FBF73',
+        'nav': '#E0A32E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Night in the undergrowth, and the ground is where the green "
                 "has to live: at the lightness this used to sit at, sRGB "
@@ -1588,6 +1618,7 @@ THEMES = {
         'family': 'terrain', 'label': 'Sprout', 'source': 'lightwebpres',
         'marker': '#F2D544', 'ink': '#1E2B1B', 'ink-muted': '#7A8A72',
         'page': '#FBFDF7', 'accent': '#6D28D9', 'positive': '#3F8F29',
+        'nav': '#6D28D9',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "New-shoot green on off-white. The violet accent is a measured choice: a terracotta blurred into the green.",
         'note_good': True,
@@ -1600,6 +1631,7 @@ THEMES = {
         'family': 'terrain', 'label': 'Verdigris', 'source': 'lightwebpres',
         'marker': '#FFD24D', 'ink': '#14332A', 'ink-muted': '#375A4E',
         'page': '#AAE5C6', 'accent': '#8A4B12', 'positive': '#0F5C3C',
+        'nav': '#8A4B12',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Copper left out in the weather. The family had stone and "
                 "earth but no metal, and the one thing metal does that "
@@ -1613,6 +1645,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#D9A441', 'ink': '#F2E8DA', 'ink-muted': '#B29B82',
         'page': '#1E140C', 'accent': '#E38B4F', 'positive': '#9CBF6E',
+        'nav': '#E38B4F',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Turned earth, seen close. Ochre and wheat on wet soil, and "
                 "the one brown ground in the catalogue.",
@@ -1622,6 +1655,7 @@ THEMES = {
         'family': 'terrain', 'label': 'Clay', 'source': 'lightwebpres',
         'marker': '#F3C48F', 'ink': '#3B2A20', 'ink-muted': '#6E574A',
         'page': '#F2E7DE', 'accent': '#A34A21', 'positive': '#3D6B3A',
+        'nav': '#A34A21',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Earth once it has been fired. Unglazed terracotta on slip — "
                 "warm where Sage is cool, and the same quiet register.",
@@ -1633,6 +1667,7 @@ THEMES = {
         # Site orange, one step down from #B0431A: that measured 4.49:1 on
         # this ground -- a value that rounds to AA without reaching it.
         'page': '#E3E4E1', 'accent': '#A63D14', 'positive': '#1F5C3A',
+        'nav': '#A63D14',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Cast, cured, left as it came out of the formwork. The accent "
                 "is site orange — the one colour anyone puts on a slab.",
@@ -1643,6 +1678,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#8FB3D9', 'ink': '#E6ECF2', 'ink-muted': '#9AA8B6',
         'page': '#151C24', 'accent': '#E0A24C', 'positive': '#87C9A0',
+        'nav': '#E0A24C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Split stone: grey with the blue it actually has, not the "
                 "neutral it is usually drawn as. Concrete's dark counterpart.",
@@ -1653,6 +1689,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#7FD65A', 'ink': '#EDF7DC', 'ink-muted': '#B3CE92',
         'page': '#163509', 'accent': '#F2B441', 'positive': '#B8F0A8',
+        'nav': '#F2B441',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Under the trees, looking up. Where Evergreen is night in the "
                 "undergrowth this is daylight coming through leaves, so the "
@@ -1665,6 +1702,7 @@ THEMES = {
         'family': 'light', 'label': 'Vaporwave', 'source': 'lightwebpres',
         'marker': '#E0FF4F', 'ink': '#16003B', 'ink-muted': '#6B5CA5',
         'page': '#F3F0FF', 'accent': '#FF2FB9', 'positive': '#00C2A8',
+        'nav': '#16003B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Deep violet, magenta, acid cyan — the cyber register in a light-background version, readable in a lit room.",
         'note_good': False,
@@ -1674,6 +1712,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
         'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
+        'nav': '#F4FF52',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Green phosphor on black — the register for code and terminal alike.",
         'note_good': False,
@@ -1683,6 +1722,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
         'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
+        'nav': '#F4FF52',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Green phosphor on black — Code in fixed pitch, the terminal register as is.",
         'note_good': False,
@@ -1692,6 +1732,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFE66D', 'ink': '#F2E9FF', 'ink-muted': '#9A86C4',
         'page': '#1A1030', 'accent': '#FF2E97', 'positive': '#2DE2C5',
+        'nav': '#FFE66D',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Violet night, magenta and cyan — retro-futurism, the one that gains most from a dark background.",
         'note_good': False,
@@ -1701,6 +1742,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFC94D', 'ink': '#FFF1F0', 'ink-muted': '#F7BDC2',
         'page': '#9E1128', 'accent': '#FFD400', 'positive': '#86EFAC',
+        'nav': '#FFD400',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Full red across the whole page, yellow accent. First of the Pop family, where the colour is the background and not a detail.",
         'note_good': False,
@@ -1709,6 +1751,7 @@ THEMES = {
         'family': 'pop', 'label': 'Pop Tangerine', 'source': 'lightwebpres',
         'marker': '#7A3E00', 'ink': '#241000', 'ink-muted': '#5E3000',
         'page': '#FF9500', 'accent': '#4C1D95', 'positive': '#0F3D21',
+        'nav': '#4C1D95',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': "Bright orange with dark ink, deep violet accent. The fact highlight is switched off: a yellow on a flat orange would not show.",
         'note_good': False,
@@ -1717,6 +1760,7 @@ THEMES = {
         'family': 'pop', 'label': 'Pop Lemon', 'source': 'lightwebpres',
         'marker': '#7A6A00', 'ink': '#1F1A00', 'ink-muted': '#6B5C0A',
         'page': '#FFD400', 'accent': '#8F0049', 'positive': '#0D5C2A',
+        'nav': '#8F0049',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': "Full yellow, near-black ink — the brightest of the set, at 12:1 of contrast.",
         'note_good': True,
@@ -1726,6 +1770,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFC94D', 'ink': '#F0FFF4', 'ink-muted': '#B5E4C4',
         'page': '#075C26', 'accent': '#FFD400', 'positive': '#C7F9CC',
+        'nav': '#FFD400',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A true, deep green with greened-white ink. The verdict green turns mint to stay detached from the background.",
         'note_good': False,
@@ -1735,6 +1780,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFC94D', 'ink': '#EFFCFF', 'ink-muted': '#A6D9E4',
         'page': '#075B6E', 'accent': '#FFC2D8', 'positive': '#9BF6C8',
+        'nav': '#EFFCFF',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Lagoon blue-green with a pink accent — the gentlest of the Pop family without ceasing to be a full wash.",
         'note_good': False,
@@ -1744,6 +1790,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFE45C', 'ink': '#F0F4FF', 'ink-muted': '#B3C2F0',
         'page': '#1B3FBF', 'accent': '#FFD400', 'positive': '#8CF2AE',
+        'nav': '#FFD400',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Saturated cobalt blue, yellow accent — the register of a poster, of signage.",
         'note_good': False,
@@ -1753,6 +1800,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFE99A', 'ink': '#F6F1FF', 'ink-muted': '#CBB6EE',
         'page': '#5B1DB8', 'accent': '#FDE047', 'positive': '#9BF6C8',
+        'nav': '#FDE047',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Full, vivid violet with a lemon-yellow accent — the highest-contrast of the Pop family.",
         'note_good': True,
@@ -1762,6 +1810,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFE99A', 'ink': '#FFF0FA', 'ink-muted': '#F0B8D8',
         'page': '#94105F', 'accent': '#FDE047', 'positive': '#9BF6C8',
+        'nav': '#FDE047',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Deep fuchsia, yellow accent, mint verdicts — unapologetic, editorial.",
         'note_good': False,
@@ -1780,6 +1829,7 @@ THEMES = {
         'family': 'light', 'label': 'Daybreak', 'source': 'lightwebpres',
         'marker': '#FFD166', 'ink': '#14304A', 'ink-muted': '#36597A',
         'page': '#A8C7EC', 'accent': '#A63D0F', 'positive': '#0F5132',
+        'nav': '#7A2A08',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Full daylight sky. A glow would be invisible on a light "
                 "ground, so the title carries a soft blue shadow instead — "
@@ -1791,6 +1841,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#4CC9F0', 'ink': '#D8ECFF', 'ink-muted': '#94BEE0',
         'page': '#081524', 'accent': '#FFC46B', 'positive': '#7CE0B0',
+        'nav': '#FFC46B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "The hour the sky goes deep and the first lights come on. "
                 "The accent is warm gold and not a third blue: without it "
@@ -1802,6 +1853,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#58D5FF', 'ink': '#EAEEF4', 'ink-muted': '#A2A9B3',
         'page': '#030711', 'accent': '#FFC46B', 'positive': '#7CE0B0',
+        'nav': '#FFC46B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Dusk gone all the way down. The ground is nearly black and "
                 "the glow does the work — the darkest of the catalogue, for "
@@ -1818,6 +1870,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFA94D', 'ink': '#FFEEDC', 'ink-muted': '#D9B48C',
         'page': '#1C1004', 'accent': '#FF8A6B', 'positive': '#9CC5A1',
+        'nav': '#FF8A6B',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "One flame, and the room ends where it stops. The warmest "
                 "ground here, for reading rather than presenting.",
@@ -1828,6 +1881,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FFD43B', 'ink': '#FFF6DC', 'ink-muted': '#D6C28E',
         'page': '#1A1405', 'accent': '#FF9F45', 'positive': '#A6D49F',
+        'nav': '#FF9F45',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Light you carry. Brighter and more portable than "
                 "Candlelight, and the only yellow ground that is not a Pop.",
@@ -1838,6 +1892,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#EE4214', 'ink': '#F5E6DA', 'ink-muted': '#B8A296',
         'page': '#120504', 'accent': '#FFC42E', 'positive': '#D2D24A',
+        'nav': '#FFC42E',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'accent',
         'note': "Rock lit from inside. Not a fire someone lit — the strongest "
                 "halo of the family, and the only one where the ground itself "
@@ -1856,6 +1911,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#45E0A8', 'ink': '#DCFFE9', 'ink-muted': '#93C7AC',
         'page': '#061A12', 'accent': '#9D8DF1', 'positive': '#C3F0D8',
+        'nav': '#45E0A8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "The northern lights, deliberately not Terminal's phosphor: "
                 "softer, bluer, and with the violet an aurora actually "
@@ -1867,6 +1923,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#A78BFA', 'ink': '#EEE2FF', 'ink-muted': '#B9A3D6',
         'page': '#12071F', 'accent': '#FFB3D9', 'positive': '#8FE3C0',
+        'nav': '#FFB3D9',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Deep sky. Where Synthwave is a violet someone chose, this "
                 "is a violet that emits.",
@@ -1877,6 +1934,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#22D3EE', 'ink': '#D6F4FF', 'ink-muted': '#8FBACB',
         'page': '#04161C', 'accent': '#FFB86C', 'positive': '#7CE0B0',
+        'nav': '#FFB86C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Light at depth, where the only source is what lives there. "
                 "The one cyan ground outside the Pop family.",
@@ -1887,6 +1945,7 @@ THEMES = {
         'dark_background': True,
         'marker': '#FF5FA2', 'ink': '#FFD9EC', 'ink-muted': '#D79FC0',
         'page': '#1A0B17', 'accent': '#FFB86C', 'positive': '#7CE0B0',
+        'nav': '#FFB86C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A magenta glow on deep plum. The ground had to move off "
                 "violet to stop it colliding with Nebula's.",
@@ -1896,6 +1955,7 @@ THEMES = {
         'family': 'light', 'label': 'Cloudy', 'source': 'lightwebpres',
         'marker': '#FFD966', 'ink': '#1F2933', 'ink-muted': '#52606D',
         'page': '#EDF1F5', 'accent': '#B54708', 'positive': '#0F5132',
+        'nav': '#B54708',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Diffuse daylight, no source you can point at. Everything "
                 "casts a soft shadow downward and nothing glows — the light "
@@ -2366,6 +2426,19 @@ THEME_SHARED_PROPS = [
     ThemeProp('color.mark',      PROP_COLOR, '#FFFC00FF'),
     ThemeProp('color.call',      PROP_COLOR, '#FF4757FF'),
     ThemeProp('color.affirm',    PROP_COLOR, '#3AA55CFF'),
+    # The apparatus, not the content. Every other shared colour paints
+    # something an author wrote; this one paints the furniture that moves
+    # them around -- the progress dots, the focus rings, the rule under a
+    # series-nav link. It exists because those had been borrowing `mark`
+    # and `call`, which carry constraints of their own: `mark` has to stay
+    # pale enough to sit behind text as a highlighter, so on a light
+    # ground it could not also be the dot saying which slide you are on,
+    # and `call` paints the verdicts and the note apparatus, so moving it
+    # to satisfy a keyboard ring moved nine measured pairs with it. The
+    # catalogue had been paying for that one theme at a time: twenty-six
+    # entries pinned the active dot by hand, one of them inventing a
+    # literal because neither shared colour cleared 3:1 on its rail.
+    ThemeProp('color.nav',       PROP_COLOR, '#3F4A5AFF'),
     # A serif for reading, a sans for the apparatus (B9). The old single
     # system stack made every page look like any generic web page and gave
     # body, titles, tags and tables the same voice. The product sells a long
@@ -2882,9 +2955,9 @@ THEME_COMPONENTS = [
     ]),
     ThemeComponent('series-nav.link', '.series-link', [
         ThemeProp('series-nav.link.bg',         PROP_COLOR,  '#FFFFFFB8', css='background'),
-        ThemeProp('series-nav.link.rule-fg',    PROP_COLOR,  'mark',      css='border-color'),
+        ThemeProp('series-nav.link.rule-fg',    PROP_COLOR,  'nav',      css='border-color'),
         ThemeProp('series-nav.link.rule-width', PROP_LENGTH, '2px',       css='border-width'),
-        ThemeProp('series-nav.link.ring',       PROP_COLOR,  'call',      css='outline-color',
+        ThemeProp('series-nav.link.ring',       PROP_COLOR,  'nav',      css='outline-color',
                   selector='.series-link:focus-visible'),
         ThemeProp('series-nav.link.ring-width', PROP_LENGTH, '3px',       css='outline-width',
                   selector='.series-link:focus-visible'),
@@ -2922,7 +2995,7 @@ THEME_COMPONENTS = [
         ThemeProp('nav-btn.rule-fg',    PROP_COLOR,  '#00000029', css='border-color'),
         ThemeProp('nav-btn.rule-width', PROP_LENGTH, '1px',       css='border-width'),
         ThemeProp('nav-btn.size',       PROP_LENGTH, 'max(20px, 2.5vmin)',      css='font-size'),
-        ThemeProp('nav-btn.ring',       PROP_COLOR,  'call',      css='outline-color',
+        ThemeProp('nav-btn.ring',       PROP_COLOR,  'nav',      css='outline-color',
                   selector='.nav-btn:focus-visible'),
         ThemeProp('nav-btn.ring-width', PROP_LENGTH, '3px',       css='outline-width',
                   selector='.nav-btn:focus-visible'),
@@ -2951,7 +3024,7 @@ THEME_COMPONENTS = [
         ThemeProp('nav-dot.bg',        PROP_COLOR, '#00000029', css='background'),
         ThemeProp('nav-dot.bg-hover',  PROP_COLOR, 'ink-quiet', css='background',
                   selector='.nav-dots a:hover'),
-        ThemeProp('nav-dot.bg-active', PROP_COLOR, 'mark',      css='background',
+        ThemeProp('nav-dot.bg-active', PROP_COLOR, 'nav',      css='background',
                   selector='.nav-dots a.active'),
     ]),
 
@@ -3107,7 +3180,8 @@ DARK_FURNITURE_PROPS = {
 }
 
 _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
-                  'ink': 'ink', 'ink-muted': 'ink-quiet', 'page': 'page'}
+                  'ink': 'ink', 'ink-muted': 'ink-quiet', 'page': 'page',
+                  'nav': 'nav'}
 
 # Per-slug property additions beyond what the old entry shape can say.
 # code carries the phosphor halo on display text. terminal adds what it is
@@ -3124,40 +3198,42 @@ _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
 # control it outlines -- the ring is drawn outside the border edge, so it
 # lands on both.
 THEME_PROPERTY_OVERRIDES = {
-    # --- the dot that says where you are ----------------------------------
-    # `nav-dot.bg-active` and `table.col-snap.rule-fg` both default to
-    # `mark`, and on most palettes `mark` is a highlighter -- a wash that has
-    # to stay pale enough for text to survive on top of it. As a solid dot
-    # against the page it therefore disappears: measured across the
-    # catalogue, eighteen themes were below 3:1 and four of them below
-    # 1.10:1 -- vaporwave's dot at 1.007:1 is its own ground, and
-    # high-contrast, the theme whose entire claim is contrast, sat at
-    # 1.022:1. The reader could not see which slide they were on.
+    # --- the rule down the side of a snapshot column ----------------------
+    # `table.col-snap.rule-fg` defaults to `mark`, and on most palettes
+    # `mark` is a highlighter -- a wash that has to stay pale enough for
+    # text to survive on top of it. Drawn instead as a solid 3px rule
+    # inside an already-tinted column it can vanish: measured against the
+    # ground it really lands on (the column fill composited over the
+    # page), it falls under 3:1 on a good third of the catalogue, some of
+    # them near 1.02:1.
     #
-    # The fix is per theme rather than a change of default, because which
-    # tone works is a palette question: `call` where the accent has the
-    # depth, `ink` where it does not. Each pairing below was measured
-    # against both grounds the dot lands on -- the page, and the darkened
-    # rail the row of dots sits in -- and clears 3:1 on the worse of them.
-    'nord': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
-    'solarized': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
-    'gruvbox': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'catppuccin': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'rose-pine': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
-    'high-contrast': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'blueprint': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
+    # `nav-dot.bg-active` used to sit in this same block for the same
+    # reason. It left when `color.nav` was introduced (§9.5.7): the dot is
+    # navigation hardware and now has a role of its own, so its pins are
+    # gone. This rule is not navigation -- it is a mark on the content, in
+    # the reader's argument, not in the furniture around it -- so it stays
+    # on `mark` and keeps its exceptions here.
+    #
+    # The exceptions are per theme rather than a change of default,
+    # because which tone works is a palette question: `call` where the
+    # accent has the depth, `ink` where it does not. Every entry below is
+    # a theme measured short on `mark`; no theme is short and missing from
+    # this list, and only `lava` is here by choice rather than by need.
+    'nord': {'table.col-snap.rule-fg': 'call'},
+    'solarized': {'table.col-snap.rule-fg': 'call'},
+    'gruvbox': {'table.col-snap.rule-fg': 'call'},
+    'catppuccin': {'table.col-snap.rule-fg': 'call'},
+    'rose-pine': {'table.col-snap.rule-fg': 'call'},
+    'high-contrast': {'table.col-snap.rule-fg': 'call'},
+    'blueprint': {'table.col-snap.rule-fg': 'call'},
     # Still no hue: monochrome's `call` is a grey, like everything else it
     # owns. What changes is lightness, which is the only axis it has.
-    'monochrome': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'newsprint': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'crimson': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'sage': {'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'call'},
-    'sprout': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'monochrome': {'table.col-snap.rule-fg': 'call'},
+    'newsprint': {'table.col-snap.rule-fg': 'call'},
+    'crimson': {'table.col-snap.rule-fg': 'call'},
+    'sage': {'table.col-snap.rule-fg': 'call'},
+    'sprout': {'table.col-snap.rule-fg': 'call'},
     # Four Pop themes whose dot was short but whose snapshot marker was not.
-    'pop-tangerine': {'nav-dot.bg-active': 'call'},
-    'pop-lemon': {'nav-dot.bg-active': 'call'},
-    'pop-lime': {'nav-dot.bg-active': 'call'},
-    'pop-lagoon': {'nav-dot.bg-active': 'ink'},
 
     # Two editor palettes that say so: the apparatus in fixed pitch, the body
     # still in the reading serif. The gesture reads "this came from a
@@ -3165,7 +3241,7 @@ THEME_PROPERTY_OVERRIDES = {
     # The ring: #FF5555 measured 2.99:1 on `nav-btn.bg`, the raised veil the
     # button carries. One step lighter and it clears.
     'dracula': {'font.ui': 'mono',
-                'nav-btn.ring': '#FF5656', 'series-nav.link.ring': '#FF5656'},
+                },
     'tokyo-night': {'font.ui': 'mono'},
     # Monokai is the archetype of the 2010s editor -- all of it in fixed
     # pitch. Two monospace themes in the catalogue, each for its own reason.
@@ -3179,21 +3255,18 @@ THEME_PROPERTY_OVERRIDES = {
         # measures 2.9970:1 -- it ROUNDS to 3.00 without reaching it, which
         # is the kind of pass this file is not allowed to take. #FB4A89, one
         # byte further, measures 3.01:1.
-        'nav-btn.ring': '#FB4A89', 'series-nav.link.ring': '#FB4A89',
-    },
+        },
     # The undergrowth: generous leading, no named face. Everforest is a
     # palette, not a voice.
     'everforest': {'page.leading': '1.7', 'article.leading': '1.75'},
     # #C1121F measured 2.30:1 on `nav-btn.bg` and 2.87:1 on
     # `series-nav.link.bg` -- the worst focus ring in the catalogue.
-    'dread': {'nav-btn.ring': '#E41525', 'series-nav.link.ring': '#E41525'},
     # The one light theme in the four: #FF2FB9 measured 2.94:1 against
     # `color.page` itself, so BOTH its rings were short, not just the
     # series-nav one.
     # The catalogue's worst two: dot and snapshot marker both measured
     # 1.00:1 -- #E0FF4F on a page it is a shade away from.
-    'vaporwave': {'nav-btn.ring': '#FF28B7', 'series-nav.link.ring': '#FF28B7',
-                  'nav-dot.bg-active': 'ink', 'table.col-snap.rule-fg': 'ink'},
+    'vaporwave': {'table.col-snap.rule-fg': 'ink'},
     'code': {
         # A glow is a halo around a glyph, so it is sized by the glyph.
         # Left in bare pixels it was 10px around a 51px title at 1080p
@@ -3217,13 +3290,13 @@ THEME_PROPERTY_OVERRIDES = {
     },
 
     # Third light theme with the same pale-highlighter-as-dot problem.
-    'ledger': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'ledger': {'table.col-snap.rule-fg': 'call'},
     # The same override for the fifth to eighth time: a mark chosen to
     # sit behind text is too pale to be the active dot on a light
     # ground. Measured at 1.02 on Glacier and 1.01 on Verdigris.
-    'glacier': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'verdigris': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'vermilion': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'glacier': {'table.col-snap.rule-fg': 'call'},
+    'verdigris': {'table.col-snap.rule-fg': 'call'},
+    'vermilion': {'table.col-snap.rule-fg': 'call'},
     # Fixed pitch is the theme, not a detail of it, so it is set on the
     # three roles a page actually renders with rather than left to the
     # reader to pin. And the pale mark cannot double as the active
@@ -3231,7 +3304,7 @@ THEME_PROPERTY_OVERRIDES = {
     # Daybreak, Cloudy, Newsprint and Ledger each had.
     'old-journal': {
         'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
-        'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call',
+        'table.col-snap.rule-fg': 'call',
     },
 
     # --- family `terrain` ------------------------------------------------
@@ -3240,9 +3313,8 @@ THEME_PROPERTY_OVERRIDES = {
     # navigation dot and the snapshot-column marker both default to `mark`,
     # and `mark` on a light theme is a pale highlighter that has to stay
     # pale, so as a solid dot it measured 1.19:1 and 1.23:1.
-    'clay': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
-    'concrete': {'nav-dot.bg-active': 'call',
-                 'table.col-snap.rule-fg': 'call'},
+    'clay': {'table.col-snap.rule-fg': 'call'},
+    'concrete': {'table.col-snap.rule-fg': 'call'},
 
     # --- family `light`: the halos -------------------------------------
     # Every length below is in `em`, so the halo is drawn against the glyph
@@ -3274,7 +3346,7 @@ THEME_PROPERTY_OVERRIDES = {
         # an already-mid ground, and #A63D0F measured 2.57:1 there. One step
         # deeper in the same burnt orange clears it: 3.92:1 on the rail,
         # 5.57:1 on the page.
-        'nav-dot.bg-active': '#7A2A08', 'table.col-snap.rule-fg': '#7A2A08',
+        'table.col-snap.rule-fg': '#7A2A08',
         # The only gradient on a LIGHT theme, and it works differently:
         # a light theme's cover is an inverted card, so the stops are
         # opaque tones and not veils of the page. Dawn, read honestly --
@@ -3329,7 +3401,7 @@ THEME_PROPERTY_OVERRIDES = {
         # also the right reading -- the slide you are on is the bright
         # point. `table.col-snap.rule-fg` defaults to the same tone and
         # was equally short.
-        'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call',
+        'table.col-snap.rule-fg': 'call',
         # The only real cover gradient in the catalogue. `cover.bg.to`
         # has shipped since the registry was written and no theme had
         # ever moved it off `cover.bg.from`, so every cover in every
@@ -3381,7 +3453,7 @@ THEME_PROPERTY_OVERRIDES = {
     'cloudy': {
         # Same as Daybreak: a pale highlighter cannot double as the active
         # navigation dot on a light ground (1.20:1).
-        'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call',
+        'table.col-snap.rule-fg': 'call',
         'page.shadow.fg': '#1F293329',
         'page.shadow.blur': '0.13em', 'page.shadow.dy': '0.05em',
         'title1.shadow.fg': '#1F293366',
@@ -3486,6 +3558,7 @@ def theme_property_layer(theme_key):
         'color.page': t['page'], 'color.ink': t['ink'],
         'color.ink-quiet': t['ink-muted'], 'color.mark': t['marker'],
         'color.call': t['accent'], 'color.affirm': t['positive'],
+        'color.nav': t['nav'],
     }
     if dark:
         layer.update(DARK_FURNITURE_PROPS)
@@ -4181,7 +4254,7 @@ CONTRAST_SITES = [
 # the failure mode this whole section exists to prevent. Adding a key here
 # is a decision; forgetting one is not possible.
 CONTRAST_UNMEASURED = {
-    # The six shared values. A rule never reads one directly (§9.1): what
+    # The seven shared values. A rule never reads one directly (§9.1): what
     # paints is the component property that takes it as a default, and
     # every one of those is measured on the ground it actually lands on.
     # Measuring `color.call` once, against the page, would answer for a
@@ -4193,6 +4266,7 @@ CONTRAST_UNMEASURED = {
     'color.mark': 'a shared value: only the properties that take it paint',
     'color.call': 'a shared value: only the properties that take it paint',
     'color.affirm': 'a shared value: only the properties that take it paint',
+    'color.nav': 'a shared value: only the properties that take it paint',
 
     # Grounds. They are the second operand of every pair above, never the
     # first — a background has no contrast requirement of its own.
@@ -12035,7 +12109,7 @@ def cmd_themes(args):
 # contract change: a consumer that switches on the facet set -- the GUI's
 # theme picker does -- is entitled to learn from this string that the set
 # grew, rather than discovering it by rendering an empty column.
-THEME_INFO_SCHEMA = 'lightwebpres.theme-info/3'
+THEME_INFO_SCHEMA = 'lightwebpres.theme-info/4'
 
 # The three WCAG categories, in the order the output shows them, with the
 # heading each gets in the text format.
@@ -13757,6 +13831,8 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
     color.ink     body text          color.ink-quiet   secondary text
     color.mark    what marks         color.call        what calls attention
     color.affirm  what affirms       (the "yes" verdict — posed as text)
+    color.nav     the navigation hardware — progress dot, focus rings,
+                  series-nav rule; furniture, never anything you write
     font.text / font.display / font.ui / font.mono
                   four stacks; each must end on a CSS generic family
   Component properties name what they paint — a few of the {property_count}:

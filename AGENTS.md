@@ -47,7 +47,7 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `docs/guide/` — build output du guide (`tools/build_guide.py`).
 
 ### Documents d'étape (consultables, hors arborescence active)
-- `to-be-deleted/` — miroir de la racine. Contient les transitoires et
+- `delete-before-1.0/` — miroir de la racine. Contient les transitoires et
   relevés absorbés : `JOURNAL-1.0.md`, `ETUDE-VIEWPORT.md`,
   `REVISION-THEMES.md`, `ANTERIORITE-THEMES.md`, `newargs/` (refonte CLI,
   terminée et absorbée), `themes-revision/` (blocs B9). git en conserve

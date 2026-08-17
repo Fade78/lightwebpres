@@ -58,7 +58,7 @@ contrat, et se répartissent en deux familles :
   ont tuées, et une enquête datée. Ils n'obligent rien ; en cas de
   divergence, ce document fait foi.
 
-  Ces documents transitoires et relevés sont rangés dans `to-be-deleted/`
+  Ces documents transitoires et relevés sont rangés dans `delete-before-1.0/`
   (miroir de la racine) : ils restent accessibles pour consultation, mais
   ne font plus partie de l'arborescence active. git en conserve
   l'historique ; la suppression définitive se fera plus tard.
@@ -2160,8 +2160,8 @@ cette visibilité est ce qui rend les littéraux dans le texte acceptables.
 #### 9.5.1 Le catalogue, et sa conversion en couche de propriétés
 
 Une table `THEMES`, embarquée dans l'exécutable, associe un nom court
-(« slug ») à une entrée : six couleurs de rôle (`page`, `ink`,
-`ink-muted`, `marker`, `accent`, `positive`), les propriétés de rendu du
+(« slug ») à une entrée : sept couleurs de rôle (`page`, `ink`,
+`ink-muted`, `marker`, `accent`, `positive`, `nav`), les propriétés de rendu du
 gras en encadré (`fact_weight`/`fact_style`/`fact_highlight`/
 `fact_decoration`/`fact_decoration_color`), un drapeau de polarité
 (`dark_background`), une famille déclarée (`family`, §9.5.2), et des
@@ -2189,9 +2189,10 @@ un moyen de choisir.
 (`theme_property_layer()`), et ce que `dark_background` faisait basculer
 en douce derrière le dos du thème, la couche le **dit** :
 
-- les six rôles deviennent les six valeurs partagées (`page` →
+- les rôles deviennent les valeurs partagées (`page` →
   `color.page`, `ink-muted` → `color.ink-quiet`, `marker` →
-  `color.mark`, `accent` → `color.call`, `positive` → `color.affirm`) ;
+  `color.mark`, `accent` → `color.call`, `positive` → `color.affirm`,
+  `nav` → `color.nav`) ;
 - sur un thème **sombre**, le **mobilier** s'inverse par une table
   partagée unique (`DARK_FURNITURE_PROPS`) : les voiles noirs des filets
   deviennent des voiles blancs, les surfaces claires des voiles blancs
@@ -2513,6 +2514,72 @@ pouvoir en nommer un :
 Un thème qui renonce garde la graisse, et peut prendre le soulignement
 (`fact_decoration`) — une forme, pas une teinte, donc disponible même
 quand la teinte est ce dont on s'interdit de se servir.
+
+#### 9.5.6 Ce qui peut être un test, et ce qui ne peut être qu'un relevé
+
+Il n'existe pas de système de règles dures pour créer un thème, et il ne
+doit pas en apparaître par accumulation. `theme show` **mesure** et
+**rapporte** ; la galerie affiche le niveau atteint ; §11.9.1 laisse un
+thème rater AA délibérément, et l'auteur qui le choisit voit ce qu'il
+prend. Aucun seuil ne refuse une palette parce qu'elle serait trop
+audacieuse, trop pâle ou trop peu conforme.
+
+Une seule frontière autorise un test dur, et elle ne porte pas sur
+l'apparence :
+
+> **Un test peut refuser ce qui empêche l'outil de fonctionner. Il ne
+> peut jamais refuser ce à quoi un thème ressemble.**
+
+Une pastille de progression invisible n'est pas une palette audacieuse,
+c'est une commande en panne : le lecteur ne peut plus savoir où il en
+est. C'est le seul motif qui a produit un plancher dur dans ce dépôt, et
+il doit rester le seul.
+
+Tout le reste est un relevé, et un relevé a sa propre exigence : il ne
+ment pas par omission. Le motif employé ici n'est pas un seuil de
+qualité mais un seuil de **non-dérive** — l'ensemble complet des échecs
+mesurés est comparé à un ensemble déclaré, et l'égalité est exigée. Un
+échec est permis ; un échec qui apparaît sans que personne le remarque
+ne l'est pas. Une entrée en trop est une régression, une entrée
+manquante veut dire qu'une palette a été réparée sans qu'on retire son
+exemption.
+
+Cette frontière est écrite parce qu'elle a failli être franchie deux
+fois : une garde de conformité par thème a été proposée pour `color.nav`
+et retirée, et le refus du surligneur s'appliquait thème par thème sans
+que sa règle existe nulle part (§9.5.5).
+
+#### 9.5.7 `color.nav` : la quincaillerie n'est pas du contenu
+
+Six des sept rôles peignent quelque chose qu'un auteur a écrit. Le
+septième peint le mobilier qui le déplace : la pastille active de la
+rangée de progression, les deux anneaux de focus, le filet sous une
+carte de navigation inter-articles.
+
+Il existe parce que ces surfaces empruntaient des couleurs de contenu
+qui portent leurs propres contraintes. `mark` doit rester assez pâle
+pour qu'un texte survive posé dessus — c'est un surligneur — donc sur un
+fond clair il ne peut pas être en plus la pastille qui dit où l'on est.
+`call` peint les verdicts, les marqueurs de note et l'appareil de
+l'encadré, donc le déplacer pour satisfaire un anneau clavier déplace
+neuf paires mesurées avec lui.
+
+Le catalogue payait cet emprunt une entrée à la fois : vingt-sept
+thèmes épinglaient la pastille à la main, dont un qui avait dû inventer
+un littéral parce qu'aucune des deux couleurs partagées ne dégageait
+3:1 sur son rail, et un autre qui l'avait mise sur son encre. C'étaient
+des couleurs de navigation déclarées, écrites sous un nom qui ne le
+disait pas. Le rôle les rassemble : quarante-et-une épingles sont
+tombées le jour où il a existé.
+
+Sa valeur est **déclarée**, jamais dérivée. La mesure l'a établi avant
+qu'il soit écrit : sur le rail des pastilles, `call` dégage 3:1 sur une
+large majorité du catalogue, `mark` sur un peu plus de la moitié, et
+**une poignée de thèmes n'ont ni l'un ni l'autre**. C'est ce dernier
+ensemble qui tranche : tant qu'il n'est pas vide, aucune règle du type
+« prends celui des deux qui passe » ne peut exister, et aucun défaut
+fixe non plus. Le vérifier se fait en mesurant le catalogue courant,
+pas en relisant ce paragraphe.
 
 ### 9.6 La couche article, et les balises d'instance
 
@@ -3337,7 +3404,7 @@ lightwebpres theme gallery [slug… | --all] [--output chemin]
 Génère une page HTML autonome (aucune dépendance) documentant chaque
 entrée de `THEMES` (§9.5). **Un thème par ligne, quatre panneaux en
 colonnes** — la couverture, une fiche portant une note, la section de
-notes de page, et l'article de fond — plus ses six couleurs de rôle
+notes de page, et l'article de fond — plus ses couleurs de rôle
 (chaque pastille donne le rôle, puis le nom de propriété qu'un auteur
 peut réellement taper — `color.mark` — puis la valeur), et sa remarque
 éditoriale. Ne modifie aucun `series.json` ni `templates/` : cette

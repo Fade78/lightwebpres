@@ -256,7 +256,33 @@ per-figure form — the exact per-series / per-figure pair this entry was
 weighing. Alignment as a whole was deferred by owner decision; this entry
 survives only as B7's first concrete case. See B7.
 
-## B5 — Three palette roles fail AA against their own page — OPEN
+## B5 — Three palette roles fail AA against their own page — DECIDED, and the decision is that this is not a defect
+
+**The premise is what changed, not the numbers (2026-08-17).** This entry
+was written as a debt: roles below 4.5:1 against their own page, to be
+paid off theme by theme until the catalogue was uniformly AA. The owner's
+position is the opposite one, and it settles the entry: **a theme is not
+required to reach AA.** What the project owes a reader is not a catalogue
+where every entry clears the same bar — it is an honest statement of which
+bar each entry clears. That is what `theme info` and the gallery report,
+per theme, per WCAG category, measured rather than asserted.
+
+So the roles below AA stay below AA where a palette's own identity puts
+them there, and the catalogue says so. What would be a defect is a theme
+whose level is *misreported*, or a surface nobody measured at all — and
+those are guarded: every colour property is either in `CONTRAST_SITES` or
+carries a written exemption in `CONTRAST_UNMEASURED`, and a property in
+neither fails the suite.
+
+Two things survive this decision as real work, and neither is this entry:
+the per-theme floor on navigation furniture, which is about the tool
+functioning rather than about taste (closed by B6), and D6 — nothing yet
+distinguishes a borrowed palette from a measured one in the catalogue
+listing.
+
+The reading below is kept: it is the measurement that made the decision
+possible, and the account of why a borrowed dark scheme on a light ground
+cannot be argued into compliance.
 
 Found by rendering a series that exercises the whole format under all 33
 themes and measuring, 2026-08-04. This is the residue of that sweep: what
@@ -342,7 +368,32 @@ They also note the change costs them nothing, since their cells are
 regenerated at every build. That is one user, not a mandate — but it
 removes the objection the entry was weighing against option 3.
 
-## B6 — The slide-progress dots miss the 3:1 readability floor — OPEN
+## B6 — The slide-progress dots miss the 3:1 readability floor — DONE
+
+**Closed by `color.nav` (2026-08-17), and the entry's own diagnosis is
+why.** It concluded there was no single-value fix "for either dot", and
+that the alternative was a per-theme patch "that would have to be
+re-derived every time a ground changes". Both halves were right, and both
+followed from the same cause: the active dot was painted with `color.mark`,
+a role that carries an editorial constraint of its own — on most palettes
+`mark` is a highlighter, which has to stay pale enough for text to survive
+on top of it. Navigation hardware borrowing a highlighter cannot be made
+to clear 3:1 by choosing a better value, because the value is not free.
+
+The fix was a seventh palette role rather than a better colour. `color.nav`
+paints the navigation furniture and nothing an author writes, so it answers
+to the 3:1 floor and to nothing else (§9.5.7). Every theme declares one.
+Re-measured across the catalogue against both grounds the dot lands on,
+the worst active dot is now **3.17:1** (`pop-lime`), and the forty-one
+per-theme pins the old arrangement required are gone.
+
+The resting dots are settled rather than fixed: `nav-dot.bg` is declared a
+*ground*, not a foreground — "a slide dot that is not the current one" —
+and the current one is marked by `scale(1.3)` as well as by colour, which
+is what keeps the row clear of 1.4.1. That is a position, written down in
+`CONTRAST_UNMEASURED`, not an unmeasured gap.
+
+The history below is kept because it is the evidence for the diagnosis.
 
 **Narrowed by measurement (B9, 2026-08-04): there is no single-value fix,
 for either dot.** The revision proposed one opaque grey (`#7A7A7A`) for
@@ -752,7 +803,7 @@ someone decides that default.
 ## C1 — Test AST « aucune écriture nue hors helpers » — DONE in v0.33.2
 
 **Type:** test d'architecture.
-**Signalé dans:** `to-be-deleted/newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
+**Signalé dans:** `delete-before-1.0/newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
 implémenté. Le test `test_no_bare_filesystem_write_outside_helpers`
 (`tests/test_lightwebpres.py`) est bien un balayage AST du source : il
 interdit `.write_text()` et `.mkdir()`, ainsi que les copies `shutil`, hors
@@ -763,7 +814,7 @@ l'intention de l'entrée ; aucun second test AST n'est nécessaire.
 
 ## C2 — `series article add/remove/set` — EXCLU (décision)
 
-Hors périmètre de la refonte CLI v0.24 (`to-be-deleted/newargs/PLAN-CLI.md` §7).
+Hors périmètre de la refonte CLI v0.24 (`delete-before-1.0/newargs/PLAN-CLI.md` §7).
 Nécessite son propre cahier des charges ; ce n'est pas une dette mais une
 décision de périmètre. Non implémenté et volontairement absent.
 
@@ -831,7 +882,7 @@ Ce qui reste volontairement ouvert :
   un risque de casse élevé ; pas de sink innerHTML à protéger). À revisiter
   si la page passe à des scripts nonce'd.
 - **Déploiement « racine du dépôt »** : copier tout le dépôt tel quel sous
-  une racine HTTP expose `.git/`, `to-be-deleted/` et les tests ; la mise
+  une racine HTTP expose `.git/`, `delete-before-1.0/` et les tests ; la mise
   en page sûre (servir `web/` seul) est documentée dans le README.
 - **E2e navigateur** : exécuté le 2026-08-15 sur un poste avec Node +
   Playwright global — les 13 tests du volet navigateur passent (dont le

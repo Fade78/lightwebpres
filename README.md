@@ -540,15 +540,24 @@ chosen for them.
 place and apply on top of the new palette. No CSS is rewritten, so there
 is nothing to force and no half-recolored file to fear.
 
-A theme provides six shared colors and four font stacks — `color.page`,
-`color.ink`, `color.ink-quiet`, `color.mark`, `color.call`,
-`color.affirm`; `font.text`/`display`/`ui`/`mono` — named for what they
-do, not for a color. Every component property *defaults* to one of them,
+A theme provides seven shared colors and four font stacks —
+`color.page`, `color.ink`, `color.ink-quiet`, `color.mark`,
+`color.call`, `color.affirm`, `color.nav`;
+`font.text`/`display`/`ui`/`mono` — named for what they do, not for a
+color. Every component property *defaults* to one of them,
 so a theme restyles everything at once; but each use is its own
 property, so overriding one sense never drags the others along (the
 `verdict.partial.fg` line above moves the "partly" verdict and nothing
 else, even though its default shares `color.call` with footnote calls
 and focus rings).
+
+`color.nav` is the odd one out, and deliberately so: it paints the
+hardware that moves you through a series — the active progress dot, the
+two focus rings, the rule under a series-nav card — and nothing you
+write. The other six carry editorial constraints (`color.mark` has to
+stay pale enough to read *through*, like a highlighter), which the
+navigation furniture kept inheriting and could not satisfy. Giving it
+its own role is what let forty-one per-theme pins disappear.
 
 A body link deliberately has no palette colour of its own. It keeps the
 ink around it and is signalled by an underline, whose tint is the one

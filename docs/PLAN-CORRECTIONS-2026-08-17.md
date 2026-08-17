@@ -4,7 +4,7 @@ Fait suite à un audit six axes sur `main` @ `0d495aa` (`v0.33.3`), postérieur
 à la refonte CLI et aux versions v0.23 → v0.33.
 
 - **Périmètre** : l'exécutable, les tests, la documentation pérenne, les
-  artefacts générés, le rendu navigateur. `to-be-deleted/` hors périmètre.
+  artefacts générés, le rendu navigateur. `delete-before-1.0/` hors périmètre.
 - **Méthode** : six axes conduits en parallèle — sécurité, chemins
   d'écriture, contrat CLI, qualité des tests par mutation, dérive
   documentaire, rendu mesuré au navigateur. Chaque constat listé ici a été
@@ -391,7 +391,7 @@ aux trois largeurs, y compris pour les fiches taguées et à variantes.
 | 3.5 | `lightwebpres:31-45` | La docstring du module ignore `clean`, `watch`, `completion`. `print_help()`, lui, est complet (38 options vérifiées) |
 | 3.6 | `README.md:373`, `GUIDE.md:190`, `README.md:560`, `README.md:326` | Trois violations de « on ne dit jamais *ce n'est plus* » |
 | 3.7 | `specifications.md` §2.4 | Le document normatif ne connaît **aucune** option globale — ni `--quiet`, ni `--dry-run`, ni `--version`. Le plus structurel |
-| 3.8 | `specifications.md` §11.9.1, `--help` | `theme show` documenté à un seul slug ; `--help` contient encore *install*, *check*, *set-theme* dans sa prose, et cite `DECISION-CLI §3`, rangé dans `to-be-deleted/` |
+| 3.8 | `specifications.md` §11.9.1, `--help` | `theme show` documenté à un seul slug ; `--help` contient encore *install*, *check*, *set-theme* dans sa prose, et cite `DECISION-CLI §3`, rangé dans `delete-before-1.0/` |
 
 **Sans dérive** : `SKILL.md` — tous les champs, les restrictions par type de
 fiche, les niveaux de titre, les balises d'instance correspondent exactement
@@ -412,7 +412,7 @@ par aucune assertion.
 | 3.5 | La docstring du module liste `clean`, `watch`, `completion` et les huit options globales |
 | 3.6 | Trois formulations historiques retirées de README/GUIDE. `README:326` est **conservé** : les alias existent, avertissent, et un utilisateur avec d'anciens scripts a besoin de le savoir — c'est du comportement présent, pas de l'histoire |
 | 3.7 | `specifications.md` §2.4.1 : les huit options globales, `--`, et la règle stdout/stderr qui fait que `--quiet` n'avale jamais la réponse |
-| 3.8 | §11.9.1 documente `<slug>…` et `--all`, et le refus de mélanger répertoire et slugs. `--help` ne cite plus `DECISION-CLI` (rangé dans `to-be-deleted/`), ne dit plus `created by install`, `set-theme`, ni `build/check` |
+| 3.8 | §11.9.1 documente `<slug>…` et `--all`, et le refus de mélanger répertoire et slugs. `--help` ne cite plus `DECISION-CLI` (rangé dans `delete-before-1.0/`), ne dit plus `created by install`, `set-theme`, ni `build/check` |
 | — | Le garde de `SKILL.md` lit `SLIDE_TYPES` : les quatre noms, la ligne du tableau par type, et chaque champ que ce type accepte |
 
 **Trois gardes ajoutés, chacun mordant** :
@@ -497,7 +497,7 @@ sont-ils d'accord entre eux », §11 « combien y a-t-il de tailles », §13
 - **Branche `newargs`** : destruction sûre, vérifiée — 0 commit propre, tête
   = `339ef0b` (`v0.31.0`) présente dans `main`, aucun tag orphelin, aucune
   pull request. `git push origin --delete newargs`.
-- **`to-be-deleted/`** : `--help` pointe encore dedans (3.8).
+- **`delete-before-1.0/`** : `--help` pointe encore dedans (3.8).
 - **Releases** : tags jusqu'à `v0.33.3`, dernière release publiée `v0.22.0`.
   Onze versions taguées sans release.
 - **GUI** : moteur embarqué figé à `v0.19.0`. Les fonctions `cmd_*` ont
