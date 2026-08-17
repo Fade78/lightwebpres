@@ -6950,7 +6950,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.33.0),
+        by the executable as it stood at the last tagged release (v0.34.0),
         and by this one, compared byte for byte after CSS comments are
         removed from ``<style>`` blocks. Comments are not rendering, while
         every other byte remains covered. --build-stamp is off by default,
@@ -6965,10 +6965,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.33.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.34.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.33.0 tag to read the previous version from')
+            self.skipTest('no v0.34.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
