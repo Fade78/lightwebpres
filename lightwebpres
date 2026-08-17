@@ -1518,11 +1518,16 @@ THEMES = {
     'evergreen': {
         'family': 'terrain', 'label': 'Evergreen', 'source': 'lightwebpres',
         'dark_background': True,
-        'marker': '#E8C35A', 'ink': '#DDE9DC', 'ink-muted': '#7D9480',
-        'page': '#0D1712', 'accent': '#E0A32E', 'positive': '#6FBF73',
+        'marker': '#E8C35A', 'ink': '#D8ECE0', 'ink-muted': '#7FA08D',
+        'page': '#032612', 'accent': '#E0A32E', 'positive': '#6FBF73',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "Night in the undergrowth. Amber replaces red as the accent: on a dark green background a red would become unreadable.",
-        'note_good': False,
+        'note': "Night in the undergrowth, and the ground is where the green "
+                "has to live: at the lightness this used to sit at, sRGB "
+                "cannot hold a green at all. Conifer rather than leaf — the "
+                "hue leans blue, where Canopy's leans yellow. Amber replaces "
+                "red as the accent: on a dark green ground a red would become "
+                "unreadable.",
+        'note_good': True,
     },
     'sprout': {
         'family': 'terrain', 'label': 'Sprout', 'source': 'lightwebpres',
@@ -1579,12 +1584,14 @@ THEMES = {
     'canopy': {
         'family': 'terrain', 'label': 'Canopy', 'source': 'lightwebpres',
         'dark_background': True,
-        'marker': '#7FD65A', 'ink': '#E4F5E0', 'ink-muted': '#9FC29C',
-        'page': '#0B1A0E', 'accent': '#F2B441', 'positive': '#B8F0A8',
+        'marker': '#7FD65A', 'ink': '#EDF7DC', 'ink-muted': '#B3CE92',
+        'page': '#163509', 'accent': '#F2B441', 'positive': '#B8F0A8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Under the trees, looking up. Where Evergreen is night in the "
                 "undergrowth this is daylight coming through leaves, so the "
-                "green is lit rather than deep.",
+                "green is lit rather than deep — and that difference is in "
+                "the ground, which is where it can be seen, rather than only "
+                "in the secondary text, which is where it used to be.",
         'note_good': True,
     },
     'vaporwave': {
@@ -3338,13 +3345,13 @@ THEME_NOTE_PROPS = {
     'ember': {'note.fg': '#AB8D81', 'note.marker.fg': 'call', 'note.back.fg': '#AB8D81', 'note.local.rule-fg': '#FFEDE261', 'note.page.bg': '#FFEDE21E', 'note.page.rule-fg': '#FFEDE262'},
     'dread': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#96928A', 'note.marker.fg': 'ink', 'note.back.fg': '#96928A', 'note.local.rule-fg': '#D6D2C86F', 'note.page.bg': '#D6D2C824', 'note.page.rule-fg': '#D6D2C873'},
     'sage': {'note.leading': '1.65', 'footnote-call.fg': 'ink', 'note.fg': '#58655B', 'note.marker.fg': 'ink', 'note.back.fg': '#58655B', 'note.local.rule-fg': '#26302A8A', 'note.page.bg': '#26302A15', 'note.page.rule-fg': '#26302A8F'},
-    'evergreen': {'note.leading': '1.65', 'note.fg': '#889D8A', 'note.marker.fg': 'call', 'note.back.fg': '#889D8A', 'note.local.rule-fg': '#DDE9DC66', 'note.page.bg': '#DDE9DC1C', 'note.page.rule-fg': '#DDE9DC6A'},
+    'evergreen': {'note.leading': '1.65', 'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D8ECE060', 'note.page.bg': '#D8ECE00F', 'note.page.rule-fg': '#D8ECE060'},
     'sprout': {'note.fg': '#5C6B55', 'note.marker.fg': 'call', 'note.back.fg': '#5C6B55', 'note.local.rule-fg': '#1E2B1B84', 'note.page.bg': '#1E2B1B13', 'note.page.rule-fg': '#1E2B1B89'},
     'loam': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#F2E8DA5E', 'note.page.bg': '#F2E8DA11', 'note.page.rule-fg': '#F2E8DA5E'},
     'clay': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#3B2A2088', 'note.page.bg': '#3B2A2015', 'note.page.rule-fg': '#3B2A2088'},
     'concrete': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#26292B85', 'note.page.bg': '#26292B16', 'note.page.rule-fg': '#26292B85'},
     'slate': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#E6ECF25D', 'note.page.bg': '#E6ECF210', 'note.page.rule-fg': '#E6ECF25D'},
-    'canopy': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#E4F5E05B', 'note.page.bg': '#E4F5E010', 'note.page.rule-fg': '#E4F5E05B'},
+    'canopy': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#EDF7DC60', 'note.page.bg': '#EDF7DC0E', 'note.page.rule-fg': '#EDF7DC60'},
     'vaporwave': {'footnote-call.fg': 'ink', 'note.fg': '#65569E', 'note.marker.fg': 'ink', 'note.back.fg': '#65569E', 'note.local.rule-fg': '#16003B76', 'note.page.bg': '#16003B11', 'note.page.rule-fg': '#16003B79'},
     'code': {'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D7FFE05E', 'note.page.bg': '#D7FFE018', 'note.page.rule-fg': '#D7FFE05F'},
     'terminal': {'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D7FFE05E', 'note.page.bg': '#D7FFE018', 'note.page.rule-fg': '#D7FFE05F'},
