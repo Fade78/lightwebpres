@@ -30,8 +30,8 @@ pas par symptôme.
 | 5.1 | Hiérarchie typographique inversée | v0.34.0, en tête | **fait**, avec l'instrument 1 |
 | 5.2–5.4 | Clavier, contraste 1.00:1, page fantôme | v0.34.0 | **fait** |
 | 1 | Le contrat CLI qui ment | v0.34.0 | **fait** |
-| 4 | Les dix tests morts | avec chaque correctif | à faire |
-| 2, 5.5–5.8 | Robustesse du build, alignement, longueurs | v0.34.x | à faire |
+| 4 | Les dix tests morts | avec chaque correctif | **fait** (`952f232`, `4454cbc`) |
+| 2, 5.5–5.8 | Robustesse du build, alignement, longueurs | v0.34.x | en cours |
 | 3 | Documentation et artefacts générés | continu | à faire |
 
 ---
@@ -272,6 +272,14 @@ complète.
 | 4.8 | `test_completion_zsh_generates_valid_script` (:2263) | script zsh vidé | **vert**. Et le zsh émis est le corps **bash** verbatim |
 | 4.9 | `test_custom_nav_js_is_used` (:3932) | le `nav.js` auteur s'ajoute au lieu de remplacer | classes ciblées vertes ; écouteurs liés deux fois |
 | 4.10 | Deux tests à itération vide (:9527, :9778) | retirer les clés `.size` de `high-contrast` | passent à vide. `high-contrast` est le seul thème concerné |
+
+**Fait** (`952f232` : 4.1, 4.3, 4.2, 4.6 ; `4454cbc` : 4.4, 4.7, 4.8, 4.9,
+4.10). 4.5 est couvert par le lot 5.4. Seul 4.8 a demandé un correctif de
+**code** en plus du test : le script zsh émis ne pouvait pas fonctionner, il
+lui manquait `compinit` puis `bashcompinit` devant le `compdef`. Aucun zsh
+n'est installé ici — le corps de la fonction est donc exercé sous bash (le
+dialecte que `bashcompinit` émule) et l'**ordre** du bootstrap est vérifié en
+texte ; c'est dit dans la docstring du test.
 
 **Diagnostic transversal** : les deux tests d'identité d'octets réagissent à
 tout changement de CSS/JS, mais leur remède documenté est « régénérer ». Ce
