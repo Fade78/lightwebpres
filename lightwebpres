@@ -3185,6 +3185,14 @@ THEME_PROPERTY_OVERRIDES = {
         # deeper in the same burnt orange clears it: 3.92:1 on the rail,
         # 5.57:1 on the page.
         'nav-dot.bg-active': '#7A2A08', 'table.col-snap.rule-fg': '#7A2A08',
+        # The only gradient on a LIGHT theme, and it works differently:
+        # a light theme's cover is an inverted card, so the stops are
+        # opaque tones and not veils of the page. Dawn, read honestly --
+        # the band under the blue is rose-mauve, not orange; the orange
+        # is at the horizon itself, which is out of frame. Measured: this
+        # stop adds no failing pair to the thirteen the theme already
+        # carries, where a warmer #5A3524 loses the cover summary.
+        'cover.bg.from': '#14304A', 'cover.bg.to': '#4A2A30',
         'page.shadow.fg': '#14304A26',
         'page.shadow.blur': '0.13em', 'page.shadow.dy': '0.05em',
         'title1.shadow.fg': '#2E6B9E66',
@@ -3193,6 +3201,12 @@ THEME_PROPERTY_OVERRIDES = {
         'highlight.shadow.blur': '0.16em', 'highlight.shadow.dy': '0.06em',
     },
     'dusk': {
+        # The hour the note describes is the one hour of the three that a
+        # flat ground cannot state: at dusk the sky is deep overhead and
+        # still warm where the sun went, which is a gradient before it is
+        # a decoration. The warm stop is the theme's own gold, veiled --
+        # the same tone the note already says the accent had to be.
+        'cover.bg.from': '#00000A8C', 'cover.bg.to': '#4A2A0399',
         'title1.shadow.fg': '#4CC9F080', 'title1.shadow.blur': '0.30em',
         'highlight.shadow.fg': '#4CC9F06B', 'highlight.shadow.blur': '0.20em',
     },
@@ -3255,7 +3269,11 @@ THEME_PROPERTY_OVERRIDES = {
     },
     # At depth the light is local: almost no atmosphere, a hard glow on the
     # glyph that carries it.
+    # The inverse of Lava, and deliberately so: there the ground is the
+    # source and the heat is at the bottom; here the source is above and
+    # what is below is depth. Same two stops, opposite direction.
     'abyss': {
+        'cover.bg.from': '#00000052', 'cover.bg.to': '#000000B8',
         'page.shadow.fg': '#22D3EE14', 'page.shadow.blur': '0.10em',
         'title1.shadow.fg': '#22D3EE99', 'title1.shadow.blur': '0.32em',
         'highlight.shadow.fg': '#22D3EE80', 'highlight.shadow.blur': '0.22em',
@@ -3263,6 +3281,12 @@ THEME_PROPERTY_OVERRIDES = {
     'pink-dream': {
         'title1.shadow.fg': '#FF5FA277', 'title1.shadow.blur': '0.30em',
         'highlight.shadow.fg': '#FF5FA266', 'highlight.shadow.blur': '0.20em',
+    },
+    # Family `terrain`, and the only member of it with a direction to
+    # state: the note says "looking up", so the light is above and the
+    # depth below -- the same shape as Abyss, for the same reason.
+    'canopy': {
+        'cover.bg.from': '#00000052', 'cover.bg.to': '#000000B8',
     },
     'cloudy': {
         # Same as Daybreak: a pale highlighter cannot double as the active
