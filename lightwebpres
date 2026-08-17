@@ -7049,6 +7049,18 @@ def load_language(lang_dir, lang='fr', language_file=None):
         base = json.loads(LANG_FR)
     else:
         base = json.loads(LANG_EN)
+        if lang != 'en' and not language_file and not (
+                lang_dir and (Path(lang_dir) / f'{lang}.json').exists()):
+            # The fallback above is deliberate and documented. What was
+            # missing is saying so: `--lang de` with no de.json produced a
+            # page carrying `lang="de"` over English strings, exit 0, in
+            # silence. A pipeline cannot see that; a reader's screen reader
+            # can. Not fatal -- a custom pack is a real use, supplied by
+            # --language-file or LWP_LANGUAGE_DIR -- but never silent.
+            log('warn', f'no language pack for {lang!r}: the page will '
+                f'carry lang="{lang}" over the built-in English strings. '
+                f'Provide {lang}.json in the language directory, or pass '
+                f'--language-file.')
 
     if language_file:
         lang_file = Path(language_file)
@@ -12375,7 +12387,20 @@ def cmd_themes_gallery(positional, args):
         log('error', 'Build aborted: themes gallery contains invalid JavaScript.\n%s'
             % (detail,))
         sys.exit(1)
-    _write_file(out, html)
+    # The legacy positional accepts any non-slug word as an output path,
+    # with no check that it can be written. `theme gallery <a directory>`
+    # therefore reached write_text() and came back as a raw Python
+    # traceback -- the only failure in this program that did, while every
+    # other one emits an [ERROR] line.
+    if Path(out).is_dir():
+        log('error', f'{out} is a directory, not a file. `theme gallery` '
+            f'writes one HTML page: give it a filename, or use --output.')
+        sys.exit(1)
+    try:
+        _write_file(out, html)
+    except OSError as exc:
+        log('error', f'could not write {out}: {exc}')
+        sys.exit(1)
     progress(f'Generated: {out}')
 
 
@@ -13367,12 +13392,26 @@ def parse_cli_options(command, rest, global_opts=None):
     `global_opts` (optional) is the dict of options already consumed before
     the command. They are merged in, with the per-command option winning on
     conflict (nearest-to-the-command wins, DECISION §2)."""
-    allowed = _COMMAND_OPTIONS[command]
+    # The globals belong to every command, before it or after it. They were
+    # fatal in postfix -- `build s --quiet` exited 1 -- while --lang, which
+    # IS one of them, worked in both positions, and a global the target
+    # command cannot use was silently accepted in leading position. The
+    # rule was inconsistent in both directions at once; it is one rule now:
+    # a global is always accepted, wherever it sits.
+    allowed = _COMMAND_OPTIONS[command] | _GLOBAL_OPTIONS
     opts = dict(global_opts) if global_opts else {}
     positional = []
     i = 0
     while i < len(rest):
         arg = rest[i]
+        if arg == '--':
+            # End of options: everything after is a positional, whatever it
+            # looks like. Without it there was no way to name a directory
+            # that starts with a dash or collides with a verb -- and `--`
+            # itself was reported as an unknown option, which is the least
+            # helpful answer to someone reaching for exactly this.
+            positional.extend(rest[i + 1:])
+            break
         if arg.startswith('--'):
             # GNU-style --opt=value: split once, the rest is the value
             # (which may itself contain '=').
@@ -13482,13 +13521,17 @@ def main():
 
     opts, positional = parse_cli_options(command, rest, global_opts)
 
-    # Wire the global verbosity flags into the logger (Phase 2).
+    # Wire the global verbosity flags into the logger. Read from `opts`,
+    # not `global_opts`: parse_cli_options merges the leading globals in
+    # and then adds any that came after the command, so this is the one
+    # dict that has both. Reading the leading ones only is what made a
+    # postfix global parse cleanly and then do nothing.
     configure_logging(
-        quiet=global_opts.get('--quiet', False),
-        verbose=global_opts.get('--verbose', False),
-        no_color=global_opts.get('--no-color', False),
-        timestamp=global_opts.get('--timestamp', False),
-        dry_run=global_opts.get('--dry-run', False),
+        quiet=opts.get('--quiet', False),
+        verbose=opts.get('--verbose', False),
+        no_color=opts.get('--no-color', False),
+        timestamp=opts.get('--timestamp', False),
+        dry_run=opts.get('--dry-run', False),
     )
 
     _limit = _MAX_POSITIONAL.get(command, 1)
@@ -13530,6 +13573,18 @@ def main():
         # alias keeps working until the next MAJOR.
         if (positional and positional[0] not in THEMES
                 and Path(positional[0]).is_dir()):
+            # The legacy directory form describes ONE series, so it has no
+            # room for anything after it. Everything past the directory
+            # used to be dropped without a word: `theme show <dir> nord
+            # dracula` printed the series' effective theme, exit 0, and
+            # said nothing about the two slugs -- known-good slugs, which
+            # the spec says must be reported when they cannot be honoured.
+            if len(positional) > 1:
+                log('error', f'`theme show` reads either a directory or a '
+                    f'list of slugs, not both. Drop '
+                    f'{", ".join(repr(a) for a in positional[1:])}, or ask '
+                    f'for the slugs alone.')
+                sys.exit(1)
             cmd_series_theme(positional[0], opts)
         else:
             cmd_theme_info(positional, opts)

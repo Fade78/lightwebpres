@@ -1832,6 +1832,89 @@ class CliVersionAndShortcuts(unittest.TestCase):
                             'no [DEBUG] line names the file that was '
                             'written:\n' + '\n'.join(debug))
 
+    def test_a_global_option_works_on_either_side_of_the_command(self):
+        """`build s --quiet` exited 1 while `--quiet build s` worked, and
+        --lang -- which IS a global -- worked in both. Meanwhile a global
+        the target command cannot use was silently accepted in leading
+        position. Inconsistent in both directions at once; one rule now."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = str(scaffold(tmp, _MINIMAL_MD))
+            out = str(Path(tmp) / 'public')
+            loud = run('build', root, '--output', out)
+            self.assertGreater(len(loud.stdout), 0)
+            for argv in ((root, '--output', out, '--quiet'),
+                         ('--quiet', root, '--output', out)):
+                result = run('build', *argv)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, '',
+                                 f'--quiet parsed but did nothing in '
+                                 f'`build {" ".join(argv)}`')
+            # And a postfix --verbose reaches the logger, not just the parser.
+            v = run('build', root, '--output', out, '--verbose')
+            self.assertIn('[DEBUG]', v.stderr, v.stderr)
+
+    def test_double_dash_ends_the_options(self):
+        """There was no way to name a directory that starts with a dash or
+        collides with a verb, and `--` itself was reported as an unknown
+        option -- the least helpful answer to someone reaching for exactly
+        this."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', '--', str(root), '--output',
+                         str(root / 'public'))
+            # Everything after `--` is positional, so --output is one too:
+            # what matters is that `--` is accepted and the directory read.
+            self.assertNotIn('Unknown option: --', result.stderr)
+
+    def test_a_language_with_no_pack_says_so(self):
+        """The fallback to the built-in English pack is deliberate and
+        documented. Saying nothing about it was not: `--lang de` with no
+        de.json produced a page carrying lang="de" over English strings,
+        exit 0, in silence. A pipeline cannot see that; a screen reader
+        can."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            out = str(root / 'public')
+            odd = run('build', str(root), '--output', out, '--lang', 'xx')
+            self.assertEqual(odd.returncode, 0, odd.stderr)
+            self.assertIn('no language pack', odd.stderr)
+            self.assertIn('[WARNING]', odd.stderr)
+            for known in ('fr', 'en'):
+                quiet = run('build', str(root), '--output', out,
+                            '--lang', known)
+                self.assertNotIn('no language pack', quiet.stderr,
+                                 f'--lang {known} warned about itself')
+
+    def test_theme_gallery_refuses_a_directory_without_a_traceback(self):
+        """The legacy positional took any non-slug word as an output path
+        with no writability check, so a directory reached write_text() and
+        came back as a raw Python traceback -- the only failure in this
+        program that did."""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run('theme', 'gallery', tmp)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('[ERROR]', result.stderr)
+            self.assertNotIn('Traceback', result.stderr)
+            self.assertNotIn('Traceback', result.stdout)
+
+    def test_theme_show_refuses_a_directory_mixed_with_slugs(self):
+        """`theme show <dir> nord dracula` printed the series' effective
+        theme, exited 0, and said nothing about the two slugs -- known-good
+        slugs, which the spec requires be reported when they cannot be
+        honoured."""
+        with tempfile.TemporaryDirectory() as tmp:
+            # A real init: `theme show <dir>` reads the series' templates,
+            # so a bare scaffold would fail for an unrelated reason and
+            # prove nothing about the mixing.
+            root = str(Path(tmp) / 's')
+            self.assertEqual(run('init', root).returncode, 0)
+            mixed = run('theme', 'show', root, 'nord', 'dracula')
+            self.assertNotEqual(mixed.returncode, 0, mixed.stdout)
+            self.assertIn('nord', mixed.stderr)
+            # Both single forms keep working.
+            self.assertEqual(run('theme', 'show', root).returncode, 0)
+            self.assertEqual(run('theme', 'show', 'nord', 'dracula').returncode, 0)
+
     def test_every_command_and_node_answers_its_own_help(self):
         """`build --help` exited 1 with "Unknown option: --help", because
         --help was honoured only in leading position. A refactor whose
