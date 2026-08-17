@@ -1470,6 +1470,23 @@ THEMES = {
                 "uses for its verdicts.",
         'note_good': True,
     },
+    'old-journal': {
+        'family': 'desk', 'label': 'Old Journal', 'source': 'lightwebpres',
+        'marker': '#D4BC7E', 'ink': '#2E2820', 'ink-muted': '#585040',
+        'page': '#E0D4B4', 'accent': '#5E3A78', 'positive': '#35592F',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Newsprint that has browned, set in fixed pitch throughout. "
+                "The desk family already holds three near-white papers, and "
+                "the one thing an aged one has that they do not is that it "
+                "has gone down in lightness and up in warmth — so the ground "
+                "sits ten points below Newsprint's with five times its "
+                "chroma. The accent is the purple of a spirit duplicator, "
+                "the ink every mimeographed bulletin was run off in, and the "
+                "only violet in the family. The facet still reads neutral, "
+                "correctly: at this lightness a warm off-white is a paper, "
+                "not a yellow.",
+        'note_good': True,
+    },
     'chalkboard': {
         'family': 'desk', 'label': 'Chalkboard', 'source': 'lightwebpres',
         'dark_background': True,
@@ -3150,6 +3167,15 @@ THEME_PROPERTY_OVERRIDES = {
 
     # Third light theme with the same pale-highlighter-as-dot problem.
     'ledger': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    # Fixed pitch is the theme, not a detail of it, so it is set on the
+    # three roles a page actually renders with rather than left to the
+    # reader to pin. And the pale mark cannot double as the active
+    # navigation dot on a light ground -- 1.13:1 here, the same defect
+    # Daybreak, Cloudy, Newsprint and Ledger each had.
+    'old-journal': {
+        'font.text': 'mono', 'font.display': 'mono', 'font.ui': 'mono',
+        'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call',
+    },
 
     # --- family `terrain` ------------------------------------------------
     # No halos here: earth and stone do not emit. What the two light members
@@ -3340,6 +3366,7 @@ THEME_NOTE_PROPS = {
     # switched to the dark one to keep it would have lost it.
     'high-contrast-night': {'note.size': 'max(16px, 2vmin)', 'note.local.size': 'max(14px, 1.75vmin)', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': 'max(30px, 3.75vmin)', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFFFFF5A', 'note.page.bg': '#FFFFFF16', 'note.page.rule-fg': '#FFFFFF5A'},
     'ledger': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1A1A1A79', 'note.page.bg': '#1A1A1A13', 'note.page.rule-fg': '#1A1A1A79'},
+    'old-journal': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#2E28208B', 'note.page.bg': '#2E282016', 'note.page.rule-fg': '#2E28208B'},
     'chalkboard': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#EDF0EA5C', 'note.page.bg': '#EDF0EA0F', 'note.page.rule-fg': '#EDF0EA5C'},
     'crimson': {'note.leading': '1.65', 'note.fg': '#7D5B5F', 'note.marker.fg': 'call', 'note.back.fg': '#7D5B5F', 'note.local.rule-fg': '#3B0A127B', 'note.page.bg': '#3B0A1212', 'note.page.rule-fg': '#3B0A127F'},
     'ember': {'note.fg': '#AB8D81', 'note.marker.fg': 'call', 'note.back.fg': '#AB8D81', 'note.local.rule-fg': '#FFEDE261', 'note.page.bg': '#FFEDE21E', 'note.page.rule-fg': '#FFEDE262'},
