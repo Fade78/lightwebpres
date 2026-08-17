@@ -14,6 +14,7 @@ Run with: python3 tests/run_tests.py
 """
 
 import time
+import base64
 import json
 import os
 import inspect
@@ -2030,6 +2031,59 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertFalse((root / 'public' / 'img').exists(),
                              'img/ was copied despite --inline-images')
 
+    def test_inline_images_never_reads_outside_the_article_dir(self):
+        """--inline-images read ANY file the build user could open and
+        base64'd it into the published page. `src` is attacker-reachable
+        (an LLM-authored article, a CMS export, a cloned series repo), the
+        extractor permits a leading `/` and `..`, and `Path(dir) / '/etc/
+        passwd'` discards the left side — so `![](../../secret/id_rsa)`
+        published the key. It also walked past copy_images' symlink guard:
+        the same series warned and skipped on a plain build, and inlined
+        the secret with the flag.
+
+        Three vectors, one barrier. The legitimate image must still be
+        inlined in the same build, or the fix is just a break."""
+        secret = None
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\nkicker: F\n## Fiche\nfact-label: L\n\n'
+            '![up](../../secret/id_rsa)\n\n'
+            '![abs](/etc/hostname)\n\n'
+            '![sym](img/leak.png)\n\n'
+            '![ok](img/red.png)\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = Path(tmp) / 'secret'
+            secret.mkdir()
+            (secret / 'id_rsa').write_bytes(b'ROOT-SECRET-PRIVATE-KEY-MATERIAL')
+            root = scaffold(str(Path(tmp) / 'series'), md)
+            (root / 'articles' / 'img').mkdir()
+            (root / 'articles' / 'img' / 'red.png').write_bytes(
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+                b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
+                b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
+                b'\x8d\xa5K>\x00\x00\x00\x00IEND\xaeB`\x82')
+            try:
+                (root / 'articles' / 'img' / 'leak.png').symlink_to(
+                    secret / 'id_rsa')
+            except (OSError, NotImplementedError):
+                self.skipTest('symlinks unavailable on this filesystem')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--inline-images')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            # Decode every data URI and prove the secret is in none of them.
+            for m in re.finditer(r'data:[^;]+;base64,([A-Za-z0-9+/=]+)', html):
+                self.assertNotIn(b'SECRET', base64.b64decode(m.group(1)),
+                                 'a file outside articles/ was published')
+            # The legitimate image is still inlined.
+            self.assertIn('data:image/png;base64,', html)
+            # And each refusal is reported, not silent.
+            self.assertEqual(result.stderr.count('escaping the article'), 3,
+                             result.stderr)
+
     def test_inline_images_off_by_default(self):
         # Without --inline-images: images stay as relative paths and
         # img/ is copied to the output (the standard behaviour).
@@ -2083,28 +2137,106 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertFalse(out.exists())
             self.assertIn('would write', result.stderr)
 
+    @staticmethod
+    def _orphan_series(tmp):
+        """Builds once, renames the article's output, builds again — so
+        `a.html` is a REAL orphan: a file a previous build declared and
+        this one no longer does. Returns the series root.
+
+        Dropping a hand-written file into public/ and calling it an orphan
+        is what these tests used to do, and it hid the defect: under that
+        reading `clean --force` removed CNAME, .nojekyll, robots.txt,
+        404.html and a whole .git/ from a published site, because a build
+        declares none of those. An orphan is defined by the manifest pair,
+        not by absence from the current one."""
+        root = scaffold(tmp, _MINIMAL_MD)
+        run('build', str(root), '--output', str(root / 'public'))
+        entry = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+        entry['articles'][0]['page_dest'] = 'renamed.html'
+        (root / 'series.json').write_text(json.dumps(entry), encoding='utf-8')
+        run('build', str(root), '--output', str(root / 'public'))
+        return root
+
     def test_clean_dry_run_lists_orphans(self):
         # `clean` (DECISION §3): dry-run by default, lists orphans.
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
-            run('build', str(root), '--output', str(root / 'public'))
-            # Drop an orphan file into public/.
-            (root / 'public' / 'orphan.html').write_text('stale', encoding='utf-8')
+            root = self._orphan_series(tmp)
             result = run('clean', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('orphan.html', result.stdout)
+            self.assertIn('a.html', result.stdout)
             self.assertIn('would be removed', result.stdout)
             # Dry-run: the orphan is still there.
-            self.assertTrue((root / 'public' / 'orphan.html').exists())
+            self.assertTrue((root / 'public' / 'a.html').exists())
 
     def test_clean_force_removes_orphans(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
-            run('build', str(root), '--output', str(root / 'public'))
-            (root / 'public' / 'orphan.html').write_text('stale', encoding='utf-8')
+            root = self._orphan_series(tmp)
             result = run('clean', str(root), '--force')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse((root / 'public' / 'orphan.html').exists())
+            self.assertFalse((root / 'public' / 'a.html').exists())
+            # The page this build DOES declare survives.
+            self.assertTrue((root / 'public' / 'renamed.html').exists())
+
+    def test_clean_never_removes_what_no_build_made(self):
+        """The deployment sidecars of a published static site. Every one of
+        these was deleted by the previous rule, measured, including the
+        `.git/` of a gh-pages worktree — the layout the shipped
+        `.gitlab-ci.yml` encourages. `rglob('*')` does not skip dotfiles,
+        which is why the hidden ones went too."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._orphan_series(tmp)
+            pub = root / 'public'
+            (pub / 'CNAME').write_text('example.org', encoding='utf-8')
+            (pub / '.nojekyll').write_text('', encoding='utf-8')
+            (pub / 'robots.txt').write_text('User-agent: *', encoding='utf-8')
+            (pub / '404.html').write_text('<p>gone', encoding='utf-8')
+            (pub / '.git').mkdir()
+            (pub / '.git' / 'HEAD').write_text('ref: x', encoding='utf-8')
+            (pub / 'css').mkdir()
+            (pub / 'css' / 'site.css').write_text('body{}', encoding='utf-8')
+            result = run('clean', str(root), '--force')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for kept in ('CNAME', '.nojekyll', 'robots.txt', '404.html',
+                         '.git/HEAD', 'css/site.css'):
+                self.assertTrue((pub / kept).exists(),
+                                f'clean removed {kept}, which no build made')
+            # ... and the real orphan still goes.
+            self.assertFalse((pub / 'a.html').exists())
+
+    def test_clean_under_dry_run_removes_nothing(self):
+        """`--dry-run clean --force` deleted for real: the unlink was the
+        one filesystem call outside the helper layer, and the guard test's
+        verb alphabet held only creation verbs, so nothing caught it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._orphan_series(tmp)
+            before = sorted(p.name for p in (root / 'public').rglob('*'))
+            result = run('--dry-run', 'clean', str(root), '--force')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'a.html').exists())
+            self.assertEqual(
+                before, sorted(p.name for p in (root / 'public').rglob('*')))
+            # And it says so, rather than reporting a removal that
+            # did not happen.
+            self.assertIn('would remove', result.stdout + result.stderr)
+            self.assertNotIn('  removed ', result.stdout)
+
+    def test_clean_refuses_a_series_directory(self):
+        """`build --output <series root>` is accepted, which puts a manifest
+        at the root; a clean aimed there by --output or LWP_OUTPUT_DIR then
+        had the sources in scope. Measured before the guard: 24 files gone,
+        including series.json, every article, the templates, the language
+        packs and the bundled executable."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            run('build', str(root), '--output', str(root))
+            env = dict(os.environ, LWP_OUTPUT_DIR=str(root))
+            result = subprocess.run(
+                [sys.executable, str(EXECUTABLE), 'clean', str(root), '--force'],
+                capture_output=True, text=True, env=env)
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn('series.json', result.stderr)
+            self.assertTrue((root / 'series.json').exists())
+            self.assertTrue((root / 'articles' / 'a.md').exists())
 
     def test_clean_without_manifest_is_error(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2209,17 +2341,40 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
     def test_no_bare_filesystem_write_outside_helpers(self):
         """--dry-run relies on every filesystem write going through the
-        _write_file/_mkdir/_copy/_copytree helpers. This AST test guards
-        that no bare .write_text()/.mkdir()/shutil.copy* exists outside
-        those four helpers in the executable (PLAN-CLI.md Phase 3).
+        _write_file/_mkdir/_copy/_copytree/_remove helpers. This AST test
+        guards that no bare call exists outside them in the executable.
+
+        THE ALPHABET IS THE TEST. An earlier version listed only creation
+        verbs — write_text, mkdir, shutil.copy* — so when `clean` arrived
+        with a bare Path.unlink() it walked straight through a guard built
+        for what writes, and `--dry-run clean --force` deleted files for a
+        whole release. A guard is only as wide as its verb list, so the
+        list below covers both sides: what creates, and what destroys.
 
         Uses a parent-tracking walk so the check is by function name, not
         by line number — robust against the helpers moving in the file."""
         import ast
         tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
-        HELPER_NAMES = {'_write_file', '_mkdir', '_copy', '_copytree'}
+        HELPER_NAMES = {'_write_file', '_mkdir', '_copy', '_copytree', '_remove'}
         # The one allowed bare print to stderr is inside log() itself.
-        ALLOWED_IN = HELPER_NAMES | {'log'}
+        # validate_page_scripts is the one documented exception: it writes a
+        # temp .js under $TMPDIR to run `node --check` and unlinks it in a
+        # finally. It never touches a path the user named, so --dry-run has
+        # nothing to journal there.
+        ALLOWED_IN = HELPER_NAMES | {'log', 'validate_page_scripts'}
+        # Methods on a Path (or anything else) that create or destroy.
+        PATH_METHODS = {
+            'write_text', 'write_bytes', 'mkdir', 'touch',   # create
+            'unlink', 'rmdir',                               # destroy
+        }
+        # Module-level functions, by module.
+        MODULE_FUNCS = {
+            'shutil': {'copy', 'copy2', 'copyfile', 'copytree', 'copymode',
+                       'copystat', 'move', 'rmtree'},
+            'os': {'remove', 'unlink', 'rmdir', 'removedirs', 'makedirs',
+                   'mkdir', 'rename', 'replace', 'truncate', 'symlink',
+                   'link'},
+        }
         violations = []
 
         # Walk the tree tracking the enclosing function name. ast.walk
@@ -2234,15 +2389,35 @@ class CliVersionAndShortcuts(unittest.TestCase):
             if isinstance(node, ast.Call):
                 func = node.func
                 if isinstance(func, ast.Attribute):
-                    if func.attr in ('write_text', 'mkdir'):
+                    mod = (func.value.id
+                           if isinstance(func.value, ast.Name) else None)
+                    if mod in MODULE_FUNCS and func.attr in MODULE_FUNCS[mod]:
+                        if enclosing not in ALLOWED_IN:
+                            violations.append(
+                                f'line {node.lineno}: {mod}.{func.attr}() '
+                                f'in {enclosing}')
+                    elif mod not in MODULE_FUNCS and func.attr in PATH_METHODS:
                         if enclosing not in ALLOWED_IN:
                             violations.append(
                                 f'line {node.lineno}: .{func.attr}() in {enclosing}')
-                    elif func.attr in ('copy', 'copy2', 'copyfile', 'copytree'):
-                        if isinstance(func.value, ast.Name) and func.value.id == 'shutil':
-                            if enclosing not in ALLOWED_IN:
-                                violations.append(
-                                    f'line {node.lineno}: shutil.{func.attr}() in {enclosing}')
+                # A bare open(path, 'w') bypasses every helper too. Mode is
+                # the second positional or the `mode` keyword; a mode that
+                # is not a literal is reported rather than assumed safe.
+                elif isinstance(func, ast.Name) and func.id == 'open':
+                    mode = None
+                    if len(node.args) > 1:
+                        mode = node.args[1]
+                    for kw in node.keywords:
+                        if kw.arg == 'mode':
+                            mode = kw.value
+                    if mode is not None:
+                        writes = (not isinstance(mode, ast.Constant)
+                                  or any(c in str(mode.value)
+                                         for c in 'wxa+'))
+                        if writes and enclosing not in ALLOWED_IN:
+                            violations.append(
+                                f'line {node.lineno}: open(..., write mode) '
+                                f'in {enclosing}')
         walk_with_scope(tree, None)
         self.assertFalse(violations,
                          f'Bare filesystem writes outside helpers found:\n'

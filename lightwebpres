@@ -76,7 +76,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.33.3"
+VERSION = "0.33.4"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -142,10 +142,17 @@ def log(level, msg):
 
 
 # --- Write helpers (Phase 3, DECISION-CLI.md §4) --------------------------
-# Every filesystem write goes through _write_file / _mkdir / _copy so
-# --dry-run can journal the action without touching the disk. A test guards
-# that no bare open(…, 'w') / write_text / mkdir / shutil.copy exists outside
-# these helpers.
+# Every filesystem write goes through _write_file / _mkdir / _copy / _remove
+# so --dry-run can journal the action without touching the disk. A test
+# guards that no bare write, create or delete call exists outside these
+# helpers.
+#
+# _remove was added after `clean --force` was found deleting files under
+# --dry-run: it called Path.unlink() directly, and the guard test's verb
+# alphabet held only CREATION verbs — write_text, mkdir, shutil.copy* — so a
+# command that DELETES walked through a guard built for what writes. The
+# alphabet now covers the delete side, which is what makes this helper the
+# only way to remove a file.
 def _write_file(path, content, encoding='utf-8'):
     """Writes content to path, unless --dry-run is active (then logs only)."""
     if _LOG_STATE['dry_run']:
@@ -177,6 +184,19 @@ def _copytree(src, dst, **kwargs):
         log('info', f'would copytree {src} -> {dst}')
         return
     shutil.copytree(str(src), str(dst), **kwargs)
+
+
+def _remove(path):
+    """Deletes a file, unless --dry-run is active (then logs only).
+
+    The only way this program is allowed to delete anything. Deletion is
+    the one action no later run can undo, so it gets the same journalling
+    every write gets, and the guard test refuses a bare unlink anywhere
+    else."""
+    if _LOG_STATE['dry_run']:
+        log('info', f'would remove {path}')
+        return
+    Path(path).unlink()
 
 # Where this tool comes from. A constant because two places have to say
 # it and neither did: `--help` ended on "Full reference:
@@ -9092,10 +9112,31 @@ def _encode_inline_image(src, articles_dir):
     against `articles_dir` (where the img/ directory lives). Returns the
     data URI string, or None if the file cannot be read — in which case
     the caller leaves the original `src` in place so the broken link is
-    visible (a missing image inlined as nothing would hide the error)."""
-    img_path = articles_dir / src
+    visible (a missing image inlined as nothing would hide the error).
+
+    `src` is attacker-reachable — an LLM-authored article, a CMS export, a
+    cloned series repo — and it is NOT a bare filename, so the name-shape
+    check does not apply: `img/foo.png` is the ordinary case. The realpath
+    barrier is the one that fits, and it was missing. `Path(dir) / '/etc/
+    passwd'` discards the left side, and the extractor regex permits both a
+    leading `/` and `..`, so a build with --inline-images read any file the
+    build user could open and base64'd it into the published page. It also
+    walked straight past copy_images' symlink guard, which refuses the same
+    escape on the non-inline path and whose docstring names this exact
+    threat. Refused and warned rather than fatal, to match that guard: a
+    series that builds with a warning must not become unbuildable because
+    of the flag that packages it."""
+    contained = _resolve_contained(articles_dir, src)
+    if contained is None:
+        # Same shape as copy_images' sibling warning. There is no 'warn'
+        # level in log(); an unknown level is DROPPED SILENTLY, so a
+        # log('warning', ...) here would have refused the read and told
+        # nobody. Adding the level belongs with the --quiet fix.
+        log('info', f'  [WARNING] skipped image escaping the article '
+            f'directory: {src}')
+        return None
     try:
-        data = img_path.read_bytes()
+        data = contained.read_bytes()
     except (OSError, ValueError):
         return None
     mime = mimetypes.guess_type(src)[0] or 'application/octet-stream'
@@ -10068,7 +10109,13 @@ _MANIFEST_NAME = '.lwp-manifest.json'
 
 def _write_manifest(output_dir, articles_built, include_index=True):
     """Writes .lwp-manifest.json in public/ listing every file the build
-    produced, so `clean` can purge orphans without guessing (DECISION §3)."""
+    produced, so `clean` can purge orphans without guessing (DECISION §3).
+
+    Carries the PREVIOUS build's list forward under `previous`, because
+    that is what makes `clean` answerable. A manifest alone only says what
+    exists now; the pair says what stopped existing, and only the second
+    question has an answer that can be acted on without touching a file
+    the tool never made."""
     files = [e['page_dest'] for e in articles_built]
     if include_index:
         files.append('index.html')
@@ -10078,7 +10125,20 @@ def _write_manifest(output_dir, articles_built, include_index=True):
         for p in sorted(img_dir.rglob('*')):
             if p.is_file():
                 files.append(str(p.relative_to(output_dir)))
-    manifest = {'schema': 'lightwebpres.manifest/1', 'files': files}
+    previous = []
+    existing = output_dir / _MANIFEST_NAME
+    if existing.exists():
+        try:
+            prior = json.loads(read_text_file(existing))
+            # The union: a file this build stopped producing must stay
+            # accountable across several builds, or two rebuilds in a row
+            # lose track of it and it is published forever.
+            previous = sorted(set(prior.get('files', []))
+                              | set(prior.get('previous', [])))
+        except (ValueError, OSError):
+            previous = []
+    manifest = {'schema': 'lightwebpres.manifest/1', 'files': files,
+                'previous': previous}
     _write_file(output_dir / _MANIFEST_NAME,
                 json.dumps(manifest, indent=2, ensure_ascii=False))
 
@@ -10091,6 +10151,17 @@ def cmd_clean(series_dir, args):
         os.environ.get('LWP_SERIES_DIR', '.')).resolve()
     output_dir = Path(args.get('--output') or os.environ.get(
         'LWP_OUTPUT_DIR', str(sd / 'public'))).resolve()
+    # Belt and braces behind the manifest difference above. `build --output
+    # <series root>` is accepted, which puts a manifest at the root; a later
+    # clean aimed there by --output or LWP_OUTPUT_DIR would be operating on
+    # a directory full of sources. `init` refuses a non-empty directory
+    # without --force; the command that DELETES had no equivalent check.
+    for marker in ('series.json', 'articles', 'templates'):
+        if (output_dir / marker).exists():
+            log('error', f'{output_dir} holds `{marker}`, so it is a series '
+                f'directory and not a build output. Refusing to clean it: '
+                f'point --output or LWP_OUTPUT_DIR at the built site.')
+            sys.exit(1)
     manifest_path = output_dir / _MANIFEST_NAME
     if not manifest_path.exists():
         log('error', f'No manifest found at {manifest_path}. '
@@ -10098,16 +10169,26 @@ def cmd_clean(series_dir, args):
               f'build has declared, and a manifest is how it declares it.')
         sys.exit(1)
     manifest = json.loads(read_text_file(manifest_path))
-    declared = set(manifest.get('files', []))
-    declared.add(_MANIFEST_NAME)
+    current = set(manifest.get('files', []))
+    previous = set(manifest.get('previous', []))
 
-    # Find orphans: files in output_dir that are not in the manifest.
+    # An orphan is a file a PREVIOUS build declared and this one no longer
+    # does. Not "everything undeclared" -- that was the rule until it was
+    # measured, and it deleted CNAME, .nojekyll, robots.txt, 404.html, a
+    # hand-written stylesheet and a whole .git/ from an output directory,
+    # because a static site's output is where deployment sidecars live and
+    # no build ever declares those. With the output directory pointed at
+    # the series root it took the articles, series.json, the templates, the
+    # language packs and the bundled executable with it.
+    #
+    # Reading the difference instead makes the code do what this command's
+    # own error message above, and specifications.md, have always said:
+    # clean removes what a build declared and stopped declaring. A file no
+    # build ever made is never a candidate, which is the whole guarantee.
     orphans = []
-    for p in sorted(output_dir.rglob('*')):
-        if p.is_file():
-            rel = str(p.relative_to(output_dir))
-            if rel not in declared:
-                orphans.append(rel)
+    for rel in sorted(previous - current):
+        if (output_dir / rel).is_file():
+            orphans.append(rel)
 
     if not orphans:
         print('No orphan files to clean.')
@@ -10115,11 +10196,17 @@ def cmd_clean(series_dir, args):
 
     force = args.get('--force')
     if force:
+        # _remove journals under --dry-run and returns without touching the
+        # disk, so the words here have to follow it. Saying "removed" over a
+        # file that is still there is the same defect in prose that calling
+        # unlink() under --dry-run was in code.
+        dry = _LOG_STATE['dry_run']
+        verb, summary = ('would remove', 'Would clean') if dry else (
+            'removed', 'Cleaned')
         for rel in orphans:
-            p = output_dir / rel
-            p.unlink()
-            print(f'  removed {rel}')
-        print(f'Cleaned {len(orphans)} orphan file(s) from {output_dir}.')
+            _remove(output_dir / rel)
+            print(f'  {verb} {rel}')
+        print(f'{summary} {len(orphans)} orphan file(s) from {output_dir}.')
     else:
         # Dry-run by default (DECISION §3): list what would be removed.
         print(f'{len(orphans)} orphan file(s) would be removed from '
