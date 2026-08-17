@@ -1,0 +1,402 @@
+"""Instrument 2: contrast measured on the rendered page, every theme.
+
+`theme show` reports contrast from the property registry, which is the
+right way to check a theme and is structurally unable to see three
+things:
+
+  - an element with no registry property of its own. The speaker counter
+    measured EXACTLY 1.00:1 on 15 of the 34 built-in themes and the
+    report could not say so, because there was nothing for it to read.
+  - a ground that arrives from an ancestor. A transparent background
+    takes whatever is behind it, which the registry does not model.
+  - a card variant an AUTHOR defines, which the registry has never heard
+    of — the open half of the audit's §5.9.
+
+So this walks the DOM of a built page: for every element that paints its
+own text it resolves the ink, composites the grounds upward until an
+opaque one closes the chain, and reports the ratio with the size and
+weight that decide the threshold (WCAG 1.4.3 — 3:1 for large text, 4.5:1
+otherwise).
+
+Gradients are the reason a first version of this reported four failures
+that were not real. A gradient's `backgroundColor` is transparent, so
+reading only that walks past the cover and lands on the page behind it —
+and on a light theme the page ground IS the cover's ink, so it announced
+1.00:1 for text that is perfectly legible. Text over a gradient must
+clear the bar at every stop it crosses, so each stop is a candidate
+ground and the worst one is the answer.
+
+Requires Node.js with the `playwright` package; skips cleanly if either
+is missing, same as tests/test_web.py.
+
+Run with: python3 tests/run_tests.py
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+LWP = REPO_ROOT / 'lightwebpres'
+SCRIPT = Path(__file__).resolve().parent / 'contrast_e2e.cjs'
+
+
+def _node_playwright_available():
+    if shutil.which('node') is None:
+        return False, 'node not found on PATH'
+    npm_root = subprocess.run(
+        ['npm', 'root', '-g'], capture_output=True, text=True,
+    ).stdout.strip()
+    check = subprocess.run(
+        ['node', '-e', "require('playwright')"],
+        capture_output=True, text=True,
+        env={**os.environ, 'NODE_PATH': npm_root},
+    )
+    if check.returncode != 0:
+        return False, 'playwright not resolvable via npm root -g'
+    return True, npm_root
+
+
+AVAILABLE, NPM_ROOT_OR_REASON = _node_playwright_available()
+
+# A card variant the AUTHOR defines, which no registry property covers.
+# §5.9 of the audit: variants paint nothing by design, so nothing
+# guaranteed one an author writes would be legible. Here is a CAREFUL
+# one -- ground and both inks -- measured like everything else.
+_CUSTOM_CSS = """
+.fact-box.fact--warn { background: #FFF3CD; }
+.fact-box.fact--warn .fact-content { color: #4A3D14; }
+.fact-box.fact--warn .fact-label { color: #4A3D14; }
+"""
+
+# The same variant written carelessly: a ground, and only the body ink
+# recoloured. The label keeps whatever the theme gave it, over a colour
+# the theme has never seen. This is the §5.9 case, and it is the first
+# thing the instrument found -- on twelve of the thirteen themes the
+# registry reports as AA, because a careful author is not what the
+# registry is checking.
+_CARELESS_CSS = """
+.fact-box.fact--warn { background: #FFF3CD; }
+.fact-box.fact--warn .fact-content { color: #4A3D14; }
+"""
+
+_ARTICLE = """<!-- lwp:meta -->
+page_dest: a.html
+page_title: Contrast probe
+nav_title: A
+nav_desc: A
+---
+
+<!-- lwp:slide:cover -->
+kicker: PROBE
+# Contrast probe
+summary: A cover, whose ground is a gradient rather than one colour.
+
+---
+
+<!-- lwp:slide -->
+kicker: FIGURE
+## A card with a key figure and a fact box
+summary: The summary line, which is prose over the card's own ground.
+highlight: 42 / 70
+highlight-caption: what the key figure counts
+source: A source line, 2026.
+fact-label: THE FACT
+The fact box body, **with a marked run** and a [link](https://example.org).
+
+---
+
+<!-- lwp:slide -->
+kicker: VARIANT
+## A card carrying an author-defined variant
+summary: Nothing in the registry knows this variant exists.
+fact-variant: warn
+fact-label: THE WARNING
+Body text on a ground the author chose, which is the case the registry
+report cannot reach at all.
+
+---
+
+<!-- lwp:slide -->
+kicker: FREE
+## A card whose body is free Markdown
+summary: No fact-label, so the body is a .slide-body.
+
+A bare paragraph, a **bold run**, and `some code`.
+
+#### A body heading
+
+| Column | Verdict |
+| --- | --- |
+| a cell | <span class="yes">yes</span> |
+| another | <span class="no">no</span> |
+| a third | <span class="partial">partial</span> |
+
+---
+
+<!-- lwp:slide:full-article -->
+article: a_article.md
+"""
+
+_LONG = """# The article's own title
+
+Body prose in the long-form piece, with a [link](https://example.org)
+and a **bold run**.
+
+## A section heading
+
+More prose, so the heading above has something to be larger than.
+
+### A sub-section
+
+| Column | Other |
+| --- | --- |
+| cell | cell |
+
+> A block quote.
+
+```
+a code block
+```
+
+A paragraph with a footnote call.[^1]
+
+[^1]: The footnote text, which is apparatus.
+
+<div class="refs">
+
+A reference line, the apparatus block at the foot of the article.
+
+</div>
+"""
+
+# Every built-in theme. The counter defect showed on 15 of 34, so a
+# sample of five would have had a real chance of missing it.
+def _all_theme_slugs():
+    # From the tool, not from a list restated here: a catalogue that grows
+    # must widen this sweep without anyone remembering to.
+    result = subprocess.run(
+        ['python3', str(LWP), 'theme', 'show', '--all', '--format', 'json'],
+        capture_output=True, text=True, timeout=120)
+    if result.returncode != 0:
+        return []
+    return sorted(entry['target']['theme']
+                  for entry in json.loads(result.stdout))
+
+
+THEMES = _all_theme_slugs()
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s'
+                     % NPM_ROOT_OR_REASON)
+class EveryLineOnAPageCanBeRead(unittest.TestCase):
+
+    measured = {}
+    levels = {}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmpdir = tempfile.TemporaryDirectory()
+        root = Path(cls.tmpdir.name) / 'series'
+        (root / 'articles').mkdir(parents=True)
+        (root / 'templates').mkdir()
+        (root / 'templates' / 'custom.css').write_text(
+            _CUSTOM_CSS, encoding='utf-8')
+        (root / 'series.json').write_text(json.dumps({
+            'series_meta': {'title': 'Contrast probe series',
+                            'author': 'Probe author',
+                            'license': 'Probe licence line.'},
+            'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
+                          'nav_title': 'A', 'nav_desc': 'A'}]}),
+            encoding='utf-8')
+        (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
+        (root / 'articles' / 'a_article.md').write_text(_LONG, encoding='utf-8')
+        for theme in THEMES:
+            settheme = subprocess.run(
+                ['python3', str(LWP), 'series', 'theme', 'set', str(root),
+                 '--theme', theme],
+                capture_output=True, text=True, timeout=60)
+            assert settheme.returncode == 0, settheme.stdout + settheme.stderr
+            out = Path(cls.tmpdir.name) / ('public-' + theme)
+            build = subprocess.run(
+                ['python3', str(LWP), 'build', str(root), '--output', str(out),
+                 '--slides-page-numbers', 'yes'],
+                capture_output=True, text=True, timeout=60)
+            assert build.returncode == 0, build.stdout + build.stderr
+            run = subprocess.run(
+                ['node', str(SCRIPT), (out / 'a.html').as_uri()],
+                capture_output=True, text=True, timeout=120,
+                env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON})
+            assert run.returncode == 0, run.stdout + run.stderr
+            cls.measured[theme] = json.loads(run.stdout)
+        # The registry's own verdict per theme -- the contract the page is
+        # held to, read from the tool rather than restated here.
+        info = subprocess.run(
+            ['python3', str(LWP), 'theme', 'show', '--all', '--format', 'json'],
+            capture_output=True, text=True, timeout=120)
+        assert info.returncode == 0, info.stderr
+        cls.levels = {e['target']['theme']: e['accessibility']['body_text']['level']
+                      for e in json.loads(info.stdout)}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmpdir.cleanup()
+
+    def test_the_probe_measured_a_real_page(self):
+        """An empty measurement makes everything below vacuous, and a
+        thin one nearly so: the first fixture this instrument ran against
+        offered ten elements and every theme passed it."""
+        self.assertGreaterEqual(len(THEMES), 30,
+                                'the theme catalogue was not read')
+        self.assertEqual(sorted(self.measured), sorted(THEMES))
+        for theme, m in self.measured.items():
+            self.assertGreater(
+                m['measured'], 25,
+                f'{theme}: the probe page painted almost no text — the '
+                f'measurement, not the design, is what failed')
+        # The author-defined variant is on the page and was measured. It
+        # is the one case the registry report cannot reach, so a fixture
+        # that quietly stopped producing it would leave §5.9 uncovered
+        # while looking covered.
+        #
+        # Checked by its GROUND, not by its class: the variant class sits
+        # on `.fact-box`, which paints no text of its own, so it never
+        # appears in a signature. #FFF3CD arriving as a measured ground is
+        # proof that custom.css reached the page AND that the walk
+        # composited a colour down from an ancestor.
+        for theme, m in self.measured.items():
+            self.assertTrue(
+                any(r['onGround'] == [255, 243, 205] for r in m['results']),
+                f'{theme}: nothing was measured on the ground the author '
+                f'defined -- the variant did not reach the page')
+
+    def test_the_instrument_sees_through_a_gradient(self):
+        """The cover's ground is a gradient, and a gradient's
+        `backgroundColor` is transparent. An instrument that reads only
+        that walks past the cover onto the page behind it and reports
+        1.00:1 for a legible title — which is exactly what the first
+        version of this file did, on four elements, before the stops were
+        read. `grounds > 1` is the evidence it looked."""
+        for theme, m in self.measured.items():
+            over_gradient = [r for r in m['results'] if r['grounds'] > 1]
+            self.assertTrue(
+                over_gradient,
+                f'{theme}: nothing was measured against a gradient, so the '
+                f'stop reader is not running')
+
+    def test_a_theme_that_reports_AA_reaches_AA_on_the_page(self):
+        """The contract, and the only threshold this file may enforce.
+
+        specifications.md §11.9.1 is explicit that NOT every theme has to
+        reach the high standard -- `terminal`'s phosphor halo and
+        `synthwave`'s saturations are choices, and making them AAA would
+        destroy them. What is required is double: all stay legible, and
+        the author must KNOW which reaches which level. Thirteen themes
+        report AA for body text; twenty-one report `fail`, on purpose,
+        and the report is how the author knows.
+
+        So the assertion is not "everything is AA". It is: a theme whose
+        registry report says AA must actually deliver AA on the page. A
+        report that says AA over a page that does not is the one outcome
+        the design does not allow, because it is the report itself
+        lying."""
+        promised = {t for t, level in self.levels.items() if level != 'fail'}
+        self.assertGreater(len(promised), 5,
+                           'no theme claims AA -- the report was not read')
+        failures = []
+        for theme in sorted(promised):
+            for r in self.measured[theme]['results']:
+                if r['ratio'] < r['threshold']:
+                    failures.append(
+                        f"{theme} (reports {self.levels[theme]}): {r['sig']} "
+                        f"{r['ratio']}:1 needs {r['threshold']} "
+                        f"({r['size']}px weight {r['weight']}) {r['sample']!r}")
+        self.assertEqual(
+            failures, [],
+            'themes whose report promises AA and whose page does not '
+            'deliver it:\n  ' + '\n  '.join(failures))
+
+    def test_the_registry_report_is_not_optimistic_about_the_page(self):
+        """A theme reported `fail` is allowed to fail -- but the page must
+        not be WORSE than the report says. The report names its own worst
+        pair; the page's worst rendered ratio is recorded beside it, and a
+        page materially below the report means the registry is measuring
+        something the browser does not paint.
+
+        Recorded, not policed at a fixed number: the two measure
+        overlapping but different sets (the report covers pairs no probe
+        page instantiates, the page covers elements with no property at
+        all), so an exact match would be a coincidence, not a contract."""
+        report = []
+        for theme in sorted(self.measured):
+            worst = min((r['ratio'] for r in self.measured[theme]['results']),
+                        default=None)
+            report.append((theme, self.levels[theme], worst))
+        # Nothing anywhere is INVISIBLE. 1.5:1 is far below AA and far
+        # below the "stays legible" floor the spec asks of every theme;
+        # it is here to catch the class of defect that produced 1.00:1 on
+        # fifteen themes, not to relitigate the AA decision.
+        invisible = [(t, lvl, w) for t, lvl, w in report if w is not None and w < 1.5]
+        self.assertEqual(
+            invisible, [],
+            'text at or near its own ground -- not a near miss, '
+            f'invisible: {invisible}')
+
+    def test_a_careless_author_variant_is_caught_here_and_nowhere_else(self):
+        """The §5.9 case, demonstrated rather than asserted in the
+        abstract.
+
+        A variant is a ground the author paints and the registry has
+        never heard of, so `theme show` cannot say a word about the text
+        on it. Build the same page with a variant that recolours the body
+        and forgets the label -- an ordinary omission -- and the label
+        keeps the theme's ink over a colour the theme has never seen.
+
+        Measured: it lands below AA on twelve of the thirteen themes that
+        report AA. This is what instrument 2 is FOR; the careful variant
+        in the main fixture is what a correct one looks like."""
+        promised = sorted(t for t, level in self.levels.items()
+                          if level != 'fail')[:3]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            (root / 'articles').mkdir(parents=True)
+            (root / 'templates').mkdir()
+            (root / 'templates' / 'custom.css').write_text(
+                _CARELESS_CSS, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+            (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
+            (root / 'articles' / 'a_article.md').write_text(
+                _LONG, encoding='utf-8')
+            caught = []
+            for theme in promised:
+                subprocess.run(
+                    ['python3', str(LWP), 'series', 'theme', 'set', str(root),
+                     '--theme', theme], capture_output=True, timeout=60)
+                out = Path(tmp) / ('public-' + theme)
+                subprocess.run(
+                    ['python3', str(LWP), 'build', str(root),
+                     '--output', str(out)],
+                    capture_output=True, text=True, timeout=60)
+                run = subprocess.run(
+                    ['node', str(SCRIPT), (out / 'a.html').as_uri()],
+                    capture_output=True, text=True, timeout=120,
+                    env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON})
+                self.assertEqual(run.returncode, 0, run.stderr)
+                results = json.loads(run.stdout)['results']
+                on_variant = [r for r in results
+                              if r['onGround'] == [255, 243, 205]]
+                self.assertTrue(on_variant,
+                                f'{theme}: the careless variant did not paint')
+                if any(r['ratio'] < r['threshold'] for r in on_variant):
+                    caught.append(theme)
+            self.assertEqual(
+                sorted(caught), promised,
+                'the instrument did not see a careless author variant on '
+                f'{sorted(set(promised) - set(caught))} -- which is the one '
+                f'thing the registry report cannot see either')

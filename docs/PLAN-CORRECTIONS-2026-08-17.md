@@ -450,6 +450,43 @@ sont-ils d'accord entre eux », §11 « combien y a-t-il de tailles », §13
    plats. Mesure, pas opinion.
 2. **Une passe de contraste mesurant la page rendue, pas le registre.**
    Aurait attrapé 5.3, invisible au rapport actuel par construction.
+   **Fait** — `tests/test_rendered_contrast.py` + `contrast_e2e.cjs`, les
+   **34 thèmes**, la liste lue de l'outil.
+
+   Ce qu'il mesure : pour chaque élément qui peint son propre texte, l'encre
+   résolue et les fonds composités vers le haut jusqu'à l'opaque, avec la
+   taille et la graisse qui décident du seuil (WCAG 1.4.3).
+
+   Ce qu'il **n'affirme pas** : que tous les thèmes atteignent AA. §11.9.1 dit
+   l'inverse, et le dit exprès — 13 thèmes annoncent AA, 21 annoncent `fail`.
+   L'assertion est donc : **un thème dont le rapport annonce AA doit livrer AA
+   sur la page.** Un rapport qui annonce AA au-dessus d'une page qui ne
+   l'atteint pas est le seul résultat que la conception interdit, parce que
+   c'est le rapport lui-même qui ment.
+
+   S'y ajoute un plancher de lisibilité pour tous, `fail` compris : rien
+   au-dessous de 1,5:1. Il vise la classe de défaut qui a produit 1,00:1 sur
+   quinze thèmes, pas la décision AA.
+
+   **§5.9 est couvert** : le harnais construit la même page avec une variante
+   d'auteur *négligente* — un fond, l'encre du corps recolorée, l'étiquette
+   oubliée — et exige qu'elle soit prise. Mesuré : elle tombe sous AA sur
+   **douze des treize** thèmes qui annoncent AA. C'est exactement ce que le
+   rapport du registre ne peut pas voir, puisqu'il n'a jamais entendu parler
+   de cette variante.
+
+   **Deux fois l'instrument a eu tort avant d'avoir raison**, et les deux
+   sont écrits dans le fichier. (a) Un dégradé n'a pas de
+   `backgroundColor` : la première version traversait la couverture et
+   atterrissait sur la page derrière — dont l'encre EST celle de la
+   couverture sur un thème clair — et annonçait 1,00:1 pour quatre éléments
+   parfaitement lisibles. Elle lit les arrêts du dégradé et retient le pire.
+   (b) `.slide-counter` est `position: fixed` : son parent DOM est `<body>`,
+   pas la fiche sous laquelle il flotte. La chaîne d'ancêtres déclarait le
+   compteur lisible même avec le défaut 5.3 réintroduit. Il lit
+   `elementsFromPoint` pour les éléments flottants — en partant de
+   l'élément **lui-même**, puisque son propre fond opaque est précisément
+   le correctif.
 3. **L'alphabet complet de verbes dans la garde AST** (0.5). Aurait attrapé
    0.2 et empêche la récidive.
 
