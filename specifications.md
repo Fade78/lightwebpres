@@ -1146,7 +1146,10 @@ lue comme du texte de plus, et **plus grande** que le bloc `.refs` trois
 lignes plus bas, qui est exactement le même rôle.
 
 `note.local.size` et `refs.size` sont donc tous deux à **12 px**, le
-plancher du design : aucune des 246 propriétés n'est en dessous. Une note
+plancher du design : aucune propriété du registre n'est en dessous, et
+c'est un test qui le tient
+(`test_no_property_sets_a_size_below_the_twelve_pixel_floor`) plutôt
+qu'un comptage dans cette phrase. Une note
 sert à *détailler*, et sur une fiche le détail est de la place que le
 reste n'a pas ; mais en dessous il n'y a rien à gagner. Mesuré, passer de
 13 à 12 px fait gagner 3 px sur une fiche de 617 — 0,5 % — et à 11 px la
@@ -3336,12 +3339,25 @@ et saute les contrôles éditoriaux par article :
    **balises d'instance** que l'article contient, avec leur décompte par
    type — des interventions d'auteur qui survivent aux changements de
    thème (§9.6.3), que l'auteur doit savoir localiser
-3. Avertit si l'article ne contient **aucune** fiche `cover`
-4. Avertit si la **première** fiche de l'article n'est pas une `cover`
-5. Avertit si l'article n'a de description **nulle part** (`page_desc`
+3. Avertit pour chaque **clé du bloc meta que rien ne lit** — en la
+   nommant, en disant qu'elle est sans effet, et en proposant le nom réel
+   le plus proche quand il y en a un. C'est le seul endroit de l'outil qui
+   le dise : le format est bruyant sur un champ de *fiche* mal
+   orthographié (il devient du texte libre, et sur une couverture c'est une
+   erreur fatale qui nomme le champ), et muet sur une clé de *meta*, qui
+   est acceptée, sans effet, et laisse partir la page avec un titre qui a
+   basculé sur son repli. `comment` et les clés `style.*` ne sont jamais
+   signalées : rien ne résout la première, et les secondes sont la couche
+   article (§9.6.1), qui a son vocabulaire et ses erreurs fatales à elle.
+   L'avertissement ne bloque pas et le build reste silencieux — une clé
+   inconnue n'empêche pas l'outil de fonctionner (§9.5.6), elle échoue
+   seulement à faire ce que son auteur voulait
+4. Avertit si l'article ne contient **aucune** fiche `cover`
+5. Avertit si la **première** fiche de l'article n'est pas une `cover`
+6. Avertit si l'article n'a de description **nulle part** (`page_desc`
    vide à tous les niveaux de la cascade §20.3.1 — la balise
    `<meta name="description">` serait omise)
-6. Volet présentation (§9.4.4) : avertit si un `templates/style.css`
+7. Volet présentation (§9.4.4) : avertit si un `templates/style.css`
    hérité existe encore (plus lu — avec, pour lui comme pour
    `custom.css`, chaque variable **retirée** encore référencée, nommée
    avec son remplaçant, table `RETIRED_VARIABLES` de §9.8 — aucun alias
@@ -3351,7 +3367,7 @@ et saute les contrôles éditoriaux par article :
    messages qu'au build, non bloquants ici) ; et si son `scaffold-for:`
    ne correspond plus au `theme:` déclaré (décommenter une ligne
    épinglerait une valeur du thème quitté)
-7. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+8. Affiche un résumé (en anglais, non localisé) : « No warnings: all
    editorial conventions are respected. » ou « N warning(s). Reminder:
    audit never blocks... »
 

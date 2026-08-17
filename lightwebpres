@@ -3354,7 +3354,13 @@ THEME_PROPERTY_OVERRIDES = {
         # is at the horizon itself, which is out of frame. Measured: this
         # stop adds no failing pair to the thirteen the theme already
         # carries, where a warmer #5A3524 loses the cover summary.
-        'cover.bg.from': '#14304A', 'cover.bg.to': '#4A2A30',
+        #
+        # Only the SECOND stop is declared. `cover.bg.from` defaults to
+        # `ink`, which on this theme is already the #14304A the gradient
+        # wants to start from, so pinning it restated the default and said
+        # nothing -- and a line that says nothing still has to be re-read
+        # every time the palette moves.
+        'cover.bg.to': '#4A2A30',
         'page.shadow.fg': '#14304A26',
         'page.shadow.blur': '0.13em', 'page.shadow.dy': '0.05em',
         'title1.shadow.fg': '#2E6B9E66',
@@ -4928,7 +4934,8 @@ body.fs-noselect {
   border-width: 1px;
   /* `inherit`, like every neighbouring overlay -- .presenter-panel,
      .tag-menu and .help-overlay all resolve to the page's own ground and
-     measure AA on all 34 themes. `none` let the cover's gradient show
+     measure AA on every theme in the catalogue. `none` let the cover's
+     gradient show
      through, and on a light theme `page.fg` and `cover.bg.from` are both
      `color.ink`: the counter's ink WAS its ground. Measured at exactly
      1.00:1 on 15 of the 34 themes, with the 1px border in currentColor
@@ -10469,7 +10476,7 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
             resolver."""
             tried = [('series', entry.get(field) or ''),
                      ('article', meta.get(field) or '')]
-            for level, value in (('series-default', series_default),
+            for level, value in ((_SERIES_DEFAULT_ORIGIN, series_default),
                                  ('content', content), ('derived', derived)):
                 if value is not None:
                     tried.append((level, value))
@@ -11473,6 +11480,39 @@ def cmd_check(series_dir, args):
 # AUDIT COMMAND
 # ============================================================================
 
+def audit_meta_keys(filename, meta):
+    """A key in an lwp:meta block that nothing reads.
+
+    The format is loud about a misspelled SLIDE field: it becomes free
+    text, and on a cover that is a fatal build error naming the field and
+    listing the valid ones. A misspelled META key is the opposite -- it is
+    accepted in silence, has no effect, and the page ships with a title
+    that fell back to something else. `page-title:` for `page_title:` costs
+    nothing at build time and everything on the published page.
+
+    This is the only place in the tool that says so, and it warns rather
+    than blocks, which is the whole shape of `audit`: an unrecognized key
+    does not stop the tool working (§9.5.6), it only fails to do what its
+    author meant. The nearest valid name is offered because the failure
+    mode is a typo, not an invention.
+
+    `style.*` keys are skipped: they are the article property layer, with
+    their own vocabulary and their own errors, which are fatal and precise
+    already.
+    """
+    warnings = 0
+    for key in meta:
+        if key in ARTICLE_META_KEYS or key.startswith('style.'):
+            continue
+        near = difflib.get_close_matches(key, sorted(ARTICLE_META_KEYS),
+                                         n=1, cutoff=0.6)
+        hint = f' Did you mean `{near[0]}:`?' if near else ''
+        print(f'[WARNING] {filename}: `{key}:` is not a meta field — '
+              f'nothing reads it and it has no effect.{hint}')
+        warnings += 1
+    return warnings
+
+
 def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
     """The three ways a note can be broken without the build noticing
     (ARCHI-NOTES §4). None of them is fatal: the input contract does not
@@ -11671,6 +11711,7 @@ def cmd_audit(series_dir, args):
                   f"{len(instance_tags)} instance tag(s) ({counts}) — "
                   f"author interventions that survive theme changes.")
         meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
+        warnings += audit_meta_keys(entry['page_source'], meta)
         warnings += audit_slide_tags(
             entry['page_source'], slides, series_meta, lang_dir, lang,
             language_file)
@@ -12657,6 +12698,15 @@ _ARTICLE_LEVEL_NAMES = frozenset(
     + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'status',
                                       'slide_page_numbers'))
 
+# The complete article-level meta vocabulary, assembled from the names the
+# engine actually reads rather than restated by hand -- a second list would
+# be one more thing to forget. `comment` is added and is deliberately not in
+# the set above: it is a review note, recognized everywhere and published
+# nowhere, so nothing RESOLVES it and it must still never be reported as a
+# mistake. Read by audit_meta_keys(), which is defined earlier in the file
+# and resolves this at call time.
+ARTICLE_META_KEYS = frozenset(_ARTICLE_LEVEL_NAMES) | {'comment'}
+
 
 def _chain_link(level, value, note=None):
     """One level of a cascade, present or not. `value` is what that level
@@ -12790,7 +12840,7 @@ def resolve_notes_field(name, series_meta, article_meta):
         _chain_link('article', (article_meta or {}).get(name, ''),
                     note=None if article_meta is not None else
                     'not consulted — pass --article'),
-        _chain_link('series-default', series_meta.get(name, '')),
+        _chain_link(_SERIES_DEFAULT_ORIGIN, series_meta.get(name, '')),
         _chain_link('default', _NOTES_FIELD_DEFAULTS[name]),
     ]
     winner = _crown(chain)
@@ -12805,7 +12855,8 @@ def survey_slide_page_numbers(series_meta, article_meta):
         _chain_link('article', (article_meta or {}).get('slide_page_numbers', ''),
                     note=None if article_meta is not None else
                     'not consulted — pass --article'),
-        _chain_link('series-default', series_meta.get('slide_page_numbers', '')),
+        _chain_link(_SERIES_DEFAULT_ORIGIN,
+                    series_meta.get('slide_page_numbers', '')),
         _chain_link('default', 'off'),
     ]
     winner = _crown(chain)

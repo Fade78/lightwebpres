@@ -474,6 +474,52 @@ class AuditCommand(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('No warnings', result.stdout)
 
+    def test_audit_names_a_meta_key_nothing_reads(self):
+        """The asymmetry this closes: a misspelled SLIDE field becomes free
+        text and is a fatal build error naming the field, while a misspelled
+        META key was accepted in total silence — no error, no warning, no
+        effect — and the page shipped with a title that had fallen back.
+        `audit --strict` answered "all editorial conventions are respected".
+
+        Four cases in one fixture, because it is the pairing that matters:
+        a typo near a real name gets that name offered, a key resembling
+        nothing is still named but invents no suggestion, and the two keys
+        that are legitimately unresolved — `comment`, a review note nothing
+        reads, and the `style.*` article layer, which has its own vocabulary
+        and its own fatal errors — must stay silent."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage-title: ignored\n'
+            'nav_titel: also ignored\nzzz_unlike_anything: no near match\n'
+            'comment: a review note\nstyle.kicker.fg: ink\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: Summary.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('audit', str(root))
+            # audit never blocks: an unrecognized key does not stop the tool
+            # working, it only fails to do what its author meant (§9.5.6).
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('`page-title:` is not a meta field', result.stdout)
+            self.assertIn('Did you mean `page_title:`?', result.stdout)
+            self.assertIn('`nav_titel:` is not a meta field', result.stdout)
+            self.assertIn('Did you mean `nav_title:`?', result.stdout)
+            # named, but no suggestion invented for it
+            self.assertIn('`zzz_unlike_anything:` is not a meta field',
+                          result.stdout)
+            zzz = next(l for l in result.stdout.splitlines()
+                       if 'zzz_unlike_anything' in l)
+            self.assertNotIn('Did you mean', zzz)
+            # the two that are unresolved on purpose stay quiet
+            self.assertNotIn('`comment:` is not a meta field', result.stdout)
+            self.assertNotIn('style.kicker.fg', result.stdout)
+
+            # and the build itself says nothing and still succeeds: the
+            # warning belongs to audit, not to the build path.
+            built = run('build', str(root))
+            self.assertEqual(built.returncode, 0, built.stderr)
+            self.assertNotIn('page-title', built.stdout)
+
     def test_audit_warns_when_no_cover(self):
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
@@ -5639,7 +5685,7 @@ class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
         veil left un-inverted moves the wrong way and lands on the page's
         own floor — measured at 1.01:1 for `share.rule-fg` on dread.
 
-        All 33 themes, both polarities, because stated this way the
+        The whole catalogue, both polarities, because stated this way the
         constraint is the same sentence on each."""
         for slug in self.lwp.THEMES:
             r = self.lwp.resolve_theme_properties(
@@ -6241,7 +6287,7 @@ class ContrastFloors(unittest.TestCase):
         """The counter's colour (cover.num.fg, ex --cover-fg-faint) was
         once a fixed rgba(255,255,255,.34) that had never been measured
         against the ground it sits on: 2.37:1 at worst, and below AA on
-        all 33 themes AND on the default palette. 'Faint' is a look, not
+        every theme AND on the default palette. 'Faint' is a look, not
         a licence to be unreadable. Now an explicit ARGB in the resolved
         layer, so the alpha is read from the value the engine emits."""
         for slug, theme in self.lwp.THEMES.items():
@@ -6260,7 +6306,7 @@ class ContrastFloors(unittest.TestCase):
     # that ever existed (.slide-cover .summary, measured at 0.78) is now
     # carried by the alpha of cover.summary.fg, which
     # test_the_cover_summary_alpha_clears_aa_on_every_theme re-measures on
-    # all 33 themes. The dict stays as the only door a future fade may
+    # every theme. The dict stays as the only door a future fade may
     # come through.
     MEASURED_FADES = {}
 
@@ -6595,7 +6641,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
                             (33.6, 33.6, 33.6))
 
     def test_every_reported_ratio_survives_being_recomputed_from_scratch(self):
-        """The whole claim, on all 33 themes at once: for the pair the
+        """The whole claim, on the whole catalogue at once: for the pair the
         command NAMES as deciding each category, the ratio it reports is
         the one this class's own compositing and luminance produce. The
         executable chooses which pairs the page really superposes; the
@@ -10107,7 +10153,7 @@ class ThemeEngineStaged(unittest.TestCase):
 
     def test_every_catalogue_theme_resolves_and_emits(self):
         # The whole catalogue goes through the converter, the cascade and
-        # emission without an error — 33 themes, no exception is the test.
+        # emission without an error — every theme, no exception is the test.
         for slug in self.lwp.THEMES:
             layer = self.lwp.theme_property_layer(slug)
             self.lwp.emit_theme_css(self.resolve(layer))
@@ -10705,6 +10751,32 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
         self.assertLess(_coefficient(reg['note.local.size'].default),
                         _coefficient(reg['note.size'].default),
                         'the ordering holds at the floor and inverts above it')
+
+    def test_no_property_sets_a_size_below_the_twelve_pixel_floor(self):
+        """12px is the design floor, and the test above only ties the
+        foot-of-unit note to whatever the MINIMUM happens to be. If every
+        size in the registry drifted down together the minimum would
+        follow and that check would stay green while the floor was gone.
+        This one states the number.
+
+        Below 12px the reference -- the one thing this tool exists to make
+        reachable -- becomes the smallest element on a card, under the card
+        number and under the label. The floor is a decision, so it belongs
+        somewhere a decision can fail rather than in a sentence."""
+        reg = self.lwp.PROPERTY_REGISTRY
+        sizes = {name: _floor_px(p.default)
+                 for name, p in reg.items()
+                 if p.css == 'font-size' and isinstance(p.default, str)
+                 and _floor_px(p.default) is not None}
+        # An empty measurement would make the assertion below vacuous, and
+        # `css == 'font-size'` is exactly the kind of predicate a refactor
+        # renames out from under a test.
+        self.assertGreater(len(sizes), 20,
+                           'no sized properties found -- the scan is broken, '
+                           'not the design')
+        below = {n: px for n, px in sizes.items() if px < 12}
+        self.assertEqual(below, {},
+                         'a property sets a size below the 12px design floor')
 
     def test_a_theme_that_resizes_its_notes_resizes_both(self):
         # high-contrast states a bigger note; its foot-of-unit note has to
@@ -11708,7 +11780,7 @@ class AResponsiveOverrideMustActuallyOverride(unittest.TestCase):
 
 
 class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
-    """Ten contrast constraints × 33 themes, measured from the RESOLVED
+    """Ten contrast constraints × every theme, measured from the RESOLVED
     sheet rather than from the intent.
 
     Two things this catches that a cheaper test would not. Membership in

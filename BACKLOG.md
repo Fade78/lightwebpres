@@ -409,6 +409,12 @@ its own (`nav-dots.bg`, `nav-dots.rule-fg`, `nav-dots.pad`) — and the
 alternative of one hand-picked value per theme is a 33-line patch that
 would have to be re-derived every time a ground changes.
 
+> **Proposition non retenue.** Ces trois propriétés n'ont jamais été
+> créées : le composant du registre est `nav-dot`, au singulier, et il
+> n'a pas de fond déclaré. La question a été tranchée autrement, par
+> `color.nav` — un septième rôle de palette plutôt qu'un fond pour la
+> rangée. Les chercher dans le registre serait vain.
+
 Same sweep. `.nav-dots a` paints `--rule-strong`, a translucent veil, and
 it floats over two different grounds: a standard slide (the page) and a
 cover slide (the inverted cover ground). Over a cover on a light theme, a

@@ -194,12 +194,18 @@ and emitted as `<meta>` tags:
   error naming the article. This is **not** the always-on bottom-left live
   `X / N` counter — that one needs no setting and is never suppressed.
 
-**A key this block does not recognize is accepted in silence** — no
-error, no warning, and no effect. `page-title:` instead of `page_title:`
-builds cleanly and falls back as though you had written nothing. This is
-the opposite of a mistyped *slide* field, which becomes free text and is
-loud on a cover slide. Check spelling against the list above; `audit`
-will not catch it for you.
+**A key this block does not recognize has no effect, and the build says
+nothing.** `page-title:` instead of `page_title:` builds cleanly and
+falls back as though you had written nothing. This is the opposite of a
+mistyped *slide* field, which becomes free text and is loud on a cover
+slide.
+
+`audit` is what catches it: it names the key, says nothing reads it, and
+offers the nearest real field name. It warns and never blocks, so the
+build stays silent either way — run `audit` after editing a meta block.
+`comment:` and `style.*` keys are never reported: nothing resolves the
+first, and the second is the article property layer, which has its own
+vocabulary and its own fatal errors.
 
 `comment:` here works too, for an article-wide note — same rule as the
 per-slide one below: recognized, never read, never published.
