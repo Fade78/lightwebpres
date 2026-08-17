@@ -6865,6 +6865,26 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     }
   }
 
+  /* The width one preview is rendered at, and the whole page's ruler.
+     Derived from the VIEWPORT rather than from any container, so every
+     row shares one number: the panel width IS the rendering width, and
+     two rows measured at two widths cannot be compared.
+
+     340px was the fixed value, and on a 2560px screen it left the
+     gallery in a 1474px column with more than a thousand pixels of
+     margin either side. The floor stays 340 because that is the width
+     the panels were composed against. The ceiling is 560 and it is not
+     a taste: the deck's own sheet turns at `max-width: 600px`, so a
+     panel past that line would silently render the DESKTOP layout while
+     every narrower one renders the mobile layout, in the same gallery.
+     560 is the largest round value that stays clear of it, and past
+     there each extra pixel of width costs 1.65 of row height anyway.
+
+     Subtracted: 2x28 of .wrap padding, 2x18 of .panels padding, 3x14 of
+     gutters, and a further 20 for the page's own scrollbar, which 100vw
+     counts and the layout does not get. */
+  :root { --gal-panel: clamp(340px, (100vw - 154px) / 4, 560px); }
+
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
@@ -6878,11 +6898,13 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   ::selection { background: var(--ui-structural-soft); }
 
   .wrap {
-    /* 4 x 340 panels + 3 x 14 gutters + the row's own padding. Set from
-       the panels rather than chosen: a narrower wrap would put the fourth
-       panel behind a scroll on every row, on a desktop that has the room
-       for it. */
-    max-width: 1474px;
+    /* Four panels + 3 x 14 gutters + the row's own 2 x 18 padding and
+       2 x 1 border + this element's own 2 x 28. Computed rather than
+       written down: the constant used to be 1474px and the sum is
+       1496px, so the fourth panel sat 22px behind a horizontal scroll on
+       EVERY row, at every window size, including the ones with a
+       thousand pixels to spare. */
+    max-width: calc(var(--gal-panel) * 4 + 136px);
     margin: 0 auto;
     padding: 56px 28px 96px;
   }
@@ -6994,7 +7016,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
      page itself scroll sideways. */
   .panels {
     display: grid;
-    grid-template-columns: repeat(4, 340px);
+    grid-template-columns: repeat(4, var(--gal-panel));
     gap: 14px;
     padding: 12px 18px 0;
     overflow-x: auto;
@@ -7039,13 +7061,19 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     border: 1px solid var(--ui-card-border);
   }
   .preview {
-    /* Measured, not chosen: a card carrying a note needs 548px at this
-       width, and a note below the fold is the one thing that panel exists
+    /* Measured, not chosen: a card carrying a note needs 548px at 340
+       wide, and a note below the fold is the one thing that panel exists
        to show. The cover and the notes section fill the window (their
        min-height is 100vh, which resolves to the panel); the article is a
-       WINDOW onto something longer, as it is on a real page. */
-    width: 340px;
-    height: 560px;
+       WINDOW onto something longer, as it is on a real page.
+
+       The height follows the width through the ratio the 560 was
+       measured at, because the sheet inside is viewport-relative: its
+       type is set in vmin, so a panel that grew in one direction only
+       would not be the same rendering at another size, it would be a
+       different one. */
+    width: var(--gal-panel);
+    height: calc(var(--gal-panel) * 560 / 340);
     border: 0;
     display: block;
   }
@@ -7345,8 +7373,18 @@ TEMPLATE_THEMES_GALLERY_PANEL = '''
                measure resolve against the panel rather than the reader's
                window. srcdoc, so still zero external dependency. -->
           <div class="preview-frame">
+            <!-- scrolling="no" rather than a rule injected into srcdoc:
+                 the clipping is already the point -- the article panel is
+                 a window onto something longer -- and what was wrong was
+                 only the scrollbar drawn over it, which invites scrolling
+                 in what is a still of a theme, and on a platform with
+                 classic scrollbars steals 15px of the rendering width
+                 from the panels that overflow and from those alone. The
+                 attribute is obsolete in HTML5 and universally honoured;
+                 the CSS equivalent would have to be written INSIDE the
+                 preview, and the preview is the real sheet, untouched. -->
             <iframe class="preview" title="{label}: {caption}" loading="lazy"
-                    sandbox srcdoc="{preview_doc}"></iframe>
+                    scrolling="no" sandbox srcdoc="{preview_doc}"></iframe>
           </div>
         </figure>'''
 

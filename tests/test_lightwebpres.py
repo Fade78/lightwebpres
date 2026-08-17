@@ -5883,11 +5883,31 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
     def test_the_panels_render_at_their_true_size(self):
         """The previous gallery rendered at 1100px and scaled 0.34, which
         put 14px note text under 5 screen pixels. A transform reappearing
-        on .preview means the notes became unreadable again."""
+        on .preview means the notes became unreadable again.
+
+        The width was the literal 340px and is now the shared
+        `--gal-panel`, so the gallery can use a wide screen instead of
+        sitting in a fixed column. Both sides are asserted: the width IS
+        that variable -- one number for every row, or two rows are two
+        renderings -- and the height is that same variable through the
+        ratio it was measured at. A height stated any other way distorts
+        the aspect, and the sheet inside sets its type in vmin, so a
+        distorted aspect is a different rendering rather than the same one
+        at another size."""
         head = self.lwp.TEMPLATE_THEMES_GALLERY_HEAD
         preview = head.split('.preview {', 1)[1].split('}', 1)[0]
         self.assertNotIn('transform', preview)
-        self.assertIn('width: 340px', preview)
+        self.assertIn('width: var(--gal-panel);', preview)
+        self.assertRegex(
+            preview,
+            r'height:\s*calc\(var\(--gal-panel\) \* (\d+) / (\d+)\);')
+        ratio = re.search(
+            r'height:\s*calc\(var\(--gal-panel\) \* (\d+) / (\d+)\);', preview)
+        # The denominator is the width the panels were composed against,
+        # which is also the clamp's floor: at that width the panel is
+        # exactly the 340 x 560 it was measured as.
+        self.assertEqual(ratio.group(2), '340')
+        self.assertEqual(ratio.group(1), '560')
 
     def test_the_mock_exercises_the_parts_a_theme_actually_changes(self):
         """A preview that shows no fact-box says nothing about the
@@ -10393,6 +10413,65 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
         for field in ('source:', 'fact-label:', 'highlight:'):
             self.assertNotIn(f'<p>{field}', html,
                              f'{field} rendered as literal text')
+
+
+class TheGalleryPanelStaysOnTheDecksOwnSideOfItsBreakpoint(unittest.TestCase):
+    """A gallery panel is a real viewport with the real sheet in it, and
+    the sheet turns at a width of its own. The panel used to be a fixed
+    340px, safely below it; it now grows with the window so the gallery
+    can use a wide screen instead of sitting in a 1474px column. That
+    makes the two numbers a pair, and nothing but this test says so.
+
+    Past the turn the gallery would still look fine -- which is the
+    danger. Half the panels would render the desktop layout and half the
+    mobile one, in the same page, and a gallery whose whole job is
+    comparison would be comparing two different renderings."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lwp = load_lightwebpres_module()
+
+    def test_the_panel_never_grows_past_the_sheets_own_turn(self):
+        head = self.lwp.TEMPLATE_THEMES_GALLERY_HEAD
+        clamp = re.search(r'--gal-panel:\s*clamp\(([^;]+)\);', head)
+        self.assertTrue(clamp, 'the panel width is no longer a clamp()')
+        floor, _, ceiling = [p.strip() for p in
+                             re.split(r',(?![^()]*\))', clamp.group(1))]
+        turns = sorted(int(w) for w in re.findall(
+            r'@media \(max-width:\s*(\d+)px\)', self.lwp.TEMPLATE_SKELETON))
+        self.assertTrue(turns, 'the sheet has no width breakpoint -- wrong store')
+        self.assertLess(int(ceiling.rstrip('px')), turns[0],
+                        f'a panel of {ceiling} renders the desktop layout '
+                        f'while a narrower one renders the mobile layout')
+        # And the floor is the width the panels were composed against:
+        # below it the note falls out of the card, which is the one thing
+        # that panel exists to show.
+        self.assertEqual(floor, '340px')
+
+    def test_the_row_is_as_wide_as_the_four_panels_it_holds(self):
+        """The wrap's max-width was the constant 1474px against a real sum
+        of 1496px, so the fourth panel sat 22px behind a horizontal scroll
+        on every row at every window size. Derived now, and the arithmetic
+        has to keep agreeing with the boxes it adds up."""
+        head = self.lwp.TEMPLATE_THEMES_GALLERY_HEAD
+
+        def px(pattern):
+            m = re.search(pattern, head, re.DOTALL)
+            self.assertTrue(m, pattern)
+            return [int(v) for v in re.findall(r'(\d+)px', m.group(1))]
+
+        wrap_pad = px(r'\.wrap \{.*?padding:\s*([^;]+);')
+        panels_pad = px(r'\.panels \{.*?padding:\s*([^;]+);')
+        gap = px(r'\.panels \{.*?gap:\s*([^;]+);')[0]
+        border = px(r'\.theme-row \{.*?border:\s*([^;]+)\s')[0]
+        # padding: top sides bottom  ->  the sides are the second value.
+        expected = (wrap_pad[1] * 2 + panels_pad[1] * 2 + border * 2 + gap * 3)
+        stated = int(re.search(
+            r'max-width:\s*calc\(var\(--gal-panel\) \* 4 \+ (\d+)px\)',
+            head).group(1))
+        self.assertEqual(stated, expected,
+                         'the wrap does not add up to the four panels, the '
+                         'three gutters and the two boxes around them')
 
 
 class TheGalleryInTheRepoIsTheGalleryTheToolMakes(unittest.TestCase):

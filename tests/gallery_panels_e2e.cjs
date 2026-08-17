@@ -83,9 +83,42 @@ async function main() {
     if (notesGeom.items < 2) fail(`the notes panel shows ${notesGeom.items} bodies, expected 2`);
   }
 
+  // The row holds its four panels, at a window that has the room for
+  // them. The wrap's max-width was a constant, 1474px, against a real sum
+  // of 1496px -- so the fourth panel sat 22px behind a horizontal scroll
+  // on EVERY row at EVERY window size, including a 2560px one with a
+  // thousand pixels of margin either side. The arithmetic is checked
+  // offline; only a laid-out page can say the boxes agree with it.
+  const layout = await page.evaluate(() => {
+    const p = document.querySelector('.panels');
+    return { scrollW: p.scrollWidth, clientW: p.clientWidth,
+             page: document.documentElement.scrollWidth, viewport: innerWidth };
+  });
+  if (layout.scrollW > layout.clientW + 1) {
+    fail(`the row scrolls sideways in a ${layout.viewport}px window: ` +
+         `${layout.scrollW}px of panels in ${layout.clientW}px`);
+  }
+  if (layout.page > layout.viewport + 1) {
+    fail(`the page itself scrolls sideways: ${layout.page}px in ` +
+         `${layout.viewport}px -- the overflow is meant to be the row's`);
+  }
+
+  // A preview is a still of a theme, not something to scroll. The article
+  // panel is deliberately a window onto something longer, so the frames
+  // are marked scrolling="no": the bar was chrome drawn over the
+  // rendering, and on a platform with classic scrollbars it also took
+  // 15px of width from the panels that overflowed and from those alone --
+  // three panels of a row rendered at one width and the fourth at another.
+  const scrollable = await page.$$eval('iframe.preview',
+    (els) => els.filter((e) => e.getAttribute('scrolling') !== 'no')
+                .map((e) => e.title));
+  if (scrollable.length) {
+    fail('previews that can be scrolled: ' + scrollable.slice(0, 3).join(', '));
+  }
+
   if (consoleErrors.length) fail('console errors: ' + consoleErrors.join(' | '));
   await browser.close();
-  if (!process.exitCode) console.log('OK: four panels, note inside the card, rule inside the section');
+  if (!process.exitCode) console.log('OK: four panels, note inside the card, rule inside the section, row not scrolling');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
