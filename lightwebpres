@@ -13172,6 +13172,114 @@ _THEME_VERBS = {
 }
 
 
+# Dispatch key -> the name a user should type. The keys are the LEGACY
+# tokens, because that is what the dispatcher was built on, and every
+# message that echoed a key therefore recommended the command the same
+# program tells you not to use: `status --strict` answered "not an option
+# of `series-info`" for eight of the thirteen commands, and `series theme`
+# answered "series-theme", which is not a CLI token at all. Derived from
+# the verb tables rather than typed out, so a new verb cannot arrive
+# without a name here.
+_CANONICAL_NAME = {}
+for _verb, _key in _SERIES_VERBS.items():
+    _CANONICAL_NAME.setdefault(_key, _verb if _verb in _SHORTCUTS
+                               else f'series {_verb}')
+for _verb, _key in _THEME_VERBS.items():
+    _CANONICAL_NAME[_key] = f'theme {_verb}'
+_CANONICAL_NAME.update({
+    'set-theme': 'series theme set',
+    'refresh-templates': 'template update',
+    'series-theme': 'series theme',
+    'completion': 'completion',
+})
+
+
+def canonical(command):
+    """The invocation to show a user for an internal dispatch key."""
+    return _CANONICAL_NAME.get(command, command)
+
+
+# How many positionals each command can actually use. Anything past
+# that was SILENTLY DISCARDED: `init A B` created A, printed
+# "Installed: A", and never mentioned B -- a write command ignoring
+# half of what it was given, without a word. Same for `status a b c`,
+# `theme list junk`, and `build dir -x`, where a single-dash typo is
+# not recognised as an option at all and quietly becomes a positional.
+#
+# specifications.md §2.4 already promises an unknown option is fatal
+# and "never a silent no-op". An unusable positional is that same
+# promise seen from the other side. `resolve` has always counted its
+# own, which is where the wording below comes from: the check was
+# right, it was simply never generalised.
+#
+# None means "as many as you like" -- theme show and theme gallery
+# take a list of slugs, and gallery also accepts a legacy output path.
+_MAX_POSITIONAL = {
+    'install': 1, 'demo': 1, 'build': 1, 'check': 1, 'audit': 1,
+    'clean': 1, 'watch': 1, 'series-info': 1, 'series-theme': 1,
+    'set-theme': 1, 'refresh-templates': 1,
+    'resolve': 2,
+    'themes': 0, 'completion': 0,
+    'theme-info': None, 'themes-gallery': None,
+}
+
+
+def print_command_help(command):
+    """Help for one command, derived from the option tables.
+
+    `<command> --help` used to be a hard error -- `build --help`,
+    `theme show --help` and `series build --help` all exited 1 with
+    "Unknown option: --help", because --help was honoured only in leading
+    position. A refactor whose headline is nested subcommands shipped with
+    no subcommand help at all, and the most reflexive keystroke in the new
+    grammar was the one that failed.
+
+    Built from _COMMAND_OPTIONS rather than sliced out of the full help
+    text, so it cannot drift: an option added to a command appears here
+    the same day."""
+    name = canonical(command)
+    # The argument shape comes from the same table that enforces it, so
+    # the synopsis cannot promise a form the parser refuses.
+    limit = _MAX_POSITIONAL.get(command, 1)
+    shape = ('' if limit == 0 else
+             ' [directory]' if limit == 1 else
+             ' [directory] <name>' if limit == 2 else
+             ' <slug>...')
+    print(f'lightwebpres {name}{shape} [options]')
+    print()
+    own = sorted(_COMMAND_OPTIONS.get(command, set()) - _GLOBAL_OPTIONS)
+    if own:
+        print('OPTIONS')
+        for opt in own:
+            takes = ' <value>' if opt in _VALUE_OPTIONS else ''
+            print(f'  {opt}{takes}')
+    else:
+        print('This command takes no options of its own.')
+    print()
+    print('GLOBAL OPTIONS (before or after the command)')
+    print('  ' + '  '.join(sorted(_GLOBAL_OPTIONS)))
+    print()
+    print(f'Run `lightwebpres --help` for every command and the full '
+          f'description of each option.')
+
+
+def _node_help(node, verbs):
+    """Help for a command NODE (`series`, `theme`) rather than a command.
+
+    `theme --help` answered "Unknown theme verb: `theme --help`", which is
+    both wrong and unhelpful: --help is not a verb someone mistyped."""
+    print(f'lightwebpres {node} <verb> [arguments]')
+    print()
+    print('VERBS')
+    for verb in sorted(verbs):
+        print(f'  {node} {verb}')
+    if node == 'series':
+        print(f'  {node} theme set        change a series\' theme')
+    print()
+    print(f'Run `lightwebpres <verb> --help` for one verb, or '
+          f'`lightwebpres --help` for everything.')
+
+
 def _warn_legacy(alias):
     # 'warn', not 'error'. A deprecated alias still does the job and still
     # exits 0, so tagging its notice [ERROR] made `grep '^\[ERROR\]'` match
@@ -13200,6 +13308,9 @@ def _resolve_command(args):
 
     if head == 'series' and len(args) >= 2:
         verb = args[1]
+        if verb in ('--help', '-h'):
+            _node_help('series', _SERIES_VERBS)
+            sys.exit(0)
         # `series theme set <dir> --theme X` — two-word series verb.
         if verb == 'theme' and len(args) >= 3 and args[2] == 'set':
             return 'set-theme', args[3:], False
@@ -13211,6 +13322,9 @@ def _resolve_command(args):
 
     if head == 'theme' and len(args) >= 2:
         verb = args[1]
+        if verb in ('--help', '-h'):
+            _node_help('theme', _THEME_VERBS)
+            sys.exit(0)
         if verb in _THEME_VERBS:
             return _THEME_VERBS[verb], args[2:], False
         # `theme set` is NOT a shortcut (DECISION §3): the `theme` node never
@@ -13264,7 +13378,7 @@ def parse_cli_options(command, rest, global_opts=None):
             # (which may itself contain '=').
             name, eq, inline_value = arg.partition('=')
             if name not in allowed:
-                hint = f' (not an option of `{command}`)' if name in _VALUE_OPTIONS or any(
+                hint = f' (not an option of `{canonical(command)}`)' if name in _VALUE_OPTIONS or any(
                     name in v for v in _COMMAND_OPTIONS.values()) else ''
                 log('error', f'Unknown option: {name}{hint}. '
                       f'Run `lightwebpres --help` for the option list.')
@@ -13352,6 +13466,12 @@ def main():
     global_opts, args = _parse_global_options(args)
 
     command, rest, is_legacy = _resolve_command(args)
+    # `<command> --help`, in any position after the command. Honouring it
+    # only in leading position made the most reflexive keystroke in a
+    # nested grammar a hard error.
+    if command is not None and any(a in ('--help', '-h') for a in rest):
+        print_command_help(command)
+        return
     if command is None:
         if args:
             log('error', f'Unknown command: {args[0]}')
@@ -13371,29 +13491,6 @@ def main():
         dry_run=global_opts.get('--dry-run', False),
     )
 
-    # How many positionals each command can actually use. Anything past
-    # that was SILENTLY DISCARDED: `init A B` created A, printed
-    # "Installed: A", and never mentioned B -- a write command ignoring
-    # half of what it was given, without a word. Same for `status a b c`,
-    # `theme list junk`, and `build dir -x`, where a single-dash typo is
-    # not recognised as an option at all and quietly becomes a positional.
-    #
-    # specifications.md §2.4 already promises an unknown option is fatal
-    # and "never a silent no-op". An unusable positional is that same
-    # promise seen from the other side. `resolve` has always counted its
-    # own, which is where the wording below comes from: the check was
-    # right, it was simply never generalised.
-    #
-    # None means "as many as you like" -- theme show and theme gallery
-    # take a list of slugs, and gallery also accepts a legacy output path.
-    _MAX_POSITIONAL = {
-        'install': 1, 'demo': 1, 'build': 1, 'check': 1, 'audit': 1,
-        'clean': 1, 'watch': 1, 'series-info': 1, 'series-theme': 1,
-        'set-theme': 1, 'refresh-templates': 1,
-        'resolve': 2,
-        'themes': 0, 'completion': 0,
-        'theme-info': None, 'themes-gallery': None,
-    }
     _limit = _MAX_POSITIONAL.get(command, 1)
     if _limit is not None and len(positional) > _limit:
         wanted = ('no arguments' if _limit == 0 else

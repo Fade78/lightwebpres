@@ -1832,6 +1832,69 @@ class CliVersionAndShortcuts(unittest.TestCase):
                             'no [DEBUG] line names the file that was '
                             'written:\n' + '\n'.join(debug))
 
+    def test_every_command_and_node_answers_its_own_help(self):
+        """`build --help` exited 1 with "Unknown option: --help", because
+        --help was honoured only in leading position. A refactor whose
+        headline feature is nested subcommands shipped with no subcommand
+        help at all, and the most reflexive keystroke in the new grammar
+        was the one that failed."""
+        for argv in (('build', '--help'), ('build', '-h'),
+                     ('theme', 'show', '--help'),
+                     ('series', 'build', '--help'),
+                     ('clean', '--help'), ('resolve', '--help')):
+            result = run(*argv)
+            self.assertEqual(result.returncode, 0,
+                             f'`{" ".join(argv)}`:\n{result.stderr}')
+            self.assertIn('lightwebpres', result.stdout)
+            self.assertIn('GLOBAL OPTIONS', result.stdout)
+        # A NODE is not a command: `theme --help` answered "Unknown theme
+        # verb: `theme --help`", which reads as a typo nobody made.
+        for node in ('theme', 'series'):
+            result = run(node, '--help')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('VERBS', result.stdout)
+            self.assertNotIn('Unknown', result.stderr)
+
+    def test_command_help_promises_the_shape_the_parser_accepts(self):
+        """The synopsis is derived from the same table that enforces the
+        argument count, so help cannot advertise a form the parser
+        refuses. theme show takes slugs, not a directory."""
+        for argv, shape in ((('build',), '[directory]'),
+                            (('resolve',), '[directory] <name>'),
+                            (('theme', 'show'), '<slug>...'),
+                            (('theme', 'gallery'), '<slug>...')):
+            first = run(*argv, '--help').stdout.splitlines()[0]
+            self.assertIn(shape, first, f'`{" ".join(argv)} --help`: {first}')
+        # theme list takes no positional at all, so it promises none.
+        first = run('theme', 'list', '--help').stdout.splitlines()[0]
+        self.assertNotIn('directory', first, first)
+        self.assertNotIn('<slug>', first, first)
+
+    def test_an_error_names_the_command_the_user_typed(self):
+        """_COMMAND_OPTIONS is keyed by the LEGACY token, so a message that
+        echoed a key recommended the command the same program tells you not
+        to use: `status --strict` answered "not an option of `series-info`"
+        for eight of the thirteen commands, and `series theme` answered
+        "series-theme", which is not a CLI token at all."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = str(scaffold(tmp, _MINIMAL_MD))
+            cases = (
+                (('status', root, '--strict'), 'status', 'series-info'),
+                (('theme', 'list', '--format', 'json'), 'theme list', 'themes'),
+                (('verify', root, '--strict'), 'verify', 'check'),
+                (('init', root, '--strict'), 'init', 'install'),
+                (('series', 'theme', root, '--strict'),
+                 'series theme', 'series-theme'),
+            )
+            for argv, wanted, forbidden in cases:
+                result = run(*argv)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn(f'`{wanted}`', result.stderr,
+                              f'`{" ".join(argv)}`:\n{result.stderr}')
+                self.assertNotIn(f'`{forbidden}`', result.stderr,
+                                 f'the error names the deprecated form:\n'
+                                 f'{result.stderr}')
+
     def test_an_unusable_argument_is_fatal_not_discarded(self):
         """`init A B` created A, printed "Installed: A", and never
         mentioned B -- a write command ignoring half of what it was given,
