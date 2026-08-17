@@ -1474,7 +1474,7 @@ THEMES = {
         'family': 'desk', 'label': 'Old Journal', 'source': 'lightwebpres',
         'marker': '#D4BC7E', 'ink': '#2E2820', 'ink-muted': '#585040',
         'page': '#E0D4B4', 'accent': '#5E3A78', 'positive': '#35592F',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': "Newsprint that has browned, set in fixed pitch throughout. "
                 "The desk family already holds three near-white papers, and "
                 "the one thing an aged one has that they do not is that it "
@@ -1484,7 +1484,10 @@ THEMES = {
                 "the ink every mimeographed bulletin was run off in, and the "
                 "only violet in the family. The facet still reads neutral, "
                 "correctly: at this lightness a warm off-white is a paper, "
-                "not a yellow.",
+                "not a yellow. Emphasis is bold and nothing else: a highlighter "
+                "is a felt-tip pen, and no page this theme cites had one — a "
+                "press emphasised with weight, capitals or italic. The mark "
+                "still draws the fact-box rule and the cover kicker.",
         'note_good': True,
     },
     'chalkboard': {
