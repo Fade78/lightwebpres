@@ -71,32 +71,21 @@ AVAILABLE, NPM_ROOT_OR_REASON = _node_playwright_available()
 # an instrument that quietly covers less than it looks like it does is the
 # failure this whole file exists to name.
 
-# Everything still pinned to pixels, with the lot that owns it. Each of
-# these is chrome or an overlay: a control's glyph, a menu heading, the
-# slide number. They are legible reading at a desk and small on a
-# projector, which is the same defect the reading surface had — it is
-# simply not the same fix, so it is not in the same release.
+# Everything still pinned to pixels, with the lot that owns it.
 #
 # Remove an entry when its lot lands. Leaving one here after fixing it
 # fails this test, which is deliberate: a stale exemption is how a guard
 # quietly stops guarding.
-STILL_FLAT = {
-    # --- lot 5.8: navigation chrome ---
-    'div.nav-buttons div.nav-btn.nav-btn-home',
-    'div.slide-counter',
-    'div.tag-menu div.tag-menu-title',
-    # --- lot 5.8: the help overlay ---
-    'div.help-card div.help-title',
-    'div.help-card div.help-foot',
-    'ul.help-list span.help-keys',
-    'ul.help-list span.help-desc',
-    # --- lot 5.8: the share popover and its QR modal ---
-    'div.share-matrix button.share-action',
-    'div.share-matrix div.share-cell.share-cell-head',
-    'div.share-matrix div.share-cell.share-cell-head.share-cell-head-disabled',
-    'div.share-qr-modal-content button.share-qr-close',
-    'div.share-qr-modal-content div.share-qr-modal-title',
-}
+#
+# The list is EMPTY as of lot 5.8. It held twelve entries — the whole
+# navigation chrome, the help overlay, the share popover and its QR modal
+# — and the pattern behind all twelve was the same: a root box with no
+# font-size of its own, so its `em` children were `em` of a body that
+# never grows. Giving each root the size it was already implying, in the
+# `max(floor, N vmin)` form the rest of the design uses, moved eleven of
+# them at once. Keep it empty: an entry added here is a promise to come
+# back, and this comment is the record of how long the last batch waited.
+STILL_FLAT = set()
 
 
 _ARTICLE = """<!-- lwp:meta -->

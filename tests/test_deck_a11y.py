@@ -104,6 +104,9 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name) / 'series'
         (root / 'articles').mkdir(parents=True)
+        # `series theme set` writes templates/settings.conf and needs the
+        # directory to exist.
+        (root / 'templates').mkdir()
         # series_meta gives the page a real footer. Without one there is
         # nothing to spill onto the extra sheet a forced break creates, so
         # the print defect hides: the probe must carry the thing that made
@@ -118,15 +121,24 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
         (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
         for theme in THEMES:
             out = Path(cls.tmpdir.name) / ('public-' + theme)
+            # The theme is APPLIED to the series and then built, because
+            # `build` takes no --theme. This used to pass `--theme` to
+            # build and fall back to a plain build when that failed --
+            # which it always did, so all five names measured the default
+            # theme and the counter test covered one theme while reporting
+            # five. A fallback that quietly measures something else is
+            # exactly the failure this file was written to name.
+            settheme = subprocess.run(
+                ['python3', str(LWP), 'series', 'theme', 'set', str(root),
+                 '--theme', theme],
+                capture_output=True, text=True, timeout=60)
+            assert settheme.returncode == 0, settheme.stdout + settheme.stderr
+            # --slides-page-numbers: the engraved number is off by default
+            # and its alignment is one of the things measured below.
             build = subprocess.run(
                 ['python3', str(LWP), 'build', str(root),
-                 '--output', str(out), '--theme', theme],
+                 '--output', str(out), '--slides-page-numbers', 'yes'],
                 capture_output=True, text=True, timeout=60)
-            if build.returncode != 0:  # --theme may not apply to build
-                build = subprocess.run(
-                    ['python3', str(LWP), 'build', str(root),
-                     '--output', str(out)],
-                    capture_output=True, text=True, timeout=60)
             assert build.returncode == 0, build.stdout + build.stderr
             run = subprocess.run(
                 ['node', str(SCRIPT), (out / 'a.html').as_uri()],
@@ -140,11 +152,21 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
         cls.tmpdir.cleanup()
 
     def test_the_probe_measured_every_theme(self):
-        """An empty measurement makes everything below vacuous."""
+        """An empty measurement makes everything below vacuous. So does a
+        measurement of the same theme five times, which is what this
+        fixture did for as long as it passed `--theme` to a command that
+        does not take it and fell back to a plain build. The grounds have
+        to be DISTINCT, or the counter test reports five themes and covers
+        one."""
         self.assertEqual(sorted(self.measured), sorted(THEMES))
         for theme, m in self.measured.items():
             self.assertTrue(m['menuOpens'], f'{theme}: no variant menu to test')
             self.assertGreater(m['slideCount'], 1, theme)
+        grounds = {theme: tuple(m['counter']['bg'])
+                   for theme, m in self.measured.items()}
+        self.assertEqual(
+            len(set(grounds.values())), len(THEMES),
+            f'themes sharing a ground -- the theme was not applied: {grounds}')
 
     def test_the_variant_dialog_takes_focus_and_keeps_it(self):
         """Focus must move IN on open, stay in across Tab and Shift+Tab,
@@ -197,6 +219,72 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
         self.assertIn('THE-SPEAKER-NOTE-MARKER', m['presenter']['notes'],
                       f'the panel shows {m["presenter"]["notes"]!r} instead '
                       f'of the slide\'s note')
+
+    def test_the_presenter_panel_is_reachable_and_announces(self):
+        """The panel is a labelled, scrollable, live region.
+
+        It had none of that: no role, no label, no aria-live, and no way
+        into it from the keyboard. `overflow: auto` with `max-height: 44vh`
+        makes it scrollable, and a scrollable region that cannot take
+        focus cannot be scrolled without a mouse (WCAG 2.1.1) -- on the one
+        panel whose whole purpose is a note too long to fit.
+
+        Escape reached every other overlay on the page and not this one."""
+        p = self.measured['high-contrast']['presenter']
+        self.assertEqual(p['role'], 'region',
+                         'the panel is an unnamed div to a screen reader')
+        self.assertTrue(p['label'], 'a region with no accessible name')
+        self.assertEqual(p['tabindex'], '0',
+                         'a scrollable panel that cannot take focus')
+        self.assertEqual(p['live'], 'polite',
+                         'the note changes with the slide and says nothing')
+        self.assertTrue(p['closesOnEscape'],
+                        'Escape closes every other overlay and not this one')
+
+    def test_the_navigation_glyph_stays_inside_its_own_button(self):
+        """`nav-btn.size` is a theme property and grows with the screen;
+        the button was 44x44 at every width. Measured at 3840 the glyph
+        was 54px inside a 44px circle -- 10px of it outside the shape it
+        is centred in. The home glyph, stated flat at 17px, was 3.2x
+        smaller than its neighbours on the same screen."""
+        w = self.measured['high-contrast']['wide']
+        self.assertIsNotNone(w['navBtnBox'], 'no navigation button rendered')
+        self.assertGreater(w['navBtnBox'], w['navBtnGlyph'],
+                           f"a {w['navBtnGlyph']}px glyph in a "
+                           f"{w['navBtnBox']}px button")
+        # The house glyph is smaller than the arrows on purpose -- but by a
+        # ratio, not by standing still while they grow.
+        self.assertGreater(
+            w['navHomeGlyph'], 0.5 * w['navBtnGlyph'],
+            f"the home glyph is "
+            f"{w['navBtnGlyph'] / w['navHomeGlyph']:.1f}x smaller than "
+            f"its neighbours")
+        self.assertLess(w['navHomeGlyph'], w['navBtnGlyph'])
+
+    def test_the_slide_number_sits_over_the_column_not_the_card(self):
+        """`right: 32px` measured the number from the CARD edge while every
+        line of text starts at the padding the card computes from
+        --page-content-max. Measured, the number's right edge was 275px
+        past the column's at 3840 and 122px at 1920, and the sign inverted
+        on a phone -- so the one width where it looked right was the one
+        nobody presents on."""
+        w = self.measured['high-contrast']['wide']
+        self.assertIsNotNone(w['numRight'],
+                             'the probe built no slide number to measure')
+        self.assertAlmostEqual(
+            w['numRight'], w['columnRight'], delta=1.0,
+            msg=f"the number is {w['numRight'] - w['columnRight']:.0f}px "
+                f"off the column's right edge")
+
+    def test_the_panel_a_speaker_reads_grows_with_the_screen(self):
+        """15.2px at 375 and 15.2px at 3840, measured: the panel's three
+        children are all `em` of a body that never grew, so the one part of
+        the page written FOR the person running the deck was the flattest
+        thing on it."""
+        w = self.measured['high-contrast']['wide']
+        self.assertGreater(w['panelNote'], 16.0,
+                           f'the speaker note is {w["panelNote"]}px on a '
+                           f'3840px screen')
 
     def test_one_slide_prints_on_one_sheet(self):
         """Counts pages in a real PDF, not the presence of a CSS rule.

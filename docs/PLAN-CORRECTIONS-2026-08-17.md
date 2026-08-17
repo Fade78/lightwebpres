@@ -31,7 +31,7 @@ pas par symptôme.
 | 5.2–5.4 | Clavier, contraste 1.00:1, page fantôme | v0.34.0 | **fait** |
 | 1 | Le contrat CLI qui ment | v0.34.0 | **fait** |
 | 4 | Les dix tests morts | avec chaque correctif | **fait** (`952f232`, `4454cbc`) |
-| 2, 5.5–5.8 | Robustesse du build, alignement, longueurs | v0.34.x | en cours |
+| 2, 5.5–5.8 | Robustesse du build, alignement, longueurs | v0.34.x | **fait** (2.2 réfuté par la mesure) |
 | 3 | Documentation et artefacts générés | continu | à faire |
 
 ---
@@ -351,6 +351,26 @@ défaut deux mois après sa correction.
 | 5.7 | Longueurs encore figées « contre le glyphe » : soulignement des liens (1 px / 3 px sous un texte à 40,5 px), six propriétés `*.tracking` en px (0,167 em → 0,062 em), paddings de `code`, `.fact-box`, `.series-item`, cellules de tableau, `pre`, `blockquote` |
 | 5.8 | `nav-btn.size` monte de 20 à 54 px mais le bouton reste 44×44 : **le glyphe déborde de son cercle de 16 px** à 4K. `.nav-btn-home` figé à 17 px, 3,2× plus petit que ses voisins. Toute la chrome (compteur, menu, panneau, aide) est figée |
 | 5.9 | Les variantes de fiche **ne peignent rien** par conception ; rien ne garantit qu'une variante définie par l'auteur passe AA |
+
+**5.5 à 5.8 faits.** Tout reproduit avant correction, tout mesuré après.
+
+| # | Avant | Après |
+|---|---|---|
+| 5.5 | Panneau : ni `role`, ni `aria-label`, ni `aria-live`, Échap ne le ferme pas, contenu inatteignable au Tab, note à **15,2 px** à 375 comme à 3840 | `role="region"` nommé, `aria-live="polite"` sur la note, `tabindex="0"` — un bloc `overflow:auto` à `max-height:44vh` qu'on ne peut pas focaliser ne peut pas être défilé au clavier —, Échap le ferme sans rien avaler d'autre (il n'est pas modal), note à **41 px** à 3840 |
+| 5.6 | `.slide-num` à `right: 32px`, mesuré contre la **fiche** : +275,2 px à 3840, +121,6 à 1920, +44,8 à 768, signe inversé à 375 | `right` lit la même expression que le padding, et la suit dans les deux blocs responsive qui redéclarent ce padding. **0,0 px aux quatre largeurs** |
+| 5.7 | Le compteur, le titre du menu, l'aide, le popover de partage et sa modale QR : douze entrées dans `STILL_FLAT` | `STILL_FLAT` est **vide**. Un seul motif derrière les douze : une boîte racine sans `font-size` à elle, dont les enfants en `em` étaient des `em` d'un corps qui ne grandit pas |
+| 5.8 | Glyphe de 54 px dans un cercle de 44 px à 3840 ; `.nav-btn-home` figé à 17 px, 3,2× plus petit que ses voisins | La géométrie est un **composite du moteur**, dérivé de `nav-btn.size` (44/20 = 2,2 ; 17/20 = 0,85). Le squelette ne dit plus de second nombre — c'est comme ça qu'ils avaient divergé. Au plancher le bouton fait exactement 44 px, la plus petite cible acceptée par WCAG 2.5.5 |
+
+**Trouvé en corrigeant** : `tests/test_deck_a11y.py` passait `--theme` à `build`,
+qui ne le prend pas, et retombait sur un build sans thème. Le repli tirait
+**à chaque fois** : les cinq noms mesuraient le thème par défaut, et le test de
+contraste annonçait cinq thèmes pour un seul. Le thème est maintenant appliqué
+à la série (`series theme set`) puis construit, et le test exige cinq fonds
+**distincts** — le repli silencieux est exactement le défaut que ce fichier
+existe pour nommer.
+
+5.9 reste ouvert : rien ne garantit qu'une variante de fiche définie par
+l'auteur passe AA. C'est l'instrument 2.
 
 **Réfutations mesurées, au crédit du code** — les petits écrans n'ont pas
 empiré : 375×667 → 3/8 cartes qui débordent, pire cas +223 px, contre 3/8 et

@@ -85,9 +85,23 @@ function contrast(fg, bg) {
       open: !!(panel && panel.classList.contains('open')),
       notes: notes ? notes.textContent.trim() : null,
       next: (document.querySelector('.pp-next') || {}).textContent || '',
+      // A scrollable region (overflow:auto + max-height) that cannot take
+      // focus cannot be scrolled from the keyboard at all: the panel is
+      // capped at 44vh and a long note is exactly what it is for.
+      role: panel ? panel.getAttribute('role') : null,
+      label: panel ? panel.getAttribute('aria-label') : null,
+      tabindex: panel ? panel.getAttribute('tabindex') : null,
+      live: notes ? notes.getAttribute('aria-live') : null,
     };
   });
-  await page.keyboard.press('n');
+  // Escape reached every other overlay -- help, the variant dialog, the
+  // share popover, the QR modal -- and not this one.
+  await page.keyboard.press('Escape');
+  out.presenter.closesOnEscape = !(await page.evaluate(() => {
+    const p = document.getElementById('presenterPanel');
+    return !!(p && p.classList.contains('open'));
+  }));
+  if (!out.presenter.closesOnEscape) await page.keyboard.press('n');
 
   // --- contrast: the speaker counter on slide 1 (the cover gradient) ----
   out.counter = await page.evaluate(() => {
@@ -106,6 +120,56 @@ function contrast(fg, bg) {
   } else {
     out.counterContrast = null;  // transparent: nothing to measure against
   }
+
+  // --- geometry: is the chrome drawn against what it holds? -------------
+  // Both measured at 3840, where a length stated flat has drifted
+  // furthest from the type it was drawn against.
+  // Its OWN context, not just its own page. The keyboard walk above
+  // applied a tag with Enter, and that selection is remembered in
+  // localStorage -- which a second page on the same file:// origin
+  // inherits, so the card measured here came back hidden, with a
+  // zero-size rect and a padding that resolves to nothing. Measuring a
+  // display:none element is how a geometry probe reports 0px of drift
+  // while the page is as wrong as it ever was.
+  const wideCtx = await browser.newContext({
+    viewport: { width: 3840, height: 2160 } });
+  const wide = await wideCtx.newPage();
+  await wide.goto(URL);
+  out.wide = await wide.evaluate(() => {
+    const val = (el, prop) => parseFloat(getComputedStyle(el)[prop]);
+    const btn = document.querySelector('.nav-btn');
+    const home = document.querySelector('.nav-btn-home');
+    // A VISIBLE section card, not the cover: the cover has its own
+    // number component and the point here is the ordinary case. Visible
+    // because a hidden card has no geometry to compare.
+    const slide = Array.prototype.filter.call(
+      document.querySelectorAll('.slide'),
+      (s) => getComputedStyle(s).display !== 'none'
+             && !s.classList.contains('slide-cover'))[0]
+      || document.querySelector('.slide');
+    const num = slide.querySelector('.slide-num');
+    const cs = getComputedStyle(slide);
+    const box = slide.getBoundingClientRect();
+    return {
+      // The glyph inside its own circle: `nav-btn.size` is a theme
+      // property that grows, the 44x44 button was not, and at 4K the
+      // glyph stood outside the circle it is centred in.
+      navBtnBox: btn ? btn.getBoundingClientRect().width : null,
+      navBtnGlyph: btn ? val(btn, 'fontSize') : null,
+      navHomeGlyph: home ? val(home, 'fontSize') : null,
+      // The number over the COLUMN, not over the card: `right: 32px`
+      // measured it from the card edge while the text starts at the
+      // padding, and the two drifted apart as the screen grew.
+      numRight: num ? num.getBoundingClientRect().right : null,
+      columnRight: box.right - parseFloat(cs.paddingRight),
+      panelNote: (() => {
+        const n = document.getElementById('presenterNotes');
+        return n ? val(n, 'fontSize') : null;
+      })(),
+    };
+  });
+  await wide.close();
+  await wideCtx.close();
 
   // --- print: one slide, one sheet --------------------------------------
   // VISIBLE slides. The variant filter hides the cards that do not carry

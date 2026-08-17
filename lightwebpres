@@ -1138,6 +1138,7 @@ LANG_FR = r'''{
     "tags_menu": "Filtrer les slides",
     "help_tags": "Filtrer par tag et mémoriser la sélection",
     "presenter_next": "Suivant :",
+    "presenter_label": "Panneau du présentateur",
     "help_title": "Raccourcis clavier",
     "help_next": "Slide suivante",
     "help_prev": "Slide précédente",
@@ -1235,6 +1236,7 @@ LANG_EN = r'''{
     "tags_menu": "Filter slides",
     "help_tags": "Filter by tag and remember the selection",
     "presenter_next": "Next:",
+    "presenter_label": "Presenter panel",
     "help_title": "Keyboard shortcuts",
     "help_next": "Next slide",
     "help_prev": "Previous slide",
@@ -2576,6 +2578,26 @@ THEME_COMPONENTS = [
                   selector='.nav-btn:focus-visible'),
         ThemeProp('nav-btn.ring-width', PROP_LENGTH, '3px',       css='outline-width',
                   selector='.nav-btn:focus-visible'),
+    ], composite=[
+        # The circle is drawn against the glyph inside it, so it is derived
+        # here rather than stated as a second number in the skeleton. The
+        # skeleton said 44x44 flat while `nav-btn.size` grew with the
+        # screen: measured at 3840 the glyph was 54px inside a 44px circle.
+        # 44 / 20 = 2.2 is the ratio the two flat numbers expressed, and it
+        # puts the button at exactly 44px at the floor -- the smallest
+        # target WCAG 2.5.5 accepts. A theme that restates the glyph now
+        # gets a button that follows it, with nothing to keep in step by
+        # hand.
+        ('width',  'calc(var(--nav-btn-size) * 2.2)'),
+        ('height', 'calc(var(--nav-btn-size) * 2.2)'),
+    ]),
+    # The house glyph reads larger than the arrows at the same size, so it
+    # is set smaller on purpose -- by a RATIO. Stated flat at 17px it was
+    # 3.2x smaller than its neighbours at 3840, which is not "smaller on
+    # purpose" but a different design at every width. 17 / 20 is what the
+    # flat pair expressed.
+    ThemeComponent('nav-btn-home', '.nav-btn-home', [], composite=[
+        ('font-size', 'calc(var(--nav-btn-size) * 0.85)'),
     ]),
     ThemeComponent('nav-dot', '.nav-dots a', [
         ThemeProp('nav-dot.bg',        PROP_COLOR, '#00000029', css='background'),
@@ -3776,7 +3798,21 @@ html { scroll-behavior: smooth; }
    had for .theme-row, and the same fix. Keep this override beside every
    display on .slide/.nav-btn. */
 .slide[hidden], .nav-btn[hidden] { display: none; }
-.slide-num { position: absolute; top: 24px; right: 32px; }
+/* The number sits over the COLUMN, not over the card.
+
+   `right: 32px` measured it against the card edge while every line of
+   text on the slide starts at the padding the rule above computes, so the
+   two drifted apart as the screen grew: measured, the number's right edge
+   was 275px past the heading's at 3840, 122px at 1920, 45px at 768, and
+   the sign inverted on a phone -- the one width where it looked centred
+   was the one nobody presents on. Reading the same expression as the
+   padding keeps them on one edge at every width, including for an author
+   who pins a different --page-content-max. */
+.slide-num {
+  position: absolute;
+  top: 24px;
+  right: max(8vw, (100% - var(--page-content-max)) / 2);
+}
 .slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
 h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
@@ -4083,9 +4119,10 @@ body.fs-noselect {
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
 @media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
+/* No width/height here: the circle is drawn against the glyph, so the
+   engine derives both from `nav-btn.size` (see the nav-btn composite).
+   The skeleton stating a second number is how they drifted apart. */
 .nav-btn {
-  width: 44px;
-  height: 44px;
   border-radius: 50%;
   border-style: solid;
   backdrop-filter: blur(6px);
@@ -4106,9 +4143,12 @@ body.fs-noselect {
 .nav-btn:active { transform: scale(0.96); }
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
-.nav-btn-home { font-size: 17px; }
+/* The home glyph's size comes from the nav-btn-home composite. */
+/* The dialog's children are all `em`, so without a size here they were
+   `em` of a body that never grows -- flat at every width, measured. */
 .tag-menu {
   position: fixed;
+  font-size: max(16px, 2vmin);
   right: 82px;
   bottom: 24px;
   z-index: 250;
@@ -4174,6 +4214,9 @@ body.fs-noselect {
    order before adding a selector here. */
 @media (max-width: 600px) {
   .slide { padding: 40px 24px; }
+  /* The number tracks the padding wherever the padding is restated, or it
+     goes back to being measured against a different edge than the text. */
+  .slide-num { right: 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: 16px; right: 16px; }
 }
@@ -4211,7 +4254,7 @@ body.fs-noselect {
   left: 28px;
   z-index: 150;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
+  font-size: max(13px, 1.625vmin);
   padding: 4px 11px;
   border-radius: 999px;
   border-style: solid;
@@ -4234,9 +4277,18 @@ body.fs-noselect {
 .slide-counter.idle { opacity: 0; }
 .slide-counter.idle:hover { opacity: 1; }
 @media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }
+/* The one part of the page a SPEAKER reads, and it was the flattest:
+   15.2px at 375 and 15.2px at 3840, measured, because its three children
+   are all `em` of a body that never grew. Same expression as .slide-body,
+   which is the size the panel paraphrases.
+
+   `tabindex="0"` in the markup is not decoration: `overflow: auto` with a
+   max-height makes this a scrollable region, and a scrollable region that
+   cannot take focus cannot be scrolled from the keyboard at all. */
 .presenter-panel {
   position: fixed;
   left: 0; right: 0; bottom: 0;
+  font-size: max(16px, 2vmin);
   max-height: 44vh;
   z-index: 300;
   padding: 16px 28px 20px;
@@ -4275,7 +4327,10 @@ body.fs-noselect {
   padding: 48px 24px;
 }
 .help-overlay.open { display: block; }
+/* Same as .tag-menu: every line inside is `em` of this box, and this box
+   had no size of its own. */
 .help-card {
+  font-size: max(16px, 2vmin);
   max-width: 660px;
   margin: 0 auto;
   border-style: solid;
@@ -4341,6 +4396,7 @@ body.fs-noselect {
 /* --- Share popover and its QR modal --- */
 .share-popover {
   position: fixed;
+  font-size: max(14px, 1.75vmin);
   bottom: 80px;
   right: 28px;
   z-index: 250;
@@ -4360,19 +4416,22 @@ body.fs-noselect {
 .share-cell-head {
   font-weight: 700;
   text-align: center;
-  font-size: 11px;
+  font-size: max(11px, 1.375vmin);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .share-cell-head-disabled { opacity: 0.35; }
 .share-cell-label { white-space: nowrap; padding-right: 10px; }
 button.share-action {
-  width: 36px;
-  height: 36px;
+  /* 36 / 16 = 2.25: the box drawn against the glyph, as .nav-btn is --
+     written out rather than derived, because the share chrome states no
+     glyph size of its own for the engine to read. */
+  width: max(36px, 4.5vmin);
+  height: max(36px, 4.5vmin);
   border-radius: 8px;
   border-style: solid;
   cursor: pointer;
-  font-size: 16px;
+  font-size: max(16px, 2vmin);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4396,6 +4455,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    native camera fails to detect one that decodes fine in a dedicated
    scanner. Give it room to stay legible. */
 .share-qr-modal-content {
+  font-size: max(15px, 1.875vmin);
   border-radius: 12px;
   padding: 24px;
   max-width: 400px;
@@ -4404,7 +4464,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
 }
 .share-qr-modal-title {
-  font-size: 15px;
+  font-size: max(15px, 1.875vmin);
   font-weight: 700;
   margin-bottom: 12px;
 }
@@ -4415,7 +4475,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   margin-bottom: 12px;
 }
 .share-qr-modal-url {
-  font-size: 12px;
+  font-size: max(12px, 1.5vmin);
   word-break: break-all;
   margin-bottom: 16px;
 }
@@ -4425,7 +4485,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   padding: 8px 20px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
+  font-size: max(14px, 1.75vmin);
 }
 
 /* The popover's phone geometry. It used to live in the responsive block
@@ -4548,6 +4608,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    viewport -- portrait and desktop are unchanged to the pixel. */
 @media (max-height: 520px) {
   .slide { padding: 24px 6vw; }
+  .slide-num { right: 6vw; }
   .fact-box { padding: 14px 18px; }
   .highlight { margin: 8px 0 10px; }
 }
@@ -5636,6 +5697,17 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       return;
     }
+    // The presenter panel was the one overlay Escape did not reach: help,
+    // the variant dialog, the share popover and the QR modal all close on
+    // it, and a speaker who hit Escape on the panel got nothing. It is not
+    // modal -- the point is to navigate while it is open -- so this closes
+    // it and swallows nothing else.
+    if (e.key === 'Escape' && presenterPanel
+        && presenterPanel.classList.contains('open')) {
+      e.preventDefault();
+      togglePresenter();
+      return;
+    }
     if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
       e.preventDefault(); runStepped(stepForward);
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
@@ -6149,9 +6221,10 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <div class="pause-overlay" id="pauseOverlay"></div>
 
 <div class="slide-counter" id="slideCounter"></div>
-<div class="presenter-panel" id="presenterPanel">
+<div class="presenter-panel" id="presenterPanel" role="region"
+     aria-label="{{str_presenter_label}}" tabindex="0">
   <div class="pp-head" id="presenterHead"></div>
-  <div class="pp-notes" id="presenterNotes"></div>
+  <div class="pp-notes" id="presenterNotes" aria-live="polite"></div>
   <div class="pp-next" id="presenterNext"></div>
 </div>
 
