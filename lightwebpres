@@ -56,6 +56,7 @@ import base64
 import mimetypes
 import difflib
 import hashlib
+import traceback
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -193,11 +194,35 @@ def progress(msg=''):
 # alphabet now covers the delete side, which is what makes this helper the
 # only way to remove a file.
 def _write_file(path, content, encoding='utf-8'):
-    """Writes content to path, unless --dry-run is active (then logs only)."""
+    """Writes content to path, unless --dry-run is active (then logs only).
+
+    Writes a sibling temporary file and renames it over the target, so a
+    build that dies in the middle of a page leaves the previous page
+    intact rather than a truncated one. `os.replace` is atomic within a
+    filesystem, and the temporary is a sibling precisely so it is on the
+    same one. A reader -- a browser on the served output, `check`, the
+    next build's manifest -- never sees half a file.
+
+    The temporary is removed if the write fails, so a crash does not
+    litter the output with fragments the manifest has never heard of and
+    `clean` will therefore never offer to remove."""
     if _LOG_STATE['dry_run']:
         log('info', f'would write {len(content)} bytes to {path}')
         return
-    Path(path).write_text(content, encoding=encoding)
+    target = Path(path)
+    tmp = target.with_name(target.name + f'.{os.getpid()}.tmp')
+    try:
+        tmp.write_text(content, encoding=encoding)
+        os.replace(tmp, target)
+    except OSError as exc:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        # Re-point the error at the file the caller asked for. The
+        # temporary is this helper's business; naming it in the message
+        # sends the reader looking for a path that no longer exists.
+        raise OSError(exc.errno, exc.strerror, str(target)) from exc
     log('verbose', f'wrote {len(content)} bytes to {path}')
 
 
@@ -9287,12 +9312,20 @@ def copy_images(articles_dir, output_dir):
     committed `img/leak.png -> /etc/passwd` (or a directory symlink) would
     otherwise be published into public/img/ — arbitrary host-file
     exfiltration from an attacker-authored series built unattended. A
-    symlink whose realpath stays inside img/ is harmless and kept."""
+    symlink whose realpath stays inside img/ is harmless and kept.
+
+    Returns the paths it published, relative to output_dir. The manifest
+    is built from THIS list rather than from a scan of the destination.
+    Scanning the destination re-blesses whatever is already sitting there,
+    so an image deleted from the source stayed declared by every later
+    build, never reached the orphan list, and stayed published forever —
+    including a photograph withdrawn on purpose."""
     img_src = articles_dir / 'img'
     img_dst = output_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
-        return
+        return []
     src_root = img_src.resolve()
+    refused = set()
 
     def _refuse_escaping_symlinks(dir_path, names):
         ignored = set()
@@ -9304,11 +9337,22 @@ def copy_images(articles_dir, output_dir):
                     log('warn', f'img/: skipped symlink escaping the '
                           f'image directory: {entry.relative_to(img_src)}')
                     ignored.add(name)
+                    refused.add(entry)
         return ignored
 
     _copytree(img_src, img_dst, dirs_exist_ok=True,
               ignore=_refuse_escaping_symlinks)
     progress(f'  Images copied: {img_dst}')
+    # What was published: the source tree minus what the guard refused. A
+    # refused entry is checked against the path AND its parents, because a
+    # refused directory symlink takes everything under it with it.
+    published = []
+    for p in sorted(img_src.rglob('*')):
+        if refused.intersection({p, *p.parents}):
+            continue
+        if p.is_file():
+            published.append(str(Path('img') / p.relative_to(img_src)))
+    return published
 
 
 def load_series_data(series_dir):
@@ -10130,12 +10174,13 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
 
     # --inline-images: images are embedded as base64 data URIs, so the
     # img/ directory is not copied to the output.
+    images = []
     if not ctx.args.get('--inline-images'):
-        copy_images(ctx.articles_dir, ctx.output_dir)
+        images = copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
     _write_manifest(ctx.output_dir, ctx.articles,
-                    include_index=claimant is None)
+                    include_index=claimant is None, images=images)
     tail = ' + index' if claimant is None else ''
     progress(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
 
@@ -10249,7 +10294,8 @@ _lightwebpres_completion() {{
 _MANIFEST_NAME = '.lwp-manifest.json'
 
 
-def _write_manifest(output_dir, articles_built, include_index=True):
+def _write_manifest(output_dir, articles_built, include_index=True,
+                    images=()):
     """Writes .lwp-manifest.json in public/ listing every file the build
     produced, so `clean` can purge orphans without guessing (DECISION §3).
 
@@ -10261,12 +10307,11 @@ def _write_manifest(output_dir, articles_built, include_index=True):
     files = [e['page_dest'] for e in articles_built]
     if include_index:
         files.append('index.html')
-    # Images are copied wholesale; list the img/ directory if it exists.
-    img_dir = output_dir / 'img'
-    if img_dir.is_dir():
-        for p in sorted(img_dir.rglob('*')):
-            if p.is_file():
-                files.append(str(p.relative_to(output_dir)))
+    # What copy_images says it published, from the SOURCE. This used to
+    # walk output_dir/img instead, which answers "what is there" when the
+    # question a manifest exists to answer is "what did this build make".
+    # The two differ by exactly the file the author deleted.
+    files.extend(images)
     previous = []
     existing = output_dir / _MANIFEST_NAME
     if existing.exists():
@@ -10550,15 +10595,17 @@ def cmd_build(series_dir, args):
 
     # Copy the images (unless --inline-images: images are embedded as
     # base64 data URIs, so the img/ directory is not copied to the output).
+    images = []
     if not args.get('--inline-images'):
-        copy_images(ctx.articles_dir, ctx.output_dir)
+        images = copy_images(ctx.articles_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
 
     # Manifest for `clean` (DECISION §3): lists every file this build
     # produced in public/, so clean can purge orphans without guessing.
     _write_manifest(ctx.output_dir, ctx.articles,
-                    include_index=claimant is None and not args.get('--no-index'))
+                    include_index=claimant is None and not args.get('--no-index'),
+                    images=images)
 
     tail = ' + index' if claimant is None and not args.get('--no-index') else ''
     progress(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
@@ -13128,7 +13175,11 @@ _COMMAND_OPTIONS = {
     'set-theme': {'--theme'},
     'series-theme': {'--format'},
     'themes-gallery': {'--all', '--output'},
-    'clean': {'--force', '--dry-run'},
+    # --output because cmd_clean has always read it: a site built with
+    # `build --output <dir>` is cleaned with the same word, and without it
+    # here the parser refused the only spelling that reaches the build's
+    # actual output. The env var LWP_OUTPUT_DIR was the sole way in.
+    'clean': {'--force', '--dry-run', '--output'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
               '--open', '--slides-page-numbers',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only'},
@@ -13664,4 +13715,31 @@ if __name__ == '__main__':
         # output was truncated, and nothing downstream should read it as
         # complete.
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        sys.exit(1)
+    except KeyboardInterrupt:
+        # Ctrl-C is an answer, not a fault. `watch` documents exit 0 on it.
+        sys.exit(0)
+    except OSError as exc:
+        # Every refusal this tool decides for itself is an `[ERROR]` line.
+        # A refusal the filesystem decides -- output turned read-only, disk
+        # full, a path that is a directory where a file was expected -- came
+        # out as a raw Python traceback, so the one class of failure the
+        # user has no control over was the one reported in a language about
+        # the program's insides. Turning `public/index.html` into a
+        # directory printed eleven frames of pathlib.
+        where = f': {exc.filename}' if exc.filename else ''
+        log('error', f'{exc.strerror or exc}{where}')
+        log('error', 'the output directory may hold a partly updated site; '
+            'fix the cause and build again.')
+        sys.exit(1)
+    except Exception as exc:  # noqa: BLE001 -- the last line before a traceback
+        # Anything unforeseen. The traceback is the maintainer's evidence
+        # and stays reachable behind --verbose; what reaches the user by
+        # default is one line in the same voice as every other refusal.
+        log('error', f'internal error: {type(exc).__name__}: {exc}')
+        if _LOG_STATE['verbose']:
+            traceback.print_exc()
+        else:
+            log('error', 'run again with --verbose for the traceback, and '
+                'please report it with the series that provoked it.')
         sys.exit(1)

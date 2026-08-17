@@ -4071,18 +4071,38 @@ de passer ses propres tests.
 ### 11.13 `clean`
 
 ```
-lightwebpres clean [répertoire] [--force]
+lightwebpres clean [répertoire] [--output <dir>] [--force]
 ```
 
-Purge les fichiers orphelins de `public/` — ceux qu'un build précédent
+Purge les fichiers orphelins de la sortie — ceux qu'un build précédent
 a produits mais que le build courant ne produit plus (un article retiré
-de `series.json`, un `page_dest` renommé). La liste des fichiers déclarés
-provient du manifeste écrit par le dernier `build`
-(`public/.lwp-manifest.json`) ; tout fichier dans `public/` qui n'y
-figure pas est un orphelin.
+de `series.json`, un `page_dest` renommé, une image supprimée de
+`articles/img/`).
+
+Le manifeste écrit par `build` (`.lwp-manifest.json` dans le répertoire de
+sortie) porte deux listes : `files`, ce que ce build a produit, et
+`previous`, l'union de ce que les builds antérieurs avaient produit. **Un
+orphelin est un fichier de `previous` absent de `files`** : un fichier
+déclaré puis abandonné. Un fichier qu'aucun build n'a jamais produit n'est
+jamais candidat — `CNAME`, `.nojekyll`, `robots.txt`, `404.html`, le
+`.git/` d'un worktree de publication et toute autre pièce rapportée du
+déploiement restent en place.
+
+`files` se construit à partir des **sources** : les pages déclarées par
+`series.json` et les images présentes dans `articles/img/` au moment du
+build. Il ne se déduit jamais d'un balayage du répertoire de sortie, qui
+répond « ce qui s'y trouve » là où la question est « ce que ce build a
+fabriqué » — les deux diffèrent exactement du fichier que l'auteur vient
+de supprimer.
+
+`--output` désigne le répertoire de sortie, comme pour `build` ; à défaut,
+`LWP_OUTPUT_DIR`, puis `public/`. La commande refuse un répertoire qui
+contient `series.json`, `articles/` ou `templates/` : c'est un répertoire
+de série, pas une sortie de build.
 
 Dry-run par défaut : la commande liste les orphelins sans les supprimer.
-`--force` les supprime pour de vrai. Sans manifeste (pas de build
+`--force` les supprime pour de vrai, et `--dry-run --force` n'en supprime
+aucun — il énonce ce qu'il ferait. Sans manifeste (pas de build
 préalable), la commande est une erreur : `clean` ne supprime que ce qu'un
 build a déclaré, et le manifeste est la déclaration.
 

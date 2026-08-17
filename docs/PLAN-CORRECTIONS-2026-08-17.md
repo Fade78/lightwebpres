@@ -304,6 +304,42 @@ zéro `except: pass`, les quatre harnais navigateur tournent réellement.
 
 En partie couvert par 0.3 — à traiter après, pas avant.
 
+**2.1 fait.** Reproduit : transformer `public/index.html` en répertoire
+donnait onze cadres de `pathlib`. Deux correctifs. `_write_file` écrit un
+temporaire frère et le renomme (`os.replace`), donc une page n'est jamais
+tronquée ni à moitié servie, et l'échec ne laisse pas de fragment ; l'erreur
+est re-pointée sur le fichier demandé, pas sur le temporaire. Et le point
+d'entrée traduit `OSError` en une ligne `[ERROR]` nommant le fichier, avec la
+mention que la sortie peut être à moitié à jour ; tout le reste devient
+`[ERROR] internal error:` avec la traceback derrière `--verbose`. `Ctrl-C`
+sort à 0. Le test mesure l'inode, pas la présence de `os.replace` dans la
+source — sa première version lisait la source et se contentait de la
+docstring qui explique le renommage.
+
+**2.2 réfuté par la mesure, et c'est 0.3 qui l'a réfuté.** Le constat avait
+été établi sous l'ancienne règle (« tout fichier non déclaré est orphelin »).
+Sous la règle de différence, `orphelins = previous − files`, un manifeste
+périmé ne peut plus désigner un fichier frais : reproduit avec un build tué
+en cours (article `c` fatal après l'écriture de `a.html`), le manifeste n'est
+pas réécrit, `clean` répond « No orphan files to clean. » et `c.html`, écrit
+avant la mort, n'est **jamais** candidat. Un manifeste périmé sous-nettoie ;
+il ne sur-supprime pas. Écrire le manifeste **en dernier** est donc l'ordre
+sûr : l'écrire en premier ferait entrer dans `previous` des pages dont le
+remplacement n'a pas encore été écrit.
+
+**2.3 fait.** Reproduit : image supprimée de la source, republiée par chaque
+build suivant, jamais orpheline, publiée pour toujours. `copy_images` renvoie
+ce qu'il a publié et le manifeste est construit là-dessus.
+
+**Trouvé en passant** : `cmd_clean` lit `--output` depuis toujours, mais
+`_COMMAND_OPTIONS['clean']` ne le listait pas — la branche était inatteignable
+en ligne de commande, `LWP_OUTPUT_DIR` était la seule entrée. Corrigé.
+
+**Dérive de spec corrigée** : §11.13 documentait encore la règle inversée
+(« tout fichier dans `public/` qui n'y figure pas est un orphelin »), celle
+qui a supprimé `CNAME` et un `.git/`. Le document normatif décrivait le
+défaut deux mois après sa correction.
+
 ---
 
 ## Lot 5.5–5.8 — Rendu, suite

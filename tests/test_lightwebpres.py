@@ -2656,6 +2656,62 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('No orphan', result.stdout)
 
+    def test_clean_takes_the_output_it_was_built_with(self):
+        """cmd_clean has always read --output; the parser refused it.
+
+        A site built with `build --output dist` could only be cleaned by
+        setting LWP_OUTPUT_DIR, because the option table for `clean` did
+        not list the option the command's own body reads. The branch was
+        unreachable from the command line."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            dist = Path(tmp) / 'dist'
+            run('build', str(root), '--output', str(dist))
+            entry = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            entry['articles'][0]['page_dest'] = 'renamed.html'
+            (root / 'series.json').write_text(json.dumps(entry), encoding='utf-8')
+            run('build', str(root), '--output', str(dist))
+            result = run('clean', str(root), '--output', str(dist), '--force')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((dist / 'a.html').exists())
+            self.assertTrue((dist / 'renamed.html').exists())
+
+    def test_an_image_deleted_from_the_source_stops_being_published(self):
+        """The manifest lists what the build MADE, not what is lying about.
+
+        `_write_manifest` used to rescan output/img and list whatever it
+        found there, so every rebuild re-declared an image whose source had
+        been deleted. Being declared, it was never an orphan; never an
+        orphan, `clean` never offered it; and a photograph withdrawn on
+        purpose stayed on the published site for as long as the site
+        lived. Measured, then fixed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            (root / 'articles' / 'img').mkdir()
+            png = base64.b64decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8'
+                'z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
+            (root / 'articles' / 'img' / 'doomed.png').write_bytes(png)
+            (root / 'articles' / 'img' / 'kept.png').write_bytes(png)
+            pub = root / 'public'
+            run('build', str(root), '--output', str(pub))
+            self.assertTrue((pub / 'img' / 'doomed.png').exists())
+
+            (root / 'articles' / 'img' / 'doomed.png').unlink()
+            run('build', str(root), '--output', str(pub))
+            manifest = json.loads(
+                (pub / '.lwp-manifest.json').read_text(encoding='utf-8'))
+            self.assertNotIn('img/doomed.png', manifest['files'],
+                             'a rebuild re-declared an image that is gone '
+                             'from the source')
+            self.assertIn('img/kept.png', manifest['files'])
+
+            result = run('clean', str(root), '--force')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((pub / 'img' / 'doomed.png').exists())
+            self.assertTrue((pub / 'img' / 'kept.png').exists(),
+                            'clean took the image the source still has')
+
     def test_watch_rebuilds_on_change_and_serves_the_result(self):
         """The two existing watch tests prove the INITIAL build runs and
         the option table accepts the flags. Gutting the rebuild loop and
@@ -2814,6 +2870,64 @@ class CliVersionAndShortcuts(unittest.TestCase):
             proc.stderr.close()
             self.assertEqual(proc.returncode, 0, err)
             self.assertNotIn('Unknown option', out + err)
+
+    def test_a_filesystem_refusal_is_an_error_line_not_a_traceback(self):
+        """Every refusal this tool decides for itself prints `[ERROR]`.
+
+        A refusal the filesystem decides -- read-only output, disk full, a
+        directory where a file belongs -- came out as eleven frames of
+        pathlib. The one class of failure the user cannot control was the
+        one reported in a language about the program's insides, and it is
+        the class most likely to be read by whoever is on call."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            pub = root / 'public'
+            run('build', str(root), '--output', str(pub))
+            # A directory where index.html goes: the write cannot succeed
+            # and nothing in the tool anticipates it.
+            (pub / 'index.html').unlink()
+            (pub / 'index.html').mkdir()
+            result = run('build', str(root), '--output', str(pub))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn('Traceback (most recent call last)',
+                             result.stderr)
+            self.assertIn('[ERROR]', result.stderr)
+            # It names the file the build was asked to write, not the
+            # temporary this tool renames from.
+            self.assertIn('index.html', result.stderr)
+            self.assertNotIn('.tmp', result.stderr)
+            # And it is reported as what it is. A disk the tool cannot
+            # write to is not an "internal error": that wording sends the
+            # reader to the bug tracker instead of to `df`.
+            self.assertNotIn('internal error', result.stderr)
+
+    def test_a_page_is_never_left_half_written(self):
+        """Writes go to a sibling temporary and are renamed into place.
+
+        In-place `write_text` truncates first: a build interrupted between
+        truncate and flush leaves a served page that is half a document,
+        and the reader on the other end of `watch --serve` gets it. The
+        rename is atomic within a filesystem, which is why the temporary
+        is a sibling."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            pub = root / 'public'
+            run('build', str(root), '--output', str(pub))
+            # The inode is the evidence, not the word `os.replace` in the
+            # source: a rename creates a new file and unlinks the old, an
+            # in-place write keeps the same one. The first version of this
+            # test read the source and was satisfied by the docstring
+            # that explains the rename.
+            before = (pub / 'index.html').stat().st_ino
+            run('build', str(root), '--output', str(pub))
+            self.assertNotEqual(before, (pub / 'index.html').stat().st_ino,
+                                'the page was truncated and rewritten in '
+                                'place, so a reader can see half of it')
+            # No fragment survives a SUCCESSFUL build either: a temporary
+            # left behind is a file no manifest declares, so `clean` will
+            # never offer to remove it.
+            strays = [p.name for p in pub.rglob('*') if p.name.endswith('.tmp')]
+            self.assertEqual(strays, [])
 
     def test_no_bare_filesystem_write_outside_helpers(self):
         """--dry-run relies on every filesystem write going through the
