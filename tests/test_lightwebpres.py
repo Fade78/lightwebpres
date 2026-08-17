@@ -19,6 +19,7 @@ import json
 import os
 import inspect
 import re
+import shlex
 import shutil
 import subprocess
 from html import escape as html_escape
@@ -1623,9 +1624,15 @@ class CliVersionAndShortcuts(unittest.TestCase):
     --version, subcommand shortcuts, and legacy aliases with a [WARN]."""
 
     def test_version_prints_version_and_exits_zero(self):
+        # The whole line, not the prefix. `assertIn('LightWebPres v', ...)`
+        # matched every string the emitter could possibly produce -- the
+        # executable could have answered v0.0.0-wrong and been called
+        # correct. The one thing --version exists to say is the number.
+        lwp = load_lightwebpres_module()
         result = run('--version')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('LightWebPres v', result.stdout)
+        self.assertEqual(result.stdout.strip(),
+                         f'LightWebPres v{lwp.VERSION}')
         # Version is not buried in help: --version prints only the version.
         self.assertNotIn('COMMANDS', result.stdout)
 
@@ -2350,17 +2357,49 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertIn('No draft', result.stderr)
 
     def test_open_opens_browser_after_build(self):
-        # --open (DECISION §1 Phase 3): opens the browser on the result.
-        # We mock webbrowser.open via the LWP_BROWSER env var to avoid
-        # actually opening a window in CI.
+        """--open (DECISION §1 Phase 3) opens the browser on the result.
+
+        The browser is a recording wrapper, not /bin/true. Pointing BROWSER
+        at a no-op and asserting the exit code proved only that the build
+        succeeded: `if args.get('--open'):` -> `if False:` left this green,
+        which is to say nothing here ever observed a browser being opened.
+        The wrapper writes its argv to a file, so the assertion is that a
+        URL reached it -- and that the URL is the page just built."""
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
-            # Point webbrowser at a no-op by setting BROWSER to /bin/true
-            # (webbrowser.open falls back to the BROWSER env var on POSIX).
-            env = {'BROWSER': '/bin/true'}
+            record = Path(tmp) / 'opened.txt'
+            fake = Path(tmp) / 'fake-browser'
+            fake.write_text(
+                f'#!/bin/sh\nprintf "%s\\n" "$@" >> {record}\n',
+                encoding='utf-8')
+            fake.chmod(0o755)
+            env = {'BROWSER': str(fake)}
             result = run('build', str(root), '--output', str(root / 'public'),
                          '--open', env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(record.exists(),
+                            'the browser was never invoked')
+            opened = record.read_text(encoding='utf-8').strip()
+            self.assertEqual(
+                opened, (root / 'public' / 'index.html').resolve().as_uri(),
+                'the browser was opened on something other than the build')
+
+    def test_a_build_without_open_opens_nothing(self):
+        # The negative half: without the flag, no browser. Without this the
+        # test above is satisfied by a build that always opens one.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            record = Path(tmp) / 'opened.txt'
+            fake = Path(tmp) / 'fake-browser'
+            fake.write_text(
+                f'#!/bin/sh\nprintf "%s\\n" "$@" >> {record}\n',
+                encoding='utf-8')
+            fake.chmod(0o755)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         env={'BROWSER': str(fake)})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(record.exists(),
+                             'a build with no --open opened a browser')
 
     def test_inline_images_embeds_base64_and_skips_img_dir(self):
         # --inline-images: images are embedded as base64 data URIs, and
@@ -2860,6 +2899,23 @@ class CliVersionAndShortcuts(unittest.TestCase):
                          f'Bare filesystem writes outside helpers found:\n'
                          + '\n'.join(violations))
 
+    @staticmethod
+    def _complete(script, words, cword):
+        """Sources an emitted completion script in bash, calls the function
+        the way the shell would, and returns what it offered.
+
+        Reading the script as a string proves it was printed. This runs it."""
+        prog = (
+            script + '\n'
+            'COMP_WORDS=(' + ' '.join(shlex.quote(w) for w in words) + ')\n'
+            f'COMP_CWORD={cword}\n'
+            '_lightwebpres_completion\n'
+            'printf "%s\\n" "${COMPREPLY[@]}"\n'
+        )
+        r = subprocess.run(['bash', '-c', prog], capture_output=True,
+                           text=True)
+        return [line for line in r.stdout.splitlines() if line]
+
     def test_completion_bash_generates_valid_script(self):
         # `completion --shell bash` prints a bash completion script.
         result = run('completion', '--shell', 'bash')
@@ -2873,11 +2929,33 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertIn('verify', result.stdout)
 
     def test_completion_zsh_generates_valid_script(self):
+        """The zsh output is the bash function with a different footer, and
+        that is legitimate ONLY with bashcompinit in front of it.
+
+        zsh has no COMP_WORDS, no COMPREPLY and no compgen; `compdef` over
+        a function written in that dialect binds a widget that fails on its
+        first line. The emitted script shipped exactly that. What the two
+        string assertions here used to check -- a function name and a
+        compdef line -- were both present the whole time it was broken.
+
+        The function body is exercised under bash (same text, and bash is
+        what bashcompinit emulates); no zsh is installed in this
+        environment, so the ORDER of the bootstrap is checked as text."""
         result = run('completion', '--shell', 'zsh')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('_lightwebpres_completion', result.stdout)
-        self.assertIn('compdef _lightwebpres_completion lightwebpres',
-                     result.stdout)
+        script = result.stdout
+        self.assertIn('_lightwebpres_completion', script)
+        self.assertIn('compdef _lightwebpres_completion lightwebpres', script)
+        self.assertIn('bashcompinit', script,
+                      'a bash-dialect function bound in zsh with no shims')
+        self.assertLess(script.index('bashcompinit'),
+                        script.index('compdef _lightwebpres_completion'),
+                        'compdef binds the widget before the dialect exists')
+        # The body is the bash dialect, so it has to work in the bash
+        # dialect. `compdef` is not a bash builtin and errors harmlessly;
+        # the function is defined by then.
+        self.assertEqual(self._complete(script, ['lightwebpres', 'bu'], 1),
+                         ['build'])
 
     def test_completion_unknown_shell_is_fatal(self):
         result = run('completion', '--shell', 'fish')
@@ -4542,6 +4620,17 @@ class TemplateOverride(unittest.TestCase):
             self.assertIn('--color-mark: #123456FF;', html)
 
     def test_custom_nav_js_is_used(self):
+        """templates/nav.js REPLACES the built-in engine, it does not join it.
+
+        The old test asserted only that the author's marker appeared. A
+        build that emits both scripts satisfies that and is the failure
+        worth catching: two engines on one page bind every keyboard
+        listener twice, so one press of `n` opens the presenter panel and
+        closes it again. The built-in's signature has to be gone."""
+        lwp = load_lightwebpres_module()
+        signature = 'function qrEncode'
+        self.assertIn(signature, lwp.TEMPLATE_NAV_JS,
+                      'the signature line moved -- pick another')
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: Summary.\n'
@@ -4555,6 +4644,18 @@ class TemplateOverride(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('/* CUSTOM-MARKER-JS */', html)
+            self.assertNotIn(signature, html,
+                             'the built-in engine shipped alongside the '
+                             'override instead of standing aside')
+
+        # Positive control: the signature IS there when nothing overrides
+        # it. Without this the assertion above passes against a build that
+        # stopped emitting nav.js at all.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            run('build', str(root), '--output', str(root / 'public'))
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn(signature, html)
 
     def test_index_extra_html_is_inserted_before_body_close(self):
         """§9.3: templates/index_extra.html, if present, is inserted as-is
@@ -10140,8 +10241,10 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
     def test_a_theme_that_resizes_its_notes_resizes_both(self):
         # high-contrast states a bigger note; its foot-of-unit note has to
         # follow, or the theme's one intent is honoured in one place only.
+        seen = 0
         for slug, props in self.lwp.THEME_NOTE_PROPS.items():
             if 'note.size' in props:
+                seen += 1
                 self.assertIn('note.local.size', props,
                               f'{slug} resizes note.size but not note.local.size')
                 self.assertLess(_floor_px(props['note.local.size']),
@@ -10152,6 +10255,10 @@ class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
                 # a bigger note, inverted by the screen it was shown on.
                 self.assertLess(_coefficient(props['note.local.size']),
                                 _coefficient(props['note.size']), slug)
+        # One theme resizes its notes, so the loop runs once; drop that one
+        # pair of keys and the body never executes and the test still
+        # passes. The counter is what makes the loop an assertion.
+        self.assertGreater(seen, 0, 'no theme resizes its notes -- wrong store')
 
     def test_speaker_note_field_is_hidden_and_only_for_the_presenter(self):
         # A `note:` field is a SPEAKER note, distinct from a `[^x]` source
@@ -10392,10 +10499,13 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
         """high-contrast is the only theme that resizes anything, and it
         did it in bare px -- so under that theme the notes it deliberately
         enlarges were the one part of the page that did not grow."""
+        seen = 0
         for slug, props in self.lwp.THEME_NOTE_PROPS.items():
             for key, value in props.items():
                 if key.endswith('.size'):
+                    seen += 1
                     self.assertIn('vmin', value, f'{slug} {key}')
+        self.assertGreater(seen, 0, 'no theme restates a size -- wrong store')
 
     def test_a_halo_is_drawn_against_the_glyph_it_surrounds(self):
         """A glow and a marker box are both sized by the text they sit
