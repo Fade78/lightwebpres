@@ -1283,7 +1283,7 @@ LANG_EN = r'''{
 # page), not a claim about the palette in general.
 THEMES = {
     'nord': {
-        'label': 'Nord', 'source': 'nordtheme.com', 'intensity': 'sober',
+        'family': 'ported', 'label': 'Nord', 'source': 'nordtheme.com', 'intensity': 'sober',
         'marker': '#EBCB8B', 'ink': '#2E3440', 'ink-muted': '#4C566A',
         'page': '#ECEFF4', 'accent': '#BF616A', 'positive': '#A3BE8C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1291,7 +1291,7 @@ THEMES = {
         'note_good': False,
     },
     'dracula': {
-        'label': 'Dracula', 'source': 'draculatheme.com', 'intensity': 'vivid',
+        'family': 'ported', 'label': 'Dracula', 'source': 'draculatheme.com', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#F1FA8C', 'ink': '#F8F8F2', 'ink-muted': '#8B9CC7',
         'page': '#282A36', 'accent': '#FF5555', 'positive': '#50FA7B',
@@ -1300,7 +1300,7 @@ THEMES = {
         'note_good': True,
     },
     'solarized': {
-        'label': 'Solarized Light', 'source': 'ethanschoonover.com', 'intensity': 'sober',
+        'family': 'ported', 'label': 'Solarized Light', 'source': 'ethanschoonover.com', 'intensity': 'sober',
         'marker': '#B58900', 'ink': '#002B36', 'ink-muted': '#93A1A1',
         'page': '#FDF6E3', 'accent': '#DC322F', 'positive': '#859900',
         'fact_weight': 'bold', 'fact_style': 'italic', 'fact_highlight': None,
@@ -1308,7 +1308,7 @@ THEMES = {
         'note_good': False,
     },
     'gruvbox': {
-        'label': 'Gruvbox Light', 'source': 'github.com/morhetz', 'intensity': 'vivid',
+        'family': 'ported', 'label': 'Gruvbox Light', 'source': 'github.com/morhetz', 'intensity': 'vivid',
         'marker': '#D79921', 'ink': '#282828', 'ink-muted': '#928374',
         'page': '#FBF1C7', 'accent': '#CC241D', 'positive': '#98971A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1316,7 +1316,7 @@ THEMES = {
         'note_good': True,
     },
     'catppuccin': {
-        'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin', 'intensity': 'sober',
+        'family': 'ported', 'label': 'Catppuccin Latte', 'source': 'github.com/catppuccin', 'intensity': 'sober',
         # Latte Yellow (#DF8E1D) put `color.ink` on `color.mark` at 3.05:1 --
         # every bold run in a fact box, and the cover kicker, which is the same
         # two colours the other way round. Lightened until both clear AA
@@ -1330,7 +1330,7 @@ THEMES = {
         'note_good': False,
     },
     'tokyo-night': {
-        'label': 'Tokyo Night', 'source': 'github.com/folke', 'intensity': 'sober',
+        'family': 'ported', 'label': 'Tokyo Night', 'source': 'github.com/folke', 'intensity': 'sober',
         'dark_background': True,
         'marker': '#E0AF68', 'ink': '#C0CAF5', 'ink-muted': '#8C94BC',
         'page': '#1A1B26', 'accent': '#F7768E', 'positive': '#9ECE6A',
@@ -1339,7 +1339,7 @@ THEMES = {
         'note_good': True,
     },
     'monokai': {
-        'label': 'Monokai', 'source': 'classique, Sublime Text', 'intensity': 'vivid',
+        'family': 'ported', 'label': 'Monokai', 'source': 'classique, Sublime Text', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#E6DB74', 'ink': '#F8F8F2', 'ink-muted': '#9B9483',
         'page': '#272822', 'accent': '#F92672', 'positive': '#A6E22E',
@@ -1348,7 +1348,7 @@ THEMES = {
         'note_good': True,
     },
     'everforest': {
-        'label': 'Everforest', 'source': 'github.com/sainnhe', 'intensity': 'sober',
+        'family': 'ported', 'label': 'Everforest', 'source': 'github.com/sainnhe', 'intensity': 'sober',
         'dark_background': True,
         'marker': '#DBBC7F', 'ink': '#D3C6AA', 'ink-muted': '#9DA9A0',
         'page': '#2D353B', 'accent': '#E67E80', 'positive': '#A7C080',
@@ -1357,7 +1357,7 @@ THEMES = {
         'note_good': True,
     },
     'rose-pine': {
-        'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com', 'intensity': 'sober',
+        'family': 'ported', 'label': 'Rosé Pine Dawn', 'source': 'rosepinetheme.com', 'intensity': 'sober',
         'marker': '#EA9D34', 'ink': '#464261', 'ink-muted': '#797593',
         'page': '#FAF4ED', 'accent': '#B4637A', 'positive': '#6D8F89',
         'fact_weight': 'normal', 'fact_style': 'italic', 'fact_highlight': None,
@@ -1373,7 +1373,7 @@ THEMES = {
     # 3:1, and verdicts separated in deuteranopic and protanopic vision
     # (§9.5.2).
     'high-contrast': {
-        'label': 'High Contrast', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'desk', 'label': 'High Contrast', 'source': 'lightwebpres', 'intensity': 'vivid',
         'marker': '#FFD500', 'ink': '#000000', 'ink-muted': '#4A4A4A',
         'page': '#FFFFFF', 'accent': '#D00000', 'positive': '#006B2C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1381,7 +1381,7 @@ THEMES = {
         'note_good': True,
     },
     'blueprint': {
-        'label': 'Blueprint', 'source': 'lightwebpres', 'intensity': 'sober',
+        'family': 'desk', 'label': 'Blueprint', 'source': 'lightwebpres', 'intensity': 'sober',
         'marker': '#F2C14E', 'ink': '#0B2545', 'ink-muted': '#5A7184',
         'page': '#EEF2F7', 'accent': '#D64045', 'positive': '#136F63',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1389,7 +1389,7 @@ THEMES = {
         'note_good': False,
     },
     'blueprint-night': {
-        'label': 'Blueprint Night', 'source': 'lightwebpres', 'intensity': 'sober',
+        'family': 'desk', 'label': 'Blueprint Night', 'source': 'lightwebpres', 'intensity': 'sober',
         'dark_background': True,
         'marker': '#F2C14E', 'ink': '#DCE6F2', 'ink-muted': '#7B8FA8',
         'page': '#0A1626', 'accent': '#FF8A5B', 'positive': '#5BC0A8',
@@ -1398,7 +1398,7 @@ THEMES = {
         'note_good': False,
     },
     'monochrome': {
-        'label': 'Monochrome', 'source': 'lightwebpres', 'intensity': 'mono',
+        'family': 'desk', 'label': 'Monochrome', 'source': 'lightwebpres', 'intensity': 'mono',
         'marker': '#D8D8D8', 'ink': '#111111', 'ink-muted': '#707070',
         'page': '#FAFAFA', 'accent': '#2B2B2B', 'positive': '#000000',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1411,7 +1411,7 @@ THEMES = {
         'note_good': True,
     },
     'graphite': {
-        'label': 'Graphite', 'source': 'lightwebpres', 'intensity': 'mono',
+        'family': 'desk', 'label': 'Graphite', 'source': 'lightwebpres', 'intensity': 'mono',
         'dark_background': True,
         'marker': '#C9C9C9', 'ink': '#EDEDED', 'ink-muted': '#8A8A8A',
         'page': '#121212', 'accent': '#FFFFFF', 'positive': '#B8B8B8',
@@ -1425,7 +1425,7 @@ THEMES = {
         'note_good': True,
     },
     'newsprint': {
-        'label': 'Newsprint', 'source': 'lightwebpres', 'intensity': 'sober',
+        'family': 'desk', 'label': 'Newsprint', 'source': 'lightwebpres', 'intensity': 'sober',
         'marker': '#E4DAC2', 'ink': '#1A1A18', 'ink-muted': '#6B6862',
         'page': '#F4F1EA', 'accent': '#8C2F1E', 'positive': '#3E5641',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1433,7 +1433,7 @@ THEMES = {
         'note_good': False,
     },
     'gold-leaf': {
-        'label': 'Gold Leaf', 'source': 'lightwebpres', 'intensity': 'sober',
+        'family': 'desk', 'label': 'Gold Leaf', 'source': 'lightwebpres', 'intensity': 'sober',
         'dark_background': True,
         'marker': '#E8C874', 'ink': '#F3EDDF', 'ink-muted': '#8E8269',
         'page': '#0B0B0D', 'accent': '#D4AF37', 'positive': '#A8B26A',
@@ -1442,7 +1442,7 @@ THEMES = {
         'note_good': False,
     },
     'crimson': {
-        'label': 'Crimson', 'source': 'lightwebpres', 'intensity': 'sober',
+        'family': 'heat', 'label': 'Crimson', 'source': 'lightwebpres', 'intensity': 'sober',
         'marker': '#E8B4A0', 'ink': '#3B0A12', 'ink-muted': '#8A6A6E',
         'page': '#FFF6F0', 'accent': '#B00020', 'positive': '#5C7A3F',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1450,7 +1450,7 @@ THEMES = {
         'note_good': False,
     },
     'ember': {
-        'label': 'Ember', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'heat', 'label': 'Ember', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFC24D', 'ink': '#FFEDE2', 'ink-muted': '#A08074',
         'page': '#140A08', 'accent': '#F4622E', 'positive': '#8CBF5A',
@@ -1459,7 +1459,7 @@ THEMES = {
         'note_good': True,
     },
     'dread': {
-        'label': 'Dread', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'heat', 'label': 'Dread', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#B9C46A', 'ink': '#D6D2C8', 'ink-muted': '#6E6A64',
         'page': '#0B0A0C', 'accent': '#C1121F', 'positive': '#7F9440',
@@ -1468,7 +1468,7 @@ THEMES = {
         'note_good': False,
     },
     'sage': {
-        'label': 'Sage', 'source': 'lightwebpres', 'intensity': 'sober',
+        'family': 'terrain', 'label': 'Sage', 'source': 'lightwebpres', 'intensity': 'sober',
         'marker': '#E5D9A8', 'ink': '#26302A', 'ink-muted': '#7C8B7E',
         'page': '#F3F5EF', 'accent': '#B4652A', 'positive': '#4F7A52',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1476,7 +1476,7 @@ THEMES = {
         'note_good': False,
     },
     'evergreen': {
-        'label': 'Evergreen', 'source': 'lightwebpres', 'intensity': 'sober',
+        'family': 'terrain', 'label': 'Evergreen', 'source': 'lightwebpres', 'intensity': 'sober',
         'dark_background': True,
         'marker': '#E8C35A', 'ink': '#DDE9DC', 'ink-muted': '#7D9480',
         'page': '#0D1712', 'accent': '#E0A32E', 'positive': '#6FBF73',
@@ -1485,7 +1485,7 @@ THEMES = {
         'note_good': False,
     },
     'sprout': {
-        'label': 'Sprout', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'terrain', 'label': 'Sprout', 'source': 'lightwebpres', 'intensity': 'vivid',
         'marker': '#F2D544', 'ink': '#1E2B1B', 'ink-muted': '#7A8A72',
         'page': '#FBFDF7', 'accent': '#6D28D9', 'positive': '#3F8F29',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1493,7 +1493,7 @@ THEMES = {
         'note_good': True,
     },
     'vaporwave': {
-        'label': 'Vaporwave', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'light', 'label': 'Vaporwave', 'source': 'lightwebpres', 'intensity': 'vivid',
         'marker': '#E0FF4F', 'ink': '#16003B', 'ink-muted': '#6B5CA5',
         'page': '#F3F0FF', 'accent': '#FF2FB9', 'positive': '#00C2A8',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
@@ -1501,7 +1501,7 @@ THEMES = {
         'note_good': False,
     },
     'code': {
-        'label': 'Code', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'light', 'label': 'Code', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
         'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
@@ -1510,7 +1510,7 @@ THEMES = {
         'note_good': False,
     },
     'terminal': {
-        'label': 'Terminal', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'light', 'label': 'Terminal', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#F4FF52', 'ink': '#D7FFE0', 'ink-muted': '#6E9C7A',
         'page': '#0B0F0C', 'accent': '#FF3C6F', 'positive': '#33FF88',
@@ -1519,7 +1519,7 @@ THEMES = {
         'note_good': False,
     },
     'synthwave': {
-        'label': 'Synthwave', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'light', 'label': 'Synthwave', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFE66D', 'ink': '#F2E9FF', 'ink-muted': '#9A86C4',
         'page': '#1A1030', 'accent': '#FF2E97', 'positive': '#2DE2C5',
@@ -1528,7 +1528,7 @@ THEMES = {
         'note_good': False,
     },
     'pop-red': {
-        'label': 'Pop Red', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Red', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFC94D', 'ink': '#FFF1F0', 'ink-muted': '#F7BDC2',
         'page': '#9E1128', 'accent': '#FFD400', 'positive': '#86EFAC',
@@ -1537,7 +1537,7 @@ THEMES = {
         'note_good': False,
     },
     'pop-tangerine': {
-        'label': 'Pop Tangerine', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Tangerine', 'source': 'lightwebpres', 'intensity': 'vivid',
         'marker': '#7A3E00', 'ink': '#241000', 'ink-muted': '#5E3000',
         'page': '#FF9500', 'accent': '#4C1D95', 'positive': '#0F3D21',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
@@ -1545,7 +1545,7 @@ THEMES = {
         'note_good': False,
     },
     'pop-lemon': {
-        'label': 'Pop Lemon', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Lemon', 'source': 'lightwebpres', 'intensity': 'vivid',
         'marker': '#7A6A00', 'ink': '#1F1A00', 'ink-muted': '#6B5C0A',
         'page': '#FFD400', 'accent': '#8F0049', 'positive': '#0D5C2A',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
@@ -1553,7 +1553,7 @@ THEMES = {
         'note_good': True,
     },
     'pop-lime': {
-        'label': 'Pop Lime', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Lime', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFC94D', 'ink': '#F0FFF4', 'ink-muted': '#B5E4C4',
         'page': '#075C26', 'accent': '#FFD400', 'positive': '#C7F9CC',
@@ -1562,7 +1562,7 @@ THEMES = {
         'note_good': False,
     },
     'pop-lagoon': {
-        'label': 'Pop Lagoon', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Lagoon', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFC94D', 'ink': '#EFFCFF', 'ink-muted': '#A6D9E4',
         'page': '#075B6E', 'accent': '#FFC2D8', 'positive': '#9BF6C8',
@@ -1571,7 +1571,7 @@ THEMES = {
         'note_good': False,
     },
     'pop-cobalt': {
-        'label': 'Pop Cobalt', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Cobalt', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFE45C', 'ink': '#F0F4FF', 'ink-muted': '#B3C2F0',
         'page': '#1B3FBF', 'accent': '#FFD400', 'positive': '#8CF2AE',
@@ -1580,7 +1580,7 @@ THEMES = {
         'note_good': False,
     },
     'pop-violet': {
-        'label': 'Pop Violet', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Violet', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFE99A', 'ink': '#F6F1FF', 'ink-muted': '#CBB6EE',
         'page': '#5B1DB8', 'accent': '#FDE047', 'positive': '#9BF6C8',
@@ -1589,7 +1589,7 @@ THEMES = {
         'note_good': True,
     },
     'pop-fuchsia': {
-        'label': 'Pop Fuchsia', 'source': 'lightwebpres', 'intensity': 'vivid',
+        'family': 'pop', 'label': 'Pop Fuchsia', 'source': 'lightwebpres', 'intensity': 'vivid',
         'dark_background': True,
         'marker': '#FFE99A', 'ink': '#FFF0FA', 'ink-muted': '#F0B8D8',
         'page': '#94105F', 'accent': '#FDE047', 'positive': '#9BF6C8',
@@ -1647,6 +1647,31 @@ def neutral_chroma_threshold(lightness):
     """Chroma below which a background of this lightness reads neutral."""
     return max(NEUTRAL_CHROMA_FLOOR, NEUTRAL_CHROMA_SLOPE * lightness)
 
+
+# The families, and the one facet that is DECLARED rather than measured.
+#
+# Polarity, intensity and hue are read off the palette: a theme cannot lie
+# about them, and adjusting a colour moves the facet with it. Family cannot
+# work that way — "this is the register of work" and "this is a fire seen
+# at three moments" are editorial statements about intent, and no amount of
+# CIELAB recovers them from six hex values.
+#
+# So it is declared, and therefore fenced: the vocabulary below is closed,
+# every theme must name one of these, and an unknown name is a build error
+# rather than a silent miscategorisation. A declared label that nothing
+# checks is how `theme show`'s docstring says an accessibility level would
+# lie — the fence is what stops the same thing happening here.
+THEME_FAMILIES = {
+    'desk': 'The register of work: sober, legible, nothing competing '
+            'with the text.',
+    'light': 'Where the light comes from, and at what hour.',
+    'terrain': 'The material world — earth, stone, concrete, and what '
+               'grows on them.',
+    'heat': 'Warmth with no visible source.',
+    'pop': 'The colour is the ground, not a detail.',
+    'ported': 'A palette from elsewhere, kept as its authors drew it.',
+}
+
 # Every value each facet can take, in the order a listing should show
 # them (hue follows the colour wheel, not the alphabet). Single source of
 # truth for the `themes` command's validation and for its grouped output,
@@ -1656,6 +1681,7 @@ FACET_VALUES = {
     'intensity': ('sober', 'vivid', 'mono'),
     'hue': ('neutral', 'red', 'orange', 'yellow', 'green',
             'cyan', 'blue', 'violet', 'magenta'),
+    'family': tuple(THEME_FAMILIES),
 }
 
 
@@ -1695,6 +1721,7 @@ def theme_facets(theme):
         'polarity': 'dark' if theme.get('dark_background') else 'light',
         'intensity': theme.get('intensity', 'sober'),
         'hue': theme_hue_family(theme),
+        'family': theme.get('family'),
     }
 
 
@@ -11334,9 +11361,12 @@ def cmd_refresh_templates(target_dir, args):
 # ============================================================================
 
 def _facet_filters(args):
-    """Reads --polarity/--intensity/--hue out of parsed CLI options,
-    rejecting an unknown value by name rather than silently returning an
-    empty list (which would read as "no theme is like that")."""
+    """Reads one option per entry in FACET_VALUES out of the parsed CLI
+    options, rejecting an unknown value by name rather than silently
+    returning an empty list (which would read as "no theme is like that").
+
+    Generic over FACET_VALUES on purpose: adding a facet there gives it a
+    working `--facet` filter with nothing to wire here."""
     filters = {}
     for facet in FACET_VALUES:
         value = args.get(f'--{facet}')
@@ -11375,7 +11405,8 @@ def cmd_themes(args):
 
     for slug, theme, facets in matches:
         trio = '/'.join((facets['polarity'], facets['intensity'], facets['hue']))
-        print(f'  {slug}  [{trio}]')
+        fam = facets['family'] or '?'
+        print(f'  {slug}  [{trio}]  {fam}')
         # A note is stored as plain text, so it prints as-is. It used to
         # be stored as gallery HTML and cleaned here, which leaked every
         # character entity to the terminal — cleaning enumerates what it
@@ -11386,9 +11417,15 @@ def cmd_themes(args):
             print(f'      {line}')
         print()
 
-    print('Facets: polarity (light/dark), intensity (sober/vivid/mono), hue.')
+    # Derived from FACET_VALUES, never restated. The line said
+    # "polarity, intensity, hue" while a fourth facet was already
+    # filterable -- the shape of drift this project keeps finding, and it
+    # takes one line of the table's own data to make it impossible.
+    print('Facets: ' + ', '.join(
+        f'{name} ({"/".join(values)})' if len(values) <= 3 else name
+        for name, values in FACET_VALUES.items()) + '.')
     print('Narrow the list with, for example:')
-    print('  lightwebpres theme list --polarity dark --intensity sober')
+    print('  lightwebpres theme list --polarity dark --family light')
     print('Read one out — palette, fonts, and the contrast level it')
     print('reaches, measured — with `lightwebpres theme show <slug>`.')
     print('Apply one with `init --theme <slug>` (new series) or')
@@ -11400,7 +11437,11 @@ def cmd_themes(args):
 # §11.9.1): renaming one breaks the GUI's theme picker and nothing here
 # goes red. The version in the string is what lets the GUI tell an old
 # executable from a new one instead of guessing from the keys it finds.
-THEME_INFO_SCHEMA = 'lightwebpres.theme-info/1'
+# Bumped to /2 when `family` joined the facets. An added key is a
+# contract change: a consumer that switches on the facet set -- the GUI's
+# theme picker does -- is entitled to learn from this string that the set
+# grew, rather than discovering it by rendering an empty column.
+THEME_INFO_SCHEMA = 'lightwebpres.theme-info/2'
 
 # The three WCAG categories, in the order the output shows them, with the
 # heading each gets in the text format.
@@ -13241,7 +13282,8 @@ where this tool is published and can be downloaded.'''
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                             '--theme', '--only', '--nav-cache',
-                            '--polarity', '--intensity', '--hue', '--format',
+                            '--polarity', '--intensity', '--hue', '--family',
+                            '--format',
                             '--article', '--port', '--shell',
                             '--slides-page-numbers'})
 _COMMAND_OPTIONS = {
@@ -13256,7 +13298,7 @@ _COMMAND_OPTIONS = {
               '--include-drafts', '--no-nav'},
     'audit': {'--lang', '--strict', '--templates'},
     'refresh-templates': {'--scaffold'},
-    'themes': {'--polarity', '--intensity', '--hue'},
+    'themes': {'--polarity', '--intensity', '--hue', '--family'},
     'theme-info': {'--format', '--all'},
     'series-info': {'--format'},
     'resolve': {'--format', '--article'},

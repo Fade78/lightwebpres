@@ -5695,6 +5695,56 @@ class ThemeFacets(unittest.TestCase):
         for slug, theme in self.lwp.THEMES.items():
             self.assertIn('intensity', theme, f'{slug} relies on the default')
 
+    def test_every_theme_declares_a_family_from_the_closed_vocabulary(self):
+        """Family is the one facet that is DECLARED, not measured.
+
+        Polarity, intensity and hue are read off the palette, so a theme
+        cannot lie about them and a colour change moves the facet with it.
+        "This is the register of work" is an editorial statement no amount
+        of CIELAB recovers from six hex values — so it is declared, and
+        therefore fenced: the vocabulary is closed and every theme must
+        name one of its members.
+
+        `theme_facets` returns None for a theme that declares nothing,
+        deliberately: a silent default would file a new theme under `desk`
+        and nobody would see it happen. This test is what makes the
+        absence loud instead."""
+        families = self.lwp.THEME_FAMILIES
+        self.assertEqual(tuple(families), self.lwp.FACET_VALUES['family'],
+                         'the facet vocabulary and the family table differ')
+        for slug, theme in self.lwp.THEMES.items():
+            fam = theme.get('family')
+            self.assertIsNotNone(fam, f'{slug} declares no family')
+            self.assertIn(fam, families, f'{slug} declares an unknown family')
+        # Every family earns its place: one that names no theme is a word
+        # in a table, and the next reader cannot tell whether it is
+        # aspirational or dead.
+        used = {t.get('family') for t in self.lwp.THEMES.values()}
+        self.assertEqual(used, set(families),
+                         f'families with no theme: {set(families) - used}')
+
+    def test_the_family_filter_narrows_the_listing(self):
+        """`--family` is not special-cased anywhere: `_facet_filters` is
+        generic over FACET_VALUES, so adding a facet there gives it a
+        working filter. That is worth a test precisely because nothing
+        was written to make it work."""
+        lwp = load_lightwebpres_module()
+        expected = sum(1 for t in lwp.THEMES.values()
+                       if t.get('family') == 'ported')
+        self.assertGreater(expected, 1, 'no ported theme to filter for')
+        result = run('theme', 'list', '--family', 'ported')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f'{expected} of {len(lwp.THEMES)} themes match',
+                      result.stdout)
+        # And it really excludes: a theme from another family must be gone.
+        other = next(s for s, t in lwp.THEMES.items()
+                     if t.get('family') != 'ported')
+        self.assertNotIn(f'  {other}  ', result.stdout)
+        # An unknown family is refused by name, not answered with silence.
+        bad = run('theme', 'list', '--family', 'bogus')
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertIn('Unknown --family', bad.stderr)
+
     def test_the_neutral_threshold_follows_lightness(self):
         """A fixed chroma bar is wrong at both ends of the scale. These
         three were each misfiled by one: a cream with real chroma that
@@ -6697,13 +6747,13 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         removed one, and the GUI is entitled to know which it is from the
         `schema` string."""
         report = self._report('nord')
-        self.assertEqual(report['schema'], 'lightwebpres.theme-info/1')
+        self.assertEqual(report['schema'], 'lightwebpres.theme-info/2')
         self.assertEqual(report['lightwebpres_version'],
                          self.lwp.VERSION)
         self.assertEqual(set(report), self.ROOT_KEYS)
         self.assertEqual(set(report['target']), self.TARGET_KEYS)
         self.assertEqual(set(report['facets']),
-                         {'polarity', 'intensity', 'hue'})
+                         {'polarity', 'intensity', 'hue', 'family'})
         self.assertEqual(set(report['palette']),
                          {'page', 'ink', 'ink-quiet', 'mark', 'call', 'affirm'})
         self.assertEqual(set(report['fonts']),
@@ -6745,14 +6795,18 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         picker and this one cannot disagree about the same entry."""
         listing = run('theme', 'list')
         self.assertEqual(listing.returncode, 0, listing.stderr)
-        printed = dict(re.findall(r'^  (\S+)  \[(\S+)\]$', listing.stdout,
-                                  re.MULTILINE))
+        printed = {m[0]: (m[1], m[2]) for m in re.findall(
+            r'^  (\S+)  \[(\S+)\]  (\S+)$', listing.stdout, re.MULTILINE)}
         self.assertEqual(len(printed), len(self.lwp.THEMES))
         for slug in ('nord', 'graphite', 'terminal', 'pop-fuchsia'):
             facets = self._report(slug)['facets']
+            trio, family = printed[slug]
             self.assertEqual(
                 '/'.join(facets[k] for k in ('polarity', 'intensity', 'hue')),
-                printed[slug], slug)
+                trio, slug)
+            # The declared facet has to agree across surfaces too -- more
+            # so than the measured three, since nothing recomputes it.
+            self.assertEqual(facets['family'], family, slug)
 
     # --- errors ---
 
@@ -7046,7 +7100,7 @@ class PaletteRoleNames(unittest.TestCase):
         listed: an axis added later is legitimately new metadata, but a
         stray colour key still has to fail here."""
         meta_keys = {'label', 'source', 'note', 'note_good', 'intensity',
-                     'dark_background'}
+                     'dark_background', 'family'}
         for slug, theme in self.lwp.THEMES.items():
             colour_keys = [k for k in theme
                            if k not in meta_keys and not k.startswith('fact_')]
