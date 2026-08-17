@@ -3146,7 +3146,7 @@ def series_style_context(templates_dir):
 
     legacy = templates_dir / 'style.css'
     if legacy.exists():
-        log('error', f'[WARN] templates/style.css is no longer read: the stylesheet '
+        log('warn', f'templates/style.css is no longer read: the stylesheet '
               f'is composed from {SETTINGS_FILENAME}. Move your values there '
               f'(audit names the variable renames) and delete it.')
 
@@ -11122,7 +11122,7 @@ def cmd_refresh_templates(target_dir, args):
               f'{theme_key or "default"}: commented surface refreshed, '
               f'{kept} pinned value(s) kept.')
         if unknown:
-            log('error', f'[WARN] {len(unknown)} pinned property(ies) no longer exist '
+            log('warn', f'{len(unknown)} pinned property(ies) no longer exist '
                   f'and were moved to the trailing section, commented out: '
                   f'{", ".join(unknown)}. A build would reject them; delete '
                   f'or rename them (audit names the replacements).')
@@ -11132,7 +11132,7 @@ def cmd_refresh_templates(target_dir, args):
 
     legacy = templates_dir / 'style.css'
     if legacy.exists():
-        log('error', f'[WARN] templates/style.css is no longer read (the stylesheet '
+        log('warn', f'templates/style.css is no longer read (the stylesheet '
               f'is composed at build time). Your values belong in '
               f'{SETTINGS_FILENAME}, your rules in {CUSTOM_CSS_FILENAME}; '
               f'run audit for the variable renames, then delete it.')
@@ -11722,7 +11722,7 @@ def cmd_series_info(series_dir, args):
     # and this command is not a second `check`.
     for article in report['articles']:
         if not article['source_read']:
-            log('error', f'[WARN] {articles_dir / article["page_source"]} could not be '
+            log('warn', f'{articles_dir / article["page_source"]} could not be '
                   f'read (absent, unreadable, or not UTF-8): its fields fall '
                   f'back to series.json and the defaults.')
 
@@ -12169,7 +12169,7 @@ def cmd_resolve(series_dir, name, args):
     # stderr, so `--format json` stays one JSON document on stdout, and
     # exit 0, for the reason §11.11 gives: this is not a second `check`.
     for source in unread:
-        log('error', f'[WARN] {articles_dir / source} could not be read (absent, '
+        log('warn', f'{articles_dir / source} could not be read (absent, '
               f'unreadable, or not UTF-8): the levels it would have carried '
               f'are missing from the answer.')
 
@@ -12791,7 +12791,7 @@ COMMANDS
   `lightwebpres theme list`, etc. The old names (install, check,
   refresh-templates, themes, theme-info, set-theme, themes-gallery,
   series-info) remain accepted as aliases for one MAJOR version, with a
-  [WARN] on stderr naming the new form.
+  [WARNING] on stderr naming the new form.
 
 OPTIONS
   (--option value and --option=value are equivalent; an unknown or
@@ -13112,7 +13112,7 @@ _GLOBAL_VALUES = frozenset({'--lang'})
 
 # Canonical commands are the source of truth (PROPOSITION §4.2). Shortcuts are
 # a root-level comfort layer; legacy aliases are the previous names, kept for
-# one MAJOR with a [WARN] on stderr (DECISION §1 Phase 1, §9 of PROPOSITION).
+# one MAJOR with a [WARNING] on stderr (DECISION §1 Phase 1, §9 of PROPOSITION).
 # Each entry maps the user-facing token → the internal `cmd_*` dispatch key.
 # The dispatch key is also what _COMMAND_OPTIONS is indexed by, so the option
 # tables above stay valid without duplication.
@@ -13133,7 +13133,7 @@ _SHORTCUTS = {
 # `update`; a lone `template` is NOT a shortcut (DECISION §3 abandoned the
 # `series template` reading command).
 # (No other two-word shortcuts yet — `template update` is handled inline.)
-# Legacy names → new dispatch key. Each emits a [WARN] on stderr naming the
+# Legacy names → new dispatch key. Each emits a [WARNING] on stderr naming the
 # new form. The dispatch key is the OLD cmd_* name (option tables stay valid).
 _LEGACY_ALIASES = {
     'install': 'install',
@@ -13145,7 +13145,7 @@ _LEGACY_ALIASES = {
     'themes-gallery': 'themes-gallery',
     'series-info': 'series-info',
 }
-# Map of legacy alias → recommended new invocation, for the [WARN] message.
+# Map of legacy alias → recommended new invocation, for the [WARNING] message.
 # (Tokens that are also canonical shortcuts — demo, build, audit, resolve —
 # never reach this table: _SHORTCUTS is consulted first.)
 _LEGACY_REPLACEMENT = {
@@ -13173,8 +13173,13 @@ _THEME_VERBS = {
 
 
 def _warn_legacy(alias):
-    log('error', f'[WARN] `{alias}` is deprecated; use `{_LEGACY_REPLACEMENT[alias]}` '
-          f'instead. (`{alias}` remains an alias until the next MAJOR version.)')
+    # 'warn', not 'error'. A deprecated alias still does the job and still
+    # exits 0, so tagging its notice [ERROR] made `grep '^\[ERROR\]'` match
+    # successful runs -- and left real warnings to be found under [INFO],
+    # which --quiet then hid. Both halves of that are fixed now: warnings
+    # have their own level, and it survives --quiet.
+    log('warn', f'`{alias}` is deprecated; use `{_LEGACY_REPLACEMENT[alias]}` '
+        f'instead. (`{alias}` remains an alias until the next MAJOR version.)')
 
 
 def _resolve_command(args):
@@ -13365,6 +13370,40 @@ def main():
         timestamp=global_opts.get('--timestamp', False),
         dry_run=global_opts.get('--dry-run', False),
     )
+
+    # How many positionals each command can actually use. Anything past
+    # that was SILENTLY DISCARDED: `init A B` created A, printed
+    # "Installed: A", and never mentioned B -- a write command ignoring
+    # half of what it was given, without a word. Same for `status a b c`,
+    # `theme list junk`, and `build dir -x`, where a single-dash typo is
+    # not recognised as an option at all and quietly becomes a positional.
+    #
+    # specifications.md §2.4 already promises an unknown option is fatal
+    # and "never a silent no-op". An unusable positional is that same
+    # promise seen from the other side. `resolve` has always counted its
+    # own, which is where the wording below comes from: the check was
+    # right, it was simply never generalised.
+    #
+    # None means "as many as you like" -- theme show and theme gallery
+    # take a list of slugs, and gallery also accepts a legacy output path.
+    _MAX_POSITIONAL = {
+        'install': 1, 'demo': 1, 'build': 1, 'check': 1, 'audit': 1,
+        'clean': 1, 'watch': 1, 'series-info': 1, 'series-theme': 1,
+        'set-theme': 1, 'refresh-templates': 1,
+        'resolve': 2,
+        'themes': 0, 'completion': 0,
+        'theme-info': None, 'themes-gallery': None,
+    }
+    _limit = _MAX_POSITIONAL.get(command, 1)
+    if _limit is not None and len(positional) > _limit:
+        wanted = ('no arguments' if _limit == 0 else
+                  'at most a directory' if _limit == 1 else
+                  f'at most {_limit} arguments')
+        unused = ', '.join(repr(a) for a in positional[_limit:])
+        log('error', f'`{command}` takes {wanted}; got {len(positional)}. '
+            f'Unused: {unused}. (A single-dash typo such as `-x` is read '
+            f'as an argument, not as an option.)')
+        sys.exit(1)
 
     target = positional[0] if positional else os.environ.get('LWP_SERIES_DIR', '.')
 

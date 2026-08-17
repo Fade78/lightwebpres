@@ -1639,7 +1639,11 @@ class CliVersionAndShortcuts(unittest.TestCase):
             target = str(Path(tmp) / 's')
             result = run('install', target)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('[WARN]', result.stderr)
+            # [WARNING], not [WARN] inside an [ERROR] line: a deprecated
+            # alias still works and still exits 0, so tagging its notice as
+            # an error made `grep '^[ERROR]'` match successful runs.
+            self.assertIn('[WARNING]', result.stderr)
+            self.assertNotIn('[ERROR]', result.stderr, result.stderr)
             self.assertIn('deprecated', result.stderr)
             self.assertIn('init', result.stderr)
 
@@ -1650,7 +1654,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
             run('build', str(root), '--output', str(root / 'public'))
             result = run('check', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('[WARN]', result.stderr)
+            self.assertIn('[WARNING]', result.stderr)
+            self.assertNotIn('[ERROR]', result.stderr, result.stderr)
             self.assertIn('verify', result.stderr)
 
     def test_shortcut_init_works_without_warn(self):
@@ -1826,6 +1831,74 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertTrue(any('a.html' in l for l in debug),
                             'no [DEBUG] line names the file that was '
                             'written:\n' + '\n'.join(debug))
+
+    def test_an_unusable_argument_is_fatal_not_discarded(self):
+        """`init A B` created A, printed "Installed: A", and never
+        mentioned B -- a write command ignoring half of what it was given,
+        exit 0, no word about it. specifications.md §2.4 already promises
+        an unknown option is fatal and "never a silent no-op"; an argument
+        the command cannot use is that same promise from the other side.
+
+        `-x` is in here on purpose: a single-dash typo is not recognised
+        as an option at all, so it silently became a positional and was
+        then silently dropped -- two silences stacked."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            a, b = str(Path(tmp) / 'A'), str(Path(tmp) / 'B')
+            for argv, label in (
+                (('init', a, b), 'a second directory'),
+                (('status', str(root), 'extra'), 'a stray word'),
+                (('theme', 'list', 'junk'), 'an argument on a listing'),
+                (('build', str(root), '-x'), 'a single-dash typo'),
+                (('resolve', str(root), 'page_title', 'b', 'c'), 'two extras'),
+            ):
+                result = run(*argv)
+                self.assertNotEqual(
+                    result.returncode, 0,
+                    f'{label} was accepted silently: `{" ".join(argv)}`\n'
+                    f'{result.stdout}')
+                self.assertIn('takes', result.stderr, result.stderr)
+            # The refusal must happen BEFORE any work: nothing on disk.
+            self.assertFalse(Path(a).exists(),
+                             'init did its work before refusing the '
+                             'arguments it could not use')
+            self.assertFalse(Path(b).exists())
+
+    def test_the_forms_that_take_several_arguments_still_do(self):
+        """The arity check must not become a straitjacket: theme show and
+        theme gallery take a list of slugs, and resolve takes a directory
+        and a name."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            out = str(Path(tmp) / 'g.html')
+            for argv in (
+                ('theme', 'show', 'nord', 'crimson'),
+                ('theme', 'gallery', 'nord', 'crimson', '--output', out),
+                ('resolve', str(root), 'page_title', '--article', 'a.md'),
+                ('init', str(Path(tmp) / 'ok')),
+            ):
+                result = run(*argv)
+                self.assertEqual(result.returncode, 0,
+                                 f'`{" ".join(argv)}`:\n{result.stderr}')
+
+    def test_a_deprecated_alias_warns_it_does_not_error(self):
+        """The notice was tagged [ERROR] on a run that exits 0, so
+        `grep '^\\[ERROR\\]'` matched successes -- while real warnings hid
+        under [INFO], where --quiet then removed them. Both halves are the
+        same missing level."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = str(Path(tmp) / 's')
+            result = run('install', target)          # alias for `init`
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('deprecated', result.stderr)
+            self.assertIn('[WARNING]', result.stderr)
+            self.assertNotIn('[ERROR]', result.stderr,
+                             'a successful run printed an [ERROR] line:\n'
+                             + result.stderr)
+            # And, being a warning, it outlives --quiet.
+            hushed = run('--quiet', 'install', str(Path(tmp) / 's2'))
+            self.assertEqual(hushed.returncode, 0, hushed.stderr)
+            self.assertIn('deprecated', hushed.stderr)
 
     def test_quiet_suppresses_progress_and_keeps_warnings(self):
         """--quiet was exactly inverted, in the direction that matters
@@ -4346,7 +4419,8 @@ class RefreshTemplates(unittest.TestCase):
 
             result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('[WARN]', result.stderr)
+            self.assertIn('[WARNING]', result.stderr)
+            self.assertNotIn('[ERROR]', result.stderr, result.stderr)
             self.assertIn('style.css is no longer read', result.stderr)
             self.assertEqual(style_path.read_text(encoding='utf-8'), legacy)
 
@@ -11924,7 +11998,8 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
             result = run('resolve', str(root), 'page_title',
                          '--article', 'intro.md', '--format', 'json')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('[WARN]', result.stderr)
+            self.assertIn('[WARNING]', result.stderr)
+            self.assertNotIn('[ERROR]', result.stderr, result.stderr)
             self.assertEqual(
                 json.loads(result.stdout)['resolution']['source'], 'derived')
 
