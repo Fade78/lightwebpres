@@ -1827,6 +1827,64 @@ class CliVersionAndShortcuts(unittest.TestCase):
                             'no [DEBUG] line names the file that was '
                             'written:\n' + '\n'.join(debug))
 
+    def test_quiet_suppresses_progress_and_keeps_warnings(self):
+        """--quiet was exactly inverted, in the direction that matters
+        least at a terminal and most in CI. Progress went out through bare
+        print() calls the flag could not see; diagnostics came through
+        log(), where it could. So it removed the warnings and left every
+        line of progress. Measured on one build before the fix: without
+        the flag, 1 warning and 645 bytes of progress; with it, 0 warnings
+        and the same 645 bytes.
+
+        The fix does not move progress to stderr. Progress has always been
+        stdout, the GUI and any script read it there, and the defect was
+        never the stream -- it was that print() has no valve."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            # A cover carrying `highlight` is parsed and never rendered:
+            # the build warns, which is what must survive --quiet.
+            '<!-- lwp:slide:cover -->\nkicker: T\nhighlight: 42\n'
+            '# Title\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            out = str(root / 'public')
+            loud = run('build', str(root), '--output', out)
+            self.assertEqual(loud.returncode, 0, loud.stderr)
+            self.assertGreater(len(loud.stdout), 0, 'no progress to suppress')
+            self.assertIn('[WARNING]', loud.stderr,
+                          'the fixture stopped producing a warning, so the '
+                          'assertion below would prove nothing')
+            hushed = run('--quiet', 'build', str(root), '--output', out)
+            self.assertEqual(hushed.returncode, 0, hushed.stderr)
+            self.assertEqual(hushed.stdout, '',
+                             '--quiet left progress on stdout:\n'
+                             + hushed.stdout)
+            self.assertIn('[WARNING]', hushed.stderr,
+                          '--quiet suppressed a warning, which is the one '
+                          'thing an unattended run needs to reach a human')
+
+    def test_quiet_never_suppresses_the_answer(self):
+        """Asking for less chatter must not delete the value you asked the
+        tool to compute. These commands' output IS their product, so they
+        keep bare print() and --quiet does not reach them."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            answers = (
+                ('resolve', str(root), 'page_title', '--article', 'a.md'),
+                ('series-info', str(root), '--format', 'json'),
+                ('theme', 'show', 'nord'),
+                ('theme', 'list'),
+                ('audit', str(root)),
+            )
+            for argv in answers:
+                result = run('--quiet', *argv)
+                self.assertGreater(
+                    len(result.stdout.strip()), 0,
+                    f'--quiet ate the answer of `{" ".join(argv[:2])}`:\n'
+                    f'{result.stderr}')
+
     def test_quiet_does_not_swallow_verbose(self):
         """The two flags answer different questions -- how much progress,
         and how much detail -- so --quiet must not silence a level the

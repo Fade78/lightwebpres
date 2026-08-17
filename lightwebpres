@@ -136,6 +136,16 @@ def log(level, msg):
         if _LOG_STATE['quiet']:
             return
         prefix = '[INFO] '
+    elif level == 'warn':
+        # NEVER suppressed by --quiet. A warning is the one thing an
+        # unattended run most needs to reach a human, and --quiet used to
+        # be the flag that removed it: progress went out through bare
+        # print() calls the flag could not see, while diagnostics came
+        # through here where it could. Measured on one build: without the
+        # flag, 1 warning and 645 bytes of progress; with it, 0 warnings
+        # and the same 645 bytes. Exactly inverted, in the direction that
+        # matters least at a terminal and most in CI.
+        prefix = '[WARNING] '
     elif level == 'verbose':
         if not _LOG_STATE['verbose']:
             return
@@ -149,6 +159,25 @@ def log(level, msg):
     msg = _ANSI_RE.sub('', str(msg))
     msg = ''.join(ch for ch in msg if ch in '\n\t\r' or ord(ch) >= 32)
     print(prefix + msg, file=sys.stderr)
+
+
+def progress(msg=''):
+    """Prints a line of progress to stdout, unless --quiet is active.
+
+    stdout, not log()'s stderr, and that is the point of having it at all.
+    Progress has always gone to stdout; moving it would change what every
+    existing script and the GUI reads, to fix a flag. The defect was never
+    the stream, it was that `print()` is invisible to --quiet: the flag
+    could only see what came through log(), which is diagnostics, so it
+    suppressed the warnings and left the progress. This puts a valve on
+    the progress without moving it.
+
+    Commands whose OUTPUT IS THE ANSWER -- resolve, theme show/list,
+    series theme, status, completion -- keep bare print(). Asking for less
+    chatter must never delete the value you asked the tool to compute."""
+    if _LOG_STATE['quiet']:
+        return
+    print(msg)
 
 
 # --- Write helpers (Phase 3, DECISION-CLI.md §4) --------------------------
@@ -8455,7 +8484,7 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
                        if name not in accepted
                        and getattr(slide, _SLIDE_FIELD_ATTRS[name]) is not None]
             if ignored:
-                log('info', f'[WARNING] {filename}: slide {i} (cover) has field(s) '
+                log('warn', f'{filename}: slide {i} (cover) has field(s) '
                       f'{", ".join(ignored)} — parsed but never rendered on a '
                       f'cover slide.')
 
@@ -9223,7 +9252,7 @@ def _encode_inline_image(src, articles_dir):
         # level in log(); an unknown level is DROPPED SILENTLY, so a
         # log('warning', ...) here would have refused the read and told
         # nobody. Adding the level belongs with the --quiet fix.
-        log('info', f'  [WARNING] skipped image escaping the article '
+        log('warn', f'skipped image escaping the article '
             f'directory: {src}')
         return None
     try:
@@ -9260,14 +9289,14 @@ def copy_images(articles_dir, output_dir):
             if entry.is_symlink():
                 target = entry.resolve()
                 if target == src_root or src_root not in target.parents:
-                    log('info', f'  [WARNING] img/: skipped symlink escaping the '
+                    log('warn', f'img/: skipped symlink escaping the '
                           f'image directory: {entry.relative_to(img_src)}')
                     ignored.add(name)
         return ignored
 
     _copytree(img_src, img_dst, dirs_exist_ok=True,
               ignore=_refuse_escaping_symlinks)
-    print(f'  Images copied: {img_dst}')
+    progress(f'  Images copied: {img_dst}')
 
 
 def load_series_data(series_dir):
@@ -10059,10 +10088,10 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         log('error', f'Source not found: {source_path}')
         sys.exit(1)
 
-    print(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
+    progress(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
-    print(f'  {entry["page_dest"]} ← {entry["page_source"]}')
+    progress(f'  {entry["page_dest"]} ← {entry["page_source"]}')
     html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
@@ -10073,7 +10102,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     if claimant is None:
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
-        print('  index.html')
+        progress('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
@@ -10082,7 +10111,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
             sys.exit(1)
         _write_file(ctx.output_dir / 'index.html', index_html)
     else:
-        print(_no_index_notice(claimant))
+        progress(_no_index_notice(claimant))
 
     readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
     _write_file(ctx.sd / 'README.md', readme)
@@ -10096,7 +10125,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _write_manifest(ctx.output_dir, ctx.articles,
                     include_index=claimant is None)
     tail = ' + index' if claimant is None else ''
-    print(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
+    progress(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
 
 
 def cmd_completion(args):
@@ -10442,10 +10471,10 @@ def cmd_build(series_dir, args):
         reason = 'no usable cache found' if cached_fingerprint is None else 'nav/index-affecting metadata changed since the last build'
         log('info', f'--only requested but not safe ({reason}) — doing a full build instead.')
 
-    print(f'Build: {ctx.sd}')
-    print(f'  Articles: {ctx.articles_dir}')
-    print(f'  Output: {ctx.output_dir}')
-    print(f'  Lang: {ctx.lang}')
+    progress(f'Build: {ctx.sd}')
+    progress(f'  Articles: {ctx.articles_dir}')
+    progress(f'  Output: {ctx.output_dir}')
+    progress(f'  Lang: {ctx.lang}')
 
     # Load the optional index page extension (raw HTML+JS, inserted as-is
     # right before </body> — the only extension point for the index page,
@@ -10472,7 +10501,7 @@ def cmd_build(series_dir, args):
         output_file = entry['page_dest']
         source_path = ctx.articles_dir / source_file
 
-        print(f'  {output_file} ← {source_file}')
+        progress(f'  {output_file} ← {source_file}')
         html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
 
         _write_file(ctx.output_dir / output_file, html)
@@ -10482,7 +10511,7 @@ def cmd_build(series_dir, args):
     # and dropping an index on top of it would destroy it.
     # --no-index (DECISION §4): skip index.html generation entirely.
     if claimant is None and not args.get('--no-index'):
-        print('  index.html')
+        progress('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
@@ -10491,7 +10520,7 @@ def cmd_build(series_dir, args):
             sys.exit(1)
         _write_file(ctx.output_dir / 'index.html', index_html)
     elif claimant is not None:
-        print(_no_index_notice(claimant))
+        progress(_no_index_notice(claimant))
     # --no-readme (DECISION §4): skip README.md generation.
     if not args.get('--no-readme'):
         readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
@@ -10510,7 +10539,7 @@ def cmd_build(series_dir, args):
                     include_index=claimant is None and not args.get('--no-index'))
 
     tail = ' + index' if claimant is None and not args.get('--no-index') else ''
-    print(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
+    progress(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
 
     # --open (DECISION §1 Phase 3): open the result in the browser.
     if args.get('--open'):
@@ -11024,26 +11053,26 @@ def cmd_install(target_dir, args):
         _write_file(td / 'COPYING', LICENSE_GPL_TEXT)
         _write_file(td / 'COPYING.EXCEPTION', LICENSE_EXCEPTION_TEXT)
 
-    print(f'Installed: {td}')
+    progress(f'Installed: {td}')
     if theme_key:
-        print(f'  theme: {THEMES[theme_key]["label"]}')
-    print(f'  articles/   — your .md files')
-    print(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
-    print(f'              {CUSTOM_CSS_FILENAME} (your own rules), nav.js')
-    print(f'  language/   — typography rules + interface strings (fr, en)')
-    print(f'  public/     — generated HTML (build output)')
-    print(f'  series.json — article list')
+        progress(f'  theme: {THEMES[theme_key]["label"]}')
+    progress(f'  articles/   — your .md files')
+    progress(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
+    progress(f'              {CUSTOM_CSS_FILENAME} (your own rules), nav.js')
+    progress(f'  language/   — typography rules + interface strings (fr, en)')
+    progress(f'  public/     — generated HTML (build output)')
+    progress(f'  series.json — article list')
     if gitlab_ci:
-        print(f'  .gitlab-ci.yml — CI pipeline')
-    print(f'  lightwebpres — the executable itself, for standalone use')
+        progress(f'  .gitlab-ci.yml — CI pipeline')
+    progress(f'  lightwebpres — the executable itself, for standalone use')
     if not gitlab_ci:
-        print()
-        print('No .gitlab-ci.yml (opt-in only — pass --gitlab-ci to install one).')
-    print()
-    print('Next steps:')
-    print(f'  1. Create articles in {td}/articles/')
-    print(f'  2. Add entries to {td}/series.json')
-    print(f'  3. Run: lightwebpres build {td}')
+        progress()
+        progress('No .gitlab-ci.yml (opt-in only — pass --gitlab-ci to install one).')
+    progress()
+    progress('Next steps:')
+    progress(f'  1. Create articles in {td}/articles/')
+    progress(f'  2. Add entries to {td}/series.json')
+    progress(f'  3. Run: lightwebpres build {td}')
 
 
 def cmd_refresh_templates(target_dir, args):
@@ -11083,13 +11112,13 @@ def cmd_refresh_templates(target_dir, args):
         pins = pinned_settings(old)
         new = build_settings_scaffold(theme_key, pinned=pins)
         if new == old:
-            print(f'templates/{SETTINGS_FILENAME} is already current. '
+            progress(f'templates/{SETTINGS_FILENAME} is already current. '
                   f'Nothing written.')
             return
         _write_file(settings_path, new)
         kept = len(pins)
         unknown = [k for k in pins if k not in PROPERTY_REGISTRY]
-        print(f'Regenerated templates/{SETTINGS_FILENAME} for theme '
+        progress(f'Regenerated templates/{SETTINGS_FILENAME} for theme '
               f'{theme_key or "default"}: commented surface refreshed, '
               f'{kept} pinned value(s) kept.')
         if unknown:
@@ -11097,8 +11126,8 @@ def cmd_refresh_templates(target_dir, args):
                   f'and were moved to the trailing section, commented out: '
                   f'{", ".join(unknown)}. A build would reject them; delete '
                   f'or rename them (audit names the replacements).')
-        print()
-        print('Run build again to apply.')
+        progress()
+        progress('Run build again to apply.')
         return
 
     legacy = templates_dir / 'style.css'
@@ -11132,15 +11161,15 @@ def cmd_refresh_templates(target_dir, args):
             refreshed.append('templates/nav.js (previous version saved as templates/nav.js.bak)')
 
     if refreshed:
-        print('Refreshed:')
+        progress('Refreshed:')
         for item in refreshed:
-            print(f'  {item}')
+            progress(f'  {item}')
     if up_to_date:
-        print('Already up to date:')
+        progress('Already up to date:')
         for item in up_to_date:
-            print(f'  {item}')
-    print()
-    print('Run build again to apply the refreshed templates.')
+            progress(f'  {item}')
+    progress()
+    progress('Run build again to apply the refreshed templates.')
 
 
 # ============================================================================
@@ -11501,14 +11530,14 @@ def cmd_set_theme(target_dir, args):
         # Installed before the rewrite: nothing to preserve, write a fresh
         # scaffold for the chosen theme.
         _write_file(settings_path, build_settings_scaffold(new_slug))
-        print(f'Theme set: {new_slug} (fresh {SETTINGS_FILENAME} written)')
-        print('Run build again to apply the new theme.')
+        progress(f'Theme set: {new_slug} (fresh {SETTINGS_FILENAME} written)')
+        progress('Run build again to apply the new theme.')
         return
 
     text = read_text_file(settings_path)
     current, _props = parse_settings_text(text)
     if current == new_slug:
-        print(f'Theme unchanged: already {new_slug}. Nothing written.')
+        progress(f'Theme unchanged: already {new_slug}. Nothing written.')
         return
 
     if re.search(r'^theme:.*$', text, re.MULTILINE):
@@ -11522,12 +11551,12 @@ def cmd_set_theme(target_dir, args):
         text = f'theme: {new_slug}\n' + text
     _write_file(settings_path, text)
 
-    print(f'Theme changed: {current or "default"} -> {new_slug}')
-    print(f'  {settings_path}')
-    print('  Your uncommented values are untouched and still apply on top.')
-    print('  (Commented values still show the previous theme; audit notes it.)')
-    print()
-    print('Run build again to apply the new theme.')
+    progress(f'Theme changed: {current or "default"} -> {new_slug}')
+    progress(f'  {settings_path}')
+    progress('  Your uncommented values are untouched and still apply on top.')
+    progress('  (Commented values still show the previous theme; audit notes it.)')
+    progress()
+    progress('Run build again to apply the new theme.')
 
 
 # ============================================================================
@@ -12347,7 +12376,7 @@ def cmd_themes_gallery(positional, args):
             % (detail,))
         sys.exit(1)
     _write_file(out, html)
-    print(f'Generated: {out}')
+    progress(f'Generated: {out}')
 
 
 # ============================================================================
@@ -12598,21 +12627,21 @@ This is the full article for the third demo article [^1].
     }
     _write_file(td / 'series.json', json.dumps(series_json, ensure_ascii=False, indent=2))
 
-    print(f'Demo created: {td}')
-    print('  3 articles (first, middle, last) with full articles')
-    print('  1 demo image with a caption (articles/img/demo-figure.svg)')
+    progress(f'Demo created: {td}')
+    progress('  3 articles (first, middle, last) with full articles')
+    progress('  1 demo image with a caption (articles/img/demo-figure.svg)')
 
     # Run the build
-    print()
-    print('Running the build...')
+    progress()
+    progress('Running the build...')
     cmd_build(str(td), args)
-    print()
+    progress()
     # Name the directory the build actually wrote to, not the default:
     # with --output the fixed string was simply false, and contradicted the
     # build's own line two above it. The default still reads "public/"
     # exactly as before.
     out = args.get('--output', 'public/')
-    print(f'Demo site generated in {out}. '
+    progress(f'Demo site generated in {out}. '
           f'Open {Path(out) / "index.html"} in a browser.')
 
 
