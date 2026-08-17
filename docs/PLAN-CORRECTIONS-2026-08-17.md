@@ -26,8 +26,8 @@ pas par symptôme.
 
 | Lot | Contenu | Version cible | État |
 |---|---|---|---|
-| 0 | Fuite et perte de données | v0.33.4, seule | à faire |
-| 5.1 | Hiérarchie typographique inversée | v0.34.0, en tête | à faire |
+| 0 | Fuite et perte de données | v0.33.4, seule | **fait** (`d7979d0`) |
+| 5.1 | Hiérarchie typographique inversée | v0.34.0, en tête | **fait**, avec l'instrument 1 |
 | 5.2–5.4 | Clavier, contraste 1.00:1, page fantôme | v0.34.0 | à faire |
 | 1 | Le contrat CLI qui ment | v0.34.0 | à faire |
 | 4 | Les dix tests morts | avec chaque correctif | à faire |
@@ -60,8 +60,17 @@ Reproduit : un article contenant `![](../../secret/id_rsa)`, construit avec
 `ROOT-SECRET-CLE-PRIVEE-12345`. Même série, même symlink : `build` refuse
 avec un avertissement, `build --inline-images` encode la clé.
 
-**Correctif** : faire passer le chemin par `_is_safe_relative_filename` puis
-`_resolve_contained`, comme tous les autres sites de lecture.
+**Correctif appliqué** : `_resolve_contained` seul. `_is_safe_relative_filename`
+exige un nom **nu**, or `img/foo.png` a légitimement un composant de
+répertoire — la barrière de realpath est celle qui convient ici. Refusé
+avec avertissement plutôt que fatal, pour s'aligner sur `copy_images` qui
+affronte la menace identique sur le chemin non-inline : une série qui
+construit avec un avertissement ne doit pas devenir inconstructible à
+cause de l'option qui l'empaquette.
+
+**À savoir** : `log()` **jette silencieusement** tout niveau inconnu, donc
+un `log('warning', …)` refuse la lecture sans rien afficher. Le vrai
+niveau `warn` arrive avec le lot 1.
 
 **Test qui doit mordre** : `![](../../x)` et `![](/etc/hostname)` rendent le
 build fatal ; un symlink sortant est refusé, pas encodé.

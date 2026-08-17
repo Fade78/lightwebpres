@@ -76,7 +76,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.33.4"
+VERSION = "0.34.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -3761,7 +3761,16 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 /* Free-form standard-slide body (no fact-label). A heading here is body
    content (§22.2), never the slide's own title, so it must render
    smaller than that title. These em sizes resolve against the inherited
-   base, i.e. well under it. */
+   base, i.e. well under it.
+
+   That base is what this rule sets, and it did not exist: .slide-body
+   carried no size at all, so it and its em-relative headings inherited
+   the document's unset 16px and stayed there while the card around them
+   tripled. Measured at 3840: 16px of body under a 101.5px title, and the
+   SAME prose rendering at 47.5px if a `fact-label:` happened to precede
+   it -- a three-fold difference decided by a field, not by the writing.
+   16/8 keeps the phone byte-identical and closes the gap above it. */
+.slide-body { font-size: max(16px, 2vmin); }
 .slide-body h1, .slide-body h2, .slide-body h3 {
   margin: 14px 0 6px;
   max-width: var(--page-content-max);
@@ -3834,7 +3843,7 @@ sup { vertical-align: super; line-height: 0; }
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
-.full-article blockquote, .full-article pre { font-size: 15px; }
+.full-article blockquote, .full-article pre { font-size: max(15px, 1.875vmin); }
 
 /* --- Comparison table --- */
 .comparison-table {
@@ -3883,6 +3892,11 @@ sup { vertical-align: super; line-height: 0; }
   margin: 20px auto;
   max-width: var(--page-block-max);
   text-align: center;
+  /* `caption.size` is 0.85em — relative to a context that has to exist.
+     It did not: the figure inherited the document's unset 16px, so the
+     one em-relative size in the reading surface resolved to a flat 13.6px
+     at every width. An em only scales if something above it does. */
+  font-size: max(16px, 2vmin);
 }
 .figure img { max-width: 100%; height: auto; }
 .figure-caption { margin-top: 6px; }
@@ -3890,9 +3904,18 @@ sup { vertical-align: super; line-height: 0; }
 /* --- The full-article slide: a measure of its own, narrower than the
    deck's, because it is read as prose rather than glanced at. --- */
 .full-article { padding: 60px 8vw 80px 8vw; }
-.full-article h1 { font-size: 28px; margin-bottom: 8px; }
-.full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
-.full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+/* These scale for the same reason the registry's thirty-five do, and they
+   were missed because they are LITERALS: the sweep that gave the design a
+   scale counted properties, and nothing counted the sizes written
+   straight into this sheet. `article.size` grew; the article's own
+   headings did not. Measured at 3840, h2 sat at 22px under a 40.5px body
+   -- a heading 0.54x the text it heads -- and the inversion already
+   started at 1920. The coefficient is the pixel value over 8, the same
+   arithmetic the registry uses, so every ratio these had at 1920x1080 is
+   the ratio they keep above it, and the floors leave a phone untouched. */
+.full-article h1 { font-size: max(28px, 3.5vmin); margin-bottom: 8px; }
+.full-article h2 { font-size: max(22px, 2.75vmin); margin-top: 40px; margin-bottom: 12px; }
+.full-article h3 { font-size: max(18px, 2.25vmin); margin-top: 28px; margin-bottom: 10px; }
 .full-article .h4 { font-weight: bold; margin-top: 20px; margin-bottom: 8px; }
 .full-article p { margin-bottom: 14px; max-width: var(--page-content-max); }
 .full-article ul, .full-article ol {
@@ -3905,7 +3928,7 @@ sup { vertical-align: super; line-height: 0; }
   max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
-  font-size: 14px;
+  font-size: max(14px, 1.75vmin);
 }
 .full-article table th, .full-article table td {
   padding: 8px 12px;
@@ -3914,7 +3937,7 @@ sup { vertical-align: super; line-height: 0; }
 .full-article table th { font-weight: 700; }
 .full-article strong { font-weight: 700; }
 .full-article em { font-style: italic; }
-.full-article .refs p { font-size: 13px; margin-bottom: 6px; }
+.full-article .refs p { font-size: max(13px, 1.625vmin); margin-bottom: 6px; }
 
 /* --- Series navigation --- */
 /* The column, like everything else on a card. A flat 680px left the
