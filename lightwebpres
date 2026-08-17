@@ -1377,7 +1377,15 @@ THEMES = {
         'marker': '#FFD500', 'ink': '#000000', 'ink-muted': '#4A4A4A',
         'page': '#FFFFFF', 'accent': '#D00000', 'positive': '#006B2C',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "Pure black on pure white, a single red. Aiming at AAA: readable in direct sunlight, on a projector, and in low vision.",
+        # Underlined ON TOP OF the ground, which is this theme's doctrine
+        # rather than a flourish: never let one channel carry a signal
+        # alone. It is also where the catalogue shows that the two
+        # emphasis axes compose -- a role Monochrome held until its grey
+        # wash measured 13.7 against its own page and was dropped
+        # (§9.5.5), which had made it a demonstration of a ground nobody
+        # could see. The line stays in currentColor.
+        'fact_decoration': 'underline',
+        'note': "Pure black on pure white, a single red. Aiming at AAA: readable in direct sunlight, on a projector, and in low vision. Bold in a fact box is both washed and underlined — on the one theme whose whole doctrine is that no signal should rest on a single channel.",
         'note_good': True,
     },
     # The same profile inverted. Light sensitivity is as much an
@@ -1416,13 +1424,16 @@ THEMES = {
         'family': 'desk', 'label': 'Monochrome', 'source': 'lightwebpres',
         'marker': '#D8D8D8', 'ink': '#111111', 'ink-muted': '#707070',
         'page': '#FAFAFA', 'accent': '#2B2B2B', 'positive': '#000000',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        # Underlined ON TOP OF the highlight — the only theme here to
-        # combine the two, which is what shows the axes really are
-        # independent. The line stays in currentColor: on a theme that
-        # rules out hue, detaching it by colour would make no sense.
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
+        # The line stays in currentColor: on a theme that rules out hue,
+        # detaching it by colour would make no sense. It used to be drawn
+        # ON TOP OF a grey wash, which measured 13.7 against its own
+        # ground -- the least visible highlighter in the catalogue. A
+        # grey band on a white page has only lightness to separate it,
+        # and lightness is already spent on the text; pushed dark enough
+        # to be seen it starts competing with the ink instead.
         'fact_decoration': 'underline',
-        'note': "No colour anywhere. A table’s verdicts then rest on weight, opacity and shape markers — and it works. Fact-box bold combines highlight and underline: when hue is ruled out, emphasis goes through shape.",
+        'note': "No colour anywhere. A table’s verdicts then rest on weight, opacity and shape markers — and it works. Fact-box bold is underlined and not washed: with hue ruled out a grey band has only lightness to work with, and the text has already spent it. Graphite, this theme after dark, reached the same answer from the opposite direction.",
         'note_good': True,
     },
     'graphite': {
@@ -1443,9 +1454,9 @@ THEMES = {
         'family': 'desk', 'label': 'Newsprint', 'source': 'lightwebpres',
         'marker': '#E4DAC2', 'ink': '#1A1A18', 'ink-muted': '#6B6862',
         'page': '#F4F1EA', 'accent': '#8C2F1E', 'positive': '#3E5641',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
-        'note': "A warm monochrome with a single red ink held in reserve — the grammar of a printed daily.",
-        'note_good': False,
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
+        'note': "A warm monochrome with a single red ink held in reserve — the grammar of a printed daily, which emphasises with weight and never with a wash. The beige band this carried measured 17.6 against the page, second-least visible in the catalogue, and a press has no felt-tip anyway.",
+        'note_good': True,
     },
     'gold-leaf': {
         'family': 'desk', 'label': 'Gold Leaf', 'source': 'lightwebpres',
@@ -1503,7 +1514,7 @@ THEMES = {
     },
     'crimson': {
         'family': 'heat', 'label': 'Crimson', 'source': 'lightwebpres',
-        'marker': '#E8B4A0', 'ink': '#3B0A12', 'ink-muted': '#8A6A6E',
+        'marker': '#FFA98A', 'ink': '#3B0A12', 'ink-muted': '#8A6A6E',
         'page': '#FFF6F0', 'accent': '#B00020', 'positive': '#5C7A3F',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "Deep carmine on rosy cream — the register of a letter, an opera, an intimate epic.",
@@ -1529,7 +1540,7 @@ THEMES = {
     },
     'sage': {
         'family': 'terrain', 'label': 'Sage', 'source': 'lightwebpres',
-        'marker': '#E5D9A8', 'ink': '#26302A', 'ink-muted': '#7C8B7E',
+        'marker': '#EAD968', 'ink': '#26302A', 'ink-muted': '#7C8B7E',
         'page': '#F3F5EF', 'accent': '#B4652A', 'positive': '#4F7A52',
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A calmed grey-green on linen. The terracotta accent avoids the all-green trap and keeps the verdicts distinct.",

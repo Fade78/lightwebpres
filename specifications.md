@@ -2215,8 +2215,8 @@ en douce derrière le dos du thème, la couche le **dit** :
   sombre (où c'est le ton foncé), `ink` sur un clair — pour qu'un thème
   ne puisse pas se donner une encre illisible sur son propre marqueur
   (le contraste avait été mesuré à 1,00 avant que l'axe existe). Un
-  `fact_highlight` valant explicitement `None` — cinq thèmes du
-  catalogue — donne `transparent` + encre héritée : pas de fond du tout,
+  `fact_highlight` valant explicitement `None` — voir la règle de
+  §9.5.5 — donne `transparent` + encre héritée : pas de fond du tout,
   ce qui n'est pas la même chose que ne rien dire (l'absence de clé
   retombe sur le défaut, le fond `mark`). Changer le fond sans revoir
   l'encre peut tomber sous le seuil de lisibilité — un vert `affirm`
@@ -2278,9 +2278,13 @@ catalogue rendait Tokyo Night avec les accents *Night* posés sur le fond
 Les deux thèmes qui emploient le soulignement du gras d'encadré sont
 `monochrome` et `graphite`, et ce n'est pas arbitraire : ce sont les
 deux palettes qui s'interdisent la teinte, et un soulignement est une
-forme, pas une teinte. Elles couvrent les deux emplois de l'axe —
-`monochrome` cumule surlignage **et** soulignement, `graphite` souligne
-**à la place** — sur les deux polarités de fond. Un `mark` fait pour
+forme, pas une teinte. Les deux soulignent **à la place** de
+surligner, sur les deux polarités de fond : `monochrome` cumulait les
+deux jusqu'à ce que la mesure de §9.5.5 montre que son lavis gris ne se
+voyait pas. Aucun thème livré ne cumule donc plus les deux axes ; qu'ils
+se composent reste garanti par le test qui vérifie les huit axes
+d'emphase sur leurs valeurs résolues, et non par le choix d'un thème. Un
+`mark` fait pour
 servir de fond est souvent trop pâle pour servir de trait (mesuré à
 1,23:1 sur `newsprint`, 1,49:1 sur `blueprint`) : d'où le trait laissé à
 l'encre du texte sur `monochrome`, et en `mark` sur `graphite` seulement
@@ -2472,6 +2476,43 @@ demandent.
 Verrouillé par test **à la source** — aucune note ne contient `<`, `>`
 ni d'entité — et non sur l'affichage : c'est le stockage qui est la
 règle, l'affichage n'en est que la conséquence.
+
+#### 9.5.5 Quand un thème renonce au surligneur
+
+`fact_highlight: None` n'est pas un réglage esthétique laissé au cas par
+cas : c'est la réponse à un test, et le test a deux moitiés.
+
+**La bande doit se voir.** Un surligneur est un fond posé sur un autre
+fond, et sa visibilité se mesure — l'écart CIELAB entre la bande
+composée et le fond de l'encadré sur lequel elle repose. Le catalogue se
+tient autour de 76 ; en dessous d'une trentaine, une bande cesse d'être
+une marque et devient une nuance qu'on ne remarque pas. Deux entrées
+étaient tombées là sans que rien ne le signale : le lavis gris de
+`monochrome` à 13,7 et la bande beige de `newsprint` à 17,6. Un `mark`
+choisi pour être discret derrière du texte peut très bien ne plus rien
+marquer du tout, et aucun seuil de contraste WCAG ne l'attrape, puisque
+l'encre posée dessus, elle, reste parfaitement lisible.
+
+**Le geste doit exister dans le monde que le thème cite.** Le feutre
+surligneur date des années 1960. Un thème qui cite la presse au plomb ou
+la machine à écrire emphase par la graisse, les capitales ou l'italique,
+et un lavis jaune y est un anachronisme — pas une faute de goût, une
+erreur de fait.
+
+Les refus se rangent donc en quatre motifs, et un thème qui renonce doit
+pouvoir en nommer un :
+
+- **la teinte est exclue** (`monochrome`, `graphite`) : une bande grise
+  n'a que la clarté pour se détacher, et le texte l'a déjà dépensée ;
+- **le monde cité n'a pas de feutre** (`newsprint`, `old-journal`) ;
+- **le fond est déjà la couleur** (`pop-lemon`, `pop-tangerine`) : un
+  lavis sur une page saturée ne s'en sépare pas ;
+- **la palette est portée** (`solarized`, `rose-pine`) : ses auteurs ne
+  surlignent pas, et la fidélité prime (§9.5.2).
+
+Un thème qui renonce garde la graisse, et peut prendre le soulignement
+(`fact_decoration`) — une forme, pas une teinte, donc disponible même
+quand la teinte est ce dont on s'interdit de se servir.
 
 ### 9.6 La couche article, et les balises d'instance
 
