@@ -73,6 +73,7 @@ nav_desc: A
 kicker: PROBE
 # Deck probe
 summary: A cover, whose gradient is what the counter sits on.
+note: THE-SPEAKER-NOTE-MARKER, which only the presenter panel may show.
 
 ---
 
@@ -178,6 +179,24 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
             self.assertGreaterEqual(
                 m['counterContrast'], 4.5,
                 f'{theme}: counter contrast {m["counterContrast"]:.2f}:1')
+
+    def test_the_presenter_panel_reads_the_speaker_note(self):
+        """`note:` exists so a speaker can see something the audience
+        cannot, and the panel is the only place it surfaces. Nothing
+        checked that it ever gets there: the Python tests prove the note
+        is emitted hidden and stays invisible on the card -- both true,
+        both satisfied by a panel that never reads it. Mutating the read
+        to a literal dash left the whole suite green."""
+        # The note sits on the COVER, which is the current slide at load.
+        # The panel shows the CURRENT slide's note, so putting it anywhere
+        # else would measure the navigation rather than the panel -- and a
+        # dash would be the correct answer.
+        m = self.measured['high-contrast']
+        self.assertTrue(m['presenter']['open'],
+                        'the N key did not open the presenter panel')
+        self.assertIn('THE-SPEAKER-NOTE-MARKER', m['presenter']['notes'],
+                      f'the panel shows {m["presenter"]["notes"]!r} instead '
+                      f'of the slide\'s note')
 
     def test_one_slide_prints_on_one_sheet(self):
         """Counts pages in a real PDF, not the presence of a CSS rule.

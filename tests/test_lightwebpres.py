@@ -2231,27 +2231,62 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertTrue(out.exists())
 
     def test_no_nav_leaves_empty_container(self):
-        # --no-nav (DECISION §4): the placeholder is replaced by an empty
-        # string, the container (<h2> + <div class="series-list">) stays.
-        md = (
-            '<!-- lwp:meta -->\npage_dest: a.html\npage_source: a.md\n'
-            'nav_title: A\nnav_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: S.\n\n---\n\n'
-            '<!-- lwp:slide:series-nav -->\n'
-        )
+        """--no-nav must remove the links and keep the container.
+
+        The version this replaces could not fail. It sliced on the FIRST
+        occurrence of `series-list`, which is in the inline <style> block
+        at offset ~32000, then cut at the first `</div>` -- so it examined
+        17370 characters of CSS, byte-identical with and without the flag,
+        and looked for `<a href` in it. Measured: the examined slice
+        contained no anchor in either case. Making --no-nav a complete
+        no-op (`if include_nav:` -> `if True:`) left all 742 tests green.
+
+        Two changes: slice the BODY, and carry a positive control, so the
+        test also fails if the fixture stops producing links at all."""
+        meta = ('<!-- lwp:meta -->\npage_dest: {dest}\npage_title: {t}\n'
+                'nav_title: {t}\nnav_desc: {t}\n---\n\n'
+                '<!-- lwp:slide:cover -->\nkicker: K\n# {t}\nsummary: S.\n'
+                '\n---\n\n<!-- lwp:slide:series-nav -->\n')
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, md, source_name='a.md', file_name='a.html')
-            result = run('build', str(root), '--output', str(root / 'public'),
-                         '--no-nav')
-            self.assertEqual(result.returncode, 0, result.stderr)
-            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            # The container stays (the <div class="series-list"> is in the
-            # HTML body, not just the CSS).
-            self.assertIn('class="series-list"', html)
-            # No actual nav links: <a class="series-link" ...> elements are
-            # gone (the CSS still mentions .series-link, but no <a> uses it).
-            self.assertNotIn('<a href', html.split('series-list', 1)[1].split('</div>', 1)[0]
-                             if 'series-list' in html else '')
+            root = Path(tmp)
+            (root / 'articles').mkdir()
+            for dest, src, title in (('a.html', 'a.md', 'A'),
+                                     ('b.html', 'b.md', 'B')):
+                (root / 'articles' / src).write_text(
+                    meta.format(dest=dest, t=title), encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': 'A', 'nav_desc': 'A'},
+                {'page_dest': 'b.html', 'page_source': 'b.md',
+                 'nav_title': 'B', 'nav_desc': 'B'},
+            ]}), encoding='utf-8')
+
+            def body_of(page):
+                html = (root / page).read_text(encoding='utf-8')
+                # The <style> block also names .series-list, so anchor on
+                # the markup: the OPENING TAG, not the bare class name.
+                marker = '<div class="series-list">'
+                self.assertIn(marker, html, 'no series-list in the body')
+                return html.split(marker, 1)[1].split('</section>', 1)[0]
+
+            # Positive control first: without the flag there ARE links, so
+            # the assertion below is about the flag and not about an empty
+            # fixture.
+            self.assertEqual(run('build', str(root), '--output',
+                                 str(root / 'with')).returncode, 0)
+            with_nav = body_of('with/a.html')
+            # `class="series-item series-link"`: match the token, not a
+            # whole attribute I guessed at.
+            self.assertIn('series-link', with_nav)
+
+            self.assertEqual(run('build', str(root), '--output',
+                                 str(root / 'without'), '--no-nav').returncode,
+                             0)
+            without = body_of('without/a.html')
+            self.assertNotIn('series-link', without,
+                             'the nav links survived --no-nav:\n' + without)
+            self.assertNotIn('<a href', without,
+                             'an anchor survived --no-nav:\n' + without)
 
     def test_no_index_skips_index_html(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2581,6 +2616,80 @@ class CliVersionAndShortcuts(unittest.TestCase):
             result = run('clean', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('No orphan', result.stdout)
+
+    def test_watch_rebuilds_on_change_and_serves_the_result(self):
+        """The two existing watch tests prove the INITIAL build runs and
+        the option table accepts the flags. Gutting the rebuild loop and
+        disabling --serve left the whole suite green: the feature is
+        rebuild-on-change, and nothing measured it. `--port` and `--serve`
+        appeared zero times in the test tree.
+
+        This drives the real thing: edit a source, wait for the rebuild,
+        read the new text out of the built page AND over HTTP."""
+        import signal
+        import socket
+        import subprocess as sp
+        import threading as _threading
+        import time as _time
+        import urllib.request
+
+        with socket.socket() as probe:          # a port nothing else holds
+            probe.bind(('127.0.0.1', 0))
+            port = probe.getsockname()[1]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            out = root / 'public'
+            proc = sp.Popen(
+                [sys.executable, str(EXECUTABLE), 'watch', str(root),
+                 '--output', str(out), '--serve', '--port', str(port)],
+                stdout=sp.PIPE, stderr=sp.PIPE, text=True,
+                env={**os.environ, 'PYTHONUNBUFFERED': '1'})
+            lines = []
+            _threading.Thread(target=lambda: lines.extend(proc.stdout),
+                              daemon=True).start()
+
+            def wait_for(needle, seconds=20):
+                end = _time.time() + seconds
+                while _time.time() < end:
+                    if any(needle in l for l in lines):
+                        return True
+                    if proc.poll() is not None:
+                        return False
+                    _time.sleep(0.1)
+                return False
+
+            try:
+                self.assertTrue(wait_for('[watch] polling'),
+                                'watch never reached its polling loop:\n'
+                                + ''.join(lines))
+                self.assertTrue(any('serving' in l for l in lines),
+                                '--serve started no server:\n' + ''.join(lines))
+
+                # Edit a source and wait for the loop to notice.
+                marker = 'REBUILT-BY-WATCH-MARKER'
+                article = root / 'articles' / 'a.md'
+                article.write_text(
+                    article.read_text(encoding='utf-8').replace(
+                        '# Title', '# ' + marker), encoding='utf-8')
+                self.assertTrue(wait_for('[watch] rebuilt.'),
+                                'watch never rebuilt after a source changed:\n'
+                                + ''.join(lines))
+                self.assertIn(marker,
+                              (out / 'a.html').read_text(encoding='utf-8'),
+                              'watch reported a rebuild that did not happen')
+
+                # And the server hands back that same page.
+                with urllib.request.urlopen(
+                        f'http://127.0.0.1:{port}/a.html', timeout=10) as resp:
+                    self.assertEqual(resp.status, 200)
+                    self.assertIn(marker, resp.read().decode('utf-8'))
+            finally:
+                proc.send_signal(signal.SIGINT)
+                try:
+                    proc.wait(timeout=10)
+                except sp.TimeoutExpired:
+                    proc.kill()
 
     def test_watch_is_a_known_command(self):
         # `watch` is recognized and builds once before polling. We can't

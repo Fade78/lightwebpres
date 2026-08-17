@@ -5,9 +5,19 @@
 const { chromium } = require('playwright');
 const { collectConsoleErrors } = require('./console_errors.cjs');
 
+// VISIBLE means the browser is not painting it, not `section.hidden`.
+//
+// `hidden` is the property the filter's own script sets, so reading it
+// back only proves the script ran. What makes a filtered card disappear
+// is the stylesheet's `.slide[hidden] { display: none }` override --
+// needed because an author-origin `.slide { display: flex }` beats the
+// UA rule for [hidden]. Measured: neutralising that override with a
+// later, equal-specificity `.slide[hidden] { display: flex }` left this
+// driver green and every filtered card fully on screen. The one thing
+// the feature promises was the one thing nothing checked.
 async function visibleTags(page) {
   return page.locator('section.slide').evaluateAll((sections) =>
-    sections.filter((section) => !section.hidden)
+    sections.filter((section) => getComputedStyle(section).display !== 'none')
       .map((section) => section.getAttribute('data-tags')),
   );
 }
@@ -15,7 +25,7 @@ async function visibleTags(page) {
 async function expectVisibleTags(page, expected) {
   await page.waitForFunction(
     (wanted) => Array.from(document.querySelectorAll('section.slide'))
-      .filter((section) => !section.hidden)
+      .filter((section) => getComputedStyle(section).display !== 'none')
       .map((section) => section.getAttribute('data-tags'))
       .join('|') === wanted,
     expected.join('|'),

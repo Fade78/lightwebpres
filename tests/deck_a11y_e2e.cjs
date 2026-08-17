@@ -70,6 +70,25 @@ function contrast(fg, bg) {
   await page.keyboard.press('Escape');
   out.menuClosesOnEscape = !(await menuOpen());
 
+  // --- presenter panel: does it READ the note? ---------------------------
+  // Nothing measured this. The Python side proves a `note:` is emitted
+  // hidden and never visible on the card -- both true, both useless if
+  // the panel that is supposed to surface it never looks. Mutating
+  // `presenterNotes.textContent = noteEl ? ... : '—'` to a bare '—' left
+  // the whole suite green: the word "presenter" appeared in the test tree
+  // only inside three comments.
+  await page.keyboard.press('n');
+  out.presenter = await page.evaluate(() => {
+    const panel = document.getElementById('presenterPanel');
+    const notes = document.getElementById('presenterNotes');
+    return {
+      open: !!(panel && panel.classList.contains('open')),
+      notes: notes ? notes.textContent.trim() : null,
+      next: (document.querySelector('.pp-next') || {}).textContent || '',
+    };
+  });
+  await page.keyboard.press('n');
+
   // --- contrast: the speaker counter on slide 1 (the cover gradient) ----
   out.counter = await page.evaluate(() => {
     const el = document.querySelector('.slide-counter');
