@@ -49,3 +49,59 @@ Twelve sizes are still flat and listed: the slide counter, the nav home
 glyph, the tag-menu heading, the help overlay, the share popover and its QR
 modal. All chrome, all real, all owned by a later lot — and now all named in
 a file that fails when the list stops matching the page.
+
+## 15. Three promises, none of them measured
+
+Not a viewport finding, but the same failure of instrument, so it belongs
+with the rest: three things a built deck promises that no test had ever
+checked, because every test that touched them read the stylesheet instead
+of the page.
+
+**The slide-variant dialog could not be operated without a mouse.** It
+carries `role="dialog"`, its options are real `<button>`s, and they are
+focusable. None of that mattered: five Tab presses left
+`document.activeElement` on `BODY`. The global keydown handler
+`preventDefault()`s every key whose target is not already inside
+`.tag-menu` — and a prevented Tab cancels the focus move, so focus could
+never get in to begin with, which meant the target was never inside, which
+meant the next Tab was prevented too. Nothing focused the dialog on open,
+so the whole feature (shipped in v0.32.0) was mouse-only and its `role`
+was never announced. Focus now moves to the active option on open, wraps
+on Tab and Shift+Tab, and returns to the button that opened it.
+
+**The speaker counter was invisible on 15 of the 34 themes**, at exactly
+1.00:1. `.slide-counter { background: none }` let the cover's gradient
+show through, and on a light theme `page.fg` and `cover.bg.from` are both
+`color.ink` — the counter's ink *was* its ground, and the 1px border in
+`currentColor` disappeared with it. Every neighbouring overlay
+(`.presenter-panel`, `.tag-menu`, `.help-overlay`) uses `background:
+inherit` and measures AA everywhere; this one element did not. On
+`high-contrast` it now measures 21.00:1.
+
+Worth naming: **`theme show`'s contrast report could not have caught
+this.** The report walks the property registry, and `.slide-counter` is
+skeleton-only with no property for it to read. The report is accurate
+where it looks — it prints 4.1626:1 for a pair I measured in the browser
+at 4.17:1 — and the gap is its field of view, not its arithmetic.
+
+**One slide per sheet printed one sheet too many, always.**
+`.slide:last-child` matched *nothing* on any page ever built: the page
+footer and the inline script element follow the last slide, so the last
+slide is never the body's last child. The final slide kept
+`page-break-after: always` and the footer took a sheet of its own. Six
+slides printed seven pages, four printed five, on every page of two
+corpora. `:last-of-type` fixes it.
+
+**What the tests had to become.** All three are now measured on the
+rendered page — focus walked with real key presses, contrast computed
+from resolved colours across five themes, sheets counted in a real PDF. A
+string check on the emitted CSS would have called the print rule fine,
+because the rule was present and correct and simply selected nothing.
+
+Two things the mutation pass taught while writing them, both about the
+fixture rather than the code. The print test did not bite until the probe
+carried a `series_meta` footer — with nothing to spill onto the extra
+sheet, the defect hides, so **a probe must carry the thing that made the
+defect visible or it passes against the bug**. And the sheet count has to
+be of *visible* slides: the variant filter hides the cards that do not
+carry the active tag, and a hidden card prints nothing.

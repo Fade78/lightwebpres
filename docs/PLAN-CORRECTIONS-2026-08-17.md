@@ -28,7 +28,7 @@ pas par symptôme.
 |---|---|---|---|
 | 0 | Fuite et perte de données | v0.33.4, seule | **fait** (`d7979d0`) |
 | 5.1 | Hiérarchie typographique inversée | v0.34.0, en tête | **fait**, avec l'instrument 1 |
-| 5.2–5.4 | Clavier, contraste 1.00:1, page fantôme | v0.34.0 | à faire |
+| 5.2–5.4 | Clavier, contraste 1.00:1, page fantôme | v0.34.0 | **fait** |
 | 1 | Le contrat CLI qui ment | v0.34.0 | à faire |
 | 4 | Les dix tests morts | avec chaque correctif | à faire |
 | 2, 5.5–5.8 | Robustesse du build, alignement, longueurs | v0.34.x | à faire |

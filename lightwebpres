@@ -4124,7 +4124,14 @@ body.fs-noselect {
     overflow: visible !important;
     scroll-snap-align: none !important;
   }
-  .slide:last-child { page-break-after: auto; break-after: auto; }
+  /* :last-of-type, not :last-child. The last slide is never the body's
+     last child -- the page footer and the inline script element follow it
+     -- so this selector matched NOTHING on any page ever built: the final
+     slide kept its forced break and the footer landed on a sheet of its
+     own. Measured on two corpora, every page: six slides printed seven
+     sheets, four printed five. A rule that selects nothing is invisible
+     in the source and obvious in the paper tray. */
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
   @page { margin: 1.5cm; }
 }
 
@@ -4140,7 +4147,16 @@ body.fs-noselect {
   border-radius: 999px;
   border-style: solid;
   border-width: 1px;
-  background: none;
+  /* `inherit`, like every neighbouring overlay -- .presenter-panel,
+     .tag-menu and .help-overlay all resolve to the page's own ground and
+     measure AA on all 34 themes. `none` let the cover's gradient show
+     through, and on a light theme `page.fg` and `cover.bg.from` are both
+     `color.ink`: the counter's ink WAS its ground. Measured at exactly
+     1.00:1 on 15 of the 34 themes, with the 1px border in currentColor
+     vanishing along with it. Invisible to `theme show`'s contrast report
+     by construction, because this element has no registry property for
+     that report to read. */
+  background: inherit;
   box-shadow: 0 1px 6px rgba(0,0,0,0.10);
   transition: opacity 0.4s;
   user-select: none;
@@ -5165,15 +5181,40 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnTags) btnTags.setAttribute('aria-expanded', tagMenu && tagMenu.classList.contains('open') ? 'true' : 'false');
   }
 
+  function tagOptions() {
+    return tagMenu
+      ? Array.prototype.slice.call(tagMenu.querySelectorAll('.tag-option'))
+      : [];
+  }
+
   function closeTagMenu() {
+    var wasOpen = tagMenu && tagMenu.classList.contains('open');
     if (tagMenu) tagMenu.classList.remove('open');
     updateTagMenu();
+    // Give the focus back to what opened the menu. Leaving it on a button
+    // that has just been hidden strands a keyboard user at the top of the
+    // document with no idea where they are.
+    if (wasOpen && btnTags) btnTags.focus();
   }
 
   function toggleTagMenu() {
     if (!tagMenu || tagList().length < 2) return;
     tagMenu.classList.toggle('open');
     updateTagMenu();
+    // Move the focus IN. The menu carries role="dialog" and its options
+    // are real buttons, but nothing ever focused them, and the global
+    // keydown handler preventDefault()s every key whose target is not
+    // already inside .tag-menu -- including Tab, and a prevented Tab
+    // cancels the focus move. Measured: five Tab presses left
+    // document.activeElement on BODY, so the whole slide-variant feature
+    // was mouse-only and the dialog role was never announced.
+    if (tagMenu.classList.contains('open')) {
+      var options = tagOptions();
+      var active = options.filter(function (b) {
+        return b.classList.contains('active');
+      })[0];
+      if (active || options.length) (active || options[0]).focus();
+    }
   }
 
   function rebuildDots() {
@@ -5468,6 +5509,18 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
         closeTagMenu();
+      } else if (e.key === 'Tab') {
+        // Wrap inside the dialog. Without this, Tab from the last option
+        // walks out of an open modal into the page behind it, which is
+        // the one place a focus ring must not go.
+        var options = tagOptions();
+        if (options.length) {
+          e.preventDefault();
+          var at = options.indexOf(document.activeElement);
+          var step = e.shiftKey ? -1 : 1;
+          var next = (at < 0 ? 0 : at + step + options.length) % options.length;
+          options[next].focus();
+        }
       } else if (e.target && e.target.closest && e.target.closest('.tag-menu')) {
         return;
       } else {
