@@ -1520,6 +1520,18 @@ THEMES = {
         'note': "Deep carmine on rosy cream — the register of a letter, an opera, an intimate epic.",
         'note_good': False,
     },
+    'vermilion': {
+        'family': 'heat', 'label': 'Vermilion', 'source': 'lightwebpres',
+        'marker': '#FFE9A0', 'ink': '#3A1410', 'ink-muted': '#6E3A33',
+        'page': '#FDBDB5', 'accent': '#8C1D0C', 'positive': '#1F5C34',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Lacquer, seen from inside the box. Heat had three members "
+                "and one light one, and Crimson keeps its warmth in reserve "
+                "on a cream ground; this spends it on the ground instead and "
+                "holds the deep red back for the accent, which is where a "
+                "lacquer box keeps its own.",
+        'note_good': True,
+    },
     'ember': {
         'family': 'heat', 'label': 'Ember', 'source': 'lightwebpres',
         'dark_background': True,
@@ -1545,6 +1557,18 @@ THEMES = {
         'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
         'note': "A calmed grey-green on linen. The terracotta accent avoids the all-green trap and keeps the verdicts distinct.",
         'note_good': False,
+    },
+    'glacier': {
+        'family': 'terrain', 'label': 'Glacier', 'source': 'lightwebpres',
+        'marker': '#FFE066', 'ink': '#0F2E38', 'ink-muted': '#34565F',
+        'page': '#96EDFB', 'accent': '#0B5E8C', 'positive': '#116149',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Névé, and the blue a crevasse turns at depth. This family "
+                "had earth, stone, concrete and trees and no water at all; "
+                "here is its water, frozen. Light where Abyss is dark, and "
+                "one of the first light grounds in the catalogue carrying "
+                "enough chroma to be named a hue rather than a paper.",
+        'note_good': True,
     },
     'evergreen': {
         'family': 'terrain', 'label': 'Evergreen', 'source': 'lightwebpres',
@@ -1572,6 +1596,18 @@ THEMES = {
     # family's growing things; these four are what grows on, and what we
     # build with. No halo anywhere in `terrain` -- earth and stone do not
     # emit, and that is what separates this family from `light`.
+    'verdigris': {
+        'family': 'terrain', 'label': 'Verdigris', 'source': 'lightwebpres',
+        'marker': '#FFD24D', 'ink': '#14332A', 'ink-muted': '#375A4E',
+        'page': '#AAE5C6', 'accent': '#8A4B12', 'positive': '#0F5C3C',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Copper left out in the weather. The family had stone and "
+                "earth but no metal, and the one thing metal does that "
+                "neither of them does is corrode into a colour of its own. "
+                "The accent is the brown of the patina where it is still "
+                "thin; the mark is the bare metal underneath.",
+        'note_good': True,
+    },
     'loam': {
         'family': 'terrain', 'label': 'Loam', 'source': 'lightwebpres',
         'dark_background': True,
@@ -3182,6 +3218,12 @@ THEME_PROPERTY_OVERRIDES = {
 
     # Third light theme with the same pale-highlighter-as-dot problem.
     'ledger': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    # The same override for the fifth to eighth time: a mark chosen to
+    # sit behind text is too pale to be the active dot on a light
+    # ground. Measured at 1.02 on Glacier and 1.01 on Verdigris.
+    'glacier': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'verdigris': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
+    'vermilion': {'nav-dot.bg-active': 'call', 'table.col-snap.rule-fg': 'call'},
     # Fixed pitch is the theme, not a detail of it, so it is set on the
     # three roles a page actually renders with rather than left to the
     # reader to pin. And the pale mark cannot double as the active
@@ -3382,6 +3424,9 @@ THEME_NOTE_PROPS = {
     'high-contrast-night': {'note.size': 'max(16px, 2vmin)', 'note.local.size': 'max(14px, 1.75vmin)', 'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.page.title.size': 'max(30px, 3.75vmin)', 'note.fg': 'ink-quiet', 'note.marker.fg': 'call', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFFFFF5A', 'note.page.bg': '#FFFFFF16', 'note.page.rule-fg': '#FFFFFF5A'},
     'ledger': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1A1A1A79', 'note.page.bg': '#1A1A1A13', 'note.page.rule-fg': '#1A1A1A79'},
     'old-journal': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#2E28208B', 'note.page.bg': '#2E282016', 'note.page.rule-fg': '#2E28208B'},
+    'glacier': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#0F2E3888', 'note.page.bg': '#0F2E3816', 'note.page.rule-fg': '#0F2E3888'},
+    'verdigris': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#14332A8E', 'note.page.bg': '#14332A17', 'note.page.rule-fg': '#14332A8E'},
+    'vermilion': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#3A141085', 'note.page.bg': '#3A141015', 'note.page.rule-fg': '#3A141085'},
     'chalkboard': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#EDF0EA5C', 'note.page.bg': '#EDF0EA0F', 'note.page.rule-fg': '#EDF0EA5C'},
     'crimson': {'note.leading': '1.65', 'note.fg': '#7D5B5F', 'note.marker.fg': 'call', 'note.back.fg': '#7D5B5F', 'note.local.rule-fg': '#3B0A127B', 'note.page.bg': '#3B0A1212', 'note.page.rule-fg': '#3B0A127F'},
     'ember': {'note.fg': '#AB8D81', 'note.marker.fg': 'call', 'note.back.fg': '#AB8D81', 'note.local.rule-fg': '#FFEDE261', 'note.page.bg': '#FFEDE21E', 'note.page.rule-fg': '#FFEDE262'},
