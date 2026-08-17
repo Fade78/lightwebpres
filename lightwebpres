@@ -114,12 +114,22 @@ def log(level, msg):
     Levels: 'info' (progress, suppressed by --quiet, shown by default),
     'verbose' (only with --verbose), 'error' (always shown, even by --quiet).
     Each level carries its own prefix tag so the output stays greppable.
-    --timestamp prepends an RFC 3339 timestamp. --no-color strips ANSI (the
-    codebase emits none yet, but the flag is wired for the future).
-    Author-controlled strings (filenames, titles) pass through here, so
-    ANSI escapes and C0 control characters are stripped from the message
-    itself: a hostile series must not be able to paint the operator's
-    terminal or fake log lines."""
+    --timestamp prepends an RFC 3339 timestamp.
+
+    An unknown level is DROPPED SILENTLY below, which is a real trap and
+    has been sprung once already: a hand-written log('warning', ...)
+    refused an unsafe read and told nobody, because there is no 'warning'
+    level. Anything meaning "warning" goes through 'info' with a [WARNING]
+    tag until that level exists.
+
+    The ANSI strip below is unconditional and must stay that way. It is
+    NOT the --no-color flag and must never be wired to it: author-
+    controlled strings (filenames, titles, theme slugs) pass through here,
+    and a hostile series must not be able to paint the operator's terminal
+    or forge log lines -- least of all on the runs where --no-color
+    happens to be absent. --no-color is a promise about colour this
+    codebase does not emit, which is the whole reason it looks inert:
+    there is nothing for it to turn off."""
     if level == 'error':
         prefix = '[ERROR] '
     elif level == 'info':
@@ -159,6 +169,7 @@ def _write_file(path, content, encoding='utf-8'):
         log('info', f'would write {len(content)} bytes to {path}')
         return
     Path(path).write_text(content, encoding=encoding)
+    log('verbose', f'wrote {len(content)} bytes to {path}')
 
 
 def _mkdir(path, parents=False, exist_ok=False):
@@ -167,6 +178,7 @@ def _mkdir(path, parents=False, exist_ok=False):
         log('info', f'would mkdir {path}')
         return
     Path(path).mkdir(parents=parents, exist_ok=exist_ok)
+    log('verbose', f'mkdir {path}')
 
 
 def _copy(src, dst):
@@ -175,6 +187,7 @@ def _copy(src, dst):
         log('info', f'would copy {src} -> {dst}')
         return
     shutil.copy(str(src), str(dst))
+    log('verbose', f'copied {src} -> {dst}')
 
 
 def _copytree(src, dst, **kwargs):
@@ -184,6 +197,7 @@ def _copytree(src, dst, **kwargs):
         log('info', f'would copytree {src} -> {dst}')
         return
     shutil.copytree(str(src), str(dst), **kwargs)
+    log('verbose', f'copied tree {src} -> {dst}')
 
 
 def _remove(path):
@@ -197,6 +211,7 @@ def _remove(path):
         log('info', f'would remove {path}')
         return
     Path(path).unlink()
+    log('verbose', f'removed {path}')
 
 # Where this tool comes from. A constant because two places have to say
 # it and neither did: `--help` ended on "Full reference:

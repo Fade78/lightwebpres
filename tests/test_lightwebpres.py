@@ -1798,14 +1798,65 @@ class CliVersionAndShortcuts(unittest.TestCase):
                          '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_verbose_is_accepted(self):
-        # --verbose is accepted globally (Phase 2 wires it; verbose messages
-        # are added as the codebase grows).
+    def test_verbose_names_every_file_the_build_writes(self):
+        """`--help` promises "each file written". For a whole release the
+        flag was parsed, stored, and given its own branch in log() -- and
+        NOTHING ever called log('verbose', ...), so `--verbose build` was
+        byte-identical to `build`. The plumbing was complete and no one
+        was speaking into it.
+
+        Every write already passes through _write_file/_mkdir/_copy/
+        _copytree/_remove, which is exactly the set --dry-run journals, so
+        naming the files is four words per helper rather than a new
+        traversal of the program."""
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
-            result = run('--verbose', 'build', str(root),
+            out = root / 'public'
+            quiet_run = run('build', str(root), '--output', str(out))
+            self.assertEqual(quiet_run.returncode, 0, quiet_run.stderr)
+            self.assertNotIn('[DEBUG]', quiet_run.stderr,
+                             'verbose output leaked without the flag')
+            loud = run('--verbose', 'build', str(root), '--output', str(out))
+            self.assertEqual(loud.returncode, 0, loud.stderr)
+            debug = [l for l in loud.stderr.splitlines() if '[DEBUG]' in l]
+            self.assertGreater(len(debug), 1,
+                               'the flag is parsed but nothing speaks at '
+                               'that level:\n' + loud.stderr)
+            # Not merely "some output": the page it wrote has to be named.
+            self.assertTrue(any('a.html' in l for l in debug),
+                            'no [DEBUG] line names the file that was '
+                            'written:\n' + '\n'.join(debug))
+
+    def test_quiet_does_not_swallow_verbose(self):
+        """The two flags answer different questions -- how much progress,
+        and how much detail -- so --quiet must not silence a level the
+        operator asked for explicitly."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('--quiet', '--verbose', 'build', str(root),
                          '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('[DEBUG]', result.stderr)
+
+    def test_the_ansi_strip_is_not_wired_to_no_color(self):
+        """--no-color looks inert because this codebase emits no colour,
+        and the ANSI strip in log() is a SECURITY control, not a colour
+        feature: author-controlled strings pass through it, and a hostile
+        series must not be able to paint the operator's terminal or forge
+        log lines. Making the strip conditional on --no-color would turn
+        every run without the flag into that hole, so the wiring the flag
+        appears to be missing is wiring it must never get."""
+        import ast
+        tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
+        log_fn = [n for n in ast.walk(tree)
+                  if isinstance(n, ast.FunctionDef) and n.name == 'log']
+        self.assertEqual(len(log_fn), 1, 'log() moved or was duplicated')
+        body = ast.dump(log_fn[0])
+        self.assertIn('_ANSI_RE', body, 'the ANSI strip left log()')
+        # The strip must not sit under any test of no_color.
+        for node in ast.walk(log_fn[0]):
+            if isinstance(node, ast.If) and 'no_color' in ast.dump(node.test):
+                self.fail('the ANSI strip is now conditional on --no-color')
 
     def test_strict_audit_fails_on_warnings(self):
         # --strict makes audit exit 1 when warnings are emitted (DECISION §1
