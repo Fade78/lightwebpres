@@ -7026,7 +7026,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.34.0),
+        by the executable as it stood at the last tagged release (v0.35.0),
         and by this one, compared byte for byte after CSS comments are
         removed from ``<style>`` blocks. Comments are not rendering, while
         every other byte remains covered. --build-stamp is off by default,
@@ -7041,10 +7041,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.34.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.35.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.34.0 tag to read the previous version from')
+            self.skipTest('no v0.35.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -7075,44 +7075,40 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                               strip_style_comments, page,
                               flags=re.IGNORECASE | re.DOTALL)
 
-            # Deliberate drift since the tag, declared line for line. The
-            # docstring says to repoint at the newest tag when a release
-            # intentionally changes the output -- but between releases
-            # there is no newer tag to point at, and a version number that
-            # has not been released is not one this file may invent. So the
-            # change is named instead: everything outside these lines is
-            # still compared byte for byte, and the set of lines that
-            # actually differ has to be exactly the set declared here. A
-            # second unannounced change fails on the second assertion even
-            # though the first one now passes.
+            # Deliberate drift since the tag, declared line for line, and
+            # empty at the start of a release cycle -- which is where it
+            # is now, freshly repointed at v0.35.0.
             #
-            # pop-lemon's active navigation dot was `mark` -- the pale
-            # highlighter -- and measured 2.63:1 against the rail it sits
-            # in. It is now `call`.
-            # The rule under a series-nav card moved with the dot: both
-            # took `mark` and both now take `nav`. The two focus rings
-            # moved too and show no drift here, because this theme had
-            # already pinned its dot to `call` and `nav` inherited that
-            # value -- which is the whole argument for the role.
-            drift = {b'--nav-dot-bg-active: #7A6A00FF;':
-                     b'--nav-dot-bg-active: #8F0049FF;',
-                     b'--series-nav-link-rule-fg: #7A6A00FF;':
-                     b'--series-nav-link-rule-fg: #8F0049FF;'}
+            # It exists because the docstring's instruction has a gap.
+            # Repointing at the newest tag is the acknowledgement that a
+            # release changed the output on purpose, but BETWEEN releases
+            # there is no newer tag to point at, and a version number that
+            # has not been released is not one this file may invent. So a
+            # deliberate change is named here instead: everything outside
+            # these lines is still compared byte for byte, and the set of
+            # lines that actually differ has to be exactly the set declared
+            # here. A second unannounced change fails on the last assertion
+            # even once the first one is covered.
+            #
+            # Each entry is one CSS custom-property line, before and after,
+            # e.g.  b'--nav-dot-bg-active: #7A6A00FF;':
+            #       b'--nav-dot-bg-active: #8F0049FF;'
+            drift = {}
 
             # Deliberate ADDITIONS since the tag, declared by property
-            # name. A new registry key inserts a line rather than
-            # replacing one, which the substitution table above cannot
-            # express: the line counts stop matching, the per-line diff
-            # is skipped, and every later line reads as changed. Naming
-            # the property lets the comparison resume on everything else.
-            # A property added without being named here still fails, and
-            # a name left here after its property is gone fails too.
+            # name, and likewise empty at the start of a cycle.
             #
-            # `color.nav` is the seventh shared colour (§9.5.7): the
-            # navigation furniture stopped borrowing `mark` and `call`,
-            # which carry constraints of their own, and forty-one
-            # per-theme pins went with it.
-            added = {b'--color-nav'}
+            # A new registry key inserts a line rather than replacing one,
+            # which the substitution table above cannot express: the line
+            # counts stop matching, the per-line diff is skipped, and every
+            # later line reads as changed. Naming the property lets the
+            # comparison resume on everything else. A property added
+            # without being named here still fails, and a name left here
+            # after its property is gone fails too -- both directions are
+            # proved by mutation.
+            #
+            # Entries are variable-name prefixes, e.g. b'--color-nav'.
+            added = set()
 
             def strip_added(page):
                 return b'\n'.join(
@@ -7144,7 +7140,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     f'{name.decode()} is declared as added and is in none of '
                     f'the built files: the declaration is stale')
             self.assertEqual(seen, set(drift.items()),
-                             'the drift since v0.34.0 is not the drift this '
+                             'the drift since v0.35.0 is not the drift this '
                              'test declares')
 
     def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
