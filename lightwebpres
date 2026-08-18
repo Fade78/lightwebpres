@@ -94,6 +94,42 @@ VERSION = "0.37.0"
 _LOG_STATE = {'quiet': False, 'verbose': False, 'no_color': False,
               'timestamp': False, 'dry_run': False}
 
+# When this is a list, every warning log() emits is appended to it as well
+# as printed. `audit` turns it on while it renders the series in memory, so
+# that a warning raised DURING a build reaches the audit report and the
+# `--strict` exit code (BACKLOG B19/B24).
+#
+# It hooks the funnel, not the sites, and that is the whole point. An
+# enumeration of warning sites is a list that drifts: the count in the
+# register had gone stale on its own, claiming ten in the build path when
+# four are what a series can actually raise without audit seeing them.
+# Hooking log() means a warning added tomorrow is collected tomorrow, with
+# nobody having to remember this place.
+_WARN_SINK = None
+
+
+class collect_warnings:
+    """Context manager capturing the warnings log() emits inside the block.
+
+    Reentrancy is refused rather than nested: there is exactly one
+    consumer, and an outer sink silently swallowed by an inner one would
+    be the very kind of defect this mechanism exists to stop."""
+
+    def __init__(self):
+        self.messages = []
+
+    def __enter__(self):
+        global _WARN_SINK
+        if _WARN_SINK is not None:
+            raise RuntimeError('collect_warnings is not reentrant')
+        _WARN_SINK = self.messages
+        return self
+
+    def __exit__(self, *exc):
+        global _WARN_SINK
+        _WARN_SINK = None
+        return False
+
 # ANSI escape sequences stripped from log() messages: author-controlled
 # strings (filenames, titles, field values) pass through the logger, and
 # must not be able to paint the operator's terminal.
@@ -154,6 +190,8 @@ def log(level, msg):
         # and the same 645 bytes. Exactly inverted, in the direction that
         # matters least at a terminal and most in CI.
         prefix = '[WARNING] '
+        if _WARN_SINK is not None:
+            _WARN_SINK.append(str(msg))
     elif level == 'verbose':
         if not _LOG_STATE['verbose']:
             return
@@ -10122,6 +10160,40 @@ def _encode_inline_image(src, articles_dir):
     return f'data:{mime};base64,{base64.b64encode(data).decode("ascii")}'
 
 
+def symlink_escapes(entry, root):
+    """True if `entry` is a symlink resolving outside `root`.
+
+    One rule, two callers: `copy_images` refuses on it while copying, and
+    `audit` scans on it without copying. Extracted rather than restated,
+    because a security rule written twice is a security rule that will
+    diverge -- exactly the defect recorded at B25 for the zip guard, and
+    not one to reproduce while closing another."""
+    if not entry.is_symlink():
+        return False
+    target = entry.resolve()
+    return target == root or root not in target.parents
+
+
+def audit_image_symlinks(articles_dir):
+    """Warns about image symlinks that escape img/, without copying anything.
+
+    `copy_images` raises this warning too, but only while writing, so
+    `audit` never saw it: the finding is about the SOURCES an author
+    committed, not about the act of copying, and it belongs where an
+    author asks what is wrong with their series."""
+    img_src = articles_dir / 'img'
+    if not (img_src.exists() and img_src.is_dir()):
+        return 0
+    root = img_src.resolve()
+    found = 0
+    for entry in sorted(img_src.rglob('*')):
+        if symlink_escapes(entry, root):
+            found += 1
+            log('warn', f'img/: symlink escaping the image directory, it '
+                        f'would not be published: {entry.relative_to(img_src)}')
+    return found
+
+
 def copy_images(articles_dir, output_dir):
     """Copies the img/ directory if it exists.
 
@@ -10153,13 +10225,11 @@ def copy_images(articles_dir, output_dir):
         ignored = set()
         for name in names:
             entry = Path(dir_path) / name
-            if entry.is_symlink():
-                target = entry.resolve()
-                if target == src_root or src_root not in target.parents:
-                    log('warn', f'img/: skipped symlink escaping the '
-                          f'image directory: {entry.relative_to(img_src)}')
-                    ignored.add(name)
-                    refused.add(entry)
+            if symlink_escapes(entry, src_root):
+                log('warn', f'img/: skipped symlink escaping the '
+                      f'image directory: {entry.relative_to(img_src)}')
+                ignored.add(name)
+                refused.add(entry)
         return ignored
 
     _copytree(img_src, img_dst, dirs_exist_ok=True,
@@ -11678,6 +11748,51 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
     return warnings
 
 
+def audit_by_rendering(series_dir, args):
+    """Renders the series in memory and reports what only a render can say.
+
+    `verify` already renders without writing -- it builds the HTML and
+    compares it to the disk copy. This is the same machinery pointed at a
+    different question: not "does the output match" but "what did composing
+    it have to complain about".
+
+    Returns the number of warnings the render raised. The HTML is thrown
+    away; nothing is written, and `--dry-run` is irrelevant here because
+    there was never anything to suppress.
+
+    A render that cannot finish is itself the finding. `build_article`
+    exits on a fatal fault -- a pinned property that no longer exists, an
+    unbalanced tag, an unreadable include -- and audit used to miss every
+    one of those too, reporting `No warnings` on a series no build could
+    produce. The SystemExit is caught so audit keeps its promise never to
+    block, and counted so `--strict` still fails on it."""
+    with collect_warnings() as sink:
+        try:
+            ctx = load_build_context(series_dir, args)
+            claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
+            for entry in ctx.articles:
+                build_article(
+                    ctx.articles_dir / entry['page_source'], ctx.articles_dir,
+                    ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js,
+                    ctx.typo_engine, ctx.strings, ctx.lang,
+                    style_context=ctx.style_context,
+                    inline_images=ctx.args.get('--inline-images', False),
+                    args=args, lang_tag_engines=ctx.lang_tag_engines)
+            if claimant is None:
+                extra = ctx.templates_dir / 'index_extra.html'
+                build_index(ctx.series_data, ctx.css, ctx.typo_engine,
+                            ctx.strings, ctx.lang,
+                            read_text_file(extra) if extra.exists() else '')
+        except SystemExit:
+            # The message is already on stderr, printed by whatever refused.
+            # Saying so here is what stops the summary from contradicting it.
+            print('[WARNING] the series does not build: the error above is '
+                  'fatal, and no page would be produced. audit does not '
+                  'block, but this is not an editorial remark.')
+            return len(sink.messages) + 1
+    return len(sink.messages)
+
+
 def cmd_audit(series_dir, args):
     """audit command — flags editorial conventions that are not respected.
 
@@ -11779,6 +11894,28 @@ def cmd_audit(series_dir, args):
             warnings += 1
 
     warnings += audit_presentation(templates_dir)
+
+    # What only a render can say (BACKLOG B19/B24).
+    #
+    # Everything above reads the syntax tree. A whole class of fault is born
+    # later, when the page is actually composed -- a missing language pack,
+    # fields parsed on a cover and never rendered, an image escaping the
+    # article directory -- and `audit` was blind to all of it while `build`
+    # printed it plainly. Measured before this pass: four such warnings a
+    # series can raise that audit never saw, plus one fatal (a pinned
+    # property that no longer exists) it also missed.
+    #
+    # That mattered beyond tidiness because `--strict` is documented as a
+    # CI gate: a pipeline could be green while a build of the same series
+    # warned. So audit renders the series in memory, discards the HTML, and
+    # keeps what the render said.
+    #
+    # The cost is that audit now takes about as long as a build. That is the
+    # trade the owner made explicitly: a build is fast on a human scale, a
+    # missed audit is not cheap.
+    if not args.get('--templates'):
+        warnings += audit_image_symlinks(articles_dir)
+        warnings += audit_by_rendering(series_dir, args)
 
     if warnings == 0:
         print('No warnings: all editorial conventions are respected.')
