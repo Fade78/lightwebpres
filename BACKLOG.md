@@ -1061,7 +1061,7 @@ Ce qui reste volontairement ouvert :
 « e2e navigateur en attente de l'outillage » de l'ancienne section C3 est
 historique et ne s'applique plus.
 
-## B19 — `audit --strict` is blind to every warning the build emits — DECIDED 2026-08-18: `--strict` becomes the complete gate
+## B19 — `audit --strict` is blind to every warning the build emits — FIXED in v0.37.0
 
 Recorded here on 2026-08-18 because it was the one open point left in
 `delete-before-1.0/docs/PLAN-CORRECTIONS-2026-08-17.md`, a design document whose lots are
@@ -1103,6 +1103,19 @@ prerequisite to the decision.
 
 Sharpened by the v0.36.0 work, which added a warning class to `audit`
 without asking what `audit` does not see.
+
+**FIXED in v0.37.0.** `audit` renders the series in memory and collects
+what the render says through a hook in `log()` rather than through an
+enumeration of sites — so a warning added later is collected later, which
+is precisely what drifted here. The partition was measured first, as the
+entry asked: four of the ten sites are what a series can raise without
+`audit` seeing it, and each has a test. A render that turns out **fatal**
+now counts too: `audit` used to print an `[ERROR]` and then conclude "No
+warnings", exiting 0, on a series no build could produce.
+
+One thing the fix made worse and did not close: `audit`'s own warnings go
+to stdout while the render's go to stderr, so a single run splits them
+across both streams. Filed as **B26** rather than folded in.
 
 ## B20 — Only three components can carry a halo, and the worst-served one is a slide heading — DECIDED 2026-08-18: the halo belongs to the theme
 
@@ -1159,7 +1172,7 @@ is the one axis of the four with no reasonable one-sided default, since a
 shadow offset only to the right is as arbitrary as one offset only down —
 its default is `0`, like `dy`, and the neutral halo stays the centred one.
 
-## B21 — Pinning dark colours does not make the furniture dark, and nothing says so — DECIDED 2026-08-18: it warns
+## B21 — Pinning dark colours does not make the furniture dark, and nothing says so — FIXED in v0.37.0
 
 Same origin as B20, and the most consequential of the three.
 `DARK_FURNITURE_PROPS` keys off the theme definition's `dark_background`
@@ -1225,6 +1238,24 @@ default refuse a deliberate choice.
 
 Promoting `dark_background` to a registry property stays possible and is
 **not** decided here; warning removes the silence, which was the defect.
+
+**FIXED in v0.37.0.** `audit` judges the **resolved** sheet — not what the
+author typed, which is the only way to see a fault nobody wrote:
+`footnote-call.fg-marked` defaults to `fact.strong.fg`, so killing the
+latter takes the former into invisibility with it, and the judgement
+reports both. Three findings — text below the illegibility floor, a
+navigation control below 3:1, an absolute size below the readability floor
+— and the four silent rows of the table above now warn and fail
+`--strict`. The fifth, the dark palette pinned onto a light theme, warns
+by consequence rather than by name: the furniture stays light, the pairs
+it makes are measured, and the ones that collapse are reported one by one.
+Naming the cause instead of its effects still wants `dark_background` in
+the registry, which stays open.
+
+The thresholds are **derived from the delivered catalogue, not chosen**,
+because B5 and B18 decided a theme is not required to reach AA and a
+threshold that made a shipped theme warn would be a wrong threshold. A
+test sweeps every theme plus the default sheet to keep it that way.
 
 ## B22 — `--version` after a command is a silent no-op — FIXED in v0.37.0
 
@@ -1295,7 +1326,7 @@ survives its warning. Both would ship a dangling reference.
 Worth recording: the full suite passed with the one-line fix reverted. The
 defect had no guard at all, which is why two were written.
 
-## B24 — `audit` inspects a poorer representation than the one that builds the page — DECIDED 2026-08-18: audit renders, and judges
+## B24 — `audit` inspects a poorer representation than the one that builds the page — FIXED in v0.37.0
 
 Filed first as a small defect: a footnote label outside `\w+` reaches the
 reader as literal text, and `audit` reports nothing. Measured: `[^a-b]` in
@@ -1359,6 +1390,24 @@ pointed at a series. See B21 for what that judging must say.
 The narrow footnote-label fix folds into the lot rather than preceding it:
 a call or a body matching `\[\^` but not `\[\^\w+\]` is a warning naming
 the article and the label.
+
+**FIXED in v0.37.0**, in three parts, and the row of the table above that
+said `audit` stops at the syntax tree is no longer true.
+
+`audit` renders. It goes one level past `verify`, which renders and
+compares: it renders and **judges** — see B21 for what the judging says.
+`--templates` is the one scope that does not render, since restricting
+`audit` to the presentation layer and then dragging per-article faults in
+would contradict the option.
+
+The footnote-label guard did **not** fold in where the entry expected. It
+lives in the syntax pass, not the rendering one, and for a reason worth
+keeping: a broken label is a shape, settled before anything renders — and
+the converter never sees these labels, so rendering has nothing to report
+about them. What the converter would not read as a note either is skipped,
+so that acting on a warning is always the right move: code spans, fenced
+blocks, raw HTML, and `[^a-b](url)`, which the link rule claims before the
+note rule ever sees it.
 
 ## B25 — Two rules the project states and does not follow — HALF FIXED in v0.37.0
 
