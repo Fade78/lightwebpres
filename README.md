@@ -604,12 +604,17 @@ or is already one of the verdict colours.
 
 ![Preview of the built-in color themes](themes-gallery.png)
 
-Above are the first rows of [`themes-gallery.html`](themes-gallery.html)
-in this repository — open it in a browser for the whole catalogue, where
-the facets become filters. **One theme per row, four panels across:** the
-cover, a card carrying a note, the page-wide notes section, and the
-long-form article. Each panel is a real rendering at its true size, not a
-mock and not a scaled-down miniature, so a 14px note is 14px there too.
+Above is every theme in the catalogue, each with its palette and the
+command that starts a series on it. It is a contact sheet: one panel per
+theme, the cover. [`themes-gallery.html`](themes-gallery.html) in this
+repository is the full thing — **one theme per row, four panels across:**
+the cover, a card carrying a note, the page-wide notes section, and the
+long-form article, with the facets as live filters. Open it in a browser.
+
+Every panel, here and there, is a real rendering at its true size — the
+same parser, the same engine, the same stylesheet, in an iframe at the
+width it claims. Not a mock and not a scaled-down miniature, so a 14px
+note is 14px there too.
 It's generated straight from the tool's own `THEMES` data with
 `./lightwebpres theme gallery`, so it can never drift from what
 `init --theme` actually applies.
@@ -688,7 +693,7 @@ for both tabs of the browser-based tool.
 lightwebpres          # the executable — the only thing you need to run this
 specifications.md     # full reference specification (French)
 themes-gallery.html   # preview of every built-in color theme (generated, see below)
-themes-gallery.png    # a rendered snapshot of the above, for this README
+themes-gallery.png    # a contact sheet of the above, for this README
 web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
 agent/skills/         # two packaged skills: the article format, and one optional editorial method
 tools/                # maintenance scripts (regenerating the gallery snapshot above)
