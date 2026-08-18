@@ -777,8 +777,8 @@ en partie, pour cet article et sa propre page uniquement :
 
 | Champ | Effet quand la valeur est `off` |
 |-------|----------------------------------|
-| `typo_units: off` | Désactive uniquement les règles nombre/unité et opérateur/nombre (`nbsp_before_unit`, `nbsp_after_operator`, §7.5) |
-| `typo_thousands: off` | Désactive uniquement la règle de séparateur de milliers (`nbsp_thousands_separator`, §7.5) |
+| `typo_units: off` | Désactive les règles de catégorie `unit` et `operator` **du pack en vigueur** (§19.2), quelles que soient leurs noms |
+| `typo_thousands: off` | Désactive les règles de catégorie `thousands` du pack en vigueur ; le pack anglais n'en a aucune, et le champ n'y fait donc rien |
 | `typo: off` | Désactive **toutes** les règles pour cet article — y compris les trois règles historiques (guillemets, ponctuation haute, %), pas seulement les deux ci-dessus |
 
 Seule la valeur `off` (insensible à la casse) désactive une règle ; toute
@@ -5731,6 +5731,7 @@ contenu réel embarqué dans l'exécutable.
 | `rules[].description` | string | non | Description humaine |
 | `rules[].pattern` | string | oui | Regex Python (sans délimiteurs) |
 | `rules[].replacement` | string | oui | Remplacement (avec `$1`, `$2` pour les groupes) |
+| `rules[].category` | string | non | Ce que la règle règle : `punctuation`, `dash`, `unit`, `thousands`, `operator`. C'est **ce qu'une désactivation nomme** (§4.5) — une règle sans catégorie n'appartient à aucun lot et n'est jamais éteinte par un `typo_*: off`, ce qui laisse valide un pack écrit avant ce champ |
 | `rules[].flags` | string | non | Flags regex, défaut `g`. Supportés : `g` (toutes les occurrences ; sans lui, seule la **première** occurrence par segment de texte est remplacée) et `i` (insensible à la casse). Tout autre caractère : erreur fatale |
 | `strings` | object | non | Chaînes d'interface, clé → valeur (voir §7.3 pour la liste des clés) |
 
@@ -5924,7 +5925,7 @@ le chargement d'un moteur de règles pour ce lancement — aucune règle,
 qu'elle vienne du pack intégré ou d'un override (§7.4/§19.5), ne s'exécute
 sur aucun article ni sur l'index, pour toute la durée de ce build. C'est
 la portée la plus large des trois mécanismes de désactivation (§4.5) :
-`typo_units`/`typo_thousands` ne visent qu'une paire de règles nommées,
+`typo_units`/`typo_thousands` ne visent que des catégories de règles,
 `typo: off` vise déjà toutes les règles mais pour un seul article, `--no-
 typography` les vise toutes pour tout le build — y compris toute règle qui
 serait ajoutée plus tard, puisque le mécanisme ne construit simplement pas

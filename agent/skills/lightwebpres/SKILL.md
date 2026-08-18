@@ -640,9 +640,11 @@ the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and `en` packs are
 available, and another pack name refers to `language/<name>.json`.
 
 This alters generated content, so it can be turned off per article, in
-that article's meta block: `typo_units: off` (numbers/units and `×`/`≈`
-rules only), `typo_thousands: off` (thousands-grouping rule only), or
-`typo: off` (every rule, this article only). Leave these out unless
+that article's meta block: `typo_units: off` (the unit and operator
+rules — numbers/units and `×`/`≈`), `typo_thousands: off` (the
+thousands-grouping rules; the English pack has none, so the field does
+nothing there), or `typo: off` (every rule, this article only). Each one
+names a CATEGORY, so it reaches whichever language pack is in force. Leave these out unless
 specifically asked to disable something — the default is what most
 articles want.
 

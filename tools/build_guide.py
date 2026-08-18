@@ -12,7 +12,12 @@ This is not a copy of the guide. The long-form file is assembled from
 the test suite runs this script, so an example that stops working stops
 the build.
 
-    python3 tools/build_guide.py [--output docs/guide]
+    python3 tools/build_guide.py [--output docs/guide] [--theme slug]
+                                 [--lang fr|en]
+
+`--lang` defaults to `en` here, where the tool's own default is `fr`:
+the guide is written in English and the interface strings around it
+have to match it.
 """
 import argparse
 import json
@@ -49,7 +54,12 @@ def build(output, theme=None, lang='en'):
 
     with tempfile.TemporaryDirectory() as tmp:
         series = pathlib.Path(tmp) / 'guide'
-        cmd = [sys.executable, str(exe), 'install', str(series)]
+        # `init`, not the `install` alias it used to call: the alias is
+        # kept for one MAJOR version and prints a [WARNING] that
+        # capture_output swallows, so this would have gone from silent
+        # to fatal at the next MAJOR with no signal in between. The
+        # deck this very script builds tells its readers `init`.
+        cmd = [sys.executable, str(exe), 'init', str(series)]
         if theme:
             cmd += ['--theme', theme]
         subprocess.run(cmd, check=True, capture_output=True)

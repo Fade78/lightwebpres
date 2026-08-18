@@ -45,6 +45,15 @@ handout at Ctrl/Cmd+P.
   you don't want it. French and English ship built-in; the mechanism
   isn't French-specific, so adding a language is a matter of writing
   rules, not touching the engine.
+- **Nothing you make here can stop opening.** The output is one
+  self-contained HTML file: no runtime, no viewer, no proprietary
+  container that has to still be supported for the words to come back.
+  A deck built today opens in any browser that exists now and in any
+  that follows, on a machine with none of this installed — the file
+  alone, without the tool that made it. The source behind it is plain
+  Markdown, so it outlives the tool as well. A presentation is often the
+  only surviving record of a talk; this one cannot become unreadable
+  because something stopped being maintained.
 - **A simple, three-level structure.** Series → article → slide. Nothing
   to design: pick a slide type (cover, standard, cross-article nav, full
   article), fill in the fields.
@@ -702,7 +711,9 @@ themes-gallery.html   # preview of every built-in color theme (generated, see be
 themes-gallery.png    # a contact sheet of the above, for this README
 web/                  # the browser-based build tool (upload-a-zip and GitLab-sync tabs)
 agent/skills/         # two packaged skills: the article format, and one optional editorial method
-tools/                # maintenance scripts (regenerating the gallery snapshot above)
+AGENTS.md             # the working rules for an agent editing this repository
+docs/guide/           # the guide, built with the tool it describes (generated)
+tools/                # maintenance scripts: the gallery snapshot, the guide, viewport measurements
 tests/                # regression suite
 ```
 

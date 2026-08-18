@@ -3,8 +3,8 @@
 This is the map of the tool: init it, see what a page is made of, wire
 a series, adjust the look, ship it. For what each command *exactly* does
 in every edge case, see `specifications.md`; for the precise article
-syntax, see `SKILL.md`. This guide is the path through all of it in the
-order you'll actually need it.
+syntax, see `agent/skills/lightwebpres/SKILL.md`. This guide is the path
+through all of it in the order you'll actually need it.
 
 **What this guide does not do is teach you to write.** LightWebPres is
 for people who already know how; it renders what you give it. Nothing
@@ -90,7 +90,10 @@ the navigation) plus a captioned image, so you have something real to
 look at before writing your own.
 
 `build` reads `series.json` and every article it lists, and writes
-`public/*.html` plus `public/index.html` and a generated `README.md`.
+`public/*.html` plus `public/index.html`. A generated `README.md` lands
+beside `series.json`, at the root of the series rather than in `public/`
+— it describes the series to whoever opens the repository, not to
+whoever visits the site.
 Open `public/index.html` in a browser — no server needed, every page is a
 single self-contained file.
 
@@ -122,7 +125,8 @@ output switches and adds `--serve` (opt-in HTTP server on `127.0.0.1`,
 A page is a sequence of **slides**, separated by `---`, preceded by one
 metadata block. There are four slide types, and inside a standard slide a
 small set of named components. This section names them and says how you
-reach each one; `SKILL.md` carries the exact syntax and every edge case.
+reach each one; `agent/skills/lightwebpres/SKILL.md` carries the exact
+syntax and every edge case.
 
 **The four slide types.**
 
@@ -374,8 +378,9 @@ length steady and the proportions between them fixed as the screen
 grows. Each size has a floor in pixels, and the floor is what governs a
 phone. **`page.block-max`** is the width of the things that are not
 running text — a table, a code block, a figure — sized by what they hold
-rather than by a count of characters; it has a floor rather than a
-ceiling as well, so a table grows with the text inside it.
+rather than by a count of characters; it carries a floor as well as a
+ceiling — `min(84vw, max(1100px, 102vmin))` — so a table grows with the
+text inside it and still stops before the window edge.
 **`page.hyphens`**
 (`manual | auto`) controls whether words break at end of line; it is
 `manual`, and nothing turns it on for you.
@@ -593,6 +598,8 @@ without looking at the screen.
 | N | Toggle the speaker panel: the current slide's notes and the next slide's title |
 | 0–9 then Enter | Jump straight to slide N (1-based) — for decks of ten slides and up |
 | L | Open the variant menu when the article carries at least two tags across its slides |
+| H | Open the help overlay, which lists every key on this table |
+| Esc | Leave fullscreen; also closes the speaker panel |
 
 The B/W/T pause screens hide the slide so the audience's eye comes back
 to the speaker — the same feature PowerPoint and Keynote call "blank".
@@ -679,13 +686,16 @@ next slide without the 250 ms hold.
 
 ### Navigation buttons
 
-The round buttons in the bottom-right corner (↑ prev, 🏠 home, ↓ next,
-share, ⛶ fullscreen) are always there. After 3 seconds of mouse
-idleness they fade out — the speaker does not want chrome on the wall.
-In fullscreen they fade after just 1 second, in step with the cursor
-hide. Move the mouse to bring them back. Touch devices keep them visible
-(there is no cursor to wake them). Clicking the corner (not a button)
-toggles them on or off for good.
+The round buttons in the bottom-right corner — previous, home, next,
+share, fullscreen, and a sixth for the variant menu that appears only
+when the article carries at least two tags. After 3 seconds of mouse
+idleness they fade out, and the cursor goes with them: the speaker does
+not want chrome on the wall. In fullscreen both go after 1 second. Move
+the mouse to bring the buttons back; the cursor waits for 250ms of
+continuous movement, so a knock against the desk does not put it on the
+wall. Touch devices keep the buttons visible (there is no cursor to wake
+them). Clicking the corner (not a button) toggles them on or off for
+good.
 
 ## 10. Shell completion (tab in the terminal)
 

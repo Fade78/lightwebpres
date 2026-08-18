@@ -5530,6 +5530,54 @@ class TypographyDisableSwitches(unittest.TestCase):
         m = re.search(r'<p class="summary">(.*?)</p>', html)
         return m.group(1)
 
+    def test_the_opt_outs_reach_the_language_pack_actually_in_force(self):
+        """They used to name three French rule names. All three exist in
+        the French pack and one of them in the English, which calls its
+        unit rules `nbsp_before_metric_unit` and `nbsp_before_unit_word`
+        and has no thousands rule at all — so under `--lang en`,
+        `typo_units: off` left both unit rules running and
+        `typo_thousands: off` was a silent no-op. Measured: "3 kW" and
+        "5 million" both kept their non-breaking space with the field
+        set.
+
+        The opt-out reads the pack's own categories now, so it reaches a
+        pack this repository has never seen."""
+        for lang in ('fr', 'en'):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'series'
+                self.assertEqual(run('init', str(root)).returncode, 0)
+                (root / 'articles' / 't.md').write_text(
+                    '<!-- lwp:meta -->\npage_dest: t.html\npage_title: T\n'
+                    'nav_title: T\nnav_desc: T\ntypo_units: off\n---\n\n'
+                    '<!-- lwp:slide:cover -->\nkicker: T\n# T\n'
+                    'summary: 3 kW and 5 million and 20 dollars.\n',
+                    encoding='utf-8')
+                (root / 'series.json').write_text(json.dumps({'articles': [
+                    {'page_dest': 't.html', 'page_source': 't.md',
+                     'nav_title': 'T', 'nav_desc': 'T'}]}), encoding='utf-8')
+                r = run('build', str(root), '--lang', lang,
+                        '--output', str(root / 'public'))
+                self.assertEqual(r.returncode, 0, r.stderr)
+                summary = self._summary_of(root, 'public', 't.html')
+                self.assertNotIn('\u00a0', summary,
+                                 f'{lang}: a unit rule survived typo_units: off')
+
+    def test_every_shipped_rule_says_what_it_is_for(self):
+        """The category is what an opt-out names, so a rule without one
+        is a rule no opt-out can reach — which is exactly the state the
+        English pack was in. A rule may legitimately carry none (a custom
+        pack written before the field is still valid), but none of the
+        rules shipped here may."""
+        lwp = load_lightwebpres_module()
+        known = {'punctuation', 'dash', 'unit', 'thousands', 'operator'}
+        for pack_name in ('LANG_FR', 'LANG_EN'):
+            pack = json.loads(getattr(lwp, pack_name))
+            for rule in pack['rules']:
+                self.assertIn('category', rule,
+                              f'{pack_name}: {rule["name"]} has no category')
+                self.assertIn(rule['category'], known,
+                              f'{pack_name}: {rule["name"]}')
+
     def test_typo_units_off_disables_only_units_for_that_article(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._two_article_series(tmp, meta_extra_b='typo_units: off\n')

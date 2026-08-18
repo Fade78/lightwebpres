@@ -1123,6 +1123,7 @@ LANG_FR = r'''{
   "rules": [
     {
       "name": "nbsp_before_double_punctuation",
+      "category": "punctuation",
       "description": "Non-breaking space before ; : ! ? »",
       "pattern": " ([!?;:»])",
       "replacement": "\u00a0$1",
@@ -1130,6 +1131,7 @@ LANG_FR = r'''{
     },
     {
       "name": "nbsp_after_opening_quote",
+      "category": "punctuation",
       "description": "Non-breaking space after «",
       "pattern": "(«) ",
       "replacement": "$1\u00a0",
@@ -1137,6 +1139,7 @@ LANG_FR = r'''{
     },
     {
       "name": "nbsp_inside_dash_incise",
+      "category": "dash",
       "description": "Paired em/en dash incise: non-breaking space after the opening dash and before the closing one, so neither dash is ever separated from the incise it frames. The outer spaces stay breakable — Imprimerie nationale.",
       "pattern": "([—–]) ([^—–]*?) ([—–])",
       "replacement": "$1\u00a0$2\u00a0$3",
@@ -1144,6 +1147,7 @@ LANG_FR = r'''{
     },
     {
       "name": "nbsp_before_lone_dash",
+      "category": "dash",
       "description": "An unpaired em/en dash binds to the word before it, so it can never begin a line. Skips a dash already bound to what follows by the incise rule above.",
       "pattern": "(?<=\\S) ([—–])(?!\u00a0)",
       "replacement": "\u00a0$1",
@@ -1151,6 +1155,7 @@ LANG_FR = r'''{
     },
     {
       "name": "nbsp_before_percent",
+      "category": "unit",
       "description": "Non-breaking space before %",
       "pattern": " %",
       "replacement": "\u00a0%",
@@ -1158,6 +1163,7 @@ LANG_FR = r'''{
     },
     {
       "name": "nbsp_thousands_separator",
+      "category": "thousands",
       "description": "Non-breaking space between groups of 3 digits in an already-spaced number (e.g. '170 000' -> nbsp between groups; does not add grouping to '170000')",
       "pattern": "(?<=\\d) (?=\\d{3}(?!\\d))",
       "replacement": "\u00a0",
@@ -1165,6 +1171,7 @@ LANG_FR = r'''{
     },
     {
       "name": "nbsp_before_unit",
+      "category": "unit",
       "description": "Non-breaking space between a number and a following unit word or symbol (million(s), milliard(s), dollar(s), $)",
       "pattern": "(?<=\\d) (?=(?:millions?|milliards?|dollars?)\\b|\\$)",
       "replacement": "\u00a0",
@@ -1172,6 +1179,7 @@ LANG_FR = r'''{
     },
     {
       "name": "nbsp_after_operator",
+      "category": "operator",
       "description": "Non-breaking space between × or ≈ and a following number",
       "pattern": "(?<=[×≈]) (?=\\d)",
       "replacement": "\u00a0",
@@ -1235,6 +1243,7 @@ LANG_EN = r'''{
   "rules": [
     {
       "name": "nbsp_inside_dash_incise",
+      "category": "dash",
       "description": "Same rule as French, and for the same reason: it protects a space that is already there rather than changing what is written. Inert on a closed-up dash (Chicago style, word—word: no space to bind), protective on a spaced one (AP style and most web writing, word — word), which orphans exactly as readily in English as in French.",
       "pattern": "([—–]) ([^—–]*?) ([—–])",
       "replacement": "$1\u00a0$2\u00a0$3",
@@ -1242,6 +1251,7 @@ LANG_EN = r'''{
     },
     {
       "name": "nbsp_before_lone_dash",
+      "category": "dash",
       "description": "An unpaired spaced dash binds to the word before it, so it can never begin a line.",
       "pattern": "(?<=\\S) ([—–])(?!\u00a0)",
       "replacement": "\u00a0$1",
@@ -1249,6 +1259,7 @@ LANG_EN = r'''{
     },
     {
       "name": "nbsp_before_metric_unit",
+      "category": "unit",
       "description": "Non-breaking space between a number and a following SI/metric unit symbol (km, m, g, L, s, °C, …) — the SI convention is a space, kept non-breaking so the value never splits across a line. Upgrades an existing normal space only.",
       "pattern": "(?<=\\d) (?=(?:km|cm|mm|nm|µm|kg|mg|mL|µL|L|s|ms|µs|min|h|W|kW|MW|J|kJ|N|Pa|kPa|Hz|kHz|MHz|GHz|°C|°F|K|B|kB|MB|GB|TB|kb|Mb|Gb|m|g)\\b)",
       "replacement": "\u00a0",
@@ -1256,6 +1267,7 @@ LANG_EN = r'''{
     },
     {
       "name": "nbsp_before_unit_word",
+      "category": "unit",
       "description": "Non-breaking space between a number and a following unit word (thousand(s), million(s), billion(s), trillion(s), dollar(s)). Upgrades an existing normal space only.",
       "pattern": "(?<=\\d) (?=(?:thousand|million|billion|trillion|dollar)s?\\b)",
       "replacement": "\u00a0",
@@ -1263,6 +1275,7 @@ LANG_EN = r'''{
     },
     {
       "name": "nbsp_between_initials",
+      "category": "punctuation",
       "description": "Non-breaking space between two single-letter initials (e.g. 'J. K. Rowling') so an initial is never orphaned from the next. Upgrades an existing normal space only.",
       "pattern": "(?<=\\b[A-Z]\\.) (?=[A-Z]\\.)",
       "replacement": "\u00a0",
@@ -1270,6 +1283,7 @@ LANG_EN = r'''{
     },
     {
       "name": "nbsp_after_operator",
+      "category": "operator",
       "description": "Non-breaking space between × or ≈ and a following number in math expressions. Upgrades an existing normal space only.",
       "pattern": "(?<=[×≈]) (?=\\d)",
       "replacement": "\u00a0",
@@ -8314,6 +8328,8 @@ class TypoEngine:
 
     def __init__(self, rules_data):
         self.rules = []
+        # category -> the names of the rules that carry it
+        self.categories = {}
         for i, rule in enumerate(rules_data.get('rules', []), 1):
             if not isinstance(rule, dict) or 'pattern' not in rule or 'replacement' not in rule:
                 log('error', f'language rule {i}: must be an object with '
@@ -8351,7 +8367,19 @@ class TypoEngine:
                 log('error', f'language rule {i}: invalid regex pattern '
                       f'"{pattern}" ({e}).')
                 sys.exit(1)
+            # `category` (§19.2) is what an opt-out names, and it has to
+            # live on the rule because the rule is the only thing that
+            # knows. A rule with none belongs to no bundle and is simply
+            # never switched off by one -- which keeps a custom pack
+            # written before this field valid, and unaffected.
+            category = rule.get('category')
+            if category is not None and not isinstance(category, str):
+                log('error', f'language rule {i} ("{name}"): "category" '
+                      f'must be a string.')
+                sys.exit(1)
             self.rules.append((name, compiled, replacement, count))
+            if category:
+                self.categories.setdefault(category, set()).add(name)
 
     # Elements whose text content must never receive a typography
     # substitution (spec §6.3/§19.3): a code sample or a cited command is
@@ -10402,24 +10430,46 @@ def validate_html(html_text, filename):
 # BUILD ENGINE
 # ============================================================================
 
-def typo_disabled_rules(meta):
+# What each opt-out switches off, in CATEGORIES rather than in rule
+# names. `typo_units` is a bundle of two, and saying so here is the
+# honest form: `nbsp_after_operator` puts a space after x or ~, which is
+# not a unit rule, but it has always travelled with the field and the
+# field's name is the one authors have written.
+TYPO_OPT_OUTS = {
+    'typo_units': ('unit', 'operator'),
+    'typo_thousands': ('thousands',),
+}
+
+
+def typo_disabled_rules(meta, engine=None):
     """Reads an article's typo_units/typo_thousands meta fields (§4.5) and
-    returns the set of built-in rule names to skip on that article's own
-    page. 'off' (case-insensitive) is the only value that disables a rule;
+    returns the set of rule names to skip on that article's own page.
+    'off' (case-insensitive) is the only value that disables a rule;
     anything else, or the field's absence, leaves it enabled (default).
-    The names must match the "name" of the corresponding rule in
-    language/*.json (§19.1) — nbsp_before_unit/nbsp_after_operator for
-    typo_units, nbsp_thousands_separator for typo_thousands. The third,
-    blanket meta field (typo: off, disabling every rule for the article,
-    not just these two) is handled separately in build_article via
-    article_typo_engine, since it needs to swap in a `None` engine rather
-    than name individual rules."""
+
+    Resolved through the ENGINE's categories, not through a list of
+    names. It used to name three: nbsp_before_unit, nbsp_after_operator
+    and nbsp_thousands_separator. All three exist in the French pack and
+    only one of them in the English, which named its unit rules
+    nbsp_before_metric_unit and nbsp_before_unit_word and has no
+    thousands rule at all -- so `typo_units: off` left both English unit
+    rules running and `typo_thousands: off` was a silent no-op. Measured:
+    "3 kW" and "5 million" both kept their non-breaking space under
+    `--lang en` with the field set. A pack states what its rules are for;
+    the opt-out reads it, and reaches a pack nobody here has seen.
+
+    The third, blanket meta field (typo: off, disabling every rule for
+    the article, not just these two) is handled separately in
+    build_article via article_typo_engine, since it needs to swap in a
+    `None` engine rather than name individual rules."""
     disabled = set()
-    if str(meta.get('typo_units', '')).strip().lower() == 'off':
-        disabled.add('nbsp_before_unit')
-        disabled.add('nbsp_after_operator')
-    if str(meta.get('typo_thousands', '')).strip().lower() == 'off':
-        disabled.add('nbsp_thousands_separator')
+    if engine is None:
+        return disabled
+    for field, categories in TYPO_OPT_OUTS.items():
+        if str(meta.get(field, '')).strip().lower() != 'off':
+            continue
+        for category in categories:
+            disabled |= engine.categories.get(category, set())
     return disabled
 
 
@@ -10469,7 +10519,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         except PropertyError:
             pass
 
-    disabled_rules = typo_disabled_rules(meta)
+    disabled_rules = typo_disabled_rules(meta, typo_engine)
     # typo: off (§4.5) is this article's own --no-typography: skip the
     # engine entirely for its page, the same `None` the CLI flag passes
     # for a whole build, not just the two rules disabled_rules can name.
