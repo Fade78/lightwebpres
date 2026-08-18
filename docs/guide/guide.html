@@ -26,6 +26,7 @@
   --page-leading: 1.6;
   --page-shadow-fg: #00000000;
   --page-shadow-blur: 0;
+  --page-shadow-dx: 0;
   --page-shadow-dy: 0;
   --page-content-max: 84vw;
   --page-block-max: min(84vw, max(1100px, 102vmin));
@@ -38,6 +39,10 @@
   --slide-num-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --slide-num-size: max(13px, 1.625vmin);
   --slide-num-tracking: 1px;
+  --slide-num-shadow-fg: #00000000;
+  --slide-num-shadow-blur: 0;
+  --slide-num-shadow-dx: 0;
+  --slide-num-shadow-dy: 0;
   /* kicker */
   --kicker-fg: #6B6B7DFF;
   --kicker-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
@@ -45,6 +50,10 @@
   --kicker-weight: bold;
   --kicker-tracking: 2px;
   --kicker-transform: uppercase;
+  --kicker-shadow-fg: #00000000;
+  --kicker-shadow-blur: 0;
+  --kicker-shadow-dx: 0;
+  --kicker-shadow-dy: 0;
   /* title1 */
   --title1-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   --title1-size: max(28px, 6.1vmin);
@@ -53,6 +62,7 @@
   --title1-fg: #F8F8F5FF;
   --title1-shadow-fg: #00000000;
   --title1-shadow-blur: 0;
+  --title1-shadow-dx: 0;
   --title1-shadow-dy: 0;
   --title1-align: left;
   /* title2 */
@@ -61,11 +71,19 @@
   --title2-weight: bold;
   --title2-leading: 1.2;
   --title2-align: left;
+  --title2-shadow-fg: #00000000;
+  --title2-shadow-blur: 0;
+  --title2-shadow-dx: 0;
+  --title2-shadow-dy: 0;
   /* summary */
   --summary-fg: #1A1A2EFF;
   --summary-size: max(16px, 2.7vmin);
   --summary-leading: 1.55;
   --summary-align: left;
+  --summary-shadow-fg: #00000000;
+  --summary-shadow-blur: 0;
+  --summary-shadow-dx: 0;
+  --summary-shadow-dy: 0;
   /* fact */
   --fact-bg: #FFFFFFB8;
   --fact-rule-fg: #FFFC00FF;
@@ -73,6 +91,11 @@
   --fact-fg: #1A1A2EFF;
   --fact-size: max(15px, 2.2vmin);
   --fact-align: left;
+  --fact-elevation-fg: #0000000F;
+  --fact-elevation-blur: 8px;
+  --fact-elevation-dx: 0;
+  --fact-elevation-dy: 1px;
+  --fact-elevation-spread: 0;
   /* fact-label */
   --fact-label-fg: #6B6B7DFF;
   --fact-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
@@ -80,6 +103,10 @@
   --fact-label-weight: bold;
   --fact-label-tracking: 1.5px;
   --fact-label-transform: uppercase;
+  --fact-label-shadow-fg: #00000000;
+  --fact-label-shadow-blur: 0;
+  --fact-label-shadow-dx: 0;
+  --fact-label-shadow-dy: 0;
   /* fact.strong */
   --fact-strong-weight: bold;
   --fact-strong-style: normal;
@@ -89,14 +116,26 @@
   --fact-strong-decoration-color: #1A1A2EFF;
   --fact-strong-pad: max(3px, 0.375vmin);
   --fact-strong-absorb-punct: on;
+  --fact-strong-shadow-fg: #00000000;
+  --fact-strong-shadow-blur: 0;
+  --fact-strong-shadow-dx: 0;
+  --fact-strong-shadow-dy: 0;
   /* body-heading */
   --body-heading-fg: #1A1A2EFF;
   --body-heading-weight: bold;
   --body-heading-leading: 1.3;
+  --body-heading-shadow-fg: #00000000;
+  --body-heading-shadow-blur: 0;
+  --body-heading-shadow-dx: 0;
+  --body-heading-shadow-dy: 0;
   /* source */
   --source-fg: #6B6B7DFF;
   --source-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --source-size: max(12px, 1.5vmin);
+  --source-shadow-fg: #00000000;
+  --source-shadow-blur: 0;
+  --source-shadow-dx: 0;
+  --source-shadow-dy: 0;
   /* footer */
   --footer-fg: #6B6B7DFF;
   --footer-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
@@ -111,10 +150,22 @@
   --cover-align: left;
   /* cover.summary */
   --cover-summary-fg: #F8F8F5C7;
+  --cover-summary-shadow-fg: #00000000;
+  --cover-summary-shadow-blur: 0;
+  --cover-summary-shadow-dx: 0;
+  --cover-summary-shadow-dy: 0;
   /* cover.kicker */
   --cover-kicker-fg: #FFFC00FF;
+  --cover-kicker-shadow-fg: #00000000;
+  --cover-kicker-shadow-blur: 0;
+  --cover-kicker-shadow-dx: 0;
+  --cover-kicker-shadow-dy: 0;
   /* cover.num */
   --cover-num-fg: #FFFFFFB3;
+  --cover-num-shadow-fg: #00000000;
+  --cover-num-shadow-blur: 0;
+  --cover-num-shadow-dx: 0;
+  --cover-num-shadow-dy: 0;
   /* quote */
   --quote-fg: #6B6B7DFF;
   --quote-style: italic;
@@ -167,18 +218,34 @@
   --table-head-size: max(13px, 1.625vmin);
   --table-head-tracking: 0.5px;
   --table-head-align: left;
+  --table-head-shadow-fg: #00000000;
+  --table-head-shadow-blur: 0;
+  --table-head-shadow-dx: 0;
+  --table-head-shadow-dy: 0;
   /* verdict.yes */
   --verdict-yes-fg: #3AA55CFF;
   --verdict-yes-weight: bold;
   --verdict-yes-mark: "\25CF";
+  --verdict-yes-shadow-fg: #00000000;
+  --verdict-yes-shadow-blur: 0;
+  --verdict-yes-shadow-dx: 0;
+  --verdict-yes-shadow-dy: 0;
   /* verdict.no */
   --verdict-no-fg: #6B6B7DFF;
   --verdict-no-weight: normal;
   --verdict-no-mark: "\25CB";
+  --verdict-no-shadow-fg: #00000000;
+  --verdict-no-shadow-blur: 0;
+  --verdict-no-shadow-dx: 0;
+  --verdict-no-shadow-dy: 0;
   /* verdict.partial */
   --verdict-partial-fg: #FF4757FF;
   --verdict-partial-weight: bold;
   --verdict-partial-mark: "\25D0";
+  --verdict-partial-shadow-fg: #00000000;
+  --verdict-partial-shadow-blur: 0;
+  --verdict-partial-shadow-dx: 0;
+  --verdict-partial-shadow-dy: 0;
   /* table.col-signal */
   --table-col-signal-bg: #0000000B;
   --table-col-signal-weight: bold;
@@ -190,6 +257,10 @@
   --caption-fg: #6B6B7DFF;
   --caption-size: 0.85em;
   --caption-align: center;
+  --caption-shadow-fg: #00000000;
+  --caption-shadow-blur: 0;
+  --caption-shadow-dx: 0;
+  --caption-shadow-dy: 0;
   /* article */
   --article-bg: #FFFFFFB8;
   --article-size: max(15px, 1.875vmin);
@@ -213,11 +284,16 @@
   --highlight-numeric: tabular-nums;
   --highlight-shadow-fg: #00000000;
   --highlight-shadow-blur: 0;
+  --highlight-shadow-dx: 0;
   --highlight-shadow-dy: 0;
   --highlight-align: center;
   /* highlight-caption */
   --highlight-caption-fg: #6B6B7DFF;
   --highlight-caption-size: max(0.9rem, 1.8vmin);
+  --highlight-caption-shadow-fg: #00000000;
+  --highlight-caption-shadow-blur: 0;
+  --highlight-caption-shadow-dx: 0;
+  --highlight-caption-shadow-dy: 0;
   /* series-nav.current */
   --series-nav-current-bg: #0000000B;
   --series-nav-current-rule-fg: #00000029;
@@ -228,6 +304,16 @@
   --series-nav-link-rule-width: 2px;
   --series-nav-link-ring: #3F4A5AFF;
   --series-nav-link-ring-width: 3px;
+  --series-nav-link-elevation-fg: #00000014;
+  --series-nav-link-elevation-blur: 12px;
+  --series-nav-link-elevation-dx: 0;
+  --series-nav-link-elevation-dy: 2px;
+  --series-nav-link-elevation-spread: 0;
+  --series-nav-link-elevation-hover-fg: #0000001F;
+  --series-nav-link-elevation-hover-blur: 16px;
+  --series-nav-link-elevation-hover-dx: 0;
+  --series-nav-link-elevation-hover-dy: 4px;
+  --series-nav-link-elevation-hover-spread: 0;
   /* series-nav.label */
   --series-nav-label-fg: #6B6B7DFF;
   --series-nav-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
@@ -235,17 +321,33 @@
   --series-nav-label-weight: bold;
   --series-nav-label-tracking: 1.5px;
   --series-nav-label-transform: uppercase;
+  --series-nav-label-shadow-fg: #00000000;
+  --series-nav-label-shadow-blur: 0;
+  --series-nav-label-shadow-dx: 0;
+  --series-nav-label-shadow-dy: 0;
   /* series-nav.title */
   --series-nav-title-size: max(18px, 2.25vmin);
   --series-nav-title-weight: bold;
+  --series-nav-title-shadow-fg: #00000000;
+  --series-nav-title-shadow-blur: 0;
+  --series-nav-title-shadow-dx: 0;
+  --series-nav-title-shadow-dy: 0;
   /* series-nav.desc */
   --series-nav-desc-fg: #6B6B7DFF;
   --series-nav-desc-size: max(14px, 1.75vmin);
+  --series-nav-desc-shadow-fg: #00000000;
+  --series-nav-desc-shadow-blur: 0;
+  --series-nav-desc-shadow-dx: 0;
+  --series-nav-desc-shadow-dy: 0;
   /* series-nav.status */
   --series-nav-status-size: max(13px, 1.625vmin);
   --series-nav-status-weight: bold;
   --series-nav-status-fg-current: #6B6B7DFF;
   --series-nav-status-fg-link: #1A1A2EFF;
+  --series-nav-status-shadow-fg: #00000000;
+  --series-nav-status-shadow-blur: 0;
+  --series-nav-status-shadow-dx: 0;
+  --series-nav-status-shadow-dy: 0;
   /* nav-btn */
   --nav-btn-bg: #FFFFFFEB;
   --nav-btn-bg-soft: #FFFFFFBF;
@@ -255,6 +357,20 @@
   --nav-btn-size: max(20px, 2.5vmin);
   --nav-btn-ring: #3F4A5AFF;
   --nav-btn-ring-width: 3px;
+  --nav-btn-shadow-fg: #00000000;
+  --nav-btn-shadow-blur: 0;
+  --nav-btn-shadow-dx: 0;
+  --nav-btn-shadow-dy: 0;
+  --nav-btn-elevation-fg: #0000001A;
+  --nav-btn-elevation-blur: 8px;
+  --nav-btn-elevation-dx: 0;
+  --nav-btn-elevation-dy: 2px;
+  --nav-btn-elevation-spread: 0;
+  --nav-btn-elevation-hover-fg: #00000026;
+  --nav-btn-elevation-hover-blur: 14px;
+  --nav-btn-elevation-hover-dx: 0;
+  --nav-btn-elevation-hover-dy: 4px;
+  --nav-btn-elevation-hover-spread: 0;
   /* nav-btn-home */
   /* nav-dot */
   --nav-dot-bg: #00000029;
@@ -270,11 +386,26 @@
   --share-scrim: #0000008C;
   --share-rule-fg-hover: #1A1A2EFF;
   --share-bg-hover: #FFFFFFB8;
+  --share-elevation-fg: #0000002E;
+  --share-elevation-blur: 32px;
+  --share-elevation-dx: 0;
+  --share-elevation-dy: 8px;
+  --share-elevation-spread: 0;
   /* card */
   --card-bg: #FFFFFFB8;
   --card-rule-fg: #00000029;
   --card-rule-width: 2px;
   --card-rule-fg-hover: #FFFC00FF;
+  --card-elevation-fg: #0000000F;
+  --card-elevation-blur: 8px;
+  --card-elevation-dx: 0;
+  --card-elevation-dy: 1px;
+  --card-elevation-spread: 0;
+  --card-elevation-hover-fg: #0000001A;
+  --card-elevation-hover-blur: 16px;
+  --card-elevation-hover-dx: 0;
+  --card-elevation-hover-dy: 4px;
+  --card-elevation-hover-spread: 0;
   /* card.label */
   --card-label-fg: #6B6B7DFF;
   --card-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
@@ -282,16 +413,32 @@
   --card-label-weight: bold;
   --card-label-tracking: 2px;
   --card-label-transform: uppercase;
+  --card-label-shadow-fg: #00000000;
+  --card-label-shadow-blur: 0;
+  --card-label-shadow-dx: 0;
+  --card-label-shadow-dy: 0;
   /* card.title */
   --card-title-size: max(20px, 2.5vmin);
   --card-title-weight: bold;
+  --card-title-shadow-fg: #00000000;
+  --card-title-shadow-blur: 0;
+  --card-title-shadow-dx: 0;
+  --card-title-shadow-dy: 0;
   /* card.desc */
   --card-desc-fg: #6B6B7DFF;
   --card-desc-size: max(15px, 1.875vmin);
+  --card-desc-shadow-fg: #00000000;
+  --card-desc-shadow-blur: 0;
+  --card-desc-shadow-dx: 0;
+  --card-desc-shadow-dy: 0;
   /* card.cta */
   --card-cta-fg: #1A1A2EFF;
   --card-cta-size: max(14px, 1.75vmin);
   --card-cta-weight: bold;
+  --card-cta-shadow-fg: #00000000;
+  --card-cta-shadow-blur: 0;
+  --card-cta-shadow-dx: 0;
+  --card-cta-shadow-dy: 0;
   /* header */
   --header-rule-fg: #FFFC00FF;
   --header-rule-width: 2px;
@@ -300,20 +447,61 @@
   --header-title-size: max(28px, 5.4vmin);
   --header-title-weight: bold;
   --header-title-leading: 1.2;
+  --header-title-shadow-fg: #00000000;
+  --header-title-shadow-blur: 0;
+  --header-title-shadow-dx: 0;
+  --header-title-shadow-dy: 0;
   /* header.subtitle */
   --header-subtitle-fg: #6B6B7DFF;
   --header-subtitle-size: max(16px, 2.7vmin);
+  --header-subtitle-shadow-fg: #00000000;
+  --header-subtitle-shadow-blur: 0;
+  --header-subtitle-shadow-dx: 0;
+  --header-subtitle-shadow-dy: 0;
   /* version-tag */
   --version-tag-font: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   --version-tag-fg: #6B6B7DFF;
   --version-tag-bg: #0000000B;
   --version-tag-size: max(12px, 1.5vmin);
+  --version-tag-shadow-fg: #00000000;
+  --version-tag-shadow-blur: 0;
+  --version-tag-shadow-dx: 0;
+  --version-tag-shadow-dy: 0;
   /* intro */
   --intro-size: max(17px, 2.125vmin);
   --intro-leading: 1.7;
+  /* tag-menu */
+  --tag-menu-elevation-fg: #0000002E;
+  --tag-menu-elevation-blur: 18px;
+  --tag-menu-elevation-dx: 0;
+  --tag-menu-elevation-dy: 4px;
+  --tag-menu-elevation-spread: 0;
+  /* slide-counter */
+  --slide-counter-elevation-fg: #0000001A;
+  --slide-counter-elevation-blur: 6px;
+  --slide-counter-elevation-dx: 0;
+  --slide-counter-elevation-dy: 1px;
+  --slide-counter-elevation-spread: 0;
+  /* presenter-panel */
+  --presenter-panel-elevation-fg: #00000033;
+  --presenter-panel-elevation-blur: 22px;
+  --presenter-panel-elevation-dx: 0;
+  --presenter-panel-elevation-dy: -4px;
+  --presenter-panel-elevation-spread: 0;
+  /* help-card */
+  --help-card-elevation-fg: #00000040;
+  --help-card-elevation-blur: 40px;
+  --help-card-elevation-dx: 0;
+  --help-card-elevation-dy: 8px;
+  --help-card-elevation-spread: 0;
+  /* share.qr */
+  --share-qr-elevation-fg: #00000040;
+  --share-qr-elevation-blur: 32px;
+  --share-qr-elevation-dx: 0;
+  --share-qr-elevation-dy: 8px;
+  --share-qr-elevation-spread: 0;
 }
 body {
-  text-shadow: 0 var(--page-shadow-dy) var(--page-shadow-blur) var(--page-shadow-fg);
   font-family: var(--page-font);
   background: var(--page-bg);
   color: var(--page-fg);
@@ -339,7 +527,6 @@ body {
   text-transform: var(--kicker-transform);
 }
 h1 {
-  text-shadow: 0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg);
   font-family: var(--title1-font);
   font-size: var(--title1-size);
   font-weight: var(--title1-weight);
@@ -363,6 +550,7 @@ h2 {
   text-align: var(--summary-align);
 }
 .fact-box {
+  box-shadow: var(--fact-elevation-dx) var(--fact-elevation-dy) var(--fact-elevation-blur) var(--fact-elevation-spread) var(--fact-elevation-fg);
   background: var(--fact-bg);
   border-left-color: var(--fact-rule-fg);
   border-left-width: var(--fact-rule-width);
@@ -555,7 +743,6 @@ sup {
   line-height: var(--refs-leading);
 }
 .highlight-figure {
-  text-shadow: 0 var(--highlight-shadow-dy) var(--highlight-shadow-blur) var(--highlight-shadow-fg);
   color: var(--highlight-fg);
   font-family: var(--highlight-font);
   font-size: var(--highlight-size);
@@ -577,9 +764,13 @@ sup {
   border-width: var(--series-nav-current-rule-width);
 }
 .series-link {
+  box-shadow: var(--series-nav-link-elevation-dx) var(--series-nav-link-elevation-dy) var(--series-nav-link-elevation-blur) var(--series-nav-link-elevation-spread) var(--series-nav-link-elevation-fg);
   background: var(--series-nav-link-bg);
   border-color: var(--series-nav-link-rule-fg);
   border-width: var(--series-nav-link-rule-width);
+}
+.series-link:hover, .series-link:focus-visible {
+  box-shadow: var(--series-nav-link-elevation-hover-dx) var(--series-nav-link-elevation-hover-dy) var(--series-nav-link-elevation-hover-blur) var(--series-nav-link-elevation-hover-spread) var(--series-nav-link-elevation-hover-fg);
 }
 .series-link:focus-visible {
   outline-color: var(--series-nav-link-ring);
@@ -614,11 +805,15 @@ sup {
 .nav-btn {
   width: calc(var(--nav-btn-size) * 2.2);
   height: calc(var(--nav-btn-size) * 2.2);
+  box-shadow: var(--nav-btn-elevation-dx) var(--nav-btn-elevation-dy) var(--nav-btn-elevation-blur) var(--nav-btn-elevation-spread) var(--nav-btn-elevation-fg);
   background: var(--nav-btn-bg);
   color: var(--nav-btn-fg);
   border-color: var(--nav-btn-rule-fg);
   border-width: var(--nav-btn-rule-width);
   font-size: var(--nav-btn-size);
+}
+.nav-btn:hover {
+  box-shadow: var(--nav-btn-elevation-hover-dx) var(--nav-btn-elevation-hover-dy) var(--nav-btn-elevation-hover-blur) var(--nav-btn-elevation-hover-spread) var(--nav-btn-elevation-hover-fg);
 }
 .nav-btn-home {
   background: var(--nav-btn-bg-soft);
@@ -638,6 +833,9 @@ sup {
 }
 .nav-dots a.active {
   background: var(--nav-dot-bg-active);
+}
+.share-popover {
+  box-shadow: var(--share-elevation-dx) var(--share-elevation-dy) var(--share-elevation-blur) var(--share-elevation-spread) var(--share-elevation-fg);
 }
 .share-popover, .share-qr-modal-content, button.share-action, .share-qr-close {
   background: var(--share-bg);
@@ -665,11 +863,13 @@ button.share-action:hover:not(:disabled) {
   background: var(--share-bg-hover);
 }
 .article-card {
+  box-shadow: var(--card-elevation-dx) var(--card-elevation-dy) var(--card-elevation-blur) var(--card-elevation-spread) var(--card-elevation-fg);
   background: var(--card-bg);
   border-color: var(--card-rule-fg);
   border-width: var(--card-rule-width);
 }
 .article-card:hover {
+  box-shadow: var(--card-elevation-hover-dx) var(--card-elevation-hover-dy) var(--card-elevation-hover-blur) var(--card-elevation-hover-spread) var(--card-elevation-hover-fg);
   border-color: var(--card-rule-fg-hover);
 }
 .article-number {
@@ -716,6 +916,25 @@ button.share-action:hover:not(:disabled) {
 .intro {
   font-size: var(--intro-size);
   line-height: var(--intro-leading);
+}
+.tag-menu {
+  right: calc(28px + var(--nav-btn-size) * 2.2 + 12px);
+  border-radius: calc(var(--nav-btn-size) * 0.55);
+  padding: calc(var(--nav-btn-size) * 0.5);
+  max-width: min(320px, calc(100vw - 28px - var(--nav-btn-size) * 2.2 - 40px));
+  box-shadow: var(--tag-menu-elevation-dx) var(--tag-menu-elevation-dy) var(--tag-menu-elevation-blur) var(--tag-menu-elevation-spread) var(--tag-menu-elevation-fg);
+}
+.slide-counter {
+  box-shadow: var(--slide-counter-elevation-dx) var(--slide-counter-elevation-dy) var(--slide-counter-elevation-blur) var(--slide-counter-elevation-spread) var(--slide-counter-elevation-fg);
+}
+.presenter-panel {
+  box-shadow: var(--presenter-panel-elevation-dx) var(--presenter-panel-elevation-dy) var(--presenter-panel-elevation-blur) var(--presenter-panel-elevation-spread) var(--presenter-panel-elevation-fg);
+}
+.help-card {
+  box-shadow: var(--help-card-elevation-dx) var(--help-card-elevation-dy) var(--help-card-elevation-blur) var(--help-card-elevation-spread) var(--help-card-elevation-fg);
+}
+.share-qr-modal-content {
+  box-shadow: var(--share-qr-elevation-dx) var(--share-qr-elevation-dy) var(--share-qr-elevation-blur) var(--share-qr-elevation-spread) var(--share-qr-elevation-fg);
 }
 /* LightWebPres skeleton — layout only: everything no theme property
    drives. Composed AFTER the engine's rules, so the @media block below
@@ -793,7 +1012,6 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
   padding: 24px 28px;
   border-radius: 0 8px 8px 0;
   max-width: var(--page-content-max);
-  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 .fact-label { margin-bottom: 8px; }
 /* Measured, not guessed: at the default offset the underline collides
@@ -1038,12 +1256,10 @@ sup { vertical-align: super; line-height: 0; }
 .series-current { border-style: solid; }
 .series-link {
   border-style: solid;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .series-link:hover, .series-link:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
 .series-link:focus-visible { outline-style: solid; outline-offset: 2px; }
 .series-label { margin-bottom: 4px; }
@@ -1100,14 +1316,12 @@ body.fs-noselect {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
   transition: opacity 0.2s, transform 0.15s, box-shadow 0.15s;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 .nav-btn:hover {
   transform: scale(1.08);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
 .nav-btn:active { transform: scale(0.96); }
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
@@ -1118,19 +1332,14 @@ body.fs-noselect {
 .tag-menu {
   position: fixed;
   font-size: max(16px, 2vmin);
-  right: 82px;
   bottom: 24px;
   z-index: 250;
   display: none;
   min-width: 180px;
-  max-width: min(320px, calc(100vw - 110px));
-  padding: 10px;
   border-style: solid;
   border-width: 1px;
-  border-radius: 10px;
   background: inherit;
   color: inherit;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
 }
 .tag-menu.open { display: block; }
 .tag-menu-title {
@@ -1239,7 +1448,6 @@ body.fs-noselect {
      by construction, because this element has no registry property for
      that report to read. */
   background: inherit;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
   transition: opacity 0.4s;
   user-select: none;
   -webkit-user-select: none;
@@ -1266,7 +1474,6 @@ body.fs-noselect {
   border-top-width: 1px;
   background: inherit;
   color: inherit;
-  box-shadow: 0 -4px 22px rgba(0,0,0,0.20);
   overflow: auto;
   display: none;
 }
@@ -1307,7 +1514,6 @@ body.fs-noselect {
   border-width: 1px;
   border-radius: 12px;
   padding: 24px 28px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
   background: inherit;
 }
 .help-title { font-weight: 700; font-size: 1.2em; margin-bottom: 16px; }
@@ -1371,7 +1577,6 @@ body.fs-noselect {
   right: 28px;
   z-index: 250;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   padding: 14px;
   display: none;
   max-width: calc(100vw - 40px);
@@ -1431,7 +1636,6 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   max-width: 400px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
 }
 .share-qr-modal-title {
   font-size: max(15px, 1.875vmin);
@@ -1479,12 +1683,10 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   text-decoration: none;
   color: inherit;
   border-style: solid;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 .article-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
 }
 .article-number { margin-bottom: 6px; }
 .article-title { margin-bottom: 6px; }
@@ -1613,12 +1815,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </div>
 
 <div class="nav-buttons">
-  <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" aria-label="Previous slide">&#8593;</div>
-  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Back to index (Home key)" aria-label="Back to index (Home key)">&#127968;</div>
-  <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" aria-label="Next slide">&#8595;</div>
-  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="Share" aria-label="Share this page"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
-  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" aria-label="Fullscreen (F key)"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
-  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="Filter by tag (L key)" aria-label="Filter by tag (L key)">L</div>
+  <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" aria-label="Previous slide"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
+  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Back to index (Home key)" aria-label="Back to index (Home key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11L12 3l9 8"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>
+  <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" aria-label="Next slide"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
+  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="Share" aria-label="Share this page"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
+  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" aria-label="Fullscreen (F key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
+  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="Filter by tag (L key)" aria-label="Filter by tag (L key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/><path d="M7.5 7.5h.01"/></svg></div>
 </div>
 
 <div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filter slides">
@@ -3535,31 +3737,33 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.style.cursor = 'none';
     }, 1000);
   }
-  // Require >250ms of continuous movement before the cursor reappears, so
+  // Require 250ms of continuous movement before the cursor reappears, so
   // a single jitter or a brush past the sensor does not flash it back on
-  // the wall. On the first move of a burst, arm a 250ms timer that shows
-  // the cursor; if movement is continuous the timer (set once at the
-  // burst's start) fires after 250ms. A gap longer than 100ms cancels it
-  // and starts a new burst, so a brief twitch never reveals the cursor.
+  // the wall.
+  //
+  // The reveal happens ON a move event that proves the burst has already
+  // lasted 250ms, which is the only thing that cannot be faked by a
+  // twitch. The previous version armed a timer instead, and the timer
+  // fired whether or not the movement continued: two events 16ms apart —
+  // a knock against the desk — revealed the cursor 250ms later, with
+  // nothing moving. Reported from the field as the protection not
+  // working, and it was not: it delayed the reveal rather than
+  // conditioning it. (Its first move also cancelled the timer it had just
+  // armed, since the gap since the previous burst is always over 100ms,
+  // so the burst effectively began on the second event.)
+  //
+  // A gap longer than 100ms ends a burst and starts a new one, so a
+  // stop-and-start never accumulates towards the 250.
   var fsMoveStart = 0;
   var fsLastMove = 0;
-  var fsShowTimer = null;
   function fsShowCursor() {
     var now = Date.now();
-    if (fsShowTimer === null) {
-      // First move of a burst: arm the reveal timer.
-      fsMoveStart = now;
-      fsShowTimer = setTimeout(function () {
-        document.body.style.cursor = '';
-        fsShowTimer = null;
-        fsScheduleHideCursor();
-      }, 250);
-    }
-    if (now - fsLastMove > 100) {
-      // Movement restarted: cancel the pending reveal, start fresh.
-      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
-    }
+    if (now - fsLastMove > 100) fsMoveStart = now;
     fsLastMove = now;
+    if (now - fsMoveStart >= 250) {
+      document.body.style.cursor = '';
+      fsScheduleHideCursor();
+    }
   }
   // Wake lock: prevents the screen from dimming/sleeping while the
   // speaker presents. Released when fullscreen exits.
@@ -3587,7 +3791,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
       fsMoveStart = 0;
       fsLastMove = 0;
       document.body.style.cursor = '';
@@ -3607,7 +3810,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
       fsMoveStart = 0;
       fsLastMove = 0;
       document.body.style.cursor = '';
@@ -3663,6 +3865,25 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var clickTimer = null;
   var CLICK_DELAY = 250;
+  // Releasing the button after highlighting a quotation is not a click to
+  // advance, and treating it as one costs the reader both the selection
+  // and their place. A drag that selected nothing is not one either — it
+  // was still a drag, not a click.
+  //
+  // Two signals rather than one: the selection is the exact statement of
+  // "I was highlighting", and the distance covers a drag over an area
+  // with no text to take. Four pixels of slack, because a click held long
+  // enough to wobble is still a click.
+  var pressX = 0;
+  var pressY = 0;
+  document.addEventListener('mousedown', function (e) {
+    pressX = e.clientX;
+    pressY = e.clientY;
+  });
+  function endedADrag(e) {
+    if (String(window.getSelection())) return true;
+    return Math.abs(e.clientX - pressX) > 4 || Math.abs(e.clientY - pressY) > 4;
+  }
   document.addEventListener('click', function (e) {
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
@@ -3672,6 +3893,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Instant in fullscreen — no double-click to detect. Use
       // currentVisible() because `current` may be stale during a
       // smooth scroll (isScrolling blocks detectCurrent).
+      if (endedADrag(e)) return;
       goTo(currentVisible() + 1);
       return;
     }
@@ -3679,16 +3901,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // goTo), cancel the pending double-click timer and navigate
     // immediately — the speaker clicked again to skip the wait.
     if (isScrolling) {
+      if (endedADrag(e)) return;
       if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
       goTo(currentVisible() + 1);
       return;
     }
     if (clickTimer) {
       // Second click within the window: double-click = enter fullscreen.
+      // Deliberately NOT guarded: a double-click selects the word under
+      // the pointer, so by the time this fires there is always a
+      // selection, and guarding here would make the gesture unreachable
+      // with the mouse.
       clearTimeout(clickTimer);
       clickTimer = null;
       toggleFullscreen();
-    } else {
+    } else if (!endedADrag(e)) {
       clickTimer = setTimeout(function () {
         clickTimer = null;
         // Click always changes slide (never scrolls within the

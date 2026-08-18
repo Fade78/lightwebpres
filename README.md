@@ -327,7 +327,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 
 Legacy command names (`install`, `check`, `themes`, `theme-info`,
 `set-theme`, `series-info`, `refresh-templates`, `themes-gallery`) remain
-usable as aliases and print a `[WARN]` on stderr pointing to the new name;
+usable as aliases and print a `[WARNING]` on stderr pointing to the new name;
 they are kept for existing scripts and will be dropped in a later major
 version.
 
@@ -457,7 +457,7 @@ memory at every build; a mistyped key or value is a named build error,
 never a silent no-op. Three one-liners:
 
 ```conf
-verdict.partial.fg: #8A4B00   # recolor one verdict — footnote calls and focus rings don't move
+verdict.partial.fg: #8A4B00   # recolor one verdict — footnote calls and note markers don't move
 summary.fg: #10151B           # darken card summaries — the "no" verdict stays put
 link.decoration-color: mark   # tint link underlines — the text itself keeps the ink around it
 ```
@@ -467,15 +467,19 @@ appended last so it wins ties. Effects are properties too: a halo is a
 shadow with no offset, which is how the `terminal` theme gets its
 phosphor glow (`title1.shadow.fg: #33FF8866`) on an all-monospace page —
 three font lines and a halo in its theme layer, no special case in the
-engine. Every component that paints text carries the four halo axes
-(`fg`, `blur`, `dx`, `dy`), because `text-shadow` is inherited and an
+engine. Every component that paints its own glyphs carries the four halo axes
+(`fg`, `blur`, `dx`, `dy`) — a container does not, because
+`text-shadow` is inherited and a halo on a box reaches everything
+inside it. That inheritance is also why an
 inherited one resolves its `em` once at the root: it can tint a whole
 site at a stroke, but it cannot be proportional to the glyph. Only a
 component's own can. Depth is a property too: every component the sheet
-lifts off the page — cards, series links, navigation buttons, the
-overlays — carries five elevation axes (`fg`, `blur`, `dx`, `dy`,
-`spread`), at rest and under the pointer, so a dark theme can tune a
-shadow that was black at an opacity chosen against a white page. The
+lifts off the page — the fact box, index cards, series links,
+navigation buttons, the slide counter and the four overlays — carries
+five elevation axes (`fg`, `blur`, `dx`, `dy`, `spread`), with a second
+set under the pointer for the three that lift when you point at them.
+So a dark theme can tune a shadow that was black at an opacity chosen
+against a white page. The
 page/index HTML structure itself is fixed, not a template,
 so a build can't be broken by a malformed structural override.
 
@@ -577,7 +581,7 @@ so a theme restyles everything at once; but each use is its own
 property, so overriding one sense never drags the others along (the
 `verdict.partial.fg` line above moves the "partly" verdict and nothing
 else, even though its default shares `color.call` with footnote calls
-and focus rings).
+and note markers).
 
 `color.nav` is the odd one out, and deliberately so: it paints the
 hardware that moves you through a series — the active progress dot, the
@@ -589,8 +593,10 @@ its own role is what let forty-one per-theme pins disappear.
 
 A body link deliberately has no palette colour of its own. It keeps the
 ink around it and is signalled by an underline, whose tint is the one
-exposed axis (`link.decoration-color`, defaulting to the text ink — the
-one pairing that clears AA and AAA on every theme in the catalogue).
+exposed axis (`link.decoration-color`, defaulting to the text ink, which
+is the strongest thing on the page to point at). An underline is
+non-text, so the standard asks 3:1 of it and has no AAA level to ask
+for.
 Measured across the catalogue before choosing: the browser's default blue
 misses AA on well over half of the themes, and every palette colour that
 could replace it either falls short on a large part of the catalogue too,
@@ -683,7 +689,7 @@ switching between them is instant — no separate page, no reload.
 python3 tests/run_tests.py
 ```
 
-100+ black-box tests exercising the CLI as a subprocess, plus real headless-
+a black-box test suite exercising the CLI as a subprocess, plus real headless-
 Chromium end-to-end tests (via Playwright, skipped cleanly if unavailable)
 for both tabs of the browser-based tool.
 

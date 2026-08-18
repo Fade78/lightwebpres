@@ -12028,6 +12028,34 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
     it sat after prose, tripping the one-way switch the guide documents two
     sections earlier."""
 
+    def test_the_committed_guide_is_the_guide_the_tool_makes(self):
+        """The guard `themes-gallery.html` has had all along and this
+        did not. Both are generated artefacts committed to the repo;
+        only one of them was compared to a fresh build, so `docs/guide/`
+        drifted 184 CSS declarations behind the stylesheet — the halo
+        and the elevation — while the whole suite stayed green. A dated
+        audit even recorded that both were checked byte for byte, which
+        was the sentence that made the drift invisible.
+
+        The build is deterministic: two runs of `build_guide.py` produce
+        identical bytes, which is what makes a byte comparison the right
+        instrument rather than a flaky one."""
+        root = Path(__file__).resolve().parent.parent
+        script = root / 'tools' / 'build_guide.py'
+        committed = root / 'docs' / 'guide'
+        if not script.exists() or not committed.is_dir():
+            self.skipTest('no build_guide.py or docs/guide in this checkout')
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'guide'
+            r = subprocess.run([sys.executable, str(script), '--output', str(out)],
+                               capture_output=True, text=True, timeout=180)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            for name in sorted(p.name for p in out.iterdir() if p.is_file()):
+                self.assertEqual(
+                    (committed / name).read_bytes(), (out / name).read_bytes(),
+                    f'docs/guide/{name} is stale: re-run '
+                    f'`python3 tools/build_guide.py`')
+
     def test_the_guide_builds_and_shows_what_it_names(self):
         root = Path(__file__).resolve().parent.parent
         script = root / 'tools' / 'build_guide.py'
