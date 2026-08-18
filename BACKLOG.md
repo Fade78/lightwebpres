@@ -2,29 +2,42 @@
 
 The **permanent** register of things raised but not dealt with: bugs
 with no urgency, change requests, format decisions still to be made.
-Unlike `JOURNAL-1.0.md` (the 1.0 working memory, deleted at release),
+Unlike `delete-before-1.0/JOURNAL-1.0.md` (the 1.0 working memory, deleted at release),
 this file outlives releases — anything that has to be findable "later"
 goes here, not in the journal.
 
 Every entry says what has been **verified** and what remains to be
 **decided**.
 
-## Révision du registre (2026-08-14)
+## How to read this file, and how it decayed
 
-Ce registre a été passé en revue lors de la remise en cohérence
-docs/CLI (réintégration de la refonte CLI newargs/ dans
-`specifications.md`, `README.md`, `GUIDE.md` et le skill) :
+**The header of an entry is its state. Nothing else in the file is.**
+There is no index, on purpose: a list of entry numbers with their statuses
+is a second place to be wrong, and this file already learned that lesson
+the hard way — the revision block that used to sit here listed B15, B16
+and B17 among the open entries long after all three had been fixed.
 
-- **Résolus (à archiver)** : B1 (FIXED v0.12.0), B2 (SETTLED v0.12.0),
-  B3 (FIXED v0.12.2), B4 (DONE via B7), B7 (DONE), B13 (DONE), B14 (DONE),
-  C1 (DONE v0.33.2).
-  Ils portent déjà la mention DONE/FIXED/SETTLED en en-tête ; ils n'ont
-  plus leur place dans un registre de dette active et peuvent être
-  déplacés dans une annexe « Résolu ».
-- **Toujours ouverts / notés** : B5, B6, B8, B9 (partie appliquée),
-  B10, B11, B12, B15, B16, B17, B18.
-- **Nouveaux (cette révision)** : C2 (`series article add/remove/set` hors
-  périmètre — décision, pas dette).
+**How it decayed, because the mechanism matters more than the instance.**
+An entry gets written when a defect is found. It gets fixed weeks later,
+in a lot named after something else, by someone reading the code rather
+than the register. Nothing in that path passes through this file. So the
+fix lands, the tests go green, and the entry keeps saying `NOTED` — not
+because anyone believed it, because nobody looked.
+
+Probed one by one on 2026-08-18, three of the twenty-five entries
+described a state that no longer existed, and one carried a policy the
+owner had since reversed. Every other entry was exact. The register is not
+careless; it is simply downstream of the work, and nothing carries it
+along.
+
+**So: closing an entry is part of the change that closes it.** If a lot
+fixes something this file records, the entry moves in the same commit,
+with the measurement that shows it. An entry closed later, from memory, is
+how the numbers above happened.
+
+**And a status is a measurement, not a memory.** `DONE` here means someone
+ran something and wrote down what came back. Where an entry claims a
+figure, the figure is in it.
 
 ---
 
@@ -340,7 +353,7 @@ now an architectural fact, not an opinion.
 **What remains is editorial, not mechanical**: revise the affected catalogue
 entries. Per entry, the coherent outcomes are unchanged — flip
 the dark-designed schemes to `dark_background` (which the per-colour
-measurements in `REVISION-THEMES.md` appendix A establish as a
+measurements in `delete-before-1.0/REVISION-THEMES.md` appendix A establish as a
 *restoration* of fidelity, not a loss), set their
 verdict/footnote inks to `ink`, retune the values, or declare-and-mark
 them (D6, still undone: nothing in `theme list` or the gallery distinguishes
@@ -510,8 +523,8 @@ own.
 
 ## B9 — Typographic revision of the historical 33-theme catalogue — PARTLY APPLIED
 
-**Report delivered and verified** (`c4156e8`): `REVISION-THEMES.md`, with
-31 validated property layers in `themes-revision/`.
+**Report delivered and verified** (`c4156e8`): `delete-before-1.0/REVISION-THEMES.md`, with
+31 validated property layers in `delete-before-1.0/themes-revision/`.
 
 **Two of the three decisions applied.** The revision report concerned the
 historical catalogue of **33 themes**; the live registry now contains 34.
@@ -535,18 +548,35 @@ historical catalogue of **33 themes**; the live registry now contains 34.
    and `red` are the closest dark pair at 26°, with different `mark` and
    `affirm`: not a duplicate. Nothing measured supports a removal.
 
-**Policy decided 2026-08-15:** every built-in theme must meet a readability
-floor (AA for informative text, 3:1 for informative non-text), but only a
-subset must meet the higher project standard (AAA body text, AA secondary
-text and accents, informative rules at 3:1, and colour-independent verdict
-separation). Visual families such as `pop`, halo and monochrome are editorial
-categories, not accessibility levels. `theme show` remains the measured
-report for both dimensions.
+**Policy decided 2026-08-15, and REVERSED since — do not apply it.** It
+read: every built-in theme must meet a readability floor (AA for
+informative text, 3:1 for informative non-text), while only a subset must
+meet the higher project standard.
+
+The owner's later position, recorded at B5, is the opposite on the first
+half: **a theme is not obliged to reach AA.** What the project owes a
+reader is an honest statement of the level each theme reaches, not a
+uniform catalogue. Measured on the current catalogue, a substantial
+minority of themes are reported `fail` on body text, deliberately — the
+1.9-era floor is not enforced, and enforcing it now would mean retuning
+palettes that are doing what their authors intended.
+
+One half of it did survive, and is worth keeping separate: **visual
+families such as `pop`, halo and monochrome are editorial categories, not
+accessibility levels**, and `theme show` remains the measured report. That
+sentence is still the project's position. Only the obligation is gone.
+
+The single hard floor that does exist is elsewhere and has a different
+justification: navigation furniture must clear 3:1, because an invisible
+progress dot is a broken control rather than a bold palette
+(`specifications.md` §9.5.6). It is not an accessibility policy for
+themes; it is the boundary between what a test may refuse and what it may
+not.
 
 **Still open from the report:** the per-theme typographic blocks (named
 display faces, tracking, cover gradients, the two extra halos) and the
 themes that miss the new readability floor or the high standard. The blocks
-are in `themes-revision/`, all 31 verified to resolve. B5, B6 and B18 now
+are in `delete-before-1.0/themes-revision/`, all 31 verified to resolve. B5, B6 and B18 now
 belong to the readability-floor pass; the remaining catalogue choices belong
 to the high-standard and visual-family pass.
 
@@ -613,7 +643,7 @@ size. Measured across fifteen viewports, characters per line become
 viewport-invariant.
 
 Two things came with it, neither in the original entry, both found by
-measuring rather than reasoning (`ETUDE-VIEWPORT.md`):
+measuring rather than reasoning (`delete-before-1.0/ETUDE-VIEWPORT.md`):
 
 - **The fluid type clamps moved from `vw` to `vmin`.** On `vw`, rotating
   a phone shortens the viewport *and enlarges the type*, so 6 cards in 8
@@ -691,7 +721,31 @@ Plan, in order (the order matters — doing step 2 first is churn):
    `SkeletonGapError` — optionally keeping a driven-declaration collision
    test between skeleton and registry.
 
-## B15 — The share popover's mobile overrides never apply — NOTED
+## B15 — The share popover's mobile overrides never apply — DONE
+
+**Closed by measurement (2026-08-18), and the entry was right about the
+cause.** It described a media query sitting BEFORE the base rule at equal
+specificity, so the later rule won on a narrow viewport. Re-measured on
+the composed sheet, the order is now the other way round: the base
+`.share-popover` rule is at byte 46 223 and the `@media (max-width: 600px)`
+block that overrides it at 49 196. The media query wins, and
+`bottom: 72px`, `right: 16px` and `max-width: calc(100vw - 32px)` apply.
+
+Fixed at some point in the skeleton work the entry itself anticipated,
+and nobody updated the header — which is how it came to be reported as
+the project's one live defect three months later.
+
+**The second half stands, and is narrower than it reads.**
+`.share-cell-head-disabled { opacity: 0.35 }` does slip past the anti-fade
+guard, because the guard looks for an opacity in a rule that ALSO declares
+a text property and this one does not. Measured, three rules carry an
+opacity below 1 without text properties, and all three are disabled
+control states — which WCAG 1.4.3 exempts. The blind spot is real; what it
+currently holds is not a defect. Worth stating inside the guard so a
+future fade on live text cannot arrive believing itself covered.
+
+The original reading is kept below.
+
 
 Found by B14 while freezing the skeleton, pre-existing and untouched
 there because fixing it is a visual change. The `@media (max-width: 600px)`
@@ -713,7 +767,27 @@ Related, same family, also pre-existing: `.share-cell-head-disabled`'s
 a different rule from the `font-size: 11px` it dims. A hole in that
 heuristic, not in the seam.
 
-## B16 — `page_dest: index.html` loses a page in silence — NOTED
+## B16 — `page_dest: index.html` loses a page in silence — DONE
+
+**Closed, verified 2026-08-18.** The collision is now a fatal error, exit
+1, and the message names the article, explains what would overwrite what,
+and states the one-article exception:
+
+```
+[ERROR] series.json: article "first.md" resolves to page_dest
+"index.html", which collides with the series index — with 3 articles the
+index carries the article list, so one of the two pages would overwrite
+the other. Give this article another page_dest (in series.json, in its
+own meta block, or by renaming the source); only a one-article series may
+take the index name.
+```
+
+The entry asked for "one comparison and a named error" and worried that
+it would turn an accepted configuration into a fatal one. It did, with
+the single-article case preserved — which was the whole concern.
+
+The original reading is kept below.
+
 
 Found while building the guide with the tool (`tools/build_guide.py`): an
 article whose `page_dest` is `index.html` collides with the series index
@@ -741,7 +815,19 @@ before it lands: someone may have a single-article series relying on the
 index being the only page — which today means their article is the thing
 being thrown away, not the index.
 
-## B17 — catppuccin's bold-on-highlight is at 3.05:1 — NOTED
+## B17 — catppuccin's bold-on-highlight is at 3.05:1 — DONE
+
+**Closed, re-measured 2026-08-18 at 4.51:1** — `fact.strong.fg` against
+its own `fact.strong.bg`, composited over the fact ground and the page.
+The palette's `color.mark` moved and took the shortfall with it.
+
+The entry predicted its own closing: it said the exact-set pin in
+`KNOWN_PALETTE_FAILURES` would fail the moment the palette was fixed and
+force the exemption out with it. That is what happened, and the set is now
+empty — which is that idiom's strongest state, not an absence of coverage.
+
+The original reading is kept below.
+
 
 Found while measuring the notes work, and it is **not** a note defect:
 catppuccin's `fact.strong.fg` measures **3.05:1** against its own
@@ -762,7 +848,27 @@ forces the exemption out with it.
 Same class as B9's five themes: a palette value below AA, needing a
 measured replacement rather than a mechanism.
 
-## B18 — `cover.kicker.fg` is below AA on three themes — NOTED
+## B18 — `cover.kicker.fg` is below AA on three themes — DECIDED, by the same rule as B5
+
+**The measurement is unchanged and the premise is not.** The three themes
+are still the three, still pinned as an exact set, and the tag is still
+12px bold, so 4.5:1 is still the right bar to measure against. What
+changed is that reaching it is no longer required.
+
+The owner's position, recorded at B5: a theme is not obliged to reach AA.
+What the project owes a reader is an honest statement of the level each
+theme reaches — which `theme show` and the gallery report, per WCAG
+category, measured. A palette below the bar on one surface, reported as
+below the bar, is doing exactly what the catalogue promises.
+
+So this entry stops being a debt and becomes what its own last paragraph
+already said it was: **a pinned set is a guard, not an intention.** The
+guard stays and stays exact — a fourth theme joining the set is a
+regression, and a theme that leaves it forces its exemption out — but
+nothing is owed on the three that are in it.
+
+The reading below is kept: it is the measurement, and it is still true.
+
 
 Found while fixing B17, and it is the same pair seen from the other side.
 The cover tag is `mark` painted on the cover ground, which on a light
@@ -903,7 +1009,7 @@ historique et ne s'applique plus.
 ## B19 — `audit --strict` is blind to every warning the build emits — OPEN
 
 Recorded here on 2026-08-18 because it was the one open point left in
-`docs/PLAN-CORRECTIONS-2026-08-17.md`, a design document whose lots are
+`delete-before-1.0/docs/PLAN-CORRECTIONS-2026-08-17.md`, a design document whose lots are
 all delivered and which is therefore leaving the active tree. The point
 itself was never settled, so it moves rather than goes.
 
@@ -930,7 +1036,7 @@ without asking what `audit` does not see.
 
 ## B20 — Only three components can carry a halo, and the worst-served one is a slide heading — DECISION PENDING
 
-From `docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
+From `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
 reason as B19: the document is delivered, this decision is not.
 
 `page.shadow` is inherited, so its `em` resolves once at the root and
