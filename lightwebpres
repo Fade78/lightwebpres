@@ -12095,8 +12095,9 @@ def judge_resolved_theme(resolved):
             continue
         keep(('size', name), px,
              f"`{name}` resolves to {px:g}px, under the {READABLE_TEXT_PX:g}px "
-             f"readability floor of the design — nothing in the 57 delivered "
-             f"themes goes below it. Raise `{name}`: at this size the text "
+             f"readability floor of the design — nothing in the {len(THEMES)} "
+             f"delivered themes goes below it. Raise `{name}`: at this size "
+             f"the text "
              f"ships, and is smaller than every piece of apparatus around it.")
 
     return [(key, message) for key, (_, message) in

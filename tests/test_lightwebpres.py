@@ -4731,6 +4731,8 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
             root = self._series(tmp)
             plain, strict = self._audit(root, '--lang', 'xx')
             self.assertIn('no language pack', plain.stderr)
+            self.assertEqual(plain.returncode, 0,
+                             'audit blocked — it must report and continue')
             self.assertEqual(strict.returncode, 1,
                              '--strict passed on a warning the build prints')
 
@@ -4787,6 +4789,18 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
                              'audit called a series clean that cannot build:\n'
                              + plain.stdout)
             self.assertIn('does not build', plain.stdout)
+            # The count, and not only the sentence. Mutation found that
+            # every other assertion here is held up by audit_presentation,
+            # which reports the unknown property on its own: the fatal
+            # render could stop being counted entirely and this test stayed
+            # green. The sibling below covers the same ground from the
+            # other side; this makes the test hold its own claim.
+            counted = re.search(r'(\d+) warning\(s\)', plain.stdout)
+            self.assertIsNotNone(counted, plain.stdout)
+            self.assertGreaterEqual(
+                int(counted.group(1)), 2,
+                'the fatal render is no longer counted — the property '
+                'warning alone is holding this test up:\n' + plain.stdout)
             self.assertEqual(plain.returncode, 0,
                              'audit blocked — it must report and continue')
             self.assertEqual(strict.returncode, 1,
@@ -4924,7 +4938,11 @@ class AuditJudgesTheResolvedSheet(unittest.TestCase):
                 self.assertEqual(run(*args).returncode, 0)
                 self.assertEqual(run('demo', str(root)).returncode, 0)
                 result = run('audit', str(root))
-                if '[WARNING]' in result.stderr or result.stdout.count('warning(s)'):
+                # Both streams: the judgement pass prints on stdout, the
+                # render's warnings reach stderr through log(). Reading one
+                # of the two is how a sweep comes back clean without having
+                # looked (BACKLOG B26).
+                if '[WARNING]' in result.stdout + result.stderr:
                     noisy.append((slug or '(default sheet)',
                                   result.stdout + result.stderr))
         self.assertEqual([n for n, _ in noisy], [],
@@ -4955,7 +4973,10 @@ class AuditJudgesTheResolvedSheet(unittest.TestCase):
             plain = run('audit', root)
             report = plain.stdout + plain.stderr
             self.assertIn('nav-dot.bg-active', report)
-            self.assertIn('3:1', report)
+            # `under 3:1`, not `3:1` — a bare `3:1` is also a substring of
+            # a measured ratio ending in 3, so the loose form would pass on
+            # a report that never mentioned the floor.
+            self.assertIn('under 3:1', report)
             self.assertEqual(run('audit', root, '--strict').returncode, 1)
 
     def test_a_size_under_the_readability_floor_is_named(self):
@@ -4965,7 +4986,7 @@ class AuditJudgesTheResolvedSheet(unittest.TestCase):
             plain = run('audit', root)
             report = plain.stdout + plain.stderr
             self.assertIn('note.size', report)
-            self.assertIn('12px', report)
+            self.assertIn('under the 12px readability floor', report)
             self.assertEqual(run('audit', root, '--strict').returncode, 1)
 
     def test_a_relative_size_is_not_judged_against_pixels(self):
@@ -5012,6 +5033,18 @@ class AuditJudgesTheResolvedSheet(unittest.TestCase):
             self.assertIn('unknown property', report)
             self.assertNotIn(':1 against', report,
                              'the judgement competed with the fatal error')
+            # Silent, not absent: the pass has to stand aside, not die on
+            # the way past. Mutation found that narrowing the except which
+            # guards the composition leaves audit dying with an internal
+            # error on this very fixture, with this test still green — the
+            # `unknown property` line above is a premise, not a guard, and
+            # audit_presentation prints it either way.
+            self.assertEqual(plain.returncode, 0,
+                             'audit did not survive a sheet that cannot '
+                             'resolve:\n' + plain.stderr)
+            self.assertNotIn('internal error', plain.stderr,
+                             'the resolution failure escaped the judgement '
+                             'pass instead of silencing it:\n' + plain.stderr)
 
 
 class AuditNamesAFootnoteLabelTheEngineWillNotRead(unittest.TestCase):
