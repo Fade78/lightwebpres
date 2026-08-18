@@ -899,3 +899,87 @@ Ce qui reste volontairement ouvert :
 **Status:** décisions actées ; dettes restantes listées ci-dessus. Le statut
 « e2e navigateur en attente de l'outillage » de l'ancienne section C3 est
 historique et ne s'applique plus.
+
+## B19 — `audit --strict` is blind to every warning the build emits — OPEN
+
+Recorded here on 2026-08-18 because it was the one open point left in
+`docs/PLAN-CORRECTIONS-2026-08-17.md`, a design document whose lots are
+all delivered and which is therefore leaving the active tree. The point
+itself was never settled, so it moves rather than goes.
+
+`--strict` inverts the exit code on the slightest warning, and is
+documented as a CI gate. But `audit` never compiles anything, so warnings
+raised **during a build** are invisible to it. Counted on the current
+tree: **ten** `log('warn', …)` sites live in the build path — an image
+escaping the article directory, a symlink skipped, a missing language
+pack, a pinned property that no longer exists, an inherited
+`templates/style.css`, an article that could not be read, among others.
+
+A pipeline gated on `audit --strict` can therefore be green while a build
+of the same series prints a real warning. That is a hole in the gate, not
+in the warnings.
+
+**Two coherent outcomes, and the ambiguity is the actual defect.** Either
+`--strict` becomes the complete gate — which means `audit` learns to
+raise what the build would raise, without building — or the documentation
+stops presenting it as one and names what it covers. Leaving it half-way
+is what makes it a trap: it looks like a gate.
+
+Sharpened by the v0.36.0 work, which added a warning class to `audit`
+without asking what `audit` does not see.
+
+## B20 — Only three components can carry a halo, and the worst-served one is a slide heading — DECISION PENDING
+
+From `docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
+reason as B19: the document is delivered, this decision is not.
+
+`page.shadow` is inherited, so its `em` resolves once at the root and
+propagates as an absolute length. A halo is therefore proportional to the
+glyph only where a component declares its own. There are **three** such
+anchor points — `page`, `title1`, `highlight` — and neither `title2`, nor
+`summary`, nor `fact`. Measured, blur over rendered size:
+
+| element | size | blur ÷ size |
+|---|---|---|
+| kicker, `fact-label`, source | 13.5 px | 0.15 |
+| summary | 24.3 px | 0.09 |
+| **slide `h2`** | **42.3 px** | **0.05** |
+| `h1` | 54.9 / 31.5 px | 0.26 |
+| key figure | 97.2 px | 0.13 |
+
+The slide heading is the worst served, and it is a heading.
+
+**The decision**: accept that the atmosphere is uniform and only the
+title and the key figure get a proportional halo — which is defensible —
+or add anchor points to the registry. The second is a change to the
+**engine**, not a theme setting, which is why it is a decision rather
+than a task.
+
+Recorded alongside it, so it is a choice and not a discovery: `page.shadow`
+being inherited, it also reaches the chrome — progress dots, counter and
+presenter panel carry the theme's shadow at 2.1 px / 16 %.
+
+## B21 — Pinning dark colours does not make the furniture dark, and nothing says so — OPEN
+
+Same origin as B20, and the most consequential of the three.
+`DARK_FURNITURE_PROPS` keys off the theme definition's `dark_background`
+flag. That flag is **not a registry property**, so no amount of pinning in
+`settings.conf` can reach it. An author who darkens `color.page` and
+lightens `color.ink` gets a dark palette wearing light furniture: the
+veils stay white and opaque over a near-black page.
+
+Re-measured on the current tree, pinning a dark palette onto a light
+theme: **38 body-text pairs below AA, worst 1.027:1** — text on its own
+ground. The original relevé recorded 21 below AA at 1.08:1, so the trap
+has got worse as the surface has grown, not better.
+
+Nothing warns. The build is silent, `audit` is silent, and the author
+discovers it by looking — or does not.
+
+**This is the same class as the meta-key silence closed in v0.36.0**: a
+configuration that cannot work, accepted without a word. The difference
+is that here the cause is structural — the author is asking for something
+the cascade cannot express — so the fix is a choice between three:
+say so (a warning naming the flag), make it reachable (promote
+`dark_background` to a property, which the §9 engine could carry), or
+document it as a limit in the GUIDE. It is currently none of the three.

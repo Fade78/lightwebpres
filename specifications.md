@@ -39,35 +39,69 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
   format à destination d'un agent LLM qui écrit ou modifie des articles.
 - **`BACKLOG.md`** (anglais) — le registre *pérenne* des manques relevés
   et des décisions différées : ce qui doit rester trouvable « plus tard »
-  y va, et y reste au travers des releases. Référencé par cette
-  spécification (B3, B5, B9).
+  y va, et y reste au travers des releases. Cette spécification y renvoie
+  par numéro d'entrée.
+- **`AGENTS.md`** (français) — les conventions de travail sur le dépôt :
+  commandes obligatoires, arborescence, règles d'écriture. Normatif pour
+  qui modifie le dépôt, muet sur le format lui-même.
+- **`THIRD-PARTY-NOTICES.md`** (anglais) — les licences de ce qui est
+  embarqué. Normatif pour une raison qui n'est pas technique.
+
+**Une règle sur les listes de cette section.** Elle nomme les documents,
+jamais le détail de ce qu'ils contiennent : une énumération de numéros
+d'entrée ou de fichiers d'un répertoire se périme sans que rien ne le
+signale, et c'est exactement ce qui est arrivé ici — cette section a
+longtemps annoncé trois renvois au backlog quand il y en avait sept, et
+ignoré un répertoire entier.
 
 Les autres fichiers `.md` ne font **pas** partie de ce
-contrat, et se répartissent en deux familles :
+contrat, et se répartissent en trois familles :
 
 - **transitoire** — `JOURNAL-1.0.md`, la mémoire de travail de la 1.0 :
   supprimée du dépôt juste avant la release, jamais référencée par un
   document pérenne. Ses renvois internes en `§x.y` ne sont pas tenus à
   jour et peuvent pointer dans le vide.
-- **relevés** — `ETUDE-VIEWPORT.md` (mesures de viewport, rattachées à B7
-  et B13), `REVISION-THEMES.md` (mesures du catalogue, plus un registre
-  ouvert de limites du moteur, rattaché à B5 et B9) et
-  `ANTERIORITE-THEMES.md` (ce qui a été trouvé ailleurs avant la refonte
-  du système de thèmes). Ils portent ce qu'une spec normative ne peut pas
-  absorber : des mesures avec leurs conditions, les hypothèses qu'elles
-  ont tuées, et une enquête datée. Ils n'obligent rien ; en cas de
-  divergence, ce document fait foi.
+- **relevés** — des mesures avec leurs conditions, les hypothèses
+  qu'elles ont tuées, une enquête datée : ce qu'une spec normative ne peut
+  pas absorber sans cesser d'être une spec. Ils n'obligent rien ; en cas
+  de divergence, ce document fait foi. **Les nombres qu'ils portent sont
+  datés et ne se périment pas** — ils disent l'état du jour de la mesure,
+  et les relire comme des affirmations présentes est l'erreur à ne pas
+  commettre.
 
-  Ces documents transitoires et relevés sont rangés dans `delete-before-1.0/`
-  (miroir de la racine) : ils restent accessibles pour consultation, mais
-  ne font plus partie de l'arborescence active. git en conserve
-  l'historique ; la suppression définitive se fera plus tard.
+  Deux emplacements, pour deux usages :
 
-  **Un document de conception, lui, ne survit pas à son absorption.** Une
-  fois son raisonnement versé ici — raisonnement compris, pas seulement
-  ses règles — il est supprimé plutôt que gelé : git le conserve, et un
-  bandeau « document historique » est une invitation à le lire quand
-  même. Un document, un métier, nommé d'après ce métier.
+  - `docs/` — les relevés qu'on consulte encore : les audits datés
+    (`AUDIT-*.md`). Ils restent dans l'arborescence active parce qu'on y
+    revient, et le backlog y renvoie.
+  - `delete-before-1.0/` — les relevés dont le raisonnement est versé
+    ailleurs : `ETUDE-VIEWPORT.md` (viewport, rattaché à B7 et B13),
+    `REVISION-THEMES.md` (catalogue, rattaché à B5 et B9),
+    `ANTERIORITE-THEMES.md` (antériorité du système de thèmes), et
+    `docs/` pour les documents de conception absorbés.
+
+- **outillage** — les fichiers qu'un outil lit : `docs/guide-deck.md`, le
+  deck source du guide, compilé par `tools/build_guide.py` vers
+  `docs/guide/`. Ce n'est pas de la documentation *sur* le projet, c'est
+  une entrée de build, et elle se corrige comme du code.
+
+`delete-before-1.0/` est un miroir de la racine : ce qui y entre reste
+consultable mais quitte l'arborescence active, git en conserve
+l'historique, et la suppression effective se fera avant la 1.0 — ce que
+son nom dit.
+
+**Un document de conception ne survit pas à son absorption.** Une fois son
+raisonnement versé ici — raisonnement compris, pas seulement ses règles —
+il sort : le garder en place avec un bandeau « document historique » est
+une invitation à le lire quand même, et un lecteur qui le lit apprend
+l'état d'un jour passé en croyant apprendre l'état courant. Un document,
+un métier, nommé d'après ce métier.
+
+**Ce que « absorbé » exige avant de sortir un document.** Un plan livré
+porte souvent une décision que personne n'a prise et qui ne vit nulle part
+ailleurs — c'est ce qui distingue l'absorption du rangement. Avant de
+sortir un document, ce qui y reste ouvert va au `BACKLOG.md`, avec sa
+mesure. B19, B20 et B21 sont arrivés ainsi.
 
 ### 1.2 Contrat avec `lightwebpres-gui`
 

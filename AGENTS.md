@@ -25,20 +25,33 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 ## Structure du dépôt
 
 ### Code et tests
-- `lightwebpres` — le code (un seul fichier Python, ~13 300 lignes). Pas de
-  dépendances externes (stdlib uniquement, Python 3.8+).
-- `tests/test_lightwebpres.py` — 729 tests, black-box (subprocess). La suite
-  complète découverte par `tests/run_tests.py` en compte 742. Helper `run(*args)`
-  lance `lightwebpres <args>`.
+- `lightwebpres` — le code, un seul fichier Python. Pas de dépendances
+  externes (stdlib uniquement, Python 3.8+).
+- `tests/test_lightwebpres.py` — la suite principale, black-box
+  (subprocess) ; `tests/run_tests.py` en découvre davantage, dont les
+  volets navigateur. Helper `run(*args)` lance `lightwebpres <args>`.
+  Les comptes ne sont pas écrits ici : ils changent à chaque lot et un
+  nombre faux dans un guide de travail est pire que pas de nombre. Pour
+  l'avoir, lancer la suite.
 
 ### Documentation permanente (fait foi)
 - `specifications.md` — spécification normative du format (référence).
 - `GLOSSARY.md` — contrat de vocabulaire partagé (avec `lightwebpres-gui`).
 - `README.md`, `GUIDE.md` — documentation utilisateur.
 - `BACKLOG.md` — registre pérenne des dettes et décisions différées.
-- `agent/skills/` — deux skills (format LWP + méthode éditoriale) + index.
+- `agent/skills/` — les skills (format LWP, méthode éditoriale) + index.
+- `AGENTS.md` — ce document.
+- `THIRD-PARTY-NOTICES.md` — licences de ce qui est embarqué.
+
+### Relevés datés (consultables, non normatifs)
+- `docs/AUDIT-*.md` — les audits, avec leurs mesures et leurs conditions.
+  Les nombres qu'ils portent disent l'état du jour de la mesure : ils ne
+  se périment pas, et ne se lisent pas comme des affirmations présentes.
+
+### Outillage
 - `docs/guide-deck.md` — deck source du guide (se compile via
-  `tools/build_guide.py`, qui assemble `GUIDE.md` comme article).
+  `tools/build_guide.py`, qui assemble `GUIDE.md` comme article). Entrée
+  de build, pas documentation : se corrige comme du code.
 
 ### Artefacts régénérables
 - `themes-gallery.html` — généré par `lightwebpres theme gallery` (le test
@@ -47,11 +60,17 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `docs/guide/` — build output du guide (`tools/build_guide.py`).
 
 ### Documents d'étape (consultables, hors arborescence active)
-- `delete-before-1.0/` — miroir de la racine. Contient les transitoires et
-  relevés absorbés : `JOURNAL-1.0.md`, `ETUDE-VIEWPORT.md`,
-  `REVISION-THEMES.md`, `ANTERIORITE-THEMES.md`, `newargs/` (refonte CLI,
-  terminée et absorbée), `themes-revision/` (blocs B9). git en conserve
-  l'historique ; la suppression définitive se fera plus tard.
+- `delete-before-1.0/` — miroir de la racine. Ce qui y entre reste
+  consultable mais quitte l'arborescence active : mémoire de travail,
+  relevés dont le raisonnement est versé ailleurs, et documents de
+  conception absorbés (sous `docs/`). git en conserve l'historique ; la
+  suppression effective se fera avant la 1.0, ce que son nom dit.
+
+  **Avant d'y envoyer un document, vérifier ce qu'il porte encore.** Un
+  plan livré contient souvent une décision que personne n'a prise et qui
+  ne vit nulle part ailleurs ; elle va au `BACKLOG.md` avec sa mesure
+  avant que le document ne sorte. Sans ce geste, ranger revient à perdre
+  (`specifications.md` §1.1).
 
 ## Conventions
 
