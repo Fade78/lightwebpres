@@ -8004,7 +8004,26 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # proved by mutation.
             #
             # Entries are variable-name prefixes, e.g. b'--color-nav'.
-            added = set()
+            added = {b'--page-shadow-dx', b'--title1-shadow-dx',
+                     b'--highlight-shadow-dx'}
+            # The components that gained the four halo axes (B20), named
+            # one by one rather than read from the module: deriving them
+            # from HALO_COMPONENTS would make this table accept a
+            # thirtieth component silently, which is the one thing it
+            # exists to prevent.
+            for _key in ('slide.num', 'kicker', 'title2', 'summary',
+                         'fact-label', 'source', 'body-heading',
+                         'fact.strong', 'cover.kicker', 'cover.summary',
+                         'cover.num', 'table.head', 'verdict.yes',
+                         'verdict.no', 'verdict.partial', 'caption',
+                         'highlight-caption', 'series-nav.label',
+                         'series-nav.title', 'series-nav.desc',
+                         'series-nav.status', 'card.label', 'card.title',
+                         'card.desc', 'card.cta', 'header.title',
+                         'header.subtitle', 'version-tag', 'nav-btn'):
+                for _axis in (b'fg', b'blur', b'dx', b'dy'):
+                    added.add(b'--' + _key.replace('.', '-').encode()
+                              + b'-shadow-' + _axis)
 
             # Deliberate RULE-level drift, and the third thing the two
             # tables above cannot say. `drift` substitutes a line for a
@@ -8031,7 +8050,20 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # for a reason that reads as a false alarm until you count the
             # occurrences. Declare a line that is unique, or accept that
             # you are declaring all of its twins with it.
-            gone = set()      # lines the OLD page has and the new one must not
+            # The three halo declarations the reference theme no longer
+            # carries. It sets no halo, and a composite whose every axis is
+            # at its default is not emitted any more -- because emitting
+            # `text-shadow` at its default does not paint nothing, it
+            # BLOCKS what the page set, and twenty-nine components were
+            # about to start doing that (B20).
+            gone = {
+                b'text-shadow: 0 var(--page-shadow-dy) '
+                b'var(--page-shadow-blur) var(--page-shadow-fg);',
+                b'text-shadow: 0 var(--title1-shadow-dy) '
+                b'var(--title1-shadow-blur) var(--title1-shadow-fg);',
+                b'text-shadow: 0 var(--highlight-shadow-dy) '
+                b'var(--highlight-shadow-blur) var(--highlight-shadow-fg);',
+            }
             arrived = set()   # lines the NEW page has and the old one did not
 
             def strip_added(page):
@@ -10983,14 +11015,81 @@ class ThemeEngineStaged(unittest.TestCase):
         self.assertEqual(r['title1.fg'], '#D7FFE0FF')
         self.assertEqual(r['title1.shadow.fg'], '#33FF8880')
 
-    def test_shadow_defaults_are_invisible_and_emitted_once(self):
-        # A halo is a shadow with no offset; the transparent default means
-        # the composite is present but paints nothing until a theme asks.
-        r = self.resolve({})
-        self.assertEqual(r['page.shadow.fg'], '#00000000')
-        css = self.lwp.emit_theme_css(r)
-        self.assertIn('text-shadow: 0 var(--page-shadow-dy) '
-                      'var(--page-shadow-blur) var(--page-shadow-fg);', css)
+    def test_a_halo_at_its_default_is_not_emitted_at_all(self):
+        """Not an optimisation, and the difference is the whole of B20.
+        `text-shadow` is INHERITED, so emitting it at its default does not
+        paint nothing — it BLOCKS the halo the page set. With thirty-two
+        components carrying axes, emitting the default everywhere would
+        have taken the atmosphere off every one of them on the nine themes
+        that set `page.shadow`. Saying nothing is the only way to say
+        `inherit`."""
+        css = self.lwp.emit_theme_css(self.resolve({}))
+        self.assertNotIn('text-shadow', css,
+                         'a halo nobody asked for is blocking inheritance')
+
+    def test_a_halo_a_theme_asks_for_is_emitted_on_its_own_selector(self):
+        css = self.lwp.emit_theme_css(self.resolve({
+            'title2.shadow.fg': '#33FF8880', 'title2.shadow.blur': '0.2em'}))
+        self.assertIn('text-shadow: var(--title2-shadow-dx) '
+                      'var(--title2-shadow-dy) var(--title2-shadow-blur) '
+                      'var(--title2-shadow-fg);', css)
+        # And only that one: the twenty-nine others asked for nothing.
+        self.assertEqual(css.count('text-shadow'), 1, css.count('text-shadow'))
+
+    # Every component that sets `color` or `font-size` and has NO halo
+    # axes, with the reason. Two kinds, and the distinction is the whole
+    # rule: a CONTAINER would pass its halo to everything inside it, which
+    # is a different instrument rather than a finer grain, and three
+    # painters where a halo is a measured bad idea.
+    NO_HALO = {
+        'fact': 'container: reaches the code, tables and calls inside it',
+        'footer': 'container: byline and licence line, each its own component',
+        'cover': 'container: its h1, kicker, summary and number have their own',
+        'quote': 'container: the paragraphs of the quotation',
+        'note': 'container: its items, numbers and back-links',
+        'note.local': 'container: the block that holds the list',
+        'note.page': 'container: the end-of-page notes section',
+        'table': 'container: heads, verdicts and cells have their own',
+        'article': 'container: the long-form prose, its headings and code',
+        'refs': 'container: the reference paragraphs it holds',
+        'share': 'container: the popover, ink spread over four selectors',
+        'intro': 'container: the paragraphs of the introduction',
+        'code': 'fixed pitch at 0.88em: 2px of bleed on 1px stems',
+        'footnote-call': 'the smallest glyph, and its job is to be findable',
+    }
+
+    def test_every_component_that_paints_glyphs_can_carry_a_halo(self):
+        """The coverage statement B20 asked for, read off the registry
+        rather than off a list written twice. A component that paints text
+        either carries the axes or is named above with why — so a
+        component added tomorrow lands in one column or fails here, and an
+        exclusion outliving its component fails too."""
+        haloed = {k.rsplit('.shadow.', 1)[0]
+                  for k in self.lwp.PROPERTY_REGISTRY if '.shadow.' in k}
+        painters = {c.key for c in self.lwp.THEME_COMPONENTS
+                    if any(p.css in ('color', 'font-size') for p in c.props)}
+        self.assertEqual(sorted(painters - haloed), sorted(self.NO_HALO),
+                         'a component paints glyphs, carries no halo, and '
+                         'nothing here says why')
+        self.assertEqual(sorted(set(self.NO_HALO) - painters), [],
+                         'an exclusion outlived the component it excused')
+        for key, why in self.NO_HALO.items():
+            self.assertGreaterEqual(len(why.split()), 4,
+                                    f'{key}: the reason is not a reason')
+
+    def test_the_worst_served_heading_is_the_one_that_gained_axes(self):
+        """B20's own measurement, and why coverage was the gap rather than
+        expressiveness: `page.shadow` is inherited, so its `em` resolves
+        ONCE at the root and propagates as an absolute length — 0.13em is
+        the same 2.1px on a 42px slide heading as on a 13px kicker. Blur
+        over rendered size came out at 0.05 for the slide heading against
+        0.26 for `h1`, worst of the whole table, and it is a heading. A
+        halo is proportional to its glyph only where the component
+        declares its own."""
+        for key in ('title2.shadow.fg', 'title2.shadow.blur',
+                    'title2.shadow.dx', 'title2.shadow.dy'):
+            self.assertIn(key, self.lwp.PROPERTY_REGISTRY,
+                          'the slide heading is the case B20 names')
 
     def test_selector_overrides_land_on_their_own_selector(self):
         # One component, several selectors: the fact ground on .fact-box, its
@@ -11978,8 +12077,15 @@ class EveryTypeSizeScalesWithTheScreen(unittest.TestCase):
                 if not isinstance(props, dict):
                     continue
                 for key, value in props.items():
-                    if not (key.endswith('.shadow.blur')
-                            or key.endswith('.shadow.dy')):
+                    # `.shadow.` and not `.elevation.`: a text halo is
+                    # drawn against the glyph and wants a length the glyph
+                    # decides, while a box shadow is drawn against the box
+                    # and stays in px. `dx` joined the axes with B20 and is
+                    # here from the start, so it cannot repeat `dy`'s
+                    # history — that one was used by no theme at all when
+                    # this guard was written, and was added to it late.
+                    if not any(key.endswith(f'.shadow.{axis}')
+                               for axis in ('blur', 'dx', 'dy')):
                         continue
                     if str(value) in ('0', '0px'):
                         continue

@@ -2594,6 +2594,7 @@ THEME_COMPONENTS = [
         ThemeProp('page.leading',     PROP_RATIO,  '1.6',        css='line-height'),
         ThemeProp('page.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('page.shadow.blur', PROP_LENGTH, '0'),
+        ThemeProp('page.shadow.dx',   PROP_LENGTH, '0'),
         ThemeProp('page.shadow.dy',   PROP_LENGTH, '0'),
         # The width of running text inside a slide: PROPORTIONAL to the
         # display area, with no ceiling at all. A built page is a deck --
@@ -2642,8 +2643,11 @@ THEME_COMPONENTS = [
         # hyphenation also needs the language, which the templates already
         # declare as <html lang="...">; setting `auto` without it is inert.
         ThemeProp('page.hyphens', PROP_HYPHENS, 'manual', css='hyphens'),
-    ], composite=[('text-shadow',
-                   '0 var(--page-shadow-dy) var(--page-shadow-blur) var(--page-shadow-fg)')]),
+    ], composite=[Composite(
+        'text-shadow',
+        'var(--page-shadow-dx) var(--page-shadow-dy) '
+        'var(--page-shadow-blur) var(--page-shadow-fg)',
+        omit_when_default=True)]),
 
     ThemeComponent('slide', '.slide', [
         ThemeProp('slide.rule-fg',    PROP_COLOR,  '#0000001A', css='border-bottom-color'),
@@ -2677,10 +2681,14 @@ THEME_COMPONENTS = [
                   selector='.slide-cover h1'),
         ThemeProp('title1.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('title1.shadow.blur', PROP_LENGTH, '0'),
+        ThemeProp('title1.shadow.dx',   PROP_LENGTH, '0'),
         ThemeProp('title1.shadow.dy',   PROP_LENGTH, '0'),
         ThemeProp('title1.align', PROP_ALIGN, 'left', css='text-align'),
-    ], composite=[('text-shadow',
-                   '0 var(--title1-shadow-dy) var(--title1-shadow-blur) var(--title1-shadow-fg)')]),
+    ], composite=[Composite(
+        'text-shadow',
+        'var(--title1-shadow-dx) var(--title1-shadow-dy) '
+        'var(--title1-shadow-blur) var(--title1-shadow-fg)',
+        omit_when_default=True)]),
     ThemeComponent('title2', 'h2', [
         ThemeProp('title2.font',    PROP_FONT,   'display', css='font-family'),
         ThemeProp('title2.size',    PROP_LENGTH, 'max(24px, 4.7vmin)',
@@ -3045,11 +3053,15 @@ THEME_COMPONENTS = [
                   css='font-variant-numeric'),
         ThemeProp('highlight.shadow.fg',   PROP_COLOR,  'transparent'),
         ThemeProp('highlight.shadow.blur', PROP_LENGTH, '0'),
+        ThemeProp('highlight.shadow.dx',   PROP_LENGTH, '0'),
         ThemeProp('highlight.shadow.dy',   PROP_LENGTH, '0'),
         ThemeProp('highlight.align', PROP_ALIGN, 'center', css='text-align',
                   selector='.highlight'),
-    ], composite=[('text-shadow',
-                   '0 var(--highlight-shadow-dy) var(--highlight-shadow-blur) var(--highlight-shadow-fg)')]),
+    ], composite=[Composite(
+        'text-shadow',
+        'var(--highlight-shadow-dx) var(--highlight-shadow-dy) '
+        'var(--highlight-shadow-blur) var(--highlight-shadow-fg)',
+        omit_when_default=True)]),
     ThemeComponent('highlight-caption', '.highlight-caption', [
         ThemeProp('highlight-caption.fg',   PROP_COLOR,  'ink-quiet', css='color'),
         ThemeProp('highlight-caption.size', PROP_LENGTH, 'max(0.9rem, 1.8vmin)',    css='font-size'),
@@ -3220,6 +3232,74 @@ THEME_COMPONENTS = [
         ThemeProp('intro.leading', PROP_RATIO,  '1.7',  css='line-height'),
     ]),
 ]
+
+# ---------------------------------------------------------------------------
+# The halo, on every component that paints glyphs (B20).
+#
+# `text-shadow` is inherited, so `page.shadow` tints the whole site at once
+# and that is the ambient case. What it CANNOT do is be proportional to the
+# glyph: inherited, its `em` resolves once at the root, so a 0.13em halo is
+# 2.1px on a 42px slide heading exactly as on a 13px kicker. Measured over
+# blur ÷ rendered size, the slide heading came out worst served of all —
+# 0.05 against 0.26 for `h1` — and it is a heading. A halo is proportional
+# to its glyph only where the component declares its own.
+#
+# So the axes go to every component whose selector paints text, and only
+# those. A container gets nothing: `text-shadow` being inherited, a halo on
+# `.fact-box` reaches the code, the tables and the footnote calls inside it,
+# which is a different instrument rather than a finer grain. `code` and
+# `sup` get nothing either — 2px of bleed on 1px stems, and the smallest
+# glyph on the page is the one whose job is to be findable.
+#
+# Four axes, not three: there was `dy` and no `dx`, so a halo could only be
+# offset downward — a constraint nobody chose, arrived at by only ever
+# needing the vertical case. `dx` defaults to `0` like `dy`, and the
+# neutral halo stays the centred one.
+#
+# Written as a list of keys and a loop rather than four ThemeProps repeated
+# twenty-nine times: the axes are identical everywhere, and the decision
+# worth reading is WHICH components have them.
+HALO_COMPONENTS = (
+    # A slide, and what it carries
+    'slide.num', 'kicker', 'title2', 'summary', 'fact-label', 'source',
+    'body-heading', 'fact.strong',
+    # The cover's own contexts
+    'cover.kicker', 'cover.summary', 'cover.num',
+    # Comparison tables and their verdicts
+    'table.head', 'verdict.yes', 'verdict.no', 'verdict.partial',
+    # Figures
+    'caption', 'highlight-caption',
+    # The cross-article navigation block
+    'series-nav.label', 'series-nav.title', 'series-nav.desc',
+    'series-nav.status',
+    # The index page
+    'card.label', 'card.title', 'card.desc', 'card.cta',
+    'header.title', 'header.subtitle', 'version-tag',
+    # Chrome that carries a glyph
+    'nav-btn',
+)
+
+for _c in THEME_COMPONENTS:
+    if _c.key not in HALO_COMPONENTS:
+        continue
+    _v = '--' + _c.key.replace('.', '-')
+    _c.props.extend([
+        ThemeProp(f'{_c.key}.shadow.fg',   PROP_COLOR,  'transparent'),
+        ThemeProp(f'{_c.key}.shadow.blur', PROP_LENGTH, '0'),
+        ThemeProp(f'{_c.key}.shadow.dx',   PROP_LENGTH, '0'),
+        ThemeProp(f'{_c.key}.shadow.dy',   PROP_LENGTH, '0'),
+    ])
+    _c.composite.append(Composite(
+        'text-shadow',
+        f'var({_v}-shadow-dx) var({_v}-shadow-dy) '
+        f'var({_v}-shadow-blur) var({_v}-shadow-fg)',
+        omit_when_default=True))
+
+_missing = [k for k in HALO_COMPONENTS
+            if k not in {c.key for c in THEME_COMPONENTS}]
+if _missing:  # pragma: no cover - a typo here would fail silently otherwise
+    raise PropertyError(f'HALO_COMPONENTS names no such component: {_missing}')
+
 
 PROPERTY_REGISTRY = {p.key: p for p in THEME_SHARED_PROPS}
 for _c in THEME_COMPONENTS:
@@ -3774,6 +3854,27 @@ def resolve_theme_properties(*layers):
     return out
 
 
+_RESOLVED_DEFAULTS = None
+
+
+def _all_at_default(resolved, keys):
+    """True when every one of `keys` still holds what the registry gives it.
+
+    Against the RESOLVED defaults, not the declared ones, and that
+    distinction is the whole function: `transparent` is what the registry
+    writes and `#00000000` is what resolution makes of it, so comparing a
+    resolved value to a declared default never matches and the caller's
+    condition would silently never fire. A reference default (`call`,
+    `ink`) is worse still -- it declares a name and resolves to a colour.
+    Resolving the empty layer set once gives the two sides the same
+    vocabulary."""
+    global _RESOLVED_DEFAULTS
+    if _RESOLVED_DEFAULTS is None:
+        _RESOLVED_DEFAULTS = resolve_theme_properties()
+    return all(resolved.get(k) == _RESOLVED_DEFAULTS.get(k)
+               for k in keys if k in PROPERTY_REGISTRY)
+
+
 def emit_theme_css(resolved):
     """The resolved property set becomes the :root block plus the rules that
     read it. Emission is derived from the registry, so completeness is
@@ -3794,9 +3895,8 @@ def emit_theme_css(resolved):
         # overrides after it in declaration order.
         groups = {}
         for comp in c.composite:
-            if comp.omit_when_default and all(
-                    resolved.get(k) == PROPERTY_REGISTRY[k].default
-                    for k in comp.reads() if k in PROPERTY_REGISTRY):
+            if comp.omit_when_default and _all_at_default(resolved,
+                                                          comp.reads()):
                 continue
             groups.setdefault(comp.selector or c.selector, []).append(
                 f'  {comp.cssprop}: {comp.value};')
@@ -4412,9 +4512,15 @@ CONTRAST_UNMEASURED = {
     # Text haloes. Transparent unless a theme asks for one, and a shadow
     # sits BEHIND the glyph it thickens rather than carrying it: WCAG has
     # nothing to say about a colour that is never the thing being read.
-    'page.shadow.fg': 'a halo behind text, not text',
-    'title1.shadow.fg': 'a halo behind text, not text',
-    'highlight.shadow.fg': 'a halo behind text, not text',
+    # The exemption is written once and applied to every halo the registry
+    # carries, because the reason is the same for all of them and a list of
+    # thirty-two identical lines is a list nobody rereads. It is DERIVED
+    # from HALO_COMPONENTS rather than restated, so a component gaining a
+    # halo cannot arrive without its exemption, nor keep one after losing
+    # it -- the two tests that walk the registry against this table would
+    # otherwise be satisfied by a copy that had stopped matching.
+    **{f'{_k}.shadow.fg': 'a halo behind text, not text'
+       for _k in ('page', 'title1', 'highlight') + HALO_COMPONENTS},
 
     # Decorative rules. SC 1.4.11 covers non-text that CARRIES information;
     # a separator whose removal costs the reader nothing is exempt by the
