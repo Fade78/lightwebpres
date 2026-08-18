@@ -14531,5 +14531,146 @@ class TheWarningLevelIsSpeltWhereContributorsWillReadIt(unittest.TestCase):
         self.assertEqual(sink.messages, ['but not this one'])
         self.assertIsNone(lwp._WARN_SINK)
 
+
+class AListItemKeepsTheLinesThatContinueIt(unittest.TestCase):
+    """Reported from a 28-article corpus, where `build`, `verify` and
+    `audit` were all green and 73 Markdown markers were visible on screen.
+
+    An item used to be exactly one line. The continuation did not merely
+    lose its wrapping: it became a paragraph of its own, emitted AFTER the
+    list closed, so a list whose items wrapped came out as several
+    one-item lists with paragraphs between them. Three losses, not one —
+    the reading order, the structure a screen reader announces, and any
+    emphasis spanning the two lines, which shipped as literal `**`."""
+
+    def _render(self, body):
+        lwp = load_lightwebpres_module()
+        html = lwp.convert_markdown(body)
+        return re.sub(r'\s+', ' ', html).strip()
+
+    def test_an_indented_continuation_belongs_to_its_item(self):
+        html = self._render('- Puce avec un **gras coupé\n'
+                            '  par un retour à la ligne**.\n')
+        self.assertIn('<strong>gras coupé par un retour à la ligne',
+                      html, html)
+        self.assertNotIn('**', html, 'markup shipped to the reader:\n' + html)
+
+    def test_a_lazy_continuation_belongs_to_its_item(self):
+        """CommonMark takes an unindented continuation too, and the corpus
+        had both — a long item wraps wherever the editor wrapped it."""
+        html = self._render('- Item deux, en continuation paresseuse\n'
+                            'non indentée du tout.\n')
+        self.assertIn('<li>Item deux, en continuation paresseuse non '
+                      'indentée du tout.</li>', html, html)
+
+    def test_a_wrapped_list_stays_one_list(self):
+        """The structural half, and the one a reader with a screen reader
+        pays for: three items used to become three one-item lists."""
+        html = self._render('- Un, coupé\n  sur deux lignes.\n'
+                            '- Deux, coupé\n  aussi.\n'
+                            '- Trois simple.\n')
+        self.assertEqual(html.count('<ul>'), 1, html)
+        self.assertEqual(html.count('<li>'), 3, html)
+        self.assertNotIn('</ul> <p>', html,
+                         'a continuation was ejected after the list:\n' + html)
+
+    def test_a_new_block_still_ends_the_item(self):
+        """The other direction, and what stops this absorbing the file: the
+        rule is _is_paragraph_continuation, shared with paragraphs rather
+        than restated, so a heading, a fence, a table, a note body or the
+        next item all close the item exactly as they close a paragraph."""
+        html = self._render('- Un item.\n'
+                            '\n'
+                            'Un paragraphe séparé par une ligne vide.\n')
+        self.assertIn('<p>Un paragraphe séparé', html, html)
+        self.assertNotIn('<li>Un item. Un paragraphe', html, html)
+        html = self._render('- Un item.\n### Un titre\n')
+        self.assertIn('<h3', html, html)
+        self.assertNotIn('<li>Un item. ### ', html, html)
+
+    def test_an_ordered_list_wraps_the_same_way(self):
+        html = self._render('1. Un numéroté coupé\n   sur deux lignes.\n'
+                            '2. Un autre.\n')
+        self.assertEqual(html.count('<ol>'), 1, html)
+        self.assertIn('<li>Un numéroté coupé sur deux lignes.</li>', html, html)
+
+
+class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):
+    """A field is a value — one physical line, taken verbatim — and the
+    free text beside it is Markdown, with nothing in the file marking the
+    border. The border is not where an author would guess either: a field
+    passes raw HTML straight through (`page_title: A<br>B` is in the
+    README), so someone who finds markup "works" there generalises.
+
+    Measured on the reporting corpus: 32 fields had accumulated it across
+    16 pages, `source:` lines among them — the exact place a reader
+    checking a claim looks."""
+
+    def _series(self, tmp, body):
+        root = str(Path(tmp) / 's')
+        self.assertEqual(run('init', root).returncode, 0)
+        self.assertEqual(run('demo', root).returncode, 0)
+        (Path(root) / 'articles' / 't.md').write_text(body, encoding='utf-8')
+        path = Path(root) / 'series.json'
+        data = json.loads(path.read_text(encoding='utf-8'))
+        entries = data.get('articles', data) if isinstance(data, dict) else data
+        entries.append({'page_source': 't.md'})
+        path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+        return root
+
+    HEAD = ('<!-- lwp:meta -->\npage_title: T\n---\n\n'
+            '<!-- lwp:slide:cover -->\n# T\nsummary: s\n\n---\n\n'
+            '<!-- lwp:slide -->\n')
+
+    def test_every_field_that_ships_markup_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, self.HEAD + (
+                '## Un **gras** dans un titre\n'
+                'summary: Un **gras** dans un summary\n'
+                'highlight-caption: un `code` dans une légende\n'
+                'fact-label: Le fait\n'
+                'source: Voir [la source](https://example.org)\n\n'
+                'Le corps, lui, rend **le gras** correctement.\n'))
+            report = run('audit', root).stdout
+            for field in ('## title', 'summary', 'highlight-caption', 'source'):
+                self.assertIn(f'`{field}` contains', report,
+                              f'{field} ships its markup unnamed:\n' + report)
+            # And the page really does carry it, which is the whole point.
+            self.assertEqual(run('build', root).returncode, 0)
+            page = (Path(root) / 'public' / 't.html').read_text(encoding='utf-8')
+            self.assertIn('<h2>Un **gras** dans un titre</h2>', page)
+
+    def test_free_text_beside_the_field_is_not_touched(self):
+        """The guard has to know which side of the border an occurrence
+        fell on, which is why it reads the PARSED slide and not the source
+        — the same `**` two lines down is a real emphasis."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, self.HEAD + (
+                '## Un titre propre\nfact-label: Le fait\n\n'
+                'Le corps avec **du gras**, de l\'`inline code` et un '
+                '[lien](https://example.org).\n'))
+            self.assertNotIn('contains', run('audit', root).stdout)
+
+    def test_an_unpaired_marker_is_not_a_lost_emphasis(self):
+        """`2 ** 8` is arithmetic and `**kwargs` is Python. Warning on them
+        is the noise that gets a check switched off, so only PAIRED
+        markers count — measured against a caption documenting Python."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, self.HEAD + (
+                '## Un titre propre\n'
+                'highlight: 2 ** 8\n'
+                'highlight-caption: ce que **kwargs déballe\n'
+                'fact-label: Le fait\n\nDu corps.\n'))
+            self.assertNotIn('contains', run('audit', root).stdout)
+
+    def test_the_delivered_demo_raises_none_of_this(self):
+        """The guard that keeps the check honest: a warning on our own
+        example content would mean the rule is wrong, not the content."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = str(Path(tmp) / 's')
+            self.assertEqual(run('init', root).returncode, 0)
+            self.assertEqual(run('demo', root).returncode, 0)
+            self.assertIn('No warnings', run('audit', root).stdout)
+
 if __name__ == '__main__':
     unittest.main()

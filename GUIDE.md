@@ -160,6 +160,12 @@ people:
   `highlight: 3 000 W`. Fields first, prose after.
 - Structural fields occupy one physical line, except `note:` and `comment:`:
   an indented continuation line belongs to the preceding note/review field.
+- **A field is a value, not Markdown.** `summary: un **gras**` publishes
+  the asterisks. The border is not where you would guess, either: a field
+  passes raw HTML straight through, so finding that `<br>` works there
+  says nothing about `**`. `audit` names any field carrying markup it will
+  not render — a check that exists because 32 such fields, `source:` lines
+  among them, once accumulated unnoticed across one series.
 - **A fact box appears only with `fact-label:`.** Free text without it
   renders as plain paragraphs — which is often what you want.
 

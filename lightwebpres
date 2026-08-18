@@ -8824,26 +8824,34 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             i += 1
             continue
 
-        # Ordered lists
+        # Lists. An item runs until a blank line or the start of another
+        # block, exactly like a paragraph -- the rule is _is_paragraph_
+        # continuation, shared rather than restated, because an item's text
+        # IS a paragraph and two copies of that judgement would drift.
+        #
+        # Reading one line per item is what this used to do, and it did not
+        # merely lose the wrapping. The continuation became a paragraph of
+        # its own, emitted AFTER the list was closed, so a five-item list
+        # whose items wrapped came out as five one-item lists with
+        # paragraphs between them: the reading order broken, the structure
+        # a screen reader announces false, and any emphasis spanning the
+        # two lines shipped as literal `**` to the reader. Found on a real
+        # 28-article corpus, where build, verify and audit were all green.
         m_ol = re.match(r'^\d+\.\s+(.*)', line)
-        if m_ol:
-            if in_list != 'ol':
+        m_ul = None if m_ol else re.match(r'^-\s+(.*)', line)
+        if m_ol or m_ul:
+            kind = 'ol' if m_ol else 'ul'
+            if in_list != kind:
                 close_list()
-                out.append('  <ol>')
-                in_list = 'ol'
-            out.append(f'    <li>{md_inline(m_ol.group(1), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</li>')
+                out.append(f'  <{kind}>')
+                in_list = kind
+            item_lines = [(m_ol or m_ul).group(1)]
             i += 1
-            continue
-
-        # Unordered lists
-        m_ul = re.match(r'^-\s+(.*)', line)
-        if m_ul:
-            if in_list != 'ul':
-                close_list()
-                out.append('  <ul>')
-                in_list = 'ul'
-            out.append(f'    <li>{md_inline(m_ul.group(1), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</li>')
-            i += 1
+            while i < n and _is_paragraph_continuation(rstrip_ws(lines[i]),
+                                                       lines, i, n):
+                item_lines.append(rstrip_ws(lines[i]).strip())
+                i += 1
+            out.append(f'    <li>{md_inline(" ".join(item_lines), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</li>')
             continue
 
         # A note body, wherever the author chose to write it.
@@ -11750,6 +11758,65 @@ def unrecognized_note_labels(text):
     return found
 
 
+# The markup a structural field will NOT render, and the fields that carry
+# it. A field is a VALUE -- one physical line, taken verbatim -- while the
+# free text beside it is Markdown, and nothing in the file marks the border.
+# Worse, the border is not where an author would guess: a field passes raw
+# HTML straight through (`page_title: A<br>B` is in the README), so someone
+# who finds that markup "works" in a field generalises, and `**gras**` ships
+# to the reader as five literal characters.
+#
+# Only PAIRED markers are looked for. `2 ** 8` and `**kwargs` in a caption
+# are arithmetic and Python, not a lost emphasis, and warning on them would
+# be the noise that gets a check switched off.
+_FIELD_MARKUP_RES = (
+    ('a `**bold**` pair', re.compile(r'\*\*(?=\S)(.+?)(?<=\S)\*\*')),
+    ('an `*italic*` pair', re.compile(r'(?<!\*)\*(?=\S)([^*]+?)(?<=\S)\*(?!\*)')),
+    ('a backtick pair', re.compile(r'`(?=\S)([^`]+?)(?<=\S)`')),
+    ('a `[text](url)` link', re.compile(r'\[[^\]\n]+\]\([^)\s]+\)')),
+)
+
+# Which named field each slide attribute is, so the warning names what the
+# author typed rather than what the parser calls it.
+_FIELD_ATTRS = (
+    ('kicker', 'kicker'), ('summary', 'summary'),
+    ('fact-label', 'fact_label'), ('source', 'source'),
+    ('highlight', 'highlight'), ('highlight-caption', 'highlight_caption'),
+    ('# title', 'h1'), ('## title', 'h2'),
+)
+
+
+def unrendered_field_markup(slides):
+    """Every structural field carrying markup that will ship literally.
+
+    Reported on a 28-article corpus where 32 fields had accumulated it
+    unnoticed -- including `source:` lines, which is exactly where a reader
+    checking a claim looks. `build`, `verify` and `audit` were all green,
+    the HTML was well formed, and nothing distinguished those pages from
+    correct ones without extracting the visible text and reading it.
+
+    This reads the parsed slides rather than the source, because a field's
+    value is what the parser kept: the same `**` inside the free text below
+    it is a real emphasis, and only the parse says which side of the line a
+    given occurrence fell on.
+
+    Returns [(slide_number, field_name, marker)], each field once, on its
+    first marker -- one mistake, one finding, and the author will see the
+    rest of the line when they open it.
+    """
+    found = []
+    for number, slide in enumerate(slides, 1):
+        for name, attr in _FIELD_ATTRS:
+            value = getattr(slide, attr, None)
+            if not value:
+                continue
+            for marker, pattern in _FIELD_MARKUP_RES:
+                if pattern.search(value):
+                    found.append((number, name, marker))
+                    break
+    return found
+
+
 def audit_notes(entry, meta, series_meta, slides, articles_dir):
     """The three ways a note can be broken without the build noticing
     (ARCHI-NOTES §4). None of them is fatal: the input contract does not
@@ -12482,6 +12549,14 @@ def cmd_audit(series_dir, args):
         elif slides[0].slide_type != 'cover':
             print(f'[WARNING] {entry["page_dest"]}: the first slide is not a cover (found: {slides[0].slide_type})')
             warnings += 1
+
+        for number, field, marker in unrendered_field_markup(slides):
+            warnings += 1
+            print(f'[WARNING] {entry["page_source"]}: slide {number}, '
+                  f'`{field}` contains {marker}, which a field does not '
+                  f'render — it ships to the reader as the characters you '
+                  f'typed. A field is a value; Markdown lives in the free '
+                  f'text below it (§6.1).')
 
         warnings += audit_notes(entry, meta, series_meta, slides,
                                 articles_dir)

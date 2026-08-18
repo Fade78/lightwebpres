@@ -1774,13 +1774,9 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <p><strong>Three ways it gets used, and the tool does not care which.</strong></p>
   <ul>
     <li><strong>A person at a terminal</strong>, which is how this guide is written.</li>
-    <li><strong>An agent</strong>, given the packaged skill (<code>SKILL.md</code>, in</li>
+    <li><strong>An agent</strong>, given the packaged skill (<code>SKILL.md</code>, in <code>agent/skills/lightwebpres/</code>) that carries the article format. Point it there and it can write the Markdown and run the build from minute one.</li>
+    <li><strong>A step in a content pipeline</strong>, where the Markdown comes from somewhere else entirely — a CMS export, a database, a generator, an agent upstream — and LightWebPres is what turns it into publishable pages.</li>
   </ul>
-  <p>  <code>agent/skills/lightwebpres/</code>) that carries the article format. Point it   there and it can write the Markdown and run the build from minute one.</p>
-  <ul>
-    <li><strong>A step in a content pipeline</strong>, where the Markdown comes from</li>
-  </ul>
-  <p>  somewhere else entirely — a CMS export, a database, a generator, an   agent upstream — and LightWebPres is what turns it into publishable   pages.</p>
   <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
   <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides after 1 second of idleness in fullscreen, and only returns after the mouse has moved continuously for 250 ms — a brush past the sensor never flashes it back. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
@@ -1892,17 +1888,11 @@ xdg-open my-series/public/index.html         # `open` on macOS
   </table>
   <p>Two things are worth knowing before you write, because they surprise people:</p>
   <ul>
-    <li><strong>The switch from fields to free text is one-way, within a slide.</strong></li>
+    <li><strong>The switch from fields to free text is one-way, within a slide.</strong> Once a line is not a <code>field:</code> line, everything after it is prose — so a <code>highlight:</code> placed after a paragraph is published as the literal text <code>highlight: 3 000 W</code>. Fields first, prose after.</li>
+    <li>Structural fields occupy one physical line, except <code>note:</code> and <code>comment:</code>: an indented continuation line belongs to the preceding note/review field.</li>
+    <li><strong>A field is a value, not Markdown.</strong> <code>summary: un **gras**</code> publishes the asterisks. The border is not where you would guess, either: a field passes raw HTML straight through, so finding that <code>&lt;br&gt;</code> works there says nothing about <code>**</code>. <code>audit</code> names any field carrying markup it will not render — a check that exists because 32 such fields, <code>source:</code> lines among them, once accumulated unnoticed across one series.</li>
+    <li><strong>A fact box appears only with <code>fact-label:</code>.</strong> Free text without it renders as plain paragraphs — which is often what you want.</li>
   </ul>
-  <p>  Once a line is not a <code>field:</code> line, everything after it is prose — so a   <code>highlight:</code> placed after a paragraph is published as the literal text   <code>highlight: 3 000 W</code>. Fields first, prose after.</p>
-  <ul>
-    <li>Structural fields occupy one physical line, except <code>note:</code> and <code>comment:</code>:</li>
-  </ul>
-  <p>  an indented continuation line belongs to the preceding note/review field.</p>
-  <ul>
-    <li><strong>A fact box appears only with <code>fact-label:</code>.</strong> Free text without it</li>
-  </ul>
-  <p>  renders as plain paragraphs — which is often what you want.</p>
   <p><strong>Notes.</strong> <code>[^label]</code> calls a note, <code>[^label]: text</code> on its own line is its body. The label is a key, and a valid one is never displayed — the reader sees a position — so you never renumber when you insert one. Valid means word characters only: letters, digits and <code>_</code>, accents and non-Latin scripts included, but no <code>-</code>, no space, no punctuation. A label outside that is neither a note nor an error: the call ships as literal text, the body renders as an ordinary paragraph, and the label is the one thing on the page the reader was never meant to see. By default a body lands at the foot of the unit that called it (the card, or the end of the long-form article) and numbering restarts in each card, because a card is shareable on its own and a reader may arrive at it having read nothing else. <code>notes_placement: page</code> in the meta block instead collects every body into one notes section at the end of the page; <code>notes_tooltip: on</code> additionally puts the text on the call. <code>audit</code> names a label outside the pattern, a call with no body, a body nothing calls, and a body written inside a raw HTML block (where it ships as literal text).</p>
   <p>Register every article that should appear in navigation in <code>series.json</code> — next section.</p>
   <h3>Variants in one article</h3>
@@ -1910,17 +1900,10 @@ xdg-open my-series/public/index.html         # `open` on macOS
   <ul>
     <li>No <code>tags:</code> (or an empty value) means <code>default</code>, the shared content.</li>
     <li><code>tags: excluded</code> removes the slide during the build; it is never emitted.</li>
-    <li>Other tags are written to the section's <code>data-tags</code> attribute and filtered</li>
+    <li>Other tags are written to the section's <code>data-tags</code> attribute and filtered in the browser.</li>
+    <li>Press <strong>L</strong> to open the variant menu. It is hidden for a single-variant article and persists the choice in <code>localStorage['lwp-active-tag']</code>.</li>
+    <li>The selected tag shows its own slides and shared <code>default</code> slides; counts, navigation, anchors, and the presenter panel use the visible slides.</li>
   </ul>
-  <p>  in the browser.</p>
-  <ul>
-    <li>Press <strong>L</strong> to open the variant menu. It is hidden for a single-variant</li>
-  </ul>
-  <p>  article and persists the choice in <code>localStorage['lwp-active-tag']</code>.</p>
-  <ul>
-    <li>The selected tag shows its own slides and shared <code>default</code> slides; counts,</li>
-  </ul>
-  <p>  navigation, anchors, and the presenter panel use the visible slides.</p>
   <p><code>tag:</code> is not a field, and not an alias for one. Use <code>kicker:</code> for the label above a slide title, and <code>tags:</code> for variant filtering. A <code>tag:</code> line becomes body text on a standard slide; on a cover, <code>build</code> reports the unknown field and prints the two choices.</p>
   <p>For language-specific typography, map tags to packs in <code>series_meta</code>:</p>
   <pre><code class="language-json">
@@ -1991,13 +1974,9 @@ style.page.content-max: 60ch
   <p>Every visual decision is a typed property, <code>component.axis: value</code>, and <code>settings.conf</code> lists <strong>all</strong> of them, commented out, at the values of the theme you chose — the complete surface is under your eyes, no documentation needed. Uncomment a line to <strong>pin</strong> it: it survives every theme change and every executable upgrade, because <code>lightwebpres</code> never rewrites your file.</p>
   <p>Two properties control the fact-box bold (<code>**text**</code> in a fact-box):</p>
   <ul>
-    <li><code>fact.strong.pad</code> — the side padding of the highlight box around the</li>
+    <li><code>fact.strong.pad</code> — the side padding of the highlight box around the bold text (default <code>max(3px, 0.375vmin)</code>, automatically 0 on themes with no highlight ground).</li>
+    <li><code>fact.strong.absorb-punct</code> — <code>on</code> (default) absorbs the punctuation that follows a bold run into the highlight (<code>**2000**,</code> → the comma is highlighted too); <code>off</code> leaves the Markdown as written.</li>
   </ul>
-  <p>  bold text (default <code>max(3px, 0.375vmin)</code>, automatically 0 on themes   with no highlight ground).</p>
-  <ul>
-    <li><code>fact.strong.absorb-punct</code> — <code>on</code> (default) absorbs the punctuation</li>
-  </ul>
-  <p>  that follows a bold run into the highlight (<code>**2000**,</code> → the comma is   highlighted too); <code>off</code> leaves the Markdown as written.</p>
   <pre><code>
 # kicker.fg: ink-quiet      ← the scaffold, showing the theme's value
 kicker.fg: call             ← uncommented: yours, and it stays
@@ -2074,13 +2053,9 @@ build:
   <h3>In the browser</h3>
   <p><code>web/index.html</code>, one page with two tabs, runs the exact same engine as the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly), so the output is identical either way:</p>
   <ul>
-    <li><strong>Upload a zip</strong> — drop a zip of your series, get back a zip of</li>
+    <li><strong>Upload a zip</strong> — drop a zip of your series, get back a zip of <code>public/</code>. Nothing leaves the browser tab.</li>
+    <li><strong>Sync with GitLab</strong> — pull a series straight from a GitLab repository, build it, and push the result back as a single commit.</li>
   </ul>
-  <p>  <code>public/</code>. Nothing leaves the browser tab.</p>
-  <ul>
-    <li><strong>Sync with GitLab</strong> — pull a series straight from a GitLab repository,</li>
-  </ul>
-  <p>  build it, and push the result back as a single commit.</p>
   <p>Both tabs share one Pyodide load, so switching is instant. The page must be <strong>served over http(s)</strong>, not opened as a <code>file://</code> page — browsers block Pyodide's asset loading under that origin. For local testing:</p>
   <pre><code class="language-bash">
 python3 -m http.server 8000 --directory /path/to/lightwebpres
@@ -2221,21 +2196,11 @@ eval "$(lightwebpres completion --shell bash)"
   <p>The script is generated from the tool's own command tables, so it stays in sync with whatever commands the version you are running knows about.</p>
   <h2>11. Going further</h2>
   <ul>
-    <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/lightwebpres/</code>) — the precise mechanics</li>
+    <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/lightwebpres/</code>) — the precise mechanics of the article format: every slide type and field, the meta block, the field/free-text switch, typography and its opt-outs, <code>series.json</code> wiring. Read it before writing or debugging an article by hand, or point an agent at it.</li>
+    <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/sourced-presentation/</code>) — a method for one kind of content, not a requirement of the format. A <strong>sourced presentation</strong> is a deck of short cards, each readable on its own, backed by a fully referenced long-form article; the skill covers that chain, from commissioning research to verifying every fact at its source. It is <strong>given, not required</strong>: a facilitation for whoever wants a method, and entirely ignorable otherwise. The format takes whatever you put in it, and the tool has no opinion about how you got there.</li>
+    <li><strong><code>specifications.md</code></strong> (in French) — the complete, authoritative reference: exact algorithms, every parser edge case, the full <code>series.json</code> and language-file schemas, the browser tool's internals.</li>
+    <li><strong><code>lightwebpres --help</code></strong> — every command, every flag, every environment variable.</li>
   </ul>
-  <p>  of the article format: every slide type and field, the meta block, the   field/free-text switch, typography and its opt-outs, <code>series.json</code>   wiring. Read it before writing or debugging an article by hand, or   point an agent at it.</p>
-  <ul>
-    <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/sourced-presentation/</code>) — a method for</li>
-  </ul>
-  <p>  one kind of content, not a requirement of the format. A <strong>sourced   presentation</strong> is a deck of short cards, each readable on its own,   backed by a fully referenced long-form article; the skill covers that   chain, from commissioning research to verifying every fact at its   source. It is <strong>given, not required</strong>: a facilitation for whoever wants   a method, and entirely ignorable otherwise. The format takes whatever   you put in it, and the tool has no opinion about how you got there.</p>
-  <ul>
-    <li><strong><code>specifications.md</code></strong> (in French) — the complete, authoritative</li>
-  </ul>
-  <p>  reference: exact algorithms, every parser edge case, the full   <code>series.json</code> and language-file schemas, the browser tool's internals.</p>
-  <ul>
-    <li><strong><code>lightwebpres --help</code></strong> — every command, every flag, every</li>
-  </ul>
-  <p>  environment variable.</p>
   <h2>12. When something doesn't work</h2>
   <table class="comparison-table">
     <thead>

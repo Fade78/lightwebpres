@@ -871,11 +871,35 @@ pas inline dans l'exécutable au moment du build.
 | `[^label]: corps` | corps de note — voir §6.5              |
 | `1. item`         | `<li>item</li>` (regroupés en `<ol>`)  |
 | `- item`          | `<li>item</li>` (regroupés en `<ul>`)  |
+| item sur 2 lignes | une seule `<li>` — voir ci-dessous     |
 | `| a | b |`       | `<table>` avec thead/tbody             |
 | `---` (seul)      | séparateur de slides (pas de `<hr>`)  |
 | `[texte](url)`    | lien — voir ci-dessous                 |
 | `![alt](src)`     | image — voir ci-dessous                |
 | Paragraphe        | `<p>texte</p>`                         |
+
+**Un item de liste court jusqu'à une ligne vide ou le début d'un autre
+bloc**, exactement comme un paragraphe — indentée ou non, une ligne de
+continuation appartient à l'item, ce que CommonMark appelle la
+*continuation paresseuse*. La règle est celle des paragraphes, partagée et
+non redite : le texte d'un item **est** un paragraphe, et deux copies de ce
+jugement divergeraient.
+
+L'item d'une seule ligne, qui a précédé, ne perdait pas seulement le
+repli : la continuation devenait un paragraphe autonome émis **après** la
+fermeture de la liste. Une liste de trois items dont deux se replient
+sortait en trois listes d'un item entrecoupées de paragraphes — l'ordre de
+lecture cassé, la structure annoncée par un lecteur d'écran fausse, et
+toute emphase à cheval sur les deux lignes publiée en clair (B28).
+
+**Un champ structurel n'est pas du Markdown.** Un champ est une valeur
+d'une seule ligne physique, reprise telle quelle : `summary: un **gras**`
+publie les astérisques. La frontière n'est pas là où l'auteur la
+suppose, parce qu'un champ laisse passer le **HTML brut** — d'où
+`page_title: A<br>B` — donc constater qu'un balisage « marche » dans un
+champ ne dit rien du Markdown. `audit` nomme tout champ portant une paire
+`**gras**`, une paire `*italique*`, une paire d'apostrophes inverses ou un
+lien `[texte](url)` ; le build, lui, ne dit rien (B29, §11.5).
 
 **Liens.** Seules les URL **http(s)** sont converties : `[texte](url)`
 devient `<a href="url" target="_blank" rel="noopener">texte</a>` — tout
@@ -3660,24 +3684,33 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
    un `--language-file` (§20.5.1)
 5. Avertit si l'article ne contient **aucune** fiche `cover`
 6. Avertit si la **première** fiche de l'article n'est pas une `cover`
-7. Contrôles de **notes** (§6.5.5) : un label hors du motif `\w+`, que le
+7. Avertit pour chaque **champ structurel portant du balisage Markdown**
+   qu'il ne rendra pas (§6.1) : un champ est une valeur, le texte libre à
+   côté est du Markdown, et rien dans le fichier ne marque la frontière —
+   que le champ laisse passer le HTML brut achève de la brouiller. Seules
+   les paires comptent : `2 ** 8` est de l'arithmétique et `**kwargs` du
+   Python, et avertir dessus est le bruit qui fait désactiver un contrôle.
+   Lu sur la fiche analysée et non sur la source, parce que seule l'analyse
+   dit de quel côté de la frontière un `**` est tombé
+8. Contrôles de **notes** (§6.5.5) : un label hors du motif `\w+`, que le
    moteur ne lira ni comme appel ni comme corps et qui part littéralement
    dans la page ; un appel sans corps ; un corps que rien n'appelle ; une
    définition dans un bloc HTML brut. Le premier se règle sur la source, les
    trois autres sur l'appariement, donc sur l'emplacement en vigueur
-8. Avertit si l'article n'a de description **nulle part** (`page_desc` vide
+9. Avertit si l'article n'a de description **nulle part** (`page_desc` vide
    à tous les niveaux de la cascade §20.3.1 — la balise `<meta
    name="description">` serait omise)
-9. Volet présentation (§9.4.4) : avertit si un `templates/style.css` hérité
-   existe encore (plus lu — avec, pour lui comme pour `custom.css`, chaque
-   variable **retirée** encore référencée, nommée avec son remplaçant, table
-   `RETIRED_VARIABLES` de §9.8 — aucun alias n'a été conservé, une telle
-   déclaration cesse de s'appliquer sans que rien ne le signale, et c'est
-   ici que la rupture devient audible) ; si `settings.conf` contient une
-   erreur de syntaxe ou de propriété (mêmes messages qu'au build, non
-   bloquants ici) ; et si son `scaffold-for:` ne correspond plus au `theme:`
-   déclaré (décommenter une ligne épinglerait une valeur du thème quitté)
-10. **Juge la feuille résolue** (§9.4.4, §9.5.6) — celle de la série, puis
+10. Volet présentation (§9.4.4) : avertit si un `templates/style.css` hérité
+    existe encore (plus lu — avec, pour lui comme pour `custom.css`, chaque
+    variable **retirée** encore référencée, nommée avec son remplaçant,
+    table `RETIRED_VARIABLES` de §9.8 — aucun alias n'a été conservé, une
+    telle déclaration cesse de s'appliquer sans que rien ne le signale, et
+    c'est ici que la rupture devient audible) ; si `settings.conf` contient
+    une erreur de syntaxe ou de propriété (mêmes messages qu'au build, non
+    bloquants ici) ; et si son `scaffold-for:` ne correspond plus au
+    `theme:` déclaré (décommenter une ligne épinglerait une valeur du thème
+    quitté)
+11. **Juge la feuille résolue** (§9.4.4, §9.5.6) — celle de la série, puis
     celle de chaque article qui porte des `style.*`. Trois familles, et rien
     d'autre : un contrôle de navigation sous 3:1 sur son propre fond, du
     texte sous 1,5:1 sur le sien, une taille absolue sous 12px. Les seuils
@@ -3694,11 +3727,11 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     rapporte que ce que la feuille de série ne dit pas déjà. Et si la
     feuille ne résout pas du tout, cette passe se **tait** : l'erreur fatale
     nomme déjà la ligne à corriger, et rien ne doit lui disputer la place
-11. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
+12. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
     répertoire d'images : il ne serait pas publié (§13.7). C'est un contrôle
     des *sources* commises, pas de la copie — la règle est celle que
     `copy_images` applique, partagée et non réécrite
-12. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
+13. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
     chaque avertissement que la composition émet, au mot près les mêmes
     qu'un `build` puisque c'est le même chemin : pack de langue absent,
     champs analysés sur une `cover` et jamais rendus (§22.12), et tout ce
@@ -3707,7 +3740,7 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     avertissement ajouté demain remonte demain sans que rien ne soit à
     mettre à jour. Une liste de sites est une liste qui dérive, ce dont le
     registre lui-même a fait la démonstration
-13. Si le rendu **échoue fatalement** — une propriété épinglée que le
+14. Si le rendu **échoue fatalement** — une propriété épinglée que le
     registre ne connaît plus, une balise déséquilibrée, une inclusion
     illisible —, l'erreur est déjà sur stderr ; `audit` ajoute un
     avertissement disant que la série ne construit pas et qu'aucune page ne
@@ -3715,13 +3748,13 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     remarque éditoriale, et `--strict` en fait un échec. Sans ce point,
     `audit` concluait « No warnings » sur une série qu'aucun build ne peut
     produire — un résumé contredisant un message trois lignes plus haut
-14. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+15. Affiche un résumé (en anglais, non localisé) : « No warnings: all
     editorial conventions are respected. » ou « N warning(s). Reminder:
     audit never blocks... »
 
-`--templates` garde les points 9, 10 et 14, et rien d'autre : les points 1
-à 8 tombent parce que la liste d'articles est vidée, les points 11 à 13
-parce qu'ils sont explicitement écartés. Le point 10 **reste** — l'option
+`--templates` garde les points 10, 11 et 15, et rien d'autre : les points 1
+à 9 tombent parce que la liste d'articles est vidée, les points 12 à 14
+parce qu'ils sont explicitement écartés. Le point 11 **reste** — l'option
 le réduit à la feuille de la série, faute d'article à recomposer, mais ne
 l'éteint pas : c'est un contrôle de la surface de présentation, qui est
 exactement ce que cette option demande.

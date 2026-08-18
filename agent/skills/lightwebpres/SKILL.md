@@ -43,6 +43,14 @@ even a later line that looks exactly like `kicker: something` is just text
 from then on. So: put every field before any body text, one per line,
 and never expect a field to wrap.
 
+**And a field is a value, not Markdown.** `summary: un **gras**` publishes
+the five characters. What misleads is that a field passes **raw HTML**
+through untouched (`page_title: A<br>B`), so markup appearing to "work"
+there says nothing about Markdown. `audit` names a field carrying a
+`**bold**` pair, an `*italic*` pair, a backtick pair or a `[text](url)`
+link; `build` says nothing. Write the emphasis in the free text below, or
+in the full-article file.
+
 A **duplicated field** in the same header is not an error: the last
 occurrence wins, silently — deliberate override semantics (like CSS or
 Make) so a build system can assemble a slide by concatenating a base

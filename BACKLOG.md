@@ -1500,3 +1500,95 @@ Note that §9.5.2 states a carve-out for `mark` as a rule colour, so this
 may be judged acceptable — but then the 23 overrides are the anomaly, and
 one of the two readings is wrong.
 
+
+## B28 — A list item was one line, and its continuation left the list — FIXED in v0.37.0
+
+Reported 2026-08 from a real 28-article corpus (29 pages, 5.4 MB), where
+`build`, `verify` and `audit` were all green and **73 Markdown markers
+were visible on screen**. Ten files carried this one — mostly lists of
+limits and caveats, where every item is long and therefore wrapped.
+
+The item ended at the end of its first line. The continuation did not
+merely lose its wrapping: it became a paragraph of its own, emitted
+**after** the list closed. Measured on three items, two of them wrapped:
+
+```
+<ul><li>Item un, coupé</li></ul>
+<p>  sur deux lignes.</p>
+<ul><li>Item deux…</li></ul>
+<p>non indentée du tout.</p>
+<ul><li>Item trois simple.</li></ul>
+```
+
+One list of three became **three lists of one**. So the loss is threefold
+and only the third is visible: the reading order, the structure a screen
+reader announces, and any emphasis spanning the two lines, which ships as
+literal `**`. CommonMark takes both the indented continuation and the
+unindented *lazy* one; neither worked, while a paragraph outside a list
+handled the same case correctly.
+
+**FIXED.** An item runs until a blank line or the start of another block —
+the same `_is_paragraph_continuation` a paragraph uses, shared rather than
+restated, because an item's text IS a paragraph and two copies of that
+judgement would drift.
+
+Worth keeping from the report: correcting the CORPUS instead of the tool
+produced two collateral casualties — a note body glued to the previous one
+(which `audit` caught) and five unbalanced paragraphs. That is the
+argument for fixing the parser rather than teaching authors to avoid it.
+
+## B29 — A structural field ships Markdown to the reader, and nothing said so — FIXED in v0.37.0
+
+Same report, 32 fields across 16 pages, `source:` lines among them — the
+exact place a reader checking a claim looks. A field is a VALUE, one
+physical line taken verbatim; the free text beside it is Markdown; nothing
+in the file marks the border.
+
+The border is also not where an author would guess. A field passes **raw
+HTML** straight through — `page_title: A<br>B` is in our own README — so
+someone who finds that markup "works" in a field generalises, and
+`**gras**` reaches the reader as five literal characters.
+
+**FIXED**, as a warning: the behaviour is right and the silence was the
+defect. Only PAIRED markers count — `2 ** 8` is arithmetic and `**kwargs`
+is Python, and warning on those is the noise that gets a check switched
+off. It reads the parsed slide rather than the source, because only the
+parse says which side of the border a given `**` fell on.
+
+## B30 — Nested emphasis, and a net for whatever the checks do not name — OPEN
+
+Two proposals from the same report, neither delivered, both for the same
+reason: measured, they carry false positives that a release meant for
+writing must not.
+
+**Nested emphasis.** `Un gras **imbriqué **dans un autre** ici**` renders
+the emphasis *exactly inverted* — the passage meant to be bold is not, and
+what surrounds it is — and `****quatre****` leaves two asterisks visible.
+This is **conformant**: CommonMark does not nest `**` in `**`. So it is
+not a rendering bug but an editing trap with no net, and it appears
+naturally when adding emphasis inside an already-emphasised passage —
+typically during a revision. The report's nine occurrences were all
+introduced in a single day of corrections. The asterisk count stays even,
+so no balance check sees it.
+
+**A scan of the rendered text.** The report's own transversal suggestion,
+and it is the right idea: `verify` compares the render to a reference, and
+nothing checks that the render does not contain *unrendered source*. With
+`audit` now rendering, it costs nothing to run.
+
+Both want the same care, and the report's claim that neither can produce a
+false positive is wrong. Measured on an article documenting Python, the
+proposed regex fires **4 times** on `a ** b`, `**kwargs` and a fenced
+block containing `def f(**kwargs): return 2 ** 8`. Excluding `code` and
+`pre` before stripping tags brings it to **0**. The machinery that already
+skips code spans, fenced blocks and raw HTML exists here, in
+`unrecognized_note_labels`.
+
+One residue has no clean answer on the rendered side: `\*\*` legitimately
+renders as `**`, and the backslash is gone by then. A source-side check
+sees the escape; a rendered-side net does not. That is the argument for
+doing it on the source, and the argument against is that a net exists
+precisely to catch what nobody enumerated.
+
+Not in the release the owner is about to write 28 articles with. A noisy
+`audit` in that release is worse than a silent one.
