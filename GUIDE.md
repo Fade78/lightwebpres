@@ -38,9 +38,9 @@ The third is not an afterthought; the tool is shaped for it. **Every
 command runs unattended** — nothing ever blocks on an interactive prompt.
 **Every command has a meaningful exit code**: `verify` exits non-zero the
 moment the built output differs from the sources, which is a real gate;
-`audit` never fails, because it is advice — the one exception is
-`audit --strict`, which asks for the opposite (non-zero on any warning)
-to build a CI gate out of the advice. **There is nothing to
+`audit --strict` exits non-zero on anything worth reporting — two gates,
+two questions. Plain `audit` never fails, whatever it finds: it reports
+and gets out of the way. **There is nothing to
 install**: one file, nothing beyond the Python standard library,
 no wheel, no lockfile, no network at build time — any image with
 `python3` in it can run it. And **every path is an environment
@@ -384,18 +384,28 @@ wholesale; the page and index HTML structure is fixed, not a template.
 Two different checks, for two different moments:
 
 ```bash
-./lightwebpres audit my-series   # editorial warnings, never blocks
-./lightwebpres verify my-series   # rebuilds in memory, diffs against public/
+./lightwebpres audit my-series    # is anything wrong with this series?
+./lightwebpres verify my-series   # is public/ the one these sources make?
 ```
 
-`audit` flags things worth a second look — no cover slide, a scaffold
-whose comments predate your current theme, a retired CSS variable still
-referenced in `custom.css`, the instance tags in each article — but never
-fails; it's a nudge, not a gate. `verify` is the opposite: it rebuilds
-every article in memory and compares it byte-for-byte against `public/`,
-exiting non-zero the moment anything differs. That non-zero exit is what
-makes it a real CI gate — wire it in before `build` to catch a `public/`
-that was hand-edited or never rebuilt after a source change.
+`audit` renders the whole series in memory — throwing the HTML away,
+writing nothing — and reports both what the sources say and what
+composing them had to complain about: no cover slide, a scaffold whose
+comments predate your current theme, a retired CSS variable still
+referenced in `custom.css`, the instance tags in each article, a missing
+language pack, fields you wrote on a cover that a cover never renders, an
+image symlink that would not be published — and, when the render cannot
+finish at all, the fact that no page would be produced. It still never
+fails on its own: exit 0 every time, even then. Pass `--strict` and every
+one of those becomes a non-zero exit; that is the CI gate. Because it
+renders, it costs about what a build costs — the deliberate trade: a
+build is fast on a human scale, a missed audit is not. `--templates`
+skips the render when you only want the presentation layer checked.
+
+`verify` asks the other question: it rebuilds every article in memory and
+compares it byte-for-byte against `public/`, exiting non-zero the moment
+anything differs — wire it in before `build` to catch a `public/` that
+was hand-edited or never rebuilt after a source change.
 
 ### Asking why a value is what it is
 

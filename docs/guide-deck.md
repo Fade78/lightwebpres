@@ -97,7 +97,7 @@ highlight-caption: themes, filtered by polarity, intensity and hue
 
 fact-label: Why facets rather than a list
 
-Thirty-four names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.
+A list of names tells you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.
 
 `theme gallery` renders every one of them against real slide content.
 
@@ -112,7 +112,7 @@ highlight-caption: dependencies to install — the Python standard library is al
 
 fact-label: What makes it pipeline-shaped
 
-Every command runs unattended and returns a meaningful exit code. `verify` fails on drift, `audit` reports advice without failing unless `--strict` is passed. Every path is an environment variable, so a runner lays the pieces out as it likes.
+Every command runs unattended and returns a meaningful exit code. `verify` fails on drift and `audit --strict` fails on anything worth reporting — two gates, two questions. Plain `audit` never fails, whatever it finds. Every path is an environment variable, so a runner lays the pieces out as it likes.
 
 The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.
 

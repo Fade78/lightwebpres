@@ -14,6 +14,7 @@
   --color-mark: #FFFC00FF;
   --color-call: #FF4757FF;
   --color-affirm: #3AA55CFF;
+  --color-nav: #3F4A5AFF;
   --font-text: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   --font-display: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
   --font-ui: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
@@ -223,9 +224,9 @@
   --series-nav-current-rule-width: 2px;
   /* series-nav.link */
   --series-nav-link-bg: #FFFFFFB8;
-  --series-nav-link-rule-fg: #FFFC00FF;
+  --series-nav-link-rule-fg: #3F4A5AFF;
   --series-nav-link-rule-width: 2px;
-  --series-nav-link-ring: #FF4757FF;
+  --series-nav-link-ring: #3F4A5AFF;
   --series-nav-link-ring-width: 3px;
   /* series-nav.label */
   --series-nav-label-fg: #6B6B7DFF;
@@ -252,12 +253,13 @@
   --nav-btn-rule-fg: #00000029;
   --nav-btn-rule-width: 1px;
   --nav-btn-size: max(20px, 2.5vmin);
-  --nav-btn-ring: #FF4757FF;
+  --nav-btn-ring: #3F4A5AFF;
   --nav-btn-ring-width: 3px;
+  /* nav-btn-home */
   /* nav-dot */
   --nav-dot-bg: #00000029;
   --nav-dot-bg-hover: #6B6B7DFF;
-  --nav-dot-bg-active: #FFFC00FF;
+  --nav-dot-bg-active: #3F4A5AFF;
   /* share */
   --share-bg: #F8F8F5FF;
   --share-fg: #1A1A2EFF;
@@ -610,6 +612,8 @@ sup {
   color: var(--series-nav-status-fg-link);
 }
 .nav-btn {
+  width: calc(var(--nav-btn-size) * 2.2);
+  height: calc(var(--nav-btn-size) * 2.2);
   background: var(--nav-btn-bg);
   color: var(--nav-btn-fg);
   border-color: var(--nav-btn-rule-fg);
@@ -622,6 +626,9 @@ sup {
 .nav-btn:focus-visible {
   outline-color: var(--nav-btn-ring);
   outline-width: var(--nav-btn-ring-width);
+}
+.nav-btn-home {
+  font-size: calc(var(--nav-btn-size) * 0.85);
 }
 .nav-dots a {
   background: var(--nav-dot-bg);
@@ -760,7 +767,21 @@ html { scroll-behavior: smooth; }
    had for .theme-row, and the same fix. Keep this override beside every
    display on .slide/.nav-btn. */
 .slide[hidden], .nav-btn[hidden] { display: none; }
-.slide-num { position: absolute; top: 24px; right: 32px; }
+/* The number sits over the COLUMN, not over the card.
+
+   `right: 32px` measured it against the card edge while every line of
+   text on the slide starts at the padding the rule above computes, so the
+   two drifted apart as the screen grew: measured, the number's right edge
+   was 275px past the heading's at 3840, 122px at 1920, 45px at 768, and
+   the sign inverted on a phone -- the one width where it looked centred
+   was the one nobody presents on. Reading the same expression as the
+   padding keeps them on one edge at every width, including for an author
+   who pins a different --page-content-max. */
+.slide-num {
+  position: absolute;
+  top: 24px;
+  right: max(8vw, (100% - var(--page-content-max)) / 2);
+}
 .slide-kicker { display: inline-block; margin-bottom: 16px; }
 h1 { margin-bottom: 20px; max-width: var(--page-content-max); }
 h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
@@ -814,7 +835,16 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
 /* Free-form standard-slide body (no fact-label). A heading here is body
    content (§22.2), never the slide's own title, so it must render
    smaller than that title. These em sizes resolve against the inherited
-   base, i.e. well under it. */
+   base, i.e. well under it.
+
+   That base is what this rule sets, and it did not exist: .slide-body
+   carried no size at all, so it and its em-relative headings inherited
+   the document's unset 16px and stayed there while the card around them
+   tripled. Measured at 3840: 16px of body under a 101.5px title, and the
+   SAME prose rendering at 47.5px if a `fact-label:` happened to precede
+   it -- a three-fold difference decided by a field, not by the writing.
+   16/8 keeps the phone byte-identical and closes the gap above it. */
+.slide-body { font-size: max(16px, 2vmin); }
 .slide-body h1, .slide-body h2, .slide-body h3 {
   margin: 14px 0 6px;
   max-width: var(--page-content-max);
@@ -887,7 +917,7 @@ sup { vertical-align: super; line-height: 0; }
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
-.full-article blockquote, .full-article pre { font-size: 15px; }
+.full-article blockquote, .full-article pre { font-size: max(15px, 1.875vmin); }
 
 /* --- Comparison table --- */
 .comparison-table {
@@ -936,6 +966,11 @@ sup { vertical-align: super; line-height: 0; }
   margin: 20px auto;
   max-width: var(--page-block-max);
   text-align: center;
+  /* `caption.size` is 0.85em — relative to a context that has to exist.
+     It did not: the figure inherited the document's unset 16px, so the
+     one em-relative size in the reading surface resolved to a flat 13.6px
+     at every width. An em only scales if something above it does. */
+  font-size: max(16px, 2vmin);
 }
 .figure img { max-width: 100%; height: auto; }
 .figure-caption { margin-top: 6px; }
@@ -943,9 +978,18 @@ sup { vertical-align: super; line-height: 0; }
 /* --- The full-article slide: a measure of its own, narrower than the
    deck's, because it is read as prose rather than glanced at. --- */
 .full-article { padding: 60px 8vw 80px 8vw; }
-.full-article h1 { font-size: 28px; margin-bottom: 8px; }
-.full-article h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; }
-.full-article h3 { font-size: 18px; margin-top: 28px; margin-bottom: 10px; }
+/* These scale for the same reason the registry's thirty-five do, and they
+   were missed because they are LITERALS: the sweep that gave the design a
+   scale counted properties, and nothing counted the sizes written
+   straight into this sheet. `article.size` grew; the article's own
+   headings did not. Measured at 3840, h2 sat at 22px under a 40.5px body
+   -- a heading 0.54x the text it heads -- and the inversion already
+   started at 1920. The coefficient is the pixel value over 8, the same
+   arithmetic the registry uses, so every ratio these had at 1920x1080 is
+   the ratio they keep above it, and the floors leave a phone untouched. */
+.full-article h1 { font-size: max(28px, 3.5vmin); margin-bottom: 8px; }
+.full-article h2 { font-size: max(22px, 2.75vmin); margin-top: 40px; margin-bottom: 12px; }
+.full-article h3 { font-size: max(18px, 2.25vmin); margin-top: 28px; margin-bottom: 10px; }
 .full-article .h4 { font-weight: bold; margin-top: 20px; margin-bottom: 8px; }
 .full-article p { margin-bottom: 14px; max-width: var(--page-content-max); }
 .full-article ul, .full-article ol {
@@ -958,7 +1002,7 @@ sup { vertical-align: super; line-height: 0; }
   max-width: var(--page-block-max);
   border-collapse: collapse;
   margin: 16px 0;
-  font-size: 14px;
+  font-size: max(14px, 1.75vmin);
 }
 .full-article table th, .full-article table td {
   padding: 8px 12px;
@@ -967,7 +1011,7 @@ sup { vertical-align: super; line-height: 0; }
 .full-article table th { font-weight: 700; }
 .full-article strong { font-weight: 700; }
 .full-article em { font-style: italic; }
-.full-article .refs p { font-size: 13px; margin-bottom: 6px; }
+.full-article .refs p { font-size: max(13px, 1.625vmin); margin-bottom: 6px; }
 
 /* --- Series navigation --- */
 /* The column, like everything else on a card. A flat 680px left the
@@ -1044,9 +1088,10 @@ body.fs-noselect {
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
 @media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
+/* No width/height here: the circle is drawn against the glyph, so the
+   engine derives both from `nav-btn.size` (see the nav-btn composite).
+   The skeleton stating a second number is how they drifted apart. */
 .nav-btn {
-  width: 44px;
-  height: 44px;
   border-radius: 50%;
   border-style: solid;
   backdrop-filter: blur(6px);
@@ -1067,9 +1112,12 @@ body.fs-noselect {
 .nav-btn:active { transform: scale(0.96); }
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
 .nav-btn.disabled { opacity: 0.25; cursor: default; pointer-events: none; }
-.nav-btn-home { font-size: 17px; }
+/* The home glyph's size comes from the nav-btn-home composite. */
+/* The dialog's children are all `em`, so without a size here they were
+   `em` of a body that never grows -- flat at every width, measured. */
 .tag-menu {
   position: fixed;
+  font-size: max(16px, 2vmin);
   right: 82px;
   bottom: 24px;
   z-index: 250;
@@ -1135,6 +1183,9 @@ body.fs-noselect {
    order before adding a selector here. */
 @media (max-width: 600px) {
   .slide { padding: 40px 24px; }
+  /* The number tracks the padding wherever the padding is restated, or it
+     goes back to being measured against a different edge than the text. */
+  .slide-num { right: 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: 16px; right: 16px; }
 }
@@ -1154,7 +1205,14 @@ body.fs-noselect {
     overflow: visible !important;
     scroll-snap-align: none !important;
   }
-  .slide:last-child { page-break-after: auto; break-after: auto; }
+  /* :last-of-type, not :last-child. The last slide is never the body's
+     last child -- the page footer and the inline script element follow it
+     -- so this selector matched NOTHING on any page ever built: the final
+     slide kept its forced break and the footer landed on a sheet of its
+     own. Measured on two corpora, every page: six slides printed seven
+     sheets, four printed five. A rule that selects nothing is invisible
+     in the source and obvious in the paper tray. */
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
   @page { margin: 1.5cm; }
 }
 
@@ -1165,12 +1223,22 @@ body.fs-noselect {
   left: 28px;
   z-index: 150;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
+  font-size: max(13px, 1.625vmin);
   padding: 4px 11px;
   border-radius: 999px;
   border-style: solid;
   border-width: 1px;
-  background: none;
+  /* `inherit`, like every neighbouring overlay -- .presenter-panel,
+     .tag-menu and .help-overlay all resolve to the page's own ground and
+     measure AA on every theme in the catalogue. `none` let the cover's
+     gradient show
+     through, and on a light theme `page.fg` and `cover.bg.from` are both
+     `color.ink`: the counter's ink WAS its ground. Measured at exactly
+     1.00:1 on 15 of the 34 themes, with the 1px border in currentColor
+     vanishing along with it. Invisible to `theme show`'s contrast report
+     by construction, because this element has no registry property for
+     that report to read. */
+  background: inherit;
   box-shadow: 0 1px 6px rgba(0,0,0,0.10);
   transition: opacity 0.4s;
   user-select: none;
@@ -1179,9 +1247,18 @@ body.fs-noselect {
 .slide-counter.idle { opacity: 0; }
 .slide-counter.idle:hover { opacity: 1; }
 @media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }
+/* The one part of the page a SPEAKER reads, and it was the flattest:
+   15.2px at 375 and 15.2px at 3840, measured, because its three children
+   are all `em` of a body that never grew. Same expression as .slide-body,
+   which is the size the panel paraphrases.
+
+   `tabindex="0"` in the markup is not decoration: `overflow: auto` with a
+   max-height makes this a scrollable region, and a scrollable region that
+   cannot take focus cannot be scrolled from the keyboard at all. */
 .presenter-panel {
   position: fixed;
   left: 0; right: 0; bottom: 0;
+  font-size: max(16px, 2vmin);
   max-height: 44vh;
   z-index: 300;
   padding: 16px 28px 20px;
@@ -1220,7 +1297,10 @@ body.fs-noselect {
   padding: 48px 24px;
 }
 .help-overlay.open { display: block; }
+/* Same as .tag-menu: every line inside is `em` of this box, and this box
+   had no size of its own. */
 .help-card {
+  font-size: max(16px, 2vmin);
   max-width: 660px;
   margin: 0 auto;
   border-style: solid;
@@ -1286,6 +1366,7 @@ body.fs-noselect {
 /* --- Share popover and its QR modal --- */
 .share-popover {
   position: fixed;
+  font-size: max(14px, 1.75vmin);
   bottom: 80px;
   right: 28px;
   z-index: 250;
@@ -1305,19 +1386,22 @@ body.fs-noselect {
 .share-cell-head {
   font-weight: 700;
   text-align: center;
-  font-size: 11px;
+  font-size: max(11px, 1.375vmin);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .share-cell-head-disabled { opacity: 0.35; }
 .share-cell-label { white-space: nowrap; padding-right: 10px; }
 button.share-action {
-  width: 36px;
-  height: 36px;
+  /* 36 / 16 = 2.25: the box drawn against the glyph, as .nav-btn is --
+     written out rather than derived, because the share chrome states no
+     glyph size of its own for the engine to read. */
+  width: max(36px, 4.5vmin);
+  height: max(36px, 4.5vmin);
   border-radius: 8px;
   border-style: solid;
   cursor: pointer;
-  font-size: 16px;
+  font-size: max(16px, 2vmin);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1341,6 +1425,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    native camera fails to detect one that decodes fine in a dedicated
    scanner. Give it room to stay legible. */
 .share-qr-modal-content {
+  font-size: max(15px, 1.875vmin);
   border-radius: 12px;
   padding: 24px;
   max-width: 400px;
@@ -1349,7 +1434,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
 }
 .share-qr-modal-title {
-  font-size: 15px;
+  font-size: max(15px, 1.875vmin);
   font-weight: 700;
   margin-bottom: 12px;
 }
@@ -1360,7 +1445,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   margin-bottom: 12px;
 }
 .share-qr-modal-url {
-  font-size: 12px;
+  font-size: max(12px, 1.5vmin);
   word-break: break-all;
   margin-bottom: 16px;
 }
@@ -1370,7 +1455,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   padding: 8px 20px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
+  font-size: max(14px, 1.75vmin);
 }
 
 /* The popover's phone geometry. It used to live in the responsive block
@@ -1493,6 +1578,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
    viewport -- portrait and desktop are unchanged to the pixel. */
 @media (max-height: 520px) {
   .slide { padding: 24px 6vw; }
+  .slide-num { right: 6vw; }
   .fact-box { padding: 14px 18px; }
   .highlight { margin: 8px 0 10px; }
 }
@@ -1511,9 +1597,10 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 <div class="pause-overlay" id="pauseOverlay"></div>
 
 <div class="slide-counter" id="slideCounter"></div>
-<div class="presenter-panel" id="presenterPanel">
+<div class="presenter-panel" id="presenterPanel" role="region"
+     aria-label="Presenter panel" tabindex="0">
   <div class="pp-head" id="presenterHead"></div>
-  <div class="pp-notes" id="presenterNotes"></div>
+  <div class="pp-notes" id="presenterNotes" aria-live="polite"></div>
   <div class="pp-next" id="presenterNext"></div>
 </div>
 
@@ -1637,7 +1724,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="highlight"><span class="highlight-figure">34</span><span class="highlight-caption">themes, filtered by polarity, intensity and hue</span></div>
   <div class="fact-box">
     <div class="fact-label">Why facets rather than a list</div>
-    <div class="fact-content">  <p>Thirty-four names tell you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.</p>
+    <div class="fact-content">  <p>A list of names tells you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.</p>
   <p><code>theme gallery</code> renders every one of them against real slide content.</p></div>
   </div>
 </section>
@@ -1648,7 +1735,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="highlight"><span class="highlight-figure">0</span><span class="highlight-caption">dependencies to install — the Python standard library is all it uses</span></div>
   <div class="fact-box">
     <div class="fact-label">What makes it pipeline-shaped</div>
-    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>verify</code> fails on drift, <code>audit</code> reports advice without failing unless <code>--strict</code> is passed. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
+    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>verify</code> fails on drift and <code>audit --strict</code> fails on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
   <p>The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.</p></div>
   </div>
 </section>
@@ -1694,7 +1781,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from</li>
   </ul>
   <p>  somewhere else entirely — a CMS export, a database, a generator, an   agent upstream — and LightWebPres is what turns it into publishable   pages.</p>
-  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit</code> never fails, because it is advice — the one exception is <code>audit --strict</code>, which asks for the opposite (non-zero on any warning) to build a CI gate out of the advice. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
+  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
   <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides after 1 second of idleness in fullscreen, and only returns after the mouse has moved continuously for 250 ms — a brush past the sensor never flashes it back. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Set up &amp; your first build</h2>
@@ -1708,7 +1795,8 @@ xdg-open my-series/public/index.html         # `open` on macOS
   <p><strong>Language is chosen per build, not stored in the project</strong> — both packs are always installed. Pass <code>--lang fr|en</code> to <code>build</code>/<code>demo</code>, or set <code>LWP_LANG</code>. French is the default, which is why the commands above say so explicitly.</p>
   <p><code>demo</code> only works after <code>init</code> and refuses to overwrite existing work. It drops three example articles (first, middle and last position in the navigation) plus a captioned image, so you have something real to look at before writing your own.</p>
   <p><code>build</code> reads <code>series.json</code> and every article it lists, and writes <code>public/*.html</code> plus <code>public/index.html</code> and a generated <code>README.md</code>. Open <code>public/index.html</code> in a browser — no server needed, every page is a single self-contained file.</p>
-  <p><code>--inline-images</code> embeds images as base64 data URIs so the HTML needs no <code>img/</code> directory at all — useful for emailing a single file or hosting where only static HTML is served. The HTML grows ~33% per image; a serving gzip recovers the overhead.</p>
+  <p><code>--inline-images</code> embeds images as base64 data URIs so the HTML needs no <code>img/</code> directory at all — useful for emailing a single file or hosting where only static HTML is served. The HTML grows about a third per image; a serving gzip recovers the overhead. It covers images in a card and images in a file a <code>full-article</code> card pulls in, alike.</p>
+  <p>One thing it cannot inline: an <code>&lt;img&gt;</code> you write as raw HTML rather than in Markdown. The converter passes raw HTML through untouched by design, so such an image would keep a relative path to a directory this option does not create. The build refuses rather than shipping a page with a dangling reference, and names the file and the path.</p>
   <p><code>build</code> also accepts a handful of switches that change what it writes: <code>--no-index</code> (skip <code>index.html</code>), <code>--no-readme</code> (skip the generated <code>README.md</code>), <code>--no-nav</code> (omit the cross-article navigation block), <code>--drafts-only</code> (build only <code>status: draft</code> articles), <code>--open</code> (open the result in the browser), and <code>--slides-page-numbers on</code> to engrave the top-right <code>NN / NN</code> slide number — <strong>off by default</strong> (the article front-matter <code>slide_page_numbers</code> and <code>series_meta.slide_page_numbers</code> also turn it on; see specifications.md §3.3.5). <code>watch</code> takes the same output switches and adds <code>--serve</code> (opt-in HTTP server on <code>127.0.0.1</code>, <code>--port 8000</code>).</p>
   <h2>3. What a page is made of</h2>
   <p>A page is a sequence of <strong>slides</strong>, separated by <code>---</code>, preceded by one metadata block. There are four slide types, and inside a standard slide a small set of named components. This section names them and says how you reach each one; <code>SKILL.md</code> carries the exact syntax and every edge case.</p>
@@ -1833,7 +1921,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <li>The selected tag shows its own slides and shared <code>default</code> slides; counts,</li>
   </ul>
   <p>  navigation, anchors, and the presenter panel use the visible slides.</p>
-  <p>The former visible-label field <code>tag:</code> is not an alias. Use <code>kicker:</code> for the label above a slide title, and <code>tags:</code> for variant filtering. On a standard slide an old <code>tag:</code> line becomes body text; on a cover, <code>build</code> reports the unknown field and prints the two current choices.</p>
+  <p><code>tag:</code> is not a field, and not an alias for one. Use <code>kicker:</code> for the label above a slide title, and <code>tags:</code> for variant filtering. A <code>tag:</code> line becomes body text on a standard slide; on a cover, <code>build</code> reports the unknown field and prints the two choices.</p>
   <p>For language-specific typography, map tags to packs in <code>series_meta</code>:</p>
   <pre><code class="language-json">
 {
@@ -1863,10 +1951,11 @@ xdg-open my-series/public/index.html         # `open` on macOS
   <h2>5. Adjusting the look</h2>
   <p>Four gestures, from the smallest to the largest. Pick the smallest one that does the job.</p>
   <h3>Pick a theme (the whole series)</h3>
-  <p>Des dizaines de thèmes de couleur sont préconfigurés — trop pour en choisir from a list, so you find one by facet: light or dark background, how loud it is, and what hue the page carries.</p>
+  <p>Dozens of colour themes are preconfigured — too many to pick from a list, so you find one by facet: which family it belongs to, whether its background is light or dark, and what hue that background carries.</p>
   <pre><code class="language-bash">
-./lightwebpres theme list                                     # des dizaines de thèmes, avec facettes
-./lightwebpres theme list --polarity dark --intensity sober   # just the ones you mean
+./lightwebpres theme list                                     # the whole catalogue, with facets
+./lightwebpres theme list --family terrain                    # one editorial family
+./lightwebpres theme list --polarity dark --hue green          # just the ones you mean
 ./lightwebpres theme gallery                             # every theme, rendered
   </code></pre>
   <p>Apply one at init time, or change your mind later:</p>
@@ -1921,10 +2010,11 @@ kicker.fg: call             ← uncommented: yours, and it stays
   <h2>6. Verifying before you ship</h2>
   <p>Two different checks, for two different moments:</p>
   <pre><code class="language-bash">
-./lightwebpres audit my-series   # editorial warnings, never blocks
-./lightwebpres verify my-series   # rebuilds in memory, diffs against public/
+./lightwebpres audit my-series    # is anything wrong with this series?
+./lightwebpres verify my-series   # is public/ the one these sources make?
   </code></pre>
-  <p><code>audit</code> flags things worth a second look — no cover slide, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, the instance tags in each article — but never fails; it's a nudge, not a gate. <code>verify</code> is the opposite: it rebuilds every article in memory and compares it byte-for-byte against <code>public/</code>, exiting non-zero the moment anything differs. That non-zero exit is what makes it a real CI gate — wire it in before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
+  <p><code>audit</code> renders the whole series in memory — throwing the HTML away, writing nothing — and reports both what the sources say and what composing them had to complain about: no cover slide, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, the instance tags in each article, a missing language pack, fields you wrote on a cover that a cover never renders, an image symlink that would not be published — and, when the render cannot finish at all, the fact that no page would be produced. It still never fails on its own: exit 0 every time, even then. Pass <code>--strict</code> and every one of those becomes a non-zero exit; that is the CI gate. Because it renders, it costs about what a build costs — the deliberate trade: a build is fast on a human scale, a missed audit is not. <code>--templates</code> skips the render when you only want the presentation layer checked.</p>
+  <p><code>verify</code> asks the other question: it rebuilds every article in memory and compares it byte-for-byte against <code>public/</code>, exiting non-zero the moment anything differs — wire it in before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
   <h3>Asking why a value is what it is</h3>
   <p>Most of what ends up on a page was never written on that page: a title falls back through <code>series.json</code>, the meta block and the cover slide, a colour falls through <code>settings.conf</code>, the theme and the built-in defaults. When the result surprises you, ask:</p>
   <pre><code class="language-bash">
@@ -1957,16 +2047,28 @@ kicker.fg — theme property
   <p><code>--scaffold</code> additionally regenerates <code>settings.conf</code>'s commented block against the current theme and the current property registry, keeping every line you uncommented.</p>
   <h2>8. Automation, CI/CD, and the browser</h2>
   <h3>As a pipeline step</h3>
-  <p>The generated <code>.gitlab-ci.yml</code> (<code>init --gitlab-ci</code>, opt-in — a plain <code>init</code> never assumes a deployment) is the two-line version:</p>
+  <p>The generated <code>.gitlab-ci.yml</code> (<code>init --gitlab-ci</code>, opt-in — a plain <code>init</code> never assumes a deployment) is one stage and one command:</p>
   <pre><code class="language-yaml">
+stages:
+  - build
+
 build:
+  stage: build
+  image: python:3.12-slim
+  script:
+    - python3 lightwebpres build . --lang fr
+  artifacts:
+    paths:
+      - public/
+  </code></pre>
+  <p>Nothing here is GitLab-specific — that one command is the whole job on any runner.</p>
+  <p>If your <code>public/</code> is committed rather than built from scratch, put <code>verify</code> in front of <code>build</code>:</p>
+  <pre><code class="language-yaml">
   script:
     - python3 lightwebpres verify .    # fails if public/ is stale
-    - python3 lightwebpres build .
-  artifacts:
-    paths: [public]
+    - python3 lightwebpres build . --lang fr
   </code></pre>
-  <p><code>verify</code> before <code>build</code> is the useful ordering: it catches a <code>public/</code> that was hand-edited or never rebuilt after a source change, <strong>before</strong> the build overwrites the evidence. Nothing here is GitLab-specific — the same two commands are the whole job on any runner.</p>
+  <p>That ordering catches a <code>public/</code> that was hand-edited or never rebuilt after a source change, <strong>before</strong> the build overwrites the evidence. It is left out of the generated file because a pipeline that builds into a fresh checkout has nothing stale to catch, and a job that fails on its first run teaches the reader to delete the line rather than to trust it.</p>
   <p>For a pipeline where content arrives from upstream, three more things matter. <code>--only page</code> rebuilds a single article rather than the series, with <code>--nav-cache</code> holding the fingerprint that tells it whether the navigation still needs regenerating. <code>--build-stamp</code> marks every generated page with the version and time it came from, which is what you want when a page is published by a machine and questioned by a human three months later. And <code>status</code> in <code>series.json</code> decides what enters the build at all: <code>draft</code> until something upstream flips it, <code>ignored</code> for an article you want kept and not published.</p>
   <h3>In the browser</h3>
   <p><code>web/index.html</code>, one page with two tabs, runs the exact same engine as the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly), so the output is identical either way:</p>
@@ -2881,15 +2983,40 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnTags) btnTags.setAttribute('aria-expanded', tagMenu && tagMenu.classList.contains('open') ? 'true' : 'false');
   }
 
+  function tagOptions() {
+    return tagMenu
+      ? Array.prototype.slice.call(tagMenu.querySelectorAll('.tag-option'))
+      : [];
+  }
+
   function closeTagMenu() {
+    var wasOpen = tagMenu && tagMenu.classList.contains('open');
     if (tagMenu) tagMenu.classList.remove('open');
     updateTagMenu();
+    // Give the focus back to what opened the menu. Leaving it on a button
+    // that has just been hidden strands a keyboard user at the top of the
+    // document with no idea where they are.
+    if (wasOpen && btnTags) btnTags.focus();
   }
 
   function toggleTagMenu() {
     if (!tagMenu || tagList().length < 2) return;
     tagMenu.classList.toggle('open');
     updateTagMenu();
+    // Move the focus IN. The menu carries role="dialog" and its options
+    // are real buttons, but nothing ever focused them, and the global
+    // keydown handler preventDefault()s every key whose target is not
+    // already inside .tag-menu -- including Tab, and a prevented Tab
+    // cancels the focus move. Measured: five Tab presses left
+    // document.activeElement on BODY, so the whole slide-variant feature
+    // was mouse-only and the dialog role was never announced.
+    if (tagMenu.classList.contains('open')) {
+      var options = tagOptions();
+      var active = options.filter(function (b) {
+        return b.classList.contains('active');
+      })[0];
+      if (active || options.length) (active || options[0]).focus();
+    }
   }
 
   function rebuildDots() {
@@ -3184,6 +3311,18 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
         closeTagMenu();
+      } else if (e.key === 'Tab') {
+        // Wrap inside the dialog. Without this, Tab from the last option
+        // walks out of an open modal into the page behind it, which is
+        // the one place a focus ring must not go.
+        var options = tagOptions();
+        if (options.length) {
+          e.preventDefault();
+          var at = options.indexOf(document.activeElement);
+          var step = e.shiftKey ? -1 : 1;
+          var next = (at < 0 ? 0 : at + step + options.length) % options.length;
+          options[next].focus();
+        }
       } else if (e.target && e.target.closest && e.target.closest('.tag-menu')) {
         return;
       } else {
@@ -3228,6 +3367,17 @@ document.addEventListener('DOMContentLoaded', function() {
       if (jumpTimer) clearTimeout(jumpTimer);
       updateCounter();
       e.preventDefault();
+      return;
+    }
+    // The presenter panel was the one overlay Escape did not reach: help,
+    // the variant dialog, the share popover and the QR modal all close on
+    // it, and a speaker who hit Escape on the panel got nothing. It is not
+    // modal -- the point is to navigate while it is open -- so this closes
+    // it and swallows nothing else.
+    if (e.key === 'Escape' && presenterPanel
+        && presenterPanel.classList.contains('open')) {
+      e.preventDefault();
+      togglePresenter();
       return;
     }
     if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {

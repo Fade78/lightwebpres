@@ -279,7 +279,8 @@ end (`notes_placement: page` in the meta block).
 
 A cover slide **accepts** `fact-label`, `fact-variant`, `source`, `highlight`
 and `highlight-caption` without failing, and then never renders them — you
-get a `[WARNING]`, exit code 0, and a page missing what you wrote. Only
+get a `[WARNING]` — from `build`, and now from `audit` too, which
+renders — exit code 0, and a page missing what you wrote. Only
 free *text* on a cover is fatal.
 
 **Cover slides only accept** `kicker`, `tags`, `# Title`, `summary`,
@@ -685,12 +686,16 @@ know it's actually correct, and it catches the mistakes above
 immediately instead of leaving them for a human to discover later:
 
 ```bash
-lightwebpres audit <series-dir>   # non-blocking editorial warnings (e.g. no cover slide)
+lightwebpres audit <series-dir>   # renders in memory, reports everything, never fails
 lightwebpres build <series-dir>   # fatal on real structural errors
 ```
 
-A clean `build` (exit code 0) with no `[ERROR]` lines means the file
-parses and renders. If the executable isn't available in this
+`audit` renders the series the way a build does, writing nothing, so it
+sees what only a render can say — including a series that cannot be built
+at all, which it reports without stopping. It still exits 0 whatever it
+finds: **read its output, not its exit code**, unless you pass
+`--strict`. A clean `build` (exit code 0) with no `[ERROR]` lines is what
+tells you the file parses, renders and ships. If the executable isn't available in this
 environment, say so explicitly rather than presenting unverified output
 as finished — don't guess at whether it would build.
 

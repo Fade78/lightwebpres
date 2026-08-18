@@ -2310,7 +2310,9 @@ respecté) ; la note nomme `template update` comme remède.
 #### 9.4.4 `audit` (volet présentation)
 
 `audit` (§11.5) avertit, ne bloque jamais. Trois yeux sur la surface de
-présentation, chacun vérifié :
+présentation, chacun vérifié — et ces trois-là sont exactement ce à quoi
+`audit --templates` réduit la commande : il saute les contrôles par article
+et ne déclenche pas le rendu, donc il reste bon marché :
 
 1. **`templates/style.css` hérité** : le fichier n'est plus lu ;
    l'avertissement le dit et énumère chaque variable retirée qu'il
@@ -3086,6 +3088,13 @@ une porte de vérification utilisable dans ce même pipeline, pour détecter
 un `public/` non reconstruit avant de merge — pas fait par défaut par
 `init`, à ajouter à la main si voulu.
 
+De même pour `python3 lightwebpres audit . --strict`. Depuis qu'`audit`
+rend la série (§11.5), son code de sortie couvre aussi ce qu'un `build`
+imprimerait : c'est une porte complète, et plus seulement un contrôle
+éditorial. Les deux étapes ne se remplacent pas — `verify` répond à « le
+`public/` livré est-il celui des sources ? », `audit --strict` à « cette
+série se construit-elle sans rien à signaler ? ».
+
 ---
 
 ## 11. Commandes de l'exécutable
@@ -3514,12 +3523,20 @@ Vérifie sans modifier :
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 ```
 
-Vérifie des **conventions éditoriales non bloquantes**, sans jamais faire
-échouer la commande ni modifier de fichier (contrairement à `verify`, qui
-compare le HTML généré à l'existant, §11.4) — sauf `--strict`, qui inverse
-le code de sortie sur le moindre avertissement pour en faire une porte de
-CI, et `--templates`, qui restreint l'audit au volet présentation (§9.4.4)
-et saute les contrôles éditoriaux par article :
+Vérifie une série et **avertit sans jamais bloquer** : la commande ne
+modifie aucun fichier et sort à 0 quoi qu'elle trouve — sauf `--strict`,
+qui inverse le code de sortie sur le moindre avertissement pour en faire
+une porte de CI, et `--templates`, qui restreint l'audit au volet
+présentation (§9.4.4), saute les contrôles éditoriaux par article et ne
+déclenche pas le rendu.
+
+Deux regards, et c'est le second qui a changé. Le premier lit l'arbre
+syntaxique. Le second **rend la série en mémoire**, jette le HTML et
+rapporte ce que la composition a eu à dire. `verify` rend pour *comparer*
+à `public/` ; `audit` rend pour *rapporter* — un défaut né au rendu n'est
+pas atteignable depuis l'arbre. Le coût est qu'`audit` prend à peu près le
+temps d'un `build` : arbitrage assumé, un build est rapide à l'échelle
+humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
 
 1. Pour chaque article, lit et parse le `.md` source
 2. Note (`[NOTE]`, informatif, non compté comme avertissement) les
@@ -3554,9 +3571,32 @@ et saute les contrôles éditoriaux par article :
    messages qu'au build, non bloquants ici) ; et si son `scaffold-for:`
    ne correspond plus au `theme:` déclaré (décommenter une ligne
    épinglerait une valeur du thème quitté)
-8. Affiche un résumé (en anglais, non localisé) : « No warnings: all
-   editorial conventions are respected. » ou « N warning(s). Reminder:
-   audit never blocks... »
+8. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
+   répertoire d'images : il ne serait pas publié (§13.7). C'est un
+   contrôle des *sources* commises, pas de la copie — la règle est celle
+   que `copy_images` applique, partagée et non réécrite
+9. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
+   chaque avertissement que la composition émet, au mot près les mêmes
+   qu'un `build` puisque c'est le même chemin : pack de langue absent,
+   champs analysés sur une `cover` et jamais rendus (§22.12), et tout ce
+   qu'une version ultérieure y ajoutera. **Aucune énumération n'est tenue
+   ici** : le collecteur branche le journal, pas les sites d'appel, donc
+   un avertissement ajouté demain remonte demain sans que rien ne soit à
+   mettre à jour. Une liste de sites est une liste qui dérive, ce dont le
+   registre lui-même a fait la démonstration
+10. Si le rendu **échoue fatalement** — une propriété épinglée que le
+    registre ne connaît plus, une balise déséquilibrée, une inclusion
+    illisible —, l'erreur est déjà sur stderr ; `audit` ajoute un
+    avertissement disant que la série ne construit pas et qu'aucune page
+    ne serait produite, puis **continue et sort à 0**. Ce n'est pas une
+    remarque éditoriale, et `--strict` en fait un échec. Sans ce point,
+    `audit` concluait « No warnings » sur une série qu'aucun build ne peut
+    produire — un résumé contredisant un message trois lignes plus haut
+11. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+    editorial conventions are respected. » ou « N warning(s). Reminder:
+    audit never blocks... »
+
+Les points 8 à 10 sont ceux que `--templates` saute.
 
 Le nombre et la position des fiches `cover` restent libres (§4.4, §22.13) :
 `audit` ne fait qu'informer, la décision reste à l'auteur. Rien n'est
@@ -5002,13 +5042,14 @@ planifiées**, leur périmètre (1.0 ou post-1.0) n'étant pas tranché.
 
 ### Phase 5 : commande `audit` (implémentée)
 
-Voir §11.5. Contrairement à `verify` (qui compare le HTML généré à
-l'existant, §11.4), `audit` vérifie des **conventions éditoriales non
-bloquantes** — un article sans aucune fiche `cover`, ou dont la première
-fiche n'est pas une `cover` — et n'émet que des avertissements informatifs,
-sans jamais faire échouer le build ni contraindre l'auteur : la mise en page
-(nombre et position des `cover`, voir §22.13) reste entièrement de son
-ressort. D'autres vérifications éditoriales pourront s'y ajouter plus tard.
+Voir §11.5. `audit` avertit sans jamais bloquer : conventions éditoriales
+— un article sans aucune fiche `cover`, ou dont la première fiche n'est pas
+une `cover` —, volet présentation, et ce que seul un rendu peut dire,
+puisqu'`audit` rend la série en mémoire. Aucun de ces avertissements ne
+fait échouer la commande ni ne contraint l'auteur : la mise en page (nombre
+et position des `cover`, voir §22.13) reste entièrement de son ressort.
+`--strict` inverse le code de sortie, et c'est la seule porte qu'`audit`
+sait ouvrir. D'autres vérifications pourront s'y ajouter plus tard.
 
 ### Phase 6 : pistes non planifiées (périmètre à trancher — 1.0 ou post-1.0)
 

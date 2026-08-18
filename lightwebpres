@@ -11794,13 +11794,18 @@ def audit_by_rendering(series_dir, args):
 
 
 def cmd_audit(series_dir, args):
-    """audit command — flags editorial conventions that are not respected.
+    """audit command — reports what is wrong with a series, and never blocks.
 
-    Unlike check (which compares the generated HTML with the existing one),
-    audit never compiles anything and never makes the command fail: page
-    layout (number and position of cover slides, see specifications.md
-    §22.13) remains entirely the author's responsibility. audit only prints
-    informational warnings.
+    Both check and audit render without writing, and the difference is what
+    they do with the result: check renders to COMPARE the HTML against
+    public/, audit renders to REPORT. The HTML is discarded here, no file
+    is written, and the command exits 0 whatever it finds unless --strict.
+
+    This docstring said "audit never compiles anything" for as long as that
+    was true, and stayed after it stopped being -- in the function that
+    implements the change. Page layout (number and position of cover
+    slides, see specifications.md §22.13) remains entirely the author's
+    responsibility.
     """
     sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
@@ -13869,8 +13874,9 @@ COMMANDS
     Builds the site (self-contained HTML)
   lightwebpres verify [directory] [--lang fr] [--output public/]
     Checks without building (diff)
-  lightwebpres audit [directory] [--lang fr] [--strict]
-    Warns about editorial conventions (never blocking unless --strict)
+  lightwebpres audit [directory] [--lang fr] [--strict] [--templates]
+    Renders the series in memory and reports everything worth a second
+    look (never blocking unless --strict)
   lightwebpres template update [directory] [--scaffold]
     Refreshes tool-owned templates/ files (nav.js); creates a missing
     settings.conf or custom.css (see §9.4.3)
@@ -14003,10 +14009,11 @@ OPTIONS
     self-contained (no img/ directory copied to the output). The HTML
     grows ~33% per image; a serving gzip recovers the overhead on the wire.
   --strict
-    audit: exit non-zero if any warnings are emitted (CI gate)
+    audit: exit non-zero if any warnings are emitted — the complete CI
+    gate, editorial warnings and everything the render raises alike
   --templates
-    audit: restrict the audit to the presentation/template layer and
-    skip per-article editorial checks
+    audit: restrict the audit to the presentation/template layer — skips
+    the per-article editorial checks and does not render
   --slides-page-numbers on|off
     build/watch: engrave the top-right NN / NN slide number (off by
     default; the article front-matter slide_page_numbers and

@@ -91,9 +91,11 @@ handout at Ctrl/Cmd+P.
   well; it is offered, not required — the format takes whatever you put
   in it.
 - **Made to sit in a content pipeline.** Every command runs unattended
-  and returns a meaningful exit code — `verify` fails on drift and is a
-  real CI gate, `audit` never fails (unless you pass `--strict`) because
-  it is advice. Nothing to
+  and returns a meaningful exit code — `verify` fails on drift and
+  `audit --strict` fails on anything worth reporting, two real CI gates
+  for two different questions. Plain `audit` never fails, whatever it
+  finds: it renders the series in memory and reports, it does not stop.
+  Nothing to
   install: one file, the Python standard library only, no wheel, no
   lockfile, no network at build time, so any image with `python3` runs
   it. Every path is an environment variable (`LWP_SERIES_DIR`,
@@ -315,7 +317,8 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--drafts-only` | `build`, `watch` | builds only `status: draft` articles |
 | `--open` | `build`, `watch` | opens the result in the browser |
 | `--include-drafts` | `build`, `verify` | builds draft articles too |
-| `--strict` | `audit` | exits non-zero on any warning |
+| `--strict` | `audit` | exits non-zero on any warning — the complete gate: editorial warnings and everything the render raises alike, a failed render included |
+| `--templates` | `audit` | restricts the audit to the presentation/template layer: skips the per-article editorial checks and does not render, so it stays cheap |
 | `--templates` | `audit` | restricts the audit to the presentation/template layer, skipping per-article editorial checks |
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
 | `--only file.html` | `build` | rebuilds a single article |
