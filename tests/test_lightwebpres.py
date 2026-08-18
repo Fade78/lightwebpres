@@ -2080,6 +2080,80 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 self.assertEqual(result.returncode, 0,
                                  f'`{" ".join(argv)}`:\n{result.stderr}')
 
+    def test_every_legacy_alias_warns_and_runs_the_canonical_command(self):
+        """§11.16 claims a test covers every alias. It did not: three of
+        the eight were run by their alias name anywhere in this suite, and
+        the only test that walked _LEGACY_ALIASES checked the completion
+        script -- not the warning, not the dispatch. The claim outlived
+        its guard, which is the failure mode this whole file exists to
+        catch.
+
+        Each alias is run twice, in identical fresh directories: once by
+        its legacy name, once by the canonical form. The legacy run must
+        warn and name its replacement; both runs must produce the same
+        stdout and the same exit code. Comparing against the canonical
+        run is what makes 'runs the canonical command' an assertion
+        rather than a hope -- an alias wired to the wrong cmd_* passes a
+        'did it exit 0' check and fails this one."""
+        lwp = load_lightwebpres_module()
+        # alias argv (relative to a fresh dir 's'), canonical argv.
+        # `prepare` says what must exist before the run.
+        cases = {
+            'install':           (('install', 's'), ('init', 's'), 'empty'),
+            'check':             (('check', 's'), ('verify', 's'), 'built'),
+            'refresh-templates': (('refresh-templates', 's'),
+                                  ('template', 'update', 's'), 'built'),
+            'themes':            (('themes',), ('theme', 'list'), 'empty'),
+            'theme-info':        (('theme-info', 'nord'),
+                                  ('theme', 'show', 'nord'), 'empty'),
+            'set-theme':         (('set-theme', 's', '--theme', 'ember'),
+                                  ('series', 'theme', 'set', 's',
+                                   '--theme', 'ember'), 'inited'),
+            'themes-gallery':    (('themes-gallery', 'nord', '--output', 'g.html'),
+                                  ('theme', 'gallery', 'nord',
+                                   '--output', 'g.html'), 'empty'),
+            'series-info':       (('series-info', 's'), ('status', 's'), 'inited'),
+        }
+        self.assertEqual(set(cases), set(lwp._LEGACY_ALIASES),
+                         'an alias was added or removed without a case here')
+
+        def prepare(root, kind):
+            if kind == 'empty':
+                return
+            self.assertEqual(run('init', 's', cwd=root).returncode, 0)
+            if kind == 'inited':
+                return
+            self.assertEqual(run('demo', 's', cwd=root).returncode, 0)
+            self.assertEqual(run('build', 's', cwd=root).returncode, 0)
+
+        for alias, (legacy_argv, canonical_argv, kind) in sorted(cases.items()):
+            with self.subTest(alias=alias):
+                with tempfile.TemporaryDirectory() as a, \
+                     tempfile.TemporaryDirectory() as b:
+                    prepare(a, kind)
+                    prepare(b, kind)
+                    old = run(*legacy_argv, cwd=a)
+                    new = run(*canonical_argv, cwd=b)
+                    # It warns, on stderr, naming what to type instead.
+                    self.assertIn('[WARNING]', old.stderr,
+                                  f'`{alias}` did not warn:\n{old.stderr}')
+                    self.assertIn('deprecated', old.stderr)
+                    replacement = lwp._LEGACY_REPLACEMENT[alias].split('  ')[0]
+                    self.assertIn(replacement, old.stderr,
+                                  f'`{alias}` did not name `{replacement}`:\n'
+                                  + old.stderr)
+                    # And it does the same work as the canonical form.
+                    self.assertEqual(old.returncode, new.returncode,
+                                     f'`{alias}` exited {old.returncode}, '
+                                     f'canonical exited {new.returncode}:\n'
+                                     + old.stderr)
+                    # The two runs live in different temp dirs, and
+                    # several commands echo the path they wrote.
+                    self.assertEqual(old.stdout.replace(a, '<dir>'),
+                                     new.stdout.replace(b, '<dir>'),
+                                     f'`{alias}` and its canonical form '
+                                     'printed different things')
+
     def test_a_deprecated_alias_warns_it_does_not_error(self):
         """The notice was tagged [ERROR] on a run that exits 0, so
         `grep '^\\[ERROR\\]'` matched successes -- while real warnings hid

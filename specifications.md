@@ -35,8 +35,10 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
 - **`README.md`** (anglais) — présentation et démarrage rapide.
 - **`GUIDE.md`** (anglais) — le parcours complet côté utilisateur
   (installer, écrire, vérifier, publier).
-- **`agent/skills/lightwebpres/SKILL.md`** (anglais) — la référence du
-  format à destination d'un agent LLM qui écrit ou modifie des articles.
+- **`agent/skills/`** (anglais) — les skills, plus leur index
+  (`README.md`). `lightwebpres/SKILL.md` est la référence du format à
+  destination d'un agent LLM qui écrit ou modifie des articles ; les
+  autres portent des méthodes éditoriales et n'engagent pas le format.
 - **`BACKLOG.md`** (anglais) — le registre *pérenne* des manques relevés
   et des décisions différées : ce qui doit rester trouvable « plus tard »
   y va, et y reste au travers des releases. Cette spécification y renvoie
@@ -62,10 +64,11 @@ ignoré un répertoire entier.
 Les autres fichiers `.md` ne font **pas** partie de ce
 contrat, et se répartissent dans les familles suivantes :
 
-- **transitoire** — `JOURNAL-1.0.md`, la mémoire de travail de la 1.0 :
-  supprimée du dépôt juste avant la release, jamais référencée par un
-  document pérenne. Ses renvois internes en `§x.y` ne sont pas tenus à
-  jour et peuvent pointer dans le vide.
+- **transitoire** — `delete-before-1.0/JOURNAL-1.0.md`, la mémoire de
+  travail de la 1.0 : supprimée du dépôt juste avant la release. Ses
+  renvois internes en `§x.y` ne sont pas tenus à jour et peuvent pointer
+  dans le vide. `BACKLOG.md` la cite une fois, en tête, pour dire ce qu'il
+  n'est pas.
 - **relevés** — des mesures avec leurs conditions, les hypothèses
   qu'elles ont tuées, une enquête datée : ce qu'une spec normative ne peut
   pas absorber sans cesser d'être une spec. Ils n'obligent rien ; en cas
@@ -80,15 +83,17 @@ contrat, et se répartissent dans les familles suivantes :
     (`AUDIT-*.md`). Ils restent dans l'arborescence active parce qu'on y
     revient, et le backlog y renvoie.
   - `delete-before-1.0/` — les relevés dont le raisonnement est versé
-    ailleurs : `ETUDE-VIEWPORT.md` (viewport, rattaché à B7 et B13),
-    `REVISION-THEMES.md` (catalogue, rattaché à B5 et B9),
-    `ANTERIORITE-THEMES.md` (antériorité du système de thèmes), et
-    `docs/` pour les documents de conception absorbés.
+    ailleurs, et les plans dont le travail est fait. Le répertoire n'est
+    pas énuméré ici : ce serait reproduire le défaut que cette section
+    vient de décrire. Ce qui y entre est nommé par son chemin quand un
+    document pérenne en parle, et pas autrement.
 
 - **outillage** — les fichiers qu'un outil lit : `docs/guide-deck.md`, le
   deck source du guide, compilé par `tools/build_guide.py` vers
   `docs/guide/`. Ce n'est pas de la documentation *sur* le projet, c'est
-  une entrée de build, et elle se corrige comme du code.
+  une entrée de build, et elle se corrige comme du code. `web/vendor/`
+  porte aussi les notices de ce qui y est vendorisé (§13.8) : elles
+  appartiennent au tiers, pas au projet, et se remplacent avec lui.
 
 `delete-before-1.0/` est un miroir de la racine : ce qui y entre reste
 consultable mais quitte l'arborescence active, git en conserve
@@ -119,18 +124,24 @@ est la source de vérité) :
 - **Vocabulaire.** `GLOSSARY.md` est le contrat de vocabulaire partagé :
   tout champ que le GUI présente, valide ou génère porte le nom, la
   portée et la casse qui y sont figés (conventions de nommage :
-  `GLOSSARY.md` § « Naming conventions »). Le générique est « field »,
-  jamais « tag »/« balise ».
+  `GLOSSARY.md` § « Naming conventions »). Le terme générique de ce
+  document pour un `clé: valeur` est « champ » — « field » côté anglais,
+  jamais « tag »/« balise », qui désignent autre chose (§4.3.1, §6.2).
+  C'est une convention d'écriture d'ici, pas une règle figée au glossaire.
 - **Format et comportement.** `specifications.md` (ce document) et
   `SKILL.md` décrivent le format et le rendu que le GUI doit produire à
-  l'identique — un build lancé depuis le GUI et un build en ligne de
-  commande donnent le **même** HTML (la page navigateur exécute d'ailleurs
-  l'exécutable `lightwebpres` tel quel via Pyodide, §23.1).
-- **Version vendorisée.** Le GUI **épingle une version exacte** de
-  l'exécutable `lightwebpres` (il en vendorise une copie) et affiche
-  laquelle ; il ne suit jamais une version « au fil de l'eau ». La montée
-  de version est une action explicite côté GUI, vérifiée par ses propres
-  tests.
+  l'identique. Le GUI n'a pas de moteur de rendu propre : il exécute cet
+  exécutable-ci via Pyodide, donc **à version égale** le HTML est le même.
+  Rien ne garde cette égalité de version — c'est le point du bullet
+  suivant, et la version vendorisée est régulièrement en retard.
+  (`web/index.html`, §23.1, applique ici le même montage.)
+- **Version vendorisée.** Le GUI **épingle par défaut une version exacte**
+  de l'exécutable `lightwebpres` (il en vendorise une copie) et affiche
+  laquelle. Il ne bascule sur une version plus récente que par un geste
+  explicite, jamais en silence. Sa spec (`lightwebpres-gui` §2.5) documente
+  deux dérogations implémentées : un déploiement sans copie vendorée va
+  chercher la dernière release taguée sur GitHub, et l'utilisateur peut
+  demander la bascule. La montée de version est vérifiée par ses tests.
 - **Stabilité promise.** À partir de la 1.0, les noms de champs gelés
   (`GLOSSARY.md` § « Naming conventions », liste gelée en §20.2) et le
   format d'entrée (`series.json`, article `.md`) sont stables au sens de la politique de versionnage (§13.9) : le GUI peut
@@ -144,10 +155,15 @@ est la source de vérité) :
   Ce que le GUI produit est produit par cet exécutable, et hérite donc de
   l'exception d'ici. Les fichiers de licence doivent voyager avec toute
   redistribution, y compris dans l'arborescence déployée du GUI.
-- **Surface interne consommée.** Au-delà de `cmd_*`, le GUI dépend de six
-  symboles internes que la surface commande n'expose pas :
-  `build_article()`, `load_language()`, `TypoEngine`, `strings`, `THEMES`
-  et `_find_series_dir_in_archive()`. La dépendance existe, écrite ou non ;
+- **Surface interne consommée.** Le GUI vendorise **deux** fichiers d'ici :
+  l'exécutable `lightwebpres` et la colle `web/git_sync.py`. Au-delà de
+  `cmd_*`, il dépend de symboles internes que la surface commande n'expose
+  pas : `build_article()`, `load_language()`, `TypoEngine` et `THEMES` dans
+  l'exécutable, `_find_series_dir_in_archive()` dans `git_sync.py` (§23.1).
+  Il dépend aussi de la **forme** du pack de langue — le dictionnaire
+  `strings`, qui est une donnée et non un symbole — et du schéma JSON
+  `lightwebpres.theme-info/4` (§11.9.1), versionné justement pour ça.
+  La dépendance existe, écrite ou non ;
   l'écrire évite qu'un renommage la casse en silence, puisque la suite de
   tests d'ici ne la voit pas. Les renommer est un changement cassant pour
   le GUI même si rien ne rougit de ce côté-ci — voir la spec
@@ -189,8 +205,8 @@ L'exécutable contient en interne :
 3. Les règles typographiques par défaut (`fr` et `en`) — écrites en string
    Python, extraites par la commande `init`
 4. Le générateur de démo (crée des articles d'exemple)
-5. Le CLI (`init`, `demo`, `build`, `verify`, `audit`, `template update`,
-   `theme list`, `series theme set`, `theme gallery`, `--help`)
+5. Le CLI — les commandes ne sont pas énumérées ici : le synopsis complet
+   est en §2.4.2, et `--help` le dérive des tables d'options
 
 ### 2.2 Le répertoire de série
 
@@ -221,10 +237,13 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   ├── index.html
 │   ├── avant_propos.html
 │   ├── snapchat.html
-│   └── img/                       # Images copiées depuis articles/
-│       └── ...
+│   ├── img/                       # Images copiées depuis articles/
+│   │   └── ...
+│   └── .lwp-manifest.json         # Ce que ce build a écrit — base de clean (§11.13)
 ├── README.md                      # Généré par build depuis series.json (§8.3)
 ├── lightwebpres                   # Copie de l'exécutable (installée par init, §11.1)
+├── COPYING                        # GPLv3, posée par init avec l'exécutable (§1.2)
+├── COPYING.EXCEPTION              # LightWebPres Output Exception, idem
 ├── .gitlab-ci.yml                 # Pipeline CI (optionnel — init --gitlab-ci, §11.1)
 └── .lwp-cache/nav.json            # Empreinte de navigation pour build --only (§11.3.1)
 ```
@@ -263,8 +282,18 @@ commande ; aucune commande ne peut les refuser.
 | `--dry-run` | N'écrit, ne crée, ne copie et ne supprime **rien** : journalise ce qui serait fait. Vaut pour toute commande, y compris `clean --force` |
 | `--no-color` | N'émet aucune séquence ANSI |
 | `--timestamp` | Préfixe chaque ligne de journal d'un horodatage |
-| `--version` | Écrit `LightWebPres v<version>` sur stdout et sort à 0 |
+| `--version` | Écrit `LightWebPres v<version>` sur stdout et sort à 0 — **en tête de ligne seulement**, voir ci-dessous |
 | `--help`, `-h` | Aide. Seule, l'aide générale ; après une commande ou un nœud (`series`, `theme`), l'aide de celle-ci |
+
+**Deux exceptions à « avant ou après ».** `--version` et `--help`
+court-circuitent le lancement : ils ne peuvent le faire que là où le
+parseur les lit avant d'avoir choisi une commande, c'est-à-dire en tête de
+ligne. `lightwebpres --version build .` écrit la version et sort ;
+`lightwebpres build . --version` est accepté par le parseur et **n'a aucun
+effet** — la série est construite, rien n'est écrit sur stdout. C'est un
+no-op silencieux, exactement ce que §2.4.2 proscrit par ailleurs ; il est
+au `BACKLOG.md` (B22). Les six autres options globales valent bien des deux
+côtés, vérifiées une par une.
 
 `--` termine les options : tout ce qui suit est un argument positionnel,
 même commençant par `-`.
@@ -286,8 +315,12 @@ lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-fil
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
+lightwebpres theme show [slug… | --all | répertoire] [--format text|json]
+lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
+lightwebpres status [répertoire] [--format text|json]
+lightwebpres resolve [répertoire] <propriété> [--article page] [--format text|json]
 lightwebpres clean [répertoire] [--output public/] [--force]
 lightwebpres completion --shell bash|zsh
 lightwebpres --help
@@ -317,9 +350,7 @@ sont honorées par toute commande qui opère sur un répertoire de série —
 `LWP_SERIES_DIR` est résolu une seule fois dans `main()`, avant l'aiguillage,
 donc `init`, `demo` et `series theme set` l'honorent aussi. Seules `theme list` et
 `theme gallery` y échappent : la première n'interroge que la table `THEMES`
-intégrée, la seconde ne prend qu'un chemin de sortie. `theme list` et `theme gallery` ne lisent aucun répertoire de
-série : la première n'interroge que la table `THEMES` intégrée, la
-seconde ne prend qu'un chemin de sortie.
+intégrée, la seconde ne prend qu'un chemin de sortie.
 
 L'aide s'obtient par `help`, `--help` ou `-h` (les trois formes sont
 équivalentes) ; sans argument du tout, l'aide s'affiche aussi. Une
@@ -498,9 +529,9 @@ numéros de slide sont activés, selon la cascade (la plus spécifique gagne) :
 3. `series_meta.slide_page_numbers: true` dans `series.json` ;
 4. défaut intégré : `off`.
 
-Toute valeur hors `true`/`false`/`yes`/`no`/`1`/`0` (front-matter) ou
-`on`/`off` (CLI) est
-une erreur de build **fatale** nommant l'origine. Le compteur dynamique
+Toute valeur hors `on`/`off`/`true`/`false`/`yes`/`no`/`1`/`0` est une
+erreur de build **fatale** nommant l'origine — même vocabulaire aux trois
+origines, `resolve_slide_page_numbers` n'en connaît qu'un. Le compteur dynamique
 bas-gauche (`.slide-counter`, « X / N ») est **indépendant** et toujours
 affiché, même quand les numéros gravés sont désactivés. La résolution est
 faite une fois par article (`resolve_slide_page_numbers`) et transmise à
@@ -542,7 +573,8 @@ visuellement une ligne trop longue (word-wrap), c'est un effet d'affichage de
 l'éditeur ; le fichier ne contient toujours qu'une seule ligne logique à cet
 endroit.
 
-**Le texte libre** (5. — ni `clé: valeur`, ni `<!-- -->`, ni `---`) : tout ce
+**Le texte libre** (ni `clé: valeur`, ni `<!-- -->`, ni `---` — donc aucune
+des quatre formes ci-dessus) : tout ce
 qui n'est reconnu ni comme commentaire LWP ni comme champ `clé: valeur`
 valide devient, à partir de cette ligne et jusqu'au `---` suivant, du texte
 Markdown standard — le contenu de la fact-box, ou le corps entier d'un
@@ -619,7 +651,14 @@ doivent être rendus comme deux `<p>` distincts à l'intérieur du même
 | `source`         | `<p class="source">Source : VALEUR</p>` | Non         |
 | `highlight`         | `<span class="highlight-figure">VALEUR</span>` | Non     |
 | `highlight-caption` | `<span class="highlight-caption">VALEUR</span>` | Non  |
+| `tags`           | `data-tags` sur la `<section>` (§4.3.1)   | Non         |
+| `fact-variant`   | `fact--VALEUR` sur l'encadré (§9.6.2)     | Non         |
+| `note`           | `<div class="speaker-note" hidden>` — panneau présentateur seulement (§8.4) | Non |
 | `comment`        | Aucun — jamais rendu (§4.6)               | Non         |
+
+Le jeu de champs fait foi dans le code (`SLIDE_FIELD_NAMES`), d'où `--help`
+le dérive. Rien ne verrouille ce tableau-ci contre lui : il se relit à la
+main, et c'est pour l'avoir oublié qu'il a manqué trois champs.
 
 Le texte libre après les champs est placé dans un `<div class="fact-content">`
 si un `fact-label` est présent, sinon dans un `<div class="slide-body">`.
@@ -630,8 +669,9 @@ dédié **plus petit** que le grand titre de la slide (`.fact-content
 h1/h2/h3` dans un fact-box, `.slide-body h1/h2/h3` sinon), pour rester
 proportionnés — sans wrapper, un `#` de corps aurait la taille d'un titre
 de cover, plus grosse que le `##` de la slide. Le `<div class="slide-body">`
-ne porte aucune taille de police propre : un paragraphe ordinaire y rend
-exactement comme avant. Un titre ouvrant directement le corps (sans
+porte désormais sa propre base, `max(16px, 2vmin)` : identique à l'ancien
+16 px sur petit écran, croissante au-delà, là où le corps sans encadré
+restait bloqué. Un titre ouvrant directement le corps (sans
 paragraphe avant) ne redéfinit pas le titre de la slide — voir §22.2 pour
 la règle exacte.
 Chaque champ `clé: valeur`, à l'inverse, tient toujours sur une seule ligne
@@ -793,7 +833,9 @@ pas inline dans l'exécutable au moment du build.
   thème et propriétés lus depuis `templates/settings.conf`, règles libres
   de `templates/custom.css` ajoutées en dernier — puis insérée dans
   `<style>` dans le `<head>` de chaque page
-- **JS** : lu depuis `templates/nav.js` s'il existe, inséré dans `<script>` à la fin du `<body>`
+- **JS** : lu depuis `templates/nav.js` s'il existe, sinon la version
+  intégrée à l'exécutable ; inséré dans `<script>` à la fin du `<body>`.
+  Retirer le fichier ne retire pas la navigation, il rend la sienne
 - La structure HTML elle-même n'est pas lue depuis un fichier : elle est
   fixe, intégrée à l'exécutable (§9), seuls ses placeholders sont remplacés
 
@@ -808,6 +850,7 @@ pas inline dans l'exécutable au moment du build.
 | `# Titre`         | `<h1>Titre</h1>`                        |
 | `## Titre`        | `<h2>Titre</h2>`                        |
 | `### Titre`       | `<h3>Titre</h3>`                        |
+| `#### Titre`      | `<p class="h4">Titre</p>` — pseudo-titre gras, pas un `<h4>` |
 | `**gras**`        | `<strong>gras</strong>`                |
 | `*italique*`      | `<em>italique</em>`                    |
 | `[^label]`        | appel de note — voir §6.5              |
@@ -828,8 +871,11 @@ générées sont autonomes et la seule cible relative légitime, une image,
 a sa propre syntaxe ci-dessous). Pour un lien interne malgré tout, passer
 par du HTML brut (§6.2).
 
-**Titres.** Seuls trois niveaux existent (`#`, `##`, `###`) ; `####` et
-au-delà ne sont pas reconnus et restent du texte de paragraphe littéral.
+**Titres.** Trois niveaux rendent un vrai titre (`#`, `##`, `###`). `####`
+rend un **pseudo-titre** : `<p class="h4">`, gras, stylé par la feuille,
+mais pas un `<h4>` — le document s'arrête à trois niveaux de plan.
+`#####` et `######` perdent leur marqueur et rendent un paragraphe nu.
+Seul un `####` sans espace après les dièses reste littéral.
 
 **Tableaux.** Chaque `<table>` généré porte `class="comparison-table"`
 — c'est le crochet de style du CSS par défaut (et donc un point de
@@ -895,7 +941,7 @@ bloc, comme un titre ou une liste.
 `[![alt](src "Légende")](https://…)`, seule sur sa ligne — reste une
 figure, et l'image devient cliquable :
 `<figure class="figure"><a href="…" target="_blank" rel="noopener"><img …></a><figcaption>…</figcaption></figure>`.
-La cible est restreinte à http(s) comme tout lien (§6.3), puisqu'elle
+La cible est restreinte à http(s) comme tout lien (ci-dessus, §6.1), puisqu'elle
 atterrit dans un attribut.
 
 Le lien enveloppe **l'image seule, jamais la légende**. Sémantiquement
@@ -1052,8 +1098,15 @@ agrément : sans lui, un lecteur qui a sauté depuis la fiche 3 n'a d'autre
 issue que la barre de défilement, et un utilisateur de lecteur d'écran
 n'en a aucune. **Le label de l'auteur
 n'atteint jamais la page** : c'est une clé, rien d'autre, ce qui explique
-qu'il puisse être n'importe quoi (`[^1]`, `[^kwh]`, `[^a]`) et que la
+qu'il soit libre (`[^1]`, `[^kwh]`, `[^a]`, accents compris) et que la
 numérotation ne soit pas une réécriture de ce que l'auteur a écrit.
+
+Libre, mais pas quelconque : le motif du moteur est `\w+` — caractères de
+mot Unicode uniquement, donc **ni tiret, ni espace, ni ponctuation**. Un
+label hors motif n'est pas une erreur : l'appel comme le corps sortent
+**littéralement** dans la page, et `audit` ne le voit pas. C'est le seul
+endroit du format où une faute de frappe passe en silence jusqu'au
+lecteur ; c'est au `BACKLOG.md` (B24).
 
 #### 6.5.1 Emplacement (`notes_placement`)
 
@@ -1248,8 +1301,6 @@ est un défaut sous `local` et parfaitement correct sous `page`) :
 
 ---
 
----
-
 ## 7. Langue (typographie et interface)
 
 Un **fichier de langue** (`language/{lang}.json`) regroupe tout ce qui dépend
@@ -1265,7 +1316,8 @@ l'anglais (`en`) — l'anglais sert aussi de **repli ultime** pour toute
 langue demandée via `--lang` qui n'a ni pack intégré ni fichier
 `language/{lang}.json`.
 
-Fichier `language/fr.json` (exemple) :
+Fichier `language/fr.json` — extrait de ce que `init` écrit réellement,
+deux règles sur huit et trois chaînes sur les quarante-quatre :
 
 ```json
 {
@@ -1273,28 +1325,18 @@ Fichier `language/fr.json` (exemple) :
   "name": "Français",
   "rules": [
     {
-      "name": "insécable_avant_ponctuation_double",
-      "pattern": "([\\s])([;:!?])",
-      "replacement": "\\u00a0\\2",
-      "description": "Espace insécable avant ; : ! ?"
+      "name": "nbsp_before_double_punctuation",
+      "description": "Non-breaking space before ; : ! ? »",
+      "pattern": " ([!?;:»])",
+      "replacement": " $1",
+      "flags": "g"
     },
     {
-      "name": "insécable_dans_guillemets",
-      "pattern": "«\\s+",
-      "replacement": "«\\u00a0",
-      "description": "Espace insécable après «"
-    },
-    {
-      "name": "insécable_dans_guillemets_fin",
-      "pattern": "\\s+»",
-      "replacement": "\\u00a0»",
-      "description": "Espace insécable avant »"
-    },
-    {
-      "name": "insécable_devant_pourcent",
-      "pattern": "([0-9])(\\s)(%)",
-      "replacement": "\\1\\u00a0\\3",
-      "description": "Espace insécable entre le nombre et le %"
+      "name": "nbsp_after_opening_quote",
+      "description": "Non-breaking space after «",
+      "pattern": "(«) ",
+      "replacement": "$1 ",
+      "flags": "g"
     }
   ],
   "strings": {
@@ -1304,6 +1346,16 @@ Fichier `language/fr.json` (exemple) :
   }
 }
 ```
+
+**Trois choses que cet extrait fixe, et qu'un exemple inventé rate.** Les
+groupes se rappellent en **`$1`**, pas en `\1` — le moteur convertit
+`$N` en `\N` avant de compiler, et un `\u00a0` écrit en toutes lettres
+dans un `replacement` n'est pas une échappe valide : il fait échouer le
+build. Les espaces insécables sont écrites en **caractère littéral**
+(U+00A0), pas en échappement JSON : dans `" $1"` et `"$1 "` ci-dessus, l'espace visible
+*est* l'insécable — c'est indiscernable à l'œil, et c'est le prix de la
+fidélité au fichier. Enfin la clé **`flags`** existe et vaut `"g"` dans
+toutes les règles livrées (§19.2).
 
 ### 7.2 Règles typographiques
 
@@ -1328,6 +1380,13 @@ défaut — infobulles de navigation, bouton de partage, libellés de la
 navigation de série, etc. Chaque valeur est injectée dans les templates via
 un placeholder `{{str_CLÉ}}` (§9, §18).
 
+Le tableau ci-dessous est un **extrait**, pas l'inventaire : la référence
+est le pack intégré (`LANG_FR`/`LANG_EN`, identiques en clés). Le pack
+porte en particulier tout le vocabulaire du pack présentateur — overlay
+d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
+(`tags_*`), notes (`note_back`, `notes_section_title`) et plein écran
+(`nav_fullscreen`) — ajouté en §8.4 sans que ce tableau suive.
+
 | Clé                        | Usage                                              |
 |-----------------------------|----------------------------------------------------|
 | `nav_prev`                  | Infobulle du bouton « planche précédente »          |
@@ -1343,7 +1402,7 @@ un placeholder `{{str_CLÉ}}` (§9, §18).
 | `series_back_to_index`       | Texte du lien de retour à l'index (nav de série)     |
 | `series_untitled_fallback`   | Titre de secours si `series_meta.title` est absent   |
 | `draft_banner`               | Texte du bandeau brouillon (`--include-drafts`, §11.3/§20.6) |
-| `full_article_tag`           | Étiquette de la fiche `full-article`                |
+| `full_article_kicker`        | Kicker de la fiche `full-article` (« Article complet ») |
 | `source_label`               | Préfixe avant la valeur de `source`                  |
 | `copy_link`                  | Libellé de la ligne « copier le lien » de la matrice de partage |
 | `copy_link_done`             | Retour visuel transitoire après une copie            |
@@ -1363,9 +1422,12 @@ L'utilisateur peut créer `language/fr.json`, `language/en.json`, ou tout
 autre `language/{lang}.json`, dans son répertoire de série pour override le
 pack par défaut. Le comportement diffère entre les deux blocs :
 
-- **`rules`** : remplacement total. Si le fichier existe, ses `rules`
+- **`rules`** : remplacement total. Si le fichier **définit** `rules`, elles
   remplacent entièrement les règles intégrées (l'ordre et les interactions
-  entre règles comptent, un remplacement partiel n'aurait pas de sens).
+  entre règles comptent, un remplacement partiel n'aurait pas de sens). La
+  condition porte sur la clé, pas sur le fichier : un `language/fr.json` qui
+  ne contient qu'un bloc `strings` conserve les huit règles intégrées, et
+  `"rules": []` les supprime toutes.
 - **`strings`** : repli clé par clé. Les clés absentes du fichier retombent
   sur le pack intégré de la **même langue** — un override peut ne redéfinir
   qu'une seule clé sans avoir à recopier tout le vocabulaire.
@@ -1387,16 +1449,25 @@ insèrent une espace insécable entre un nombre et ce qui le complète — un
 cas que les précédentes ne couvraient pas, car aucune d'elles ne
 regarde ce qui suit un nombre :
 
+L'insécable est notée `<nbsp>` dans la colonne « Après » : écrite en
+glyphe, elle serait indiscernable d'une espace ordinaire, et le tableau
+n'illustrerait rien — ce qu'il a longtemps fait.
+
 | `name` | Avant | Après |
 |--------|-------|-------|
-| `nbsp_before_double_punctuation` | `Vraiment ?` | `Vraiment ?` |
-| `nbsp_after_opening_quote` | `« bonjour »` | `« bonjour »` |
-| `nbsp_inside_dash_incise` | `Paris — capitale — France` | `Paris — capitale — France` |
-| `nbsp_before_lone_dash` | `word — rest` | `word — rest` |
-| `nbsp_before_percent` | `50 %` | `50 %` |
-| `nbsp_thousands_separator` | `170 000 vues` | `170 000 vues` |
-| `nbsp_before_unit` | `170 millions`, `20 dollars`, `5 $` | `170 millions`, `20 dollars`, `5 $` |
-| `nbsp_after_operator` | `≈ 5`, `× 4` | `≈ 5`, `× 4` |
+| `nbsp_before_double_punctuation` | `Vraiment ?` | `Vraiment<nbsp>?` |
+| `nbsp_after_opening_quote` | `« bonjour »` | `«<nbsp>bonjour<nbsp>»` |
+| `nbsp_inside_dash_incise` | `Paris — capitale — France` | `Paris —<nbsp>capitale<nbsp>— France` |
+| `nbsp_before_lone_dash` | `word — rest` | `word<nbsp>— rest` |
+| `nbsp_before_percent` | `50 %` | `50<nbsp>%` |
+| `nbsp_thousands_separator` | `170 000 vues` | `170<nbsp>000 vues` |
+| `nbsp_before_unit` | `170 millions`, `5 $` | `170<nbsp>millions`, `5<nbsp>$` |
+| `nbsp_after_operator` | `≈ 5`, `× 4` | `≈<nbsp>5`, `×<nbsp>4` |
+
+`nbsp_inside_dash_incise` n'est pas symétrique, et la colonne « Après » le
+montre : l'insécable est posée **après** le tiret ouvrant et **avant** le
+tiret fermant, de sorte qu'aucun des deux tirets ne puisse être séparé de
+l'incise qu'il encadre. Les espaces extérieures restent sécables.
 
 `nbsp_thousands_separator` ne fait qu'**upgrader une espace déjà présente**
 entre deux groupes de 3 chiffres consécutifs — elle ne regroupe jamais un
@@ -1411,7 +1482,7 @@ upgrader.
 suivant un nombre : un mot ordinaire comme « likes » dans « 68 likes »
 n'est pas une unité typographique reconnue — l'ajouter à la liste
 casserait la distinction avec un nombre suivi d'un nom commun ordinaire
-(« 5 personnes »). Cette liste, comme les cinq autres règles, reste
+(« 5 personnes »). Cette liste, comme les autres règles, reste
 éditable dans `language/fr.json` (§7.4, §19.2) pour qui veut l'étendre.
 
 Ces règles ne font **jamais** que remplacer une espace normale (U+0020)
@@ -1480,7 +1551,12 @@ Générée depuis `series.json`. La page d'index contient :
 3. Une introduction (texte libre : `series_meta.intro` de `series.json`,
    seule source)
 4. Les cartes d'articles (une par article, dans l'ordre de `series.json`)
-5. Le JavaScript de navigation
+5. Un pied de page (`<footer class="page-footer">` : signature et licence
+   de la série), émis dès que `series_meta.author` ou `series_meta.license`
+   est non vide, absent quand les deux le sont
+6. Les boutons de navigation (`<div class="nav-buttons">` : remonter, haut
+   de page, descendre)
+7. Le JavaScript de navigation
 
 Chaque carte d'article :
 
@@ -1502,21 +1578,27 @@ Générée depuis `series.json`. Le bloc inclus dans chaque article :
   <h2>Cette série</h2>
   <div class="series-list">
     <a href="introduction.html" class="series-item series-link">
+      <div class="series-label">Article 1</div>
       <div class="series-title">Avant de commencer</div>
       <div class="series-desc">Le matériel et les bases communes à toutes les recettes</div>
       <div class="series-status">→ Lire l'article</div>
     </a>
     <div class="series-item series-current">
+      <div class="series-label">Article 2</div>
       <div class="series-title">La tarte aux pommes</div>
       <div class="series-desc">Pâte brisée, cuisson et dressage</div>
       <div class="series-status">▶ En cours de lecture</div>
     </div>
-    <a href="index.html" class="series-item series-link" style="text-align: center;">
+    <a href="index.html" class="series-item series-link" style="text-align: center; margin-top: 24px;">
       <div class="series-title">← Retour à l'index</div>
     </a>
   </div>
 </section>
 ```
+
+Le `<div class="series-label">` porte le `card_label` résolu (§20.3.1) et
+n'est émis que s'il est non vide — c'est la seule ligne conditionnelle du
+bloc.
 
 ### 8.3 README
 
@@ -1524,7 +1606,9 @@ Régénéré à chaque `build`, à la racine du **répertoire de série** (là o
 vit `series.json` — pas nécessairement la racine du dépôt git si le
 répertoire de série est imbriqué). Contient, dans l'ordre :
 
-1. Le titre de la série (`series_meta.title`, ou « Article series » si absent)
+1. Le titre de la série (`series_meta.title`, ou la chaîne
+   `series_untitled_fallback` du pack de langue si absent — « Série
+   d'articles » en `fr`, « Article series » en `en`)
 2. Le sous-titre et l'intro (`series_meta.subtitle`, `series_meta.intro`),
    s'ils sont présents
 3. Un titre de section fixe `## Articles` (non localisé), puis une liste
@@ -1548,13 +1632,23 @@ noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
 touche de navigation les lève.
 
+Quatre touches de plus, arrivées avec l'aide, le panneau présentateur et
+le filtre de tags : **H** ouvre et ferme l'overlay de raccourcis, **N** le
+panneau présentateur (notes de la fiche courante + fiche suivante), **L**
+le menu de filtre par tag (§4.3.1), et **une suite de chiffres suivie
+d'Entrée** saute à la planche de ce numéro — tampon de trois chiffres,
+expiré après 2,5 s, annulé par Échap. Échap ferme aussi le panneau
+présentateur. Le vocabulaire de ces touches vit dans le pack de langue
+(`help_*`, `presenter_*`, `tags_*`, §7.3).
+
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
 slide précédent (deux boutons distincts, sans visée). En mode normal,
 le clic gauche a une latence de 250 ms pour détecter le double-clic
-qui entre en plein écran ; le clic milieu sort du plein écran (y entrer
-via le clic milieu n'est pas possible sur Firefox, qui bloque
-requestFullscreen depuis un clic non-gauche — utiliser le double-clic,
-le bouton ⛶, ou F). En plein écran, les clics gauche et droit sont
+qui entre en plein écran ; le clic milieu ne fait qu'en **sortir** — il
+n'appelle jamais `requestFullscreen`, sur aucun navigateur, et c'est une
+décision du code, pas une limitation de moteur (Firefox le bloquerait de
+toute façon depuis un clic non-gauche). Pour y entrer : double-clic,
+bouton ⛶, ou F. En plein écran, les clics gauche et droit sont
 instantanés (plus de double-clic à détecter). Le menu contextuel natif est
 supprimé sur le contenu pour que le clic droit soit un geste propre.
 Les clics sur les liens, images et boutons ne sont pas interceptés.
@@ -1565,16 +1659,25 @@ curseur se masque après 1 s d'inactivité en plein écran.
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.
 
-**Boutons** : ↑/🏠/↓/partage/⛶ (plein écran) en bas-droite. Auto-hide
-après 3 s d'inactivité souris (réapparaissent au mouvement) ; les
-tactiles les gardent visibles. Le bouton ⛶ donne accès au plein écran
-sans clavier.
+**Boutons** : ↑/🏠/↓/partage/⛶ (plein écran)/L (filtre de tags, masqué
+quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
+d'inactivité souris hors plein écran, **1 s en plein écran** — c'est-à-dire
+dans le mode où l'orateur se trouve, où le chrome doit s'effacer plus vite.
+Réapparition au mouvement ; les tactiles les gardent visibles. Le bouton ⛶
+donne accès au plein écran sans clavier.
 
 **`--inline-images`** (v0.25.1) : chaque image référencée dans le
-Markdown est embarquée comme un data URI base64, et le répertoire
-`img/` n'est pas copié. La page est alors un seul fichier HTML
-autonome. L'HTML grossit d'environ 33 % par image, mais un gzip de
-servage récupère ce surcoût sur le wire.
+Markdown **d'une fiche** est embarquée comme un data URI base64, et le
+répertoire `img/` n'est pas copié. L'HTML grossit d'environ un tiers par
+image, mais un gzip de servage récupère ce surcoût sur le wire.
+
+**L'option ne couvre pas les images d'un fichier inclus** par une fiche
+`full-article` (§5.1) : `build_article` convertit ce Markdown-là sans
+transmettre l'option ni le répertoire des articles. Comme `img/` n'est de
+toute façon pas copié, une telle image donne une page **cassée** — chemin
+relatif conservé vers un répertoire absent. La promesse « un seul fichier
+HTML autonome » n'est donc pas tenue dans ce cas, et rien ne le vérifie au
+build. C'est au `BACKLOG.md` (B23).
 
 ---
 
@@ -1682,7 +1785,7 @@ les systèmes de jetons et les catalogues de thèmes existants :
   regrette. Les générateurs comparables en ont deux (reveal.js, Quarto,
   mkdocs-material) ou zéro (Hugo, Zola, Eleventy).
 - Le seuil de rentabilité d'une couche sémantique se situe au **troisième
-  ou quatrième thème**. Ce catalogue en compte cinquante-trois : elle
+  ou quatrième thème**. Ce catalogue en compte plusieurs dizaines : elle
   serait rentable ici, si elle n'était pas d'abord un troisième niveau.
 - La trajectoire **base16 → base17 → Tinted** est le précédent le plus
   proche, et il est allé à son terme : seize emplacements à sémantique
@@ -1704,7 +1807,7 @@ les systèmes de jetons et les catalogues de thèmes existants :
   explique, et **les cycles doivent être détectés** — ce dernier point est
   implémenté (§9.2 les détecte et les nomme).
 
-**Les valeurs partagées.** Six couleurs et quatre piles de polices,
+**Les valeurs partagées.** Sept couleurs et quatre piles de polices,
 fournies par un thème et consommées par les défauts des propriétés de
 composant :
 
@@ -1713,9 +1816,10 @@ composant :
 | `color.page` | fond de page (`page.bg`), encre de couverture sur thème clair (`cover.fg`), fond des contrôles de partage |
 | `color.ink` | texte courant (`page.fg`), **résumé de fiche (`summary.fg`)**, contenu d'encadré, titres du corps, tête de tableau, trait des liens (`link.decoration-color`) |
 | `color.ink-quiet` | kicker, numéro de fiche, étiquette d'encadré, source, pied de page, citation, légende, références, verdict « non », libellés et descriptions de cartes |
-| `color.mark` | filet d'encadré (`fact.rule-fg`), kicker de couverture, fond du gras d'encadré (`fact.strong.bg`), filet d'en-tête d'index, point de navigation actif, colonne `col-snap` |
-| `color.call` | appel de note, verdict « partiellement », anneaux de focus |
+| `color.mark` | filet d'encadré (`fact.rule-fg`), kicker de couverture, fond du gras d'encadré (`fact.strong.bg`), filet d'en-tête d'index, filet de carte au survol, colonne `col-snap` |
+| `color.call` | appel de note (`footnote-call.fg`), marqueur de note (`note.marker.fg`), verdict « partiellement » |
 | `color.affirm` | verdict « oui » |
+| `color.nav` | pastille de navigation active (`nav-dot.bg-active`), anneaux de focus (`nav-btn.ring`, `series-nav.link.ring`), filet de lien de nav de série (`series-nav.link.rule-fg`) — le septième rôle, ajouté pour que ce qui indique *où l'on est* cesse d'emprunter la couleur de ce qui *souligne le propos* |
 | `font.text` | le corps (`page.font`) ; `font.display` y renvoie par défaut — `font.ui` est une pile sans distincte depuis B9 (§9.5.1) |
 | `font.display` | titres (`title1.font`, `title2.font`), chiffre-clé, en-tête d'index |
 | `font.ui` | kickers, étiquettes, sources, pieds de page — le petit appareil textuel |
@@ -1732,21 +1836,23 @@ Deux précisions, chacune corrigeant une erreur qui a coûté cher :
 - **Chaque emploi est une propriété distincte dont la valeur partagée
   n'est que le défaut.** Modifier un sens ne déplace plus les autres :
   `verdict.partial.fg: #8A4B00` recolore le verdict « partiellement »
-  sans toucher à l'appel de note ni aux anneaux de focus, qui ne
-  partagent avec lui qu'un défaut, pas une variable.
+  sans toucher à l'appel de note, qui ne partage avec lui qu'un défaut,
+  pas une variable. (Les anneaux de focus, eux, ne partagent plus rien
+  avec `call` du tout : ils sont passés à `nav`.)
 
 **La règle de complétude.** *Une propriété non exposée est une décision
 confisquée au thème.* C'est le critère de qualité du système, vérifié
 par construction : l'émission du CSS est dérivée du registre des
 propriétés, donc toute valeur qu'une règle émise consomme est une
 propriété, et réciproquement. Le coût assumé est une surface large — une
-cinquantaine de composants sur une dizaine d'axes ; une liste longue
-reste lisible là où une hiérarchie profonde ne l'est plus. Le **nombre**
-de propriétés n'est jamais écrit à la main dans une surface de
-documentation : il est **dérivé du registre** (`len(PROPERTY_REGISTRY)`)
-et affiché par `--help` — le décompte de l'ancien système a dérivé
-(« vingt et une variables » pour vingt-deux substituées) précisément
-parce qu'il était rédigé.
+surface de composants sur de nombreux axes ; une liste longue reste
+lisible là où une hiérarchie profonde ne l'est plus. Le **nombre** de
+propriétés, de composants ou d'axes n'est jamais écrit à la main dans une
+surface de documentation : il est **dérivé du registre**
+(`len(PROPERTY_REGISTRY)`) et affiché par `--help` — le décompte de
+l'ancien système a dérivé (« vingt et une variables » pour vingt-deux
+substituées) précisément parce qu'il était rédigé, et cette phrase-ci a
+elle-même annoncé « une dizaine d'axes » pour quarante.
 
 La contrepartie de la complétude est la **rigidité** : l'auteur ne peut
 exprimer que ce que le vocabulaire admet. Elle est bornée par
@@ -1762,8 +1868,8 @@ et le type est vérifié à la génération :
 
 | Type | Exemple | Vérifié |
 |---|---|---|
-| couleur | `#E8A33D`, `#E8A33DFF`, `transparent` | forme hexadécimale `#RGB`/`#RGBA`/`#RRGGBB`/`#RRGGBBAA`, normalisée en **ARGB huit chiffres** majuscules (`#RRGGBBAA`) ; `transparent` ≡ `#00000000` |
-| longueur | `4px`, `1.5rem`, `0`, `auto`, `clamp(1rem, 2vw, 1.375rem)` | unité connue (`px rem em ch vw vh % pt`) ; les fonctions `clamp`/`calc`/`min`/`max` passent telles quelles |
+| couleur | `#E8A33D`, `#E8A33DFF`, `transparent` | forme hexadécimale `#RGB`/`#RGBA`/`#RRGGBB`/`#RRGGBBAA`, normalisée en **RGBA huit chiffres majuscules** — alpha en dernier (`#RRGGBBAA`) ; `transparent` ≡ `#00000000` |
+| longueur | `4px`, `1.5rem`, `0`, `auto`, `2vmin`, `clamp(1rem, 2vw, 1.375rem)` | unité connue : absolues (`px pt`), relatives au texte (`rem em ch`), pourcentage, et toute la famille viewport — `vw vh vmin vmax` et leurs variantes dynamiques `svh svw lvh lvw dvh dvw`. `vmin` est l'unité centrale du système de tailles (§9.7). La liste fait foi dans `LENGTH_UNITS`, dont le message d'erreur du moteur est dérivé. Les fonctions `clamp`/`calc`/`min`/`max` passent telles quelles |
 | ratio | `1.5` | nombre **sans unité**. Délibérément distinct d'une longueur : un `line-height` sans unité est hérité comme facteur et remultiplié par la taille de chaque descendant ; `1.5rem` est hérité comme longueur figée et casse dès qu'un enfant change de taille — invisible jusqu'au jour où ça mord, ce qui est exactement ce que le typage existe à prévenir |
 | angle | `200deg` | unité connue (`deg rad turn grad`) |
 | pile de polices | `Georgia, serif` | **se termine par un générique CSS 2.1** (`serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`) — voir ci-dessous |
@@ -1863,8 +1969,9 @@ ligne, donc par la cascade. La couture est là, entre « par page » et
    plutôt que par un garde-fou d'extraction : aucune déclaration n'est
    pilotée des deux côtés à la fois (le littéral périmé gagnerait
    silencieusement, venant après), et aucune ne référence de variable
-   hors `--content-max` — un tel reste serait une décision visuelle que
-   le registre n'expose pas, donc une décision confisquée (§9.1).
+   hors `--page-content-max` et `--page-block-max`, les deux que le
+   registre émet — un autre reste serait une décision visuelle que le
+   registre n'expose pas, donc une décision confisquée (§9.1).
 
 `templates/custom.css` (§9.3.2) est ajouté **en dernier**, après la
 feuille composée. Rien de tout cela n'atteint le disque : la feuille
@@ -1963,6 +2070,11 @@ Le JavaScript de navigation gère :
 - Le parcours clavier complet (flèches Haut/Bas) : fiche par fiche, puis
   carte par carte sur la fiche series-nav, puis défilement par
   incréments sur une fiche plus grande que l'écran (§9.3.5)
+- **Tout le pack présentateur** (§8.4), arrivé après cette liste et qui en
+  double le volume : plein écran, écrans de pause B/W/T, panneau
+  présentateur et notes, overlay d'aide, saut par numéro de fiche, menu
+  de filtre par tag, navigation souris et tactile. §8.4 fait foi sur son
+  contenu ; cette liste-ci ne se maintient pas en double
 
 Éditable via `templates/nav.js` — un override remplace `nav.js` **en
 bloc**, y compris le bouton de partage : il n'y a pas de mécanisme pour
@@ -2238,7 +2350,7 @@ en douce derrière le dos du thème, la couche le **dit** :
 - sur un thème **sombre**, le **mobilier** s'inverse par une table
   partagée unique (`DARK_FURNITURE_PROPS`) : les voiles noirs des filets
   deviennent des voiles blancs, les surfaces claires des voiles blancs
-  faibles, les creux des voiles noirs profonds — des couleurs ARGB
+  faibles, les creux des voiles noirs profonds — des couleurs RGBA
   ordinaires, plus un jeu caché substitué hors de la vue du thème. Les
   thèmes clairs n'ont pas de table : les défauts du registre **sont** le
   jeu clair ;
@@ -2246,7 +2358,7 @@ en douce derrière le dos du thème, la couche le **dit** :
   est un voile noir posé sur la page (`cover.bg.from: #00000073`) —
   jamais `ink`, qui y porte la couleur du **texte** — et son encre est
   `ink` ; les deux opacités mesurées du résumé et du numéro de
-  couverture sont réénoncées en ARGB **contre la palette réelle** (alpha
+  couverture sont réénoncées en RGBA **contre la palette réelle** (alpha
   `C7`, le 0,78 mesuré ; `8F`, le 0,56) au lieu de présupposer la
   palette par défaut. Sur un thème clair, seule `cover.summary.fg` est
   réénoncée (`page` du thème + alpha `C7`) pour que la mesure suive ;
@@ -2318,15 +2430,20 @@ restauration de fidélité autant qu'une correction de lisibilité : le
 catalogue rendait Tokyo Night avec les accents *Night* posés sur le fond
 *Day*, ce qui n'est ni l'un ni l'autre.
 
-Les deux thèmes qui emploient le soulignement du gras d'encadré sont
-`monochrome` et `graphite`, et ce n'est pas arbitraire : ce sont les
-deux palettes qui s'interdisent la teinte, et un soulignement est une
-forme, pas une teinte. Les deux soulignent **à la place** de
-surligner, sur les deux polarités de fond : `monochrome` cumulait les
-deux jusqu'à ce que la mesure de §9.5.5 montre que son lavis gris ne se
-voyait pas. Aucun thème livré ne cumule donc plus les deux axes ; qu'ils
-se composent reste garanti par le test qui vérifie les huit axes
-d'emphase sur leurs valeurs résolues, et non par le choix d'un thème. Un
+Trois thèmes emploient le soulignement du gras d'encadré, et pour deux
+motifs distincts. `monochrome` et `graphite` soulignent **à la place** de
+surligner, et ce n'est pas arbitraire : ce sont les palettes qui
+s'interdisent la teinte, et un soulignement est une forme, pas une teinte.
+`monochrome` cumulait les deux jusqu'à ce que la mesure de §9.5.5 montre
+que son lavis gris ne se voyait pas.
+
+`high-contrast`, lui, **cumule délibérément** surlignage et soulignement —
+seul thème livré à le faire, et pour la raison exacte qui le définit :
+aucun signal ne doit reposer sur un seul canal. Le cumul n'est donc pas
+proscrit, il est réservé au cas où le doublement de canal *est* la
+doctrine. Que les deux axes se composent reste garanti par le test qui
+vérifie les huit axes d'emphase sur leurs valeurs résolues, et non par le
+choix d'un thème. Un
 `mark` fait pour
 servir de fond est souvent trop pâle pour servir de trait (mesuré à
 1,23:1 sur `newsprint`, 1,49:1 sur `blueprint`) : d'où le trait laissé à
@@ -2348,18 +2465,20 @@ l'impression qu'ils font :
   marqueur de forme (WCAG 1.4.1).
 
 **Cette section décrit le critère d'admission, pas un état vérifié du
-catalogue, et la différence a été mesurée.** Sept entrées du projet sont
-aujourd'hui **en dessous** et n'ont pas été corrigées : `blueprint`,
-`blueprint-night`, `code`, `dread`, `sage`, `sprout` et `vaporwave`
-(textes secondaires ou accents entre 2,02:1 et 4,79:1 — le
-`blueprint-night` y a été ajouté le 2026-08-12 avec `code`, tous deux
-encore sous le plancher AAA de leur corps). Le critère
-« filets ≥ 3 » n'est pas davantage tenu par `mark` sur les thèmes clairs
-du projet, où il est fait pour servir de fond avant de servir de trait —
-le §9.5.1 le dit déjà dans ses propres termes. Les mesures et la
-correction restante sont au BACKLOG (B9). La phrase précédente affirmait
-le contraire jusqu'ici ; elle était fausse depuis l'admission de ces cinq
-thèmes.
+catalogue, et la différence a été mesurée.** Plusieurs entrées du projet
+sont **en dessous** et n'ont pas été corrigées : mesuré le 2026-08-18 sur
+les 48 thèmes du projet, six d'entre eux — `vaporwave` (2,02:1),
+`dread` (3,17), `sage` (3,27), `sprout` (3,59), `daybreak` (3,65) et
+`blueprint` (3,99) — laissent un texte secondaire ou un accent sous le
+plancher AA. Le critère « filets ≥ 3 » n'est pas davantage tenu par `mark`
+sur les thèmes clairs du projet, où il est fait pour servir de fond avant
+de servir de trait — le §9.5.1 le dit déjà dans ses propres termes. Les
+mesures et la correction restante sont au BACKLOG (B9). La phrase
+précédente affirmait le contraire jusqu'ici ; elle était fausse depuis
+l'admission de ces thèmes. La liste qui la remplaçait l'était aussi, dans
+l'autre sens : elle citait `blueprint-night` et `code`, qui tiennent AA
+sur les trois rôles, et oubliait `daybreak`. Ne pas la recopier — la
+remesurer.
 
 **Ces critères n'ont jamais été rétro-appliqués aux neuf palettes
 empruntées**, reprises telles quelles de leur source pour la fidélité —
@@ -2398,7 +2517,7 @@ cartes de la galerie.
 
 La famille est déclarée parce qu'« ceci est le registre du travail » est
 un énoncé d'intention, pas une grandeur mesurable : aucun calcul ne le
-retrouve à partir de six valeurs hexadécimales. Étant déclarée, elle est
+retrouve à partir de sept valeurs hexadécimales. Étant déclarée, elle est
 clôturée — le vocabulaire est fermé et une valeur hors liste est une
 erreur nommée, non un silence.
 
@@ -2481,8 +2600,8 @@ garde son atténuation de 0,78 parce que le résultat composité vaut
 5,05:1 au pire (catppuccin) — mais elle est désormais portée par l'alpha
 de la couleur elle-même (`cover.summary.fg`, alpha `C7`), pas par une
 `opacity` du squelette, et la conversion de thème la réénonce contre la
-palette réelle (§9.5.1) ; un test recalcule cette valeur sur les 34
-thèmes à chaque exécution. Le texte secondaire de couverture
+palette réelle (§9.5.1) ; un test recalcule cette valeur sur tout le
+catalogue à chaque exécution — il itère `THEMES`, il ne compte pas. Le texte secondaire de couverture
 (`cover.num.fg`) suit la même règle : c'était un `rgba` fixe jamais
 mesuré, à 2,37:1 au pire ; ses alphas sont calculés pour tenir AA sur
 les deux polarités (0,70 en clair, 0,56 en sombre). Atténuer le fond ne
@@ -2617,7 +2736,9 @@ tombées le jour où il a existé.
 Sa valeur est **déclarée**, jamais dérivée. La mesure l'a établi avant
 qu'il soit écrit : sur le rail des pastilles, `call` dégage 3:1 sur une
 large majorité du catalogue, `mark` sur un peu plus de la moitié, et
-**une poignée de thèmes n'ont ni l'un ni l'autre**. C'est ce dernier
+**au moins un thème n'a ni l'un ni l'autre** (mesuré le 2026-08-18 :
+`call` dégage 3:1 sur 56 des 57 entrées, `mark` sur 35, et `vaporwave`
+seul échoue aux deux). C'est ce dernier
 ensemble qui tranche : tant qu'il n'est pas vide, aucune règle du type
 « prends celui des deux qui passe » ne peut exister, et aucun défaut
 fixe non plus. Le vérifier se fait en mesurant le catalogue courant,
@@ -2661,8 +2782,8 @@ texte libre (corps de fiche, article de fond) :
 
 | Balise | Effet |
 |---|---|
-| `{color:#E8A33D}…{/color}` | couleur littérale (hex 3/4/6/8 chiffres, normalisée ARGB) |
-| `{color:mark}…{/color}` | une valeur partagée par son nom (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`) |
+| `{color:#E8A33D}…{/color}` | couleur littérale (hex 3/4/6/8 chiffres, normalisée RGBA) |
+| `{color:mark}…{/color}` | une valeur partagée par son nom (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`) — tout nom `N` tel que `color.N` soit au registre |
 | `{font:mono}…{/font}` | une pile partagée par son nom (`text`, `display`, `ui`, `mono`), ou une pile littérale finissant sur un générique |
 | `{sc}…{/sc}` | petites capitales |
 | `{u}…{/u}` | souligné |
@@ -2676,7 +2797,7 @@ produire un résultat illisible. Les **littéraux** dans le texte sont
 admis parce que la balise passe par le compilateur, donc trois garanties
 s'appliquent d'elles-mêmes :
 
-- **les mêmes types partout** — une couleur y est un ARGB valide, une
+- **les mêmes types partout** — une couleur y est un RGBA valide, une
   pile finit sur un générique, sinon erreur fatale du build nommant la
   balise et l'article. La position antérieure — variantes seulement —
   visait le bon danger au mauvais endroit : le risque n'était pas le
@@ -2784,8 +2905,11 @@ téléphone, où les fiches sont déjà serrées en hauteur (§7 de
 `ETUDE-VIEWPORT.md` compte celles qui débordent). Mesuré à 375×667 :
 identique à l'octet près.
 
-**Toutes** les tailles suivent cette forme `max(<plancher>, <N>vmin)` —
-les trente-cinq, pas seulement les huit du corps de texte. Une taille
+**Toutes** les tailles **absolues** suivent cette forme
+`max(<plancher>, <N>vmin)`, pas seulement celles du corps de texte. Trois
+font exception et sont relatives à leur contexte, en `em` : `code.size`,
+`footnote-call.size` et `caption.size` — elles doivent suivre le texte
+dans lequel elles vivent, pas le viewport. Une taille
 figée en pixels rétrécit *relativement* à tout ce qui l'entoure à mesure
 que l'écran grandit : mesuré à 3840, le rapport `kicker`/`summary` valait
 0,206 pour 0,556 voulu, c'est-à-dire une étiquette presque trois fois
@@ -2878,7 +3002,7 @@ alors le coût de la rupture est payé par des gens qui n'ont pas décidé.
 Ce n'est pas le cas de ce projet — c'est celui qui change le vocabulaire
 qui migre ses propres séries.
 
-- **`build`** avertit (`[WARN]`) si `templates/style.css` existe
+- **`build`** avertit (`[WARNING]`) si `templates/style.css` existe
   encore : le fichier n'est plus lu, la feuille est composée depuis
   `settings.conf` ; les valeurs vont dans `settings.conf`, les règles
   dans `custom.css`, puis le fichier se supprime.
@@ -2925,7 +3049,7 @@ build:
   stage: build
   image: python:3.12-slim
   script:
-    - python3 lightwebpres build .
+    - python3 lightwebpres build . --lang fr
   artifacts:
     paths:
       - public/
@@ -2948,7 +3072,7 @@ un `public/` non reconstruit avant de merge — pas fait par défaut par
 ### 11.1 `init`
 
 ```bash
-lightwebpres init [répertoire] [--lang fr] [--theme nom] [--gitlab-ci]
+lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 ```
 
 Crée la structure de travail dans `[répertoire]` :
@@ -2978,7 +3102,10 @@ Crée la structure de travail dans `[répertoire]` :
    (§10) ; par défaut, aucun fichier de CI n'est créé. La commande de
    build de ce fichier porte la langue choisie (`build . --lang <lang>`,
    `fr` par défaut)
-7. Copie l'exécutable `lightwebpres` dans le répertoire (pour autonomie)
+7. Copie l'exécutable `lightwebpres` dans le répertoire (pour autonomie),
+   accompagné de `COPYING` et `COPYING.EXCEPTION` — les fichiers de
+   licence voyagent avec la copie, ce n'est pas une commodité mais
+   l'article 4 de la GPL (§1.2)
 
 **`--lang` à l'init.** La langue n'est **pas** une propriété du projet
 stockée quelque part : les deux packs (fr, en) sont toujours installés, et
@@ -3353,8 +3480,8 @@ Vérifie sans modifier :
    pour chaque fichier absent, affiche `[NEW] fichier` ; pour
    chaque fichier identique, affiche `[OK] fichier`
 4. Affiche un résumé chiffré : « N file(s) OK, M file(s) different. »
-   (N + M = nombre d'articles + 2 — + 1 quand aucun index de série n'est
-   produit, §11.3.3)
+   (N + M = nombre d'articles + 2 — **moins** 1 quand aucun index de
+   série n'est produit, §11.3.3)
 5. Code de sortie non nul (1) si au moins un fichier diffère ou est absent —
    c'est ce qui permet d'utiliser `verify` comme porte de vérification dans un
    script ou une CI (§10) ; code de sortie 0 et « All files are up to
@@ -3437,10 +3564,17 @@ chaque build) ; le seul fichier de l'outil restant sur disque est
    aux défauts, aucun thème déclaré) et `templates/custom.css` (vide) —
    écrire un fichier qui n'existe pas ne trahit aucune promesse de
    propriété ; un fichier présent n'est **jamais** touché
-4. Avertit (`[WARN]`) si un `templates/style.css` hérité existe encore :
+4. Avertit (`[WARNING]`) si un `templates/style.css` hérité existe encore :
    il n'est plus lu et n'est **jamais migré** — ses valeurs sont les
    décisions de l'auteur ; `audit` nomme chaque renommage de variable
    pour rendre le déplacement mécanique (§9.8)
+5. **Avec `--scaffold`** : régénère en plus la surface commentée de
+   `templates/settings.conf` aux valeurs du thème déclaré, en
+   **conservant** les lignes décommentées — les valeurs épinglées par
+   l'auteur — et avertit sur celles qui épinglent une propriété disparue.
+   Sans changement à écrire, la commande le dit et n'écrit rien. C'est
+   vers cette option que pointe l'avertissement de scaffold périmé
+   d'`audit` (§11.5)
 
 Plus de marqueur, plus de `[SKIP]` : l'ancien mécanisme de coupure
 n'existait que parce que l'outil écrivait dans un fichier que l'auteur
@@ -3484,11 +3618,11 @@ page claire — c'est-à-dire pas telle qu'elle rendra réellement.
 
 Sous chaque aperçu, une ligne « Fact-box bold » **énonce** le traitement
 du gras que le thème a choisi — « Bold, highlighted `color.mark` »,
-« Bold, no highlight », « Italic, highlighted `color.affirm` »… (la ligne
+« Bold, no highlight », « Italic, highlighted `color.mark` »… (la ligne
 nomme la propriété `settings.conf`, celle qu'un auteur peut taper, jamais
 une variable CSS que la feuille émise ne déclare plus). La galerie
-appliquait ces propriétés à sa maquette sans jamais les nommer : neuf
-combinaisons distinctes existent parmi les thèmes intégrés et aucune
+appliquait ces propriétés à sa maquette sans jamais les nommer : plusieurs
+combinaisons distinctes coexistent parmi les thèmes intégrés et aucune
 n'était lisible autrement qu'en scrutant deux lignes d'aperçu. Le
 soulignement n'est mentionné que lorsqu'il est présent — en annoncer
 l'absence sur chaque carte noierait les axes qui, eux, diffèrent.
@@ -3509,10 +3643,14 @@ Chaque aperçu est un `<iframe srcdoc>`. Deux raisons, l'une nécessaire :
   se calculeraient sur la fenêtre du lecteur ; dans un iframe elles se
   calculent sur l'aperçu, comme dans une vraie page.
 - La feuille réelle définit `body`, `h1`, `code`… L'isolement du document
-  évite d'avoir à réécrire ses ~203 règles pour les confiner.
+  évite d'avoir à réécrire ses quelques centaines de règles pour les
+  confiner.
 
-**Chaque panneau est rendu à sa taille réelle**, 340 × 560 px, sans
-réduction géométrique. La galerie rendait auparavant à 1100 px puis
+**Chaque panneau est rendu à sa taille réelle**, sans réduction
+géométrique : une largeur unique pour toute la page, dérivée du viewport
+entre 340 et 560 px (`--gal-panel`), et une hauteur au même rapport.
+340 px reste le plancher, et c'est lui que le reste de cette section
+commente. La galerie rendait auparavant à 1100 px puis
 réduisait de 0,34 : acceptable pour juger une palette, inutile pour juger
 une note, dont les 14 px arrivaient sous 5 pixels d'écran. Ici chaque
 glyphe est à sa taille : le poids du filet, le bord du plateau et la
@@ -3526,10 +3664,11 @@ bureau. Ce que le panneau sert à montrer y survit intact : couleur, fond,
 filet, et la proportion entre les niveaux. La page le dit dans son
 chapeau.
 
-Les colonnes sont une piste **fixe** (`repeat(4, 340px)`), jamais `1fr` :
-la largeur du panneau *est* la largeur de rendu, donc une piste élastique
-donnerait à chaque ligne une échelle typographique différente et la
-comparaison ne voudrait plus rien dire. Le débordement défile dans la
+Les colonnes sont une piste **identique pour toutes les lignes**
+(`repeat(4, var(--gal-panel))`), jamais `1fr` : la largeur du panneau
+*est* la largeur de rendu, donc une piste élastique donnerait à chaque
+ligne une échelle typographique différente et la comparaison ne voudrait
+plus rien dire. Le débordement défile dans la
 ligne, pas dans la page.
 
 `min-height: 100vh` est laissé tel quel dans le document d'aperçu :
@@ -3537,8 +3676,8 @@ ligne, pas dans la page.
 fenêtre et s'y centre exactement comme sur une vraie page.
 
 `srcdoc` conserve l'autonomie de la page — aucune requête externe. La
-galerie pèse de ce fait environ 5,5 Mo, la feuille composée (~37 Ko par
-document d'aperçu) étant répétée pour les 132 panneaux ; les iframes
+galerie pèse de ce fait une dizaine de mégaoctets, la feuille composée
+étant répétée pour **quatre panneaux par thème** ; les iframes
 étant isolées, cela ne peut pas être dédupliqué sans JavaScript. Les
 iframes portent `loading="lazy"`, donc le coût de rendu suit ce que le
 lecteur regarde. **Conséquence à connaître avant qu'elle ne morde :** une
@@ -3623,26 +3762,37 @@ Deux cas se distinguent volontairement :
   liste les valeurs valides. Répondre « aucun thème ne correspond »
   enverrait le lecteur chercher un thème qui existe pourtant, à une
   faute de frappe près.
-- **Combinaison valide mais vide** (`--polarity dark --hue orange`) :
-  succès, avec un message nommant la combinaison restée sans résultat.
-  Ce n'est pas une erreur, c'est une réponse.
+- **Combinaison valide qu'aucun thème ne satisfait** : succès, avec un
+  message nommant la combinaison restée sans résultat. Ce n'est pas une
+  erreur, c'est une réponse. (Aucun exemple n'est donné ici : le
+  catalogue grossit, et une combinaison vide à l'écriture cesse de l'être
+  au thème suivant.)
 
 ### 11.9.1 `theme show`
 
 ```bash
 lightwebpres theme show <slug>… [--format text|json]
 lightwebpres theme show --all [--format text|json]
-lightwebpres theme show [répertoire] [--format text|json]
+lightwebpres series theme [répertoire] [--format text|json]
+lightwebpres theme show [répertoire] [--format text|json]   # forme héritée
 ```
 
 Décrit un thème, plusieurs, ou tout le catalogue (`--all`), sans rien
 installer : la palette, les facettes, et le niveau de contraste
 réellement atteint, mesuré.
 
-Les trois formes ne se mélangent pas. Un répertoire de série **et** des
-slugs dans le même lancement est une erreur fatale : les deux demandent
-des choses différentes — « décris le thème de cette série » et « décris
-ces thèmes du catalogue » — et en choisir une silencieusement revient à
+**La cible « répertoire » a sa propre commande.** `series theme
+[répertoire]` est la forme canonique — elle vit sous le nœud `series`,
+avec les autres commandes qui interrogent une série, et porte le même
+`--format`. `theme show [répertoire]` continue de fonctionner et donne le
+même résultat, mais c'est la **forme héritée** de l'époque où la commande
+s'appelait `theme-info` ; elle est conservée jusqu'à la prochaine MAJEURE
+(§11.16).
+
+Les formes ne se mélangent pas. Un répertoire de série **et** des slugs
+dans le même lancement est une erreur fatale : les deux demandent des
+choses différentes — « décris le thème de cette série » et « décris ces
+thèmes du catalogue » — et en choisir une silencieusement revient à
 répondre à une question que personne n'a posée.
 
 #### Pourquoi la mesure et non une étiquette
@@ -3721,8 +3871,9 @@ un compromis, c'est la ligne de partage du §9.1 :
   partir de ses propres axes `size` et `weight` résolus, donc un thème
   qui agrandit son résumé voit son résumé jugé en grand texte sans que
   rien n'ait à être mis à jour ; la palette et les piles de polices de la
-  sortie sont dérivées de `THEME_SHARED_PROPS`, donc une septième valeur
-  partagée apparaîtrait le jour où elle existerait.
+  sortie sont dérivées de `THEME_SHARED_PROPS` : c'est ainsi que la
+  septième valeur partagée, `color.nav`, est apparue dans la sortie le
+  jour où elle a existé, sans qu'une ligne de sérialisation change.
 
  - **Estimation, pas mesure de rendu.** Le ratio de contraste lui-même est
    le calcul WCAG 2.x exact (même formule qu'un outil de référence) ; en
@@ -3804,18 +3955,22 @@ La sortie texte reste la sortie par défaut et vise la lecture humaine,
 sans chercher à être aussi un YAML valide : servir deux maîtres
 produirait un texte moins lisible que l'un et moins fiable que l'autre.
 
+**La forme de la racine dépend de ce qu'on demande.** Pour un seul slug
+ou un répertoire, la racine est l'objet décrit ci-dessous. Pour plusieurs
+slugs ou `--all`, c'est une **liste** de ces objets, dans l'ordre demandé.
+
 **Les clés, une par une.** Racine :
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.theme show/1`. Ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | chaîne | `lightwebpres.theme-info/4` — le nom porte encore la clé de dispatch historique `theme-info`, et c'est voulu : c'est ce que le GUI teste pour distinguer un exécutable ancien d'un neuf, au lieu de le deviner aux clés qu'il trouve. Le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `label` | chaîne ou `null` | l'étiquette affichable du thème ; `null` si aucun thème n'est nommé |
 | `note` | chaîne ou `null` | la remarque éditoriale, **en texte nu** (§9.5.4) |
 | `source` | chaîne ou `null` | la provenance de la palette (`lightwebpres`, `nord`, …) |
 | `facets` | objet | `polarity`, `hue`, `family` (§9.5.2) ; `family` vaut `null` sur un répertoire sans thème |
-| `palette` | objet | les six valeurs partagées **résolues**, clés sans le préfixe `color.` : `page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`. Valeurs en `#RRGGBBAA` |
+| `palette` | objet | les sept valeurs partagées **résolues**, clés sans le préfixe `color.` : `page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`. Valeurs en `#RRGGBBAA` |
 | `fonts` | objet | les quatre piles résolues : `text`, `display`, `ui`, `mono` |
 | `accessibility` | objet | les trois catégories (ci-dessous) |
 
@@ -3861,28 +4016,25 @@ exactement la façon dont une liste actionnable cesse de l'être.
 
 #### État mesuré du catalogue
 
-Le corollaire du §9.5.2 se lit maintenant en chiffres, et il est net :
-la catégorie est décidée par sa **pire** paire, or le petit appareil
-textuel (`ink-quiet` et les couleurs de verdict à 12-14 px sur un voile
-de carte) est le point bas de tous les thèmes. Aucune entrée du
-catalogue n'atteint donc AAA en texte courant ; **treize** franchissent AA
-et **vingt et une** échouent, sur les couleurs de verdict, les libellés
-de navigation de série, les étiquettes d'encadré et les légendes. En non
-textuel, **dix-sept** passent et **dix-sept** échouent, presque toujours sur
-la pastille de fiche courante peinte en `mark` — la faiblesse que le
-§9.5.1 nomme déjà dans ses propres termes (« un `mark` fait pour servir
-de fond est souvent trop pâle pour servir de trait »), et qui frappe les
-thèmes clairs. **Onze** entrées tiennent les deux à la fois :
-`blueprint-night`, `code`, `ember`, `evergreen`, `gold-leaf`, `graphite`,
-`pop-fuchsia`, `pop-red`, `synthwave`, `terminal`, `tokyo-night` — toutes
-sombres, ce qui n'est pas une coïncidence mais la même cause vue de
-l'autre côté. Le grand texte est AAA partout, ce qui est attendu : c'est
-`ink` sur `page`, le seul couple sur lequel tout thème est admis
-(§9.5.3).
+Le corollaire du §9.5.2 se lit maintenant en chiffres, et deux
+invariants qualitatifs s'en dégagent, qui ne dépendent pas de la taille
+du catalogue :
 
-Ces nombres ne sont pas figés ici — ils changent avec le catalogue, et
-c'est la commande qui les dit. Ce qui est figé, c'est qu'ils soient
-**mesurés**.
+- **Aucune entrée n'atteint AAA en texte courant.** La catégorie est
+  décidée par la **pire** paire du thème, or le petit appareil textuel
+  (`ink-quiet` et les couleurs de verdict à 12-14 px sur un voile de
+  carte) est le point bas de tous les thèmes.
+- **Le grand texte est AAA partout**, ce qui est attendu : c'est `ink`
+  sur `page`, le seul couple sur lequel tout thème est admis (§9.5.3).
+
+Entre les deux, les comptes bougent à chaque entrée ajoutée et ne sont
+pas écrits ici — c'est la commande qui les dit, et c'est justement ce
+qu'elle sert à dire. Ce paragraphe a longtemps porté les siens (« treize
+franchissent AA et vingt et une échouent », « dix-sept passent et
+dix-sept échouent », « onze entrées tiennent les deux, toutes sombres ») :
+ils décrivaient un catalogue d'une trentaine de thèmes, et la thèse
+« toutes sombres » n'a pas survécu à l'élargissement. Ce qui est figé,
+c'est que ces nombres soient **mesurés**, pas qu'ils soient recopiés.
 
 #### Consommateur connu
 
@@ -4009,7 +4161,7 @@ pas à devenir un second `verify`.
 `page_source` absent, illisible ou non-UTF-8 ne peut être lu ni pour son
 bloc meta ni pour son contenu : l'entrée est **quand même rapportée**,
 ses champs repliés sur ce que `series.json` et les défauts donnent,
-`source_read` à `false`, et un `[WARN]` sur **stderr** — pour que stdout
+`source_read` à `false`, et un `[WARNING]` sur **stderr** — pour que stdout
 reste un document JSON unique. Le code de sortie reste 0 : le
 renseignement sur les autres articles est intact, et la faute est déjà
 fatale là où elle doit l'être (§20.3, `build` et `verify`). La rendre
@@ -4031,7 +4183,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 
 | Clé | Type | Sens |
 |---|---|---|
-| `schema` | chaîne | `lightwebpres.status/1`. Même promesse que celle de `theme show` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
+| `schema` | chaîne | `lightwebpres.series-info/2` — là encore le nom porte la clé de dispatch historique. Même promesse que celle de `theme show` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les six champs textuels de §20.5 — `title`, `subtitle`, `version`, `intro`, `author`, `license` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
@@ -4165,9 +4317,11 @@ porte ce nom » —, parce que la faute la plus probable est justement d'avoir
 #### Ce que chaque genre rapporte
 
 **Propriété de thème.** La chaîne est celle de §9.3, du plus fort au plus
-faible : `article` (une ligne `style.<propriété>` du bloc meta, présente
-seulement avec `--article`), `settings` (`templates/settings.conf`),
-`theme` (le thème que ce fichier nomme), `default` (le registre). Chaque
+faible, en **cinq** maillons : `instance` (toujours `present: false`,
+porteur d'une note — voir ci-dessous), `article` (une ligne
+`style.<propriété>` du bloc meta, présente seulement avec `--article`),
+`settings` (`templates/settings.conf`), `theme` (le thème que ce fichier
+nomme), `default` (le registre). Chaque
 niveau montre la valeur **écrite** ; le niveau retenu montre en plus la
 valeur **résolue**, avec les sauts de référence traversés (`ink-quiet →
 #6b7280`), puisqu'une valeur écrite peut être un mot et pas une couleur
@@ -4356,7 +4510,7 @@ avec la version en cours.
 ### 11.16 Alias legacy
 
 Les anciens noms de commandes restent acceptés pendant une version
-MAJEURE complète, avec un `[WARN]` sur stderr nommant le nouveau forme :
+MAJEURE complète, avec un `[WARNING]` sur stderr nommant le nouveau forme :
 
 | Ancien nom | Nouveau forme |
 |---|---|
@@ -4369,7 +4523,7 @@ MAJEURE complète, avec un `[WARN]` sur stderr nommant le nouveau forme :
 | `themes-gallery` | `theme gallery` |
 | `series-info` | `status` |
 
-Un test automatique vérifie que chaque alias émet le `[WARN]` et
+Un test automatique vérifie que chaque alias émet le `[WARNING]` et
 exécute la commande canonique. Les alias seront retirés à la prochaine
 version MAJEURE (§13.9).
 
@@ -4401,18 +4555,20 @@ build(répertoire):
          # show_slide_num est transmis à chaque renderer (cover/standard/full-article)
 
      f. FOR each slide IN slides:
+        IF "excluded" IN slide.tags:      # §4.3.1 — ni rendue ni numérotée
+          continue
         slide_num += 1
         IF slide.type == "cover":
-          html = render_cover(slide, meta, slide_num, total_slides)
+          html = render_cover(slide, meta, slide_num, total_slides, show_slide_num)
         ELIF slide.type == "series-nav":
           html = render_series_nav(series, article, slide_num, total_slides, language.strings)
         ELIF slide.type == "full-article":
           article_md = read_file(répertoire/articles/{slide.article})
           article_html = convert_markdown(article_md)
           article_html = apply_typography(article_html, language.rules)
-          html = render_full_article(article_html, slide_num, total_slides, language.strings)
+          html = render_full_article(article_html, slide_num, total_slides, language.strings, show_slide_num)
         ELSE:  # standard
-          html = render_standard(slide, slide_num, total_slides, language)
+          html = render_standard(slide, slide_num, total_slides, language, show_slide_num)
 
         html_slides.append(html)
 
@@ -4431,11 +4587,14 @@ build(répertoire):
 
   9. generate_readme(series, répertoire/README.md)
   10. copy_images(répertoire/articles/img/, répertoire/public/img/)  # merge, never wipe
+  11. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
+      write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
+      # Les deux sont écrits à chaque build, pas seulement avec `--only`.
 
   # Sorties optionnelles (commandes build / watch) : `--no-index` saute
   # l'étape 7-8, `--no-readme` saute l'étape 9, `--no-nav` vide le
   # placeholder de navigation inter-articles (§11.3.3). `--drafts-only`
-  # ne construit que les articles `status: draft`. Voir DECISION-CLI.md.
+  # ne construit que les articles `status: draft`.
 ```
 
 ### 12.2 Parseur Markdown étendu
@@ -4455,9 +4614,10 @@ parse_markdown(text):
 
 ```
 render_standard(slide, slide_num, total_slides, language, show_slide_num):
-  1. html = '<section class="slide" id="s{slide_num}">'
+  0. IF "excluded" IN slide.tags: return ''      # §4.3.1
+  1. html = '<section class="slide" id="s{slide_num}" data-tags="{tags}">'
   2. IF show_slide_num:
-       html += '<span class="slide-num">{slide_num} / {total_slides}</span>'
+       html += '<span class="slide-num">{slide_num:02d} / {total_slides:02d}</span>'  # « 01 / 04 »
   3. IF slide.kicker:
      html += '<span class="slide-kicker">{kicker}</span>'
   4. IF slide.h2:
@@ -4472,14 +4632,16 @@ render_standard(slide, slide_num, total_slides, language, show_slide_num):
      html += '</div>'
   7. IF content:
      IF slide.fact_label:
-       html += '<div class="fact-box">'
+       html += '<div class="fact-box fact--{slide.fact_variant}">'   # la classe de variante n'est ajoutée que si le champ est posé (§9.6.2)
        html += '<div class="fact-label">{slide.fact_label}</div>'
        html += '<div class="fact-content">{content}</div>'
        html += '</div>'
      ELSE:
-       html += '{content}'  # content is already full HTML (§6.1), not re-wrapped
-  9. IF slide.source:
+       html += '<div class="slide-body">{content}</div>'  # enveloppe non stylée : elle donne une portée CSS aux titres du corps (§4.3)
+  8. IF slide.source:
      html += '<p class="source">{language.strings.source_label} : {source}</p>'
+  9. IF slide.note:
+     html += '<div class="speaker-note" hidden>{note}</div>'   # panneau présentateur seulement (§8.4)
   10. html += '</section>'
   11. Apply typography rules (language.rules) to all text values
   12. Return html
@@ -4520,10 +4682,17 @@ non déterministe.
 ### 13.4 Pas de dépendance externe
 
 L'exécutable n'utilise que la bibliothèque standard de Python 3 — version
-minimale 3.8 (§2.1) : sys, os, re, json, shutil, difflib, hashlib,
-datetime, pathlib, types, html et html.parser. Pas de `pip install`.
-Ni `argparse` (la ligne de commande est analysée à la main dans `main()`)
-ni `glob`/`textwrap`.
+minimale 3.8 (§2.1). Pas de `pip install`, et pas d'`argparse` : la ligne
+de commande est analysée à la main dans `main()`, c'est une décision de
+conception (§2.4.1), pas un oubli.
+
+Les modules employés ne sont **pas** énumérés ici. Une liste d'imports se
+périme à chaque commit qui en ajoute un, et celle qui figurait ici a fini
+par exclure explicitement `textwrap`, importé sept fois dans le fichier.
+La liste qui fait foi se lit à la source (`ast` sur l'exécutable), et un
+test vérifie qu'aucun import n'est hors stdlib (§23.3). Une exception à
+connaître : `subprocess` sert à appeler `node --check` quand il est
+présent, seul programme externe touché, et toujours optionnel.
 
 ### 13.5 Édition par LLM
 
@@ -4555,12 +4724,17 @@ etc.) ne sont pas comptés comme devant être fermés ; le contenu de
 lui-même, donc du JS contenant `<`/`>` (comparaisons, etc.) n'est jamais
 pris pour une balise.
 
-Effet de bord utile : un `series_meta.title`/`page_title` contenant un fragment
-qui casserait la structure de la page (par exemple un `</title>` orphelin
+Effet de bord utile : un `series_meta.title` contenant un fragment qui
+casserait la structure de la page (par exemple un `</title>` orphelin
 copié tel quel dans le corps visible, où le HTML brut est autorisé par
-conception comme pour `<br>`) fait désormais échouer le build au lieu
-d'être publié — cette vérification agit comme un filet de sécurité
-générique, pas seulement contre les bugs de rendu.
+conception comme pour `<br>`) fait échouer le build au lieu d'être
+publié — cette vérification agit comme un filet de sécurité générique,
+pas seulement contre les bugs de rendu. Il en va de même de `card_label`,
+de `series_meta.intro` et de `series_meta.license`.
+
+`page_title` n'est **jamais** concerné : il est débalisé avant d'entrer
+dans la page (§13.7), donc il ne peut rien casser et ne fait rien
+échouer. Sa valeur ressort simplement amputée de ses balises.
 
 ### 13.7 Modèle de menace et contenances
 
@@ -4616,7 +4790,11 @@ régression :
 
 ### 13.8 Dépendance vendorisée (page navigateur)
 
-La page `web/` embarque Pyodide (§23) — le seul tiers du projet. Ces
+La page `web/` embarque Pyodide (§23) — le seul tiers **vendorisé** sous
+`web/`. Ce n'est pas le seul tiers du projet : l'exécutable lui-même
+embarque l'encodeur QR de Kazuhiko Arase (MIT) dans `TEMPLATE_NAV_JS`,
+donc dans chaque série scaffoldée et chaque page construite. Le décompte
+qui fait foi est `THIRD-PARTY-NOTICES.md`, pas cette phrase. Ces
 fichiers exécutent le code qui manipule la série de l'utilisateur (et,
 sur l'onglet GitLab, son jeton), donc leur intégrité compte. Ils sont
 **commités dans le dépôt** (toute modification est relue en diff) et
@@ -4767,8 +4945,9 @@ git add . && git commit && git push
 Les phases 1 à 5 ci-dessous sont **réalisées** (elles correspondent aux
 versions 0.1 à 0.4) ; elles sont conservées comme trace de la
 construction. Le développement ultérieur est tracé par les notes de
-release du dépôt. Les pistes de la phase 6 restent **non planifiées** :
-leur périmètre (1.0 ou post-1.0) n'est pas encore tranché.
+release du dépôt. Sur les quatre pistes ouvertes de la phase 6, deux ont
+été implémentées depuis (20 et 21, voir §6.1) ; 22 et 23 restent **non
+planifiées**, leur périmètre (1.0 ou post-1.0) n'étant pas tranché.
 
 ### Phase 1 : Noyau (essentiel)
 
@@ -4795,10 +4974,10 @@ leur périmètre (1.0 ou post-1.0) n'est pas encore tranché.
 
 ### Phase 4 : CI et polish
 
-16. `.gitlab-ci.yml` de base
-17. Templates par défaut (CSS, JS)
-18. Tests unitaires
-19. Documentation
+15. `.gitlab-ci.yml` de base
+16. Templates par défaut (CSS, JS)
+17. Tests unitaires
+18. Documentation
 
 ### Phase 5 : commande `audit` (implémentée)
 
@@ -4841,7 +5020,16 @@ tranchés — à spécifier avant implémentation.
 
 ---
 
-## 17. Vérification de cohérence
+## 17. Relevé de couverture
+
+**Ce que ces coches sont, et ce qu'elles ne sont pas.** C'est un relevé
+tenu à la main, pas une vérification : aucune commande et aucun test ne
+calcule ces `✓`. Cette section s'est longtemps intitulée « Vérification
+de cohérence », et la dérive prévisible s'est produite — l'entrée
+« commandes séparées » est restée fausse pendant tout le renommage de la
+CLI, cochée. Les points énumérés ici renvoient chacun à une section qui,
+elle, est adossée à des tests ; une coche qui ment se corrige en relisant
+la section, jamais en la croyant sur parole.
 
 ### 17.1 Tous les niveaux sont couverts
 
@@ -4860,7 +5048,8 @@ tranchés — à spécifier avant implémentation.
 
 - **`.md`** : inclus, converti en HTML, typographié ✓
 - **`.html`** : structure de page fixe (§9), pas un template lu depuis un
-  fichier — seuls `custom.css` et `nav.js` le sont
+  fichier — les trois fichiers lus depuis `templates/` sont
+  `settings.conf`, `custom.css` et `nav.js` (§12.1 étape 4, §9.3.1)
 - **`.css`** : `templates/custom.css` ajouté après la feuille composée
   (§9.3.2), le tout inliné dans `<style>` ✓
 - **`.js`** : inclus dans `<script>` ✓
@@ -4882,7 +5071,11 @@ tranchés — à spécifier avant implémentation.
   séparés par langue, `fr` et `en` intégrés par défaut, `en` en repli ultime ✓
 - **Édition par LLM** : format Markdown lisible et modifiable ✓
 - **Exécutable unique** : un seul fichier Python, pas de dépendance externe ✓
-- **Install / Demo / Build / Check / Audit / Refresh-templates / Themes-gallery** : commandes séparées ✓
+- **Commandes séparées** ✓ — les noms courants se lisent à `--help`, qui
+  les dérive des tables d'options ; ils ne sont pas recopiés ici, et
+  quatre des sept qui l'étaient (`install`, `check`, `refresh-templates`,
+  `themes-gallery`) sont devenus des alias dépréciés sans que la ligne
+  suive (§11.16)
 - **Variables d'environnement** : `LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, etc. ✓
 - **Override** : `settings.conf`/`custom.css`/`nav.js` et le fichier de
   langue sont éditables (§9, §7) ; la structure HTML des pages ne l'est
@@ -4913,9 +5106,25 @@ tranchés — à spécifier avant implémentation.
 
 Les templates utilisent des placeholders simples au format `{{nom}}` (double
 accolade). Pas de Jinja2, pas de logique conditionnelle, pas de boucles dans
-les templates. Le remplacement est fait par `str.replace()` en Python.
+les templates.
+
+Le remplacement des placeholders **de données** est fait en une **passe
+unique** (`fill_placeholders`, un seul `re.sub`) : aucune valeur injectée
+n'est re-balayée, donc aucun ordre n'existe entre eux. Ce n'est pas un
+détail d'implémentation mais un correctif de sécurité — la chaîne de
+`str.replace()` qu'il remplace était sensible à l'ordre, et laissait du
+contenu d'auteur injecter un template dans les puits échappés
+`<title>`/`<meta>` (§18.4). Seules les chaînes d'interface `{{str_*}}`
+passent encore par `str.replace`, sur le squelette, avant tout contenu.
 
 ### 18.1 Template `page.html`
+
+Le bloc ci-dessous est un **extrait élidé** de `TEMPLATE_PAGE`, pas le
+squelette entier : les blocs du pack présentateur (`.pause-overlay`,
+`#slideCounter`, `#presenterPanel`, `.help-overlay`, `.tag-menu`) et deux
+boutons (`#navFullscreen`, `#navTags`) en sont retirés comme le sont déjà
+la matrice de partage et la modale QR. Le squelette qui fait foi est le
+littéral dans l'exécutable.
 
 ```html
 <!DOCTYPE html>
@@ -4934,10 +5143,11 @@ les templates. Le remplacement est fait par `str.replace()` en Python.
 <nav class="nav-dots"></nav>
 
 <div class="nav-buttons">
-  <div class="nav-btn" id="navPrev" title="{{str_nav_prev}}">&#8593;</div>
-  <div class="nav-btn nav-btn-home" id="navHome" title="{{str_nav_home}}">&#127968;</div>
-  <div class="nav-btn" id="navNext" title="{{str_nav_next}}">&#8595;</div>
-  <div class="nav-btn" id="navShare" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
+  <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">&#8593;</div>
+  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" aria-label="{{str_nav_home}}" title="{{str_nav_home}}">&#127968;</div>
+  <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">&#8595;</div>
+  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
+  <!-- #navFullscreen et #navTags élidés, §8.4 -->
 </div>
 
 <div class="share-popover" id="sharePopover">
@@ -4947,6 +5157,9 @@ les templates. Le remplacement est fait par `str.replace()` en Python.
 <div class="share-qr-modal" id="shareQrModal">
   <!-- QR code SVG généré côté client, §9.3.4 -->
 </div>
+
+<!-- .pause-overlay, #slideCounter, #presenterPanel, .help-overlay,
+     .tag-menu : élidés, §8.4 -->
 
 {{slides}}
 {{page_footer}}
@@ -4977,9 +5190,10 @@ Il n'y a pas de fichier `share.js` séparé : le bouton de partage, sa matrice
 et l'encodeur QR font partie de `nav.js`, leurs propres textes sont des
 placeholders `{{str_*}}` comme le reste.
 
-**Accessibilité des boutons ronds.** Les quatre boutons de navigation
-(précédent, accueil, suivant, partage — et de même les trois de l'index)
-sont des `<div class="nav-btn">` porteurs de `role="button"`,
+**Accessibilité des boutons ronds.** Les boutons de navigation (page
+d'article : précédent, accueil, suivant, partage, plein écran, tags ;
+index : remonter, haut de page, descendre) sont des
+`<div class="nav-btn">` porteurs de `role="button"`,
 `tabindex="0"`, d'un `aria-label` (en plus du `title`), et d'un style
 `:focus-visible`. `nav.js` (et le JS de l'index) leur ajoute une
 activation clavier Entrée/Espace équivalente au clic — sans quoi le
@@ -5053,9 +5267,13 @@ les slides. Les items eux-mêmes sont des fragments internes au format
 
 | Fragment | Champs | Rôle |
 |----------|--------|------|
-| item lien | `{file}` `{label}` `{title}` `{desc}` `{read}` | Un autre article de la série (lien) |
-| item courant | `{label}` `{title}` `{desc}` `{status}` | L'article en cours de lecture (pas un lien) |
+| item lien | `{file}` `{label_html}` `{title}` `{desc}` `{read}` | Un autre article de la série (lien) |
+| item courant | `{label_html}` `{title}` `{desc}` `{status}` | L'article en cours de lecture (pas un lien) |
 | retour index | `{back}` | Lien « Retour à l'index » en fin de liste |
+
+`label_html` porte le `<div class="series-label">` complet, ou la chaîne
+vide quand l'étiquette est absente : c'est le fragment, pas le texte nu.
+Un `.format(label=…)` lèverait `KeyError`.
 
 `label`/`title`/`desc` sont `card_label`/`nav_title`/`nav_desc` résolus
 (§20.3.1) et typographiés ; `read`/`status`/`back` viennent des chaînes
@@ -5075,14 +5293,12 @@ utilise la chaîne `series_nav_title`.
   (fiche, article de fond, `series_meta`) reste donc **littéral** dans la
   page publiée — la mécanique interne ne fuit jamais dans l'espace de
   contenu.
-- Page article, ordre réel : chaînes sur le template, puis `{{lang}}`,
-  `{{title}}`, `{{meta_head}}`, `{{css}}`, `{{slides}}`,
-  `{{page_footer}}`, `{{js_nav}}`, `{{build_stamp}}`,
-  `{{draft_banner}}`.
-- Index, ordre réel : chaînes sur le template et sur `index_extra`, puis
-  `{{lang}}`, `{{title}}`, `{{css}}`, `{{series_*}}`, `{{cards}}`,
-  `{{index_footer}}`, `{{js_index}}`, `{{index_extra}}`,
-  `{{build_stamp}}`.
+- Ordre réel, page d'article comme index : les chaînes d'interface sur le
+  squelette (et sur `index_extra`), **puis tous les placeholders de
+  données en une seule passe simultanée**. Il n'y a aucun ordre entre eux,
+  et aucune valeur injectée n'est re-balayée. Cette section a longtemps
+  énuméré une séquence maillon par maillon ; cette séquence n'existe plus,
+  et sa disparition est précisément le correctif.
 - Si un placeholder n'est pas trouvé dans le template, il est ignoré (pas
   d'erreur). Cela permet d'avoir des templates plus simples sans tous les
   placeholders.
@@ -5119,7 +5335,6 @@ vocabulaire fixe des templates par défaut (`strings`).
       "replacement": "$1 ",
       "flags": "g"
     },
-    {
     {
       "name": "nbsp_inside_dash_incise",
       "description": "Incise encadrée de tirets : espace insécable après le tiret ouvrant et avant le fermant (§7.5)",
@@ -5170,7 +5385,7 @@ vocabulaire fixe des templates par défaut (`strings`).
 }
 ```
 
-Les huit règles ci-dessus sont exactement celles du pack `fr` intégré (§7.5) —
+Les règles ci-dessus sont exactement celles du pack `fr` intégré (§7.5) —
 contrairement à l'exemple de §7.1 (illustratif), celui-ci reflète le
 contenu réel embarqué dans l'exécutable.
 
@@ -5181,6 +5396,12 @@ contenu réel embarqué dans l'exécutable.
 | `lang` | string | non* | Code de langue (ex. `fr`, `en`) |
 | `name` | string | non | Nom affichable (ex. « Français ») |
 | `rules` | array | non* | Liste des règles à appliquer, dans l'ordre |
+| `rules[].name` | string | non | Nom court de la règle (pour le debug) |
+| `rules[].description` | string | non | Description humaine |
+| `rules[].pattern` | string | oui | Regex Python (sans délimiteurs) |
+| `rules[].replacement` | string | oui | Remplacement (avec `$1`, `$2` pour les groupes) |
+| `rules[].flags` | string | non | Flags regex, défaut `g`. Supportés : `g` (toutes les occurrences ; sans lui, seule la **première** occurrence par segment de texte est remplacée) et `i` (insensible à la casse). Tout autre caractère : erreur fatale |
+| `strings` | object | non | Chaînes d'interface, clé → valeur (voir §7.3 pour la liste des clés) |
 
 \* Aucun champ n'est exigé d'un fichier de **surcharge** : un fichier
 chargé via `--language-file` ou `language/<lang>.json` est **fusionné**
@@ -5192,12 +5413,6 @@ partiel ne définit que ce qu'il change) ; `lang`/`name` absents
 retombent sur le pack de base. Erreurs fatales : JSON invalide, racine
 non-objet, `rules` non-liste, `strings` non-objet, `--language-file`
 introuvable. Les packs embarqués, eux, portent évidemment tout.
-| `rules[].name` | string | non | Nom court de la règle (pour le debug) |
-| `rules[].description` | string | non | Description humaine |
-| `rules[].pattern` | string | oui | Regex Python (sans délimiteurs) |
-| `rules[].replacement` | string | oui | Remplacement (avec `$1`, `$2` pour les groupes) |
-| `rules[].flags` | string | non | Flags regex, défaut `g`. Supportés : `g` (toutes les occurrences ; sans lui, seule la **première** occurrence par segment de texte est remplacée) et `i` (insensible à la casse). Tout autre caractère : erreur fatale |
-| `strings` | object | non | Chaînes d'interface, clé → valeur (voir §7.3 pour la liste des clés) |
 
 ### 19.3 Règles d'application
 
@@ -5282,10 +5497,15 @@ d'union espacé, qui n'existe pas en français, en tiret d'incise :
    changer. Une règle qui insère une insécable doit donc exclure le cas
    déjà traité — c'est la raison du `(?!\u00a0)` de
    `nbsp_before_lone_dash`.
-2. **Écrire l'insécable en `\u00a0`, jamais en caractère littéral.** Un
-   U+00A0 dans un fichier source est invisible : il se perd à la copie,
-   au passage dans un éditeur, dans un diff. Les deux packs embarqués
-   l'écrivent en échappement pour cette raison, découverte en le perdant.
+2. **Savoir que l'insécable est écrite en caractère littéral, et s'en
+   méfier.** Un U+00A0 dans un fichier source est invisible : il se perd
+   à la copie, au passage dans un éditeur, dans un diff — c'est une perte
+   déjà vécue ici. L'échappement `\u00a0` serait plus sûr, et cette règle
+   l'a longtemps prescrit ; les deux packs embarqués ne l'appliquent pas,
+   ils portent le caractère littéral, et §19.1 comme §7.1 les recopient
+   fidèlement. Prescrire ce que le projet ne fait pas est la pire des
+   deux options : la règle est donc énoncée pour ce qu'elle est, un
+   risque connu et non traité (`BACKLOG.md`, B25).
 3. **Ne jamais toucher à ce qui n'est pas espacé.** C'est ce qui
    distingue un tiret d'un trait d'union : `Marie-Claire` et `12-15`
    n'ont pas d'espace, donc aucune règle de tiret ne les voit.
@@ -5301,9 +5521,11 @@ d'union espacé, qui n'existe pas en français, en tiret d'incise :
 ### 19.4 Fichier `en.json` (anglais)
 
 L'anglais porte les **deux règles de mise en page** sur les tirets
-(§19.3.1) et, en plus, **quatre règles de langue** propres à l'anglais
+(§19.3.1) et, en plus, **trois règles de langue** propres à l'anglais
 (`nbsp_before_metric_unit`, `nbsp_before_unit_word`,
-`nbsp_between_initials`, `nbsp_after_operator`, §7.5) ; il n'a en revanche
+`nbsp_between_initials`, §7.5), plus `nbsp_after_operator`, qu'il
+**partage** avec le français (§19.3.1 le dit dans sa colonne « Packs ») ;
+il n'a en revanche
 **pas** d'insécable avant `; : ! ? »`, pas de guillemets français `«`, pas
 de `%` espacé (l'anglais écrit `50%`), pas de séparateur de milliers par
 espace (l'anglais groupe par virgules). Il porte un bloc `strings` aussi
@@ -5334,9 +5556,10 @@ n'a pas de règles typographiques spéciales ». Partiellement vraie :
 l'anglais n'a pas les règles de langue *françaises* (insécable avant
 `; : ! ? »`, guillemets `«`, `%` espacé, milliers groupés par espace),
 mais il a les règles de mise en page sur les tirets **et**, depuis la
-réconciliation de §7.5, quatre règles de langue anglaises
+réconciliation de §7.5, trois règles de langue anglaises
 (`nbsp_before_metric_unit`, `nbsp_before_unit_word`,
-`nbsp_between_initials`, `nbsp_after_operator`). La distinction langue /
+`nbsp_between_initials`) plus la règle d'opérateur partagée. La
+distinction langue /
 mise en page du §19.3.1 reste celle qu'un auteur de pack doit suivre.
 
 ### 19.5 Packs par défaut embarqués dans l'exécutable
@@ -5357,7 +5580,7 @@ Au moment du build, le moteur charge le pack de langue depuis :
 
 ### 19.6 Désactivation complète (`--no-typography`)
 
-`--no-typography`, sur `build` et `verify` (§11.3/§11.4), saute entièrement
+`--no-typography`, sur `build`, `verify` et `watch` (§11.3/§11.4), saute entièrement
 le chargement d'un moteur de règles pour ce lancement — aucune règle,
 qu'elle vienne du pack intégré ou d'un override (§7.4/§19.5), ne s'exécute
 sur aucun article ni sur l'index, pour toute la durée de ce build. C'est
@@ -5443,8 +5666,10 @@ cet article restent lus depuis son propre bloc meta ou son propre contenu.
 Nommage (gel v1.0) : la famille `page_*` regroupe tout ce qui concerne la
 page compilée — sa source (`page_source`), son fichier de destination
 (`page_dest`), son titre (`page_title`), sa description (`page_desc`). Les
-anciens noms `source`/`file` (avant v1.0) produisent une erreur explicite
-de migration, pas un « champ manquant » incompréhensible. Le champ de
+anciens noms `source`/`file`, retirés à la **v0.7.0**, produisent une
+erreur explicite de migration, pas un « champ manquant » incompréhensible.
+Le gel est ce que la 1.0 **garantira** ; le renommage, lui, a déjà eu
+lieu. Le champ de
 fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 
 ### 20.2 Champs des articles
@@ -5470,11 +5695,16 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 
 - Le tableau `articles` est **ordonné** : l'ordre des entrées définit l'ordre
   des articles dans la navigation et l'index.
-- Les anciens noms `source`/`file` (retirés au gel v1.0) produisent une
-  **erreur fatale de migration explicite** (« renommé en page_source/
-  page_dest à la v1.0 »), détectée avant toute autre validation.
+- Les anciens noms `source`/`file`, retirés à la **v0.7.0**, produisent
+  une **erreur fatale de migration explicite** (« renamed to
+  page_source/page_dest in v0.7.0 — just rename the key, the value is
+  unchanged »), détectée avant le contrôle de présence de `page_source` —
+  c'est la garantie réelle, et c'est celle qui compte : sans elle,
+  l'auteur lirait « champ manquant » alors qu'il a écrit un champ.
 - `page_dest` (une fois résolu, §20.3.1) doit être unique dans le tableau
-  (pas de doublons) — erreur fatale sinon.
+  **à la casse près** — erreur fatale sinon, nommant les deux articles.
+  Deux noms qui ne diffèrent que par la casse seraient le même fichier
+  sous Windows et macOS (§2.1).
 - `page_source` est **obligatoire** et doit être non vide sur chaque entrée —
   erreur fatale sinon, avec l'index de l'entrée en cause. `page_dest` ne
   l'est **pas** : absent, il se déduit de `page_source` (§20.3.1). Aucun
@@ -5680,10 +5910,11 @@ déclaré dans le fichier. Avec trois mots nommés, aucune valeur n'est
   consommateur doit pouvoir le montrer et le ramener.
 - **`audit`.** Il n'exclut rien, ni brouillons ni ignorés — c'est un
   outil d'écriture, le travail en cours est ce qu'il doit regarder. Et
-  c'est **le seul endroit qui nomme un article `ignored`** : tout le
-  reste de l'outil est muet à son sujet par construction, ce qui est son
-  intérêt et aussi son unique danger, puisqu'un article peut rester hors
-  circuit des mois pendant que son auteur se souvient l'avoir écrit.
+  c'est **le seul endroit qui le signale comme quelque chose à revoir**.
+  `build` et `status` le nomment aussi (les deux puces ci-dessus le
+  disent), mais sans jamais alerter : c'est l'intérêt du statut, et aussi
+  son unique danger, puisqu'un article peut rester hors circuit des mois
+  pendant que son auteur se souvient l'avoir écrit.
 
 ---
 
@@ -5699,23 +5930,31 @@ part entière, au sens de §2.2 (`serie/`, avec ses propres `series.json`,
 contenus privés sans les mélanger à la racine.
 
 - `private/series/series.json` — une entrée (YouTube) avec `series_meta`
-- `private/series/articles/youtube.md` — l'article au format Markdown étendu
-  (8 fiches + navigation + article complet)
+- `private/series/articles/youtube.md` — l'article au format Markdown
+  étendu (plusieurs fiches, navigation, article complet). Le compte n'est
+  pas écrit : le fichier vit hors du dépôt, aucun script ne peut le
+  vérifier, et un nombre invérifiable est un nombre qui dérive.
 - `private/series/articles/youtube_article.md` — l'article de fond inclus
 
 Ce contenu sert de **vérité terrain informelle** pour valider le moteur de
 build en local. Le build doit produire un HTML équivalent au `youtube.html`
 actuel (à la typographie près, qui peut varier légèrement selon les règles
 appliquées). Ce n'est pas la suite de régression du projet — celle-ci vit
-dans `tests/` (fixtures génériques, versionnées, voir §11). À terme, une
-fois la commande `demo` fiabilisée, elle pourra remplacer ce contenu privé
-comme procédure de validation de référence.
+dans `tests/`, qui ne verse aucune fixture au dépôt : chaque test
+construit sa série à la volée dans un répertoire temporaire.
+
+**`demo` (§11.2) couvre désormais le rôle de procédure de validation de
+référence** : elle est spécifiée, gardée par la suite, et
+`init` → `demo` → `build` est le trajet qu'un contributeur lance en
+premier. Le contenu privé reste un contrôle supplémentaire sur du texte
+réel, pas la référence.
 
 Le cas test n'est pas un template : c'est un fichier réel, avec du vrai
 contenu, qui exerce tous les types de slides (cover, standard avec highlight,
-standard sans highlight, series-nav, full-article), tous les champs (kicker, summary,
-fact-label, source, highlight, highlight-caption), et l'inclusion d'un article
-complet avec footnotes (`[^N]`), tableaux, listes, gras et italique.
+standard sans highlight, series-nav, full-article), les champs de fiche
+(la liste qui fait foi est `SLIDE_FIELD_NAMES`, §4.3), et l'inclusion d'un
+article complet avec footnotes (`[^N]`), tableaux, listes, gras et
+italique.
 
 ---
 
@@ -5755,7 +5994,9 @@ sans que celui-ci soit avalé comme titre de la slide :
   titre.** `#` ne définit un titre que sur une fiche `cover` ; `## ` ne
   définit un titre que sur une fiche non-`cover` (`render_slide()` traite
   tout `slide_type` autre que `cover` comme standard, y compris un type
-  inconnu — non validé, §11.5 — donc le parseur suit la même règle). Un
+  inconnu, que l'analyse syntaxique laisse passer avant que la validation
+  ne le refuse — §22.9.2, erreur fatale — donc le parseur suit la même
+  règle). Un
   `## ` sur une fiche `cover`, ou un `#` sur une fiche non-`cover`, bascule
   donc immédiatement en contenu dès sa première occurrence — sans cette
   règle, un tel titre serait capturé dans un attribut que le rendu ne lit
@@ -5937,12 +6178,19 @@ deux emplacements conventionnels relatifs à la page, `./lightwebpres` puis
 l'un des deux.
 
 Les deux scripts de colle partagent le même espace de noms Python (celui
-où `cmd_build()` a été défini) : leurs seuls noms de niveau module qui se
-ressemblaient — le répertoire de travail temporaire, la fonction qui
-localise `series.json` dans une arborescence extraite — sont préfixés
-distinctement (`ZIP_WORK_DIR`/`_find_series_dir_in_zip` pour `app.py`,
-`GIT_WORK_DIR`/`_find_series_dir_in_archive` pour `git_sync.py`) pour ne
-jamais s'écraser l'un l'autre une fois chargés ensemble.
+où `cmd_build()` a été défini), et `index.html` les exécute l'un après
+l'autre : tout nom de niveau module défini des deux côtés est écrasé par
+le second chargé. Deux paires ont donc été préfixées distinctement — le
+répertoire de travail temporaire et la fonction qui localise `series.json`
+dans une arborescence extraite : `ZIP_WORK_DIR`/`_find_series_dir_in_zip`
+pour `app.py`, `GIT_WORK_DIR`/`_find_series_dir_in_archive` pour
+`git_sync.py`.
+
+Un troisième nom reste **volontairement partagé**, `_validate_zip_members`
+— la garde de traversée sur les membres d'un zip, définie au niveau module
+dans les deux fichiers. Les deux corps doivent rester **identiques** :
+c'est la même règle de sécurité, et le second chargé gagne, en silence.
+Rien ne le vérifie aujourd'hui ; c'est au `BACKLOG.md` (B25).
 
 ### 23.2 Confidentialité
 
@@ -5974,7 +6222,7 @@ web/
 ├── git_sync.py              # Colle Python de l'onglet GitLab : API GitLab v4 <-> cmd_build() (§23.9)
 ├── lwp_banner.svg           # Bannière du projet (utilisée aussi par le README du dépôt)
 ├── lwp_logo_icon.svg        # Icône/logo de la page
-├── .htaccess                # Types MIME Apache pour vendor/pyodide/ (§23.7)
+├── .htaccess                # Types MIME, Options -Indexes, nosniff (§23.7)
 └── vendor/
     ├── NOTICE.md            # Provenance, licence, procédure de mise à jour
     └── pyodide/              # Runtime Pyodide vendoré (MPL-2.0)
@@ -6009,8 +6257,8 @@ la rendraient incomplète ou fausse :
 - **Servir le bon répertoire, explicitement.** La page dépend de fichiers
   frères — `web/vendor/pyodide/`, `web/app.py` et `web/git_sync.py`
   (chargés tous les deux, quel que soit l'onglet ouvert), et l'exécutable
-  `lightwebpres` un niveau au-dessus de `web/` (le
-  `fetchText('../lightwebpres')` du script). Un `python3 -m http.server`
+  `lightwebpres` (le `fetchLightwebpresSource()` du script, qui essaie
+  `./lightwebpres` puis `../lightwebpres` — §23.8). Un `python3 -m http.server`
   lancé sans argument sert le répertoire courant du terminal — souvent le
   mauvais (un dossier de téléchargements quelconque) — et le lancer
   *depuis* `web/` casse `../lightwebpres`, hors du répertoire servi. Il faut
@@ -6059,16 +6307,18 @@ très bien être servie en `https://`.
 `text/plain`.
 
 **Apache** : `web/.htaccess` (versionné, déployé avec le reste du dossier)
-corrige déjà ça automatiquement — `AddType text/javascript .mjs` — à
-condition que l'hébergement autorise les surcharges par `.htaccess`
+corrige déjà ça automatiquement — **deux** `AddType`, `.mjs` et `.wasm` —
+à condition que l'hébergement autorise les surcharges par `.htaccess`
 (`AllowOverride FileInfo` ou `All`), ce qui est le cas par défaut sur la
 plupart des hébergements mutualisés (c'est justement le scénario que
 `.htaccess` cible : un déploiement sans accès à la config Apache
 principale). Si `AllowOverride None` est forcé pour le répertoire, il faut
-ajouter la même ligne dans la config du site :
+reporter **les deux lignes** dans la config du site — n'en reporter qu'une
+laisse le `.wasm` mal typé :
 
 ```apache
 AddType text/javascript .mjs
+AddType application/wasm .wasm
 ```
 
 **nginx** ignore silencieusement les fichiers `.htaccess` (aucun
@@ -6077,9 +6327,25 @@ seule la config du site permet de le corriger (bloc `http` ou `server`) :
 
 ```nginx
 types {
-  text/javascript mjs;
+  text/javascript  mjs;
+  application/wasm wasm;
 }
 ```
+
+**Ce que `.htaccess` fait d'autre**, et qu'il faut reporter aussi sur un
+serveur qui ne le lit pas : `Options -Indexes` (ce dossier est une
+application, pas un partage de fichiers) et l'en-tête
+`X-Content-Type-Options: nosniff` (défense en profondeur contre le
+reniflage de type).
+
+**Et ce qu'il ne fait pas, délibérément : aucune Content-Security-Policy.**
+La page emploie des `<script>`/`<style>` en ligne et Pyodide exige du wasm
+dynamique et des workers ; toute CSP réaliste devrait donc concéder
+`'unsafe-inline'` et `'wasm-unsafe-eval'`, plus un `connect-src` assez
+large pour n'importe quel hôte GitLab fourni par l'utilisateur — beaucoup
+de complexité pour une protection faible, la revue de sécurité n'ayant
+trouvé aucun puits DOM-XSS à protéger. À rouvrir si la page passe à des
+scripts à nonce.
 
 Comme pour le CORS de l'API GitLab (§23.10), le cas nginx (et Apache sans
 `.htaccess` autorisé) reste un réglage côté serveur, hors du périmètre de

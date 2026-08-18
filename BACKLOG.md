@@ -1122,3 +1122,105 @@ the cascade cannot express — so the fix is a choice between three:
 say so (a warning naming the flag), make it reachable (promote
 `dark_background` to a property, which the §9 engine could carry), or
 document it as a limit in the GUIDE. It is currently none of the three.
+
+## B22 — `--version` after a command is a silent no-op — OPEN
+
+`--version` is declared a global option: §2.4.1 promised all eight are
+accepted "before or after" the command, and that no command can refuse
+them. Seven of the eight hold. `--version` does not.
+
+Measured on the current tree:
+
+| Invocation | What happens |
+|---|---|
+| `lightwebpres --version build s` | prints `LightWebPres v0.36.0`, exits 0 |
+| `lightwebpres build s --version` | **builds the series**, prints no version |
+| `lightwebpres theme gallery --version` | **writes a 13 MB gallery file** |
+| `lightwebpres status s --version` | prints the status report |
+
+The cause is structural, not a typo. `_parse_global_options` short-circuits
+on `--version` only while scanning the head of the line, before a command
+has been chosen. The post-command parser accepts the flag — `allowed =
+_COMMAND_OPTIONS[command] | _GLOBAL_OPTIONS` — and then never reads it.
+
+**Why it is worth an entry rather than a shrug**: §2.4.2 states that an
+option the parser does not recognise is a fatal error, "never a silent
+no-op". This is the one option that is recognised and silently does
+nothing — the exact failure the rule exists to forbid, sitting inside the
+rule's own section. `--help` has the same shape, but `-h` after a command
+does print the command's help, so only `--version` is affected.
+
+Three ways out: make the post-command parser act on it (short-circuit
+before dispatch), refuse it after a command as an unknown option, or
+declare in §2.4.1 that these two are head-of-line only. The spec now
+documents the behaviour as it is; the code is unchanged.
+
+## B23 — `--inline-images` does not reach an included article's images — OPEN
+
+`--inline-images` promises "a single self-contained HTML file" (§8.4).
+For an image written in a slide, it delivers: measured, a 309-byte SVG
+becomes 419 bytes of data URI, ×1.36, and `public/img/` is not copied.
+
+For an image inside a file pulled in by a `full-article` slide, it does
+not. `build_article` calls `convert_markdown(article_md, ...)` without
+`inline_images=` or `articles_dir=` — every other call site passes both.
+Measured on the series `lightwebpres demo` ships, built clean with
+`--inline-images`: `first.html` contains **0** `data:image` URIs, **1**
+relative `src="img/demo-figure.svg"`, and `public/img/` **does not
+exist**. The page is broken, and the build says nothing.
+
+That is worse than the missing feature: the option's whole point is that
+the file travels alone, and the one configuration where it silently
+fails to is the one an author reaches for when the article is long.
+
+The fix is a one-line change at the call site. It is filed rather than
+done because it is a behaviour change to a build flag, and because the
+invariant deserves a guard at build time — a page that claims to be
+self-contained and still carries a relative `src` should not build
+quietly.
+
+## B24 — A footnote label outside `\w+` fails silently, all the way to the reader — OPEN
+
+§6.5 says the footnote label is free, "a key, nothing else". It is free
+within one limit the section did not state: the engine's two patterns are
+`\[\^(\w+)\]` for the call and `^\[\^(\w+)\]:` for the body. Unicode word
+characters only — accents work, `[^éà]` resolves; hyphens, spaces and
+punctuation do not.
+
+Measured: `[^a-b]` in a slide emits the literal text `note[^a-b]` in the
+page, and its body renders as an ordinary paragraph `<p>[^a-b]: …</p>`.
+`audit` reports **0** warnings on that file. Exit 0, twice.
+
+Everywhere else in the format a typo is named — an unknown slide type, an
+unknown field, an unknown meta key since v0.36.0. This is the one place a
+mistyped key reaches the published page as visible garbage. `audit` is the
+right home for it: a call or a body matching `\[\^` but not `\[\^\w+\]`
+is a warning with the article and the label.
+
+## B25 — Two rules the project states and does not follow — OPEN
+
+Two invariants written down as requirements, neither applied nor guarded.
+Filed together because they share a shape: a rule that reads as settled
+and is not.
+
+**The non-breaking space in a language pack.** §19.3.1 rule 2 said to
+write it as ` `, "never as a literal character", and claimed both
+built-in packs do so "for this reason, learned by losing it". Measured:
+`grep -c 'u00a0' lightwebpres` → **0**. Both `LANG_FR` and `LANG_EN` carry
+literal U+00A0, and `init` writes 9 literal ones into `language/fr.json`.
+The rule is sound — an invisible character does get lost in a copy, an
+editor, a diff — but stating it while doing the opposite is worse than
+either. §19.3.1 now records it as a known, untreated risk. Converting the
+two packs is mechanical; the guard is a test asserting no literal U+00A0
+in the pack literals.
+
+**`_validate_zip_members` is shared without being declared shared.**
+§23.1 claimed the only module-level names that could collide between
+`web/app.py` and `web/git_sync.py` were prefixed apart. A third is not:
+`_validate_zip_members`, the zip path-traversal guard, is defined at
+module level in both. `index.html` executes `app.py` then `git_sync.py`
+in one namespace, so the second definition wins. Compared by AST with
+docstrings stripped, the two bodies are **identical** today — so it is
+inert, and inert by coincidence. It is a security guard; the two copies
+diverging would be silent. Either prefix it like the other two, or keep
+it shared and add the test that asserts the bodies match.
