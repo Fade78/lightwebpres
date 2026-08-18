@@ -384,6 +384,13 @@ both ways — the call jumps to the body, the body jumps back — and the
 number a reader sees is the note's **position**, not the label you wrote,
 so you can rename or reorder labels without renumbering anything.
 
+A label is word characters only: letters, digits and `_`, accents and
+non-Latin scripts included, but no `-`, no space and no punctuation.
+`[^kwh]` and `[^clé]` are notes; `[^a-b]`, `[^note 2]` and `[^réf.]` are
+not, and are not errors either — the call ships to the reader as literal
+text and the body renders as an ordinary paragraph with the label
+showing. `audit` names both; `build` says nothing.
+
 Notes work on **any slide**, not only inside a `full-article`. A standard
 card can carry one.
 

@@ -1319,9 +1319,16 @@ Le premier se règle sur la source, avant que rien ne soit rendu :
   graves ou dans un bloc de code est du contenu et le reste, et
   `[^a-b](https://…)` est un lien. Dans un bloc HTML brut, *rien* n'est
   une note — ni un bon label ni un mauvais — et c'est le dernier point
-  ci-dessous qui le dit. Deux angles morts assumés : le label vide
-  (`[^]`), et le label de plus de 32 caractères — passé cette longueur, un
-  `[^` ouvre plus vraisemblablement une phrase qu'un label.
+  ci-dessous qui le dit. Trois angles morts assumés : le label vide
+  (`[^]`) ; le label de plus de 32 caractères — passé cette longueur, un
+  `[^` ouvre plus vraisemblablement une phrase qu'un label ; et **toute
+  ligne portant une apostrophe inverse non appariée**, sautée entière. Ce
+  dernier tient à l'échelle de lecture : le convertisseur lit un
+  paragraphe fusionné, cette passe le lit ligne à ligne, donc ce qui est
+  du code sur une telle ligne ne se décide pas depuis la ligne. Se taire y
+  est la même discipline que sur une taille relative (§11.5) — ne pas
+  deviner — et c'est mesuré : toute fenêtre plus large inventait des
+  avertissements sur du texte que le convertisseur avait mis en `<code>`.
 
 Les trois autres portent sur l'appariement, et suivent donc l'emplacement
 en vigueur (un appel en fiche 3 vers un corps en fiche 2 est un défaut
@@ -3622,90 +3629,99 @@ atteignable depuis l'arbre. Le coût est qu'`audit` prend à peu près le
 temps d'un `build` : arbitrage assumé, un build est rapide à l'échelle
 humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
 
-1. Pour chaque article, lit et parse le `.md` source
-2. Note (`[NOTE]`, informatif, non compté comme avertissement) les
-   **balises d'instance** que l'article contient, avec leur décompte par
-   type — des interventions d'auteur qui survivent aux changements de
-   thème (§9.6.3), que l'auteur doit savoir localiser
-3. Avertit pour chaque **clé du bloc meta que rien ne lit** — en la
-   nommant, en disant qu'elle est sans effet, et en proposant le nom réel
-   le plus proche quand il y en a un. C'est le seul endroit de l'outil qui
-   le dise : le format est bruyant sur un champ de *fiche* mal
-   orthographié (il devient du texte libre, et sur une couverture c'est une
-   erreur fatale qui nomme le champ), et muet sur une clé de *meta*, qui
-   est acceptée, sans effet, et laisse partir la page avec un titre qui a
-   basculé sur son repli. `comment` et les clés `style.*` ne sont jamais
-   signalées : rien ne résout la première, et les secondes sont la couche
-   article (§9.6.1), qui a son vocabulaire et ses erreurs fatales à elle.
-   L'avertissement ne bloque pas et le build reste silencieux — une clé
-   inconnue n'empêche pas l'outil de fonctionner (§9.5.6), elle échoue
-   seulement à faire ce que son auteur voulait
-4. Avertit si l'article ne contient **aucune** fiche `cover`
-5. Avertit si la **première** fiche de l'article n'est pas une `cover`
-6. Contrôles de **notes** (§6.5.5) : un label hors du motif `\w+`, que le
+1. Pour chaque article, lit et parse le `.md` source. Un `page_source`
+   introuvable et un fichier que son encodage rend illisible sont chacun
+   **nommés et comptés**, puis l'article est sauté : là où `build` s'arrête,
+   `audit` continue et sort à 0. Un fichier illisible n'est nommé qu'une
+   fois pour toute l'exécution, quel que soit le nombre de passes qui le
+   rouvrent
+2. Note (`[NOTE]`, informatif, non compté comme avertissement) les **balises
+   d'instance** que l'article contient, avec leur décompte par type — des
+   interventions d'auteur qui survivent aux changements de thème (§9.6.3),
+   que l'auteur doit savoir localiser
+3. Avertit pour chaque **clé du bloc meta que rien ne lit** — en la nommant,
+   en disant qu'elle est sans effet, et en proposant le nom réel le plus
+   proche quand il y en a un. C'est le seul endroit de l'outil qui le dise :
+   le format est bruyant sur un champ de *fiche* mal orthographié (il
+   devient du texte libre, et sur une couverture c'est une erreur fatale qui
+   nomme le champ), et muet sur une clé de *meta*, qui est acceptée, sans
+   effet, et laisse partir la page avec un titre qui a basculé sur son
+   repli. `comment` et les clés `style.*` ne sont jamais signalées : rien ne
+   résout la première, et les secondes sont la couche article (§9.6.1), qui
+   a son vocabulaire et ses erreurs fatales à elle. L'avertissement ne
+   bloque pas et le build reste silencieux — une clé inconnue n'empêche pas
+   l'outil de fonctionner (§9.5.6), elle échoue seulement à faire ce que son
+   auteur voulait
+4. Avertit sur chaque **tag de variante** malformé — `build` rejetterait la
+   valeur `tags:`, `audit` rapporte chaque jeton fautif et continue, pour
+   qu'un article se corrige en une passe (§4.3.1) — et sur chaque **pack de
+   langue** que `series_meta.lang_tags` désigne sans qu'il existe : `fr` et
+   `en` sont toujours là, tout autre nom veut un fichier dans `language/` ou
+   un `--language-file` (§20.5.1)
+5. Avertit si l'article ne contient **aucune** fiche `cover`
+6. Avertit si la **première** fiche de l'article n'est pas une `cover`
+7. Contrôles de **notes** (§6.5.5) : un label hors du motif `\w+`, que le
    moteur ne lira ni comme appel ni comme corps et qui part littéralement
    dans la page ; un appel sans corps ; un corps que rien n'appelle ; une
-   définition dans un bloc HTML brut. Le premier se règle sur la source,
-   les trois autres sur l'appariement, donc sur l'emplacement en vigueur
-7. Avertit si l'article n'a de description **nulle part** (`page_desc`
-   vide à tous les niveaux de la cascade §20.3.1 — la balise
-   `<meta name="description">` serait omise)
-8. Volet présentation (§9.4.4) : avertit si un `templates/style.css`
-   hérité existe encore (plus lu — avec, pour lui comme pour
-   `custom.css`, chaque variable **retirée** encore référencée, nommée
-   avec son remplaçant, table `RETIRED_VARIABLES` de §9.8 — aucun alias
-   n'a été conservé, une telle déclaration cesse de s'appliquer sans que
-   rien ne le signale, et c'est ici que la rupture devient audible) ; si
-   `settings.conf` contient une erreur de syntaxe ou de propriété (mêmes
-   messages qu'au build, non bloquants ici) ; et si son `scaffold-for:`
-   ne correspond plus au `theme:` déclaré (décommenter une ligne
-   épinglerait une valeur du thème quitté)
-9. **Juge la feuille résolue** (§9.4.4, §9.5.6) — celle de la série,
-   puis celle de chaque article qui porte des `style.*`. Trois familles,
-   et rien d'autre : un contrôle de navigation sous 3:1 sur son propre
-   fond, du texte sous 1,5:1 sur le sien, une taille absolue sous 12px.
-   Les seuils sont **dérivés du catalogue livré, pas choisis** : chacun
-   est posé sous ce que mesurent toutes les entrées de `THEMES` et la
-   feuille des défauts, un test le vérifie à chaque exécution, et un
-   seuil qui ferait avertir un thème livré serait un mauvais seuil
-   (B5 : un thème n'est pas tenu d'atteindre AA). Les sites ne sont pas
-   énumérés : la passe repasse par `CONTRAST_SITES` via la mesure de
-   §11.9.1, donc un site ajouté demain est jugé demain. Une taille
-   **relative** n'est pas jugée contre des pixels — ce que vaut le parent
-   est un fait sur les gabarits, que le registre ne connaît pas. Une
-   propriété fautive n'est nommée qu'une fois, sur sa pire paire, celle
-   que la correction doit dégager. Un article ne rapporte que ce que la
-   feuille de série ne dit pas déjà. Et si la feuille ne résout pas du
-   tout, cette passe se **tait** : l'erreur fatale nomme déjà la ligne à
-   corriger, et rien ne doit lui disputer la place
-10. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
-    répertoire d'images : il ne serait pas publié (§13.7). C'est un
-    contrôle des *sources* commises, pas de la copie — la règle est celle
-    que `copy_images` applique, partagée et non réécrite
-11. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
+   définition dans un bloc HTML brut. Le premier se règle sur la source, les
+   trois autres sur l'appariement, donc sur l'emplacement en vigueur
+8. Avertit si l'article n'a de description **nulle part** (`page_desc` vide
+   à tous les niveaux de la cascade §20.3.1 — la balise `<meta
+   name="description">` serait omise)
+9. Volet présentation (§9.4.4) : avertit si un `templates/style.css` hérité
+   existe encore (plus lu — avec, pour lui comme pour `custom.css`, chaque
+   variable **retirée** encore référencée, nommée avec son remplaçant, table
+   `RETIRED_VARIABLES` de §9.8 — aucun alias n'a été conservé, une telle
+   déclaration cesse de s'appliquer sans que rien ne le signale, et c'est
+   ici que la rupture devient audible) ; si `settings.conf` contient une
+   erreur de syntaxe ou de propriété (mêmes messages qu'au build, non
+   bloquants ici) ; et si son `scaffold-for:` ne correspond plus au `theme:`
+   déclaré (décommenter une ligne épinglerait une valeur du thème quitté)
+10. **Juge la feuille résolue** (§9.4.4, §9.5.6) — celle de la série, puis
+    celle de chaque article qui porte des `style.*`. Trois familles, et rien
+    d'autre : un contrôle de navigation sous 3:1 sur son propre fond, du
+    texte sous 1,5:1 sur le sien, une taille absolue sous 12px. Les seuils
+    sont **dérivés du catalogue livré, pas choisis** : chacun est posé sous
+    ce que mesurent toutes les entrées de `THEMES` et la feuille des
+    défauts, un test le vérifie à chaque exécution, et un seuil qui ferait
+    avertir un thème livré serait un mauvais seuil (B5 : un thème n'est pas
+    tenu d'atteindre AA). Les sites ne sont pas énumérés : la passe repasse
+    par `CONTRAST_SITES` via la mesure de §11.9.1, donc un site ajouté
+    demain est jugé demain. Une taille **relative** n'est pas jugée contre
+    des pixels — ce que vaut le parent est un fait sur les gabarits, que le
+    registre ne connaît pas. Une propriété fautive n'est nommée qu'une fois,
+    sur sa pire paire, celle que la correction doit dégager. Un article ne
+    rapporte que ce que la feuille de série ne dit pas déjà. Et si la
+    feuille ne résout pas du tout, cette passe se **tait** : l'erreur fatale
+    nomme déjà la ligne à corriger, et rien ne doit lui disputer la place
+11. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
+    répertoire d'images : il ne serait pas publié (§13.7). C'est un contrôle
+    des *sources* commises, pas de la copie — la règle est celle que
+    `copy_images` applique, partagée et non réécrite
+12. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
     chaque avertissement que la composition émet, au mot près les mêmes
     qu'un `build` puisque c'est le même chemin : pack de langue absent,
     champs analysés sur une `cover` et jamais rendus (§22.12), et tout ce
     qu'une version ultérieure y ajoutera. **Aucune énumération n'est tenue
-    ici** : le collecteur branche le journal, pas les sites d'appel, donc
-    un avertissement ajouté demain remonte demain sans que rien ne soit à
+    ici** : le collecteur branche le journal, pas les sites d'appel, donc un
+    avertissement ajouté demain remonte demain sans que rien ne soit à
     mettre à jour. Une liste de sites est une liste qui dérive, ce dont le
     registre lui-même a fait la démonstration
-12. Si le rendu **échoue fatalement** — une propriété épinglée que le
+13. Si le rendu **échoue fatalement** — une propriété épinglée que le
     registre ne connaît plus, une balise déséquilibrée, une inclusion
     illisible —, l'erreur est déjà sur stderr ; `audit` ajoute un
-    avertissement disant que la série ne construit pas et qu'aucune page
-    ne serait produite, puis **continue et sort à 0**. Ce n'est pas une
+    avertissement disant que la série ne construit pas et qu'aucune page ne
+    serait produite, puis **continue et sort à 0**. Ce n'est pas une
     remarque éditoriale, et `--strict` en fait un échec. Sans ce point,
     `audit` concluait « No warnings » sur une série qu'aucun build ne peut
     produire — un résumé contredisant un message trois lignes plus haut
-13. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+14. Affiche un résumé (en anglais, non localisé) : « No warnings: all
     editorial conventions are respected. » ou « N warning(s). Reminder:
     audit never blocks... »
 
-`--templates` garde les points 8, 9 et 13, et rien d'autre : les points 1
-à 7 tombent parce que la liste d'articles est vidée, les points 10 à 12
-parce qu'ils sont explicitement écartés. Le point 9 **reste** — l'option
+`--templates` garde les points 9, 10 et 14, et rien d'autre : les points 1
+à 8 tombent parce que la liste d'articles est vidée, les points 11 à 13
+parce qu'ils sont explicitement écartés. Le point 10 **reste** — l'option
 le réduit à la feuille de la série, faute d'article à recomposer, mais ne
 l'éteint pas : c'est un contrôle de la surface de présentation, qui est
 exactement ce que cette option demande.
@@ -6081,7 +6097,11 @@ déclaré dans le fichier. Avec trois mots nommés, aucune valeur n'est
   drapeau pour construire un article `ignored` : ce serait en faire un
   second `draft`, alors que c'est précisément la valeur qui n'a aucun
   effet. Chaque exclusion est annoncée (`[ignored] x.html`,
-  `[draft] x.html skipped`), jamais silencieuse.
+  `[draft] x.html skipped`) : c'est une ligne de progression sur stdout,
+  au même titre que le reste du journal de build, donc coupée par
+  `--quiet` (§2.4.1) et par rien d'autre. Aucun article ne sort de la
+  liste sans que le build le dise à qui écoute — et `audit`, lui,
+  n'exclut rien du tout (§11.5).
 - **Le nom d'index (§11.3.3).** Le décompte se prend **entre les deux
   filtres** : un brouillon est un article de la série, donc une série de
   deux dont l'un est brouillon a bien un index à protéger, et la

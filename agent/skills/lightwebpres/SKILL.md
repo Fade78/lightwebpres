@@ -170,7 +170,10 @@ and emitted as `<meta>` tags:
   it out of the chain altogether: never built whatever the flags, never
   listed, never counted, and the entry survives with every field on it —
   which is how you set an article aside without losing its settings. Any
-  other value is a fatal error.
+  other value is a fatal error. `audit` is the exception to all of it: it
+  excludes nothing, drafts least of all, and renders them like the rest —
+  so keeping an article in `draft` while you work on it costs you no
+  checking.
 
 **Notes fields**, settable here or in `series_meta` (the article wins):
 
@@ -413,9 +416,19 @@ The kettle draws about 3 kW[^kwh] on a domestic ring.
 ```
 
 Works in a slide's free text and in the full-article file. **The label is
-a key, not content** — `[^kwh]`, `[^1]`, `[^a]` are all fine, none of them
-reaches the page, and what the reader sees is a position. So you never
+a key, not content** — what the reader sees is a position, so you never
 have to renumber anything when you insert a note.
+
+**A label is word characters only.** Letters, digits and `_`, accents and
+non-Latin scripts included — and nothing else: no `-`, no space, no
+punctuation. `[^kwh]`, `[^1]`, `[^a]`, `[^clé]` are labels. `[^a-b]`,
+`[^note 2]`, `[^réf.]` are not, and they are not errors either: the
+engine reads neither a call nor a body, so `[^réf.]` ships to the reader
+inside the sentence as literal text and `[^réf.]: …` renders as an
+ordinary paragraph with the label showing. `build` is silent and exits 0.
+This is the one defect in this format that reaches the reader with
+nothing raised anywhere — `audit` is what names it. If a label has to
+read as it stands, wrap it in backticks.
 
 The call becomes a link to the body; the body carries a link back to the
 call. One label called twice gives one body with two return links.
@@ -427,8 +440,12 @@ purpose: a card is individually shareable, so a reader can arrive at card
 5 having seen nothing else, and a note numbered 7 there would send them
 hunting for six that are not on their screen.
 
-Three things `audit` will tell you about, none of them fatal:
+Four things `audit` will tell you about, none of them fatal:
 
+- a label outside the word-character pattern above — reported separately
+  for a call and for a body, because they do not repair the same way: one
+  gets renamed, the other gets renamed *and* has been rendering a line of
+  prose you never wrote;
 - a call with no body — the marker still renders, but as no link at all;
 - a body nothing calls — it still renders, at the end of the block,
   with no return link;
@@ -498,7 +515,7 @@ article — they are author decisions that survive every theme change.
 | Tag | Effect |
 |---|---|
 | `{color:#E8A33D}…{/color}` | colour literal (3/4/6/8-digit hex, normalized to ARGB) |
-| `{color:mark}…{/color}` | a shared colour by name (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`) |
+| `{color:mark}…{/color}` | a shared colour by name (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`) — any name `N` for which `color.N` is in the registry |
 | `{font:mono}…{/font}` | a shared stack by name (`text`, `display`, `ui`, `mono`), or a literal stack ending on a CSS generic |
 | `{sc}…{/sc}` | small caps |
 | `{strike}…{/strike}` | strikethrough |

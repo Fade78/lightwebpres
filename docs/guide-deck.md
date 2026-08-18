@@ -54,7 +54,7 @@ The switch from fields to free text is **one-way within a slide**: once a line i
 
 A note[^note] is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.
 
-[^note]: `[^label]` calls it, `[^label]: text` defines it. `notes_placement: local` — the default — lands the body at the foot of the unit that called it, which is why this one is here rather than at the end of the page. Set `notes_placement: page` to gather every note of an article into one section instead, and `notes_tooltip: on` to put the text in the call's tooltip as well. Both cascade: built-in default, then `series_meta`, then the article's own meta block.
+[^note]: `[^label]` calls it, `[^label]: text` defines it. `notes_placement: local` — the default — lands the body at the foot of the unit that called it, which is why this one is here rather than at the end of the page. Set `notes_placement: page` to gather every note of an article into one section instead, and `notes_tooltip: on` to put the text in the call's tooltip as well. Both cascade: built-in default, then `series_meta`, then the article's own meta block. A label is word characters only — letters, digits, `_`, accents included, no `-`, no space, no punctuation; anything else is neither a note nor an error, and `audit` is the only thing that says so.
 
 ---
 
@@ -90,10 +90,10 @@ The stylesheet is composed in memory at every build, so nothing the tool writes 
 
 <!-- lwp:slide -->
 kicker: Look
-## Fifty-seven themes, found by facet
+## Themes, found by facet
 
-highlight: 57
-highlight-caption: themes, filtered by family, polarity and hue
+highlight: 3
+highlight-caption: facets — family, polarity, hue — narrowing a catalogue too long to read
 
 fact-label: Why facets rather than a list
 
@@ -124,7 +124,7 @@ kicker: Shipping
 
 fact-label: A nudge and a gate
 
-`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. Pass `--strict` when those warnings must fail CI.
+`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. It also **renders the whole series in memory**, throws the HTML away, and keeps what composing it had to say — including that the series does not build at all. Nothing is left out: drafts and `ignored` articles are looked at too, because work in progress is what an authoring tool is for. Pass `--strict` when those warnings must fail CI.
 
 `verify` rebuilds in memory and diffs against `public/`, exiting non-zero on any difference. That exit code is what makes it a CI gate.
 

@@ -164,16 +164,21 @@ people:
   renders as plain paragraphs — which is often what you want.
 
 **Notes.** `[^label]` calls a note, `[^label]: text` on its own line is
-its body. The label is a key, never displayed — the reader sees a
-position — so you never renumber when you insert one. By default a body
+its body. The label is a key, and a valid one is never displayed — the
+reader sees a position — so you never renumber when you insert one. Valid
+means word characters only: letters, digits and `_`, accents and
+non-Latin scripts included, but no `-`, no space, no punctuation. A label
+outside that is neither a note nor an error: the call ships as literal
+text, the body renders as an ordinary paragraph, and the label is the one
+thing on the page the reader was never meant to see. By default a body
 lands at the foot of the unit that called it (the card, or the end of the
 long-form article) and numbering restarts in each card, because a card is
 shareable on its own and a reader may arrive at it having read nothing
 else. `notes_placement: page` in the meta block instead collects every
 body into one notes section at the end of the page; `notes_tooltip: on`
-additionally puts the text on the call. `audit` names a call with no
-body, a body nothing calls, and a body written inside a raw HTML block
-(where it ships as literal text).
+additionally puts the text on the call. `audit` names a label outside the
+pattern, a call with no body, a body nothing calls, and a body written
+inside a raw HTML block (where it ships as literal text).
 
 Register every article that should appear in navigation in
 `series.json` — next section.
@@ -404,7 +409,15 @@ colour of the ground it sits on, a size under the readability floor. That
 one is worth its own sentence: those faults are correct at every layer
 and only exist once composed, so nothing that reads what you *wrote* can
 find them; a size you never touched can go invisible because a colour it
-inherits from did. And what only **composing** can say: a missing
+inherits from did.
+
+Nothing is filtered out of any of that. `audit` looks at every article
+`series.json` lists — drafts included, and `ignored` ones named on a
+`[NOTE]` line, since this is the only place in the tool that will ever
+mention them again. A build's `--include-drafts` has no counterpart here
+and needs none: work in progress is exactly what an authoring tool should
+be looking at, and a fault that only shows once a page is composed is no
+less real on a draft. And what only **composing** can say: a missing
 language pack, fields you wrote on a cover that a cover never renders —
 and, when the render cannot finish at all, the fact that no page would be
 produced. It still never fails on its own: exit 0 every time, even then.

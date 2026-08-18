@@ -11750,7 +11750,7 @@ def unrecognized_note_labels(text):
     return found
 
 
-def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
+def audit_notes(entry, meta, series_meta, slides, articles_dir):
     """The three ways a note can be broken without the build noticing
     (ARCHI-NOTES §4). None of them is fatal: the input contract does not
     break over an editorial slip, and this is the command that exists for
@@ -11902,8 +11902,13 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
     return warnings
 
 
-# Files `audit` has already refused this run, so one unreadable article is
-# named once instead of once per pass that reaches for it.
+# Files `audit` has already refused THIS RUN, so one unreadable article is
+# named once instead of once per pass that reaches for it. Cleared when a
+# run starts, and that is not tidiness: the executable is also loaded as a
+# MODULE by the web interface, where the process outlives a command. A memo
+# that survived the run would keep calling a file unreadable after its
+# author had fixed it and asked again -- a report that cannot be corrected,
+# which is worse than the repeated line it exists to avoid.
 _AUDIT_UNREADABLE = set()
 
 
@@ -11935,7 +11940,7 @@ def audit_read(path):
         return None
 
 
-def audit_by_rendering(series_dir, args):
+def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
     """Renders the series in memory and reports what only a render can say.
 
     `verify` already renders without writing -- it builds the HTML and
@@ -11965,12 +11970,43 @@ def audit_by_rendering(series_dir, args):
     args.pop('--drafts-only', None)
     # audit_presentation has already reported a legacy templates/style.css,
     # and said more about it than the build path does.
+    fatal = 0
     with collect_warnings(
             already_said=('templates/style.css is no longer read',)) as sink:
         try:
             ctx = load_build_context(series_dir, args)
-            claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
-            for entry in ctx.articles:
+        except SystemExit:
+            # The message is already on stderr, printed by whatever refused.
+            # Saying so here is what stops the summary from contradicting it
+            # -- unless the caller has already named the cause article by
+            # article, which it does for a missing page_source. Repeating it
+            # here would be the double count `already_said` exists to stop,
+            # arriving through the one door that mechanism does not cover.
+            if not caller_named_the_cause:
+                print('[WARNING] the series does not build: the error above '
+                      'is fatal, and no page would be produced. audit does '
+                      'not block, but this is not an editorial remark.')
+                fatal += 1
+            return len(sink.messages) + fatal
+
+        # The index claim is the BUILD's decision, not this render's.
+        # Rendering with drafts is right -- a draft is exactly the article
+        # still being worked on -- but letting a DRAFT named index.html
+        # claim the index takes build_index, and templates/index_extra.html
+        # with it, out of the audit: measured, a fatal in that file made
+        # `build` exit 1 while audit reported "No warnings". Blinding the
+        # pass to a whole page is the failure it was written to remove, so
+        # the claim is resolved against what a build would actually ship.
+        shipped = [e for e in ctx.articles if e['status'] != 'draft']
+        claimant = resolve_index_claim(ctx.claim_articles, shipped)
+
+        # Per article, so a fatal names the page that carries it -- and so
+        # one bad article does not hide every article after it. A draft
+        # gets its own sentence: `build` would not produce that page at
+        # all, so saying "the series does not build" over it would be
+        # false, and a false finding is worse than a missing one.
+        for entry in ctx.articles:
+            try:
                 build_article(
                     ctx.articles_dir / entry['page_source'], ctx.articles_dir,
                     ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js,
@@ -11978,19 +12014,29 @@ def audit_by_rendering(series_dir, args):
                     style_context=ctx.style_context,
                     inline_images=ctx.args.get('--inline-images', False),
                     args=args, lang_tag_engines=ctx.lang_tag_engines)
-            if claimant is None:
+            except SystemExit:
+                fatal += 1
+                if entry['status'] == 'draft':
+                    print(f'[WARNING] {entry["page_source"]}: this draft does '
+                          f'not render — the error above is fatal. A build '
+                          f'without --include-drafts would not produce it, so '
+                          f'the series still builds; this page does not.')
+                else:
+                    print(f'[WARNING] {entry["page_source"]}: the series does '
+                          f'not build — the error above is fatal, and this '
+                          f'page would not be produced. audit does not block, '
+                          f'but this is not an editorial remark.')
+        if claimant is None:
+            try:
                 extra = ctx.templates_dir / 'index_extra.html'
                 build_index(ctx.series_data, ctx.css, ctx.typo_engine,
                             ctx.strings, ctx.lang,
                             read_text_file(extra) if extra.exists() else '')
-        except SystemExit:
-            # The message is already on stderr, printed by whatever refused.
-            # Saying so here is what stops the summary from contradicting it.
-            print('[WARNING] the series does not build: the error above is '
-                  'fatal, and no page would be produced. audit does not '
-                  'block, but this is not an editorial remark.')
-            return len(sink.messages) + 1
-    return len(sink.messages)
+            except SystemExit:
+                fatal += 1
+                print('[WARNING] the series index does not build — the error '
+                      'above is fatal, and index.html would not be produced.')
+    return len(sink.messages) + fatal
 
 
 # ----------------------------------------------------------------------------
@@ -12029,15 +12075,31 @@ def audit_by_rendering(series_dir, args):
 #              on the delivered themes — never on what an author writes.
 #              Measured over the 57 themes AND the default sheet, the
 #              closest is pop-lime's current-slide dot at 3.1712:1.
-#   text       1.5:1. The worst of 5,529 text pairs in the catalogue is
-#              nord's "yes" verdict at 1.7866:1 — deliberately low, and
-#              legitimate, since a verdict also carries a shape marker
-#              (WCAG 1.4.1). 1.5 sits below every one of them with room
-#              left, so it can only fire on something worse than anything
-#              the project ships.
+#   text       1.5:1. Measured 2026-08-18 over the delivered catalogue,
+#              the worst text pair was nord's "yes" verdict at 1.7866:1 —
+#              deliberately low, and legitimate, since a verdict also
+#              carries a shape marker (WCAG 1.4.1). 1.5 sits below it with
+#              room left, so it can only fire on something worse than
+#              anything the project ships. The NUMBER of pairs is not
+#              written here: it moves with every site added to
+#              CONTRAST_SITES, and the sweep test recomputes it anyway.
 #   size       12px, the design floor the registry already states and a
-#              test already pins on the defaults. The catalogue's smallest
-#              absolute size is exactly 12.00px, over 1,824 readings.
+#              test already pins on the defaults. Measured 2026-08-18 over
+#              the 57 themes AND the default sheet, the catalogue's
+#              smallest floor is exactly 12.00px — nord's `kicker.size`,
+#              `max(12px, 1.5vmin)` — so the threshold sits ON it and
+#              nothing delivered trips it. 1,856 of the 2,030 size readings
+#              resolve to a floor; the rest are `em`, which is a fact about
+#              the templates rather than about the registry.
+#
+#              Two earlier claims here were wrong and are worth keeping as
+#              a warning about this number. One said 1,824 readings, from a
+#              count taken when the registry held fewer size properties.
+#              The other said 0 readings resolved, written during a repair
+#              that had `max` refuse whenever one argument was relative —
+#              which is how the entire catalogue briefly stopped being
+#              measurable. The floor of a `max` is the largest of its
+#              arguments' floors, and a relative term floors at zero.
 #
 # Sites are NOT enumerated here. The pass reuses CONTRAST_SITES through
 # measure_contrast(), which is the same "hook the funnel, not the sites"
@@ -12061,11 +12123,22 @@ def navigation_contrast_sites():
     """The sites whose failure leaves the reader unable to navigate.
 
     Derived from the palette role, never listed here. §9.5.7 gives
-    `color.nav` exactly one job — the furniture that MOVES the reader, and
-    it names the pieces: the active progress dot and the two focus rings.
-    So "painted by nav" and "is a navigation control" are one statement,
-    and a ring added tomorrow is judged tomorrow without anyone editing
-    this function.
+    `color.nav` exactly one job — the furniture that MOVES the reader —
+    and names four pieces: the active progress dot, the two focus rings,
+    and the rule under a series-nav card. So "painted by nav" and "is a
+    navigation control" are one statement, and a ring added tomorrow is
+    judged tomorrow without anyone editing this function.
+
+    Three of those four reach this floor, and the fourth is exempt by a
+    written decision rather than by omission: `series-nav.link.rule-fg` is
+    not in CONTRAST_SITES at all. SC 1.4.11 asks 3:1 of what is REQUIRED
+    to identify a component, and a card is identified by its title, which
+    IS measured — the reason sits beside the key in CONTRAST_UNMEASURED,
+    next to the same call for a button's edge and an index card's. A
+    colour property in neither that table nor the site list is a
+    measurement nobody made, and a test walks the registry against both,
+    so this cannot quietly become one. Saying "three pieces" here made a
+    written exemption read as a hole.
 
     The other three non-text sites are out of this floor on written
     grounds, not by oversight:
@@ -12121,24 +12194,35 @@ def _absolute_size_px(value):
     That is right for `clamp(a, b, c)`, whose floor is `a`. It is wrong
     both ways for the others, and measured: `max(9px, 1rem)` renders at
     16px and warned, `min(20px, 4vw)` can render at 8px and said nothing.
-    The floor of a `max` is the largest floor among its arguments, that of
-    a `min` the smallest -- and either becomes UNKNOWABLE as soon as one
-    argument is relative, so neither is judged then. Both directions
-    matter and only one is obvious: an unresolved argument inside a `min`
-    can drag the render below the floor unseen, and one inside a `max` can
-    lift it above, which would make a warning simply wrong. Silence on
-    what this pass cannot resolve is the same discipline as the `em` rule
-    above -- it does not guess what the viewport will be."""
+    The question is always the SMALLEST size the rule can render, and the
+    three functions answer it differently. A `clamp(a, b, c)` floors at
+    `a`. A `max` floors at the largest of its arguments' floors -- and a
+    relative argument floors at zero, since a viewport can be arbitrarily
+    small, so it is IGNORED rather than fatal to the reading:
+    `max(8px, 6.1vmin)` really can render at 8px, which is the whole
+    catalogue's idiom and the case worth judging. A `min` floors at the
+    smallest, so one relative argument puts its floor at zero and there is
+    nothing to say: it is not judged.
+
+    An earlier repair had `max` refuse as soon as one argument was
+    relative, on the argument that an unknown could lift the render above
+    the floor. That confuses the rendered value with the floor, and it
+    measured: it turned the floor off for 91% of the readings the older,
+    cruder rule got right. The rule is not "refuse when unsure" — it is
+    "a relative term contributes zero", which is exactly what it does."""
     v = value.strip()
     m = re.match(r'^(clamp|min|max)\((.*)\)$', v, re.S)
     if m:
         fn, args = m.group(1), _top_level_args(m.group(2))
-        if fn == 'clamp':
-            return _absolute_size_px(args[0]) if args else None
-        floors = [_absolute_size_px(a) for a in args]
-        if any(f is None for f in floors):
+        if not args:
             return None
-        return max(floors) if fn == 'max' else min(floors)
+        if fn == 'clamp':
+            return _absolute_size_px(args[0])
+        floors = [_absolute_size_px(a) for a in args]
+        if fn == 'max':
+            known = [f for f in floors if f is not None]
+            return max(known) if known else None
+        return None if any(f is None for f in floors) else min(floors)
     if re.search(r'[\d.]\s*(?:em|ex|ch|%)', v):
         return None
     return length_px(v, 16.0)
@@ -12184,10 +12268,13 @@ def judge_resolved_theme(resolved):
              f"taste: a control nobody can see is a control that is broken.")
 
     # 2. Text indistinguishable from what it sits on. Deliberately NOT the
-    #    AA bar: §9.5.2 and B5 let a theme sit under AA on purpose, and six
-    #    delivered themes do. This fires far below that, where the question
-    #    stops being how bold the palette is and becomes whether the words
-    #    are on the page at all.
+    #    AA bar: §9.5.2 and B5 let a theme sit under AA on purpose, and a
+    #    large part of the catalogue does — measured 2026-08-18, 22 of the
+    #    57 delivered themes carried at least one text pair under AA. (An
+    #    earlier version of this comment said six, a figure no reading of
+    #    the catalogue produces.) This fires far below that, where the
+    #    question stops being how bold the palette is and becomes whether
+    #    the words are on the page at all.
     for category in ('body_text', 'large_text'):
         for rec in measured[category]['failures']:
             if rec['ratio'] >= ILLEGIBLE_TEXT_RATIO:
@@ -12300,6 +12387,7 @@ def cmd_audit(series_dir, args):
     slides, see specifications.md §22.13) remains entirely the author's
     responsibility.
     """
+    _AUDIT_UNREADABLE.clear()
     sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
@@ -12319,6 +12407,11 @@ def cmd_audit(series_dir, args):
     resolve_article_fields(articles, articles_dir, series_meta)
 
     warnings = 0
+    # Set when this pass has already named, article by article, something
+    # that will also stop the render dead: a source that is missing, or one
+    # that cannot be read as text. The render pass then keeps quiet about
+    # the cause instead of counting it a second time.
+    named_the_cause = False
 
     # An `ignored` article produces nothing and warns about nothing, so
     # every other check below stays quiet about it forever (§20.6). That
@@ -12345,11 +12438,13 @@ def cmd_audit(series_dir, args):
             # chain: audit printed an [ERROR], then "No warnings", and
             # `--strict` exited 0.
             warnings += 1
+            named_the_cause = True
             continue
 
         md_text = audit_read(source_path)
         if md_text is None:
             warnings += 1
+            named_the_cause = True
             continue
         # Instance tags are author interventions that survive every theme
         # change; audit enumerates them (never blocks) so an author changing
@@ -12389,7 +12484,7 @@ def cmd_audit(series_dir, args):
             warnings += 1
 
         warnings += audit_notes(entry, meta, series_meta, slides,
-                                articles_dir, md_text)
+                                articles_dir)
 
         # §20.3.1: page_desc resolves to '' only when no description
         # exists at ANY level (series.json, meta block, cover summary) —
@@ -12425,7 +12520,7 @@ def cmd_audit(series_dir, args):
     # missed audit is not cheap.
     if not args.get('--templates'):
         warnings += audit_image_symlinks(articles_dir)
-        warnings += audit_by_rendering(series_dir, args)
+        warnings += audit_by_rendering(series_dir, args, named_the_cause)
 
     if warnings == 0:
         print('No warnings: all editorial conventions are respected.')
@@ -12478,13 +12573,25 @@ RETIRED_VARIABLES = {
 def audit_presentation(templates_dir):
     """The presentation-layer part of audit (§11.5): warns, never blocks.
 
-    Three eyes. A legacy style.css, no longer read, with the rename table
-    for whatever it references. Retired variable names inside custom.css,
-    which would otherwise fail silently — a var() referencing nothing
-    paints nothing and says nothing. And a settings scaffold whose
-    commented values were generated under a different theme than the one
-    the file now declares, so an author uncommenting a line would pin a
-    value from a theme they left."""
+    What it looks at, in the order the templates directory gives it. A
+    legacy style.css, no longer read, with the rename table for whatever
+    it references. Retired variable names inside custom.css, which would
+    otherwise fail silently — a var() referencing nothing paints nothing
+    and says nothing. Then settings.conf, which carries three findings of
+    its own: a file that cannot be read as text (counted here, already
+    named on stderr by the reader that refused it, and the reason this
+    function returns rather than reading on); a syntax or property error,
+    reported with the build's own message and blocking nothing here; and
+    a commented surface generated under a different theme than the one the
+    file now declares, so an author uncommenting a line would pin a value
+    from a theme they left.
+
+    This docstring said "Three eyes" and described three of the five, so
+    the two belonging to settings.conf were invisible to anyone reading
+    the function's contract rather than its body. §9.4.4 counts a fourth
+    eye on this surface — the resolved sheet — and that one is genuinely
+    not here: audit_resolved_theme() measures colours, and this function
+    stays the one that only reads files."""
     warnings = 0
 
     def _retired_in(text):
@@ -12499,14 +12606,33 @@ def audit_presentation(templates_dir):
               f'the stylesheet is composed at build time. Move your values '
               f'to {SETTINGS_FILENAME}, your rules to {CUSTOM_CSS_FILENAME}, '
               f'then delete it.')
-        found = _retired_in(audit_read(legacy) or '')
+        legacy_text = audit_read(legacy)
+        if legacy_text is None:
+            warnings += 1
+            print(f'[WARNING] templates/style.css cannot be read as text, so '
+                  f'it was not checked for retired variable names. The error '
+                  f'above names the file.')
+        found = _retired_in(legacy_text or '')
         if found:
             for old in found:
                 print(f'          {old} -> {RETIRED_VARIABLES[old]}')
 
     custom_path = templates_dir / CUSTOM_CSS_FILENAME
     if custom_path.exists():
-        found = _retired_in(audit_read(custom_path) or '')
+        custom_text = audit_read(custom_path)
+        if custom_text is None:
+            # Counted, and this is the one that mattered: the only pass that
+            # used to catch an unreadable custom.css was the render, and
+            # `--templates` does not render. A refused read that nothing
+            # counts turns into `[ERROR]` on stderr followed by `No warnings`
+            # on stdout, with `--strict` green -- the summary contradicting a
+            # message two lines above it, on a series `build` refuses.
+            warnings += 1
+            print(f'[WARNING] templates/{CUSTOM_CSS_FILENAME} cannot be read '
+                  f'as text, so it was not checked for retired variable '
+                  f'names — and the build will refuse it. The error above '
+                  f'names the file.')
+        found = _retired_in(custom_text or '')
         if found:
             warnings += 1
             print(f'[WARNING] templates/{CUSTOM_CSS_FILENAME}: these variables '
@@ -12534,8 +12660,10 @@ def audit_presentation(templates_dir):
                 print(f'[WARNING] templates/{SETTINGS_FILENAME}: the commented '
                       f'values were generated for theme {scaffold_for!r} but '
                       f'the file now declares {declared_name!r}. Uncommenting '
-                      f'a line would pin a value from the old theme. '
-                      f'Regenerate a fresh scaffold to compare when in doubt.')
+                      f'a line would pin a value from the theme you left. '
+                      f'Run `lightwebpres template update --scaffold` to '
+                      f'realign the commented surface, keeping every line '
+                      f'you pinned.')
             try:
                 layers = [theme_property_layer(declared)] if declared else []
                 layers.append(props)
@@ -14659,9 +14787,14 @@ ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
 NOTES (specifications.md §6.5)
   [^label] calls a note, [^label]: body defines it — standard Markdown, in
   a slide's free text or in the full-article file. The call links to the
-  body, the body links back, and the label never reaches the page: what
-  the reader sees is a position, so inserting a note renumbers nothing you
-  wrote.
+  body, the body links back, and the label stays out of the page: what the
+  reader sees is a position, so inserting a note renumbers nothing you
+  wrote. A label is word characters only — letters, digits, underscore,
+  accents and non-Latin scripts included; not `-`, not a space, not
+  punctuation. Anything else is neither a note nor an error: the call
+  ships as literal text, the body renders as an ordinary paragraph, and
+  the label is in plain view. That is the one way a label reaches the
+  page, and the sign it was not one.
 
   Two article-level <!-- lwp:meta --> fields, also settable in series_meta
   (the article wins):
@@ -14676,9 +14809,11 @@ NOTES (specifications.md §6.5)
                              (the body stays in the document). Default off.
   An unknown value is a build error naming the article.
 
-  audit names three things, none of them fatal: a call with no body, a
-  body nothing calls, and a body written inside a raw HTML block (raw HTML
-  is passed through verbatim, so it ships as literal text).
+  audit names them, none of them fatal: a label outside that pattern (the
+  call and the body are reported separately, because they do not repair
+  the same way), a call with no body, a body nothing calls, and a body
+  written inside a raw HTML block (raw HTML is passed through verbatim,
+  so it ships as literal text).
 
 TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specifications.md §7/§19
   The built-in French pack (language/fr.json) inserts a non-breaking space

@@ -14186,6 +14186,36 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
                           'audit ended without a summary')
             self.assertEqual(run('audit', root, '--strict').returncode, 1)
 
+    def test_the_unreadable_memo_does_not_outlive_the_run(self):
+        """The memo is a module global, and the executable is loaded as a
+        MODULE by the web interface, where the process outlives a command.
+        A memo that survived would keep calling a file unreadable after its
+        author had fixed it and asked again — a report that cannot be
+        corrected, which is worse than the repeated line the memo exists to
+        avoid. Measured on the module: without the clear, the second read
+        of a repaired file still came back None."""
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / 'bad.md'
+            bad.write_bytes(b'\xff not utf-8')
+            self.assertIsNone(lwp.audit_read(bad))
+            bad.write_text('readable now\n', encoding='utf-8')
+            self.assertIsNone(lwp.audit_read(bad),
+                              'the memo is not holding within a run, so the '
+                              'file would be named once per pass')
+            lwp._AUDIT_UNREADABLE.clear()
+            self.assertEqual(lwp.audit_read(bad), 'readable now\n',
+                             'a repaired file stayed unreadable across runs')
+
+    def test_a_run_clears_the_memo_before_it_reads_anything(self):
+        """The clear has to be in cmd_audit, not left to the caller: a
+        long-lived process is exactly the one that never thinks to."""
+        source = EXECUTABLE.read_text(encoding='utf-8')
+        body = source[source.index('def cmd_audit('):]
+        self.assertIn('_AUDIT_UNREADABLE.clear()',
+                      body[:body.index('\n    for entry in articles:')],
+                      'cmd_audit reads articles before clearing the memo')
+
     def test_an_unreadable_file_is_named_once_per_run_not_once_per_pass(self):
         """Three passes reach for the same article — the syntax pass, the
         judgement pass, the render — so one unreadable file used to print
@@ -14281,6 +14311,101 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
             self.assertIn('No warnings', quiet.stdout,
                           'the summary is the command answer and must stay')
 
+    def test_a_draft_cannot_take_the_series_index_out_of_the_audit(self):
+        """The regression the draft repair introduced, and the worst kind:
+        a fix that reopens the defect it was part of closing. Rendering
+        with drafts is right, but `resolve_index_claim` then let a DRAFT
+        named index.html claim the index — so `build_index`, and
+        `templates/index_extra.html` with it, were never rendered at all.
+        Measured: a fatal in that file, `build` exit 1, audit reporting
+        `No warnings` and exit 0 under --strict. The claim is resolved
+        against what a build would ship, not against what audit renders."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = str(Path(tmp) / 's')
+            self.assertEqual(run('init', root).returncode, 0)
+            (Path(root) / 'articles').mkdir(exist_ok=True)
+            (Path(root) / 'articles' / 'index.md').write_text(
+                '<!-- lwp:meta -->\npage_title: Solo\n---\n\n'
+                '<!-- lwp:slide:cover -->\n# Solo\nsummary: One.\n',
+                encoding='utf-8')
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            data['articles'] = [{'page_source': 'index.md', 'status': 'draft'}]
+            path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            (Path(root) / 'templates' / 'index_extra.html').write_bytes(
+                b'<div>\xff not utf-8</div>\n')
+            self.assertEqual(run('build', root).returncode, 1,
+                             'the premise changed: this still has to be fatal')
+            plain = run('audit', root)
+            self.assertIn('index does not build', plain.stdout,
+                          'a draft claimed the index and took it out of the '
+                          'audit:\n' + plain.stdout + plain.stderr)
+            self.assertEqual(plain.returncode, 0)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+
+    def test_a_fatal_draft_does_not_claim_the_series_is_broken(self):
+        """Rendering drafts makes a draft's fatal reachable, and the
+        series-wide sentence became false with it: `build` produces every
+        other page and exits 0. A finding that is false is worse than one
+        that is missing, so the draft gets its own sentence."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            source = self._mark_draft(root)
+            article = Path(root) / 'articles' / source
+            article.write_text(
+                article.read_text(encoding='utf-8') + '\n<div>\n',
+                encoding='utf-8')
+            self.assertEqual(run('build', root).returncode, 0,
+                             'the premise changed: a build without drafts '
+                             'still has to succeed here')
+            plain = run('audit', root)
+            self.assertIn('this draft does not render', plain.stdout,
+                          plain.stdout + plain.stderr)
+            self.assertNotIn('the series does not build', plain.stdout,
+                             'audit called the series broken while build '
+                             'exits 0:\n' + plain.stdout)
+
+    def test_an_unreadable_custom_css_is_counted_under_templates(self):
+        """`--templates` does not render, and the render was the only pass
+        that caught this file. Measured before the repair: `[ERROR]` on
+        stderr, `No warnings` on stdout, `--strict` exit 0, on a series
+        `build` refuses — the summary contradicting the message two lines
+        above it, which is the defect this whole lot exists to remove."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (Path(root) / 'templates' / 'custom.css').write_bytes(
+                b'/* mine */ .x { color: \xff\xfe; }\n')
+            self.assertEqual(run('build', root).returncode, 1,
+                             'the premise changed: this still has to be fatal')
+            plain = run('audit', root, '--templates')
+            self.assertNotIn('No warnings', plain.stdout,
+                             'audit called a series clean that build '
+                             'refuses:\n' + plain.stdout)
+            self.assertEqual(plain.returncode, 0)
+            self.assertEqual(
+                run('audit', root, '--templates', '--strict').returncode, 1,
+                '--strict passed on a stylesheet the build refuses')
+
+    def test_a_missing_source_is_counted_once_not_once_per_pass(self):
+        """The count is what --strict gates on, and the render fails on the
+        very cause the syntax pass has already named. `already_said` covers
+        warnings; a fatal arrives through the other door, so the caller
+        tells the render it has named the cause itself."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            entries = (data.get('articles', data)
+                       if isinstance(data, dict) else data)
+            (Path(root) / 'articles' / entries[1]['page_source']).unlink()
+            plain = run('audit', root)
+            counted = re.search(r'(\d+) warning\(s\)', plain.stdout)
+            self.assertIsNotNone(counted, plain.stdout)
+            self.assertEqual(counted.group(1), '1',
+                             'one missing file, one finding:\n'
+                             + plain.stdout + plain.stderr)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+
 
 class TheReadabilityFloorReadsCssFunctionsCorrectly(unittest.TestCase):
     """`clamp`, `min` and `max` are three different questions, and were
@@ -14303,23 +14428,58 @@ class TheReadabilityFloorReadsCssFunctionsCorrectly(unittest.TestCase):
     def test_a_min_is_judged_on_its_smallest_argument(self):
         self.assertEqual(self._px('min(10px, 20px)'), 10.0)
 
-    def test_a_function_with_a_relative_argument_is_not_judged(self):
-        """Both directions, and only one is obvious. An unresolved
-        argument inside a `min` can drag the render below the floor unseen;
-        one inside a `max` can lift it above, which would make a warning
-        simply wrong. Silence beats a guess about the viewport."""
+    def test_a_relative_term_inside_a_max_floors_at_zero(self):
+        """`max(12px, 1.5vmin)` is the catalogue's own idiom, and it really
+        can render at 12px: a viewport can be arbitrarily small, so the
+        relative term contributes zero and the floor is the largest of the
+        absolute ones. A repair once had `max` refuse whenever an argument
+        was relative, on the reasoning that an unknown might lift the
+        render above the floor — which confuses the rendered value with the
+        floor, and measured, turned the guard off for 1,856 of the
+        catalogue's 2,030 size readings."""
+        self.assertEqual(self._px('max(8px, 6.1vmin)'), 8.0)
+        self.assertEqual(self._px('max(12px, 1.5vmin)'), 12.0)
+        self.assertEqual(self._px('max(8px, 0.5em)'), 8.0)
+
+    def test_a_relative_term_inside_a_min_leaves_it_unjudged(self):
+        """The other direction, and it is not symmetric: a relative term
+        inside a `min` puts the floor at zero, so every such value would
+        warn. Nothing useful is left to say."""
         self.assertIsNone(self._px('min(20px, 4vw)'))
-        self.assertIsNone(self._px('max(8px, 0.5em)'))
 
     def test_a_nested_function_is_split_on_its_own_commas(self):
         """Splitting on every comma reads `min(10px` as an argument and
         drops the rest, which is how a nested value silently becomes a
-        different value. Both cases are here because they fail
-        differently: the resolvable one would come back with the wrong
-        number, the relative one with a number where there should be
-        none."""
+        different value."""
         self.assertEqual(self._px('max(1rem, min(10px, 20px))'), 16.0)
-        self.assertIsNone(self._px('max(1rem, min(2vw, 20px))'))
+        self.assertEqual(self._px('clamp(min(9px, 11px), 2vw, 3rem)'), 9.0)
+
+    def test_a_function_with_no_arguments_does_not_take_audit_down(self):
+        """`LengthType.check` only asks for balanced parentheses and a body
+        without dangerous punctuation, so `min()` reaches this function
+        intact from a settings.conf. Reducing it over an empty sequence
+        raised ValueError, and audit — whose whole contract is to report
+        and exit 0 — died at exit 1 with no summary, on a series `build`
+        compiled without complaint. `clamp` had the guard; its two
+        neighbours did not."""
+        for value in ('min()', 'max()', 'clamp()', 'max( , )', 'min(,)'):
+            self.assertIsNone(self._px(value), value)
+
+    def test_a_series_pinning_an_empty_function_is_reported_not_fatal(self):
+        """The unit above proves the function; this proves the promise it
+        broke, at the command."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = str(Path(tmp) / 's')
+            self.assertEqual(run('init', root).returncode, 0)
+            self.assertEqual(run('demo', root).returncode, 0)
+            conf = Path(root) / 'templates' / 'settings.conf'
+            conf.write_text(conf.read_text(encoding='utf-8')
+                            + '\ntitle1.size: min()\n', encoding='utf-8')
+            plain = run('audit', root)
+            self.assertEqual(plain.returncode, 0,
+                             'audit died on a value build accepts:\n'
+                             + plain.stdout + plain.stderr)
+            self.assertNotIn('internal error', plain.stderr)
 
     def test_the_floor_still_fires_on_what_it_was_written_for(self):
         with tempfile.TemporaryDirectory() as tmp:
