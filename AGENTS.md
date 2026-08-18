@@ -1,13 +1,12 @@
 # AGENTS.md — Guide pour agents (humains, IA, LLM) travaillant sur ce dépôt
 
-Ce fichier **ne fait pas partie du contrat du projet** (`specifications.md`
-§1.1). Il n'oblige que celui qui le lit : le dépôt fonctionne à l'identique
-sans lui, et rien dans le produit n'en dépend. Ce sont des conventions de
-travail, pas une spécification.
+Document normatif du dépôt (`specifications.md` §1.1) : il oblige qui
+modifie ce dépôt. Il ne dit rien du format lui-même.
 
-À ne pas confondre avec `agent/skills/lightwebpres/SKILL.md`, qui est
-normatif : il décrit le **format** à qui écrit un article. Ici on dit
-comment travailler *sur* l'outil ; là-bas, ce que l'outil *accepte*.
+À ne pas confondre avec `agent/skills/lightwebpres/SKILL.md`, qui décrit
+le **format** à qui écrit un article. Les deux s'adressent à un agent et
+ne parlent pas du même métier : ici, comment travailler **sur** l'outil ;
+là-bas, ce que l'outil **accepte**.
 
 ## Commandes essentielles
 

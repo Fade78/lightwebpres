@@ -41,6 +41,14 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
   et des décisions différées : ce qui doit rester trouvable « plus tard »
   y va, et y reste au travers des releases. Cette spécification y renvoie
   par numéro d'entrée.
+- **`AGENTS.md`** (français) — les conventions de travail sur le dépôt :
+  commandes obligatoires, arborescence, habitudes d'écriture. Il oblige
+  qui modifie le dépôt, et ne dit rien du format lui-même.
+
+  À ne pas confondre avec `agent/skills/lightwebpres/SKILL.md` : les deux
+  s'adressent à un agent et ne parlent pas du même métier. `AGENTS.md` dit
+  comment travailler **sur** l'outil ; le skill dit ce que l'outil
+  **accepte**. Aucun des deux ne couvre le métier de l'autre.
 - **`THIRD-PARTY-NOTICES.md`** (anglais) — les licences de ce qui est
   embarqué. Normatif pour une raison qui n'est pas technique.
 
@@ -81,17 +89,6 @@ contrat, et se répartissent dans les familles suivantes :
   deck source du guide, compilé par `tools/build_guide.py` vers
   `docs/guide/`. Ce n'est pas de la documentation *sur* le projet, c'est
   une entrée de build, et elle se corrige comme du code.
-
-- **fichiers d'agent** — `AGENTS.md` : les conventions qu'un agent se
-  donne pour travailler sur ce dépôt (commandes, arborescence, habitudes
-  d'écriture). Il **ne fait pas partie du contrat du projet** : le dépôt
-  fonctionne à l'identique sans lui, et rien dans le produit n'en dépend.
-  Il n'oblige que celui qui le lit.
-
-  À ne pas confondre avec `agent/skills/lightwebpres/SKILL.md`, qui est
-  normatif et décrit le **format** à qui écrit un article. Les deux
-  s'adressent à un agent et ne parlent pas du même métier : l'un dit
-  comment travailler *sur* l'outil, l'autre ce que l'outil *accepte*.
 
 `delete-before-1.0/` est un miroir de la racine : ce qui y entre reste
 consultable mais quitte l'arborescence active, git en conserve
