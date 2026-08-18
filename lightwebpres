@@ -13550,7 +13550,8 @@ def cmd_theme_info(positional, args):
         # with no arg was an error; with the new split, `theme show` needs
         # at least one slug or --all.
         log('error', '`theme show` needs at least one slug (or --all). '
-              'To read the effective theme of a series, use `series theme <dir>`.')
+              'To read the effective theme of a series, run it from inside '
+              'the series, or `series theme <dir>`.')
         sys.exit(1)
 
     # Validate slugs: every one must be a built-in theme. A directory is no
@@ -14921,11 +14922,12 @@ COMMANDS
     settings.conf or custom.css (see §9.4.3)
   lightwebpres theme list [--polarity ...] [--hue ...] [--family ...]
     Lists the built-in color themes, narrowed by facet (see THEMES below, §11.9)
-  lightwebpres theme show <slug> [<slug>...] [--all] [--format text|json]
+  lightwebpres theme show [<slug>...] [--all] [--format text|json]
     Describes one or more themes without installing: palette, fonts,
     facets, and the WCAG contrast level it actually reaches, measured
-    (see §11.9.1). Pass a series [directory] instead of a slug to read
-    its EFFECTIVE theme (same as `series theme`, kept as the legacy
+    (see §11.9.1). With no slug, reads the EFFECTIVE theme of the series
+    you are standing in; a series [directory] instead of a slug does the
+    same for another one (both are `series theme`, kept as the legacy
     form).
   lightwebpres series theme [directory] [--format text|json]
     Same, for the EFFECTIVE theme of an installed series — after the
@@ -15775,7 +15777,20 @@ def main():
         # directory (the old form). If the first positional is not a slug
         # but is a directory, redirect to the series-theme command so the
         # alias keeps working until the next MAJOR.
-        if (positional and positional[0] not in THEMES
+        #
+        # No slug, no --all, and the working directory IS a series: read
+        # that series, exactly as `theme show .` already does. Every other
+        # command that takes a directory defaults to the one you are
+        # standing in — build, verify, audit, status, clean, series theme —
+        # and this was the single exception, so the one place the habit
+        # broke was the place you were most likely to be standing inside
+        # the series when you asked. A directory that is NOT a series falls
+        # through to the usage error, which is the more useful answer for
+        # someone who meant to name a slug and forgot.
+        if (not positional and not opts.get('--all')
+                and (Path.cwd() / 'templates').is_dir()):
+            cmd_series_theme('.', opts)
+        elif (positional and positional[0] not in THEMES
                 and Path(positional[0]).is_dir()):
             # The legacy directory form describes ONE series, so it has no
             # room for anything after it. Everything past the directory

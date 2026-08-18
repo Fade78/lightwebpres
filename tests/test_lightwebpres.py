@@ -8397,6 +8397,62 @@ class ThemesCommand(unittest.TestCase):
     def setUp(self):
         self.lwp = load_lightwebpres_module()
 
+    # Every command that takes a directory defaults to the one you are
+    # standing in. Read off the help text rather than listed twice: a
+    # command whose usage line writes `[directory]` promises that default,
+    # and the promise is what this pair of tests holds it to.
+    def test_the_help_offers_a_default_directory_on_every_such_command(self):
+        result = run('--help')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('theme show <slug>', result.stdout,
+                         '`theme show` still demands a slug in the help')
+        self.assertIn('theme show [<slug>...]', result.stdout)
+
+    def test_reading_the_effective_theme_needs_no_directory_from_inside(self):
+        """The habit every other command already keeps: build, verify,
+        audit, status, clean and `series theme` all default to the
+        directory you are in. `theme show` was the single exception — and
+        the one place it broke was the place you are most likely to be
+        standing inside the series when you ask, so it cost a `cd ..` and
+        a name to get an answer about the series under your feet."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'content'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            bare = run('theme', 'show', cwd=str(root))
+            self.assertEqual(bare.returncode, 0, bare.stderr)
+            self.assertIn('effective theme', bare.stdout)
+            # And it is the same answer the explicit forms give.
+            named = run('theme', 'show', str(root))
+            self.assertEqual(named.stdout, bare.stdout)
+            canonical = run('series', 'theme', cwd=str(root))
+            self.assertEqual(canonical.stdout, bare.stdout)
+
+    def test_a_slug_still_wins_over_the_series_you_are_standing_in(self):
+        """The default may not shadow the command's own subject. Standing
+        in a series, `theme show nord` still describes nord."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'content'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            slug = run('theme', 'show', 'nord', cwd=str(root))
+            self.assertEqual(slug.returncode, 0, slug.stderr)
+            self.assertIn('Theme: nord', slug.stdout)
+            self.assertNotIn('effective theme', slug.stdout)
+            every = run('theme', 'show', '--all', cwd=str(root))
+            self.assertEqual(every.returncode, 0, every.stderr)
+            self.assertGreater(every.stdout.count('Theme: '), 1)
+
+    def test_outside_a_series_the_bare_form_says_what_it_wanted(self):
+        """Falling through to the usage error is deliberate: someone who
+        typed `theme show` in an ordinary directory meant to name a slug
+        and forgot, and "this is not a series" would answer a question
+        they did not ask. The message names both ways out, and no longer
+        tells anyone to pass a directory `series theme` does not need."""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run('theme', 'show', cwd=tmp)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('needs at least one slug', result.stderr)
+            self.assertIn('from inside the series', result.stderr)
+
     def test_a_note_is_plain_text_at_the_source(self):
         """Reported from the field: `themes` printed &ldquo; at the reader
         on eight themes. The notes were stored as gallery HTML and cleaned

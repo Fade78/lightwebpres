@@ -329,7 +329,7 @@ lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-fil
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
-lightwebpres theme show [slug… | --all | répertoire] [--format text|json]
+lightwebpres theme show [slug… | --all | répertoire] [--format text|json]   # sans cible : la série courante
 lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
@@ -4062,13 +4062,28 @@ lightwebpres theme show <slug>… [--format text|json]
 lightwebpres theme show --all [--format text|json]
 lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres theme show [répertoire] [--format text|json]   # forme héritée
+lightwebpres theme show [--format text|json]                # la série où l'on est
 ```
 
 Décrit un thème, plusieurs, ou tout le catalogue (`--all`), sans rien
 installer : la palette, les facettes, et le niveau de contraste
 réellement atteint, mesuré.
 
-**La cible « répertoire » a sa propre commande.** `series theme
+**Sans slug ni `--all`, la cible est la série où l'on se trouve** —
+c'est-à-dire le comportement de toutes les autres commandes qui prennent
+un répertoire (`build`, `verify`, `audit`, `status`, `clean`, `series
+theme`) : le répertoire courant est le défaut, et il ne se dit pas, pas
+même par un `.`. `theme show` en était la seule exception, et l'exception
+tombait précisément là où l'on a le plus de chances d'être *dans* la
+série au moment où l'on pose la question — il fallait un `cd ..` et un
+nom pour obtenir une réponse sur la série sous ses pieds.
+
+Un répertoire courant qui n'est **pas** une série retombe sur l'erreur
+d'usage, et c'est délibéré : qui tape `theme show` dans un répertoire
+ordinaire voulait nommer un slug et l'a oublié, et « ceci n'est pas une
+série » répondrait à une question qui n'a pas été posée.
+
+**La cible « répertoire » explicite a sa propre commande.** `series theme
 [répertoire]` est la forme canonique — elle vit sous le nœud `series`,
 avec les autres commandes qui interrogent une série, et porte le même
 `--format`. `theme show [répertoire]` continue de fonctionner et donne le
