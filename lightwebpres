@@ -3238,6 +3238,18 @@ THEME_COMPONENTS = [
         ThemeProp('intro.size',    PROP_LENGTH, 'max(17px, 2.125vmin)', css='font-size'),
         ThemeProp('intro.leading', PROP_RATIO,  '1.7',  css='line-height'),
     ]),
+    # Five overlays that carried a fixed shadow and nothing else. They enter
+    # the registry with no properties of their own on purpose: each one
+    # already resolves its ground and its ink with `inherit`, deliberately
+    # and with the measurement written beside `.slide-counter`, so giving
+    # them `background` or `color` here would replace a working decision
+    # with a second one. What they lacked was the depth axis, and that is
+    # all the elevation block below gives them.
+    ThemeComponent('tag-menu', '.tag-menu', []),
+    ThemeComponent('slide-counter', '.slide-counter', []),
+    ThemeComponent('presenter-panel', '.presenter-panel', []),
+    ThemeComponent('help-card', '.help-card', []),
+    ThemeComponent('share.qr', '.share-qr-modal-content', []),
 ]
 
 # ---------------------------------------------------------------------------
@@ -3306,6 +3318,105 @@ _missing = [k for k in HALO_COMPONENTS
             if k not in {c.key for c in THEME_COMPONENTS}]
 if _missing:  # pragma: no cover - a typo here would fail silently otherwise
     raise PropertyError(f'HALO_COMPONENTS names no such component: {_missing}')
+
+
+# ---------------------------------------------------------------------------
+# The elevation, on every component the sheet lifted off the page (B12).
+#
+# Thirteen `box-shadow` declarations sat in the skeleton at fixed values a
+# theme could not reach. That is not a small omission on a catalogue where
+# half the themes are dark: every one of those shadows was black at an alpha
+# chosen against a white page, and on a dark ground a black shadow is not a
+# shadow, it is nothing at all. A theme could restyle the ink, the ground,
+# the rules and the halo of a card and not the one property that says how
+# far off the page it sits.
+#
+# Five axes rather than the three the sheet used. `dx` for the same reason
+# the halo gained it — the sheet only ever needed the vertical case, which
+# is not a decision anyone made — and `spread`, which no current value uses
+# and which is the axis that makes a ring or a soft lift expressible at all.
+# Both default to `0`, so the neutral elevation is the one the sheet drew.
+#
+# Rest and hover are two sets, on the idiom the registry already uses for a
+# state: `card.rule-fg-hover` beside `card.rule-fg`. Here the state names a
+# whole group of five, so the suffix goes on the group -- `elevation-hover`
+# -- and each axis keeps its own name. Only three components have a hover
+# elevation, because only three had one in the sheet; the hover selector
+# comes with it, because `.series-link` lifts on focus as well and losing
+# that would be a keyboard regression dressed as a refactor.
+#
+# `box-shadow` is NOT inherited, so unlike the halo this always emits: a
+# component saying `box-shadow: 0 0 0 0 transparent` paints nothing and
+# blocks nothing, and always emitting is what makes the declaration
+# available to `custom.css` at a stable specificity.
+#
+# The colours are the sheet's `rgba(0,0,0,a)` alphas carried over as
+# eight-digit hex, rounding half up as the rest of the registry does
+# (.30 -> 4D, .70 -> B3). Only .20 -> 33 is exact; the other seven move by
+# less than half a step of alpha.
+ELEVATION_COMPONENTS = {
+    # key: (fg, blur, dx, dy) at rest, then hover as
+    # (selector, (fg, blur, dx, dy)) or None
+    'fact':            (('#0000000F', '8px',  '0', '1px'), None),
+    'card':            (('#0000000F', '8px',  '0', '1px'),
+                        ('.article-card:hover',
+                         ('#0000001A', '16px', '0', '4px'))),
+    'series-nav.link': (('#00000014', '12px', '0', '2px'),
+                        ('.series-link:hover, .series-link:focus-visible',
+                         ('#0000001F', '16px', '0', '4px'))),
+    'nav-btn':         (('#0000001A', '8px',  '0', '2px'),
+                        ('.nav-btn:hover',
+                         ('#00000026', '14px', '0', '4px'))),
+    'slide-counter':   (('#0000001A', '6px',  '0', '1px'), None),
+    'tag-menu':        (('#0000002E', '18px', '0', '4px'), None),
+    'share':           (('#0000002E', '32px', '0', '8px'), None),
+    'presenter-panel': (('#00000033', '22px', '0', '-4px'), None),
+    'help-card':       (('#00000040', '40px', '0', '8px'), None),
+    'share.qr':        (('#00000040', '32px', '0', '8px'), None),
+}
+
+
+def _elevation_axes(key, group, values):
+    """The five properties of one elevation group, in CSS order."""
+    fg, blur, dx, dy = values
+    return [
+        ThemeProp(f'{key}.{group}.fg',     PROP_COLOR,  fg),
+        ThemeProp(f'{key}.{group}.blur',   PROP_LENGTH, blur),
+        ThemeProp(f'{key}.{group}.dx',     PROP_LENGTH, dx),
+        ThemeProp(f'{key}.{group}.dy',     PROP_LENGTH, dy),
+        ThemeProp(f'{key}.{group}.spread', PROP_LENGTH, '0'),
+    ]
+
+
+def _elevation_decl(key, group, selector=None):
+    """`box-shadow: dx dy blur spread colour`, the order CSS reads it in."""
+    v = '--' + key.replace('.', '-') + '-' + group
+    return Composite(
+        'box-shadow',
+        f'var({v}-dx) var({v}-dy) var({v}-blur) '
+        f'var({v}-spread) var({v}-fg)',
+        selector=selector)
+
+
+for _c in THEME_COMPONENTS:
+    _elev = ELEVATION_COMPONENTS.get(_c.key)
+    if _elev is None:
+        continue
+    _rest, _hover = _elev
+    _c.props.extend(_elevation_axes(_c.key, 'elevation', _rest))
+    _c.composite.append(_elevation_decl(_c.key, 'elevation'))
+    if _hover:
+        _hover_sel, _hover_values = _hover
+        _c.props.extend(
+            _elevation_axes(_c.key, 'elevation-hover', _hover_values))
+        _c.composite.append(
+            _elevation_decl(_c.key, 'elevation-hover', _hover_sel))
+
+_missing = [k for k in ELEVATION_COMPONENTS
+            if k not in {c.key for c in THEME_COMPONENTS}]
+if _missing:  # pragma: no cover - a typo here would fail silently otherwise
+    raise PropertyError(
+        f'ELEVATION_COMPONENTS names no such component: {_missing}')
 
 
 PROPERTY_REGISTRY = {p.key: p for p in THEME_SHARED_PROPS}
@@ -4545,6 +4656,19 @@ CONTRAST_UNMEASURED = {
     **{f'{_k}.shadow.fg': 'a halo behind text, not text'
        for _k in ('page', 'title1', 'highlight') + HALO_COMPONENTS},
 
+    # Elevations. A drop shadow falls OUTSIDE the box it lifts, on whatever
+    # the page happens to put there, so there is no pair to measure: the
+    # ratio would be against a ground the theme does not own. Nor does it
+    # carry information -- take every shadow off the sheet and the reader
+    # loses depth, not a single word or state. Derived from
+    # ELEVATION_COMPONENTS for the same reason the haloes are derived from
+    # HALO_COMPONENTS: a component gaining depth cannot arrive without its
+    # exemption, and one losing it cannot keep it.
+    **{f'{_k}.{_g}.fg': 'a shadow outside the box, not ink'
+       for _k, (_rest, _hover) in ELEVATION_COMPONENTS.items()
+       for _g in (('elevation', 'elevation-hover') if _hover
+                  else ('elevation',))},
+
     # Decorative rules. SC 1.4.11 covers non-text that CARRIES information;
     # a separator whose removal costs the reader nothing is exempt by the
     # standard's own words, and measuring it would drown the pairs that do
@@ -4738,7 +4862,6 @@ h2 { margin-bottom: 18px; max-width: var(--page-content-max); }
   padding: 24px 28px;
   border-radius: 0 8px 8px 0;
   max-width: var(--page-content-max);
-  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 .fact-label { margin-bottom: 8px; }
 /* Measured, not guessed: at the default offset the underline collides
@@ -4983,12 +5106,10 @@ sup { vertical-align: super; line-height: 0; }
 .series-current { border-style: solid; }
 .series-link {
   border-style: solid;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .series-link:hover, .series-link:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
 .series-link:focus-visible { outline-style: solid; outline-offset: 2px; }
 .series-label { margin-bottom: 4px; }
@@ -5045,14 +5166,12 @@ body.fs-noselect {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
   transition: opacity 0.2s, transform 0.15s, box-shadow 0.15s;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 .nav-btn:hover {
   transform: scale(1.08);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
 .nav-btn:active { transform: scale(0.96); }
 .nav-btn:focus-visible { outline-style: solid; outline-offset: 2px; }
@@ -5075,7 +5194,6 @@ body.fs-noselect {
   border-radius: 10px;
   background: inherit;
   color: inherit;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
 }
 .tag-menu.open { display: block; }
 .tag-menu-title {
@@ -5184,7 +5302,6 @@ body.fs-noselect {
      by construction, because this element has no registry property for
      that report to read. */
   background: inherit;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.10);
   transition: opacity 0.4s;
   user-select: none;
   -webkit-user-select: none;
@@ -5211,7 +5328,6 @@ body.fs-noselect {
   border-top-width: 1px;
   background: inherit;
   color: inherit;
-  box-shadow: 0 -4px 22px rgba(0,0,0,0.20);
   overflow: auto;
   display: none;
 }
@@ -5252,7 +5368,6 @@ body.fs-noselect {
   border-width: 1px;
   border-radius: 12px;
   padding: 24px 28px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
   background: inherit;
 }
 .help-title { font-weight: 700; font-size: 1.2em; margin-bottom: 16px; }
@@ -5316,7 +5431,6 @@ body.fs-noselect {
   right: 28px;
   z-index: 250;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   padding: 14px;
   display: none;
   max-width: calc(100vw - 40px);
@@ -5376,7 +5490,6 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   max-width: 400px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
 }
 .share-qr-modal-title {
   font-size: max(15px, 1.875vmin);
@@ -5424,12 +5537,10 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   text-decoration: none;
   color: inherit;
   border-style: solid;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 .article-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
 }
 .article-number { margin-bottom: 6px; }
 .article-title { margin-bottom: 6px; }

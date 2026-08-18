@@ -7966,6 +7966,18 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 def strip_style_comments(match):
                     body = re.sub(rb'/\*.*?\*/', b'', match.group(2),
                                   flags=re.DOTALL)
+                    # And the line the comment was alone on. A comment-only
+                    # line otherwise leaves an indent behind, and that
+                    # residue is a line: the :root block writes `/* key */`
+                    # above each component's variables, so a component
+                    # entering the registry shifts every later line even
+                    # though the comparison already ignores what the
+                    # comment said. Dropping the residue happens to both
+                    # pages by the same rule, and the arrival of the
+                    # component is still declared -- by its variables, in
+                    # `added`, where a reader can see what it brought.
+                    body = b'\n'.join(line for line in body.split(b'\n')
+                                      if line.strip())
                     return match.group(1) + body + match.group(3)
                 return re.sub(rb'(<style\b[^>]*>)(.*?)(</style>)',
                               strip_style_comments, page,
@@ -8024,6 +8036,20 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 for _axis in (b'fg', b'blur', b'dx', b'dy'):
                     added.add(b'--' + _key.replace('.', '-').encode()
                               + b'-shadow-' + _axis)
+            # The components that gained the five elevation axes (B12),
+            # named here for the same reason and with the same refusal to
+            # read them off ELEVATION_COMPONENTS. Ten at rest, three of
+            # them with a hover set as well.
+            for _key in ('fact', 'card', 'series-nav.link', 'nav-btn',
+                         'slide-counter', 'tag-menu', 'share',
+                         'presenter-panel', 'help-card', 'share.qr'):
+                _groups = [b'-elevation-']
+                if _key in ('card', 'series-nav.link', 'nav-btn'):
+                    _groups.append(b'-elevation-hover-')
+                for _group in _groups:
+                    for _axis in (b'fg', b'blur', b'dx', b'dy', b'spread'):
+                        added.add(b'--' + _key.replace('.', '-').encode()
+                                  + _group + _axis)
 
             # Deliberate RULE-level drift, and the third thing the two
             # tables above cannot say. `drift` substitutes a line for a
@@ -8063,8 +8089,36 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 b'var(--title1-shadow-blur) var(--title1-shadow-fg);',
                 b'text-shadow: 0 var(--highlight-shadow-dy) '
                 b'var(--highlight-shadow-blur) var(--highlight-shadow-fg);',
+                # The thirteen fixed elevations that left the skeleton for
+                # the registry (B12). Twelve strings, not thirteen: .fact-box
+                # and .article-card carried the same shadow byte for byte,
+                # which is the twin case the caution above describes.
+                b'box-shadow: 0 1px 8px rgba(0,0,0,0.06);',
+                b'box-shadow: 0 2px 12px rgba(0,0,0,0.08);',
+                b'box-shadow: 0 4px 16px rgba(0,0,0,0.12);',
+                b'box-shadow: 0 2px 8px rgba(0,0,0,0.10);',
+                b'box-shadow: 0 4px 14px rgba(0,0,0,0.15);',
+                b'box-shadow: 0 4px 18px rgba(0,0,0,0.18);',
+                b'box-shadow: 0 1px 6px rgba(0,0,0,0.10);',
+                b'box-shadow: 0 -4px 22px rgba(0,0,0,0.20);',
+                b'box-shadow: 0 8px 40px rgba(0,0,0,0.25);',
+                b'box-shadow: 0 8px 32px rgba(0,0,0,0.18);',
+                b'box-shadow: 0 8px 32px rgba(0,0,0,0.25);',
+                b'box-shadow: 0 4px 16px rgba(0,0,0,0.10);',
             }
-            arrived = set()   # lines the NEW page has and the old one did not
+            # Lines the NEW page has and the old one did not: the same
+            # thirteen elevations, now read off the registry, on the rule
+            # the engine emits for their component.
+            arrived = {
+                b'box-shadow: var(--%s-dx) var(--%s-dy) var(--%s-blur) '
+                b'var(--%s-spread) var(--%s-fg);' % ((_v.encode(),) * 5)
+                for _v in ('fact-elevation', 'card-elevation',
+                           'card-elevation-hover', 'series-nav-link-elevation',
+                           'series-nav-link-elevation-hover',
+                           'nav-btn-elevation', 'nav-btn-elevation-hover',
+                           'slide-counter-elevation', 'tag-menu-elevation',
+                           'share-elevation', 'presenter-panel-elevation',
+                           'help-card-elevation', 'share-qr-elevation')}
 
             def strip_added(page):
                 return b'\n'.join(
@@ -8073,8 +8127,29 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                                for name in added))
 
             def strip_declared(page, declared):
-                return b'\n'.join(line for line in page.split(b'\n')
-                                  if line.strip() not in declared)
+                lines = [line for line in page.split(b'\n')
+                         if line.strip() not in declared]
+                # And then any rule left with nothing in it. A declaration
+                # moving out of the skeleton and into the registry does not
+                # only change where it is written, it changes what wraps
+                # it: it leaves a rule that still has other declarations
+                # and arrives in one the engine opened for it alone. Naming
+                # the declaration in `gone` and `arrived` covers the line;
+                # the braces around the new one would otherwise read as an
+                # undeclared difference. `.foo {}` paints nothing, so
+                # dropping it costs the comparison nothing -- and a rule
+                # that lost every declaration for a reason nobody declared
+                # still fails, on those declarations.
+                out, i = [], 0
+                while i < len(lines):
+                    if (lines[i].rstrip().endswith(b'{')
+                            and i + 1 < len(lines)
+                            and lines[i + 1].strip() == b'}'):
+                        i += 2
+                        continue
+                    out.append(lines[i])
+                    i += 1
+                return b'\n'.join(out)
 
             def normalise(page, declared):
                 page = without_css_comments(page)
@@ -11147,6 +11222,98 @@ class ThemeEngineStaged(unittest.TestCase):
         self.assertFalse(self.lwp._all_at_default(resolved, []))
         self.assertFalse(self.lwp._all_at_default(
             resolved, ['title2.shadow.fg', '--not-a-property']))
+
+    def test_no_fixed_elevation_is_left_in_the_skeleton(self):
+        """B12's coverage statement, and the one that cannot be satisfied
+        by a list: the skeleton must not declare a `box-shadow` at all. A
+        shadow left there is black at an alpha chosen against a white page,
+        which on half the catalogue is not a shadow but nothing at all, and
+        no theme can reach it. `transition: ... box-shadow ...` is not a
+        declaration of one and stays."""
+        decls = [line.strip()
+                 for line in self.lwp.TEMPLATE_SKELETON.split('\n')
+                 if line.strip().startswith('box-shadow:')]
+        self.assertEqual(decls, [])
+
+    def test_every_elevation_carries_all_five_axes(self):
+        """Five, not the three the sheet used. `dx` because a shadow could
+        only be cast downward, which nobody decided, and `spread` because a
+        ring or a soft lift is not expressible without it — both default to
+        `0`, so the neutral elevation is still the one the sheet drew."""
+        for key, (_rest, hover) in self.lwp.ELEVATION_COMPONENTS.items():
+            groups = ['elevation'] + (['elevation-hover'] if hover else [])
+            for group in groups:
+                for axis in ('fg', 'blur', 'dx', 'dy', 'spread'):
+                    self.assertIn(f'{key}.{group}.{axis}',
+                                  self.lwp.PROPERTY_REGISTRY)
+
+    def test_an_elevation_is_emitted_even_when_nobody_asked_for_one(self):
+        """The halo's opposite, and the reason `omit_when_default` is not
+        set here. `text-shadow` is inherited, so emitting it at its default
+        blocks what the page set; `box-shadow` is not, so emitting it at
+        its default paints nothing and blocks nothing. Always emitting is
+        what puts the declaration at a stable specificity for `custom.css`
+        to override."""
+        css = self.lwp.emit_theme_css(self.resolve({}))
+        self.assertEqual(
+            css.count('box-shadow: var('), 13,
+            'the thirteen elevations are not all in the sheet')
+
+    def test_a_theme_can_lift_a_card_and_the_sheet_says_so(self):
+        css = self.lwp.emit_theme_css(self.resolve({
+            'card.elevation.fg': '#123456AA',
+            'card.elevation.spread': '3px'}))
+        self.assertIn('--card-elevation-fg: #123456AA;', css)
+        self.assertIn('--card-elevation-spread: 3px;', css)
+        self.assertIn('box-shadow: var(--card-elevation-dx) '
+                      'var(--card-elevation-dy) var(--card-elevation-blur) '
+                      'var(--card-elevation-spread) '
+                      'var(--card-elevation-fg);', css)
+
+    # Every elevation and the selector it must land on, read off the sheet
+    # the skeleton used to carry. The whole table rather than a sample,
+    # because the render guard cannot make this statement: a declaration
+    # named as moving takes its braces with it, so a rule the engine opens
+    # for one elevation alone can change selector there unnoticed.
+    ELEVATION_SELECTORS = {
+        'fact.elevation': '.fact-box',
+        'card.elevation': '.article-card',
+        'card.elevation-hover': '.article-card:hover',
+        'series-nav.link.elevation': '.series-link',
+        # The whole state, not half of it: `.series-link` lifts on focus as
+        # well as on hover, and losing that would be a keyboard regression
+        # dressed as a refactor.
+        'series-nav.link.elevation-hover':
+            '.series-link:hover, .series-link:focus-visible',
+        'nav-btn.elevation': '.nav-btn',
+        'nav-btn.elevation-hover': '.nav-btn:hover',
+        'slide-counter.elevation': '.slide-counter',
+        'tag-menu.elevation': '.tag-menu',
+        'share.elevation': '.share-popover',
+        'presenter-panel.elevation': '.presenter-panel',
+        'help-card.elevation': '.help-card',
+        'share.qr.elevation': '.share-qr-modal-content',
+    }
+
+    def test_every_elevation_lands_on_the_selector_it_belongs_to(self):
+        css = self.lwp.emit_theme_css(self.resolve({}))
+        rules = {}
+        for block in css.split('}'):
+            if '{' not in block:
+                continue
+            selector, body = block.rsplit('{', 1)
+            rules.setdefault(selector.strip().split('\n')[-1].strip(),
+                             []).extend(body.strip().split('\n'))
+        found = {}
+        for selector, decls in rules.items():
+            for decl in decls:
+                m = re.match(r'box-shadow: var\(--(.+?)-dx\)', decl.strip())
+                if m:
+                    found[m.group(1)] = selector
+        self.assertEqual(
+            found,
+            {self.lwp.PROPERTY_REGISTRY[f'{k}.dx'].var[2:-3]: sel
+             for k, sel in self.ELEVATION_SELECTORS.items()})
 
     def test_selector_overrides_land_on_their_own_selector(self):
         # One component, several selectors: the fact ground on .fact-box, its

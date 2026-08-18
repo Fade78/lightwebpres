@@ -666,7 +666,7 @@ simulation exists and nothing measures the palettes. Assumed gap,
 recorded at the owner's level: a check would belong to theme construction
 (the catalogue side), never to the renderer.
 
-## B12 — Box drop-shadow (elevation) axes — DECIDED 2026-08-18: depth belongs to the theme
+## B12 — Box drop-shadow (elevation) axes — DONE
 
 Text shadows are properties (`shadow.fg/blur/dy`); the box shadows that
 paint depth — cards, nav buttons, the share modal, series links — stay
@@ -677,10 +677,38 @@ theme; it was left out of the property inventory knowingly, as depth
 rather than content. Deciding it means the same three-axis treatment as
 text shadows, per elevation-bearing component.
 
-**DECIDED 2026-08-18: depth belongs to the theme.** Same ruling as B20 and
-the same lot — the completeness rule applies, and the box shadows come up
-into the registry per elevation-bearing component. Nothing about depth
-makes it less a matter of appearance than a colour.
+**Done: depth belongs to the theme.** Same ruling as B20 and the same lot
+— the completeness rule applies, and the box shadows came up into the
+registry per elevation-bearing component. Nothing about depth makes it
+less a matter of appearance than a colour.
+
+Thirteen declarations moved, on ten components. Five of those components
+had no registry existence at all until this — `.tag-menu`,
+`.slide-counter`, `.presenter-panel`, `.help-card` and
+`.share-qr-modal-content` — and they enter with no properties but the
+elevation, because each already resolves its ground and its ink with
+`inherit`, deliberately and with the measurement written beside
+`.slide-counter`.
+
+Five axes rather than the three the entry proposed. `dx` for the reason
+B20 gave it to the halo — the sheet only ever needed the vertical case,
+which nobody decided — and `spread`, without which a ring or a soft lift
+cannot be expressed. Both default to `0`, so the neutral elevation is the
+one the sheet drew. Rest and hover are two groups on the idiom the
+registry already uses for a state, `elevation` beside `elevation-hover`,
+and the hover selector travels with the group: `.series-link` lifts on
+focus as well as on hover.
+
+Unlike the halo, an elevation always emits. `box-shadow` is not
+inherited, so a component saying `0 0 0 0 transparent` paints nothing and
+blocks nothing — where `text-shadow` at its default would block what the
+page set. The alphas are the sheet's carried over as eight-digit hex,
+rounding half up as the rest of the registry does; only `.20` was exact,
+and the other seven move by less than half a step of alpha.
+
+The catalogue's motivation, stated plainly: every one of those thirteen
+shadows was black at an alpha chosen against a white page, and on a dark
+ground a black shadow is not a shadow, it is nothing at all.
 
 ## B13 — `--content-max` is the one themeless variable — DONE
 
