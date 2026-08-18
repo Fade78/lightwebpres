@@ -1620,3 +1620,26 @@ precisely to catch what nobody enumerated.
 
 Not in the release the owner is about to write 28 articles with. A noisy
 `audit` in that release is worse than a silent one.
+
+## B31 — `auto` is a length, and on a shadow axis it deletes the shadow — OPEN
+
+`LengthType` accepts `auto` alongside `0` and the units, which is right
+for the axes that can take it and wrong for the ones that cannot. Written
+into a shadow axis it validates, resolves, and emits: `card.elevation.dx:
+auto` becomes `box-shadow: auto 1px 8px 0 #0000000F`, which no browser
+can parse, so the card loses its shadow entirely — no build error, no
+`audit` warning, nothing in `theme show`. Measured: the value survives
+every check the tool makes and dies silently in the renderer.
+
+The same hole is open on the four halo axes and on every other length
+whose CSS context has no `auto` — a blur, a spread, a border width. It
+predates the elevation work; that work widened it by sixty-five
+properties and thirteen declarations.
+
+What it is really about is that `length` is one type doing two jobs. The
+fix is a narrower type for the axes where `auto` is meaningless
+(`PROP_OFFSET`, or a flag on `LengthType`), not a special case at the
+emission site — the engine's whole shape is that a value is checked once,
+where its type is named. Deciding which of the existing length properties
+legitimately accept `auto` is the work, and it is a sweep of the
+registry, not a patch.

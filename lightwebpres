@@ -3427,11 +3427,33 @@ for _c in THEME_COMPONENTS:
 # The way back from a CSS variable name to the property key that owns it.
 # Built, not computed: `--card-elevation-hover-blur` does not become
 # `card.elevation.hover.blur` by turning hyphens into dots, because a key
-# segment may itself contain a hyphen (`nav.btn`, `highlight.caption`,
-# `elevation-hover`). Guessing gets three keys wrong out of the registry and
-# fails silently, which for a composite that reads this map means a
+# segment may itself contain a hyphen -- `nav-btn`, `highlight-caption`,
+# `ink-quiet`, `content-max`, `elevation-hover`. Guessing is not a near
+# miss: measured over this registry when the map was written, it named the
+# wrong key for 174 of the 431 properties and for 86 of the 202 var
+# references the composites read. It fails silently in every one of those
+# cases, and for a composite that reads this map a silent miss is a
 # declaration that is never emitted.
 VAR_TO_KEY = {p.var: p.key for p in PROPERTY_REGISTRY.values()}
+
+# Two properties may not claim the same variable, and two components may
+# not claim the same key. Both dictionaries above are built by assignment,
+# so a clash overwrites in silence: the sheet would carry two `:root` lines
+# of the same name and the map would hand back the wrong key -- the exact
+# failure this map exists to remove, one step upstream. `nav.btn.size` and
+# `nav-btn.size` are the shape of it, and nothing about the naming
+# convention prevents them.
+_seen_props = [p for c in THEME_COMPONENTS for p in c.props] + \
+    list(THEME_SHARED_PROPS)
+if len(_seen_props) != len(PROPERTY_REGISTRY):  # pragma: no cover
+    _dupes = sorted({p.key for p in _seen_props
+                     if [q.key for q in _seen_props].count(p.key) > 1})
+    raise PropertyError(f'two components claim the same property: {_dupes}')
+if len(VAR_TO_KEY) != len(PROPERTY_REGISTRY):  # pragma: no cover
+    _vars = [p.var for p in PROPERTY_REGISTRY.values()]
+    raise PropertyError(
+        f'two properties claim the same variable: '
+        f'{sorted({v for v in _vars if _vars.count(v) > 1})}')
 
 
 # ----------------------------------------------------------------------------

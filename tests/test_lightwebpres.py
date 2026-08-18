@@ -11228,12 +11228,79 @@ class ThemeEngineStaged(unittest.TestCase):
         by a list: the skeleton must not declare a `box-shadow` at all. A
         shadow left there is black at an alpha chosen against a white page,
         which on half the catalogue is not a shadow but nothing at all, and
-        no theme can reach it. `transition: ... box-shadow ...` is not a
-        declaration of one and stays."""
-        decls = [line.strip()
-                 for line in self.lwp.TEMPLATE_SKELETON.split('\n')
-                 if line.strip().startswith('box-shadow:')]
-        self.assertEqual(decls, [])
+        no theme can reach it. `transition: ... box-shadow ...` names the
+        property without declaring it and stays.
+
+        Every occurrence, not every line that starts with one: the
+        skeleton is largely one-line rules — `.nav-btn:active`,
+        `.tag-menu.open`, `h1` — so a shadow put back inside a brace would
+        walk past a line-leading test untouched. Each occurrence is taken
+        back to its enclosing declaration and has to be a transition."""
+        skeleton = self.lwp.TEMPLATE_SKELETON
+        found = []
+        for m in re.finditer(r'box-shadow\s*:', skeleton):
+            head = re.split(r'[;{}]', skeleton[:m.start()])[-1]
+            if not head.lstrip().startswith('transition'):
+                found.append(skeleton[m.start():m.start() + 60])
+        self.assertEqual(found, [])
+
+    # The thirteen declarations as the skeleton wrote them, transcribed
+    # from the sheet before they moved (B12): selector, then offset-x,
+    # offset-y, blur and the `rgba()` alpha. Written down here rather than
+    # derived, because this is the one table in the change that must NOT
+    # come from the code — it is the record of what the page used to
+    # paint, and the whole claim of the migration is that nothing but the
+    # alpha notation moved.
+    ELEVATION_AS_THE_SHEET_WROTE_IT = {
+        'fact.elevation':                    ('0', '1px', '8px',  0.06),
+        'card.elevation':                    ('0', '1px', '8px',  0.06),
+        'card.elevation-hover':              ('0', '4px', '16px', 0.10),
+        'series-nav.link.elevation':         ('0', '2px', '12px', 0.08),
+        'series-nav.link.elevation-hover':   ('0', '4px', '16px', 0.12),
+        'nav-btn.elevation':                 ('0', '2px', '8px',  0.10),
+        'nav-btn.elevation-hover':           ('0', '4px', '14px', 0.15),
+        'slide-counter.elevation':           ('0', '1px', '6px',  0.10),
+        'tag-menu.elevation':                ('0', '4px', '18px', 0.18),
+        'share.elevation':                   ('0', '8px', '32px', 0.18),
+        'presenter-panel.elevation':         ('0', '-4px', '22px', 0.20),
+        'help-card.elevation':               ('0', '8px', '40px', 0.25),
+        'share.qr.elevation':                ('0', '8px', '32px', 0.25),
+    }
+
+    def test_every_migrated_elevation_still_paints_what_it_painted(self):
+        """The statement the render guard cannot make. It names the
+        `--*-elevation-*` lines as added, and `strip_added()` runs over
+        both pages, so their VALUES are invisible to it: every one of the
+        thirteen could be changed to anything at all and the whole suite
+        would stay green. Found by mutating all ten components to garbage
+        and watching 868 tests pass.
+
+        Geometry byte for byte, alpha through the conversion the migration
+        claims — `rgba(0,0,0,a)` to eight-digit hex, rounding half up as
+        the rest of the registry rounds. `round()` is banker's rounding
+        and would give 76 where the house gives 77, so the arithmetic is
+        written out rather than borrowed."""
+        resolved = self.resolve({})
+        for key, (dx, dy, blur, alpha) in \
+                self.ELEVATION_AS_THE_SHEET_WROTE_IT.items():
+            self.assertEqual(resolved[f'{key}.dx'], dx, key)
+            self.assertEqual(resolved[f'{key}.dy'], dy, key)
+            self.assertEqual(resolved[f'{key}.blur'], blur, key)
+            self.assertEqual(resolved[f'{key}.spread'], '0', key)
+            byte = int(alpha * 255 + 0.5)
+            self.assertEqual(resolved[f'{key}.fg'],
+                             '#000000%02X' % byte, key)
+
+    def test_the_migrated_table_covers_every_elevation_and_no_more(self):
+        """So the table above cannot quietly stop covering a component,
+        which is how a transcription record turns into decoration."""
+        declared = {f'{k}.{g}'
+                    for k, (_rest, hover) in
+                    self.lwp.ELEVATION_COMPONENTS.items()
+                    for g in (('elevation', 'elevation-hover') if hover
+                              else ('elevation',))}
+        self.assertEqual(sorted(self.ELEVATION_AS_THE_SHEET_WROTE_IT),
+                         sorted(declared))
 
     def test_every_elevation_carries_all_five_axes(self):
         """Five, not the three the sheet used. `dx` because a shadow could
