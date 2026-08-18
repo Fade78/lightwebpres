@@ -35,9 +35,11 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 ### Code et tests
 - `lightwebpres` — le code, un seul fichier Python. Pas de dépendances
   externes (stdlib uniquement, Python 3.8+).
-- `tests/test_lightwebpres.py` — la suite principale, black-box
-  (subprocess) ; `tests/run_tests.py` en découvre davantage, dont les
-  volets navigateur. Helper `run(*args)` lance `lightwebpres <args>`.
+- `tests/test_lightwebpres.py` — la suite principale ;
+  `tests/run_tests.py` en découvre davantage, dont les volets navigateur.
+  Deux registres y cohabitent, voir Conventions : `run(*args)` lance
+  l'exécutable en sous-processus, `load_lightwebpres_module()` importe le
+  module pour mesurer ce qu'une sortie ne montre pas.
   Les comptes ne sont pas écrits ici : ils changent à chaque lot et un
   nombre faux dans un guide de travail est pire que pas de nombre. Pour
   l'avoir, lancer la suite.
@@ -86,14 +88,39 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
   `_COMMAND_OPTIONS`, `_VALUE_OPTIONS`, `_GLOBAL_OPTIONS`. L'aide (`--help`)
   est un template maintenu à la main ; un test la verrouille contre les
   tables d'options pour qu'elle ne puisse pas dériver en silence.
-- **Tests black-box** : chaque test lance l'exécutable comme un utilisateur.
-  Pas d'import direct des fonctions internes dans les tests.
+- **Deux registres de test, et il faut les deux.** Le registre *boîte
+  noire* lance l'exécutable en sous-processus (`run(*args)`) et vérifie ce
+  qu'un utilisateur obtient : sortie, code de retour, fichiers écrits.
+  C'est le registre par défaut pour tout ce qui a une surface CLI.
+
+  Le registre *par introspection* importe le module
+  (`load_lightwebpres_module()`, puis `self.lwp.…`) pour mesurer ce qu'une
+  sortie ne montre pas : le registre de propriétés, les palettes résolues,
+  les ratios de contraste, l'AST de l'exécutable. Une garde qui mesure
+  57 thèmes ne peut pas le faire en construisant 57 sites.
+
+  Cette convention disait « pas d'import direct des fonctions internes » ;
+  c'était faux et cela aurait empêché d'écrire la moitié des gardes de ce
+  dépôt. Le vrai critère n'est pas l'import, c'est **ce qu'on affirme** :
+  un comportement visible se vérifie par la sortie, une propriété interne
+  se mesure par le module.
 - **Versionnage sémantique** (spec §13.9) : MAJOR = incompatible, MINOR =
   rétrocompatible. La constante `VERSION` est dans `lightwebpres`.
-- **Style de commit** : voir `git log --oneline -10` pour le style en vigueur
-  (préfixes `feat:`, `Docs:`, `Chore:`, ou `vX.Y.Z:` pour les versions).
-- **Push contrôlé** : après un commit substantiel, pousser vers le remote
-  `newargs` si le workflow de la session le demande ; jamais de push forcé.
+- **Style de commit** : un sujet en phrase, qui dit ce que le changement
+  fait — **aucun préfixe**, pas même pour une release. Le corps n'est pas
+  replié à 72 colonnes et explique le *pourquoi*, avec les mesures quand
+  il y en a.
+
+  Cette ligne annonçait `feat:` / `Docs:` / `Chore:` / `vX.Y.Z:`, et ce
+  n'était pas faux à l'écriture : la convention a bel et bien été
+  `vX.Y.Z:` jusqu'au 15 août 2026, puis elle a changé sans que ce document
+  suive. Depuis, aucun sujet ne porte de préfixe. C'est le mode de
+  décomposition à connaître ici — une convention citée de mémoire survit
+  à la pratique qu'elle décrit — d'où la règle : **lire le style plutôt
+  que ce paragraphe**, avec `git log --format=%s -20`.
+- **Push** : `git push -u origin main`. Il n'y a qu'un remote, `origin`, et
+  qu'une branche de travail, `main` — pas de branche de fonctionnalité.
+  Jamais de push forcé.
 
 ## Licence et extension
 
@@ -125,7 +152,10 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - La création de thème est un **objectif séparé** : les thèmes livrés
   rendent des couleurs et des propriétés typées, mais l'outil ne *conçoit*
   pas un thème accessible — il le *juge* (mesures de contraste, `audit`).
-  L'expertise accessibilité (atteindre AA sur un palette donné) est externe ;
-  le BACKLOG porte les dettes ouvertes (B5, B6, B17, B18).
+  L'expertise accessibilité (atteindre AA sur une palette donnée) est
+  externe. Les dettes ouvertes sont au `BACKLOG.md` ; elles ne sont pas
+  énumérées ici, parce qu'une liste de numéros dans un second fichier se
+  périme sans que rien ne le signale — celle qui était là citait quatre
+  entrées, toutes closes depuis.
 - `series article add/remove/set` est **exclu** du périmètre CLI actuel
   (BACKLOG C2).
