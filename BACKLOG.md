@@ -39,6 +39,32 @@ how the numbers above happened.
 ran something and wrote down what came back. Where an entry claims a
 figure, the figure is in it.
 
+## Who this project has, and what that settles
+
+**One user, who is the owner, and the project is pre-1.0.** Stated here
+because several entries were weighing costs that do not exist, and one had
+invented a witness.
+
+Read older entries with this in mind. Arguments of the form *an
+already-published table would change appearance*, *someone may have a
+series relying on this*, or *the input contract's stability* are weighing
+a population of one, who is the person deciding. They are not wrong to
+have been raised — a format that intends to be stable should think about
+breakage before 1.0, not after — but they are not blockers, and an entry
+that stalled only on that ground can be decided.
+
+**What this does NOT excuse**, since the temptation runs the other way
+too: it is not a licence for silent breakage. Being one's own user makes a
+change cheap to accept, not cheap to discover. The reasons an error is
+loud, a measurement written down and a guard proved by mutation have
+nothing to do with how many people are watching.
+
+One entry did more than hedge: B5 staged an outside witness — "the team
+that reported B2", quoted — for an argument the owner had made about
+their own series, in the third person. It has been rewritten. If a real user
+ever appears, that will be worth recording precisely, and this note is
+what will make the difference visible.
+
 ---
 
 ## B1 — Mid-paragraph image with a title — FIXED in v0.12.0
@@ -134,8 +160,8 @@ touch the input contract):
   comparison table already failed to distinguish "yes" from "partly".
   And `no` was the only one emphasized (bold green), against the natural
   reading. All three are now distinct and taken from the palette.
-  **To check on your side**: your published comparison table will change
-  appearance, and that is intended.
+  **Consequence to expect**: an already-published comparison table
+  changes appearance on the next build, and that is intended.
 - Locked down by a test (the three declarations must differ and must come
   from the palette).
 
@@ -163,7 +189,7 @@ read at a glance, "does / doesn't / partly" is taken in at a glance when
 it is coloured, and becomes a wall of text otherwise. The case looks
 recurrent, not specific to one project.
 
-A neighbouring case reported for information (same family, not the same
+A neighbouring case, noted at the same time (same family, not the same
 request): two other tables stay in raw HTML for a `col-signal` class that
 emphasizes a whole **column**.
 
@@ -361,25 +387,32 @@ the nine borrowed palettes from the twenty-four measured ones). Owner's
 call, one line per theme once made. The catalogue revision pass (B9) is
 the natural vehicle.
 
-**One user's input, recorded because it is the only one we have from
-someone who actually uses the verdicts.** The team that reported B2 —
-twenty-eight `yes`/`no` cells in a published series — was told option 3
-would change those cells a second time, and answered that it suits them,
-for a reason worth keeping:
+**The argument for option 3, and where it actually comes from.** This
+paragraph used to read as third-party testimony — "the team that reported
+B2", quoted, "one user, not a mandate". There is no such team. The project
+has exactly one user, who is its owner, and the sentence below was the
+owner's own reasoning about their own series, written in the third
+person. Rewritten
+because a register that stages an outside witness is worse than one that
+argues in its own name: the appeal to a user who does not exist adds
+nothing and can only mislead a later reader — including a later me, who
+read it as external validation and nearly left it alone for that reason.
 
-> If the shape carries the information, the colour no longer has to
-> carry it alone, and it stops having to clear a contrast threshold that
-> a borrowed palette cannot guarantee.
+The argument stands on its own, which is why it survives the correction:
+
+> If the shape carries the information, the colour no longer has to carry
+> it alone, and it stops having to clear a contrast threshold that a
+> borrowed palette cannot guarantee.
 
 That reframes option 3. It is not a loss of colour bolted on to fix a
 number: it is the conclusion of the change already shipped when the
-verdicts gained their shape markers for WCAG 1.4.1. Once meaning rests
-on shape, a palette colour on that cell is decoration, and decoration is
-not held to 4.5:1.
+verdicts gained their shape markers for WCAG 1.4.1. Once meaning rests on
+shape, a palette colour on that cell is decoration, and decoration is not
+held to 4.5:1.
 
-They also note the change costs them nothing, since their cells are
-regenerated at every build. That is one user, not a mandate — but it
-removes the objection the entry was weighing against option 3.
+The practical note that came with it also holds and costs nothing: the
+cells in question are regenerated at every build, so changing their
+appearance a second time is free.
 
 ## B6 — The slide-progress dots miss the 3:1 readability floor — DONE
 
