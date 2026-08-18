@@ -14118,5 +14118,258 @@ class RegressionFixes(unittest.TestCase):
             self.assertNotIn('no cover slide', tmpl.stdout,
                              '--templates must skip editorial checks')
 
+class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
+    """`audit` promises, in §11.5 and in the guide, to report and exit 0
+    whatever it finds. An adversarial pass over the delivered lot found
+    four places where it did not, and each of the four is the same shape:
+    a fault the render can see, on a path the report never reaches.
+
+    These are not hypotheticals. Every case here was measured on the
+    delivered executable before the repair, and the measurement is in the
+    docstring of the test that pins it."""
+
+    def _series(self, tmp):
+        root = str(Path(tmp) / 's')
+        self.assertEqual(run('init', root).returncode, 0)
+        self.assertEqual(run('demo', root).returncode, 0)
+        return root
+
+    def _mark_draft(self, root, index=1):
+        path = Path(root) / 'series.json'
+        data = json.loads(path.read_text(encoding='utf-8'))
+        entries = data.get('articles', data) if isinstance(data, dict) else data
+        entries[index]['status'] = 'draft'
+        path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+        return entries[index]['page_source']
+
+    def test_a_draft_is_audited_like_any_other_article(self):
+        """The gate's worst case: `--strict` green on a series whose fault
+        is sitting in the article still being worked on. Measured before
+        the repair, on one article and one fault, changing only `status`:
+        active gave one warning and `--strict` exit 1, draft gave
+        `No warnings` and exit 0 — while `build --include-drafts` printed
+        the warning plainly. §20.6 says nothing is excluded from an audit,
+        and `audit` has no `--include-drafts` to reach it with."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            source = self._mark_draft(root)
+            article = Path(root) / 'articles' / source
+            article.write_text(
+                article.read_text(encoding='utf-8').replace(
+                    '<!-- lwp:slide:cover -->',
+                    '<!-- lwp:slide:cover -->\nfact-label: X', 1),
+                encoding='utf-8')
+            plain = run('audit', root)
+            self.assertIn('never rendered', plain.stderr,
+                          'the draft was rendered out of the audit:\n'
+                          + plain.stdout + plain.stderr)
+            self.assertEqual(plain.returncode, 0)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1,
+                             '--strict passed on a fault in a draft')
+
+    def test_a_source_that_is_not_text_is_a_finding_not_a_stop(self):
+        """Measured before the repair: one article saved in the wrong
+        encoding took `audit` down at exit 1, with no summary line at all,
+        on the same run where the guide promises exit 0 whatever it finds.
+        `read_text_file` refusing and exiting is right for a build, which
+        has nothing to produce from it, and wrong for a report."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (Path(root) / 'articles' / 'first_article.md').write_bytes(
+                b'<!-- lwp:meta -->\npage_title: X\n---\n\n'
+                b'<!-- lwp:slide:cover -->\n# T\nsummary: \xff not utf-8\n')
+            plain = run('audit', root)
+            self.assertEqual(plain.returncode, 0,
+                             'audit stopped on a file it could not read:\n'
+                             + plain.stdout + plain.stderr)
+            self.assertIn('warning(s)', plain.stdout,
+                          'audit ended without a summary')
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+
+    def test_an_unreadable_file_is_named_once_per_run_not_once_per_pass(self):
+        """Three passes reach for the same article — the syntax pass, the
+        judgement pass, the render — so one unreadable file used to print
+        three identical [ERROR] lines. Two remain by construction: audit's
+        own read, and the build path's refusal during the render, which is
+        not audit's to silence."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (Path(root) / 'articles' / 'first_article.md').write_bytes(
+                b'<!-- lwp:meta -->\npage_title: X\n---\n\n'
+                b'<!-- lwp:slide:cover -->\n# T\nsummary: \xff not utf-8\n')
+            stderr = run('audit', root).stderr
+            self.assertLessEqual(stderr.count('not valid UTF-8'), 2,
+                                 'one file named once per pass:\n' + stderr)
+
+    def test_a_missing_source_is_counted_not_only_logged(self):
+        """The summary-contradicting-stderr defect, still alive twenty
+        lines above the finding written to kill it. Reachable through an
+        `ignored` article, whose missing source never reaches the render
+        either: audit printed an [ERROR], then `No warnings`, and exited 0
+        under `--strict`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            entries = (data.get('articles', data)
+                       if isinstance(data, dict) else data)
+            entries[1]['status'] = 'ignored'
+            path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            (Path(root) / 'articles' / entries[1]['page_source']).unlink()
+            plain = run('audit', root)
+            self.assertIn('page_source not found', plain.stderr)
+            self.assertNotIn('No warnings', plain.stdout,
+                             'audit called a series clean while printing an '
+                             '[ERROR] about it:\n' + plain.stdout)
+            self.assertEqual(plain.returncode, 0)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+
+    def test_one_legacy_stylesheet_is_one_finding(self):
+        """`judge_resolved_theme` keeps the one-mistake-one-finding rule
+        inside a pass — "eight warnings for one typo is how a report stops
+        being read" — and rendering broke it between passes. A legacy
+        `templates/style.css` was reported by audit_presentation, which
+        also names every retired variable it still references, and again
+        by the build path, whose own message defers to that one and then
+        repeats it. Two lines, two counts, one file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (Path(root) / 'templates' / 'style.css').write_text(
+                '/* legacy */ .x { color: var(--marker); }\n',
+                encoding='utf-8')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            named = [line for line in report.splitlines()
+                     if line.startswith('[WARNING]') and 'style.css' in line]
+            self.assertEqual(len(named), 1,
+                             'one file, two findings:\n' + '\n'.join(named))
+            self.assertIn('--marker', report,
+                          'the surviving message is the poorer of the two: '
+                          'it no longer names the retired variables')
+            counted = re.search(r'(\d+) warning\(s\)', plain.stdout)
+            self.assertEqual(counted.group(1), '1', plain.stdout)
+
+    def test_build_progress_does_not_leak_into_the_report(self):
+        """Since the render pass calls load_build_context, its progress
+        lines print in the middle of audit's report — and they were bare
+        print() calls, so `--quiet` could not see them. That is the exact
+        defect log()'s own comment describes: "progress went out through
+        bare print() calls the flag could not see".
+
+        On an `ignored` article rather than a draft, and mutation is why:
+        audit now renders WITH drafts, so the `[draft]` line it used to
+        leak is no longer reachable from here at all and a test written on
+        it passes whatever the print does. `ignored` stays filtered — it
+        is out of the chain by definition — so it is the case that still
+        exercises the flag."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            entries = (data.get('articles', data)
+                       if isinstance(data, dict) else data)
+            entries[1]['status'] = 'ignored'
+            path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            loud = run('audit', root)
+            self.assertIn('[ignored]', loud.stdout,
+                          'the premise changed: this line is what --quiet '
+                          'has to be able to suppress')
+            quiet = run('audit', root, '--quiet')
+            self.assertNotIn('[ignored]', quiet.stdout,
+                             'build progress survived --quiet inside the '
+                             'audit report:\n' + quiet.stdout)
+            self.assertIn('No warnings', quiet.stdout,
+                          'the summary is the command answer and must stay')
+
+
+class TheReadabilityFloorReadsCssFunctionsCorrectly(unittest.TestCase):
+    """`clamp`, `min` and `max` are three different questions, and were
+    answered as one: take the first argument of whichever appears. That is
+    right for `clamp(a, b, c)`, whose floor is `a`, and wrong both ways for
+    the other two — measured on the delivered executable, `max(9px, 1rem)`
+    renders at 16px and warned, `min(20px, 4vw)` can render at 8px and said
+    nothing."""
+
+    def _px(self, value):
+        return load_lightwebpres_module()._absolute_size_px(value)
+
+    def test_clamp_is_judged_on_its_floor(self):
+        self.assertEqual(self._px('clamp(9px, 2vw, 20px)'), 9.0)
+
+    def test_a_max_is_judged_on_its_largest_argument(self):
+        """The false positive: this renders at 16px and cannot go below."""
+        self.assertEqual(self._px('max(9px, 1rem)'), 16.0)
+
+    def test_a_min_is_judged_on_its_smallest_argument(self):
+        self.assertEqual(self._px('min(10px, 20px)'), 10.0)
+
+    def test_a_function_with_a_relative_argument_is_not_judged(self):
+        """Both directions, and only one is obvious. An unresolved
+        argument inside a `min` can drag the render below the floor unseen;
+        one inside a `max` can lift it above, which would make a warning
+        simply wrong. Silence beats a guess about the viewport."""
+        self.assertIsNone(self._px('min(20px, 4vw)'))
+        self.assertIsNone(self._px('max(8px, 0.5em)'))
+
+    def test_a_nested_function_is_split_on_its_own_commas(self):
+        """Splitting on every comma reads `min(10px` as an argument and
+        drops the rest, which is how a nested value silently becomes a
+        different value. Both cases are here because they fail
+        differently: the resolvable one would come back with the wrong
+        number, the relative one with a number where there should be
+        none."""
+        self.assertEqual(self._px('max(1rem, min(10px, 20px))'), 16.0)
+        self.assertIsNone(self._px('max(1rem, min(2vw, 20px))'))
+
+    def test_the_floor_still_fires_on_what_it_was_written_for(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = str(Path(tmp) / 's')
+            self.assertEqual(run('init', root).returncode, 0)
+            self.assertEqual(run('demo', root).returncode, 0)
+            conf = Path(root) / 'templates' / 'settings.conf'
+            conf.write_text(conf.read_text(encoding='utf-8')
+                            + '\nnote.size: min(20px, 3px)\n', encoding='utf-8')
+            report = run('audit', root)
+            self.assertIn('note.size', report.stdout + report.stderr)
+
+
+class TheWarningLevelIsSpeltWhereContributorsWillReadIt(unittest.TestCase):
+    """The whole collector rests on every warning going through
+    log('warn', ...). log()'s own docstring said there was no warning
+    level and to route anything meaning one through 'info' with a
+    [WARNING] tag — six lines above the branch implementing 'warn'.
+
+    A warning written that way prints, is silenced by --quiet, and is
+    never counted by audit. The advice outlived the level it denied, and
+    the lot that made the collector load-bearing is the one that had to
+    kill it."""
+
+    def test_no_source_comment_still_denies_the_warn_level(self):
+        source = EXECUTABLE.read_text(encoding='utf-8')
+        for claim in ("there is no 'warning'\n    level",
+                      "There is no 'warn'",
+                      'no warn level in log()'):
+            self.assertNotIn(claim, source,
+                             f'a comment still denies the level the '
+                             f'collector hooks: {claim!r}')
+
+    def test_a_warning_routed_the_old_way_would_not_be_collected(self):
+        """Asserted rather than argued: this is what the removed advice
+        produced, and why the advice was a trap and not a style note."""
+        lwp = load_lightwebpres_module()
+        with lwp.collect_warnings() as sink:
+            lwp.log('info', '[WARNING] written the way the docstring said')
+            lwp.log('warn', 'written the way the docstring says now')
+        self.assertEqual(sink.messages,
+                         ['written the way the docstring says now'])
+
+    def test_the_collector_can_declare_what_was_already_said(self):
+        lwp = load_lightwebpres_module()
+        with lwp.collect_warnings(already_said=('seen this',)) as sink:
+            lwp.log('warn', 'seen this one before')
+            lwp.log('warn', 'but not this one')
+        self.assertEqual(sink.messages, ['but not this one'])
+        self.assertIsNone(lwp._WARN_SINK)
+
 if __name__ == '__main__':
     unittest.main()

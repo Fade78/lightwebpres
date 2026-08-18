@@ -113,16 +113,32 @@ class collect_warnings:
 
     Reentrancy is refused rather than nested: there is exactly one
     consumer, and an outer sink silently swallowed by an inner one would
-    be the very kind of defect this mechanism exists to stop."""
+    be the very kind of defect this mechanism exists to stop.
 
-    def __init__(self):
+    `already_said` lets the consumer name what it has ALREADY reported, by
+    the opening of the sentence: such a warning is neither printed nor
+    collected. One mistake, one finding -- the rule judge_resolved_theme
+    keeps inside a pass, broken between passes the moment audit started
+    rendering. A legacy `templates/style.css` was reported by
+    audit_presentation, which also names every retired variable the file
+    still references, and again by the build path, whose message defers to
+    that one ("audit names the variable renames") and then repeats it: two
+    lines, two counts, one file, and `--strict` gates on the count.
+
+    The declaration lives here, with the consumer, and not as a flag
+    threaded down into the build: what has already been said is audit's
+    business, and the build path has no business knowing that an audit is
+    what is calling it."""
+
+    def __init__(self, already_said=()):
         self.messages = []
+        self.already_said = tuple(already_said)
 
     def __enter__(self):
         global _WARN_SINK
         if _WARN_SINK is not None:
             raise RuntimeError('collect_warnings is not reentrant')
-        _WARN_SINK = self.messages
+        _WARN_SINK = self
         return self
 
     def __exit__(self, *exc):
@@ -156,15 +172,23 @@ def log(level, msg):
     """Routes a diagnostic message to stderr.
 
     Levels: 'info' (progress, suppressed by --quiet, shown by default),
-    'verbose' (only with --verbose), 'error' (always shown, even by --quiet).
+    'warn' (never suppressed, and collected by collect_warnings), 'verbose'
+    (only with --verbose), 'error' (always shown, even by --quiet).
     Each level carries its own prefix tag so the output stays greppable.
     --timestamp prepends an RFC 3339 timestamp.
 
     An unknown level is DROPPED SILENTLY below, which is a real trap and
     has been sprung once already: a hand-written log('warning', ...)
-    refused an unsafe read and told nobody, because there is no 'warning'
-    level. Anything meaning "warning" goes through 'info' with a [WARNING]
-    tag until that level exists.
+    refused an unsafe read and told nobody. The level is spelt 'warn'.
+
+    Getting that spelling right now matters twice over. This text used to
+    say there was no warning level and to route anything meaning one
+    through 'info' with a [WARNING] tag -- advice that outlived the level
+    it denied, six lines above the branch that implements it. Following it
+    today produces a line that prints, that --quiet DOES silence, and that
+    `audit` never counts, because the collector hooks this funnel and this
+    funnel only tags 'warn'. A warning written the old way is invisible to
+    the gate that exists to catch it.
 
     The ANSI strip below is unconditional and must stay that way. It is
     NOT the --no-color flag and must never be wired to it: author-
@@ -191,7 +215,9 @@ def log(level, msg):
         # matters least at a terminal and most in CI.
         prefix = '[WARNING] '
         if _WARN_SINK is not None:
-            _WARN_SINK.append(str(msg))
+            if str(msg).startswith(_WARN_SINK.already_said):
+                return
+            _WARN_SINK.messages.append(str(msg))
     elif level == 'verbose':
         if not _LOG_STATE['verbose']:
             return
@@ -10145,10 +10171,11 @@ def _encode_inline_image(src, articles_dir):
     of the flag that packages it."""
     contained = _resolve_contained(articles_dir, src)
     if contained is None:
-        # Same shape as copy_images' sibling warning. There is no 'warn'
-        # level in log(); an unknown level is DROPPED SILENTLY, so a
-        # log('warning', ...) here would have refused the read and told
-        # nobody. Adding the level belongs with the --quiet fix.
+        # Same shape as copy_images' sibling warning. The level is 'warn',
+        # and the spelling is the whole of it: an unknown level is DROPPED
+        # SILENTLY, so a log('warning', ...) here would refuse the read and
+        # tell nobody -- and 'info' would print but never reach audit's
+        # collector, which hooks the 'warn' branch only.
         log('warn', f'skipped image escaping the article '
             f'directory: {src}')
         return None
@@ -10905,7 +10932,7 @@ def load_build_context(series_dir, args):
     ignored = [e['page_dest'] for e in articles if e['status'] == 'ignored']
     articles[:] = [e for e in articles if e['status'] != 'ignored']
     for f in ignored:
-        print(f'  [ignored] {f} is not part of this series')
+        progress(f'  [ignored] {f} is not part of this series')
 
     # The list as the SERIES declares it — after `ignored`, before `draft`.
     # This is what the index-name rule counts (§11.3.3): a draft is still an
@@ -10919,7 +10946,7 @@ def load_build_context(series_dir, args):
         skipped = [e['page_dest'] for e in articles if e['status'] == 'draft']
         articles[:] = [e for e in articles if e['status'] != 'draft']
         for f in skipped:
-            print(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
+            progress(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
 
     # Every listed page_source must exist, checked up front and fatal
     # (§20.3): building around a missing source used to leave the entry's
@@ -11750,7 +11777,9 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
             if slide.slide_type == 'full-article' and slide.article_file:
                 path = _resolve_contained(articles_dir, slide.article_file)
                 if path is not None and path.exists():
-                    localities.append(('the page', scope, read_text_file(path)))
+                    text = audit_read(path)
+                    if text is not None:
+                        localities.append(('the page', scope, text))
     else:
         for i, slide in enumerate(slides, 1):
             if slide.fact_content:
@@ -11759,8 +11788,10 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
             if slide.slide_type == 'full-article' and slide.article_file:
                 path = _resolve_contained(articles_dir, slide.article_file)
                 if path is not None and path.exists():
-                    localities.append((slide.article_file, NoteScope('article'),
-                                       read_text_file(path)))
+                    text = audit_read(path)
+                    if text is not None:
+                        localities.append((slide.article_file,
+                                           NoteScope('article'), text))
 
     converted = []
     for where, scope, text in localities:
@@ -11871,6 +11902,39 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
     return warnings
 
 
+# Files `audit` has already refused this run, so one unreadable article is
+# named once instead of once per pass that reaches for it.
+_AUDIT_UNREADABLE = set()
+
+
+def audit_read(path):
+    """`path` as text, or None when it cannot be read as text.
+
+    `read_text_file` refuses and EXITS -- the right answer for a build,
+    which has nothing to produce from a file it cannot decode, and the
+    wrong one for a command whose whole contract is to report and keep
+    going. Measured before this existed: one article saved in the wrong
+    encoding took `audit` down at exit 1 with no summary at all, on the
+    same run where §11.5 and the guide both promise exit 0 whatever it
+    finds. A reader who cannot be read is a finding, not a stop.
+
+    The refusal has already named the file on stderr; the caller's job is
+    to count it and carry on to the next article.
+
+    Refusals are remembered for the run, because `audit` reads the same
+    article from several passes -- the syntax pass, the note localities,
+    the render -- and one unreadable file otherwise names itself once per
+    pass. Three identical [ERROR] lines about one file is the same noise
+    the warning counter is careful to avoid, arriving by another door."""
+    if path in _AUDIT_UNREADABLE:
+        return None
+    try:
+        return read_text_file(path)
+    except SystemExit:
+        _AUDIT_UNREADABLE.add(path)
+        return None
+
+
 def audit_by_rendering(series_dir, args):
     """Renders the series in memory and reports what only a render can say.
 
@@ -11889,7 +11953,20 @@ def audit_by_rendering(series_dir, args):
     one of those too, reporting `No warnings` on a series no build could
     produce. The SystemExit is caught so audit keeps its promise never to
     block, and counted so `--strict` still fails on it."""
-    with collect_warnings() as sink:
+    # Drafts and drafts-only are BUILD scopes, not audit scopes: §20.6 says
+    # nothing is excluded from an audit, drafts least of all, since a draft
+    # is precisely the article still being worked on. Rendering under the
+    # build's own filters made that false for every fault only a render can
+    # see -- measured, the same cover fault warned on an active article and
+    # was silent on a draft, with `--strict` green either way and no
+    # `--include-drafts` on audit to reach it.
+    args = dict(args)
+    args['--include-drafts'] = True
+    args.pop('--drafts-only', None)
+    # audit_presentation has already reported a legacy templates/style.css,
+    # and said more about it than the build path does.
+    with collect_warnings(
+            already_said=('templates/style.css is no longer read',)) as sink:
         try:
             ctx = load_build_context(series_dir, args)
             claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
@@ -12010,6 +12087,25 @@ def navigation_contrast_sites():
             and PROPERTY_REGISTRY[site.fg].default == 'nav']
 
 
+def _top_level_args(text):
+    """`text` split on the commas that are not inside parentheses.
+
+    A CSS function argument can itself be a function -- `max(1rem,
+    min(2vw, 20px))` -- so splitting on every comma reads `min(2vw` as an
+    argument and drops the rest. Depth counting is the whole of it."""
+    args, depth, start = [], 0, 0
+    for i, ch in enumerate(text):
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        elif ch == ',' and depth == 0:
+            args.append(text[start:i])
+            start = i + 1
+    args.append(text[start:])
+    return [a.strip() for a in args if a.strip()]
+
+
 def _absolute_size_px(value):
     """A resolved font size in px, or None when it is relative to inherited.
 
@@ -12018,11 +12114,31 @@ def _absolute_size_px(value):
     themes, and resolving it against an assumed 16px root reads 11.52px —
     a guard that did so would open by warning on the entire catalogue for
     a size that renders perfectly. What the parent is, is a fact about the
-    templates; the registry does not know it, so this does not pretend to."""
+    templates; the registry does not know it, so this does not pretend to.
+
+    `clamp`, `min` and `max` are three different questions and were once
+    answered as one, by taking the first argument of whichever appeared.
+    That is right for `clamp(a, b, c)`, whose floor is `a`. It is wrong
+    both ways for the others, and measured: `max(9px, 1rem)` renders at
+    16px and warned, `min(20px, 4vw)` can render at 8px and said nothing.
+    The floor of a `max` is the largest floor among its arguments, that of
+    a `min` the smallest -- and either becomes UNKNOWABLE as soon as one
+    argument is relative, so neither is judged then. Both directions
+    matter and only one is obvious: an unresolved argument inside a `min`
+    can drag the render below the floor unseen, and one inside a `max` can
+    lift it above, which would make a warning simply wrong. Silence on
+    what this pass cannot resolve is the same discipline as the `em` rule
+    above -- it does not guess what the viewport will be."""
     v = value.strip()
-    inner = re.match(r'^(?:clamp|min|max)\(\s*([^,()]+)\s*,', v)
-    if inner:
-        v = inner.group(1).strip()
+    m = re.match(r'^(clamp|min|max)\((.*)\)$', v, re.S)
+    if m:
+        fn, args = m.group(1), _top_level_args(m.group(2))
+        if fn == 'clamp':
+            return _absolute_size_px(args[0]) if args else None
+        floors = [_absolute_size_px(a) for a in args]
+        if any(f is None for f in floors):
+            return None
+        return max(floors) if fn == 'max' else min(floors)
     if re.search(r'[\d.]\s*(?:em|ex|ch|%)', v):
         return None
     return length_px(v, 16.0)
@@ -12139,7 +12255,7 @@ def audit_resolved_theme(templates_dir, articles, articles_dir):
         layers = [theme_property_layer(theme_key)] if theme_key else []
         layers.append(props)
         series_resolved = resolve_theme_properties(*layers)
-    except (PropertyError, KeyError, OSError):
+    except (PropertyError, KeyError, OSError, SystemExit):
         return 0
 
     series_findings = judge_resolved_theme(series_resolved)
@@ -12153,12 +12269,13 @@ def audit_resolved_theme(templates_dir, articles, articles_dir):
         if not source_path.exists():
             continue
         try:
-            meta, _, _, _ = parse_markdown_extended(read_text_file(source_path))
+            meta, _, _, _ = parse_markdown_extended(
+                audit_read(source_path) or '')
             page_props = page_style_properties(meta, entry['page_source'])
             if not page_props:
                 continue
             resolved = resolve_theme_properties(*layers, page_props)
-        except (PropertyError, KeyError, OSError):
+        except (PropertyError, KeyError, OSError, SystemExit):
             continue
         for key, message in judge_resolved_theme(resolved):
             if key in already:
@@ -12220,9 +12337,20 @@ def cmd_audit(series_dir, args):
         source_path = articles_dir / entry['page_source']
         if not source_path.exists():
             log('error', f'{entry["page_dest"]}: page_source not found ({source_path})')
+            # Counted, or the summary contradicts the line above it -- the
+            # exact defect the fatal-render finding was written to kill,
+            # still alive twenty lines higher in the same function. It was
+            # reachable through an `ignored` article, whose missing source
+            # never reaches the render either, since `ignored` is out of the
+            # chain: audit printed an [ERROR], then "No warnings", and
+            # `--strict` exited 0.
+            warnings += 1
             continue
 
-        md_text = read_text_file(source_path)
+        md_text = audit_read(source_path)
+        if md_text is None:
+            warnings += 1
+            continue
         # Instance tags are author interventions that survive every theme
         # change; audit enumerates them (never blocks) so an author changing
         # themes knows where to look. The visibility is what makes literals
@@ -12237,7 +12365,7 @@ def cmd_audit(series_dir, args):
         for name in re.findall(r'^\s*article:\s*(\S+)\s*$', md_text, re.M):
             extra = _resolve_contained(articles_dir, name)
             if extra is not None and extra.exists():
-                census_text += '\n' + read_text_file(extra)
+                census_text += '\n' + (audit_read(extra) or '')
         instance_tags = re.findall(
             r'\{(color|font|align|sc|u|strike|mono)[:}]', census_text)
         if instance_tags:
@@ -12371,14 +12499,14 @@ def audit_presentation(templates_dir):
               f'the stylesheet is composed at build time. Move your values '
               f'to {SETTINGS_FILENAME}, your rules to {CUSTOM_CSS_FILENAME}, '
               f'then delete it.')
-        found = _retired_in(read_text_file(legacy))
+        found = _retired_in(audit_read(legacy) or '')
         if found:
             for old in found:
                 print(f'          {old} -> {RETIRED_VARIABLES[old]}')
 
     custom_path = templates_dir / CUSTOM_CSS_FILENAME
     if custom_path.exists():
-        found = _retired_in(read_text_file(custom_path))
+        found = _retired_in(audit_read(custom_path) or '')
         if found:
             warnings += 1
             print(f'[WARNING] templates/{CUSTOM_CSS_FILENAME}: these variables '
@@ -12389,7 +12517,9 @@ def audit_presentation(templates_dir):
 
     settings_path = templates_dir / SETTINGS_FILENAME
     if settings_path.exists():
-        text = read_text_file(settings_path)
+        text = audit_read(settings_path)
+        if text is None:
+            return warnings + 1
         try:
             declared, props = parse_settings_text(text)
         except PropertyError as exc:
