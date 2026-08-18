@@ -271,7 +271,17 @@ class FatalErrorCases(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
-    def test_duplicate_full_article_slides_is_fatal(self):
+    def test_two_full_article_slides_each_carry_their_own_file(self):
+        """A page may hold more than one long-form piece. It could not,
+        and the reason was never a rule about the format: the renderer
+        wrote ONE shared placeholder and substituted it globally, so the
+        first article landed in every slot and the rest were dropped in
+        silence. That is what the old fatal error was guarding.
+
+        The failure it guarded against is the assertion here — CONTENT ONE
+        exactly once, CONTENT TWO exactly once, and no marker left in the
+        page. Duplicating the first over the second passes a test that
+        only asks whether both strings appear."""
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:full-article -->\narticle: art1.md\n\n---\n\n'
@@ -282,7 +292,57 @@ class FatalErrorCases(unittest.TestCase):
             (root / 'articles' / 'art1.md').write_text('CONTENT ONE\n', encoding='utf-8')
             (root / 'articles' / 'art2.md').write_text('CONTENT TWO\n', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
-            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertEqual(html.count('CONTENT ONE'), 1, html.count('CONTENT ONE'))
+            self.assertEqual(html.count('CONTENT TWO'), 1, html.count('CONTENT TWO'))
+            self.assertNotIn('FULL_ARTICLE_PLACEHOLDER', html)
+            self.assertEqual(html.count('class="slide full-article"'), 2)
+
+    def test_two_long_form_pieces_do_not_share_note_anchors(self):
+        """The second thing that made one article per page an assumption
+        rather than a rule. A note's anchor id is scoped by its locality's
+        prefix precisely so two localities cannot both emit `note-1`, and
+        the long-form prefix was the fixed word `article` — unique only
+        while there was one of them. Two pieces each carrying a note would
+        have put two `id="note-article-1"` in one document, and every
+        return link would have landed on the first."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art1.md\n\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art2.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'art1.md').write_text(
+                'One[^a].\n\n[^a]: First body.\n', encoding='utf-8')
+            (root / 'articles' / 'art2.md').write_text(
+                'Two[^b].\n\n[^b]: Second body.\n', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            ids = re.findall(r'id="(note-[a-z0-9-]+)"', html)
+            self.assertEqual(len(ids), len(set(ids)), ids)
+            self.assertEqual(len(ids), 2, ids)
+
+    def test_one_long_form_piece_keeps_the_anchors_it_always_had(self):
+        """And the other side of it. The prefix is disambiguated by slide
+        ONLY when the page carries several pieces, because `#note-article-3`
+        is a URL someone may have been sent: moving every one of them to
+        buy a uniqueness a single-article page does not need would break
+        inbound links for a capability that page is not using."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: art1.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'articles' / 'art1.md').write_text(
+                'One[^a].\n\n[^a]: First body.\n', encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('id="note-article-1"', html)
 
     def test_duplicate_series_nav_slides_is_fatal(self):
         md = (

@@ -9607,11 +9607,14 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
     - a cover slide with content after its fields (it has no fact-box to
       put that content in, so it would otherwise vanish silently, §22.12)
     - a full-article slide missing its required article: field (otherwise
-      the raw {FULL_ARTICLE_PLACEHOLDER} leaks into the published HTML)
-    - more than one full-article slide (otherwise str.replace() on the
-      shared placeholder duplicates the first article over the rest and
-      silently drops the others, §22.8)
+      the raw {FULL_ARTICLE_PLACEHOLDER:sN} leaks into the published HTML)
     - more than one series-nav slide (§22.9)
+
+    Several full-article slides are NOT refused. They used to be, and the
+    reason was never a rule about the format: the renderer wrote one
+    shared placeholder and substituted it globally, so the first article
+    landed in every slot and the rest were silently dropped. Each slide
+    now carries its own marker (§22.8).
     """
     if not has_meta_block:
         log('error', f'{filename}: file must start with a <!-- lwp:meta --> block.')
@@ -9631,7 +9634,6 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
         log('error', f'{filename}: file has no slides.')
         sys.exit(1)
 
-    full_article_positions = []
     series_nav_positions = []
 
     for i, slide in enumerate(slides, 1):
@@ -9700,7 +9702,6 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
             sys.exit(1)
 
         if slide.slide_type == 'full-article':
-            full_article_positions.append(i)
             if not slide.article_file:
                 log('error', f'{filename}: slide {i} is a full-article slide '
                       f'without an article: field.')
@@ -9713,12 +9714,6 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
 
         if slide.slide_type == 'series-nav':
             series_nav_positions.append(i)
-
-    if len(full_article_positions) > 1:
-        log('error', f'{filename}: {len(full_article_positions)} full-article '
-              f'slides found (slides {full_article_positions}), only one is '
-              f'allowed per article.')
-        sys.exit(1)
 
     if len(series_nav_positions) > 1:
         log('error', f'{filename}: {len(series_nav_positions)} series-nav '
@@ -9841,7 +9836,8 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                 f'data-tags="{data_tags}">\n'
                 + (f'  <span class="slide-num">{num_str}</span>\n'
                    if show_slide_num else '')
-                + f'  <span class="slide-kicker">{tag_text}</span>\n{{FULL_ARTICLE_PLACEHOLDER}}\n</section>')
+                + f'  <span class="slide-kicker">{tag_text}</span>\n'
+                + f'{{FULL_ARTICLE_PLACEHOLDER:s{slide_num}}}\n</section>')
 
     else:  # standard
         kicker = apply_typo(typo_engine, slide.kicker or '', disabled)
@@ -10322,10 +10318,19 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         series_nav_html = ''
     slides_html = slides_html.replace('{SERIES_NAV_PLACEHOLDER}', series_nav_html)
 
-    # Inject the full article. A missing file is fatal (§22.8): the page
+    # Inject the full articles. A missing file is fatal (§22.8): the page
     # would otherwise be published with the literal placeholder text in
     # place of the article, and exit 0 — a corrupted page shipped green.
-    for i, slide in enumerate(visible_slides):
+    #
+    # One marker per slide, carrying that slide's number. A single shared
+    # marker was why a page could hold only one long-form piece: a global
+    # str.replace() put the FIRST article into every marker, so a second
+    # one was duplicated over and its own text silently dropped. The rule
+    # that came out of it — "only one full-article per page" — was never a
+    # decision about the format, only a guard around that substitution.
+    articles_here = sum(1 for s in visible_slides
+                        if s.slide_type == 'full-article')
+    for i, slide in enumerate(visible_slides, 1):
         if slide.slide_type == 'full-article' and slide.article_file:
             # Realpath containment on top of the name-shape guard: the
             # name check already ran at parse time, but a bare name that
@@ -10346,8 +10351,21 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             # where most of the prose lives -- surfaced a bad instance or
             # block tag as a bare Python traceback naming no source at all.
             try:
-                article_notes = (page_notes if page_notes is not None
-                                 else NoteScope('article', tooltip=notes_tooltip))
+                # The anchor prefix stays `article` while the page has one
+                # long-form piece, and is disambiguated by slide only when
+                # it has several. Not tidiness: `#note-article-3` is a URL
+                # a reader can have bookmarked or a correspondent can have
+                # been sent, and moving every one of them to buy
+                # uniqueness a single-article page does not need would
+                # break inbound links for a capability that page is not
+                # using. A second article on the page does move the
+                # first's anchors, which is the honest cost of the two of
+                # them having to share a document.
+                article_notes = (
+                    page_notes if page_notes is not None
+                    else NoteScope('article' if articles_here == 1
+                                   else f'article-s{i}',
+                                   tooltip=notes_tooltip))
                 slide_typo_engine = typo_engine_for_slide(
                     slide, article_typo_engine, article_lang_tag_engines)
                 # inline_images/articles_dir travel here too. Omitting them
@@ -10364,7 +10382,8 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             except PropertyError as exc:
                 log('error', f'{slide.article_file}: {exc}')
                 sys.exit(1)
-            slides_html = slides_html.replace('{FULL_ARTICLE_PLACEHOLDER}', article_html)
+            slides_html = slides_html.replace(
+                f'{{FULL_ARTICLE_PLACEHOLDER:s{i}}}', article_html)
 
     # `notes_placement: page`: the whole page is one locality, so nothing
     # could be numbered until now -- a call in card 2 to a body defined in

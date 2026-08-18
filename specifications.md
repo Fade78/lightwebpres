@@ -747,9 +747,9 @@ plusieurs parties. Le moteur n'impose ni présence, ni unicité, ni position —
 c'est la responsabilité éditoriale de l'auteur. De même, aucun ordre global
 n'est imposé entre les types de fiches : le moteur rend les fiches
 strictement dans l'ordre où elles apparaissent dans le fichier, quel que
-soit cet ordre. Seules les cardinalités « 0 ou 1 » de `series-nav` et
-`full-article` sont vérifiées (§22.8, §22.9) ; voir §22.13 pour le cas
-`cover`.
+soit cet ordre. Seule la cardinalité « 0 ou 1 » de `series-nav` est
+vérifiée (§22.9) ; `full-article` est libre (§22.8), et voir §22.13 pour
+le cas `cover`.
 
 En pratique, le corpus existant place toujours `cover` en première fiche,
 puis les fiches `standard`, puis `series-nav`, puis `full-article` en
@@ -6336,10 +6336,32 @@ lecture, §13.1). Le message d'erreur cite le début du contenu fautif.
 
 ### 22.8 Plusieurs `<!-- lwp:slide:full-article -->` dans le même fichier
 
-Erreur fatale. Un article ne peut inclure qu'un seul article de fond.
+**Autorisé.** Une page peut porter plusieurs articles de fond, chacun
+avec son fichier. C'était auparavant une erreur fatale, et ce n'a jamais
+été une décision sur le format : le rendu écrivait **un seul** marqueur
+partagé et le substituait globalement, si bien que le premier article
+atterrissait dans tous les emplacements et que les suivants
+disparaissaient en silence. La règle « un seul article de fond par
+page » était la garde autour de cette substitution, pas une position
+éditoriale. Chaque fiche porte désormais son propre marqueur.
+
+Deux conséquences, toutes deux mécaniques.
+
 Le fichier référencé par `article:` doit exister — sinon erreur fatale
-aussi (la page serait sinon publiée avec le texte littéral du
-placeholder à la place de l'article).
+(la page serait sinon publiée avec le texte littéral du marqueur à la
+place de l'article).
+
+Et sous `notes_placement: local`, **chaque article de fond est sa propre
+localité** : sa numérotation repart à 1, comme celle de chaque fiche. Le
+préfixe d'ancre reste `article` tant que la page n'en porte qu'un, et
+n'est désambiguïsé par le rang de la fiche (`article-s3`) que lorsqu'elle
+en porte plusieurs. Ce n'est pas du rangement : `#note-article-3` est une
+URL qu'un lecteur peut avoir mise en signet ou qu'un correspondant peut
+avoir reçue, et déplacer toutes les ancres pour acheter une unicité dont
+une page à un seul article n'a pas besoin casserait des liens entrants
+au profit d'une possibilité que cette page n'utilise pas. Ajouter un
+second article de fond déplace bien les ancres du premier : c'est le prix
+honnête du partage d'un même document.
 
 ### 22.9 Plusieurs `<!-- lwp:slide:series-nav -->` dans le même fichier
 

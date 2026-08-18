@@ -268,7 +268,7 @@ slide tags and missing mapped packs; it does not block the build.
 | `cover` | `kicker`, `tags`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
 | standard (default, or explicit `<!-- lwp:slide -->`) | `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
 | `series-nav` | `tags`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
-| `full-article` | `article: filename.md` (required), `tags`, `comment` | 0 or 1 per article |
+| `full-article` | `article: filename.md` (required), `tags`, `comment` | Any number — each carries its own file. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
 
 `kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
 `highlight`/`highlight-caption`, `comment`, and `note` are all optional — omit
