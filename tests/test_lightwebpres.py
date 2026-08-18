@@ -11091,6 +11091,63 @@ class ThemeEngineStaged(unittest.TestCase):
             self.assertIn(key, self.lwp.PROPERTY_REGISTRY,
                           'the slide heading is the case B20 names')
 
+    def test_a_composite_reads_a_hyphenated_key_back_exactly(self):
+        """The var name a composite writes has to come back as the key that
+        owns it, and turning hyphens into dots cannot do that: a key segment
+        may itself contain a hyphen. `--nav-btn-shadow-fg` is
+        `nav-btn.shadow.fg`, not `nav.btn.shadow.fg`, and the difference is
+        not cosmetic — a key that misses the registry is a key whose default
+        is never compared, and `omit_when_default` decides on that
+        comparison."""
+        reads = self.lwp.Composite(
+            'text-shadow',
+            'var(--nav-btn-shadow-dx) var(--highlight-caption-shadow-dy) '
+            'var(--title2-shadow-fg)').reads()
+        self.assertEqual(reads, ['nav-btn.shadow.dx',
+                                 'highlight-caption.shadow.dy',
+                                 'title2.shadow.fg'])
+        for key in reads:
+            self.assertIn(key, self.lwp.PROPERTY_REGISTRY)
+
+    def test_every_composite_in_the_registry_reads_keys_that_exist(self):
+        """Read off the shipped components rather than a sample: a composite
+        whose value names a var nothing declares is a declaration built on a
+        name, and nothing else would say so."""
+        unresolved = [(c.key, comp.cssprop, key)
+                      for c in self.lwp.THEME_COMPONENTS
+                      for comp in c.composite
+                      for key in comp.reads()
+                      if key not in self.lwp.PROPERTY_REGISTRY]
+        self.assertEqual(unresolved, [])
+
+    def test_a_halo_asked_for_on_a_hyphenated_component_is_emitted(self):
+        """What the exact reverse map buys, said in rendered CSS. Nine
+        components carry a hyphen in the first segment of their key —
+        `fact-label`, `nav-btn`, `series-nav.title` and six others — and for
+        each of them a mistranslated var name would have made the halo
+        unreachable: asked for in the theme, present in the :root block,
+        and never once written into a rule."""
+        for key in ('fact-label', 'nav-btn', 'series-nav.title',
+                    'highlight-caption', 'body-heading', 'version-tag'):
+            css = self.lwp.emit_theme_css(self.resolve({
+                f'{key}.shadow.fg': '#33FF8880',
+                f'{key}.shadow.blur': '0.2em'}))
+            var = '--' + key.replace('.', '-') + '-shadow-fg'
+            self.assertIn(f'text-shadow: var(', css, key)
+            self.assertIn(f'{var});', css, f'{key}: halo asked for, not painted')
+
+    def test_a_key_the_registry_does_not_know_is_never_at_its_default(self):
+        """The failure direction that matters. `all()` over an empty set is
+        True, so a name that resolves to nothing would report "everything is
+        at its default" and drop the declaration — silently, and precisely
+        where the code understood the least. Not knowing must mean emit."""
+        resolved = self.resolve({})
+        self.assertTrue(self.lwp._all_at_default(resolved,
+                                                 ['title2.shadow.fg']))
+        self.assertFalse(self.lwp._all_at_default(resolved, []))
+        self.assertFalse(self.lwp._all_at_default(
+            resolved, ['title2.shadow.fg', '--not-a-property']))
+
     def test_selector_overrides_land_on_their_own_selector(self):
         # One component, several selectors: the fact ground on .fact-box, its
         # ink on .fact-content; states and contexts likewise.

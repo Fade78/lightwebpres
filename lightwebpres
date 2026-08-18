@@ -2500,8 +2500,15 @@ class Composite:
 
         Derived from the `var(--x)` names in the expression rather than
         declared beside it: a list written twice is a list that drifts, and
-        this one decides whether the declaration is emitted at all."""
-        return [name.replace('--', '', 1).replace('-', '.')
+        this one decides whether the declaration is emitted at all.
+
+        Translated through VAR_TO_KEY rather than by turning hyphens into
+        dots, because a key segment may contain a hyphen -- `nav.btn`,
+        `highlight.caption`, `elevation-hover`. A var this map does not know
+        comes back unchanged, which no registry key can match, so the caller
+        sees an unknown and keeps the declaration instead of dropping it on
+        a name it failed to read."""
+        return [VAR_TO_KEY.get(name, name)
                 for name in re.findall(r'var\(\s*(--[\w-]+)', self.value)]
 
 
@@ -3306,6 +3313,15 @@ for _c in THEME_COMPONENTS:
     for _p in _c.props:
         PROPERTY_REGISTRY[_p.key] = _p
 
+# The way back from a CSS variable name to the property key that owns it.
+# Built, not computed: `--card-elevation-hover-blur` does not become
+# `card.elevation.hover.blur` by turning hyphens into dots, because a key
+# segment may itself contain a hyphen (`nav.btn`, `highlight.caption`,
+# `elevation-hover`). Guessing gets three keys wrong out of the registry and
+# fails silently, which for a composite that reads this map means a
+# declaration that is never emitted.
+VAR_TO_KEY = {p.var: p.key for p in PROPERTY_REGISTRY.values()}
+
 
 # ----------------------------------------------------------------------------
 # Catalogue port: THEMES entries expressed as property layers.
@@ -3867,12 +3883,19 @@ def _all_at_default(resolved, keys):
     condition would silently never fire. A reference default (`call`,
     `ink`) is worse still -- it declares a name and resolves to a colour.
     Resolving the empty layer set once gives the two sides the same
-    vocabulary."""
+    vocabulary.
+
+    A key the registry does not know answers False, not "nothing to
+    compare". Skipping it would let a mistyped or untranslatable var name
+    empty the comparison, and an empty `all()` is True -- the caller would
+    drop a declaration precisely when it understood the least."""
     global _RESOLVED_DEFAULTS
     if _RESOLVED_DEFAULTS is None:
         _RESOLVED_DEFAULTS = resolve_theme_properties()
-    return all(resolved.get(k) == _RESOLVED_DEFAULTS.get(k)
-               for k in keys if k in PROPERTY_REGISTRY)
+    keys = list(keys)
+    if not keys or any(k not in PROPERTY_REGISTRY for k in keys):
+        return False
+    return all(resolved.get(k) == _RESOLVED_DEFAULTS.get(k) for k in keys)
 
 
 def emit_theme_css(resolved):
