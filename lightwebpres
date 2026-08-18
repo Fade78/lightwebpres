@@ -3245,7 +3245,25 @@ THEME_COMPONENTS = [
     # them `background` or `color` here would replace a working decision
     # with a second one. What they lacked was the depth axis, and that is
     # all the elevation block below gives them.
-    ThemeComponent('tag-menu', '.tag-menu', []),
+    # The tag menu sits BESIDE the navigation column, so its geometry IS
+    # the column's geometry and cannot be restated flat. It was: the
+    # column starts at `right: 28px` and is `nav-btn.size * 2.2` wide,
+    # and the menu was pinned at `right: 82px` — a number that clears the
+    # column only at the size floor. Measured: 10px of daylight at 20px,
+    # then an overlap of 5px at 1080p, 25px at 1440p and 65px at 2160p,
+    # growing with every screen. Reported from the field as the menu
+    # encroaching on the buttons, which is what it was doing.
+    #
+    # The radius and the padding follow for the same reason and a second
+    # one: 10px of each read mean beside a 44px circle and absurd beside
+    # a 119px one. Derived, it is the same panel at every width.
+    ThemeComponent('tag-menu', '.tag-menu', [], composite=[
+        ('right', 'calc(28px + var(--nav-btn-size) * 2.2 + 12px)'),
+        ('border-radius', 'calc(var(--nav-btn-size) * 0.55)'),
+        ('padding', 'calc(var(--nav-btn-size) * 0.5)'),
+        ('max-width', 'min(320px, calc(100vw - 28px - '
+                      'var(--nav-btn-size) * 2.2 - 40px))'),
+    ]),
     ThemeComponent('slide-counter', '.slide-counter', []),
     ThemeComponent('presenter-panel', '.presenter-panel', []),
     ThemeComponent('help-card', '.help-card', []),
@@ -5204,16 +5222,12 @@ body.fs-noselect {
 .tag-menu {
   position: fixed;
   font-size: max(16px, 2vmin);
-  right: 82px;
   bottom: 24px;
   z-index: 250;
   display: none;
   min-width: 180px;
-  max-width: min(320px, calc(100vw - 110px));
-  padding: 10px;
   border-style: solid;
   border-width: 1px;
-  border-radius: 10px;
   background: inherit;
   color: inherit;
 }
@@ -6945,31 +6959,33 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.style.cursor = 'none';
     }, 1000);
   }
-  // Require >250ms of continuous movement before the cursor reappears, so
+  // Require 250ms of continuous movement before the cursor reappears, so
   // a single jitter or a brush past the sensor does not flash it back on
-  // the wall. On the first move of a burst, arm a 250ms timer that shows
-  // the cursor; if movement is continuous the timer (set once at the
-  // burst's start) fires after 250ms. A gap longer than 100ms cancels it
-  // and starts a new burst, so a brief twitch never reveals the cursor.
+  // the wall.
+  //
+  // The reveal happens ON a move event that proves the burst has already
+  // lasted 250ms, which is the only thing that cannot be faked by a
+  // twitch. The previous version armed a timer instead, and the timer
+  // fired whether or not the movement continued: two events 16ms apart —
+  // a knock against the desk — revealed the cursor 250ms later, with
+  // nothing moving. Reported from the field as the protection not
+  // working, and it was not: it delayed the reveal rather than
+  // conditioning it. (Its first move also cancelled the timer it had just
+  // armed, since the gap since the previous burst is always over 100ms,
+  // so the burst effectively began on the second event.)
+  //
+  // A gap longer than 100ms ends a burst and starts a new one, so a
+  // stop-and-start never accumulates towards the 250.
   var fsMoveStart = 0;
   var fsLastMove = 0;
-  var fsShowTimer = null;
   function fsShowCursor() {
     var now = Date.now();
-    if (fsShowTimer === null) {
-      // First move of a burst: arm the reveal timer.
-      fsMoveStart = now;
-      fsShowTimer = setTimeout(function () {
-        document.body.style.cursor = '';
-        fsShowTimer = null;
-        fsScheduleHideCursor();
-      }, 250);
-    }
-    if (now - fsLastMove > 100) {
-      // Movement restarted: cancel the pending reveal, start fresh.
-      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
-    }
+    if (now - fsLastMove > 100) fsMoveStart = now;
     fsLastMove = now;
+    if (now - fsMoveStart >= 250) {
+      document.body.style.cursor = '';
+      fsScheduleHideCursor();
+    }
   }
   // Wake lock: prevents the screen from dimming/sleeping while the
   // speaker presents. Released when fullscreen exits.
@@ -6997,7 +7013,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
       fsMoveStart = 0;
       fsLastMove = 0;
       document.body.style.cursor = '';
@@ -7017,7 +7032,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.removeEventListener('mousemove', fsShowCursor);
       if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      if (fsShowTimer) { clearTimeout(fsShowTimer); fsShowTimer = null; }
       fsMoveStart = 0;
       fsLastMove = 0;
       document.body.style.cursor = '';
@@ -7073,6 +7087,25 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var clickTimer = null;
   var CLICK_DELAY = 250;
+  // Releasing the button after highlighting a quotation is not a click to
+  // advance, and treating it as one costs the reader both the selection
+  // and their place. A drag that selected nothing is not one either — it
+  // was still a drag, not a click.
+  //
+  // Two signals rather than one: the selection is the exact statement of
+  // "I was highlighting", and the distance covers a drag over an area
+  // with no text to take. Four pixels of slack, because a click held long
+  // enough to wobble is still a click.
+  var pressX = 0;
+  var pressY = 0;
+  document.addEventListener('mousedown', function (e) {
+    pressX = e.clientX;
+    pressY = e.clientY;
+  });
+  function endedADrag(e) {
+    if (String(window.getSelection())) return true;
+    return Math.abs(e.clientX - pressX) > 4 || Math.abs(e.clientY - pressY) > 4;
+  }
   document.addEventListener('click', function (e) {
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
@@ -7082,6 +7115,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Instant in fullscreen — no double-click to detect. Use
       // currentVisible() because `current` may be stale during a
       // smooth scroll (isScrolling blocks detectCurrent).
+      if (endedADrag(e)) return;
       goTo(currentVisible() + 1);
       return;
     }
@@ -7089,16 +7123,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // goTo), cancel the pending double-click timer and navigate
     // immediately — the speaker clicked again to skip the wait.
     if (isScrolling) {
+      if (endedADrag(e)) return;
       if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
       goTo(currentVisible() + 1);
       return;
     }
     if (clickTimer) {
       // Second click within the window: double-click = enter fullscreen.
+      // Deliberately NOT guarded: a double-click selects the word under
+      // the pointer, so by the time this fires there is always a
+      // selection, and guarding here would make the gesture unreachable
+      // with the mouse.
       clearTimeout(clickTimer);
       clickTimer = null;
       toggleFullscreen();
-    } else {
+    } else if (!endedADrag(e)) {
       clickTimer = setTimeout(function () {
         clickTimer = null;
         // Click always changes slide (never scrolls within the
@@ -7205,6 +7244,20 @@ document.addEventListener('DOMContentLoaded', function() {
 TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
   var btnHome = document.getElementById('navHome');
   var btnDown = document.getElementById('navDown');
+  var btnFullscreen = document.getElementById('navFullscreen');
+
+  // The same gesture as on an article page, and the same three lines: the
+  // index is a page of the same site, so a reader who learned F there
+  // presses it here.
+  function toggleFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+      var el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    }
+  }
+  if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
 
   function scrollByViewport(direction) {
     window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
@@ -7246,6 +7299,15 @@ TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
       e.preventDefault(); scrollByViewport(-1);
     } else if (e.key === 'Home') {
       e.preventDefault(); scrollToTop();
+    } else if (e.key === 'f' || e.key === 'F') {
+      // The index is a page of the same site, and someone who learned F
+      // on an article page presses it here. It did nothing, for no
+      // reason anyone had stated: the index simply never bound it.
+      // Reported from the field. The deck-only keys (N, H, B/W/T, L)
+      // stay out — there is no presenter panel, no help card and no tag
+      // menu on an index, so binding them would promise furniture that
+      // does not exist.
+      e.preventDefault(); toggleFullscreen();
     }
   });
 '''
@@ -7285,12 +7347,12 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 </div>
 
 <div class="nav-buttons">
-  <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}">&#8593;</div>
-  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_nav_home}}" aria-label="{{str_nav_home}}">&#127968;</div>
-  <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}">&#8595;</div>
-  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
-  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
-  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="{{str_tags_button}}" aria-label="{{str_tags_button}}">L</div>
+  <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}">{{icon_prev}}</div>
+  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_nav_home}}" aria-label="{{str_nav_home}}">{{icon_home}}</div>
+  <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}">{{icon_next}}</div>
+  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}">{{icon_share}}</div>
+  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
+  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="{{str_tags_button}}" aria-label="{{str_tags_button}}">{{icon_tags}}</div>
 </div>
 
 <div class="tag-menu" id="tagMenu" role="dialog" aria-label="{{str_tags_menu}}">
@@ -7361,9 +7423,10 @@ TEMPLATE_INDEX = '''<!DOCTYPE html>
 {{cards}}
 {{index_footer}}
 <div class="nav-buttons">
-  <div class="nav-btn" id="navUp" role="button" tabindex="0" title="{{str_index_nav_up}}" aria-label="{{str_index_nav_up}}">&#8593;</div>
-  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_index_nav_home}}" aria-label="{{str_index_nav_home}}">&#127968;</div>
-  <div class="nav-btn" id="navDown" role="button" tabindex="0" title="{{str_index_nav_down}}" aria-label="{{str_index_nav_down}}">&#8595;</div>
+  <div class="nav-btn" id="navUp" role="button" tabindex="0" title="{{str_index_nav_up}}" aria-label="{{str_index_nav_up}}">{{icon_prev}}</div>
+  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_index_nav_home}}" aria-label="{{str_index_nav_home}}">{{icon_home}}</div>
+  <div class="nav-btn" id="navDown" role="button" tabindex="0" title="{{str_index_nav_down}}" aria-label="{{str_index_nav_down}}">{{icon_next}}</div>
+  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
 </div>
 
 <script>
@@ -7373,6 +7436,76 @@ TEMPLATE_INDEX = '''<!DOCTYPE html>
 {{index_extra}}
 </body>
 </html>'''
+
+
+# --- The navigation column's icons ---
+#
+# One idiom for the whole column, and it took four to notice. The buttons
+# were drawn as: two text glyphs (&#8593; / &#8595;), a colour emoji for
+# home, two SVGs pinned at width="19", and the Latin letter L for the tag
+# menu. Nothing there is a set. The text glyphs and the emoji followed
+# `nav-btn.size`; the SVGs did not, so on a wide screen the button grew
+# and the share icon stayed 19 pixels inside it. And the arrows read thin
+# beside a 2-unit stroke because a text arrow at 20px has a stem around
+# 1.3px — reported from the field as "the arrows have got thinner", which
+# was true relatively even though the glyphs never changed.
+#
+# So: one grid (24 units), one stroke, `currentColor` so `nav-btn.fg`
+# paints all six, and `1em` so every icon follows `nav-btn.size` exactly
+# as the circle around it already does. No new property — the knob that
+# sized the column still sizes it.
+#
+# The emoji goes with them, and that is the one visible loss: a house
+# nobody can theme was the only element of the page whose colour no
+# theme could reach. With it goes `nav-btn-home`'s size compensation,
+# which existed solely because the emoji read larger than the arrows at
+# the same size. A shape drawn on the same grid needs no compensation;
+# if it reads heavy, the path is what to change, not a global ratio.
+NAV_ICON_PATHS = {
+    # Chevron over a stem: the direction is in the head, and the stem is
+    # what keeps it from reading as a "collapse" caret at small sizes.
+    'prev': '<path d="M12 20V5"/><path d="M5 12l7-7 7 7"/>',
+    'next': '<path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/>',
+    # A roof and a body. No door, no window: at 20px they close up.
+    'home': '<path d="M3 11L12 3l9 8"/>'
+            '<path d="M5.5 9.5V20h13V9.5"/>',
+    'share': '<path d="M12 15V4"/><path d="M8 8l4-4 4 4"/>'
+             '<path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',
+    'fullscreen': '<path d="M8 3H5a2 2 0 0 0-2 2v3"/>'
+                  '<path d="M21 8V5a2 2 0 0 0-2-2h-3"/>'
+                  '<path d="M3 16v3a2 2 0 0 0 2 2h3"/>'
+                  '<path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+    # A luggage label with its eyelet — the metaphor the format already
+    # names, since what the menu filters on is `tags:`. A funnel would
+    # say the action rather than the thing, and reads as an application
+    # control rather than an editorial one.
+    'tags': '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5'
+            'a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/>'
+            '<path d="M7.5 7.5h.01"/>',
+}
+
+
+def nav_icon(name):
+    """One button's icon, at the size of the button that holds it."""
+    return (f'<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" '
+            f'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+            f'stroke-linejoin="round" aria-hidden="true">'
+            f'{NAV_ICON_PATHS[name]}</svg>')
+
+
+# Substituted here rather than at build time: the icons are part of the
+# template, not of the page's content, and `apply_strings` escapes what it
+# fills in — correctly, since it fills in translated text.
+for _name in NAV_ICON_PATHS:
+    TEMPLATE_PAGE = TEMPLATE_PAGE.replace('{{icon_' + _name + '}}',
+                                          nav_icon(_name))
+    TEMPLATE_INDEX = TEMPLATE_INDEX.replace('{{icon_' + _name + '}}',
+                                            nav_icon(_name))
+
+_left = [n for n in ('{{icon_', )
+         if n in TEMPLATE_PAGE or n in TEMPLATE_INDEX]
+if _left:  # pragma: no cover - a typo would ship a literal placeholder
+    raise PropertyError('a nav icon placeholder went unfilled')
 
 # --- Template: series-nav (fragment) ---
 TEMPLATE_SERIES_NAV_ITEM_LINK = '''    <a href="{file}" class="series-item series-link">

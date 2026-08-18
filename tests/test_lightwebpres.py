@@ -8039,9 +8039,60 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     body = b'\n'.join(line for line in body.split(b'\n')
                                       if line.strip())
                     return match.group(1) + body + match.group(3)
-                return re.sub(rb'(<style\b[^>]*>)(.*?)(</style>)',
+
+                def strip_script_comments(match):
+                    # The same rule for the script, and it was missing for
+                    # no reason but the order the two blocks were written
+                    # in. A comment cannot change what a page renders, in
+                    # JavaScript exactly as in CSS, and the shipped script
+                    # carries long ones — rewriting the paragraph above a
+                    # function read here as thirty-five changed lines and
+                    # buried the four that were real.
+                    #
+                    # Whole-line comments only. A `//` mid-line can be
+                    # inside a string (`'https://…'`), and this test is
+                    # not the place to write a JavaScript lexer.
+                    body = b'\n'.join(
+                        line for line in match.group(2).split(b'\n')
+                        if line.strip() and not line.strip().startswith(b'//'))
+                    return match.group(1) + body + match.group(3)
+                page = re.sub(rb'(<style\b[^>]*>)(.*?)(</style>)',
                               strip_style_comments, page,
                               flags=re.IGNORECASE | re.DOTALL)
+                page = re.sub(rb'(<script\b[^>]*>)(.*?)(</script>)',
+                              strip_script_comments, page,
+                              flags=re.IGNORECASE | re.DOTALL)
+                # And then the script itself, replaced by a marker. Not a
+                # blind spot: the page's script is the tool's template
+                # verbatim, and `test_the_page_carries_exactly_the_script_
+                # the_tool_ships` compares the two directly — a stronger
+                # statement than "it is what it was last release", since
+                # it holds for every build rather than for the diff.
+                #
+                # What forced it: the declaration tables name whole lines,
+                # and a rewritten function is mostly braces. Declaring the
+                # cursor fix would have meant declaring `}` (346
+                # occurrences in the page), `});` (28) and `} else {`
+                # (13), and a declared line strips EVERY occurrence of
+                # itself — so covering four real lines would have blinded
+                # this test on three hundred. A guard you have to disable
+                # to change anything is not a guard.
+                page = re.sub(rb'(<script\b[^>]*>)(.*?)(</script>)',
+                              rb'\1[script]\3', page,
+                              flags=re.IGNORECASE | re.DOTALL)
+                # A navigation button is reduced to its identity. What it
+                # contains is an icon and what it carries is a TRANSLATED
+                # title, and comparing the two together as bytes makes a
+                # language pack's wording part of the render check while
+                # burying the icon inside a 400-character line. The icons
+                # have a table test of their own -- the same division of
+                # labour the elevation selectors needed, and for the same
+                # reason: where this guard is the wrong instrument for a
+                # statement, the answer is a test that can make it, not a
+                # declaration nobody can read.
+                return re.sub(
+                    rb'<div class="nav-btn[^>]*?id="(nav\w+)"[^>]*>.*?</div>',
+                    rb'<div class="nav-btn" id="\1"></div>', page)
 
             # Deliberate drift since the tag, declared line for line, and
             # empty at the start of a release cycle -- which is where it
@@ -8165,6 +8216,13 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 b'box-shadow: 0 8px 32px rgba(0,0,0,0.18);',
                 b'box-shadow: 0 8px 32px rgba(0,0,0,0.25);',
                 b'box-shadow: 0 4px 16px rgba(0,0,0,0.10);',
+                # The tag menu's flat geometry, which sized itself against
+                # a navigation column that grows: the numbers cleared it
+                # only at the size floor.
+                b'right: 82px;',
+                b'max-width: min(320px, calc(100vw - 110px));',
+                b'padding: 10px;',
+                b'border-radius: 10px;',
             }
             # Lines the NEW page has and the old one did not: the same
             # thirteen elevations, now read off the registry, on the rule
@@ -8179,6 +8237,30 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                            'slide-counter-elevation', 'tag-menu-elevation',
                            'share-elevation', 'presenter-panel-elevation',
                            'help-card-elevation', 'share-qr-elevation')}
+            # The tag menu's geometry, now derived from the column it sits
+            # beside instead of restated flat.
+            arrived |= {
+                b'right: calc(28px + var(--nav-btn-size) * 2.2 + 12px);',
+                b'border-radius: calc(var(--nav-btn-size) * 0.55);',
+                b'padding: calc(var(--nav-btn-size) * 0.5);',
+                b'max-width: min(320px, calc(100vw - 28px - '
+                b'var(--nav-btn-size) * 2.2 - 40px));',
+            }
+
+            # Arrivals that belong to ONE page. The tables above are
+            # global, and a global declaration cannot say "the index
+            # gained a button the article pages always had" -- named
+            # globally, that line is refused as stale, correctly, because
+            # the released version does carry it, on every article page.
+            # Scoping by file is the smallest thing that lets the guard
+            # state what actually happened.
+            arrived_in = {
+                # Reduced to its identity by the normalisation above,
+                # which is why this reads as a bare element: what is
+                # inside it is another test's business.
+                'index.html': {b'<div class="nav-btn" id="navFullscreen"></div>'},
+            }
+            gone_in = {}
 
             def strip_added(page):
                 return b'\n'.join(
@@ -8219,17 +8301,19 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
             seen = set()
             for name in outputs[0]:
+                gone_here = gone | gone_in.get(name, set())
+                arrived_here = arrived | arrived_in.get(name, set())
                 before_lines = strip_declared(
-                    without_css_comments(outputs[0][name]), gone).split(b'\n')
+                    without_css_comments(outputs[0][name]), gone_here).split(b'\n')
                 after_lines = strip_declared(
                     strip_added(without_css_comments(outputs[1][name])),
-                    arrived).split(b'\n')
+                    arrived_here).split(b'\n')
                 if len(before_lines) == len(after_lines):
                     seen.update((a.strip(), b.strip())
                                 for a, b in zip(before_lines, after_lines)
                                 if a != b)
-                self.assertEqual(normalise(outputs[0][name], gone),
-                                 normalise(outputs[1][name], arrived),
+                self.assertEqual(normalise(outputs[0][name], gone_here),
+                                 normalise(outputs[1][name], arrived_here),
                                  f'{name} is not the page it was')
             for name in added:
                 self.assertTrue(
@@ -8259,6 +8343,75 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             self.assertEqual(seen, set(drift.items()),
                              'the drift since v0.38.0 is not the drift this '
                              'test declares')
+
+    def test_the_page_carries_exactly_the_script_the_tool_ships(self):
+        """What the render guard hands off when it sets the script aside.
+        Stronger than the line diff it replaces: that one asked whether
+        the script is what it was at the last release, this one asks
+        whether it is what the tool means to ship, which holds for every
+        build and not only across a diff."""
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            self.assertEqual(run('build', str(root)).returncode, 0)
+            page = (root / 'public' / 'first.html').read_text(encoding='utf-8')
+            strings = lwp.load_language(root / 'language', 'fr')['strings']
+            expected = lwp.apply_strings(lwp.TEMPLATE_NAV_JS, strings)
+        # EQUALS, not contains. Containment was the first form of this
+        # test and it did not bite: an extra statement appended after
+        # `{{js_nav}}` left the template a substring of the page, so the
+        # assertion passed while the page shipped a line nobody wrote.
+        # With the render guard setting the whole script aside, that line
+        # would have had nothing else looking at it.
+        blocks = re.findall(r'<script\b[^>]*>(.*?)</script>', page, re.S)
+        self.assertEqual(len(blocks), 1, f'{len(blocks)} script blocks')
+        self.assertEqual(blocks[0].strip(), expected.strip(),
+                         'the page is not carrying exactly the tool\'s nav.js')
+
+    # Every navigation button and the icon it must carry, by the first
+    # path of its shape. Written down rather than read off NAV_ICON_PATHS:
+    # deriving it would make this table agree with any icon at all, and
+    # the whole point is that a button cannot quietly change what it
+    # shows.
+    NAV_ICON_FIRST_PATH = {
+        'navPrev': 'M12 20V5',
+        'navNext': 'M12 4v15',
+        'navUp': 'M12 20V5',
+        'navDown': 'M12 4v15',
+        'navHome': 'M3 11L12 3l9 8',
+        'navShare': 'M12 15V4',
+        'navFullscreen': 'M8 3H5a2 2 0 0 0-2 2v3',
+        'navTags': 'M20.6 13.4l-7.2 7.2',
+    }
+
+    def test_every_navigation_button_carries_its_own_icon(self):
+        """One idiom for the whole column. It took four to notice: two
+        text glyphs, a colour emoji, two SVGs pinned at 19px, and the
+        letter L. Nothing there was a set, the emoji was the one element
+        of the page no theme could colour, and the pinned SVGs did not
+        follow the button while the glyphs did.
+
+        Both directions, on both templates: every button holds the icon
+        named here, and no button holds text."""
+        lwp = load_lightwebpres_module()
+        for template in (lwp.TEMPLATE_PAGE, lwp.TEMPLATE_INDEX):
+            for match in re.finditer(
+                    r'<div class="nav-btn[^>]*?id="(nav\w+)"[^>]*>(.*?)</div>',
+                    template):
+                button, body = match.group(1), match.group(2)
+                self.assertIn(button, self.NAV_ICON_FIRST_PATH, button)
+                self.assertTrue(body.startswith('<svg '),
+                                f'{button} does not hold an icon: {body[:40]}')
+                self.assertIn(f'd="{self.NAV_ICON_FIRST_PATH[button]}',
+                              body, f'{button} holds the wrong icon')
+                self.assertIn('width="1em"', body,
+                              f'{button}: the icon does not follow the button')
+                self.assertIn('stroke="currentColor"', body,
+                              f'{button}: the icon is not the theme\'s ink')
+                self.assertNotRegex(body, r'>[^<]*[A-Za-z0-9]',
+                                    f'{button} still carries text')
 
     def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
         """The narrower statement the sweep cannot make: measuring a
