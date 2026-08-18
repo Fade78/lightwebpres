@@ -65,6 +65,23 @@ their own series, in the third person. It has been rewritten. If a real user
 ever appears, that will be worth recording precisely, and this note is
 what will make the difference visible.
 
+**What 1.0 is, decided 2026-08-18.** The project is still in R&D; 1.0 will
+be called **when everything has stabilised**, and not on a date or a
+checklist. That is a deliberate absence, not an oversight, and it is
+written here because the question kept being asked implicitly: several
+entries are deferred "until the external theme format exists" or "until a
+derivation pass is built" (B8, B10, B11), and without this line it is
+impossible to tell whether they are late.
+
+They are not late. Nothing here is on a clock. Two consequences worth
+stating so nobody has to rediscover them:
+
+- `delete-before-1.0/` and its 44 files stay where they are. The name
+  promises a deletion, not a deadline.
+- An entry may be decided whenever the decision is ripe, and implemented
+  whenever it is worth implementing. Being pre-1.0 is what makes that
+  ordering free — see the note above on what it does *not* excuse.
+
 ---
 
 ## B1 — Mid-paragraph image with a title — FIXED in v0.12.0
@@ -649,7 +666,7 @@ simulation exists and nothing measures the palettes. Assumed gap,
 recorded at the owner's level: a check would belong to theme construction
 (the catalogue side), never to the renderer.
 
-## B12 — Box drop-shadow (elevation) axes — NOTED
+## B12 — Box drop-shadow (elevation) axes — DECIDED 2026-08-18: depth belongs to the theme
 
 Text shadows are properties (`shadow.fg/blur/dy`); the box shadows that
 paint depth — cards, nav buttons, the share modal, series links — stay
@@ -659,6 +676,11 @@ completeness rule this is a decision currently confiscated from the
 theme; it was left out of the property inventory knowingly, as depth
 rather than content. Deciding it means the same three-axis treatment as
 text shadows, per elevation-bearing component.
+
+**DECIDED 2026-08-18: depth belongs to the theme.** Same ruling as B20 and
+the same lot — the completeness rule applies, and the box shadows come up
+into the registry per elevation-bearing component. Nothing about depth
+makes it less a matter of appearance than a colour.
 
 ## B13 — `--content-max` is the one themeless variable — DONE
 
@@ -1039,7 +1061,7 @@ Ce qui reste volontairement ouvert :
 « e2e navigateur en attente de l'outillage » de l'ancienne section C3 est
 historique et ne s'applique plus.
 
-## B19 — `audit --strict` is blind to every warning the build emits — OPEN
+## B19 — `audit --strict` is blind to every warning the build emits — DECIDED 2026-08-18: `--strict` becomes the complete gate
 
 Recorded here on 2026-08-18 because it was the one open point left in
 `delete-before-1.0/docs/PLAN-CORRECTIONS-2026-08-17.md`, a design document whose lots are
@@ -1064,10 +1086,25 @@ raise what the build would raise, without building — or the documentation
 stops presenting it as one and names what it covers. Leaving it half-way
 is what makes it a trap: it looks like a gate.
 
+**DECIDED 2026-08-18: the complete gate.** The owner's reasoning is worth
+keeping because it settles the cost objection that had blocked this:
+*a build is very fast on a human scale, while a missed audit can have
+graver consequences — so the cost of auditing is not a problem.* This is
+the same decision as B24 seen from the exit code, and the two close
+together.
+
+Also recorded, since this entry's own number had drifted: it claims ten
+`log('warn', …)` sites "in the build path". Measured 2026-08-18 by AST,
+there are **ten in the executable altogether**, spread over nine
+functions, and several are nowhere near a build — `_warn_legacy`,
+`cmd_resolve`, `cmd_series_info`, `cmd_refresh_templates` (twice).
+Establishing the real partition is the first step of the lot, not a
+prerequisite to the decision.
+
 Sharpened by the v0.36.0 work, which added a warning class to `audit`
 without asking what `audit` does not see.
 
-## B20 — Only three components can carry a halo, and the worst-served one is a slide heading — DECISION PENDING
+## B20 — Only three components can carry a halo, and the worst-served one is a slide heading — DECIDED 2026-08-18: the halo belongs to the theme
 
 From `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
 reason as B19: the document is delivered, this decision is not.
@@ -1098,7 +1135,31 @@ Recorded alongside it, so it is a choice and not a discovery: `page.shadow`
 being inherited, it also reaches the chrome — progress dots, counter and
 presenter panel carry the theme's shadow at 2.1 px / 16 %.
 
-## B21 — Pinning dark colours does not make the furniture dark, and nothing says so — OPEN
+**DECIDED 2026-08-18: the halo belongs to the theme, which may decide all
+of it.** Anchor points go into the registry, and the three axes extend to
+every textual component rather than the three that have them.
+
+What already works, and is worth knowing before designing the extension:
+`shadow.fg` is **independent of the character's own colour**, so the two
+effects the owner named are already expressible on the three components
+that carry axes — a coloured glyph under a white halo (a neon tube behind
+a coloured mask), or a halo tinted toward the ground to simulate bleed.
+Measured 2026-08-18: nine axes exist, `fg`/`blur`/`dy` on `page`,
+`title1` and `highlight`, all defaulting to `transparent`/`0`/`0`.
+
+So the gap is not expressiveness, it is **coverage**: `title2` — the slide
+heading, the worst-served element in the table above — the kickers, the
+sources and the fact-box body have no axis at all.
+
+**`dx` is added, decided the same day.** There was `dy` and no `dx`, so a
+halo could only be offset vertically — a constraint nobody chose, arrived
+at by only ever needing the vertical case. Every component that gets the
+axes gets four of them: `fg`, `blur`, `dx`, `dy`. Note for the lot: `dx`
+is the one axis of the four with no reasonable one-sided default, since a
+shadow offset only to the right is as arbitrary as one offset only down —
+its default is `0`, like `dy`, and the neutral halo stays the centred one.
+
+## B21 — Pinning dark colours does not make the furniture dark, and nothing says so — DECIDED 2026-08-18: it warns
 
 Same origin as B20, and the most consequential of the three.
 `DARK_FURNITURE_PROPS` keys off the theme definition's `dark_background`
@@ -1118,10 +1179,52 @@ discovers it by looking — or does not.
 **This is the same class as the meta-key silence closed in v0.36.0**: a
 configuration that cannot work, accepted without a word. The difference
 is that here the cause is structural — the author is asking for something
-the cascade cannot express — so the fix is a choice between three:
-say so (a warning naming the flag), make it reachable (promote
-`dark_background` to a property, which the §9 engine could carry), or
-document it as a limit in the GUIDE. It is currently none of the three.
+the cascade cannot express.
+
+**DECIDED 2026-08-18: it warns** — and the ruling is wider than this
+entry, because the question turned out to be wider.
+
+**The boundary, measured 2026-08-18** on a real series, six settings
+pinned one at a time. What the tool refuses, fatally, is *malformed*
+input: a property that does not exist, a reference cycle, an invalid
+colour, an unknown unit. What it accepts in silence — exit 0 from `build`,
+from `audit`, **and from `audit --strict`** — is *well-formed and
+meaningless*:
+
+| pinned in `settings.conf` | build | audit | audit --strict |
+|---|---|---|---|
+| `page.fg` equal to `page.bg` — contrast **1.00:1** | 0 | 0 | 0 |
+| `nav-dot.bg-active: page.bg` — the dot disappears | 0 | 0 | 0 |
+| `fact.strong.fg` equal to `fact.strong.bg` | 0 | 0 | 0 |
+| `note.size: 3px`, under the 12 px floor | 0 | 0 | 0 |
+| a dark palette pinned onto a light theme (this entry) | 0 | 0 | 0 |
+
+So the engine **validates form and never meaning**. That is the general
+statement, and `dark_background` is one instance of it.
+
+On this entry's own case, measured the same day: **27 furniture properties**
+key off the flag, and pinning does not move one of them. On `ledger` with
+a dark palette pinned, against `dracula`:
+
+```
+slide.rule-fg   ledger=#0000001A   ledger+dark=#0000001A   dracula=#FFFFFF24
+quote.rule-fg   ledger=#00000029   ledger+dark=#00000029   dracula=#FFFFFF3D
+```
+
+Black rules at 10% opacity over a near-black page — identical to the light
+theme, byte for byte.
+
+**What "it warns" means in practice.** Judging this requires the resolved
+values, which is exactly what B24 decided `audit` will hold. So this is not
+a separate mechanism: it is the first thing the raised `audit` says.
+`--strict` then turns it into a failure for anyone who wants the gate
+(B19), which reconciles it with `specifications.md` §9.5.6 — that section
+calls an invisible progress dot a broken control rather than a bold
+palette, and warning-plus-`--strict` gives it a refusal without making the
+default refuse a deliberate choice.
+
+Promoting `dark_background` to a registry property stays possible and is
+**not** decided here; warning removes the silence, which was the defect.
 
 ## B22 — `--version` after a command is a silent no-op — FIXED in v0.37.0
 
@@ -1192,7 +1295,7 @@ survives its warning. Both would ship a dangling reference.
 Worth recording: the full suite passed with the one-line fix reverted. The
 defect had no guard at all, which is why two were written.
 
-## B24 — `audit` inspects a poorer representation than the one that builds the page — DECISION PENDING
+## B24 — `audit` inspects a poorer representation than the one that builds the page — DECIDED 2026-08-18: audit renders, and judges
 
 Filed first as a small defect: a footnote label outside `\w+` reaches the
 reader as literal text, and `audit` reports nothing. Measured: `[^a-b]` in
@@ -1239,11 +1342,23 @@ representation poorer than the one that makes the page* — stops being
 available. It is the same class as B21: not a missing check, a place
 where a check cannot see.
 
-**Until it is decided**, the narrow fix stands on its own and does not
-prejudge it: a call or a body matching `\[\^` but not `\[\^\w+\]` is a
-warning naming the article and the label. It can be written inside
-`audit`'s current pass, since detecting the *shape* of a broken label
-needs no render — only resolving it does.
+**DECIDED 2026-08-18: `audit` renders, and goes one level deeper than
+`verify`.** The cost objection is answered above (B19): a build is fast on
+a human scale, a missed audit is not cheap. The owner added the part that
+makes this more than a plumbing change — *see whether the depth should be
+increased.* It should.
+
+`verify` renders and **compares**. The level above is to render and
+**judge**: measure the contrast of the pairs actually resolved from the
+author's `settings.conf`, check the size floors, check the 3:1 navigation
+floor of `specifications.md` §9.5.6. None of the three exists on the
+author's side today, and `measure_contrast` — which already does exactly
+this work for `theme show` on built-in themes — has simply never been
+pointed at a series. See B21 for what that judging must say.
+
+The narrow footnote-label fix folds into the lot rather than preceding it:
+a call or a body matching `\[\^` but not `\[\^\w+\]` is a warning naming
+the article and the label.
 
 ## B25 — Two rules the project states and does not follow — HALF FIXED in v0.37.0
 
