@@ -2466,21 +2466,64 @@ class ThemeProp:
         return '--' + self.key.replace('.', '-')
 
 
+class Composite:
+    """One declaration built from several properties at once.
+
+    `selector` overrides the component's own, exactly as ThemeProp.selector
+    already does for a simple property, and for the same stated reason:
+    "one selector per component is a fiction the real sheet does not
+    honour". A halo belongs on the element that paints the glyphs, not on
+    the box around them; an elevation on hover belongs on `:hover`.
+
+    `omit_when_default` drops the declaration entirely when every property
+    it reads is still at its registry default. That exists for ONE
+    property, and it is not an optimisation: `text-shadow` is INHERITED.
+    Emitting `text-shadow: 0 0 0 transparent` on a component that asked for
+    nothing does not paint nothing -- it BLOCKS the halo the page set,
+    which is how nine delivered themes would have lost their atmosphere on
+    every component this lot newly covers. A component that declares
+    nothing must go on inheriting, and the only way to say that in CSS is
+    to say nothing at all. `box-shadow` is not inherited, so elevation
+    leaves this off and always emits.
+    """
+
+    __slots__ = ('cssprop', 'value', 'selector', 'omit_when_default')
+
+    def __init__(self, cssprop, value, selector=None, omit_when_default=False):
+        self.cssprop = cssprop
+        self.value = value
+        self.selector = selector
+        self.omit_when_default = omit_when_default
+
+    def reads(self):
+        """The property keys this declaration's value expression consumes.
+
+        Derived from the `var(--x)` names in the expression rather than
+        declared beside it: a list written twice is a list that drifts, and
+        this one decides whether the declaration is emitted at all."""
+        return [name.replace('--', '', 1).replace('-', '.')
+                for name in re.findall(r'var\(\s*(--[\w-]+)', self.value)]
+
+
 class ThemeComponent:
     def __init__(self, key, selector, props, composite=None):
         self.key = key
         self.selector = selector
         self.props = props
         # Declarations built from several properties at once — a gradient, an
-        # inset box-shadow bar. List of (css_property, value_expression).
-        self.composite = composite or []
+        # inset box-shadow bar, a halo. Composite instances; a plain
+        # (css_property, value) pair is still accepted and means "on this
+        # component's own selector, always emitted".
+        self.composite = [c if isinstance(c, Composite) else Composite(*c)
+                          for c in (composite or [])]
 
 
 def _gradient_decl(v_angle, v_from, v_to):
     """A flat fill is a gradient whose two stops are equal — one mechanism,
     no branch, and a flat theme stays flat without saying anything."""
-    return ('background',
-            f'linear-gradient(var({v_angle}), var({v_from}), var({v_to}))')
+    return Composite(
+        'background',
+        f'linear-gradient(var({v_angle}), var({v_from}), var({v_to}))')
 
 
 THEME_SHARED_PROPS = [
@@ -3750,8 +3793,13 @@ def emit_theme_css(resolved):
         # an inner element, a context, or a state — the base selector first,
         # overrides after it in declaration order.
         groups = {}
-        for cssprop, value in c.composite:
-            groups.setdefault(c.selector, []).append(f'  {cssprop}: {value};')
+        for comp in c.composite:
+            if comp.omit_when_default and all(
+                    resolved.get(k) == PROPERTY_REGISTRY[k].default
+                    for k in comp.reads() if k in PROPERTY_REGISTRY):
+                continue
+            groups.setdefault(comp.selector or c.selector, []).append(
+                f'  {comp.cssprop}: {comp.value};')
         for p in c.props:
             if p.css:
                 sel = p.selector or c.selector

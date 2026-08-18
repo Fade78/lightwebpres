@@ -2743,7 +2743,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             # subject and it is unchanged.
             self.assertEqual(result.stderr.count('escaping the article'), 3,
                              result.stderr)
-            # Since v0.37.0 the build then fails rather than shipping a page
+            # Since v0.38.0 the build then fails rather than shipping a page
             # whose three refused images are still relative `src` while
             # `public/img/` is deliberately absent (BACKLOG B23). Exiting 0
             # there meant publishing a page with three dangling references
@@ -7922,7 +7922,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.37.0),
+        by the executable as it stood at the last tagged release (v0.38.0),
         and by this one, compared byte for byte after CSS comments are
         removed from ``<style>`` blocks. Comments are not rendering, while
         every other byte remains covered. --build-stamp is off by default,
@@ -7937,10 +7937,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.37.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.38.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.37.0 tag to read the previous version from')
+            self.skipTest('no v0.38.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -7973,7 +7973,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
             # Deliberate drift since the tag, declared line for line, and
             # empty at the start of a release cycle -- which is where it
-            # is now, freshly repointed at v0.37.0.
+            # is now, freshly repointed at v0.38.0.
             #
             # It exists because the docstring's instruction has a gap.
             # Repointing at the newest tag is the acknowledgement that a
@@ -8006,37 +8006,91 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # Entries are variable-name prefixes, e.g. b'--color-nav'.
             added = set()
 
+            # Deliberate RULE-level drift, and the third thing the two
+            # tables above cannot say. `drift` substitutes a line for a
+            # line and `added` inserts a `--var:` line; neither can express
+            # a DECLARATION that leaves one part of the sheet and reappears
+            # in another. That happens when a value stops being a literal
+            # in the skeleton and becomes a property the engine emits: the
+            # old page loses `box-shadow: 0 1px 8px rgba(0,0,0,0.06);` and
+            # the new one gains `box-shadow: 0 var(--card-elevation-dy)
+            # ...;` somewhere else entirely.
+            #
+            # The mechanical escape -- putting `box-shadow` in `added` --
+            # is refused on purpose: strip_added() runs over BOTH pages, so
+            # it would blind this test on exactly the lines the change
+            # touches. These two name the whole stripped line instead, one
+            # by one, on the side it belongs to. Everything else is still
+            # compared byte for byte, and a second, unannounced change
+            # fails on the last assertion even once the first is covered.
+            # One caution, learned by mutating this test rather than by
+            # reasoning about it: a declared line strips EVERY occurrence
+            # of itself. `box-shadow: 0 1px 8px rgba(0,0,0,0.06);` sits on
+            # both .fact-box and .article-card, so declaring it covers both
+            # and a change to only one of them fails here — correctly, but
+            # for a reason that reads as a false alarm until you count the
+            # occurrences. Declare a line that is unique, or accept that
+            # you are declaring all of its twins with it.
+            gone = set()      # lines the OLD page has and the new one must not
+            arrived = set()   # lines the NEW page has and the old one did not
+
             def strip_added(page):
                 return b'\n'.join(
                     line for line in page.split(b'\n')
                     if not any(line.strip().startswith(name + b':')
                                for name in added))
 
-            def normalise(page):
+            def strip_declared(page, declared):
+                return b'\n'.join(line for line in page.split(b'\n')
+                                  if line.strip() not in declared)
+
+            def normalise(page, declared):
                 page = without_css_comments(page)
                 for was, now in drift.items():
                     page = page.replace(was, now)
-                return strip_added(page)
+                return strip_declared(strip_added(page), declared)
 
             seen = set()
             for name in outputs[0]:
-                before_lines = without_css_comments(outputs[0][name]).split(b'\n')
-                after_lines = strip_added(
-                    without_css_comments(outputs[1][name])).split(b'\n')
+                before_lines = strip_declared(
+                    without_css_comments(outputs[0][name]), gone).split(b'\n')
+                after_lines = strip_declared(
+                    strip_added(without_css_comments(outputs[1][name])),
+                    arrived).split(b'\n')
                 if len(before_lines) == len(after_lines):
                     seen.update((a.strip(), b.strip())
                                 for a, b in zip(before_lines, after_lines)
                                 if a != b)
-                self.assertEqual(normalise(outputs[0][name]),
-                                 normalise(outputs[1][name]),
+                self.assertEqual(normalise(outputs[0][name], gone),
+                                 normalise(outputs[1][name], arrived),
                                  f'{name} is not the page it was')
             for name in added:
                 self.assertTrue(
                     any(name + b':' in page for page in outputs[1].values()),
                     f'{name.decode()} is declared as added and is in none of '
                     f'the built files: the declaration is stale')
+            # Both directions, so a declaration cannot outlive what it
+            # excused: a line named `gone` that the new page still carries
+            # was not removed, and one named `arrived` that it does not
+            # carry was never added.
+            after_all = b'\n'.join(outputs[1].values())
+            before_all = b'\n'.join(outputs[0].values())
+            for line in gone:
+                self.assertNotIn(line, after_all,
+                                 f'{line.decode()!r} is declared gone and the '
+                                 f'built page still carries it')
+                self.assertIn(line, before_all,
+                              f'{line.decode()!r} is declared gone and the '
+                              f'released version never had it')
+            for line in arrived:
+                self.assertIn(line, after_all,
+                              f'{line.decode()!r} is declared arrived and is '
+                              f'in none of the built files: it is stale')
+                self.assertNotIn(line, before_all,
+                                 f'{line.decode()!r} is declared arrived and '
+                                 f'the released version already had it')
             self.assertEqual(seen, set(drift.items()),
-                             'the drift since v0.37.0 is not the drift this '
+                             'the drift since v0.38.0 is not the drift this '
                              'test declares')
 
     def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
@@ -11077,9 +11131,9 @@ class ThemeEngineStaged(unittest.TestCase):
         # equal specificity the stale literal silently wins.
         driven = set()
         for comp in self.lwp.THEME_COMPONENTS:
-            for cssprop, _value in comp.composite:
-                for sel in comp.selector.split(','):
-                    driven.add((sel.strip(), cssprop))
+            for c in comp.composite:
+                for sel in (c.selector or comp.selector).split(','):
+                    driven.add((sel.strip(), c.cssprop))
             for prop in comp.props:
                 if prop.css:
                     for sel in (prop.selector or comp.selector).split(','):
