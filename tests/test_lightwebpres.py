@@ -4880,6 +4880,200 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
                           'a refused nesting left the sink installed')
 
 
+class AuditJudgesTheResolvedSheet(unittest.TestCase):
+    """The engine validated FORM and never MEANING. An unknown property, a
+    reference cycle, an invalid colour, an unknown unit: all fatal. Text
+    the exact colour of its ground, a progress dot painted its own rail, a
+    note at 3px: all exit 0, from build, from audit, and from
+    `audit --strict` (BACKLOG B21, and the D3 decision — it warns).
+
+    The thresholds are derived from the delivered catalogue, not chosen,
+    and that is what these tests are really pinning. B5 and B18 decided a
+    theme is NOT required to reach AA, so warning on "below AA" would
+    harass 57 shipped themes and contradict a written decision. A
+    threshold that makes any delivered theme warn is a wrong threshold."""
+
+    def _series(self, tmp, theme=None):
+        root = str(Path(tmp) / 's')
+        args = ['init', root] + (['--theme', theme] if theme else [])
+        self.assertEqual(run(*args).returncode, 0)
+        self.assertEqual(run('demo', root).returncode, 0)
+        return root
+
+    def _pin(self, root, text):
+        conf = Path(root) / 'templates' / 'settings.conf'
+        conf.write_text(conf.read_text(encoding='utf-8') + '\n' + text + '\n',
+                        encoding='utf-8')
+
+    def test_no_delivered_theme_triggers_the_judgement(self):
+        """The load-bearing test of the whole pass, and the one that would
+        catch a threshold set too high. Every shipped theme, plus the
+        default sheet an author gets from a bare `init` — which is the one
+        the first version of this pass got wrong, because it was only ever
+        tried with --theme."""
+        lwp = load_lightwebpres_module()
+        slugs = sorted(lwp.THEMES)
+        self.assertGreater(len(slugs), 50,
+                           'the catalogue shrank; this sweep is not '
+                           'measuring what it claims to')
+        noisy = []
+        with tempfile.TemporaryDirectory() as tmp:
+            for slug in slugs + [None]:
+                root = Path(tmp) / (slug or '_default')
+                args = ['init', str(root)] + (['--theme', slug] if slug else [])
+                self.assertEqual(run(*args).returncode, 0)
+                self.assertEqual(run('demo', str(root)).returncode, 0)
+                result = run('audit', str(root))
+                if '[WARNING]' in result.stderr or result.stdout.count('warning(s)'):
+                    noisy.append((slug or '(default sheet)',
+                                  result.stdout + result.stderr))
+        self.assertEqual([n for n, _ in noisy], [],
+                         'a delivered theme warns, so the threshold is wrong '
+                         'and the report is noise:\n'
+                         + '\n'.join(o for _, o in noisy[:2]))
+
+    def test_text_the_colour_of_its_ground_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'nord')
+            self._pin(root, 'page.fg: page.bg')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            self.assertIn('page.fg', report)
+            self.assertIn('1.00:1', report)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+            # And the build still succeeds: audit warns, it does not forbid.
+            self.assertEqual(run('build', root).returncode, 0)
+
+    def test_an_invisible_progress_dot_is_named_as_a_broken_control(self):
+        """§9.5.6 is explicit that this one is not a matter of taste: a
+        control nobody can see is broken, not bold. It is the only hard
+        floor the project states, and it was checked on the delivered
+        themes by a test and never on what an author writes."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'nord')
+            self._pin(root, 'nav-dot.bg-active: #C6C9CD')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            self.assertIn('nav-dot.bg-active', report)
+            self.assertIn('3:1', report)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+
+    def test_a_size_under_the_readability_floor_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'nord')
+            self._pin(root, 'note.size: 3px')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            self.assertIn('note.size', report)
+            self.assertIn('12px', report)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+
+    def test_a_relative_size_is_not_judged_against_pixels(self):
+        """`footnote-call.size` is `0.72em` on all 57 themes. Resolving em
+        against an assumed 16px root reads 11.52px, so a naive pixel floor
+        warns on the entire catalogue for a size that renders fine. The
+        sweep above would catch it; this says why, so the next person to
+        touch the floor knows what they are about to break."""
+        lwp = load_lightwebpres_module()
+        resolved = lwp.resolve_theme_properties(lwp.theme_property_layer('nord'))
+        self.assertTrue(resolved['footnote-call.size'].endswith('em'),
+                        'the premise changed: this size is no longer relative, '
+                        'so it no longer guards the em/px distinction')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'nord')
+            plain = run('audit', root)
+            self.assertNotIn('footnote-call.size',
+                             plain.stdout + plain.stderr)
+
+    def test_a_fault_the_author_never_wrote_is_still_reported(self):
+        """`footnote-call.fg-marked` defaults to `fact.strong.fg`. Kill the
+        latter and the former follows it into invisibility — a fault only a
+        judgement of the RESOLVED sheet can see, since nobody typed it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'nord')
+            self._pin(root, 'fact.strong.fg: fact.strong.bg')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            self.assertIn('fact.strong.fg', report)
+            self.assertIn('footnote-call.fg-marked', report,
+                          'the inherited fault was not reported, so the pass '
+                          'is reading what was written rather than what '
+                          'resolves')
+
+    def test_a_malformed_sheet_leaves_the_judgement_silent(self):
+        """A sheet that cannot resolve is already fatal, with a precise
+        message. Adding a vague judgement on top of it would bury the one
+        line that says what to fix."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 'nord')
+            self._pin(root, 'page.zzz: #000000')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            self.assertIn('unknown property', report)
+            self.assertNotIn(':1 against', report,
+                             'the judgement competed with the fatal error')
+
+
+class AuditNamesAFootnoteLabelTheEngineWillNotRead(unittest.TestCase):
+    """The one defect in this format that reached the READER in silence.
+    A misspelled slide field becomes free text, and on a cover says so
+    fatally; an unknown meta key is named. But `[^a-b]` is neither an error
+    nor a note: both note patterns spell the label `\\w+`, so a hyphen, a
+    space or a dot drops the whole construct through as ordinary text — the
+    call ships inside the sentence and the body renders as a paragraph,
+    build and audit both silent, both exit 0 (BACKLOG B24)."""
+
+    def _series(self, tmp):
+        root = str(Path(tmp) / 's')
+        self.assertEqual(run('init', root).returncode, 0)
+        self.assertEqual(run('demo', root).returncode, 0)
+        return root
+
+    def test_a_label_outside_the_pattern_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            article = Path(root) / 'articles' / 'first_article.md'
+            article.write_text(
+                article.read_text(encoding='utf-8').replace('[^1]', '[^a-b]'),
+                encoding='utf-8')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            self.assertIn('[^a-b]', report)
+            self.assertIn('is not a note call', report)
+            self.assertIn('is not a note body', report,
+                          'a call and a body fail differently on the page '
+                          'and want different advice')
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+            # It reaches the reader, which is the whole point.
+            self.assertEqual(run('build', root).returncode, 0)
+            page = (Path(root) / 'public' / 'first.html').read_text(encoding='utf-8')
+            self.assertIn('[^a-b]', page)
+
+    def test_what_the_converter_would_not_read_as_a_note_is_left_alone(self):
+        """The false positives that would make this unusable, each one
+        measured against what the converter actually does rather than
+        assumed: a regex class in code, a fenced block, raw HTML passed
+        through verbatim, and `[^a-b](url)` — which md_inline's link rule
+        claims before its note rule ever sees it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            article = Path(root) / 'articles' / 'first_article.md'
+            article.write_text(
+                article.read_text(encoding='utf-8') + '\n\n'
+                'A class `[^a-z]+` in code, and `[^\\]]` too.\n\n'
+                'A link [^a-b](https://example.org) and '
+                'an image ![^a-b](img/demo-figure.svg).\n\n'
+                '```regex\n[^a-b]\n[^a-b]: not a body\n```\n\n'
+                '<div>\n[^a-b] and [^ab] in raw HTML\n</div>\n',
+                encoding='utf-8')
+            plain = run('audit', root)
+            report = plain.stdout + plain.stderr
+            self.assertNotIn('is not a note', report,
+                             'the guard invented a warning about text the '
+                             'converter leaves alone:\n' + report)
+            self.assertEqual(run('audit', root, '--strict').returncode, 0)
+
+
 class RemainingTypographyRules(unittest.TestCase):
     """§7.2: the two French rules not already covered by
     test_typography_nbsp_before_double_punctuation."""
@@ -7678,7 +7872,8 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     'relative_luminance'}
     CONTRAST_CALLERS = {'contrast_ratio', 'ground_colour', 'measure_contrast',
                         '_theme_info_facets', 'theme_info_report',
-                        'cmd_theme_info', 'cmd_series_theme'}
+                        'cmd_theme_info', 'cmd_series_theme',
+                        'navigation_contrast_sites', 'judge_resolved_theme'}
 
     def test_the_contrast_engine_is_reachable_from_nothing_but_theme_info(self):
         import ast

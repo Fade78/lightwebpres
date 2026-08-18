@@ -11623,6 +11623,106 @@ def audit_meta_keys(filename, meta):
     return warnings
 
 
+# A `[^...]` the engine will NOT read as a note (ARCHI-NOTES §4). Both
+# note rules -- md_inline()'s call substitution and _NOTE_DEF_RE -- spell
+# the label `\w+`, so an accent passes and a hyphen, a space or a dot does
+# not: the whole construct then falls through as ordinary text. The class
+# excludes brackets and is capped at 32 characters because a label is a key
+# someone typed; past that length a match is a sentence that happens to
+# open with `[^`, not a typo. `(?!\()` drops `[^a-b](https://...)`:
+# md_inline()'s link rule runs BEFORE its note rule and turns that shape
+# into a perfectly good link -- measured, and the one false positive worth
+# a rule of its own.
+_NOTE_SUSPECT_RE = re.compile(r'\[\^([^\[\]\n]{1,32})\](?!\()')
+
+# md_inline()'s inline-code rule, and it has to stay the same rule: it is
+# what keeps a regex character class written `[^a-z]` inside backticks out
+# of the report below.
+_CODE_SPAN_RE = re.compile(r'(?<!\\)`([^`]+?)(?<!\\)`')
+
+
+def unrecognized_note_labels(text):
+    """Every `[^...]` in `text` that the converter will not read as a note.
+
+    The one defect in this format that reaches the READER in silence. A
+    misspelled slide field becomes free text and on a cover says so
+    fatally; an unknown meta key is named by audit_meta_keys(); an unknown
+    slide type is refused. But `[^a-b]` is neither an error nor a note: the
+    call ships as the literal string `[^a-b]` inside the sentence and its
+    body renders as an ordinary paragraph reading `[^a-b]: ...`, with build
+    and audit both silent and both exiting 0. Someone finds out by reading
+    the published page.
+
+    This one re-scans the source where its neighbours convert, and the
+    defect itself is the reason: the converter never sees these labels, so
+    it has nothing to report about them. Reading the source is also all
+    that is needed -- the fault is a shape, settled before anything is
+    rendered.
+
+    What is skipped is what the converter would not treat as a note
+    either, so that acting on a warning is always the right move:
+
+    - fenced code blocks and inline code spans, where `[^a-z]` is content
+      and stays content;
+    - raw HTML blocks, passed through verbatim: NOTHING in one is a note,
+      a good label no more than a bad one, so the label is not what is
+      wrong there. A body in that position is audit_notes()'s `swallowed`
+      finding; a call in that position is still nobody's.
+
+    Returns [(label, is_body), ...], each label once per kind, in source
+    order. `is_body` marks a definition line -- flush left and followed by
+    `:`, the two things _NOTE_DEF_RE requires -- because a call and a body
+    fail visibly differently on the page and want different advice.
+    """
+    raw_html_depth = 0
+    in_code_block = False
+    found = []
+    seen = set()
+    # The block states are convert_markdown()'s, tested in its order: a
+    # fence opener inside raw HTML opens nothing, and a raw HTML line
+    # inside a fence is content.
+    for raw in text.split('\n'):
+        line = rstrip_ws(raw)
+        if raw_html_depth > 0:
+            raw_html_depth = max(0, raw_html_depth + _html_tag_depth_delta(line))
+            continue
+        if in_code_block:
+            if line == '```':
+                in_code_block = False
+            continue
+        if _CODE_FENCE_RE.match(line):
+            in_code_block = True
+            continue
+        if _is_raw_html_line(line):
+            raw_html_depth = max(0, _html_tag_depth_delta(line))
+            continue
+        # Blanked, not cut, one space per character, so the definition test
+        # below still finds column 0 where the source put it.
+        line = _CODE_SPAN_RE.sub(lambda m: ' ' * len(m.group(0)), line)
+        # A backtick still standing here opened or closed a span whose
+        # other half is on a neighbouring line -- md_inline() reads a
+        # paragraph merged, this loop reads it a line at a time. What is
+        # code on such a line cannot be decided from the line, so the line
+        # is not read at all. A blind spot on purpose rather than a guess:
+        # checked against convert_markdown()'s own output over the prose in
+        # this repository, a line at a time plus this rule reports exactly
+        # what the converter leaves literal, while every wider window
+        # invented warnings about text the converter had safely put inside
+        # <code>.
+        if re.search(r'(?<!\\)`', line):
+            continue
+        for m in _NOTE_SUSPECT_RE.finditer(line):
+            label = m.group(1)
+            if re.fullmatch(r'\w+', label):
+                continue
+            is_body = m.start() == 0 and line[m.end():m.end() + 1] == ':'
+            if (label, is_body) in seen:
+                continue
+            seen.add((label, is_body))
+            found.append((label, is_body))
+    return found
+
+
 def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
     """The three ways a note can be broken without the build noticing
     (ARCHI-NOTES §4). None of them is fatal: the input contract does not
@@ -11678,6 +11778,29 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir, md_text):
         localities[0][1].resolve('\n'.join(converted))
 
     warnings = 0
+    # Read before the findings that need a scope: this one is about what
+    # the source says, the others about what conversion made of it. Not
+    # folded into the loop below, which dedupes by scope -- under `page`
+    # placement every locality shares one, and folding would look at the
+    # first card only.
+    for where, _, text in localities:
+        for label, is_body in unrecognized_note_labels(text):
+            if is_body:
+                print(f'[WARNING] {entry["page_source"]}: [^{label}]: in '
+                      f'{where} is not a note body — a label is word '
+                      f'characters only (letters, digits, underscore, '
+                      f'accents included; not `-`, space or punctuation), '
+                      f'so the line renders as an ordinary paragraph, the '
+                      f'label in plain view.')
+            else:
+                print(f'[WARNING] {entry["page_source"]}: [^{label}] in '
+                      f'{where} is not a note call — a label is word '
+                      f'characters only (letters, digits, underscore, '
+                      f'accents included; not `-`, space or punctuation), '
+                      f'so it ships to the reader as literal text. Rename '
+                      f'it, or wrap it in backticks if it is meant to read '
+                      f'as it stands.')
+            warnings += 1
     seen = set()
     for where, scope, _ in localities:
         if id(scope) in seen:
@@ -11793,6 +11916,258 @@ def audit_by_rendering(series_dir, args):
     return len(sink.messages)
 
 
+# ----------------------------------------------------------------------------
+# The judgement pass of `audit` (§9.5.6): what the RESOLVED sheet makes
+# unusable, as opposed to merely bold.
+#
+# Everything else in this tool judges the FORM of a theme: a property that
+# does not exist, a reference cycle, a colour that is not a colour, a unit
+# nobody defined. All four are fatal, and none of them is about what the
+# page looks like. Measured before this pass, the other half was entirely
+# unguarded: `page.fg` set to exactly `page.bg` (1.00:1), a progress dot
+# painted the colour of its own rail, a bold run invisible on its own
+# highlight, `note.size: 3px` — all four composed, built, and exited 0,
+# `--strict` included.
+#
+# The line this pass may not cross is written in §9.5.6 and is the whole
+# reason the thresholds below are measured rather than chosen:
+#
+#     A test may refuse what stops the tool working. It may never refuse
+#     what a theme looks like.
+#
+# B5 and B18 decided that a theme is NOT required to reach AA, and a
+# substantial part of the delivered catalogue is deliberately under AA on
+# its secondary text. Warning on "below AA" would therefore harass 57
+# shipped themes and contradict a written decision. So each threshold here
+# is set BELOW everything the catalogue measures, and the measurement is
+# recorded next to it: a threshold that makes a delivered theme warn is a
+# wrong threshold, because it turns the report into noise and B5 into a
+# dead letter.
+#
+# The three thresholds, each with the measurement that fixed it (run over
+# THEMES with resolve_theme_properties + measure_contrast):
+#
+#   navigation 3:1, and it is not a new number. It is WCAG 1.4.11, it is
+#              the one hard floor §9.5.6 allows, and it is already a test
+#              on the delivered themes — never on what an author writes.
+#              Measured over the 57 themes AND the default sheet, the
+#              closest is pop-lime's current-slide dot at 3.1712:1.
+#   text       1.5:1. The worst of 5,529 text pairs in the catalogue is
+#              nord's "yes" verdict at 1.7866:1 — deliberately low, and
+#              legitimate, since a verdict also carries a shape marker
+#              (WCAG 1.4.1). 1.5 sits below every one of them with room
+#              left, so it can only fire on something worse than anything
+#              the project ships.
+#   size       12px, the design floor the registry already states and a
+#              test already pins on the defaults. The catalogue's smallest
+#              absolute size is exactly 12.00px, over 1,824 readings.
+#
+# Sites are NOT enumerated here. The pass reuses CONTRAST_SITES through
+# measure_contrast(), which is the same "hook the funnel, not the sites"
+# rule _WARN_SINK follows: a site added tomorrow is judged tomorrow, with
+# nobody having to remember this place.
+# ----------------------------------------------------------------------------
+
+# A text pair below this is not an audacious palette, it is text the reader
+# cannot find. See the measurement above: the catalogue's own floor is
+# 1.7866:1, so this fires only under everything the project delivers.
+ILLEGIBLE_TEXT_RATIO = 1.5
+
+# The design's readability floor, in CSS pixels. Stated once in the
+# registry test on the defaults ("below 12px the reference becomes the
+# smallest element on the card"); this is the same decision applied to the
+# layer the author writes, where nothing enforced it.
+READABLE_TEXT_PX = 12.0
+
+
+def navigation_contrast_sites():
+    """The sites whose failure leaves the reader unable to navigate.
+
+    Derived from the palette role, never listed here. §9.5.7 gives
+    `color.nav` exactly one job — the furniture that MOVES the reader, and
+    it names the pieces: the active progress dot and the two focus rings.
+    So "painted by nav" and "is a navigation control" are one statement,
+    and a ring added tomorrow is judged tomorrow without anyone editing
+    this function.
+
+    The other three non-text sites are out of this floor on written
+    grounds, not by oversight:
+
+      - `table.col-snap.rule-fg` takes `mark`, and §9.5.2 states the
+        carve-out in its own words — mark is built to serve as a ground
+        before it serves as a rule, and the "rules >= 3" criterion is
+        explicitly not held for it. The column also carries its own
+        tinted ground, which is what identifies it.
+      - `link.decoration-color` takes `ink`, "which can never fail"
+        (§9.5.3) — a body link inherits the ink around it.
+      - `fact.strong.decoration-color` takes the emphasis colour itself,
+        on a run that already carries weight and usually a ground (§9.5.5).
+
+    Judging those three here would warn on the shipped default sheet,
+    which is the noise B5 exists to prevent."""
+    return [site for site in CONTRAST_SITES
+            if site.kind != 'text'
+            and PROPERTY_REGISTRY[site.fg].default == 'nav']
+
+
+def _absolute_size_px(value):
+    """A resolved font size in px, or None when it is relative to inherited.
+
+    `em` is skipped rather than guessed at, and that is a correctness
+    requirement, not caution: `footnote-call.size` is `0.72em` on all 57
+    themes, and resolving it against an assumed 16px root reads 11.52px —
+    a guard that did so would open by warning on the entire catalogue for
+    a size that renders perfectly. What the parent is, is a fact about the
+    templates; the registry does not know it, so this does not pretend to."""
+    v = value.strip()
+    inner = re.match(r'^(?:clamp|min|max)\(\s*([^,()]+)\s*,', v)
+    if inner:
+        v = inner.group(1).strip()
+    if re.search(r'[\d.]\s*(?:em|ex|ch|%)', v):
+        return None
+    return length_px(v, 16.0)
+
+
+def judge_resolved_theme(resolved):
+    """The three ways a composed sheet stops working, measured on `resolved`.
+
+    Returns [(key, message)] — `key` identifies the faulty PROPERTY so the
+    caller can report each one once. Grouping matters: `page.fg` set to its
+    own background fails at eight sites at once, and eight warnings for one
+    typo is how a report stops being read. The worst pair is the one
+    reported, because it is the one the fix has to clear.
+
+    Nothing here is graded, ranked or scored. Each finding is a thing that
+    does not work — an invisible control, text nobody can find, a size
+    below the floor — never a thing that could be prettier."""
+    worst = {}
+
+    def keep(key, ratio, message):
+        if key not in worst or ratio < worst[key][0]:
+            worst[key] = (ratio, message)
+
+    measured = measure_contrast(resolved)
+
+    # 1. Navigation the reader can no longer see. `non_text` failures ARE
+    #    the pairs under 3:1 — that bar is CONTRAST_LEVELS' own, so the
+    #    floor here and the floor §9.5.6 states can never drift apart — and
+    #    navigation_contrast_sites() narrows them to the furniture that
+    #    orients the reader. A dot nobody can see is not a bold palette, it
+    #    is the control that says which slide is open, in pieces.
+    bar = CONTRAST_LEVELS['non_text']['aa']
+    navigation = {site.fg for site in navigation_contrast_sites()}
+    for rec in measured['non_text']['failures']:
+        if rec['foreground'] not in navigation:
+            continue
+        keep(('control', rec['foreground']), rec['ratio'],
+             f"`{rec['foreground']}` is at {rec['ratio']:.2f}:1 against "
+             f"{rec['ground_color']} — the {rec['site']} is how the reader "
+             f"knows where they are, and under {bar:g}:1 they cannot see it "
+             f"(§9.5.6). Repaint `{rec['foreground']}`, or set `color.nav`, "
+             f"which it follows by default. This one is not a matter of "
+             f"taste: a control nobody can see is a control that is broken.")
+
+    # 2. Text indistinguishable from what it sits on. Deliberately NOT the
+    #    AA bar: §9.5.2 and B5 let a theme sit under AA on purpose, and six
+    #    delivered themes do. This fires far below that, where the question
+    #    stops being how bold the palette is and becomes whether the words
+    #    are on the page at all.
+    for category in ('body_text', 'large_text'):
+        for rec in measured[category]['failures']:
+            if rec['ratio'] >= ILLEGIBLE_TEXT_RATIO:
+                continue
+            keep(('text', rec['foreground']), rec['ratio'],
+                 f"`{rec['foreground']}` is at {rec['ratio']:.2f}:1 against "
+                 f"{rec['ground_color']} — the {rec['site']} is all but the "
+                 f"same colour as what it sits on, so the words are on the "
+                 f"page and out of reach. Repaint `{rec['foreground']}`. "
+                 f"This is not the theme being bold: the whole delivered "
+                 f"catalogue stays above 1.78:1 at every text site.")
+
+    # 3. Sizes under the readability floor. Judged on the resolved value,
+    #    so a size an author pins in settings.conf or in one article's
+    #    `style.*` is measured exactly like a theme's own.
+    for name, prop in PROPERTY_REGISTRY.items():
+        if prop.css != 'font-size':
+            continue
+        px = _absolute_size_px(resolved[name])
+        if px is None or px >= READABLE_TEXT_PX:
+            continue
+        keep(('size', name), px,
+             f"`{name}` resolves to {px:g}px, under the {READABLE_TEXT_PX:g}px "
+             f"readability floor of the design — nothing in the 57 delivered "
+             f"themes goes below it. Raise `{name}`: at this size the text "
+             f"ships, and is smaller than every piece of apparatus around it.")
+
+    return [(key, message) for key, (_, message) in
+            sorted(worst.items(), key=lambda item: item[1][0])]
+
+
+def audit_resolved_theme(templates_dir, articles, articles_dir):
+    """Judges the sheet the series actually composes, series then article.
+
+    The other checks in `audit` read the source; this one reads the RESULT
+    of the cascade — theme, then `templates/settings.conf`, then one
+    article's `style.*` block — because that is the only place the defect
+    exists. `settings.conf` naming a valid property, with a valid colour,
+    that happens to be the background it will be painted on, is correct at
+    every layer and unreadable once composed.
+
+    An article is judged against its OWN sheet and reports only what the
+    series sheet did not already say: a fault the series carries belongs to
+    `settings.conf`, and repeating it under every article that inherits it
+    would bury the one article that actually broke something.
+
+    Stays silent when composition fails outright. A property that does not
+    exist, a cycle, an unparsable colour are fatal, and the render pass has
+    already put them on stderr under their own file name; a second, vaguer
+    complaint here would only compete with the message that names the line.
+    """
+    warnings = 0
+
+    # The layers, assembled here rather than through series_style_context():
+    # that function also warns about a legacy style.css (audit_presentation
+    # already reports it) and exits on a symlinked custom.css. Neither
+    # belongs to a pass that measures colours, and audit must not exit.
+    try:
+        settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+        theme_key, props = (
+            parse_settings_text(read_text_file(settings_file))
+            if settings_file is not None and settings_file.exists()
+            else (None, {}))
+        layers = [theme_property_layer(theme_key)] if theme_key else []
+        layers.append(props)
+        series_resolved = resolve_theme_properties(*layers)
+    except (PropertyError, KeyError, OSError):
+        return 0
+
+    series_findings = judge_resolved_theme(series_resolved)
+    for _, message in series_findings:
+        print(f'[WARNING] templates/{SETTINGS_FILENAME}: {message}')
+        warnings += 1
+
+    already = {key for key, _ in series_findings}
+    for entry in articles:
+        source_path = articles_dir / entry['page_source']
+        if not source_path.exists():
+            continue
+        try:
+            meta, _, _, _ = parse_markdown_extended(read_text_file(source_path))
+            page_props = page_style_properties(meta, entry['page_source'])
+            if not page_props:
+                continue
+            resolved = resolve_theme_properties(*layers, page_props)
+        except (PropertyError, KeyError, OSError):
+            continue
+        for key, message in judge_resolved_theme(resolved):
+            if key in already:
+                continue
+            print(f'[WARNING] {entry["page_source"]}: {message}')
+            warnings += 1
+
+    return warnings
+
+
 def cmd_audit(series_dir, args):
     """audit command — reports what is wrong with a series, and never blocks.
 
@@ -11899,6 +12274,7 @@ def cmd_audit(series_dir, args):
             warnings += 1
 
     warnings += audit_presentation(templates_dir)
+    warnings += audit_resolved_theme(templates_dir, articles, articles_dir)
 
     # What only a render can say (BACKLOG B19/B24).
     #

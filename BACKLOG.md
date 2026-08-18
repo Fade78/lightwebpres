@@ -1396,3 +1396,58 @@ inert, and inert by coincidence. It is a security guard; the two copies
 diverging would be silent. Either prefix it like the other two, or keep it
 shared and add the test that asserts the bodies match. **Still open**: it
 lives in `web/`, not in the executable, and it wants its own lot.
+
+## B26 — `audit` prints its warnings on stdout, the render's on stderr — OPEN
+
+`specifications.md` §2.4.1 is unambiguous: error, warning, info and debug
+go to **stderr**; progress and a command's answer go to stdout. Twenty
+`print('[WARNING] ...')` sites in the executable ignore it, and they are
+all in `audit`.
+
+That was survivable while audit was the only thing talking. It stopped
+being survivable in v0.37.0, because the rendering pass raises its
+warnings through `log()` — which obeys the rule. So one `audit` run now
+splits its warnings across both streams: the editorial ones on stdout, the
+render-borne ones on stderr. Someone grepping stderr for `[WARNING]` gets
+half of them and has no way to know.
+
+Measured: 20 offending sites in the executable, and exactly **one** test
+assertion couples `[WARNING]` with stdout, so the change is small. What is
+not small is the decision — piping `audit | grep` breaks for anyone who
+built on the current behaviour.
+
+**The exit code is not affected**: `--strict` counts every warning
+whichever stream carried it, so the gate B19 asked for is complete either
+way. This is about a human reading the output, not about CI.
+
+Filed rather than folded into the v0.37.0 lot. That lot was "audit renders
+and judges"; rerouting twenty print sites is a different change, and doing
+it quietly under cover of another is how a diff becomes unreviewable.
+
+## B27 — The default sheet fails the navigation floor its own test enforces — OPEN
+
+Found while deriving the thresholds for the judgement pass, and it is a
+defect in the delivered defaults, not in the new guard.
+
+`table.col-snap.rule-fg` defaults to `mark`, which on the **registry
+defaults** — the sheet a bare `init` writes, with no `theme:` line — is
+pure yellow `#FFFC00` on white: **1.02:1**.
+
+What makes it an entry rather than a curiosity: **23 of the 57 themes
+carry a hand-pinned override for exactly this property** (21 of them to
+`call`), put there to clear the existing hard test. The default sheet
+never got one, because that test iterates `THEMES` and the defaults are
+not a theme. The guard was written, the catalogue was brought up to it,
+and the one sheet every new series starts from was never in scope.
+
+Measured alternatives on the default palette: `call` gives 2.98:1 and
+would **not** clear the floor either; `ink-quiet` gives 4.66:1; `nav`
+gives 8.02:1.
+
+Not fixed here. Changing a registry default repaints the 34 themes that do
+not override it, which is a catalogue decision and wants its own lot.
+
+Note that §9.5.2 states a carve-out for `mark` as a rule colour, so this
+may be judged acceptable — but then the 23 overrides are the anomaly, and
+one of the two readings is wrong.
+
