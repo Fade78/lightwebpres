@@ -282,18 +282,32 @@ commande ; aucune commande ne peut les refuser.
 | `--dry-run` | N'écrit, ne crée, ne copie et ne supprime **rien** : journalise ce qui serait fait. Vaut pour toute commande, y compris `clean --force` |
 | `--no-color` | N'émet aucune séquence ANSI |
 | `--timestamp` | Préfixe chaque ligne de journal d'un horodatage |
-| `--version` | Écrit `LightWebPres v<version>` sur stdout et sort à 0 — **en tête de ligne seulement**, voir ci-dessous |
+| `--version` | Écrit `LightWebPres v<version>` sur stdout et sort à 0. **En tête de ligne seulement** — refusé après une commande, voir ci-dessous |
 | `--help`, `-h` | Aide. Seule, l'aide générale ; après une commande ou un nœud (`series`, `theme`), l'aide de celle-ci |
 
-**Deux exceptions à « avant ou après ».** `--version` et `--help`
-court-circuitent le lancement : ils ne peuvent le faire que là où le
-parseur les lit avant d'avoir choisi une commande, c'est-à-dire en tête de
-ligne. `lightwebpres --version build .` écrit la version et sort ;
-`lightwebpres build . --version` est accepté par le parseur et **n'a aucun
-effet** — la série est construite, rien n'est écrit sur stdout. C'est un
-no-op silencieux, exactement ce que §2.4.2 proscrit par ailleurs ; il est
-au `BACKLOG.md` (B22). Les six autres options globales valent bien des deux
-côtés, vérifiées une par une.
+**Deux natures dans ce tableau, et « avant ou après » n'en concerne
+qu'une.** Six de ces options sont des **modificateurs** : elles changent la
+façon dont une commande s'exécute, et `--quiet build .` comme
+`build . --quiet` sont bien le même lancement. Deux sont des **actions** :
+elles ne modifient rien, elles *remplacent* la commande.
+
+- **`--help`** est l'exception qui montre la règle : après une commande il
+  a un sens contextuel — l'aide **de cette commande** — donc il gagne sa
+  position, et il est honoré partout.
+- **`--version`** n'a aucun sens contextuel : la version ne dépend pas de
+  la commande. L'honorer après une commande reviendrait à jeter en silence
+  la commande tapée. Il est donc **refusé** après une commande, avec un
+  message qui nomme la correction (`lightwebpres --version`).
+
+`lightwebpres build . --version` était accepté et **ignoré** jusqu'à la
+v0.37.0 : la série se construisait, rien n'était écrit sur stdout, et
+`theme gallery --version` écrivait treize mégaoctets. C'était le seul no-op
+silencieux du parseur, dans la section même qui les proscrit — et il venait
+de cette confusion de natures.
+
+Enfin, le terminateur `--` couvre les deux actions comme le reste :
+`build -- --version` désigne un répertoire nommé `--version`, il ne
+déclenche rien.
 
 `--` termine les options : tout ce qui suit est un argument positionnel,
 même commençant par `-`.
@@ -1328,14 +1342,14 @@ deux règles sur huit et trois chaînes sur les quarante-quatre :
       "name": "nbsp_before_double_punctuation",
       "description": "Non-breaking space before ; : ! ? »",
       "pattern": " ([!?;:»])",
-      "replacement": " $1",
+      "replacement": "\u00a0$1",
       "flags": "g"
     },
     {
       "name": "nbsp_after_opening_quote",
       "description": "Non-breaking space after «",
       "pattern": "(«) ",
-      "replacement": "$1 ",
+      "replacement": "$1\u00a0",
       "flags": "g"
     }
   ],
@@ -1348,14 +1362,12 @@ deux règles sur huit et trois chaînes sur les quarante-quatre :
 ```
 
 **Trois choses que cet extrait fixe, et qu'un exemple inventé rate.** Les
-groupes se rappellent en **`$1`**, pas en `\1` — le moteur convertit
-`$N` en `\N` avant de compiler, et un `\u00a0` écrit en toutes lettres
-dans un `replacement` n'est pas une échappe valide : il fait échouer le
-build. Les espaces insécables sont écrites en **caractère littéral**
-(U+00A0), pas en échappement JSON : dans `" $1"` et `"$1 "` ci-dessus, l'espace visible
-*est* l'insécable — c'est indiscernable à l'œil, et c'est le prix de la
-fidélité au fichier. Enfin la clé **`flags`** existe et vaut `"g"` dans
-toutes les règles livrées (§19.2).
+groupes se rappellent en **`$1`**, pas en `\1` : le moteur convertit `$N`
+en `\N` avant de compiler, et `\1` écrit tel quel n'atteint jamais le
+compilateur. Les espaces insécables sont écrites en **échappement JSON**
+`\u00a0`, jamais en caractère littéral (§19.3.1) — visible dans un diff,
+impossible à perdre en recopiant. Enfin la clé **`flags`** existe et vaut
+`"g"` dans toutes les règles livrées (§19.2).
 
 ### 7.2 Règles typographiques
 
@@ -1671,13 +1683,22 @@ Markdown **d'une fiche** est embarquée comme un data URI base64, et le
 répertoire `img/` n'est pas copié. L'HTML grossit d'environ un tiers par
 image, mais un gzip de servage récupère ce surcoût sur le wire.
 
-**L'option ne couvre pas les images d'un fichier inclus** par une fiche
-`full-article` (§5.1) : `build_article` convertit ce Markdown-là sans
-transmettre l'option ni le répertoire des articles. Comme `img/` n'est de
-toute façon pas copié, une telle image donne une page **cassée** — chemin
-relatif conservé vers un répertoire absent. La promesse « un seul fichier
-HTML autonome » n'est donc pas tenue dans ce cas, et rien ne le vérifie au
-build. C'est au `BACKLOG.md` (B23).
+L'option couvre aussi les images d'un fichier inclus par une fiche
+`full-article` (§5.1). Elle ne le faisait pas jusqu'à la v0.37.0 :
+`build_article` convertissait ce Markdown-là sans transmettre l'option ni
+le répertoire des articles, et comme `img/` n'est de toute façon pas copié,
+une telle image donnait une page **cassée** — chemin relatif conservé vers
+un répertoire absent, exit 0.
+
+**Et la promesse est désormais gardée au build.** Une page construite avec
+`--inline-images` qui porte encore un `src` relatif est une **erreur
+fatale** nommant le fichier et les chemins fautifs. Deux cas la
+déclenchent : un `<img>` écrit en HTML brut (§6.2), que le convertisseur ne
+touche pas par conception et n'inline donc jamais ; et une image refusée
+par la garde de confinement (§13.7), déjà signalée mais dont le `src`
+survit. Dans les deux cas la page partirait avec une référence pendante, ce
+que cette option existe précisément pour exclure. Sans l'option, ces mêmes
+séries se construisent normalement : `img/` est copié, et rien ne manque.
 
 ---
 
@@ -5325,56 +5346,56 @@ vocabulaire fixe des templates par défaut (`strings`).
       "name": "nbsp_before_double_punctuation",
       "description": "Espace insécable avant : ; ! ? et »",
       "pattern": " ([!?;:»])",
-      "replacement": " $1",
+      "replacement": "\u00a0$1",
       "flags": "g"
     },
     {
       "name": "nbsp_after_opening_quote",
       "description": "Espace insécable après «",
       "pattern": "(«) ",
-      "replacement": "$1 ",
+      "replacement": "$1\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_inside_dash_incise",
       "description": "Incise encadrée de tirets : espace insécable après le tiret ouvrant et avant le fermant (§7.5)",
       "pattern": "([—–]) ([^—–]*?) ([—–])",
-      "replacement": "$1 $2 $3",
+      "replacement": "$1\u00a0$2\u00a0$3",
       "flags": "g"
     },
     {
       "name": "nbsp_before_lone_dash",
       "description": "Tiret non apparié : espace insécable avant, pour qu'il ne commence jamais une ligne (§7.5)",
-      "pattern": "(?<=\\S) ([—–])(?! )",
-      "replacement": " $1",
+      "pattern": "(?<=\\S) ([—–])(?!\u00a0)",
+      "replacement": "\u00a0$1",
       "flags": "g"
     },
     {
       "name": "nbsp_before_percent",
       "description": "Espace insécable avant %",
       "pattern": " %",
-      "replacement": " %",
+      "replacement": "\u00a0%",
       "flags": "g"
     },
     {
       "name": "nbsp_thousands_separator",
       "description": "Espace insécable entre groupes de 3 chiffres d'un nombre déjà séparé par des espaces (§7.5)",
       "pattern": "(?<=\\d) (?=\\d{3}(?!\\d))",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_before_unit",
       "description": "Espace insécable entre un nombre et million(s)/milliard(s)/dollar(s)/$ (§7.5)",
       "pattern": "(?<=\\d) (?=(?:millions?|milliards?|dollars?)\\b|\\$)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_after_operator",
       "description": "Espace insécable entre × ou ≈ et le nombre qui suit (§7.5)",
       "pattern": "(?<=[×≈]) (?=\\d)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     }
   ],
@@ -5497,15 +5518,23 @@ d'union espacé, qui n'existe pas en français, en tiret d'incise :
    changer. Une règle qui insère une insécable doit donc exclure le cas
    déjà traité — c'est la raison du `(?!\u00a0)` de
    `nbsp_before_lone_dash`.
-2. **Savoir que l'insécable est écrite en caractère littéral, et s'en
-   méfier.** Un U+00A0 dans un fichier source est invisible : il se perd
-   à la copie, au passage dans un éditeur, dans un diff — c'est une perte
-   déjà vécue ici. L'échappement `\u00a0` serait plus sûr, et cette règle
-   l'a longtemps prescrit ; les deux packs embarqués ne l'appliquent pas,
-   ils portent le caractère littéral, et §19.1 comme §7.1 les recopient
-   fidèlement. Prescrire ce que le projet ne fait pas est la pire des
-   deux options : la règle est donc énoncée pour ce qu'elle est, un
-   risque connu et non traité (`BACKLOG.md`, B25).
+2. **Écrire l'insécable en `\u00a0`, jamais en caractère littéral.** Un
+   U+00A0 dans un fichier source est invisible : il ne se distingue pas
+   d'une espace ordinaire à l'écran, n'apparaît pas dans un diff, et se
+   perd au passage d'un éditeur ou d'un copier-coller. S'il disparaît, la
+   règle continue de s'appliquer, le build reste vert, et la typographie
+   cesse simplement d'agir — un `50 %` qui se coupe en fin de ligne, un
+   `?` qui part seul à la ligne suivante.
+
+   Cette règle était énoncée depuis longtemps et **n'était pas
+   appliquée** : mesuré avant la v0.37.0, zéro échappement dans
+   l'exécutable et dix-huit caractères littéraux. Les deux packs sont
+   désormais convertis, `init` propage l'échappement dans le fichier
+   qu'il écrit, et **deux gardes** tiennent les deux moitiés : l'une
+   refuse un U+00A0 littéral dans l'exécutable, l'autre vérifie que
+   chaque règle `nbsp_*` produit bien une insécable sur son cas de
+   contrôle. La première protège l'écriture, la seconde protège l'effet ;
+   sans les deux, la règle dérive une fois de plus.
 3. **Ne jamais toucher à ce qui n'est pas espacé.** C'est ce qui
    distingue un tiret d'un trait d'union : `Marie-Claire` et `12-15`
    n'ont pas d'espace, donc aucune règle de tiret ne les voit.

@@ -2080,6 +2080,72 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 self.assertEqual(result.returncode, 0,
                                  f'`{" ".join(argv)}`:\n{result.stderr}')
 
+    def test_version_is_refused_after_a_command_not_swallowed(self):
+        """`--version` sat in the same table as `--quiet` and `--lang`, and
+        §2.4.1 promised all eight worked before or after the command. Seven
+        did. `build s --version` built the series and printed nothing;
+        `theme gallery --version` wrote a 13 MB file. Measured: the flag was
+        accepted by the post-command parser and never read.
+
+        The table conflated two natures. A modifier changes how a command
+        runs, so either position is a real convenience. An action replaces
+        the command — honouring `--version` after one would silently
+        discard the request the user typed, which is not better than
+        ignoring it. `--help` is the exception: after a command it means
+        the help OF that command, so it earns its place. `--version` has no
+        contextual meaning, so it is refused by name (BACKLOG B22)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = str(Path(tmp) / 's')
+            self.assertEqual(run('init', target).returncode, 0)
+
+            # Head of line: it reports and exits, whatever follows.
+            lead = run('--version', 'build', target)
+            self.assertEqual(lead.returncode, 0, lead.stderr)
+            self.assertIn('LightWebPres v', lead.stdout)
+            self.assertFalse((Path(target) / 'public' / 'index.html').exists(),
+                             'the short-circuit built the series anyway')
+
+            # After a command: refused, and the message says what to type.
+            for argv in (('build', target, '--version'),
+                         ('status', target, '--version'),
+                         ('theme', 'list', '--version')):
+                with self.subTest(argv=argv):
+                    result = run(*argv)
+                    self.assertEqual(result.returncode, 1,
+                                     f'`{" ".join(argv)}` was not refused:\n'
+                                     + result.stdout)
+                    self.assertIn('--version', result.stderr)
+                    self.assertIn('lightwebpres --version', result.stderr,
+                                  'the error does not say what to run instead')
+                    self.assertNotIn('LightWebPres v', result.stdout,
+                                     'it printed the version after refusing it')
+
+            # The six modifiers keep working on both sides — the split must
+            # not have cost them anything.
+            for argv in (('--quiet', 'status', target),
+                         ('status', target, '--quiet'),
+                         ('--lang', 'en', 'status', target),
+                         ('status', target, '--lang', 'en')):
+                with self.subTest(argv=argv):
+                    self.assertEqual(run(*argv).returncode, 0,
+                                     f'`{" ".join(argv)}` broke')
+
+    def test_the_double_dash_terminator_covers_the_action_flags(self):
+        """`--` means everything after it is a positional, whatever it
+        looks like. The `--help` check scanned the whole tail, so
+        `status -- --help` answered with help for a directory literally
+        named `--help` — the one reading the terminator exists to rule
+        out."""
+        with tempfile.TemporaryDirectory() as tmp:
+            for flag in ('--help', '--version'):
+                with self.subTest(flag=flag):
+                    result = run('status', '--', flag, cwd=tmp)
+                    self.assertEqual(result.returncode, 1, result.stdout)
+                    self.assertIn(flag, result.stderr,
+                                  'the terminator was ignored and the flag '
+                                  f'was acted on instead of named:\n{result.stderr}')
+                    self.assertNotIn('LightWebPres v', result.stdout)
+
     def test_every_legacy_alias_warns_and_runs_the_canonical_command(self):
         """§11.16 claims a test covers every alias. It did not: three of
         the eight were run by their alias name anywhere in this suite, and
@@ -2553,6 +2619,85 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertFalse((root / 'public' / 'img').exists(),
                              'img/ was copied despite --inline-images')
 
+    def test_inline_images_reaches_an_included_article_file(self):
+        """The option promises "a single self-contained HTML file" (§8.4),
+        and for an image written in a slide it delivered. For an image
+        inside a file pulled in by a `full-article` slide it did not:
+        `build_article` called `convert_markdown` without `inline_images=`
+        or `articles_dir=` while every other call site passed both.
+
+        Measured on the shipped demo, built clean: 0 `data:image` URIs, 1
+        relative `src="img/…"`, and no `public/img/` — a broken page, exit
+        0. Worse, an earlier ordinary build leaves `public/img/` behind and
+        the image keeps showing, so the breakage only surfaces on a clean
+        deploy, which is when this option is reached for (BACKLOG B23).
+
+        The whole suite passed with the fix reverted, which is why this
+        test exists: the defect had no guard at all."""
+        png = (b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+               b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
+               b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
+               b'\x8d\xa5K>\x00\x00\x00\x00IEND\xaeB`\x82')
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide:full-article -->\narticle: long.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(str(Path(tmp) / 'series'), md)
+            (root / 'articles' / 'img').mkdir()
+            (root / 'articles' / 'img' / 'fig.png').write_bytes(png)
+            # The image lives ONLY in the included file, never in a slide.
+            (root / 'articles' / 'long.md').write_text(
+                'Body paragraph.\n\n![figure](img/fig.png)\n\nAfter.\n',
+                encoding='utf-8')
+
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--inline-images')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+            self.assertIn('data:image/png;base64,', html,
+                          "the included article's image was not inlined")
+            self.assertNotIn('src="img/', html,
+                             'a relative src survived --inline-images')
+            self.assertFalse((root / 'public' / 'img').exists(),
+                             'img/ was copied despite --inline-images — the '
+                             'page would look fine and hide the defect')
+
+    def test_inline_images_refuses_to_ship_a_page_that_is_not_self_contained(self):
+        """Raw HTML is passed through unconverted by design (§6.2), so an
+        `<img>` written that way is never inlined. Under --inline-images
+        the image directory is not copied either, so such a page shipped
+        with a dangling reference and exit 0 — the promise broken in
+        silence, which is the shape of defect this option most needs
+        protecting from."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\nkicker: F\n## Fiche\nfact-label: L\n\n'
+            '<img src="img/raw.png" alt="raw">\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(str(Path(tmp) / 'series'), md)
+            (root / 'articles' / 'img').mkdir()
+            (root / 'articles' / 'img' / 'raw.png').write_bytes(b'\x89PNG\r\n\x1a\n')
+
+            hard = run('build', str(root), '--output', str(root / 'public'),
+                       '--inline-images')
+            self.assertEqual(hard.returncode, 1, hard.stdout)
+            self.assertIn('img/raw.png', hard.stderr,
+                          'the error does not name the offending src')
+            self.assertIn('--inline-images', hard.stderr)
+
+            # And the guard is scoped to the option: the same series builds
+            # green without it, because then img/ IS copied.
+            soft = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(soft.returncode, 0, soft.stderr)
+            self.assertTrue((root / 'public' / 'img' / 'raw.png').exists())
+
     def test_inline_images_never_reads_outside_the_article_dir(self):
         """--inline-images read ANY file the build user could open and
         base64'd it into the published page. `src` is attacker-reachable
@@ -2594,17 +2739,53 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 self.skipTest('symlinks unavailable on this filesystem')
             result = run('build', str(root), '--output', str(root / 'public'),
                          '--inline-images')
-            self.assertEqual(result.returncode, 0, result.stderr)
-            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            # Decode every data URI and prove the secret is in none of them.
-            for m in re.finditer(r'data:[^;]+;base64,([A-Za-z0-9+/=]+)', html):
-                self.assertNotIn(b'SECRET', base64.b64decode(m.group(1)),
-                                 'a file outside articles/ was published')
-            # The legitimate image is still inlined.
-            self.assertIn('data:image/png;base64,', html)
-            # And each refusal is reported, not silent.
+            # Each refusal is reported, not silent -- that is this test's
+            # subject and it is unchanged.
             self.assertEqual(result.stderr.count('escaping the article'), 3,
                              result.stderr)
+            # Since v0.37.0 the build then fails rather than shipping a page
+            # whose three refused images are still relative `src` while
+            # `public/img/` is deliberately absent (BACKLOG B23). Exiting 0
+            # there meant publishing a page with three dangling references
+            # under the one option whose contract is that the file travels
+            # alone. Nothing is written, so nothing can leak.
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse((root / 'public' / 'a.html').exists(),
+                             'the page was written despite the refusal')
+            # Belt and braces: if a future change does write it, the secret
+            # must still be in none of its data URIs.
+            if (root / 'public' / 'a.html').exists():
+                html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+                for m in re.finditer(r'data:[^;]+;base64,([A-Za-z0-9+/=]+)', html):
+                    self.assertNotIn(b'SECRET', base64.b64decode(m.group(1)),
+                                     'a file outside articles/ was published')
+
+    def test_inline_images_still_inlines_the_legitimate_image(self):
+        """The other half of the guard above, on its own fixture: barring
+        the escaping paths must not cost the ordinary ones. Kept separate
+        because the escaping build now fails, and a test that asserts both
+        a refusal and a success on one build can only assert one of them."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\nkicker: F\n## Fiche\nfact-label: L\n\n'
+            '![ok](img/red.png)\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(str(Path(tmp) / 'series'), md)
+            (root / 'articles' / 'img').mkdir()
+            (root / 'articles' / 'img' / 'red.png').write_bytes(
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+                b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
+                b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
+                b'\x8d\xa5K>\x00\x00\x00\x00IEND\xaeB`\x82')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--inline-images')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('data:image/png;base64,', html)
+            self.assertNotIn('src="img/', html)
 
     def test_inline_images_off_by_default(self):
         # Without --inline-images: images stay as relative paths and
@@ -4440,6 +4621,73 @@ class CheckDrift(unittest.TestCase):
             result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[DRIFT]', result.stdout)
+
+
+class TheNonBreakingSpaceIsWrittenSoItCannotBeLost(unittest.TestCase):
+    """The typography engine is the tool's strong suit, and its whole
+    effect rides on one character nobody can see.
+
+    §19.3.1 required U+00A0 to be written as an escape and claimed both
+    built-in packs did so "for this reason, learned by losing it".
+    Measured before this lot: 0 occurrences of the escape in the
+    executable, 18 of the literal character. The rule was stated and not
+    applied, which is worse than either — so both packs were converted and
+    these two guards were written, because the rule without a guard is how
+    it drifted the first time (BACKLOG B25)."""
+
+    def test_no_literal_non_breaking_space_survives_in_the_source(self):
+        """A literal U+00A0 is indistinguishable from a space on screen.
+        It does not show in a diff, an editor can normalise it away, a
+        copy through a terminal or a web form can drop it. If one is lost,
+        the rule still runs, the build stays green, and the typography
+        simply stops working — a `50 %` that breaks across a line, a `?`
+        that starts one alone. Nothing else would notice."""
+        source = EXECUTABLE.read_text(encoding='utf-8')
+        stray = [i + 1 for i, line in enumerate(source.split('\n'))
+                 if ' ' in line]
+        self.assertEqual(stray, [],
+                         'literal U+00A0 in the executable at line(s) '
+                         f'{stray} — write it as the six-character escape '
+                         'so a diff can show it')
+
+    def test_every_nbsp_rule_actually_emits_a_non_breaking_space(self):
+        """The escape guard above protects the writing; this one protects
+        the effect. Between them a rule cannot become a no-op unnoticed:
+        one catches a character silently lost, the other a rule that stops
+        producing what its name promises."""
+        lwp = load_lightwebpres_module()
+        cases = {
+            'nbsp_before_double_punctuation': 'Vraiment ?',
+            'nbsp_after_opening_quote': '« bonjour',
+            'nbsp_inside_dash_incise': 'Paris — capitale — France',
+            'nbsp_before_lone_dash': 'word — rest',
+            'nbsp_before_percent': '50 %',
+            'nbsp_thousands_separator': '170 000 vues',
+            'nbsp_before_unit': '170 millions',
+            'nbsp_after_operator': '≈ 5',
+            'nbsp_before_metric_unit': '5 km',
+            'nbsp_before_unit_word': '20 dollars',
+            'nbsp_between_initials': 'J. R. R. Tolkien',
+        }
+        seen = set()
+        for pack_json in (lwp.LANG_FR, lwp.LANG_EN):
+            pack = json.loads(pack_json)
+            for rule in pack['rules']:
+                name = rule['name']
+                if not name.startswith('nbsp_'):
+                    continue
+                seen.add(name)
+                self.assertIn(name, cases,
+                              f'{name} has no control string here — add one '
+                              'rather than leave the rule unguarded')
+                engine = lwp.TypoEngine({'rules': [rule]})
+                out = engine.apply(cases[name])
+                self.assertIn(' ', out,
+                              f'{name} produced no non-breaking space on '
+                              f'{cases[name]!r}: got {out!r}')
+        self.assertGreaterEqual(len(seen), 8,
+                                'the scan found too few nbsp rules to be '
+                                f'measuring anything real: {sorted(seen)}')
 
 
 class RemainingTypographyRules(unittest.TestCase):

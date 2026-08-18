@@ -1123,7 +1123,7 @@ say so (a warning naming the flag), make it reachable (promote
 `dark_background` to a property, which the §9 engine could carry), or
 document it as a limit in the GUIDE. It is currently none of the three.
 
-## B22 — `--version` after a command is a silent no-op — OPEN
+## B22 — `--version` after a command is a silent no-op — FIXED in v0.37.0
 
 `--version` is declared a global option: §2.4.1 promised all eight are
 accepted "before or after" the command, and that no command can refuse
@@ -1150,12 +1150,20 @@ nothing — the exact failure the rule exists to forbid, sitting inside the
 rule's own section. `--help` has the same shape, but `-h` after a command
 does print the command's help, so only `--version` is affected.
 
-Three ways out: make the post-command parser act on it (short-circuit
-before dispatch), refuse it after a command as an unknown option, or
-declare in §2.4.1 that these two are head-of-line only. The spec now
-documents the behaviour as it is; the code is unchanged.
+**Resolved by refusing it.** The table conflated two natures: six
+modifiers, for which "before or after" is a real convenience, and two
+actions that replace the command rather than modify it. `--help` earns its
+post-command position because there it means the help OF that command;
+`--version` has no contextual meaning, so honouring it after a command
+would silently discard the command typed. It is now refused by name, with
+a message pointing at `lightwebpres --version`. Reference practice is split
+the same way — `git commit --version` refuses, `curl` and `tar`
+short-circuit — and only `git log`'s accept-and-ignore matched what this
+did. `_GLOBAL_MODIFIERS` and `_GLOBAL_ACTIONS` now carry the distinction in
+the code. The `--` terminator, which the `--help` check had been ignoring,
+covers both actions.
 
-## B23 — `--inline-images` does not reach an included article's images — OPEN
+## B23 — `--inline-images` does not reach an included article's images — FIXED in v0.37.0
 
 `--inline-images` promises "a single self-contained HTML file" (§8.4).
 For an image written in a slide, it delivers: measured, a 309-byte SVG
@@ -1173,31 +1181,71 @@ That is worse than the missing feature: the option's whole point is that
 the file travels alone, and the one configuration where it silently
 fails to is the one an author reaches for when the article is long.
 
-The fix is a one-line change at the call site. It is filed rather than
-done because it is a behaviour change to a build flag, and because the
-invariant deserves a guard at build time — a page that claims to be
-self-contained and still carries a relative `src` should not build
-quietly.
+**Resolved, and guarded.** The call site now passes `inline_images=` and
+`articles_dir=` like every other. The invariant got the build-time guard it
+deserved: `validate_self_contained` fails the build when a page built with
+`--inline-images` still carries a relative `src`, naming the file and the
+paths. Two cases reach it — raw `<img>` HTML, which the converter never
+touches by design, and an image the containment guard refused, whose `src`
+survives its warning. Both would ship a dangling reference.
 
-## B24 — A footnote label outside `\w+` fails silently, all the way to the reader — OPEN
+Worth recording: the full suite passed with the one-line fix reverted. The
+defect had no guard at all, which is why two were written.
 
-§6.5 says the footnote label is free, "a key, nothing else". It is free
-within one limit the section did not state: the engine's two patterns are
-`\[\^(\w+)\]` for the call and `^\[\^(\w+)\]:` for the body. Unicode word
-characters only — accents work, `[^éà]` resolves; hyphens, spaces and
-punctuation do not.
+## B24 — `audit` inspects a poorer representation than the one that builds the page — DECISION PENDING
 
-Measured: `[^a-b]` in a slide emits the literal text `note[^a-b]` in the
-page, and its body renders as an ordinary paragraph `<p>[^a-b]: …</p>`.
-`audit` reports **0** warnings on that file. Exit 0, twice.
+Filed first as a small defect: a footnote label outside `\w+` reaches the
+reader as literal text, and `audit` reports nothing. Measured: `[^a-b]` in
+a slide publishes the literal string `note[^a-b]`, its body renders as an
+ordinary paragraph, `audit` emits **0** warnings, exit 0 twice.
 
-Everywhere else in the format a typo is named — an unknown slide type, an
-unknown field, an unknown meta key since v0.36.0. This is the one place a
-mistyped key reaches the published page as visible garbage. `audit` is the
-right home for it: a call or a body matching `\[\^` but not `\[\^\w+\]`
-is a warning with the article and the label.
+It is not a small defect. It is the visible end of a structural one, and
+the right entry is the structure.
 
-## B25 — Two rules the project states and does not follow — OPEN
+**Where each command stops.** Measured by reading the call graph:
+
+| command | goes as far as | writes |
+|---|---|---|
+| `audit` | `parse_markdown_extended` — the syntax tree | nothing |
+| `verify` | **the full render** (`build_article`, `build_index`) | nothing |
+| `build` | the full render | everything |
+
+`audit` never calls `convert_markdown`. The footnote pattern
+(`\[\^(\w+)\]`) lives inside it. So the label defect is not a check
+somebody forgot to write — it is **unreachable** from where `audit`
+stands, along with every other fault produced at render time.
+
+**The shape that would fix it already exists in the repo.** `verify` is
+literally "build without writing": it calls the same `build_article` and
+`build_index`, holds the HTML in memory, and compares it to what is on
+disk. What separates it from what `audit` needs is not the mechanism but
+the purpose — it compares where `audit` would report.
+
+**The decision.** Raise `audit` to the level `verify` already occupies:
+one render pipeline, warnings collected during the render instead of by a
+separate pass over a poorer tree. Against it, honestly:
+
+- `audit` becomes as slow as a build. Today it is the cheap command an
+  author runs constantly.
+- The render functions return HTML and report nothing. Collecting
+  warnings through them needs a channel — a scope object threaded down,
+  or a module-level collector, both of which touch a lot of code.
+- Three commands would share one path, so a bug in it is a bug in all
+  three. That is the point, and also the risk.
+
+For it: every fault produced at render time becomes auditable at once,
+and the failure mode this entry documents — *the guard looks at a
+representation poorer than the one that makes the page* — stops being
+available. It is the same class as B21: not a missing check, a place
+where a check cannot see.
+
+**Until it is decided**, the narrow fix stands on its own and does not
+prejudge it: a call or a body matching `\[\^` but not `\[\^\w+\]` is a
+warning naming the article and the label. It can be written inside
+`audit`'s current pass, since detecting the *shape* of a broken label
+needs no render — only resolving it does.
+
+## B25 — Two rules the project states and does not follow — HALF FIXED in v0.37.0
 
 Two invariants written down as requirements, neither applied nor guarded.
 Filed together because they share a shape: a rule that reads as settled
@@ -1214,6 +1262,14 @@ either. §19.3.1 now records it as a known, untreated risk. Converting the
 two packs is mechanical; the guard is a test asserting no literal U+00A0
 in the pack literals.
 
+**Done in v0.37.0.** Both packs converted (18 occurrences), `init`
+propagates the escape into the file it writes, and two guards hold the two
+halves: one refuses a literal U+00A0 anywhere in the executable, the other
+asserts every `nbsp_*` rule still emits a non-breaking space on a control
+string. The first protects the writing, the second the effect — a rule can
+no longer become a no-op unnoticed. The engine's output on thirteen
+control strings is byte-identical before and after.
+
 **`_validate_zip_members` is shared without being declared shared.**
 §23.1 claimed the only module-level names that could collide between
 `web/app.py` and `web/git_sync.py` were prefixed apart. A third is not:
@@ -1222,5 +1278,6 @@ module level in both. `index.html` executes `app.py` then `git_sync.py`
 in one namespace, so the second definition wins. Compared by AST with
 docstrings stripped, the two bodies are **identical** today — so it is
 inert, and inert by coincidence. It is a security guard; the two copies
-diverging would be silent. Either prefix it like the other two, or keep
-it shared and add the test that asserts the bodies match.
+diverging would be silent. Either prefix it like the other two, or keep it
+shared and add the test that asserts the bodies match. **Still open**: it
+lives in `web/`, not in the executable, and it wants its own lot.

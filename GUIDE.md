@@ -96,8 +96,15 @@ single self-contained file.
 
 `--inline-images` embeds images as base64 data URIs so the HTML needs
 no `img/` directory at all — useful for emailing a single file or
-hosting where only static HTML is served. The HTML grows ~33% per
-image; a serving gzip recovers the overhead.
+hosting where only static HTML is served. The HTML grows about a third
+per image; a serving gzip recovers the overhead. It covers images in a
+card and images in a file a `full-article` card pulls in, alike.
+
+One thing it cannot inline: an `<img>` you write as raw HTML rather than
+in Markdown. The converter passes raw HTML through untouched by design,
+so such an image would keep a relative path to a directory this option
+does not create. The build refuses rather than shipping a page with a
+dangling reference, and names the file and the path.
 
 `build` also accepts a handful of switches that change what it writes:
 `--no-index` (skip `index.html`), `--no-readme` (skip the generated

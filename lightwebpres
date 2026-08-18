@@ -84,7 +84,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.36.0"
+VERSION = "0.37.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -1061,56 +1061,56 @@ LANG_FR = r'''{
       "name": "nbsp_before_double_punctuation",
       "description": "Non-breaking space before ; : ! ? »",
       "pattern": " ([!?;:»])",
-      "replacement": " $1",
+      "replacement": "\u00a0$1",
       "flags": "g"
     },
     {
       "name": "nbsp_after_opening_quote",
       "description": "Non-breaking space after «",
       "pattern": "(«) ",
-      "replacement": "$1 ",
+      "replacement": "$1\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_inside_dash_incise",
       "description": "Paired em/en dash incise: non-breaking space after the opening dash and before the closing one, so neither dash is ever separated from the incise it frames. The outer spaces stay breakable — Imprimerie nationale.",
       "pattern": "([—–]) ([^—–]*?) ([—–])",
-      "replacement": "$1 $2 $3",
+      "replacement": "$1\u00a0$2\u00a0$3",
       "flags": "g"
     },
     {
       "name": "nbsp_before_lone_dash",
       "description": "An unpaired em/en dash binds to the word before it, so it can never begin a line. Skips a dash already bound to what follows by the incise rule above.",
-      "pattern": "(?<=\\S) ([—–])(?! )",
-      "replacement": " $1",
+      "pattern": "(?<=\\S) ([—–])(?!\u00a0)",
+      "replacement": "\u00a0$1",
       "flags": "g"
     },
     {
       "name": "nbsp_before_percent",
       "description": "Non-breaking space before %",
       "pattern": " %",
-      "replacement": " %",
+      "replacement": "\u00a0%",
       "flags": "g"
     },
     {
       "name": "nbsp_thousands_separator",
       "description": "Non-breaking space between groups of 3 digits in an already-spaced number (e.g. '170 000' -> nbsp between groups; does not add grouping to '170000')",
       "pattern": "(?<=\\d) (?=\\d{3}(?!\\d))",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_before_unit",
       "description": "Non-breaking space between a number and a following unit word or symbol (million(s), milliard(s), dollar(s), $)",
       "pattern": "(?<=\\d) (?=(?:millions?|milliards?|dollars?)\\b|\\$)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_after_operator",
       "description": "Non-breaking space between × or ≈ and a following number",
       "pattern": "(?<=[×≈]) (?=\\d)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     }
   ],
@@ -1173,42 +1173,42 @@ LANG_EN = r'''{
       "name": "nbsp_inside_dash_incise",
       "description": "Same rule as French, and for the same reason: it protects a space that is already there rather than changing what is written. Inert on a closed-up dash (Chicago style, word—word: no space to bind), protective on a spaced one (AP style and most web writing, word — word), which orphans exactly as readily in English as in French.",
       "pattern": "([—–]) ([^—–]*?) ([—–])",
-      "replacement": "$1 $2 $3",
+      "replacement": "$1\u00a0$2\u00a0$3",
       "flags": "g"
     },
     {
       "name": "nbsp_before_lone_dash",
       "description": "An unpaired spaced dash binds to the word before it, so it can never begin a line.",
-      "pattern": "(?<=\\S) ([—–])(?! )",
-      "replacement": " $1",
+      "pattern": "(?<=\\S) ([—–])(?!\u00a0)",
+      "replacement": "\u00a0$1",
       "flags": "g"
     },
     {
       "name": "nbsp_before_metric_unit",
       "description": "Non-breaking space between a number and a following SI/metric unit symbol (km, m, g, L, s, °C, …) — the SI convention is a space, kept non-breaking so the value never splits across a line. Upgrades an existing normal space only.",
       "pattern": "(?<=\\d) (?=(?:km|cm|mm|nm|µm|kg|mg|mL|µL|L|s|ms|µs|min|h|W|kW|MW|J|kJ|N|Pa|kPa|Hz|kHz|MHz|GHz|°C|°F|K|B|kB|MB|GB|TB|kb|Mb|Gb|m|g)\\b)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_before_unit_word",
       "description": "Non-breaking space between a number and a following unit word (thousand(s), million(s), billion(s), trillion(s), dollar(s)). Upgrades an existing normal space only.",
       "pattern": "(?<=\\d) (?=(?:thousand|million|billion|trillion|dollar)s?\\b)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_between_initials",
       "description": "Non-breaking space between two single-letter initials (e.g. 'J. K. Rowling') so an initial is never orphaned from the next. Upgrades an existing normal space only.",
       "pattern": "(?<=\\b[A-Z]\\.) (?=[A-Z]\\.)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     },
     {
       "name": "nbsp_after_operator",
       "description": "Non-breaking space between × or ≈ and a following number in math expressions. Upgrades an existing normal space only.",
       "pattern": "(?<=[×≈]) (?=\\d)",
-      "replacement": " ",
+      "replacement": "\u00a0",
       "flags": "g"
     }
   ],
@@ -9755,6 +9755,36 @@ class _HtmlBalanceChecker(HTMLParser):
         self.stack.pop()
 
 
+_RELATIVE_SRC_RE = re.compile(r'<img\b[^>]*?\bsrc="(?!data:|https?://|//)([^"]*)"',
+                              re.IGNORECASE)
+
+
+def validate_self_contained(html, filename):
+    """Fatal if a page built with --inline-images still points outside itself.
+
+    The option's whole contract is that the file travels alone (§8.4), and
+    `img/` is deliberately not copied when it is on — so a surviving
+    relative `src` is not a cosmetic miss, it is a dangling reference in a
+    page that claims to have none. It went unnoticed for as long as it did
+    because a `public/img/` left behind by an earlier ordinary build keeps
+    the image showing; the breakage only appears on a clean deploy, which
+    is exactly when this option is reached for (BACKLOG B23).
+
+    Raw HTML written by the author (§6.2) is not converted and so is not
+    inlined either; it is caught here rather than silently shipped, and the
+    message says what to do about it."""
+    stray = _RELATIVE_SRC_RE.findall(html)
+    if not stray:
+        return
+    log('error', f'{filename}: --inline-images left {len(stray)} image(s) '
+                 f'pointing outside the page ({", ".join(stray[:3])}'
+                 f'{", …" if len(stray) > 3 else ""}). The image directory is '
+                 'not copied when this option is on, so the page would ship '
+                 'broken. Raw <img> written as HTML is never inlined — use '
+                 'Markdown image syntax, or build without --inline-images.')
+    sys.exit(1)
+
+
 def validate_html(html_text, filename):
     """Rejects generated HTML that isn't well-formed (mismatched or
     unclosed tags) — a bug in a template or in convert_markdown() must
@@ -9938,9 +9968,17 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                  else NoteScope('article', tooltip=notes_tooltip))
                 slide_typo_engine = typo_engine_for_slide(
                     slide, article_typo_engine, article_lang_tag_engines)
+                # inline_images/articles_dir travel here too. Omitting them
+                # was not a missing feature but a broken promise: the images
+                # of a `full-article` include kept a relative src while
+                # `public/img/` was deliberately not copied, so the one
+                # option whose whole contract is "this file travels alone"
+                # produced a page with a dangling reference (BACKLOG B23).
                 article_html = convert_markdown(article_md, slide_typo_engine,
                                                 disabled_rules, article_notes,
-                                                strings)
+                                                strings,
+                                                inline_images=inline_images,
+                                                articles_dir=articles_dir)
             except PropertyError as exc:
                 log('error', f'{slide.article_file}: {exc}')
                 sys.exit(1)
@@ -10041,6 +10079,8 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     })
 
     validate_html(html, current_file)
+    if inline_images:
+        validate_self_contained(html, current_file)
     return html
 
 
@@ -13762,7 +13802,8 @@ OPTIONS
   --dry-run
     Global: journal writes without touching the disk
   --version
-    Print the version and exit
+    Print the version and exit. Head of the line only: it replaces the
+    command rather than modifying one, so it is refused after a command
   --output public/
     demo/build/verify/watch: output directory (default: public/).
     A relative path is resolved against the directory you run from,
@@ -14061,8 +14102,21 @@ _COMMAND_OPTIONS = {
 # Options accepted BEFORE the command (git-style): --lang, the logging
 # switches and --version/--help act immediately. The option nearest the
 # command wins (DECISION §2: precedence).
-_GLOBAL_OPTIONS = frozenset({'--lang', '--quiet', '--verbose', '--no-color',
-                             '--timestamp', '--dry-run', '--version', '--help'})
+#
+# Two natures share this table, and conflating them is what let `build s
+# --version` build the series and print nothing. A MODIFIER changes how a
+# command runs, so "before or after" is a real convenience: `build s
+# --quiet` and `--quiet build s` are the same run. An ACTION replaces the
+# command; honouring it after one would mean discarding the request the
+# user actually typed. `--help` is the exception that proves it: after a
+# command it has a contextual meaning -- the help OF that command -- so it
+# earns its position, and main() answers it before dispatch. `--version`
+# has no contextual meaning, so it is refused after a command by name
+# rather than accepted and ignored (BACKLOG B22).
+_GLOBAL_MODIFIERS = frozenset({'--lang', '--quiet', '--verbose', '--no-color',
+                               '--timestamp', '--dry-run'})
+_GLOBAL_ACTIONS = frozenset({'--version', '--help'})
+_GLOBAL_OPTIONS = _GLOBAL_MODIFIERS | _GLOBAL_ACTIONS
 _GLOBAL_FLAGS = frozenset({'--quiet', '--verbose', '--no-color', '--timestamp',
                            '--dry-run', '--version', '--help'})
 _GLOBAL_VALUES = frozenset({'--lang'})
@@ -14377,6 +14431,20 @@ def parse_cli_options(command, rest, global_opts=None):
     return opts, positional
 
 
+def _flag_before_terminator(args, names):
+    """True if any of `names` appears in `args` before a bare `--`.
+
+    Everything after the terminator is a positional, whatever it looks
+    like (§2.4.1). Scanning the whole list instead made `build -- --help`
+    print help for a directory literally named `--help`."""
+    for arg in args:
+        if arg == '--':
+            return False
+        if arg in names:
+            return True
+    return False
+
+
 def _parse_global_options(args):
     """Consumes global options (git-style) from the front of `args` until a
     non-option is met. Returns (global_opts, remaining).
@@ -14439,10 +14507,22 @@ def main():
     command, rest, is_legacy = _resolve_command(args)
     # `<command> --help`, in any position after the command. Honouring it
     # only in leading position made the most reflexive keystroke in a
-    # nested grammar a hard error.
-    if command is not None and any(a in ('--help', '-h') for a in rest):
+    # nested grammar a hard error. Only up to `--`: after the terminator a
+    # token that looks like a flag is a positional, and answering it with
+    # help would be answering a question nobody asked.
+    if command is not None and _flag_before_terminator(rest, ('--help', '-h')):
         print_command_help(command)
         return
+    # `<command> --version` is the other half of that table, and it does not
+    # get the same treatment (BACKLOG B22). The version does not depend on
+    # the command, so there is nothing contextual to report; printing it and
+    # exiting would silently drop the command the user typed. It was
+    # accepted and ignored until v0.37.0 -- the one silent no-op inside the
+    # section that forbids silent no-ops.
+    if command is not None and _flag_before_terminator(rest, ('--version',)):
+        log('error', '--version reports the version and exits; it does not '
+                     'modify a command. Run `lightwebpres --version`.')
+        sys.exit(1)
     if command is None:
         if args:
             log('error', f'Unknown command: {args[0]}')
