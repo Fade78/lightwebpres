@@ -6119,6 +6119,78 @@ class GalleryPreviewIsARealCard(unittest.TestCase):
         self.assertGreaterEqual(len(set(stated)), 5)
 
 
+class TheMitNoticeTravelsWithEveryCopyItIsRequiredTo(unittest.TestCase):
+    """THIRD-PARTY-NOTICES.md makes a legal claim, and until now the only
+    thing keeping it true was a sentence asking a human not to delete a
+    comment.
+
+    The QR encoder is Kazuhiko Arase's, under MIT, and MIT requires the
+    copyright and permission notice to travel with every copy. This code is
+    copied twice over by ordinary use: `init` writes it into the series as
+    `templates/nav.js`, and every build inlines it into every page. A notice
+    kept only in THIRD-PARTY-NOTICES.md would be left behind by the very act
+    of using the tool — which is exactly why that file says the notice lives
+    in the template instead, and asks whoever edits `TEMPLATE_NAV_JS` not to
+    move it.
+
+    An instruction in prose is not a guarantee. This is the guarantee: the
+    three places the document promises, checked where the copy actually
+    lands."""
+
+    ATTRIBUTION = 'Kazuhiko Arase'
+    MARKER = 'qrEncode'   # the encoder itself, not its notice
+
+    def test_the_notice_is_in_the_template_the_executable_ships(self):
+        self.assertIn(self.ATTRIBUTION, EXECUTABLE.read_text(encoding='utf-8'),
+                      'the MIT attribution left the executable')
+
+    def test_the_notice_reaches_a_scaffolded_series_and_a_built_page(self):
+        """Through the real `init` and the real `demo`, not the test
+        fixture: the fixture writes a bare series and never produces
+        `templates/nav.js`, which is precisely the file the notice has to
+        reach. Checking it against a fixture would pass without ever
+        exercising the copy the licence is about."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            done = run('init', str(root))
+            self.assertEqual(done.returncode, 0, done.stderr)
+            nav = root / 'templates' / 'nav.js'
+            self.assertTrue(nav.exists(), 'init wrote no templates/nav.js')
+            self.assertIn(self.ATTRIBUTION, nav.read_text(encoding='utf-8'),
+                          'the notice does not travel into a scaffolded series')
+            done = run('demo', str(root))
+            self.assertEqual(done.returncode, 0, done.stderr)
+            pages = sorted((root / 'public').glob('*.html'))
+            self.assertTrue(pages, 'demo built no page')
+            # The invariant is that the CODE and the NOTICE travel
+            # together, which is what MIT asks and is narrower than "every
+            # page carries the notice": `index.html` inlines its own
+            # script and no encoder, so it has nothing to attribute. Stated
+            # this way the check stays right if the encoder ever reaches
+            # more pages or fewer.
+            carrying = 0
+            for page in pages:
+                text = page.read_text(encoding='utf-8')
+                if self.MARKER not in text:
+                    continue
+                carrying += 1
+                self.assertIn(self.ATTRIBUTION, text,
+                              f'{page.name} carries the encoder without its '
+                              f'MIT notice')
+            self.assertGreater(carrying, 0,
+                               'no built page carries the encoder -- the '
+                               'marker is wrong, not the licensing')
+
+    def test_the_notices_file_still_names_the_work_and_its_licence(self):
+        """If the encoder is ever replaced, this fails and the notices file
+        is revisited on purpose rather than left describing code that has
+        gone."""
+        notices = (EXECUTABLE.parent / 'THIRD-PARTY-NOTICES.md').read_text(
+            encoding='utf-8')
+        self.assertIn(self.ATTRIBUTION, notices)
+        self.assertIn('MIT', notices)
+
+
 class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
     """agent/skills/lightwebpres/SKILL.md is the only reference an agent
     reads before writing an article. Anything reachable from the Markdown
@@ -6213,9 +6285,47 @@ class SkillDocumentsWhatTheCodeAccepts(unittest.TestCase):
         self.assertNotIn('Nothing here is ever a fatal build error', self.skill)
 
     def test_the_skill_names_no_field_the_parser_does_not_know(self):
-        """The frontmatter advertised a `slide_title:` field that has
-        never existed; an agent that skims only the description emits it,
-        and free text on a cover slide is fatal."""
+        """The other direction, and it used to be a single string.
+
+        The rest of this class checks that the skill names everything the
+        engine accepts. This one checks the reverse — that it invents
+        nothing — and for a long time it did so by asserting the absence of
+        one historical name, `slide_title:`, advertised in the frontmatter
+        though it never existed. A test whose name promises a rule and
+        whose body pins one past case is the shape that lets the next case
+        through: adding a fabricated field to the skill left it green.
+
+        Scanned inside FENCED BLOCKS only. That is what an agent copies,
+        and it is what makes the check possible at all — prose legitimately
+        names retired fields (`tag:` has a migration note) and deliberate
+        error examples, so scanning the whole file would report the skill
+        for doing its job. Measured on the current text: eleven fields are
+        written in blocks and every one is real.
+
+        The vocabulary is the union of the global field list, the article
+        meta keys, and each slide type's OWN fields — `article:` belongs
+        only to `full-article` and is in none of the first two, so a check
+        built on the global list alone reports a real field as an
+        invention."""
+        known = (set(self.lwp.SLIDE_FIELD_NAMES)
+                 | set(self.lwp.ARTICLE_META_KEYS)
+                 | {f for st in self.lwp.SLIDE_TYPES for f in (st.fields or ())})
+        blocks = re.findall(r'```[a-z]*\n(.*?)```', self.skill, re.S)
+        self.assertGreater(len(blocks), 5,
+                           'no fenced blocks found -- the scan is broken, '
+                           'not the skill')
+        invented = {}
+        for block in blocks:
+            for line in block.split('\n'):
+                m = re.match(r'^([a-z][a-z0-9_-]*):(?:\s|$)', line)
+                if m and m.group(1) not in known \
+                        and not m.group(1).startswith('style.'):
+                    invented[m.group(1)] = line.strip()[:60]
+        self.assertEqual(invented, {},
+                         'the skill writes a field the parser never heard of')
+        # The case that started it, kept by name: it was in the
+        # frontmatter, which is not a fenced block and which the scan above
+        # therefore does not reach.
         self.assertNotIn('slide_title', self.skill)
 
     def test_the_skill_says_where_the_tool_is_downloaded_from(self):
