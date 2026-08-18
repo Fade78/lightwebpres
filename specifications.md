@@ -2985,17 +2985,40 @@ rien dire. Deux réserves : un dégradé est une `background-image`, donc
 dégradé **sur du texte** exigerait `background-clip: text` — hors
 périmètre, les dégradés sont réservés aux fonds.
 
-**Ombres et halos.** Ombre et halo passent par `text-shadow`, en trois
-axes par composant porteur : `shadow.fg`, `shadow.blur`, `shadow.dy`.
-**Un halo est une ombre sans décalage** — même mécanisme, pas de
-branche, comme l'aplat est un dégradé à bornes égales. Le défaut est
-`transparent` : aucun effet tant qu'un thème n'en demande pas. Trois
-composants portent les axes : `page`, `title1` et `highlight`.
-`text-shadow` étant une propriété **héritée**, les axes posés sur `page`
-teintent tout le texte du site d'un coup — l'effet « aérien » global est
-trois lignes — et les composants qui portent leurs propres axes
-  divergent localement : le halo vert de `terminal` et `code` sur leurs titres
-  et leur chiffre-clé (§9.5.1), sans toucher au corps.
+**Ombres et halos.** Ombre et halo passent par `text-shadow`, en **quatre
+axes** par composant porteur : `shadow.fg`, `shadow.blur`, `shadow.dx` et
+`shadow.dy`. **Un halo est une ombre sans décalage** — même mécanisme, pas
+de branche, comme l'aplat est un dégradé à bornes égales. Le défaut est
+`transparent` : aucun effet tant qu'un thème n'en demande pas.
+
+**Tout composant dont le sélecteur peint du texte porte les axes**, et la
+règle est celle-là, pas une liste. `text-shadow` étant **hérité**, les axes
+posés sur `page` teintent tout le texte du site d'un coup — l'effet
+« aérien » global est trois lignes — et un composant qui pose les siens
+diverge localement : le halo vert de `terminal` sur ses titres et son
+chiffre-clé (§9.5.1), sans toucher au corps.
+
+Ce que l'héritage ne sait pas faire est la raison de la couverture : il
+résout son `em` **une fois**, à la racine, et le propage en longueur
+absolue. Un halo de 0,13em fait donc 2,1 px sur un titre de fiche de 42 px
+comme sur un kicker de 13 px. Mesuré en flou rapporté à la taille rendue,
+le titre de fiche était le plus mal servi de tout le tableau — 0,05 contre
+0,26 pour `h1` — et c'est un titre. Un halo n'est proportionnel au glyphe
+que là où le composant déclare le sien (B20).
+
+**Un conteneur n'en porte pas**, et c'est la même propriété qui l'exige :
+un halo posé sur `.fact-box` atteint le code, les tables et les appels de
+note qu'elle contient, ce qui est un autre instrument et non une maille
+plus fine. `code` et `sup` n'en portent pas davantage — 2 px de bave sur
+des fûts de 1 px, et le plus petit glyphe de la page est celui dont le
+métier est d'être trouvable. Chaque exclusion porte sa raison et un test
+lit le registre contre elles, si bien qu'un composant ajouté demain tombe
+dans une colonne ou fait échouer.
+
+**Un composite d'ombre de texte n'est pas émis tant qu'il est à son
+défaut**, et ce n'est pas une économie : `text-shadow` étant hérité,
+émettre `0 0 0 transparent` ne peint pas rien, cela **bloque** ce que la
+page a posé. Ne rien dire est la seule façon de dire « hérite ».
 
 Le barré appartient à l'énumération de décoration (`line-through`), qui
 sert aussi aux balises d'instance (§9.6.3).

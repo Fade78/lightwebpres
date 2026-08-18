@@ -467,7 +467,11 @@ appended last so it wins ties. Effects are properties too: a halo is a
 shadow with no offset, which is how the `terminal` theme gets its
 phosphor glow (`title1.shadow.fg: #33FF8866`) on an all-monospace page —
 three font lines and a halo in its theme layer, no special case in the
-engine. The page/index HTML structure itself is fixed, not a template,
+engine. Every component that paints text carries the four halo axes
+(`fg`, `blur`, `dx`, `dy`), because `text-shadow` is inherited and an
+inherited one resolves its `em` once at the root: it can tint a whole
+site at a stroke, but it cannot be proportional to the glyph. Only a
+component's own can. The page/index HTML structure itself is fixed, not a template,
 so a build can't be broken by a malformed structural override.
 
 Dozens of colour themes are preconfigured. Some borrow known editor
