@@ -471,7 +471,12 @@ engine. Every component that paints text carries the four halo axes
 (`fg`, `blur`, `dx`, `dy`), because `text-shadow` is inherited and an
 inherited one resolves its `em` once at the root: it can tint a whole
 site at a stroke, but it cannot be proportional to the glyph. Only a
-component's own can. The page/index HTML structure itself is fixed, not a template,
+component's own can. Depth is a property too: every component the sheet
+lifts off the page — cards, series links, navigation buttons, the
+overlays — carries five elevation axes (`fg`, `blur`, `dx`, `dy`,
+`spread`), at rest and under the pointer, so a dark theme can tune a
+shadow that was black at an opacity chosen against a white page. The
+page/index HTML structure itself is fixed, not a template,
 so a build can't be broken by a malformed structural override.
 
 Dozens of colour themes are preconfigured. Some borrow known editor

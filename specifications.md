@@ -3020,6 +3020,48 @@ défaut**, et ce n'est pas une économie : `text-shadow` étant hérité,
 émettre `0 0 0 transparent` ne peint pas rien, cela **bloque** ce que la
 page a posé. Ne rien dire est la seule façon de dire « hérite ».
 
+**Élévations.** La profondeur passe par `box-shadow`, en **cinq axes** par
+composant porteur : `elevation.fg`, `elevation.blur`, `elevation.dx`,
+`elevation.dy` et `elevation.spread`. Cinq et non trois : sans `dx` une
+ombre ne peut être portée que vers le bas, ce que personne n'a décidé et
+où l'on est seulement arrivé faute d'avoir eu besoin du cas horizontal, et
+sans `spread` ni l'anneau ni la lévitation douce ne s'expriment. `dx` et
+`spread` valent `0` par défaut, si bien que l'élévation neutre est celle
+que le squelette dessinait.
+
+**Repos et survol sont deux groupes**, sur l'idiome d'état que le registre
+emploie déjà — `elevation` à côté de `elevation-hover`, comme
+`card.rule-fg` à côté de `card.rule-fg-hover`. Le sélecteur de l'état
+voyage avec son groupe : `.series-link` se soulève au focus autant qu'au
+survol, et n'en garder que la moitié serait une régression clavier
+déguisée en refonte.
+
+**Une élévation est toujours émise**, et c'est là qu'elle se sépare du
+halo. `box-shadow` n'étant **pas hérité**, l'émettre à son défaut ne peint
+rien et ne bloque rien — au contraire de `text-shadow` — et une
+déclaration toujours présente est une déclaration que `custom.css`
+surcharge à une spécificité stable.
+
+La raison de la remontée est le catalogue lui-même (B12) : les treize
+ombres que le squelette portait étaient noires, à une opacité choisie
+contre une page blanche, et sur un fond sombre une ombre noire n'est pas
+une ombre, ce n'est rien. Un thème pouvait redessiner l'encre d'une fiche,
+son fond, ses filets et son halo, et pas la seule propriété qui dise à
+quelle hauteur elle flotte. Cinq composants n'existaient pas au registre
+avant cela — le menu d'étiquettes, le compteur de vue, le panneau du
+présentateur, la carte d'aide et la fenêtre du QR — et ils y entrent
+**sans autre propriété que l'élévation** : chacun résout déjà son fond et
+son encre par `inherit`, délibérément, et ce qui leur manquait était l'axe
+de profondeur, rien d'autre.
+
+Une élévation **n'est pas mesurée au contraste** : une ombre portée tombe
+en dehors de la boîte qu'elle soulève, sur un fond que le thème ne possède
+pas, et ne porte aucune information — retirez toutes les ombres de la
+feuille et le lecteur perd de la profondeur, pas un mot. Les dérogations
+sont dérivées de la table des porteurs, comme celles des halos, pour qu'un
+composant ne puisse ni arriver sans la sienne ni la garder après l'avoir
+perdue.
+
 Le barré appartient à l'énumération de décoration (`line-through`), qui
 sert aussi aux balises d'instance (§9.6.3).
 
