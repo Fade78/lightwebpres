@@ -4690,6 +4690,196 @@ class TheNonBreakingSpaceIsWrittenSoItCannotBeLost(unittest.TestCase):
                                 f'measuring anything real: {sorted(seen)}')
 
 
+class AuditSeesWhatABuildSees(unittest.TestCase):
+    """`audit` read the syntax tree and never composed a page, so a whole
+    class of fault was invisible to it — while `--strict` was documented
+    as a CI gate. A pipeline could be green while a build of the same
+    series printed a real warning (BACKLOG B19/B24).
+
+    The partition was measured before the fix rather than recalled: the
+    register claimed ten warning sites "in the build path", when ten is
+    the count in the whole executable and most belong to other commands.
+    Four are what a series can actually raise without audit seeing it, and
+    each has a case here."""
+
+    def _series(self, tmp):
+        root = str(Path(tmp) / 's')
+        self.assertEqual(run('init', root).returncode, 0)
+        self.assertEqual(run('demo', root).returncode, 0)
+        return root
+
+    def _audit(self, root, *extra):
+        plain = run('audit', root, *extra)
+        strict = run('audit', root, '--strict', *extra)
+        return plain, strict
+
+    def test_a_clean_series_stays_clean(self):
+        """The guard that stops every other case here from being vacuous.
+        A gate that fires on a healthy series is noise, and noise is how a
+        gate gets switched off."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 0,
+                             'a healthy series failed --strict:\n'
+                             + plain.stdout + plain.stderr)
+            self.assertIn('No warnings', plain.stdout)
+
+    def test_a_missing_language_pack_reaches_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            plain, strict = self._audit(root, '--lang', 'xx')
+            self.assertIn('no language pack', plain.stderr)
+            self.assertEqual(strict.returncode, 1,
+                             '--strict passed on a warning the build prints')
+
+    def test_fields_parsed_on_a_cover_reach_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            first = Path(root) / 'articles' / 'first.md'
+            first.write_text(
+                first.read_text(encoding='utf-8').replace(
+                    '<!-- lwp:slide:cover -->',
+                    '<!-- lwp:slide:cover -->\nfact-label: X', 1),
+                encoding='utf-8')
+            plain, strict = self._audit(root)
+            self.assertIn('never rendered', plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+
+    def test_an_escaping_image_symlink_reaches_audit(self):
+        """This one needed more than rendering. The refusal lives in
+        copy_images, a write step audit never reaches — but the finding is
+        about the sources an author committed, not about the act of
+        copying. The rule is shared with the copier rather than restated;
+        a security rule written twice is one that will diverge."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            img = Path(root) / 'articles' / 'img'
+            img.mkdir(exist_ok=True)
+            try:
+                (img / 'leak.png').symlink_to('/etc/hostname')
+            except (OSError, NotImplementedError):
+                self.skipTest('symlinks unavailable on this filesystem')
+            plain, strict = self._audit(root)
+            self.assertIn('escaping the image directory', plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            # That audit wrote nothing is asserted on its own fixture
+            # below, not here: `demo` builds, so public/img already
+            # exists and checking it here would assert the fixture.
+
+    def test_a_series_that_cannot_build_is_not_reported_clean(self):
+        """The worst of the four, and the one that reads as a bug even
+        without the gate: audit printed an [ERROR] and then concluded
+        "No warnings: all editorial conventions are respected", exiting 0,
+        on a series no build could produce. A summary contradicting a
+        message three lines above it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            settings = Path(root) / 'templates' / 'settings.conf'
+            settings.write_text(
+                settings.read_text(encoding='utf-8') + '\npage.zzz: #000000\n',
+                encoding='utf-8')
+            self.assertEqual(run('build', root).returncode, 1,
+                             'the premise changed: this still has to be fatal')
+            plain, strict = self._audit(root)
+            self.assertNotIn('No warnings', plain.stdout,
+                             'audit called a series clean that cannot build:\n'
+                             + plain.stdout)
+            self.assertIn('does not build', plain.stdout)
+            self.assertEqual(plain.returncode, 0,
+                             'audit blocked — it must report and continue')
+            self.assertEqual(strict.returncode, 1,
+                             '--strict passed on a series that cannot build')
+
+    def test_a_fatal_render_counts_even_when_it_warns_about_nothing(self):
+        """The case above is not enough on its own, and measuring said so:
+        an unknown property emits a warning AND the fatal error, so the
+        collected count is non-zero whether or not the fatal itself is
+        counted. Mutating the count away left that test green.
+
+        A fatal that warns about nothing is the case that pins it — an
+        unclosed tag is exactly that, measured: build exits 1, and the
+        only warning audit prints is the one saying the series does not
+        build. Remove the count and `--strict` goes green on a series
+        that produces no page at all."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            first = Path(root) / 'articles' / 'first.md'
+            first.write_text(
+                first.read_text(encoding='utf-8')
+                + '\n\n---\n\n<!-- lwp:slide -->\n## T\n\n<div>never closed\n',
+                encoding='utf-8')
+            self.assertEqual(run('build', root).returncode, 1,
+                             'the premise changed: this still has to be fatal')
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.stderr.count('[WARNING]'), 0,
+                             'the premise changed: this fatal now warns too, '
+                             'so it no longer pins the count:\n' + plain.stderr)
+            self.assertIn('does not build', plain.stdout)
+            self.assertEqual(strict.returncode, 1,
+                             '--strict passed on a series that cannot build '
+                             'and warned about nothing else')
+
+    def test_audit_writes_nothing_while_rendering(self):
+        """Rendering to judge must not become building. The promise is not
+        `--dry-run`'s: there is nothing to suppress, because no write is
+        ever attempted."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            shutil.rmtree(Path(root) / 'public', ignore_errors=True)
+            before = sorted(p.relative_to(root).as_posix()
+                            for p in Path(root).rglob('*'))
+            self.assertEqual(run('audit', root).returncode, 0)
+            after = sorted(p.relative_to(root).as_posix()
+                           for p in Path(root).rglob('*'))
+            self.assertEqual(before, after,
+                             'audit created or removed files: '
+                             f'{set(after) ^ set(before)}')
+
+    def test_templates_only_audit_skips_the_render(self):
+        """`--templates` restricts audit to the presentation layer
+        (DECISION-CLI §3). Rendering there would contradict the option's
+        whole purpose, and would drag per-article faults into a run that
+        was asked not to look at articles."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            first = Path(root) / 'articles' / 'first.md'
+            first.write_text(
+                first.read_text(encoding='utf-8').replace(
+                    '<!-- lwp:slide:cover -->',
+                    '<!-- lwp:slide:cover -->\nfact-label: X', 1),
+                encoding='utf-8')
+            scoped = run('audit', root, '--templates')
+            self.assertNotIn('never rendered', scoped.stderr,
+                             '--templates rendered the articles anyway')
+            self.assertEqual(scoped.returncode, 0)
+
+    def test_the_collector_hooks_the_funnel_not_the_sites(self):
+        """The design claim, asserted rather than trusted: warnings are
+        captured because log() is hooked, so a warning added tomorrow is
+        collected tomorrow. An enumeration of sites is what drifted in the
+        register in the first place.
+
+        Also pins the reentrancy refusal: one consumer, and an outer sink
+        silently swallowed by an inner one is the defect this exists to
+        stop."""
+        lwp = load_lightwebpres_module()
+        with lwp.collect_warnings() as sink:
+            lwp.log('warn', 'a warning nobody enumerated')
+            lwp.log('error', 'an error, which is not collected')
+            lwp.log('info', 'progress, which is not collected')
+        self.assertEqual(sink.messages, ['a warning nobody enumerated'])
+        self.assertIsNone(lwp._WARN_SINK, 'the sink outlived its block')
+
+        with self.assertRaises(RuntimeError):
+            with lwp.collect_warnings():
+                with lwp.collect_warnings():
+                    pass
+        self.assertIsNone(lwp._WARN_SINK,
+                          'a refused nesting left the sink installed')
+
+
 class RemainingTypographyRules(unittest.TestCase):
     """§7.2: the two French rules not already covered by
     test_typography_nbsp_before_double_punctuation."""
