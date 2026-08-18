@@ -3728,15 +3728,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Hide the cursor in fullscreen after 1s of idleness — the speaker
-  // does not want a cursor on the wall. Move the mouse to bring it back.
-  var fsCursorTimer = null;
-  function fsScheduleHideCursor() {
-    if (fsCursorTimer) clearTimeout(fsCursorTimer);
-    fsCursorTimer = setTimeout(function () {
-      document.body.style.cursor = 'none';
-    }, 1000);
-  }
+  // The cursor is hidden by the same clock as the navigation chrome,
+  // below: three seconds of stillness, one in fullscreen. It used to
+  // hide in fullscreen alone, which left the page in a state nobody
+  // asked for — the buttons faded on their own and a cursor stayed
+  // sitting in the middle of the text. Two things that answer to
+  // stillness should answer to it together.
   // Require 250ms of continuous movement before the cursor reappears, so
   // a single jitter or a brush past the sensor does not flash it back on
   // the wall.
@@ -3756,13 +3753,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // stop-and-start never accumulates towards the 250.
   var fsMoveStart = 0;
   var fsLastMove = 0;
-  function fsShowCursor() {
+  function revealCursor() {
     var now = Date.now();
     if (now - fsLastMove > 100) fsMoveStart = now;
     fsLastMove = now;
     if (now - fsMoveStart >= 250) {
       document.body.style.cursor = '';
-      fsScheduleHideCursor();
     }
   }
   // Wake lock: prevents the screen from dimming/sleeping while the
@@ -3785,15 +3781,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fs) {
       window.getSelection().removeAllRanges();
       document.body.classList.add('fs-noselect');
-      document.addEventListener('mousemove', fsShowCursor);
-      fsScheduleHideCursor();
       requestWakeLock();
     } else {
-      document.removeEventListener('mousemove', fsShowCursor);
-      if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      fsMoveStart = 0;
-      fsLastMove = 0;
-      document.body.style.cursor = '';
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
@@ -3804,15 +3793,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fs) {
       window.getSelection().removeAllRanges();
       document.body.classList.add('fs-noselect');
-      document.addEventListener('mousemove', fsShowCursor);
-      fsScheduleHideCursor();
       requestWakeLock();
     } else {
-      document.removeEventListener('mousemove', fsShowCursor);
-      if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      fsMoveStart = 0;
-      fsLastMove = 0;
-      document.body.style.cursor = '';
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
@@ -3996,10 +3978,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(function () {
         setNavIdle(true);
+        document.body.style.cursor = 'none';
       }, getIdleDelay());
     }
     document.addEventListener('mousemove', function () {
+      // The buttons come back on the first move; the cursor waits for
+      // movement that lasts. They are not the same promise: a button
+      // appearing costs a glance, a cursor appearing on a wall behind a
+      // speaker costs the room's attention.
       setNavIdle(false);
+      revealCursor();
       scheduleHide();
     });
     // Reschedule on fullscreen change to use the correct delay

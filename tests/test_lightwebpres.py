@@ -7982,7 +7982,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.38.0),
+        by the executable as it stood at the last tagged release (v0.39.0),
         and by this one, compared byte for byte after CSS comments are
         removed from ``<style>`` blocks. Comments are not rendering, while
         every other byte remains covered. --build-stamp is off by default,
@@ -7997,10 +7997,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.38.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.39.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.38.0 tag to read the previous version from')
+            self.skipTest('no v0.39.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -8096,7 +8096,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
             # Deliberate drift since the tag, declared line for line, and
             # empty at the start of a release cycle -- which is where it
-            # is now, freshly repointed at v0.38.0.
+            # is now, freshly repointed at v0.39.0.
             #
             # It exists because the docstring's instruction has a gap.
             # Repointing at the newest tag is the acknowledgement that a
@@ -8127,40 +8127,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # proved by mutation.
             #
             # Entries are variable-name prefixes, e.g. b'--color-nav'.
-            added = {b'--page-shadow-dx', b'--title1-shadow-dx',
-                     b'--highlight-shadow-dx'}
-            # The components that gained the four halo axes (B20), named
-            # one by one rather than read from the module: deriving them
-            # from HALO_COMPONENTS would make this table accept a
-            # thirtieth component silently, which is the one thing it
-            # exists to prevent.
-            for _key in ('slide.num', 'kicker', 'title2', 'summary',
-                         'fact-label', 'source', 'body-heading',
-                         'fact.strong', 'cover.kicker', 'cover.summary',
-                         'cover.num', 'table.head', 'verdict.yes',
-                         'verdict.no', 'verdict.partial', 'caption',
-                         'highlight-caption', 'series-nav.label',
-                         'series-nav.title', 'series-nav.desc',
-                         'series-nav.status', 'card.label', 'card.title',
-                         'card.desc', 'card.cta', 'header.title',
-                         'header.subtitle', 'version-tag', 'nav-btn'):
-                for _axis in (b'fg', b'blur', b'dx', b'dy'):
-                    added.add(b'--' + _key.replace('.', '-').encode()
-                              + b'-shadow-' + _axis)
-            # The components that gained the five elevation axes (B12),
-            # named here for the same reason and with the same refusal to
-            # read them off ELEVATION_COMPONENTS. Ten at rest, three of
-            # them with a hover set as well.
-            for _key in ('fact', 'card', 'series-nav.link', 'nav-btn',
-                         'slide-counter', 'tag-menu', 'share',
-                         'presenter-panel', 'help-card', 'share.qr'):
-                _groups = [b'-elevation-']
-                if _key in ('card', 'series-nav.link', 'nav-btn'):
-                    _groups.append(b'-elevation-hover-')
-                for _group in _groups:
-                    for _axis in (b'fg', b'blur', b'dx', b'dy', b'spread'):
-                        added.add(b'--' + _key.replace('.', '-').encode()
-                                  + _group + _axis)
+            added = set()
 
             # Deliberate RULE-level drift, and the third thing the two
             # tables above cannot say. `drift` substitutes a line for a
@@ -8193,73 +8160,14 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # `text-shadow` at its default does not paint nothing, it
             # BLOCKS what the page set, and twenty-nine components were
             # about to start doing that (B20).
-            gone = {
-                b'text-shadow: 0 var(--page-shadow-dy) '
-                b'var(--page-shadow-blur) var(--page-shadow-fg);',
-                b'text-shadow: 0 var(--title1-shadow-dy) '
-                b'var(--title1-shadow-blur) var(--title1-shadow-fg);',
-                b'text-shadow: 0 var(--highlight-shadow-dy) '
-                b'var(--highlight-shadow-blur) var(--highlight-shadow-fg);',
-                # The thirteen fixed elevations that left the skeleton for
-                # the registry (B12). Twelve strings, not thirteen: .fact-box
-                # and .article-card carried the same shadow byte for byte,
-                # which is the twin case the caution above describes.
-                b'box-shadow: 0 1px 8px rgba(0,0,0,0.06);',
-                b'box-shadow: 0 2px 12px rgba(0,0,0,0.08);',
-                b'box-shadow: 0 4px 16px rgba(0,0,0,0.12);',
-                b'box-shadow: 0 2px 8px rgba(0,0,0,0.10);',
-                b'box-shadow: 0 4px 14px rgba(0,0,0,0.15);',
-                b'box-shadow: 0 4px 18px rgba(0,0,0,0.18);',
-                b'box-shadow: 0 1px 6px rgba(0,0,0,0.10);',
-                b'box-shadow: 0 -4px 22px rgba(0,0,0,0.20);',
-                b'box-shadow: 0 8px 40px rgba(0,0,0,0.25);',
-                b'box-shadow: 0 8px 32px rgba(0,0,0,0.18);',
-                b'box-shadow: 0 8px 32px rgba(0,0,0,0.25);',
-                b'box-shadow: 0 4px 16px rgba(0,0,0,0.10);',
-                # The tag menu's flat geometry, which sized itself against
-                # a navigation column that grows: the numbers cleared it
-                # only at the size floor.
-                b'right: 82px;',
-                b'max-width: min(320px, calc(100vw - 110px));',
-                b'padding: 10px;',
-                b'border-radius: 10px;',
-            }
-            # Lines the NEW page has and the old one did not: the same
-            # thirteen elevations, now read off the registry, on the rule
-            # the engine emits for their component.
-            arrived = {
-                b'box-shadow: var(--%s-dx) var(--%s-dy) var(--%s-blur) '
-                b'var(--%s-spread) var(--%s-fg);' % ((_v.encode(),) * 5)
-                for _v in ('fact-elevation', 'card-elevation',
-                           'card-elevation-hover', 'series-nav-link-elevation',
-                           'series-nav-link-elevation-hover',
-                           'nav-btn-elevation', 'nav-btn-elevation-hover',
-                           'slide-counter-elevation', 'tag-menu-elevation',
-                           'share-elevation', 'presenter-panel-elevation',
-                           'help-card-elevation', 'share-qr-elevation')}
-            # The tag menu's geometry, now derived from the column it sits
-            # beside instead of restated flat.
-            arrived |= {
-                b'right: calc(28px + var(--nav-btn-size) * 2.2 + 12px);',
-                b'border-radius: calc(var(--nav-btn-size) * 0.55);',
-                b'padding: calc(var(--nav-btn-size) * 0.5);',
-                b'max-width: min(320px, calc(100vw - 28px - '
-                b'var(--nav-btn-size) * 2.2 - 40px));',
-            }
-
-            # Arrivals that belong to ONE page. The tables above are
-            # global, and a global declaration cannot say "the index
-            # gained a button the article pages always had" -- named
-            # globally, that line is refused as stale, correctly, because
-            # the released version does carry it, on every article page.
-            # Scoping by file is the smallest thing that lets the guard
-            # state what actually happened.
-            arrived_in = {
-                # Reduced to its identity by the normalisation above,
-                # which is why this reads as a bare element: what is
-                # inside it is another test's business.
-                'index.html': {b'<div class="nav-btn" id="navFullscreen"></div>'},
-            }
+            gone = set()      # lines the OLD page had and the new one does not
+            arrived = set()   # lines the NEW page has and the old one did not
+            # Arrivals and departures that belong to ONE page. The tables
+            # above are global, and a global declaration cannot say "the
+            # index gained a button the article pages always had" --
+            # named globally, such a line is refused as stale, correctly,
+            # because the released version does carry it elsewhere.
+            arrived_in = {}
             gone_in = {}
 
             def strip_added(page):
@@ -8341,7 +8249,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                                  f'{line.decode()!r} is declared arrived and '
                                  f'the released version already had it')
             self.assertEqual(seen, set(drift.items()),
-                             'the drift since v0.38.0 is not the drift this '
+                             'the drift since v0.39.0 is not the drift this '
                              'test declares')
 
     def test_the_page_carries_exactly_the_script_the_tool_ships(self):

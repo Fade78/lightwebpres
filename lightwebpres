@@ -6950,15 +6950,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Hide the cursor in fullscreen after 1s of idleness — the speaker
-  // does not want a cursor on the wall. Move the mouse to bring it back.
-  var fsCursorTimer = null;
-  function fsScheduleHideCursor() {
-    if (fsCursorTimer) clearTimeout(fsCursorTimer);
-    fsCursorTimer = setTimeout(function () {
-      document.body.style.cursor = 'none';
-    }, 1000);
-  }
+  // The cursor is hidden by the same clock as the navigation chrome,
+  // below: three seconds of stillness, one in fullscreen. It used to
+  // hide in fullscreen alone, which left the page in a state nobody
+  // asked for — the buttons faded on their own and a cursor stayed
+  // sitting in the middle of the text. Two things that answer to
+  // stillness should answer to it together.
   // Require 250ms of continuous movement before the cursor reappears, so
   // a single jitter or a brush past the sensor does not flash it back on
   // the wall.
@@ -6978,13 +6975,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // stop-and-start never accumulates towards the 250.
   var fsMoveStart = 0;
   var fsLastMove = 0;
-  function fsShowCursor() {
+  function revealCursor() {
     var now = Date.now();
     if (now - fsLastMove > 100) fsMoveStart = now;
     fsLastMove = now;
     if (now - fsMoveStart >= 250) {
       document.body.style.cursor = '';
-      fsScheduleHideCursor();
     }
   }
   // Wake lock: prevents the screen from dimming/sleeping while the
@@ -7007,15 +7003,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fs) {
       window.getSelection().removeAllRanges();
       document.body.classList.add('fs-noselect');
-      document.addEventListener('mousemove', fsShowCursor);
-      fsScheduleHideCursor();
       requestWakeLock();
     } else {
-      document.removeEventListener('mousemove', fsShowCursor);
-      if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      fsMoveStart = 0;
-      fsLastMove = 0;
-      document.body.style.cursor = '';
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
@@ -7026,15 +7015,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fs) {
       window.getSelection().removeAllRanges();
       document.body.classList.add('fs-noselect');
-      document.addEventListener('mousemove', fsShowCursor);
-      fsScheduleHideCursor();
       requestWakeLock();
     } else {
-      document.removeEventListener('mousemove', fsShowCursor);
-      if (fsCursorTimer) clearTimeout(fsCursorTimer);
-      fsMoveStart = 0;
-      fsLastMove = 0;
-      document.body.style.cursor = '';
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
@@ -7218,10 +7200,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(function () {
         setNavIdle(true);
+        document.body.style.cursor = 'none';
       }, getIdleDelay());
     }
     document.addEventListener('mousemove', function () {
+      // The buttons come back on the first move; the cursor waits for
+      // movement that lasts. They are not the same promise: a button
+      // appearing costs a glance, a cursor appearing on a wall behind a
+      // speaker costs the room's attention.
       setNavIdle(false);
+      revealCursor();
       scheduleHide();
     });
     // Reschedule on fullscreen change to use the correct delay
@@ -7647,11 +7635,67 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     padding: 56px 28px 96px;
   }
 
+  /* The masthead takes the width the theme rows take, and its prose
+     does not. Those are two different requirements and the page used to
+     satisfy only the first by giving up the second: a 72ch column
+     centred in a 1496px page, which read as a narrower page with a
+     wide margin rather than as one page. A full-width band whose
+     contents are a readable measure BESIDE the commands is the shape
+     that has both -- and the commands had nowhere to live before. */
   .masthead {
-    max-width: min(84vw, 72ch);
+    max-width: none;
     margin: 0 auto 48px;
-    text-align: center;
   }
+  .masthead-head { text-align: center; }
+  .masthead-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+    gap: 32px;
+    align-items: start;
+    margin-top: 28px;
+    text-align: left;
+  }
+  /* The band is full width; the MEASURE is not, and those are not the
+     same requirement. Set as one column the prose ran to about 140
+     characters a line, twice what this page's own themes are tuned for
+     and what the tool spends a whole property on getting right. A
+     column WIDTH rather than a column count, so the number of columns
+     follows the window and the measure does not: measured at 1280,
+     1600, 1920 and 2560, between 47 and 55 characters a line, inside
+     the 45-67 band the tool's own type is tuned to. A count of two put
+     it back to 119 at 2560, which is the same defect one step later. */
+  .masthead-prose { columns: 22rem; column-gap: 40px; }
+  .masthead-prose > * { break-inside: avoid; }
+  @media (max-width: 900px) {
+    .masthead-body { grid-template-columns: minmax(0, 1fr); }
+    .masthead-prose { columns: auto; }
+  }
+  .masthead-commands {
+    border: 1px solid var(--ui-card-border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: var(--ui-card-bg);
+  }
+  .masthead-commands h2 {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ui-muted);
+    margin: 0 0 12px;
+  }
+  .masthead-commands dl { margin: 0; }
+  .masthead-commands dt {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .masthead-commands dd {
+    margin: 2px 0 14px;
+    font-size: 12.5px;
+    color: var(--ui-muted);
+  }
+  .masthead-commands dd:last-child { margin-bottom: 0; }
   .eyebrow {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 11.5px;
@@ -7698,7 +7742,10 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     white-space: nowrap;
   }
 
-  .facets { max-width: 1180px; margin: 0 auto 26px; padding: 16px 20px;
+  /* The same width as the rows it filters. 1180 was a third width on
+     a page that has two, and the eye reads three edges where there
+     are meant to be one. */
+  .facets { margin: 0 auto 26px; padding: 16px 20px;
     background: var(--ui-card-bg); border: 1px solid var(--ui-card-border); border-radius: 12px; }
   .facets[hidden] { display: none; }
   .facet-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
@@ -7942,8 +7989,12 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
 <div class="wrap">
 
   <div class="masthead">
+    <div class="masthead-head">
     <p class="eyebrow">lightwebpres &middot; colour themes</p>
     <h1>Built-in themes, rendered for inspection</h1>
+    </div>
+    <div class="masthead-body">
+    <div class="masthead-prose">
     <p class="dek">
       One theme per row, four panels across: the cover, a card carrying a
       note, the page-wide notes section, and the long-form article. Each
@@ -7977,6 +8028,33 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
       now carries its own. No aliases were kept &mdash; <code>audit</code>
       reports any old name left in your own rules.
     </p>
+    </div>
+
+    <!-- What to type once a row has caught your eye. Every slug below a
+         panel is already a command; these are the four other things
+         anyone reading this page is about to want, and none of them was
+         written anywhere on it. -->
+    <div class="masthead-commands">
+      <h2>From here, at the prompt</h2>
+      <dl>
+        <dt>lightwebpres init my-series --theme nord</dt>
+        <dd>Start a series on a theme.</dd>
+        <dt>lightwebpres series theme set my-series --theme dracula</dt>
+        <dd>Change the theme of a series that already exists. Values you
+            pinned in <code>settings.conf</code> stay pinned.</dd>
+        <dt>lightwebpres theme show nord dracula</dt>
+        <dd>Describe one theme or several side by side: palette, fonts,
+            facets, and the contrast level each one actually reaches,
+            measured rather than declared.</dd>
+        <dt>lightwebpres theme list --family desk --polarity dark</dt>
+        <dd>Narrow the catalogue by facet &mdash; the same facets as the
+            filter bar below.</dd>
+        <dt>lightwebpres series theme</dt>
+        <dd>From inside a series: the theme it is really using, after
+            everything it pins.</dd>
+      </dl>
+    </div>
+    </div>
   </div>
 
   <!-- Facets (§9.5.2). Past a dozen palettes this page stops being

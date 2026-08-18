@@ -107,15 +107,10 @@ async function main() {
       const send = () => document.dispatchEvent(new MouseEvent('mousemove', {
         clientX: 100, clientY: 100, bubbles: true,
       }));
-      // The mousemove listener is attached only in fullscreen, and
-      // headless Chromium will not grant it without a user gesture. So
-      // the page is told it IS in fullscreen and the event it listens
-      // for is fired: the handler under test is the one the real
-      // transition would install, reached the only way it can be here.
-      Object.defineProperty(document, 'fullscreenElement', {
-        value: document.documentElement, configurable: true,
-      });
-      document.dispatchEvent(new Event('fullscreenchange'));
+      // No fullscreen anywhere in this test, deliberately: the cursor
+      // answers to the same clock as the navigation chrome now, in
+      // every mode, and it used to answer only in fullscreen — which is
+      // the report this covers.
       document.body.style.cursor = 'none';
       // A twitch: two events one frame apart, then nothing.
       send();
@@ -141,6 +136,15 @@ async function main() {
   }
   if (cursorVerdict.afterMoving !== '') {
     fail('sustained movement did not reveal the cursor: ' + JSON.stringify(cursorVerdict));
+  }
+
+  // --- 3b. And it hides again on its own, outside fullscreen ---------
+  // The chrome's idle delay is 3s off fullscreen, so 4s of stillness is
+  // past it with room to spare.
+  await page.waitForTimeout(4000);
+  const restingCursor = await page.evaluate(() => document.body.style.cursor);
+  if (restingCursor !== 'none') {
+    fail('the cursor did not hide outside fullscreen: ' + JSON.stringify(restingCursor));
   }
 
   // --- 4. F is bound on the index ------------------------------------

@@ -27,7 +27,7 @@ fullscreen, B/W/T for pause screens), mouse (click to advance,
 right-click to go back, double-click for fullscreen, middle-click to
 exit), and touch (swipe) all work out of the box. Navigation buttons fade
 after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
-only slides. The cursor hides after 1 second in fullscreen, and only
+only slides. The cursor hides on the same clock, and only
 returns after 250 ms of continuous mouse movement. The mouse becomes a
 remote: left-click advances, right-click goes back, two distinct buttons,
 no aiming. Fullscreen also neutralizes OS power-saving so the screen never
@@ -65,7 +65,7 @@ handout at Ctrl/Cmd+P.
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
   screens), mouse (click advance, right-click back, double-click
   fullscreen, middle-click exit), touch (swipe). Navigation chrome fades
-  after 3s idle (1s in fullscreen); cursor hides after 1s in fullscreen
+  after 3s idle (1s in fullscreen); the cursor hides on the same clock
   and returns only after 250ms of continuous movement. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the

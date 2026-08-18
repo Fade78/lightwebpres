@@ -1720,8 +1720,31 @@ instantanés (plus de double-clic à détecter). Le menu contextuel natif est
 supprimé sur le contenu pour que le clic droit soit un geste propre.
 Les clics sur les liens, images et boutons ne sont pas interceptés.
 Un clic dans le coin bas-droite (la zone des boutons) qui ne vise pas
-un bouton bascule leur visibilité. Esc quitte le plein écran. Le
-curseur se masque après 1 s d'inactivité en plein écran.
+un bouton bascule leur visibilité. Esc quitte le plein écran.
+
+**Le curseur suit l'horloge du chrome**, pas une horloge à lui : il se
+masque après la même inactivité que les boutons — 3 s, 1 s en plein
+écran. Il ne se masquait auparavant qu'en plein écran, ce qui laissait
+la page dans un état que personne n'avait choisi : les boutons
+s'effaçaient seuls et un curseur restait posé au milieu du texte. Deux
+choses qui répondent à l'immobilité y répondent ensemble.
+
+**La réapparition demande 250 ms de mouvement continu**, là où les
+boutons reviennent au premier mouvement — et ce n'est pas la même
+promesse : un bouton qui apparaît coûte un regard, un curseur qui
+apparaît sur un mur derrière un orateur coûte l'attention de la salle.
+La condition est vérifiée **sur** un évènement de mouvement qui prouve
+que la salve dure depuis 250 ms, seule forme qu'un sursaut ne peut pas
+produire ; un minuteur armé au premier mouvement se déclencherait que
+quelque chose bouge encore ou non. Une interruption de plus de 100 ms
+termine la salve et en ouvre une autre, si bien qu'un mouvement
+haché n'accumule jamais vers les 250.
+
+**Relâcher le bouton après avoir surligné du texte ne fait pas avancer.**
+Un glissé qui n'a rien sélectionné non plus : c'était un glissé, pas un
+clic. Le double-clic est délibérément exempté de cette garde — il
+sélectionne le mot sous le pointeur, donc la garder là rendrait le plein
+écran inatteignable à la souris.
 
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.
