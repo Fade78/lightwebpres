@@ -14456,9 +14456,11 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
   A bare word is looked up in its type's namespace (`kicker.fg: ink-quiet`);
   a dotted word references another property (`title1.fg: cover.fg`).
   Errors name the file and the key — a mistyped property is a build error,
-  never a silent no-op. CSS rules (new selectors, @font-face, media
-  queries) belong in templates/custom.css, appended after the composed
-  stylesheet so your rules win ties.
+  never a silent no-op. A valid value that turns out to be the ground it
+  will be painted on is not an error: `lightwebpres audit` names it, on the
+  composed sheet, and the build still runs. CSS rules (new selectors,
+  @font-face, media queries) belong in templates/custom.css, appended after
+  the composed stylesheet so your rules win ties.
 
 ENVIRONMENT VARIABLES
   LWP_ARTICLES_DIR    Articles directory (default: $LWP_SERIES_DIR/articles)

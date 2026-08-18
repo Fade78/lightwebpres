@@ -151,9 +151,15 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 
 - La création de thème est un **objectif séparé** : les thèmes livrés
   rendent des couleurs et des propriétés typées, mais l'outil ne *conçoit*
-  pas un thème accessible — il le *juge* (mesures de contraste, `audit`).
-  L'expertise accessibilité (atteindre AA sur une palette donnée) est
-  externe. Les dettes ouvertes sont au `BACKLOG.md` ; elles ne sont pas
+  pas un thème accessible. Il **mesure** (`theme show`, `series theme` :
+  un niveau WCAG par catégorie, jamais un verdict) et il **avertit**
+  (`audit` : la feuille résolue d'une série, sur trois défauts qui ne sont
+  pas affaire de goût — un contrôle invisible, du texte de la couleur de
+  son fond, une taille sous le plancher). Il ne refuse jamais un thème sur
+  son apparence, et les seuils de l'avertissement sont dérivés du
+  catalogue livré, jamais choisis : la règle est en `specifications.md`
+  §9.5.6, à lire avant d'en déplacer un. L'expertise accessibilité
+  (atteindre AA sur une palette donnée) est externe. Les dettes ouvertes sont au `BACKLOG.md` ; elles ne sont pas
   énumérées ici, parce qu'une liste de numéros dans un second fichier se
   périme sans que rien ne le signale — celle qui était là citait quatre
   entrées, toutes closes depuis.

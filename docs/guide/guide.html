@@ -1720,11 +1720,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 <section class="slide" id="s7" data-tags="default">
   <span class="slide-kicker">Look</span>
-  <h2>Thirty-four themes, found by facet</h2>
-  <div class="highlight"><span class="highlight-figure">34</span><span class="highlight-caption">themes, filtered by polarity, intensity and hue</span></div>
+  <h2>Fifty-seven themes, found by facet</h2>
+  <div class="highlight"><span class="highlight-figure">57</span><span class="highlight-caption">themes, filtered by family, polarity and hue</span></div>
   <div class="fact-box">
     <div class="fact-label">Why facets rather than a list</div>
-    <div class="fact-content">  <p>A list of names tells you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.</p>
+    <div class="fact-content">  <p>A list of names tells you nothing. What the theme is for, light or dark, and what hue the page carries will get you to a shortlist of three.</p>
   <p><code>theme gallery</code> renders every one of them against real slide content.</p></div>
   </div>
 </section>
@@ -1745,7 +1745,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <h2>Two checks, two different moments</h2>
   <div class="fact-box">
     <div class="fact-label">A nudge and a gate</div>
-    <div class="fact-content">  <p><code>audit</code> flags what is worth a second look and <strong>normally does not fail</strong> — a missing cover, a stale scaffold comment, a retired variable still referenced. Pass <code>--strict</code> when those warnings must fail CI.</p>
+    <div class="fact-content">  <p><code>audit</code> flags what is worth a second look and <strong>normally does not fail</strong> — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. Pass <code>--strict</code> when those warnings must fail CI.</p>
   <p><code>verify</code> rebuilds in memory and diffs against <code>public/</code>, exiting non-zero on any difference. That exit code is what makes it a CI gate.</p></div>
   </div>
 </section>
@@ -1964,7 +1964,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 ./lightwebpres series theme set my-series --theme crimson
   </code></pre>
   <p>A theme is a word in a data file: <code>series theme set</code> rewrites the one <code>theme:</code> line of <code>templates/settings.conf</code> and nothing else. No CSS is touched — the stylesheet is composed in memory at every build.</p>
-  <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme or of the effective theme after the series' pins.</p>
+  <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme, or of the effective theme after the series' pins. <code>audit</code> reads the same resolved sheet without being asked, and speaks only when something has stopped working — a navigation control you cannot see, text the colour of its own ground, a size under the readability floor. It warns; it never refuses, and no shipped theme trips it.</p>
   <h3>Change one phrase (an instance tag)</h3>
   <p>Inside any free text, for the one place that needs it:</p>
   <pre><code class="language-markdown">
@@ -2013,7 +2013,7 @@ kicker.fg: call             ← uncommented: yours, and it stays
 ./lightwebpres audit my-series    # is anything wrong with this series?
 ./lightwebpres verify my-series   # is public/ the one these sources make?
   </code></pre>
-  <p><code>audit</code> renders the whole series in memory — throwing the HTML away, writing nothing — and reports both what the sources say and what composing them had to complain about: no cover slide, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, the instance tags in each article, a missing language pack, fields you wrote on a cover that a cover never renders, an image symlink that would not be published — and, when the render cannot finish at all, the fact that no page would be produced. It still never fails on its own: exit 0 every time, even then. Pass <code>--strict</code> and every one of those becomes a non-zero exit; that is the CI gate. Because it renders, it costs about what a build costs — the deliberate trade: a build is fast on a human scale, a missed audit is not. <code>--templates</code> skips the render when you only want the presentation layer checked.</p>
+  <p><code>audit</code> renders the whole series in memory — throwing the HTML away, writing nothing — and reports three different kinds of thing. What the <strong>sources</strong> say: no cover slide, the instance tags in each article, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, an image symlink that would not be published. What the <strong>resolved stylesheet</strong> says once the theme, your <code>settings.conf</code> and a page's own <code>style.*</code> lines are merged — a navigation control nobody can see against its own rail, text painted the colour of the ground it sits on, a size under the readability floor. That one is worth its own sentence: those faults are correct at every layer and only exist once composed, so nothing that reads what you <em>wrote</em> can find them; a size you never touched can go invisible because a colour it inherits from did. And what only <strong>composing</strong> can say: a missing language pack, fields you wrote on a cover that a cover never renders — and, when the render cannot finish at all, the fact that no page would be produced. It still never fails on its own: exit 0 every time, even then. Pass <code>--strict</code> and every one of those becomes a non-zero exit; that is the CI gate. Because it renders, it costs about what a build costs — the deliberate trade: a build is fast on a human scale, a missed audit is not. <code>--templates</code> skips the render and the per-article checks when you only want the presentation layer; the stylesheet is still judged.</p>
   <p><code>verify</code> asks the other question: it rebuilds every article in memory and compares it byte-for-byte against <code>public/</code>, exiting non-zero the moment anything differs — wire it in before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
   <h3>Asking why a value is what it is</h3>
   <p>Most of what ends up on a page was never written on that page: a title falls back through <code>series.json</code>, the meta block and the cover slide, a colour falls through <code>settings.conf</code>, the theme and the built-in defaults. When the result surprises you, ask:</p>

@@ -168,7 +168,7 @@ description; the terms are fixed here, in English.
 | **override** | The relation between layers: a value in a later layer covering an earlier one. |
 | **customization** | The author's act of overriding — via settings, per-article properties, instance tags, or `custom.css`. |
 | **theme construction** | The editorial and artistic choice of palette values, fonts, shadows, and their relationships. It is catalogue work outside the renderer. |
-| **measurement** | The static report produced by `theme show` or `series theme` from resolved properties and composited grounds. It reports; it does not rewrite or reject a theme. |
+| **measurement** | The contrast reading taken from resolved properties and composited grounds, on named sites rather than on colours in the abstract. `theme show` and `series theme` print it in full, category by category; `audit` reuses it to name a composed sheet that has stopped working, and stays silent otherwise. It reports; it never rewrites or rejects a theme, and it never reaches a built page. |
 | **renderer** | The part that resolves layers, composes properties, and emits CSS/HTML. It applies the values it receives and does not retune them. |
 | **article properties** | `style.<property>: value` lines in an article's meta block — the same vocabulary, scoped to that page alone (§9.6.1). |
 | **instance tag** | A format-defined tag in free text — the instance-scoped fifth layer, same types as everywhere, enumerated by `audit` (§9.6.3). Inline (`{color:mark}…{/color}`, `{sc}…{/sc}`) or, for alignment alone, **block-level**: `{align:center}` and `{/align}` each on their own line, because `text-align` on an inline span does nothing. |

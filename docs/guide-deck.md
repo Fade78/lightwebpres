@@ -90,14 +90,14 @@ The stylesheet is composed in memory at every build, so nothing the tool writes 
 
 <!-- lwp:slide -->
 kicker: Look
-## Thirty-four themes, found by facet
+## Fifty-seven themes, found by facet
 
-highlight: 34
-highlight-caption: themes, filtered by polarity, intensity and hue
+highlight: 57
+highlight-caption: themes, filtered by family, polarity and hue
 
 fact-label: Why facets rather than a list
 
-A list of names tells you nothing. Light or dark, loud or sober, and what hue the page carries will get you to a shortlist of three.
+A list of names tells you nothing. What the theme is for, light or dark, and what hue the page carries will get you to a shortlist of three.
 
 `theme gallery` renders every one of them against real slide content.
 
@@ -124,7 +124,7 @@ kicker: Shipping
 
 fact-label: A nudge and a gate
 
-`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced. Pass `--strict` when those warnings must fail CI.
+`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. Pass `--strict` when those warnings must fail CI.
 
 `verify` rebuilds in memory and diffs against `public/`, exiting non-zero on any difference. That exit code is what makes it a CI gate.
 

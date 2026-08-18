@@ -280,7 +280,11 @@ the stylesheet is composed in memory at every build.
 
 These commands inspect and select existing theme values. They do not design,
 retune or repair a palette. Use `theme show` to read the measured contrast of
-the shipped theme or of the effective theme after the series' pins.
+the shipped theme, or of the effective theme after the series' pins. `audit`
+reads the same resolved sheet without being asked, and speaks only when
+something has stopped working — a navigation control you cannot see, text the
+colour of its own ground, a size under the readability floor. It warns; it
+never refuses, and no shipped theme trips it.
 
 ### Change one phrase (an instance tag)
 
@@ -389,18 +393,26 @@ Two different checks, for two different moments:
 ```
 
 `audit` renders the whole series in memory — throwing the HTML away,
-writing nothing — and reports both what the sources say and what
-composing them had to complain about: no cover slide, a scaffold whose
-comments predate your current theme, a retired CSS variable still
-referenced in `custom.css`, the instance tags in each article, a missing
-language pack, fields you wrote on a cover that a cover never renders, an
-image symlink that would not be published — and, when the render cannot
-finish at all, the fact that no page would be produced. It still never
-fails on its own: exit 0 every time, even then. Pass `--strict` and every
-one of those becomes a non-zero exit; that is the CI gate. Because it
-renders, it costs about what a build costs — the deliberate trade: a
-build is fast on a human scale, a missed audit is not. `--templates`
-skips the render when you only want the presentation layer checked.
+writing nothing — and reports three different kinds of thing. What the
+**sources** say: no cover slide, the instance tags in each article, a
+scaffold whose comments predate your current theme, a retired CSS
+variable still referenced in `custom.css`, an image symlink that would
+not be published. What the **resolved stylesheet** says once the theme,
+your `settings.conf` and a page's own `style.*` lines are merged — a
+navigation control nobody can see against its own rail, text painted the
+colour of the ground it sits on, a size under the readability floor. That
+one is worth its own sentence: those faults are correct at every layer
+and only exist once composed, so nothing that reads what you *wrote* can
+find them; a size you never touched can go invisible because a colour it
+inherits from did. And what only **composing** can say: a missing
+language pack, fields you wrote on a cover that a cover never renders —
+and, when the render cannot finish at all, the fact that no page would be
+produced. It still never fails on its own: exit 0 every time, even then.
+Pass `--strict` and every one of those becomes a non-zero exit; that is
+the CI gate. Because it renders, it costs about what a build costs — the
+deliberate trade: a build is fast on a human scale, a missed audit is
+not. `--templates` skips the render and the per-article checks when you
+only want the presentation layer; the stylesheet is still judged.
 
 `verify` asks the other question: it rebuilds every article in memory and
 compares it byte-for-byte against `public/`, exiting non-zero the moment

@@ -287,7 +287,7 @@ the series or within one article.
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
-| `audit [dir]` | Non-blocking warnings — editorial (e.g. "no cover slide"), variant tags/language packs, and presentation (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme); never fails the build unless `--strict` is passed |
+| `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — variant tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `theme list` | Lists the built-in color themes with their facets; `--family`/`--polarity`/`--hue` narrow the list |
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
@@ -318,8 +318,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--open` | `build`, `watch` | opens the result in the browser |
 | `--include-drafts` | `build`, `verify` | builds draft articles too |
 | `--strict` | `audit` | exits non-zero on any warning — the complete gate: editorial warnings and everything the render raises alike, a failed render included |
-| `--templates` | `audit` | restricts the audit to the presentation/template layer: skips the per-article editorial checks and does not render, so it stays cheap |
-| `--templates` | `audit` | restricts the audit to the presentation/template layer, skipping per-article editorial checks |
+| `--templates` | `audit` | restricts the audit to the presentation/template layer: it still judges the resolved stylesheet, but skips the per-article editorial checks and does not render, so it stays cheap |
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
 | `--only file.html` | `build` | rebuilds a single article |
 | `--inline-images` | `build` | embeds images as base64 data URIs |
@@ -524,14 +523,24 @@ every theme is meant to reach the higher accessibility standard: a theme
 is a stance, and making `terminal`'s phosphor halo AAA would destroy it.
 What matters is knowing which themes meet the readability floor, which
 reach the higher standard, and what visual family each one belongs to.
-This is reporting only: no palette value is rewritten and `build` does not
-reject a theme because of its measured level.
+No palette value is ever rewritten, and `build` never rejects a theme
+because of its measured level — measurement reports, it does not police.
+One thing is not a matter of taste, though, and `audit` says so: a
+composed stylesheet where a navigation control is invisible against its
+own rail, where text is painted the colour of its ground, or where a size
+falls under the readability floor. Those thresholds sit below everything
+the shipped catalogue measures, so no theme as delivered can trip them —
+they only fire on something worse than anything this project ships. And
+they warn: `build` still exits 0, and so does plain `audit`.
 
 The two targets answer different questions, and the difference is the
 point: a series that pins three colors in `settings.conf` may have
-dropped below the floor without anyone noticing, and only the directory
-form sees that. (`custom.css` is free CSS, outside the typed surface, so
-it is not measured — the output says so when the file has rules in it.)
+dropped below the floor without anyone noticing, and the directory form
+is what shows the whole picture, category by category. `audit` looks at
+the same resolved sheet without being asked, but it only speaks when
+something is broken outright. (`custom.css` is free CSS, outside the typed
+surface, so it is not measured — the output says so when the file has
+rules in it.)
 
 None of this ever reaches a built page. No kicker, no class, no mention: the
 reader of a presentation is never told the contrast level of the theme

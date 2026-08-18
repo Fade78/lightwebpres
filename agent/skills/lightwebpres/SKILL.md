@@ -203,9 +203,12 @@ slide.
 `audit` is what catches it: it names the key, says nothing reads it, and
 offers the nearest real field name. It warns and never blocks, so the
 build stays silent either way — run `audit` after editing a meta block.
-`comment:` and `style.*` keys are never reported: nothing resolves the
-first, and the second is the article property layer, which has its own
-vocabulary and its own fatal errors.
+`comment:` and `style.*` keys are never reported *as unknown keys*:
+nothing resolves the first, and the second is the article property layer,
+which has its own vocabulary and its own fatal errors. `style.*` is not
+out of `audit`'s reach, though: a key and a value that are both valid but
+compose an unreadable page — text the colour of its ground, a size under
+the readability floor — get named, under this article's filename.
 
 `comment:` here works too, for an article-wide note — same rule as the
 per-slide one below: recognized, never read, never published.
@@ -279,7 +282,7 @@ end (`notes_placement: page` in the meta block).
 
 A cover slide **accepts** `fact-label`, `fact-variant`, `source`, `highlight`
 and `highlight-caption` without failing, and then never renders them — you
-get a `[WARNING]` — from `build`, and now from `audit` too, which
+get a `[WARNING]` — from `build`, and from `audit` too, which
 renders — exit code 0, and a page missing what you wrote. Only
 free *text* on a cover is fatal.
 
@@ -534,7 +537,11 @@ Any `style.<property>: value` line in the lwp:meta block restyles that
 page only, over the series' theme and settings — same vocabulary and
 types as `templates/settings.conf` (e.g. `style.verdict.partial.fg:
 #8A4B00`, `style.cover.bg.angle: 90deg`). A bad key or value is a fatal
-build error naming the file.
+build error naming the file. A good key and a good value that compose an
+unreadable page are not an error — `audit` warns, naming this article and
+the property, and the build still succeeds. Run `audit` after adding
+`style.*` lines: it is the only thing that reads the sheet those lines
+actually produce.
 
 ## Styling hooks you reach with raw HTML
 

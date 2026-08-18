@@ -1110,17 +1110,20 @@ vers l'appel, et les rôles DPUB-ARIA (`doc-noteref`, `doc-footnote` ou
 `doc-endnote`, `doc-backlink`) sont posés. Le lien de retour n'est pas un
 agrément : sans lui, un lecteur qui a sauté depuis la fiche 3 n'a d'autre
 issue que la barre de défilement, et un utilisateur de lecteur d'écran
-n'en a aucune. **Le label de l'auteur
-n'atteint jamais la page** : c'est une clé, rien d'autre, ce qui explique
-qu'il soit libre (`[^1]`, `[^kwh]`, `[^a]`, accents compris) et que la
-numérotation ne soit pas une réécriture de ce que l'auteur a écrit.
+n'en a aucune. **Le label de l'auteur n'atteint jamais la page** : c'est
+une clé, pas du texte, ce qui explique que la numérotation ne soit pas une
+réécriture de ce que l'auteur a écrit, et qu'un label puisse être
+mnémonique (`[^1]`, `[^kwh]`, `[^clé]`) sans que le lecteur ait à le
+subir.
 
-Libre, mais pas quelconque : le motif du moteur est `\w+` — caractères de
-mot Unicode uniquement, donc **ni tiret, ni espace, ni ponctuation**. Un
-label hors motif n'est pas une erreur : l'appel comme le corps sortent
-**littéralement** dans la page, et `audit` ne le voit pas. C'est le seul
-endroit du format où une faute de frappe passe en silence jusqu'au
-lecteur ; c'est au `BACKLOG.md` (B24).
+Mnémonique, mais pas quelconque : le motif du moteur est `\w+` —
+caractères de mot Unicode, donc lettres (accents et écritures non latines
+comprises), chiffres et `_`, et **ni tiret, ni espace, ni ponctuation**. Un
+label hors motif n'est ni une note ni une erreur : l'appel sort
+**littéralement** dans la phrase, le corps rend en paragraphe ordinaire, et
+le label est en clair sous les yeux du lecteur — la seule façon dont un
+label atteigne la page, et le signe qu'il n'en était pas un. `build` le
+laisse passer sans un mot ; c'est `audit` qui le nomme (§6.5.5).
 
 #### 6.5.1 Emplacement (`notes_placement`)
 
@@ -1296,12 +1299,33 @@ compte. Il n'est pas tranchable sur le papier — `.fact-content h2` bat
 vérification se fait dans un navigateur, valeur déclarée contre valeur
 calculée, dans les trois contextes.
 
-#### 6.5.5 Les trois défauts qu'`audit` nomme
+#### 6.5.5 Les défauts qu'`audit` nomme
 
 Aucun n'est fatal — le contrat d'entrée ne se casse pas sur une bévue
-éditoriale — donc c'est `audit` qui les fait remonter, et il suit
-l'emplacement en vigueur (un appel en fiche 3 vers un corps en fiche 2
-est un défaut sous `local` et parfaitement correct sous `page`) :
+éditoriale — donc `build` les laisse passer et sort à 0. C'est `audit` qui
+les fait remonter, en avertissement ; `--strict` en fait une porte de CI
+(§11.5).
+
+Le premier se règle sur la source, avant que rien ne soit rendu :
+
+- **un label hors motif** — `[^a-b]`, `[^note 2]`, `[^réf.]` (§6.5) : le
+  moteur ne le lit ni comme appel ni comme corps, il n'y a donc rien à
+  apparier et le construct part littéralement dans la page. L'appel et le
+  corps sont signalés séparément, parce qu'ils ne se réparent pas de la
+  même façon : l'un se renomme, l'autre se renomme *et* rend une ligne de
+  prose que l'auteur n'a pas écrite. Ce que le convertisseur ne lirait pas
+  davantage comme une note n'est pas signalé, pour qu'agir sur
+  l'avertissement soit toujours le bon geste : un `[^a-z]` entre accents
+  graves ou dans un bloc de code est du contenu et le reste, et
+  `[^a-b](https://…)` est un lien. Dans un bloc HTML brut, *rien* n'est
+  une note — ni un bon label ni un mauvais — et c'est le dernier point
+  ci-dessous qui le dit. Deux angles morts assumés : le label vide
+  (`[^]`), et le label de plus de 32 caractères — passé cette longueur, un
+  `[^` ouvre plus vraisemblablement une phrase qu'un label.
+
+Les trois autres portent sur l'appariement, et suivent donc l'emplacement
+en vigueur (un appel en fiche 3 vers un corps en fiche 2 est un défaut
+sous `local` et parfaitement correct sous `page`) :
 
 - **un appel sans corps** — une affirmation qui cite une source absente.
   Le repère s'affiche et garde son numéro, mais sans lien.
@@ -2309,8 +2333,8 @@ respecté) ; la note nomme `template update` comme remède.
 
 #### 9.4.4 `audit` (volet présentation)
 
-`audit` (§11.5) avertit, ne bloque jamais. Trois yeux sur la surface de
-présentation, chacun vérifié — et ces trois-là sont exactement ce à quoi
+`audit` (§11.5) avertit, ne bloque jamais. Quatre yeux sur la surface de
+présentation, chacun vérifié — et ces quatre-là sont exactement ce à quoi
 `audit --templates` réduit la commande : il saute les contrôles par article
 et ne déclenche pas le rendu, donc il reste bon marché :
 
@@ -2326,6 +2350,16 @@ et ne déclenche pas le rendu, donc il reste bon marché :
    épinglerait une valeur du thème quitté ; l'avertissement renvoie à
    `template update --scaffold` (§9.4.3), qui réaligne la surface
    commentée sans perdre les épingles.
+4. **La feuille résolue** : les trois façons dont une feuille composée
+   cesse de fonctionner — un contrôle de navigation qu'on ne voit plus,
+   du texte peint de la couleur de son fond, une taille absolue sous le
+   plancher de lisibilité (§11.5, §9.5.6). Le jugement porte sur le
+   **résultat** de la cascade et non sur ce que l'auteur a tapé, parce
+   que c'est le seul endroit où ce défaut-là existe : une propriété qui
+   existe, une couleur qui s'analyse, une valeur correcte à chaque
+   couche, peuvent composer exactement le fond sur lequel elles seront
+   peintes. Sous `--templates`, seule la feuille de la série est jugée,
+   faute d'article à recomposer.
 
 `audit` énumère aussi, par article, les **balises d'instance** (§9.6) —
 une note informative (`[NOTE]`, pas un avertissement compté) : ce sont
@@ -2586,7 +2620,10 @@ l'encre qui l'entoure (`color: inherit`) et se signale par un
 **soulignement**, dont la teinte est le seul axe exposé :
 `link.decoration-color`, à défaut `ink` — le trait a la couleur du texte,
 qui ne peut jamais échouer ; un thème ou une série peut le teinter là où
-il a mesuré une couleur qui tient. L'héritage et le soulignement
+il a mesuré une couleur qui tient. C'est aussi ce qui sort ce
+soulignement du plancher de navigation d'`audit` (§9.5.6, §11.5) : le
+plancher se dérive du rôle `nav` (§9.5.7), et ce trait ne le prend pas.
+L'héritage et le soulignement
 eux-mêmes sont de l'architecture (correctif B3), pas des réglages : ils
 ne sont pas exposés.
 
@@ -2611,9 +2648,11 @@ c'est ce qui a écarté les autres options :
   **18** thèmes sur 33 — tous les sombres.
 - `ink` sur `page` est le couple structurel utilisé pour les liens : le lien
   hérite de l'encre autour de lui et reçoit un soulignement. Le résultat WCAG
-  dépend de la palette résolue et est rapporté par `theme show`; le moteur ne
-  retouche pas la couleur du thème. WCAG 1.4.1 est satisfait par le
-  soulignement, qui n'est pas une couleur.
+  dépend de la palette résolue ; `theme show` le rapporte quand on le
+  demande, `audit` le nomme sans qu'on demande dès que la feuille composée
+  passe sous le plancher (§11.5). Le moteur, lui, ne retouche pas la
+  couleur du thème. WCAG 1.4.1 est satisfait par le soulignement, qui
+  n'est pas une couleur.
 
 **Plancher général.** Aucune règle portant du texte courant ne s'atténue
 par `opacity`. Deux le faisaient et échouaient : la carte « en cours de
@@ -2716,8 +2755,43 @@ l'apparence :
 
 Une pastille de progression invisible n'est pas une palette audacieuse,
 c'est une commande en panne : le lecteur ne peut plus savoir où il en
-est. C'est le seul motif qui a produit un plancher dur dans ce dépôt, et
-il doit rester le seul.
+est. C'est le seul motif qui **refuse**, et il doit rester le seul.
+
+**Refuser et avertir ne sont pas le même geste, et la frontière ci-dessus
+ne parle que du premier.** Elle est écrite pour l'admission d'un thème au
+catalogue, où la sanction est un test qui échoue. `audit` (§11.5) juge la
+feuille **résolue** d'une série, et n'a aucune sanction : il imprime, la
+commande sort à 0, `build` construit. Ce qu'il nomme n'est pas une
+palette trop audacieuse, c'est une feuille qui ne fait plus son travail —
+un contrôle de navigation qu'on ne voit plus, du texte peint de la
+couleur de son fond, une taille absolue sous le plancher de lisibilité.
+
+Trois planchers, donc, et non un ; ce qui les tient du bon côté de la
+phrase encadrée n'est pas leur douceur, ce sont trois propriétés :
+
+- **ils sont dérivés du catalogue livré, pas choisis.** B5 et B18 ont
+  décidé qu'un thème n'est pas tenu d'atteindre AA, et une part
+  délibérée du catalogue est sous AA sur son texte secondaire. Un seuil
+  qui ferait avertir un thème livré serait donc un mauvais seuil : il
+  changerait le rapport en bruit et la décision en lettre morte. Chacun
+  est posé sous tout ce que le catalogue mesure, et un test balaie toutes
+  les entrées de `THEMES` **plus la feuille des défauts** — celle qu'un
+  `init` sans `--theme` écrit — pour l'établir à chaque exécution ;
+- **ils ne demandent rien à l'apparence.** Entre le plancher et AA, le
+  thème fait ce qu'il veut, et le catalogue s'y tient sciemment ;
+- **ils portent sur ce qu'un lecteur ne peut pas rattraper.** Un texte
+  sous 1,5:1 de son fond n'est pas discret, il est absent ; une taille
+  sous le plancher est plus petite que tout l'appareil qui l'entoure ;
+  une pastille sous 3:1 est le contrôle qui dit où l'on est, en pièces.
+
+Deux conséquences de méthode. Le jugement porte sur la feuille
+**résolue** : c'est le seul moyen de voir une faute que personne n'a
+écrite — `footnote-call.fg-marked` vaut `fact.strong.fg` par défaut, donc
+éteindre le second emmène le premier dans l'invisibilité, et aucune
+lecture de ce que l'auteur a tapé ne le montre. Et le jugement se **tait**
+quand la feuille ne résout pas : une propriété inconnue, un cycle, une
+couleur inanalysable sont déjà fatals avec un message qui nomme la ligne,
+et une plainte plus vague par-dessus ne ferait que lui disputer la place.
 
 Tout le reste est un relevé, et un relevé a sa propre exigence : il ne
 ment pas par omission. Le motif employé ici n'est pas un seuil de
@@ -2779,7 +2853,13 @@ types, mêmes renvois, mêmes erreurs que `settings.conf` :
 feuille étant composée par page, la recomposition ne coûte qu'une fusion
 de plus. Une clé ou une valeur invalide est une erreur fatale du build
 qui **nomme le fichier** — une faute de propriété dans un article ne
-doit jamais se lire comme un mystère de build.
+doit jamais se lire comme un mystère de build. Une clé et une valeur
+valides qui composent une page illisible ne sont pas une erreur : `audit`
+les nomme, sous le nom de l'article, en jugeant la feuille que cette page
+compose réellement (§11.5). Un article n'est jugé que sur ce que la
+feuille de série ne dit pas déjà : un défaut porté par `settings.conf`
+appartient à `settings.conf`, et le répéter sous chaque article qui en
+hérite enterrerait le seul article qui a vraiment cassé quelque chose.
 
 #### 9.6.2 Variantes de composant (`fact-variant`)
 
@@ -3088,9 +3168,9 @@ une porte de vérification utilisable dans ce même pipeline, pour détecter
 un `public/` non reconstruit avant de merge — pas fait par défaut par
 `init`, à ajouter à la main si voulu.
 
-De même pour `python3 lightwebpres audit . --strict`. Depuis qu'`audit`
-rend la série (§11.5), son code de sortie couvre aussi ce qu'un `build`
-imprimerait : c'est une porte complète, et plus seulement un contrôle
+De même pour `python3 lightwebpres audit . --strict`. `audit` rendant la
+série (§11.5), son code de sortie couvre aussi ce qu'un `build`
+imprimerait : c'est une porte complète, et pas seulement un contrôle
 éditorial. Les deux étapes ne se remplacent pas — `verify` répond à « le
 `public/` livré est-il celui des sources ? », `audit --strict` à « cette
 série se construit-elle sans rien à signaler ? ».
@@ -3530,11 +3610,15 @@ une porte de CI, et `--templates`, qui restreint l'audit au volet
 présentation (§9.4.4), saute les contrôles éditoriaux par article et ne
 déclenche pas le rendu.
 
-Deux regards, et c'est le second qui a changé. Le premier lit l'arbre
-syntaxique. Le second **rend la série en mémoire**, jette le HTML et
-rapporte ce que la composition a eu à dire. `verify` rend pour *comparer*
-à `public/` ; `audit` rend pour *rapporter* — un défaut né au rendu n'est
-pas atteignable depuis l'arbre. Le coût est qu'`audit` prend à peu près le
+Trois regards, sur trois objets différents. Le premier lit l'**arbre
+syntaxique** des sources. Le deuxième lit la **feuille résolue** — le
+résultat de la cascade, thème puis `settings.conf` puis les `style.*`
+d'un article — parce qu'un texte peint de la couleur de son fond est
+correct à chaque couche et n'existe qu'une fois composé. Le troisième
+**rend la série en mémoire**, jette le HTML et rapporte ce que la
+composition a eu à dire. `verify` rend pour *comparer* à `public/` ;
+`audit` rend pour *rapporter* — un défaut né au rendu n'est pas
+atteignable depuis l'arbre. Le coût est qu'`audit` prend à peu près le
 temps d'un `build` : arbitrage assumé, un build est rapide à l'échelle
 humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
 
@@ -3558,10 +3642,15 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
    seulement à faire ce que son auteur voulait
 4. Avertit si l'article ne contient **aucune** fiche `cover`
 5. Avertit si la **première** fiche de l'article n'est pas une `cover`
-6. Avertit si l'article n'a de description **nulle part** (`page_desc`
+6. Contrôles de **notes** (§6.5.5) : un label hors du motif `\w+`, que le
+   moteur ne lira ni comme appel ni comme corps et qui part littéralement
+   dans la page ; un appel sans corps ; un corps que rien n'appelle ; une
+   définition dans un bloc HTML brut. Le premier se règle sur la source,
+   les trois autres sur l'appariement, donc sur l'emplacement en vigueur
+7. Avertit si l'article n'a de description **nulle part** (`page_desc`
    vide à tous les niveaux de la cascade §20.3.1 — la balise
    `<meta name="description">` serait omise)
-7. Volet présentation (§9.4.4) : avertit si un `templates/style.css`
+8. Volet présentation (§9.4.4) : avertit si un `templates/style.css`
    hérité existe encore (plus lu — avec, pour lui comme pour
    `custom.css`, chaque variable **retirée** encore référencée, nommée
    avec son remplaçant, table `RETIRED_VARIABLES` de §9.8 — aucun alias
@@ -3571,20 +3660,38 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
    messages qu'au build, non bloquants ici) ; et si son `scaffold-for:`
    ne correspond plus au `theme:` déclaré (décommenter une ligne
    épinglerait une valeur du thème quitté)
-8. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
-   répertoire d'images : il ne serait pas publié (§13.7). C'est un
-   contrôle des *sources* commises, pas de la copie — la règle est celle
-   que `copy_images` applique, partagée et non réécrite
-9. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
-   chaque avertissement que la composition émet, au mot près les mêmes
-   qu'un `build` puisque c'est le même chemin : pack de langue absent,
-   champs analysés sur une `cover` et jamais rendus (§22.12), et tout ce
-   qu'une version ultérieure y ajoutera. **Aucune énumération n'est tenue
-   ici** : le collecteur branche le journal, pas les sites d'appel, donc
-   un avertissement ajouté demain remonte demain sans que rien ne soit à
-   mettre à jour. Une liste de sites est une liste qui dérive, ce dont le
-   registre lui-même a fait la démonstration
-10. Si le rendu **échoue fatalement** — une propriété épinglée que le
+9. **Juge la feuille résolue** (§9.4.4, §9.5.6) — celle de la série,
+   puis celle de chaque article qui porte des `style.*`. Trois familles,
+   et rien d'autre : un contrôle de navigation sous 3:1 sur son propre
+   fond, du texte sous 1,5:1 sur le sien, une taille absolue sous 12px.
+   Les seuils sont **dérivés du catalogue livré, pas choisis** : chacun
+   est posé sous ce que mesurent toutes les entrées de `THEMES` et la
+   feuille des défauts, un test le vérifie à chaque exécution, et un
+   seuil qui ferait avertir un thème livré serait un mauvais seuil
+   (B5 : un thème n'est pas tenu d'atteindre AA). Les sites ne sont pas
+   énumérés : la passe repasse par `CONTRAST_SITES` via la mesure de
+   §11.9.1, donc un site ajouté demain est jugé demain. Une taille
+   **relative** n'est pas jugée contre des pixels — ce que vaut le parent
+   est un fait sur les gabarits, que le registre ne connaît pas. Une
+   propriété fautive n'est nommée qu'une fois, sur sa pire paire, celle
+   que la correction doit dégager. Un article ne rapporte que ce que la
+   feuille de série ne dit pas déjà. Et si la feuille ne résout pas du
+   tout, cette passe se **tait** : l'erreur fatale nomme déjà la ligne à
+   corriger, et rien ne doit lui disputer la place
+10. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
+    répertoire d'images : il ne serait pas publié (§13.7). C'est un
+    contrôle des *sources* commises, pas de la copie — la règle est celle
+    que `copy_images` applique, partagée et non réécrite
+11. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
+    chaque avertissement que la composition émet, au mot près les mêmes
+    qu'un `build` puisque c'est le même chemin : pack de langue absent,
+    champs analysés sur une `cover` et jamais rendus (§22.12), et tout ce
+    qu'une version ultérieure y ajoutera. **Aucune énumération n'est tenue
+    ici** : le collecteur branche le journal, pas les sites d'appel, donc
+    un avertissement ajouté demain remonte demain sans que rien ne soit à
+    mettre à jour. Une liste de sites est une liste qui dérive, ce dont le
+    registre lui-même a fait la démonstration
+12. Si le rendu **échoue fatalement** — une propriété épinglée que le
     registre ne connaît plus, une balise déséquilibrée, une inclusion
     illisible —, l'erreur est déjà sur stderr ; `audit` ajoute un
     avertissement disant que la série ne construit pas et qu'aucune page
@@ -3592,11 +3699,16 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     remarque éditoriale, et `--strict` en fait un échec. Sans ce point,
     `audit` concluait « No warnings » sur une série qu'aucun build ne peut
     produire — un résumé contredisant un message trois lignes plus haut
-11. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+13. Affiche un résumé (en anglais, non localisé) : « No warnings: all
     editorial conventions are respected. » ou « N warning(s). Reminder:
     audit never blocks... »
 
-Les points 8 à 10 sont ceux que `--templates` saute.
+`--templates` garde les points 8, 9 et 13, et rien d'autre : les points 1
+à 7 tombent parce que la liste d'articles est vidée, les points 10 à 12
+parce qu'ils sont explicitement écartés. Le point 9 **reste** — l'option
+le réduit à la feuille de la série, faute d'article à recomposer, mais ne
+l'éteint pas : c'est un contrôle de la surface de présentation, qui est
+exactement ce que cette option demande.
 
 Le nombre et la position des fiches `cover` restent libres (§4.4, §22.13) :
 `audit` ne fait qu'informer, la décision reste à l'auteur. Rien n'est
@@ -3943,9 +4055,12 @@ un compromis, c'est la ligne de partage du §9.1 :
    pour un `clamp(a, b, c)` le plancher `a` est retenu, ce qui sous-estime
    une taille responsive réelle. De même le ratio porte sur les couleurs
    *déclarées* du thème, non sur les pixels réellement rendus (hinting,
-   antialiasing, zoom, taille viewport). L'audit est donc une vérification
-   statique sur couleurs résolues, pas un substitut à un outil officiel qui
-   mesure le contraste perçu du texte rendu dans un navigateur.
+   antialiasing, zoom, taille viewport). Cette mesure est donc une
+   vérification statique sur couleurs résolues, pas un substitut à un outil
+   officiel qui mesure le contraste perçu du texte rendu dans un
+   navigateur. La réserve vaut mot pour mot pour la passe de jugement
+   d'`audit` (§11.5), qui repasse par cette mesure-ci : un site ajouté ici
+   est jugé là, et une limite écrite ici s'applique là.
 
 - **L'oubli est impossible.** Toute propriété de type couleur du registre
   est soit dans un site, soit dans `CONTRAST_UNMEASURED` avec sa raison
@@ -5044,7 +5159,9 @@ planifiées**, leur périmètre (1.0 ou post-1.0) n'étant pas tranché.
 
 Voir §11.5. `audit` avertit sans jamais bloquer : conventions éditoriales
 — un article sans aucune fiche `cover`, ou dont la première fiche n'est pas
-une `cover` —, volet présentation, et ce que seul un rendu peut dire,
+une `cover` —, volet présentation, ce que seule la **feuille résolue** peut
+dire (un contrôle invisible, du texte de la couleur de son fond, une
+taille sous le plancher), et ce que seul un rendu peut dire,
 puisqu'`audit` rend la série en mémoire. Aucun de ces avertissements ne
 fait échouer la commande ni ne contraint l'auteur : la mise en page (nombre
 et position des `cover`, voir §22.13) reste entièrement de son ressort.
