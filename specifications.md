@@ -3788,8 +3788,8 @@ bas au lieu de se superposer discrètement dans le coin (repéré
 visuellement, capture d'écran à l'appui, avant d'être corrigé). Le style
 (couleur, taille, `pointer-events: none`, positionnement) est
 entièrement porté par l'attribut `style=""` de la `<div>` elle-même,
-jamais dépendant d'une règle externe — y compris la couleur grise, en
-valeur hexadécimale fixe plutôt qu'en `var()`. La règle survit à la
+jamais dépendant d'une règle externe — y compris la couleur, mais par
+`inherit` plutôt que par une valeur écrite là (voir plus bas). La règle survit à la
 feuille composée (§9.3), qui est pourtant toujours fraîche : un
 `custom.css` de série peut légitimement écraser ou omettre n'importe
 quelle règle, et un outillage interne ne doit jamais dépendre de la
@@ -3808,6 +3808,46 @@ test_stays_discreet_with_a_custom_style_css_lacking_the_rule`) : un
 le marqueur reste correctement positionné ; `test_minimal_variant_*` et
 `test_minimal_wins_if_both_flags_passed` couvrent `--build-stamp-minimal`
 et sa priorité.
+
+**`color: inherit`, aucune opacité, et le marqueur vit DANS la première
+fiche** — troisième itération, sur un rapport d'usage : « le stamp est
+invisible ». Il l'était. La `<div>` peignait un gris littéral `#6B6B7D` à
+`opacity: 0.75`, une couleur choisie contre aucun fond en particulier :
+mesurée contre les 57 thèmes intégrés, cette paire n'atteint 4,5:1 sur
+aucun et 3:1 sur cinq, au plus bas 1,27:1 sur `pop-red`.
+
+Une couleur fixe ne peut pas marcher, et une opacité fixe non plus :
+l'opacité rapproche toujours l'encre de son fond, donc une palette
+d'auteur posée sur le plancher de 4,5:1 passe dessous quel que soit le
+fondu (l'opacité minimale qui tient 4,5:1 sur les seuls intégrés vaut
+0,818). `inherit` donne au marqueur exactement le contraste que le thème
+garantit déjà pour son texte courant. La discrétion, c'est les 11 px et
+le coin, pas une couleur illisible.
+
+Reste à hériter du bon élément. Le marqueur était émis à côté des fiches,
+enfant de `<body>`, et sur un thème clair la couverture peint son fond
+avec l'ENCRE de la page : le marqueur écrivait alors sa propre couleur
+sur elle-même — mesuré sur `nord`, encre `#2E3440` sur fond `#2E3440`,
+1,00:1. Il est désormais injecté dans la première fiche (`build_article`,
+une seule substitution sur la première balise `<section>`), où il hérite
+de l'encre de la fiche au-dessus du fond de la fiche : la paire que
+l'audit de contraste couvre déjà. `position: absolute` se résout alors
+contre la fiche (`.slide` est `relative`) plutôt que contre le bloc
+englobant initial, et comme la première fiche commence en haut du
+document, c'est le même coin. Sur `index.html` il n'y a pas de fiche : le
+marqueur y reste dans le corps, où il hérite de l'encre de la page.
+L'injection n'ajoute aucun blanc, faute de quoi `strip_build_stamp()` ne
+rendrait plus la page à l'octet près et `verify` signalerait une dérive.
+
+Mesuré : `nord` 1,92:1 → 10,84:1, `solarized` 2,18:1 → 13,92:1,
+`midnight` 2,62:1 → 17,61:1. Gardé par `tests/test_rendered_contrast.py`,
+qui construit désormais la sonde avec `--build-stamp` et fait tourner un
+second instrument (`tests/build_stamp_e2e.cjs`) sur les mêmes pages : une
+superposition ne prend pas son fond de ses ancêtres mais du frère que le
+peintre a posé là, et c'est `elementsFromPoint` qui le dit. Prouvé par
+mutation : rétablir le gris littéral fait tomber les deux instruments,
+laisser le marqueur à côté des fiches ne fait tomber que le second, à
+exactement 1,00:1.
 
 ### 11.3.3 Un article qui réclame `index.html`
 

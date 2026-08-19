@@ -11324,6 +11324,31 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         )
         draft_banner = f'<div class="draft-banner" style="{banner_style}">{banner_text}</div>'
 
+    # The stamp goes INSIDE the first card, not beside the cards in the
+    # body. It inherits its colour (build_stamp_html), and on an article
+    # page the two grounds it could sit on are opposites: the cover paints
+    # its own ground and its own ink, and on a light theme that pair is
+    # the page's pair INVERTED. Measured on nord, the body's ink is
+    # #2E3440 and the cover's ground is the same #2E3440, so a stamp
+    # inheriting from the body painted itself onto its own colour at
+    # 1.00:1. In the first card it inherits the card's ink over the card's
+    # ground, which is the pair the contrast audit already covers.
+    #
+    # `position: absolute` resolves against the card (`.slide` is
+    # relative) instead of the initial containing block, and the first
+    # card starts at the top of the document, so the corner it lands in
+    # is the same corner.
+    stamp_in_body = build_stamp
+    if build_stamp:
+        slides_html, moved = re.subn(
+            r'(<section\b[^>]*>)',
+            # No separator: strip_build_stamp() must restore the page
+            # byte for byte, or `check` reports the whitespace it left
+            # behind as drift on a series built with the flag.
+            lambda mo: mo.group(1) + build_stamp, slides_html, count=1)
+        if moved:
+            stamp_in_body = ''
+
     # Assemble the page. Interface strings are applied to the SKELETON
     # (template — nav_js got its own pass at load time) before any
     # author-provided content is injected; then every remaining data
@@ -11338,7 +11363,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
         'css': css, 'slides': slides_html, 'page_footer': page_footer,
-        'js_nav': nav_js, 'build_stamp': build_stamp,
+        'js_nav': nav_js, 'build_stamp': stamp_in_body,
         'draft_banner': draft_banner,
     })
 
@@ -12015,17 +12040,34 @@ def build_stamp_html(version, minimal=False):
     built-in rule short of refresh-templates (§9.4) — the marker would
     render as a plain, undiscreet block-flow line (full width, default
     dark text, pushing the first slide down) instead of the intended
-    small corner overlay. Inline style has no such dependency."""
+    small corner overlay. Inline style has no such dependency.
+
+    `color: inherit` and no opacity, which is what makes it READABLE. It
+    used to paint a literal `#6B6B7D` at 0.75 opacity — a grey chosen
+    against no particular ground. Measured against all 57 built-in
+    themes, that pair cleared 4.5:1 on none of them and 3:1 on five,
+    bottoming out at 1.27:1 on pop-red; it was reported, accurately, as
+    invisible. Inheriting the body's ink instead gives the stamp exactly
+    the contrast the theme is already audited for (7.06:1 at worst,
+    catppuccin), and it does so for a theme the tool has never seen,
+    which no fixed grey and no fixed opacity can: the minimum opacity
+    clearing 4.5:1 across the built-ins is 0.818, and a custom palette
+    sitting at the 4.5:1 floor is put under it by any fade at all.
+    Discretion is the 11px and the corner, not a colour nobody can
+    read."""
     if minimal:
         text = 'Compiled with lightwebpres.'
     else:
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         text = f'Compiled at {now} with lightwebpres v{version}.'
     style = (
-        # Literal hex, not the quiet ink: the same staleness risk applies to
-        # a series' own custom property definitions, not just its rules.
-        'position:absolute;top:16px;left:20px;font-size:11px;color:#6b6b7d;'
-        'letter-spacing:0.3px;opacity:0.75;z-index:50;pointer-events:none;'
+        # `inherit`, not the quiet ink and not a literal: the staleness risk
+        # that rules out a `.build-stamp` rule rules out `var(--...)` too --
+        # a series' own style.css may predate any property named here --
+        # and inheritance is the one channel that has always worked, since
+        # every style.css this tool ever wrote sets a colour on `body`.
+        'position:absolute;top:16px;left:20px;font-size:11px;color:inherit;'
+        'letter-spacing:0.3px;z-index:50;pointer-events:none;'
         "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
     )
     return f'<div class="build-stamp" style="{style}">{text}</div>'

@@ -26,6 +26,15 @@ and on a light theme the page ground IS the cover's ink, so it announced
 clear the bar at every stop it crosses, so each stop is a candidate
 ground and the worst one is the answer.
 
+A DOM walk has a blind spot of its own, and the build stamp fell into
+it: an OVERLAY's ground is not its ancestor's background, it is whichever
+sibling the painter drew there first. The stamp used to sit beside the
+cards and inherit the body's ink, which on a light theme is the very
+colour the cover paints its ground with — 1.00:1, on a page the ancestor
+walk called legible. So a second instrument runs over the same builds
+(build_stamp_e2e.cjs), taking the ground from `elementsFromPoint`, which
+is the painter's own answer.
+
 Requires Node.js with the `playwright` package; skips cleanly if either
 is missing, same as tests/test_web.py.
 
@@ -43,6 +52,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LWP = REPO_ROOT / 'lightwebpres'
 SCRIPT = Path(__file__).resolve().parent / 'contrast_e2e.cjs'
+STAMP_SCRIPT = Path(__file__).resolve().parent / 'build_stamp_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -196,6 +206,7 @@ THEMES = _all_theme_slugs()
 class EveryLineOnAPageCanBeRead(unittest.TestCase):
 
     measured = {}
+    stamp = {}
     levels = {}
 
     @classmethod
@@ -223,8 +234,15 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
             assert settheme.returncode == 0, settheme.stdout + settheme.stderr
             out = Path(cls.tmpdir.name) / ('public-' + theme)
             build = subprocess.run(
+                # --build-stamp so the marker is on the page and swept
+                # like everything else. It paints text and had no property
+                # in the registry, which is the exact blind spot this
+                # instrument exists for: it hard-coded a grey at 0.75
+                # opacity and cleared 4.5:1 on none of the 57 themes,
+                # bottoming out at 1.27:1 on pop-red, and was reported as
+                # invisible by someone who used it.
                 ['python3', str(LWP), 'build', str(root), '--output', str(out),
-                 '--slides-page-numbers', 'yes'],
+                 '--slides-page-numbers', 'yes', '--build-stamp'],
                 capture_output=True, text=True, timeout=60)
             assert build.returncode == 0, build.stdout + build.stderr
             run = subprocess.run(
@@ -233,6 +251,19 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
                 env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON})
             assert run.returncode == 0, run.stdout + run.stderr
             cls.measured[theme] = json.loads(run.stdout)
+            # Second instrument, same builds: the stamp is an OVERLAY, and
+            # the walk above takes its ground from its ancestors. See
+            # build_stamp_e2e.cjs -- an ancestor walk cannot see the card
+            # painted under a sibling, and read the stamp as legible on
+            # the very page where it was painting its own colour.
+            cls.stamp[theme] = {}
+            for page in ('a.html', 'index.html'):
+                probe = subprocess.run(
+                    ['node', str(STAMP_SCRIPT), (out / page).as_uri()],
+                    capture_output=True, text=True, timeout=120,
+                    env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON})
+                assert probe.returncode == 0, probe.stdout + probe.stderr
+                cls.stamp[theme][page] = json.loads(probe.stdout)
         # The registry's own verdict per theme -- the contract the page is
         # held to, read from the tool rather than restated here.
         info = subprocess.run(
@@ -273,6 +304,60 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
                 any(r['onGround'] == [255, 243, 205] for r in m['results']),
                 f'{theme}: nothing was measured on the ground the author '
                 f'defined -- the variant did not reach the page')
+
+    def test_the_build_stamp_is_on_the_page_and_was_measured(self):
+        """Non-vacuity for the stamp, which the AA test below then holds
+        to the same 4.5:1 as everything else.
+
+        Without this, dropping `--build-stamp` from the build command
+        above would leave the sweep green while measuring nothing: the
+        marker would simply not be there. That is how it went unmeasured
+        for its whole life -- an element the registry has no property for,
+        on a page nothing built with the flag."""
+        for theme, m in self.measured.items():
+            stamp = [r for r in m['results'] if r['sig'] == 'div.build-stamp']
+            self.assertTrue(
+                stamp, f'{theme}: the build stamp was not measured -- the '
+                       f'page was not built with --build-stamp, or the '
+                       f'marker stopped being emitted')
+        for theme, pages in self.stamp.items():
+            for page, m in pages.items():
+                self.assertTrue(m['found'],
+                                f'{theme}/{page}: no build stamp on the page')
+                self.assertTrue(
+                    m['sample'].startswith('Compiled'),
+                    f"{theme}/{page}: the stamp says {m['sample']!r}")
+
+    def test_the_build_stamp_can_be_read_where_it_is_painted(self):
+        """The report, and the defect that produced it: "le stamp est
+        invisible".
+
+        Measured against what the PAINTER put under it, not against its
+        ancestors -- see build_stamp_e2e.cjs. The stamp is an overlay, so
+        the two answers differ, and on the page as it shipped they
+        differed by everything: the ancestor walk called it legible while
+        the painter had it at 1.00:1.
+
+        Every theme, both pages, at the 4.5:1 the marker's 11px asks for,
+        with no exemption. This is not the theme contract of the test
+        below -- a theme is allowed to report `fail` for its own body text
+        -- because the stamp's ink is not a theme choice: it inherits
+        whatever the card gives it, and a stamp that cannot be read is the
+        tool's defect on every theme alike."""
+        self.assertTrue(self.stamp, 'nothing was measured')
+        failures = []
+        for theme in sorted(self.stamp):
+            for page, m in sorted(self.stamp[theme].items()):
+                if m['ratio'] < m['threshold']:
+                    failures.append(
+                        f"{theme}/{page}: {m['ratio']}:1 needs "
+                        f"{m['threshold']} ({m['size']}px weight "
+                        f"{m['weight']}), ink {m['ink']} on ground "
+                        f"{m['ground']}, painted over {m['under']!r}")
+        self.assertEqual(
+            failures, [],
+            'the build stamp cannot be read where it is painted:\n  '
+            + '\n  '.join(failures))
 
     def test_the_instrument_sees_through_a_gradient(self):
         """The cover's ground is a gradient, and a gradient's
