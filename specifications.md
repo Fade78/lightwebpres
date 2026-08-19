@@ -1736,12 +1736,22 @@ masque après la même inactivité que les boutons — 3 s, 1 s en plein
 écran. Il ne se masquait auparavant qu'en plein écran, ce qui laissait
 la page dans un état que personne n'avait choisi : les boutons
 s'effaçaient seuls et un curseur restait posé au milieu du texte. Deux
-choses qui répondent à l'immobilité y répondent ensemble.
+choses qui répondent à l'immobilité y répondent ensemble — et au
+mouvement aussi, voir plus bas.
 
-**La réapparition demande 250 ms de mouvement continu**, là où les
-boutons reviennent au premier mouvement — et ce n'est pas la même
-promesse : un bouton qui apparaît coûte un regard, un curseur qui
-apparaît sur un mur derrière un orateur coûte l'attention de la salle.
+Entrer ou sortir du plein écran, ou cliquer dans la zone des boutons,
+révèle le chrome immédiatement : ce sont des gestes explicites, pas des
+mouvements de souris, et ils ne passent pas par cette condition.
+
+**La réapparition demande 250 ms de mouvement continu**, pour le curseur
+**et pour les boutons**, sur la même condition. Les boutons revenaient au
+premier mouvement, au motif qu'un bouton qui apparaît coûte moins qu'un
+curseur sur un mur derrière un orateur. À l'usage la distinction ne tient
+pas : les deux moitiés d'un même geste répondaient à deux horloges, le
+curseur tenait un quart de seconde pendant que le chrome était déjà
+revenu sur le mur, et la protection n'en était qu'une moitié. Un
+mouvement, une règle.
+
 La condition est vérifiée **sur** un évènement de mouvement qui prouve
 que la salve dure depuis 250 ms, seule forme qu'un sursaut ne peut pas
 produire ; un minuteur armé au premier mouvement se déclencherait que

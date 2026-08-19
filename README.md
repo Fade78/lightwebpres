@@ -27,8 +27,9 @@ fullscreen, B/W/T for pause screens), mouse (click to advance,
 right-click to go back, double-click for fullscreen, middle-click to
 exit), and touch (swipe) all work out of the box. Navigation buttons fade
 after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
-only slides. The cursor hides on the same clock, and only
-returns after 250 ms of continuous mouse movement. The mouse becomes a
+only slides. The cursor hides on the same clock, and both come back on
+the same condition: 250 ms of continuous mouse movement, so a knock
+against the desk puts nothing back on the wall. The mouse becomes a
 remote: left-click advances, right-click goes back, two distinct buttons,
 no aiming. Fullscreen also neutralizes OS power-saving so the screen never
 dims mid-talk. A `X / N` counter and a direct number-jump (type the slide
@@ -74,8 +75,8 @@ handout at Ctrl/Cmd+P.
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
   screens), mouse (click advance, right-click back, double-click
   fullscreen, middle-click exit), touch (swipe). Navigation chrome fades
-  after 3s idle (1s in fullscreen); the cursor hides on the same clock
-  and returns only after 250ms of continuous movement. The mouse becomes
+  after 3s idle (1s in fullscreen); the cursor hides on the same clock,
+  and both return only after 250ms of continuous movement. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the
   screen never dims mid-talk.

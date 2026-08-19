@@ -1976,7 +1976,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from somewhere else entirely — a CMS export, a database, a generator, an agent upstream — and LightWebPres is what turns it into publishable pages.</li>
   </ul>
   <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
-  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides after 1 second of idleness in fullscreen, and only returns after the mouse has moved continuously for 250 ms — a brush past the sensor never flashes it back. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
+  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Set up &amp; your first build</h2>
   <pre><code class="language-bash">
@@ -3758,14 +3758,22 @@ document.addEventListener('DOMContentLoaded', function() {
   //
   // A gap longer than 100ms ends a burst and starts a new one, so a
   // stop-and-start never accumulates towards the 250.
+  //
+  // The BUTTONS come back on the same condition, and that is the whole
+  // of this function's job. They used to come back on the first move,
+  // which made the two halves of one gesture answer to two clocks: the
+  // cursor held for a quarter of a second while the chrome was already
+  // back on the wall, so the protection was half a protection. One
+  // reveal, one rule.
   var fsMoveStart = 0;
   var fsLastMove = 0;
-  function revealCursor() {
+  function revealChrome() {
     var now = Date.now();
     if (now - fsLastMove > 100) fsMoveStart = now;
     fsLastMove = now;
     if (now - fsMoveStart >= 250) {
       document.body.style.cursor = '';
+      setNavIdle(false);
     }
   }
   // Wake lock: prevents the screen from dimming/sleeping while the
@@ -3989,12 +3997,11 @@ document.addEventListener('DOMContentLoaded', function() {
       }, getIdleDelay());
     }
     document.addEventListener('mousemove', function () {
-      // The buttons come back on the first move; the cursor waits for
-      // movement that lasts. They are not the same promise: a button
-      // appearing costs a glance, a cursor appearing on a wall behind a
-      // speaker costs the room's attention.
-      setNavIdle(false);
-      revealCursor();
+      // Nothing is revealed here. revealChrome() decides, on the one
+      // condition that governs both: movement that has already lasted
+      // 250ms. What this handler always does is restart the countdown,
+      // so a mouse that is moving is never a mouse that has gone idle.
+      revealChrome();
       scheduleHide();
     });
     // Reschedule on fullscreen change to use the correct delay

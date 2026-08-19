@@ -96,7 +96,12 @@ async function main() {
     fail('an ordinary click no longer advances the deck');
   }
 
-  // --- 3. The cursor comes back only on sustained movement ------------
+  // --- 3. The cursor AND the buttons come back only on sustained
+  //        movement, together ------------------------------------------
+  // Both halves of one gesture, on one clock. The buttons used to come
+  // back on the first move while the cursor held for a quarter of a
+  // second, so a knock against the desk put the chrome back on the wall
+  // and the protection was half a protection.
   // Driven through the page's own listener with synthetic events, so the
   // timing is the script's and not the harness's. Headless Chromium will
   // not grant fullscreen without a gesture, so the handler is exercised
@@ -111,20 +116,28 @@ async function main() {
       // answers to the same clock as the navigation chrome now, in
       // every mode, and it used to answer only in fullscreen — which is
       // the report this covers.
+      const nav = document.querySelector('.nav-buttons');
+      const idle = () => (nav ? nav.classList.contains('idle') : null);
       document.body.style.cursor = 'none';
+      if (nav) nav.classList.add('idle');
       // A twitch: two events one frame apart, then nothing.
       send();
       setTimeout(() => {
         send();
         setTimeout(() => {
           const afterTwitch = document.body.style.cursor;
+          const navAfterTwitch = idle();
           // A real movement: events every 30ms for 400ms.
           const started = Date.now();
           const timer = setInterval(() => {
             send();
             if (Date.now() - started > 400) {
               clearInterval(timer);
-              resolve({ afterTwitch, afterMoving: document.body.style.cursor });
+              resolve({
+                afterTwitch, navAfterTwitch,
+                afterMoving: document.body.style.cursor,
+                navAfterMoving: idle(),
+              });
             }
           }, 30);
         }, 400);
@@ -136,6 +149,12 @@ async function main() {
   }
   if (cursorVerdict.afterMoving !== '') {
     fail('sustained movement did not reveal the cursor: ' + JSON.stringify(cursorVerdict));
+  }
+  if (cursorVerdict.navAfterTwitch !== true) {
+    fail('a two-event twitch brought the navigation back: ' + JSON.stringify(cursorVerdict));
+  }
+  if (cursorVerdict.navAfterMoving !== false) {
+    fail('sustained movement did not bring the navigation back: ' + JSON.stringify(cursorVerdict));
   }
 
   // --- 3b. And it hides again on its own, outside fullscreen ---------

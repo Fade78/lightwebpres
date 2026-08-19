@@ -86,7 +86,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.40.1"
+VERSION = "0.40.2"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -7011,14 +7011,22 @@ document.addEventListener('DOMContentLoaded', function() {
   //
   // A gap longer than 100ms ends a burst and starts a new one, so a
   // stop-and-start never accumulates towards the 250.
+  //
+  // The BUTTONS come back on the same condition, and that is the whole
+  // of this function's job. They used to come back on the first move,
+  // which made the two halves of one gesture answer to two clocks: the
+  // cursor held for a quarter of a second while the chrome was already
+  // back on the wall, so the protection was half a protection. One
+  // reveal, one rule.
   var fsMoveStart = 0;
   var fsLastMove = 0;
-  function revealCursor() {
+  function revealChrome() {
     var now = Date.now();
     if (now - fsLastMove > 100) fsMoveStart = now;
     fsLastMove = now;
     if (now - fsMoveStart >= 250) {
       document.body.style.cursor = '';
+      setNavIdle(false);
     }
   }
   // Wake lock: prevents the screen from dimming/sleeping while the
@@ -7242,12 +7250,11 @@ document.addEventListener('DOMContentLoaded', function() {
       }, getIdleDelay());
     }
     document.addEventListener('mousemove', function () {
-      // The buttons come back on the first move; the cursor waits for
-      // movement that lasts. They are not the same promise: a button
-      // appearing costs a glance, a cursor appearing on a wall behind a
-      // speaker costs the room's attention.
-      setNavIdle(false);
-      revealCursor();
+      // Nothing is revealed here. revealChrome() decides, on the one
+      // condition that governs both: movement that has already lasted
+      // 250ms. What this handler always does is restart the countdown,
+      // so a mouse that is moving is never a mouse that has gone idle.
+      revealChrome();
       scheduleHide();
     });
     // Reschedule on fullscreen change to use the correct delay

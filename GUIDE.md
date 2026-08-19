@@ -54,9 +54,11 @@ Home, F for fullscreen, B/W/T for pause screens), mouse (click to
 advance, right-click to go back, double-click for fullscreen, middle-click
 to exit), and touch (swipe) all work out of the box. The navigation
 buttons fade after 3 seconds of idleness (1 second in fullscreen) — the
-speaker sees only slides. The cursor hides after 1 second of idleness in
-fullscreen, and only returns after the mouse has moved continuously for
-250 ms — a brush past the sensor never flashes it back. The mouse becomes
+speaker sees only slides. The cursor hides on that same clock, and
+neither comes back until the mouse has moved continuously for 250 ms — a
+brush past the sensor flashes nothing back onto the wall. Entering or
+leaving fullscreen, and clicking in the button corner, reveal the chrome
+at once: those are deliberate gestures, not stray movement. The mouse becomes
 a remote: left-click advances, right-click goes back, two distinct
 buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the
 screen never dims mid-talk.
