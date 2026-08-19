@@ -1781,6 +1781,65 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(),
                          f'LightWebPres v{lwp.VERSION}')
+
+    def test_the_number_the_tool_says_is_the_number_it_was_released_as(self):
+        """The test above asks whether the tool agrees with itself, which
+        it always will. This one asks whether it agrees with the RELEASE,
+        which is the thing a reader actually downloads.
+
+        Measured, and it is why this exists: v0.42.0 was tagged on a tree
+        whose VERSION still read 0.41.2, so the published executable
+        announced the previous release — `--version` said 0.41.2, and the
+        browser GUI printed "Loaded lightwebpres v0.41.2" for a 0.42.0
+        vendor. Nothing in the suite could see it, because every guard
+        compared the tool to itself.
+
+        Two states, both checked:
+
+          - HEAD IS the newest tag: this is a cut release, and it must
+            announce itself.
+          - HEAD is AHEAD of it: the work is unreleased, and VERSION must
+            be strictly greater — a number that has not been released is
+            allowed, a number that has been is not.
+
+        It cannot fire before the tag exists: nothing can know which
+        number the owner will choose. It fires on the first run after the
+        tag, which is the earliest moment the answer is knowable."""
+        root = Path(__file__).resolve().parent.parent
+        def git(*args):
+            return subprocess.run(['git', '-C', str(root), *args],
+                                  capture_output=True, text=True)
+        described = git('describe', '--tags', '--abbrev=0', '--match', 'v*')
+        if described.returncode != 0 or not described.stdout.strip():
+            self.skipTest('no tag reachable from HEAD to compare against')
+        tag = described.stdout.strip()
+        released = git('show', f'{tag}:lightwebpres')
+        if released.returncode != 0:
+            self.skipTest(f'{tag} carries no executable to read')
+        match = re.search(r'^VERSION = "([^"]+)"', released.stdout, re.M)
+        self.assertIsNotNone(match, f'{tag} has no VERSION line')
+
+        def parts(value):
+            return tuple(int(n) for n in value.split('.'))
+
+        tagged = parts(tag.lstrip('v'))
+        here = parts(load_lightwebpres_module().VERSION)
+        at_tag = git('rev-list', '-n', '1', tag).stdout.strip()
+        head = git('rev-parse', 'HEAD').stdout.strip()
+
+        if at_tag == head:
+            self.assertEqual(
+                parts(match.group(1)), tagged,
+                f'{tag} was cut from a tree announcing '
+                f'{match.group(1)}: the released tool says it is a version '
+                f'it is not, and every reader who runs --version is told so')
+        else:
+            self.assertGreater(
+                here, tagged,
+                f'this tree announces {".".join(str(n) for n in here)} and '
+                f'{tag} is already released under that number or a later '
+                f'one. An unreleased number is fine; a released one is a '
+                f'second thing claiming to be the first')
         # Version is not buried in help: --version prints only the version.
         self.assertNotIn('COMMANDS', result.stdout)
 
@@ -9267,7 +9326,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.41.1),
+        by the executable as it stood at the last tagged release (v0.42.0),
         and by this one, compared byte for byte after CSS comments are
         removed from ``<style>`` blocks. Comments are not rendering, while
         every other byte remains covered. --build-stamp is off by default,
@@ -9282,10 +9341,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.41.1:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.42.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.41.1 tag to read the previous version from')
+            self.skipTest('no v0.42.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -9420,7 +9479,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
             # Deliberate drift since the tag, declared line for line, and
             # empty at the start of a release cycle -- which is where it
-            # is now, freshly repointed at v0.41.1.
+            # is now, freshly repointed at v0.42.0.
             #
             # It exists because the docstring's instruction has a gap.
             # Repointing at the newest tag is the acknowledgement that a
@@ -9481,7 +9540,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # Both tables are empty at a fresh repoint, and that is the
             # healthy state: every drift they used to declare is inside
             # the tag this test now reads. A line goes back in only for
-            # drift introduced AFTER v0.41.1.
+            # drift introduced AFTER v0.42.0.
             # The touch exemption, withdrawn. Four rules pinned every
             # piece of the navigation chrome — and the scroll bar — back
             # to visible on a coarse pointer, so on a phone the buttons
@@ -9489,34 +9548,8 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # They are gone; a double tap is the switch now, and what
             # replaces them is one rule that stops a FADED button from
             # answering a finger, which `opacity: 0` alone does not do.
-            gone = {          # lines the OLD page had and the new one does not
-                b'@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }',
-                b'@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }',
-                b'<section class="slide" id="[slide-2]" data-tags="default">',
-                b'@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }',
-                b'@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }',
-            }
-            arrived = {       # lines the NEW page has and the old one did not
-                b'@media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle,'
-                b' .slide-counter.idle { pointer-events: none; } }',
-                # The rank alias. A card's id is now derived from what the
-                # author wrote, so an empty span carries the `sN` name every
-                # link already shared still says — including the ones on
-                # paper, which is why they cannot simply be let go. Four
-                # lines because the demo's longest page has four cards; a
-                # declared line strips every occurrence, so these cover all
-                # four pages at once.
-                b'<span id="s1"></span>',
-                b'<span id="s2"></span>',
-                b'<span id="s3"></span>',
-                b'<span id="s4"></span>',
-                # And the class that now carries the series-nav's TYPE.
-                # The share button used to read the type off the id, which
-                # happened to end in `-series`; an identity derived from
-                # what the author wrote says nothing about type, so the
-                # type had to be written down.
-                b'<section class="slide slide-series-nav" id="[slide-2]" data-tags="default">',
-            }
+            gone = set()      # lines the OLD page had and the new one does not
+            arrived = set()   # lines the NEW page has and the old one did not
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
             # index gained a button the article pages always had" --
@@ -9613,7 +9646,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                                  f'{line.decode()!r} is declared arrived and '
                                  f'the released version already had it')
             self.assertEqual(seen, set(drift.items()),
-                             'the drift since v0.41.1 is not the drift this '
+                             'the drift since v0.42.0 is not the drift this '
                              'test declares')
 
     def test_the_page_carries_exactly_the_script_the_tool_ships(self):
