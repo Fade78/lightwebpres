@@ -3449,33 +3449,37 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
     def test_completion_stays_in_sync_with_command_tables(self):
         """The completion script is generated from _SHORTCUTS,
-        _LEGACY_ALIASES, _SERIES_VERBS, _THEME_VERBS, and
-        _COMMAND_OPTIONS. If a command or option is added to those
-        tables but not to the completion script, this test fails —
-        so an evolution of the CLI does not silently break completion."""
+        _LEGACY_ALIASES, _SERIES_VERBS, _THEME_VERBS, _TEMPLATE_VERBS and
+        _COMMAND_OPTIONS. A command or option added to those tables and
+        not to the script must fail here, so an evolution of the CLI
+        cannot silently break completion.
+
+        BY RUNNING IT, not by searching the text. This test used to
+        assert `name in script` for each table entry, which a
+        seventy-line shell script satisfies by accident: `demo` appears
+        in the root list, in a comment, and inside `--demo`-ish option
+        names, so the check passed on a script that offered none of it.
+        Measured: replacing the whole series-verb list with the single
+        word `build` left this test green, and so did dropping
+        `template show`/`write` when they arrived. It was decorative for
+        every table it named.
+
+        Now it compares the offered SET against the table, both
+        directions, so a missing entry and a stray one both fail."""
         lwp = load_lightwebpres_module()
         script = run('completion', '--shell', 'bash').stdout
-        # Every shortcut and legacy alias must appear in the root list.
-        for name in set(lwp._SHORTCUTS) | set(lwp._LEGACY_ALIASES):
-            self.assertIn(name, script,
-                           f'completion script missing root command {name!r}')
-        # Every series verb must appear in the series list.
-        for verb in lwp._SERIES_VERBS:
-            self.assertIn(verb, script,
-                           f'completion script missing series verb {verb!r}')
-        # Every theme verb must appear in the theme list.
-        for verb in lwp._THEME_VERBS:
-            self.assertIn(verb, script,
-                           f'completion script missing theme verb {verb!r}')
-        # Every option from every command must appear in the options list.
-        all_opts = set()
+        self.assertEqual(
+            sorted(self._complete(script, ['lightwebpres', ''], 1)),
+            sorted(set(lwp._SHORTCUTS) | set(lwp._LEGACY_ALIASES)
+                   | {'series', 'theme', 'template'}),
+            'the root command list is not what the tables say')
+        all_opts = set(lwp._VALUE_OPTIONS) | set(lwp._GLOBAL_OPTIONS)
         for opts in lwp._COMMAND_OPTIONS.values():
             all_opts |= opts
-        all_opts |= lwp._GLOBAL_OPTIONS
-        all_opts |= lwp._VALUE_OPTIONS
-        for opt in all_opts:
-            self.assertIn(opt, script,
-                           f'completion script missing option {opt!r}')
+        self.assertEqual(
+            sorted(self._complete(script, ['lightwebpres', '--'], 1)),
+            sorted(all_opts),
+            'the option list is not what the tables say')
 
     def test_completion_offers_nothing_the_tool_refuses(self):
         """The lists are derived from the tables in BOTH directions.
@@ -3495,6 +3499,16 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertEqual(
             sorted(self._complete(script, ['lightwebpres', 'series', ''], 2)),
             sorted(lwp._SERIES_VERBS))
+        self.assertEqual(
+            sorted(self._complete(script, ['lightwebpres', 'template', ''], 2)),
+            sorted(lwp._TEMPLATE_VERBS))
+        # `template show <TAB>` offers the three files and not the
+        # directory listing, which is what a closed set deserves.
+        for verb in ('show', 'write'):
+            self.assertEqual(
+                sorted(self._complete(
+                    script, ['lightwebpres', 'template', verb, ''], 3)),
+                sorted(lwp.tool_owned_files()), verb)
         # And the offer is real: every verb offered must be one the tool
         # accepts. `theme set` exits non-zero with a message that names
         # the right spelling.
@@ -3520,6 +3534,47 @@ class CliVersionAndShortcuts(unittest.TestCase):
         for opt in sorted(lwp._GLOBAL_OPTIONS):
             self.assertIn(opt, usage,
                           f'the usage block does not mention {opt!r}')
+
+    def test_help_names_every_command_a_user_can_type(self):
+        """Structural, from the tables, because a needle list only ever
+        catches what someone thought to add to it. `template show` and
+        `template write` were absent from --help for a whole release and
+        the suite was green: measured, deleting both entries changed no
+        test result. --help is the "Full reference" the README promises,
+        and a command missing from it is a command nobody finds."""
+        lwp = load_lightwebpres_module()
+        text = run('--help').stdout
+        keys = (set(lwp._SHORTCUTS.values()) | set(lwp._SERIES_VERBS.values())
+                | set(lwp._THEME_VERBS.values())
+                | set(lwp._TEMPLATE_VERBS.values()))
+        for name in sorted({lwp.canonical(k) for k in keys}):
+            self.assertIn(f'lightwebpres {name}', text,
+                          f'--help never names `{name}`')
+
+    def test_every_command_is_wired_into_every_table(self):
+        """A verb reaches the dispatcher through one table and is then
+        governed by three others: which options it accepts, how many
+        positionals it can use, and what a user should be told to type.
+        A verb added to the first and forgotten in the rest still runs —
+        it simply refuses every option, or answers with an internal key.
+
+        Checked here rather than trusted, because each of those tables
+        has a silent default: `.get(command, ...)`."""
+        lwp = load_lightwebpres_module()
+        keys = (set(lwp._SHORTCUTS.values()) | set(lwp._SERIES_VERBS.values())
+                | set(lwp._THEME_VERBS.values())
+                | set(lwp._TEMPLATE_VERBS.values())
+                | set(lwp._LEGACY_ALIASES.values()))
+        self.assertEqual(sorted(keys - set(lwp._COMMAND_OPTIONS)), [])
+        self.assertEqual(sorted(keys - set(lwp._MAX_POSITIONAL)), [])
+        # And every canonical name is a form the dispatcher accepts:
+        # `--help` on it must succeed, which no internal key does.
+        for key in sorted(keys):
+            words = lwp.canonical(key).split()
+            r = run(*words, '--help')
+            self.assertEqual(r.returncode, 0,
+                             f'canonical(`{key}`) = `{" ".join(words)}`, '
+                             f'which the tool refuses: {r.stderr}')
 
     def test_help_names_each_option_against_a_command_that_takes_it(self):
         """Every option in the OPTIONS block is introduced by the commands
@@ -4822,6 +4877,28 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
             self.assertFalse((root / 'language' / 'fr.json').exists())
             self.assertFalse((root / 'language' / 'en.json').exists())
 
+    def test_init_names_the_way_to_reach_the_files_it_no_longer_writes(self):
+        """The whole discoverability mechanism for three files that are
+        no longer in the directory. Before, an author saw `nav.js` in a
+        listing and opened it; now there is nothing to see, so the only
+        thing standing between them and a file they do not know exists is
+        this line — and `init` is where someone reads what a series is
+        made of.
+
+        It is the `custom.css` lesson applied the other way round:
+        guidance goes where guidance belongs, which makes the guidance
+        itself load-bearing. Measured before this guard: silencing the
+        announcement changed no test result."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            r = run('init', str(root))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            said = r.stdout + r.stderr
+            self.assertIn('template show nav.js', said)
+            self.assertIn('template write nav.js', said)
+            # And it says why taking one is a decision, not a freebie.
+            self.assertIn('stops following', said)
+
     def test_a_page_is_the_same_with_the_copies_and_without(self):
         """The measurement the whole change rests on. If a page built
         from a series holding the copies differed from one built without
@@ -6096,10 +6173,15 @@ class TypographyDisableSwitches(unittest.TestCase):
 class TemplateOverride(unittest.TestCase):
     """§9/§12/§18: the author's surface must actually reach the page —
     values through templates/settings.conf, rules through
-    templates/custom.css, behaviour through templates/nav.js. The old
-    whole-file style.css override is gone (the sheet is composed in
-    memory); its guarantee splits into the two tests below, one per
-    author file."""
+    templates/custom.css. Behaviour is the third surface and is not in
+    the series by default: the navigation script lives in the executable
+    and `template write nav.js` puts a copy under `templates/` for
+    whoever wants to change it (§9.4.5).
+
+    The old whole-file style.css override is gone — the sheet is
+    composed in memory — and its guarantee splits into the tests below,
+    one per author file, plus the one that keeps `custom.css` from
+    publishing anything the tool put there."""
 
     def test_custom_css_rules_are_appended_after_the_composed_sheet(self):
         md = (
@@ -6254,12 +6336,19 @@ class TemplateOverride(unittest.TestCase):
 
 
 class RefreshTemplates(unittest.TestCase):
-    """§11.6 under the §9 rewrite: only nav.js is a tool-owned file on
-    disk that an upgrade can refresh — the stylesheet is composed at
-    build time, so it is always fresh by construction, and the author's
-    settings.conf / custom.css are never the tool's to touch. The marker
-    machinery (and its [SKIP]/exit-1 paths) is gone with the shared
-    file that required it."""
+    """§11.6: what the command does to the AUTHOR's surface — create
+    `settings.conf` or `custom.css` when they are missing, regenerate the
+    commented scaffold under `--scaffold`, report a legacy `style.css`
+    without migrating it. The stylesheet is composed at build time, so it
+    is fresh by construction and no file of it can go stale; the marker
+    machinery, with its [SKIP] and exit-1 paths, went with the shared
+    file that required it.
+
+    What the command does to the TOOL's files — removing a copy of
+    `nav.js` or a language pack that a series should no longer be
+    holding — is in
+    `TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest`, with the reason
+    it does so."""
 
     def test_requires_install_first(self):
         with tempfile.TemporaryDirectory() as tmp:
