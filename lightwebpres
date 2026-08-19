@@ -87,7 +87,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.42.2"
+VERSION = "0.42.3"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -10995,6 +10995,16 @@ def validate_self_contained(html, filename):
     sys.exit(1)
 
 
+# CommonMark's two autolink forms, as they survive into the assembled
+# page: an absolute URI, and an email address. Both are refused (see
+# validate_html) — this exists so the refusal can name what the author
+# typed. Deliberately narrow: a scheme is letters then `:`, an address
+# has an `@` and no space, and neither may contain `<`, `>` or a space,
+# so a `<` in ordinary prose cannot be dragged into a false match.
+_AUTOLINK_RE = re.compile(
+    r'<((?:[a-zA-Z][a-zA-Z0-9+.-]*:|[^\s<>@]+@)[^\s<>]*)>')
+
+
 def validate_html(html_text, filename):
     """Rejects generated HTML that isn't well-formed (mismatched or
     unclosed tags) — a bug in a template or in convert_markdown() must
@@ -11009,6 +11019,37 @@ def validate_html(html_text, filename):
         unclosed = ', '.join(f'<{t}>' for t in reversed(checker.stack))
         checker.errors.append(f'unclosed tag(s) at end of document: {unclosed}')
     if checker.errors:
+        # An autolink is not a mismatched tag, and saying so sends the
+        # author looking for a `<div>` they never wrote. `<https://x.test>`
+        # and `<contact@x.test>` are CommonMark's autolink syntax, which
+        # this grammar does not accept because §6.2 gives `<...>` to raw
+        # inline HTML — the two syntaxes want the same two characters, and
+        # only one of them can have them. Refusing is right; blaming the
+        # wrong thing is not. Read off the SOURCE rather than off the
+        # checker's stack, because the stack holds what a tag parser made
+        # of it (a tag named `https:`) and the author needs to be shown
+        # what they typed.
+        autolinks = _AUTOLINK_RE.findall(html_text)
+        if autolinks:
+            first = autolinks[0]
+            # Two forms, two remedies, and only one of them is a Markdown
+            # link: `[…](…)` is restricted to http(s) (see md_inline), so
+            # telling someone to write `[a@b](mailto:a@b)` would be
+            # advice that does not work -- which is the whole defect
+            # being repaired here, one level down.
+            if first.lower().startswith(('http://', 'https://')):
+                remedy = f'Write `[{first}]({first})` instead.'
+            else:
+                remedy = ('A Markdown link only takes an http(s) address, '
+                          'so for anything else write the raw HTML: '
+                          f'`<a href="{first}">{first}</a>` — or simply '
+                          'leave the address as plain text.')
+            log('error',
+                f'{filename}: `<{first}>` is a Markdown autolink, and this '
+                f'format does not read one: `<...>` is raw inline HTML here '
+                f'(§6.2), so a tag parser sees an element that is never '
+                f'closed. {remedy}')
+            sys.exit(1)
         log('error', f'{filename}: the generated HTML is not well-formed — '
               f'this almost always means unbalanced raw HTML in the source '
               f'for this page (an unclosed or mismatched tag, e.g. a <div> in '

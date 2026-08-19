@@ -1047,6 +1047,22 @@ est UTF-8 natif (§13.1). Une entité peut encore servir dans un **bloc**
 HTML brut (ligne commençant par une balise de bloc, ou bloc multi-lignes
 ouvert par une balise non refermée), où les lignes passent verbatim.
 
+**L'autolink CommonMark n'existe pas ici.** `<https://x.test>` et
+`<contact@x.test>` sont la syntaxe d'autolien de CommonMark ; ce format
+ne la lit pas, parce que `<...>` appartient au HTML inline brut — les
+deux syntaxes réclament les mêmes deux caractères et une seule peut les
+avoir. Le build **refuse** : un analyseur de balises y voit un élément
+jamais refermé, et la garde de bonne formation l'arrête. Rien de faux
+n'est publié.
+
+Le refus nomme la vraie cause plutôt que d'accuser une balise mal
+fermée, et il propose le remède qui marche **pour la forme rencontrée** :
+`[url](url)` pour une adresse http(s), et le HTML brut `<a href="…">…</a>`
+pour tout le reste, puisqu'un lien Markdown n'accepte qu'une adresse
+http(s) (§6.1) — conseiller `[a@b](mailto:a@b)` serait conseiller
+quelque chose que l'outil rend en texte littéral, c'est-à-dire commettre
+un cran plus bas le défaut que ce message corrige.
+
 Le découpage entre « dans » et « hors » d'une balise est **celui du
 moteur typographique** (§19.3), littéralement le même motif : deux
 mécanismes qui ne s'accorderaient pas sur l'endroit où commence une

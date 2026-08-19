@@ -1596,6 +1596,93 @@ class SlideTypesAreARegistry(unittest.TestCase):
             self.assertIn('comment', slide_type.fields, slide_type.name)
 
 
+class AnAutolinkIsRefusedByName(unittest.TestCase):
+    """`<https://x.test>` and `<contact@x.test>` are CommonMark's autolink
+    syntax, and this format does not read one: §6.2 gives `<...>` to raw
+    inline HTML, and the two syntaxes want the same two characters.
+
+    Refusing is right — nothing false is published. Blaming the wrong
+    thing is not: the build used to answer "unbalanced raw HTML in the
+    source (an unclosed or mismatched tag, e.g. a <div> in a fact-box
+    that is never closed)", which sends an author who wrote ordinary
+    Markdown hunting for a tag they never typed."""
+
+    def _build(self, tmp, body):
+        root = Path(tmp) / 'series'
+        (root / 'articles').mkdir(parents=True)
+        (root / 'series.json').write_text(json.dumps(
+            {'series_meta': {'title': 'T'},
+             'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
+                           'nav_title': 'A', 'nav_desc': 'A'}]}),
+            encoding='utf-8')
+        (root / 'articles' / 'a.md').write_text(
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: K\n# T\nsummary: S\n\n'
+            '---\n\n'
+            '<!-- lwp:slide -->\nkicker: K\n## H\nsummary: S\n'
+            'fact-label: F\n\n' + body + '\n',
+            encoding='utf-8')
+        return run('build', str(root), '--output', str(Path(tmp) / 'public'))
+
+    def test_a_url_autolink_is_named_and_a_working_remedy_offered(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self._build(tmp, 'See <https://x.test/a> for more.')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('`<https://x.test/a>` is a Markdown autolink',
+                          result.stderr)
+            self.assertIn('[https://x.test/a](https://x.test/a)',
+                          result.stderr)
+            # And it must NOT reach for the old explanation, which named
+            # a tag the author never wrote.
+            self.assertNotIn('unbalanced raw HTML', result.stderr)
+
+    def test_an_email_autolink_gets_the_remedy_that_actually_works(self):
+        """A Markdown link takes an http(s) address and nothing else, so
+        `[a@b](mailto:a@b)` renders as literal text — measured. Advising
+        it would be advice that does not work, which is the very defect
+        this test exists to close, one level down."""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self._build(tmp, 'Write to <hi@x.test> for more.')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('`<hi@x.test>` is a Markdown autolink',
+                          result.stderr)
+            self.assertIn('<a href="hi@x.test">', result.stderr)
+            self.assertNotIn('[hi@x.test](mailto:', result.stderr)
+
+    def test_the_remedy_it_offers_for_a_url_builds(self):
+        """Run what the message tells the author to type. A message that
+        recommends something the tool then refuses is worse than no
+        message."""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self._build(
+                tmp, 'See [https://x.test/a](https://x.test/a) for more.')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (Path(tmp) / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('href="https://x.test/a"', html)
+
+    def test_real_unbalanced_html_still_gets_the_old_explanation(self):
+        """The autolink message replaces the generic one only when there
+        IS an autolink. An actual unclosed div must still be told it is
+        an unclosed div."""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self._build(tmp, 'Text with <div>no closing tag.')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unbalanced raw HTML', result.stderr)
+            self.assertNotIn('autolink', result.stderr)
+
+    def test_prose_with_a_stray_angle_bracket_is_not_called_an_autolink(self):
+        """`3 < 4` is arithmetic. The pattern is narrow on purpose — a
+        scheme is letters then a colon, an address has an `@`, and
+        neither may contain a space."""
+        lwp = load_lightwebpres_module()
+        for text in ('3 < 4 and 5 > 2', 'a < b > c', '<div>', '</p>',
+                     '< https://x.test >'):
+            self.assertEqual(lwp._AUTOLINK_RE.findall(text), [], text)
+        for text in ('<https://x.test>', '<hi@x.test>', '<ftp://x.test/f>'):
+            self.assertTrue(lwp._AUTOLINK_RE.findall(text), text)
+
+
 class OneRuleForTheAmpersand(unittest.TestCase):
     """§6.2: an `&` outside a tag is escaped; what is inside one is left
     alone. One rule, both grammars.
