@@ -3266,6 +3266,22 @@ pas — mesuré invariant de 1080p à 4K. Lever un plafond sans l'autre
 produirait une mauvaise page : une colonne plus large seule allonge les
 lignes, un corps plus gros seul les raccourcit.
 
+**La page d'index lit la même mesure.** Une série est un document sous
+deux formes — l'index qui l'énumère et les fiches qui la constituent — et
+le lecteur passe de l'une à l'autre en cliquant : deux réponses
+différentes à la même largeur d'écran font sauter la colonne à chaque
+clic, sans qu'aucune des deux pages ne paraisse fautive isolément. Le
+gabarit d'index porte donc la classe `.index-page`, dont la règle vit
+dans la feuille composée à côté de celles de `.slide` et résout
+`page.content-max` comme elles ; le point de rupture téléphone les tourne
+toutes les deux. La disposition avait été écrite en attribut `style` sur
+`<body>`, hors d'atteinte du moteur de thèmes et au-dessus de toute
+requête média : un plafond fixe de 1200 px à côté d'un `padding` en `vw`
+rétrécissait l'index quand l'écran grandissait, et la règle en ligne
+ignorait le point de rupture. Mesuré avant correction, index contre
+fiche : 970 contre 1210 à 1440, 893 contre 1613 à 1920, 790 contre 2150 à
+2560 ; et 31 px de marge latérale contre 24 sur un téléphone de 390.
+
 Le **plancher** de chaque taille reste : c'est lui qui gouverne un
 téléphone, où les fiches sont déjà serrées en hauteur (§7 de
 `ETUDE-VIEWPORT.md` compte celles qui débordent). Mesuré à 375×667 :
@@ -5758,7 +5774,7 @@ par les flèches au niveau document (§9.3.5).
 {{css}}
 </style>
 </head>
-<body style="padding: 60px 8vw; max-width: 1200px; margin: 0 auto;">
+<body class="index-page">
 
 {{build_stamp}}
 <div class="header">

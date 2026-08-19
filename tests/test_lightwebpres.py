@@ -8861,14 +8861,38 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 # the three nav elements already had.
                 b':root.nav-idle { scrollbar-color: transparent transparent; }',
                 b'@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }',
+                # The index column moved out of an inline attribute and
+                # into the composed sheet, so it now reaches every page —
+                # including the article pages, which do not use it. The
+                # sheet is shared; a rule for one page is bytes on both.
+                #
+                # Written on ONE line each, and that is not a style
+                # preference: a declared line strips every occurrence of
+                # itself, so declaring a rule spread over three lines
+                # means declaring `}` — 346 of them on a page. The
+                # caution is written twenty lines above this table and I
+                # walked into it anyway.
+                b'.index-page { padding: 60px max(8vw, (100% - var(--page-content-max)) / 2); }',
+                b'.index-page { padding: 40px 24px; }',
             }
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
             # index gained a button the article pages always had" --
             # named globally, such a line is refused as stale, correctly,
             # because the released version does carry it elsewhere.
-            arrived_in = {}
-            gone_in = {}
+            arrived_in = {
+                # The index body carries a class now and nothing else. The
+                # rules it names are in the global `arrived` table above,
+                # because the sheet is shared and they land on every page;
+                # only the element that opts into them is index-only.
+                'index.html': {b'<body class="index-page">'},
+            }
+            gone_in = {
+                'index.html': {
+                    b'<body style="padding: 60px 8vw; max-width: 1200px;'
+                    b' margin: 0 auto;">',
+                },
+            }
 
             def strip_added(page):
                 return b'\n'.join(
@@ -13428,8 +13452,15 @@ class ContentMeasure(unittest.TestCase):
         # the column has to be derived from the column's own width, or an
         # author who pins a different one gets it centred around the wrong
         # number. Pinning that here is what stops the two drifting apart.
-        skeleton = self.lwp.TEMPLATE_SKELETON
-        slide_rule = self._rule('.slide') if hasattr(self, '_rule') else skeleton
+        # Comments stripped first. This scanned the raw text and so read
+        # the prose too, which is a trap this file has sprung before, on
+        # the docstring that quotes `log('warning', ...)` as the mistake
+        # to avoid: the rule that records a defect names the defect, and
+        # a textual guard fails on the very sentence written to prevent
+        # it. The declaration is what is under test, never the account of
+        # it — the same reason the log-level scan walks the AST.
+        skeleton = re.sub(r'/\*.*?\*/', '', self.lwp.TEMPLATE_SKELETON,
+                          flags=re.DOTALL)
         self.assertNotIn('padding: 60px 8vw;', skeleton,
                          'the card is back to a fixed side padding, which '
                          'leaves the column against the left edge on any '

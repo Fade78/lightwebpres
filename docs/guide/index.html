@@ -1404,8 +1404,23 @@ body.fs-noselect {
    the engine's rules, which is what lets them win at equal specificity.
    Anything declared BELOW them still beats them, so check the source
    order before adding a selector here. */
+/* The index column, on the measure a slide uses and read from the same
+   property, so the two pages of one series cannot drift apart.
+   `templates/index.html` carried `padding: 60px 8vw; max-width: 1200px`
+   inline: a fixed cap beside a padding that grows with the viewport, so
+   the index got NARROWER as the screen got wider while the slide got
+   wider. Measured before the fix, index against slide: 970 against 1210
+   at 1440, 893 against 1613 at 1920, 790 against 2150 at 2560 — and on a
+   390-wide phone, 31px of side padding against 24px, because the mobile
+   breakpoint below reached one page and not the other. Two ends of the
+   same scale, one cause: the rule was somewhere no rule could answer. */
+.index-page { padding: 60px max(8vw, (100% - var(--page-content-max)) / 2); }
 @media (max-width: 600px) {
   .slide { padding: 40px 24px; }
+  /* The same turn for the index, in the same query: a breakpoint that
+     reaches one page of a series and not the other is the defect this
+     rule exists to close, not a detail of it. */
+  .index-page { padding: 40px 24px; }
   /* The number tracks the padding wherever the padding is restated, or it
      goes back to being measured against a different edge than the text. */
   .slide-num { right: 24px; }
@@ -1801,7 +1816,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 </style>
 </head>
-<body style="padding: 60px 8vw; max-width: 1200px; margin: 0 auto;">
+<body class="index-page">
 
 
 <div class="header">
