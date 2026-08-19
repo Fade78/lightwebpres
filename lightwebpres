@@ -5277,7 +5277,7 @@ body.fs-noselect {
    taking selection away from a mouse would be a loss with nothing bought.
    `-webkit-` is not decoration: Safari still needs it, and it is the
    engine this was reported on. */
-@media (pointer: coarse) { :root.nav-idle .slide { -webkit-user-select: none; user-select: none; } }
+@media (pointer: coarse) { :root.no-select .slide { -webkit-user-select: none; user-select: none; } }
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */
@@ -5375,11 +5375,19 @@ body.fs-noselect {
    same scale, one cause: the rule was somewhere no rule could answer. */
 .index-page { padding: 60px max(8vw, (100% - var(--page-content-max)) / 2); }
 @media (max-width: 600px) {
-  .slide { padding: 40px 24px; }
+  /* `max(24px, …)`, not a flat 24px. The wide rule above centres the
+     column by making the padding BE the leftover, and this override
+     replaced that with a fixed number while the 84vw cap on the children
+     stayed — so the leftover all landed on one side. Measured: at 390 the
+     text sat 24px from the left and 38.4px from the right, at 600 it was
+     24 against 72. Visible, and reported. Above 300px `max()` picks the
+     centring value; below it, the cap no longer bites and 24px is what is
+     left. */
+  .slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
   /* The same turn for the index, in the same query: a breakpoint that
      reaches one page of a series and not the other is the defect this
      rule exists to close, not a detail of it. */
-  .index-page { padding: 40px 24px; }
+  .index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
   /* The number tracks the padding wherever the padding is restated, or it
      goes back to being measured against a different edge than the text. */
   .slide-num { right: 24px; }
@@ -7373,6 +7381,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // the visibility of both the pagination dots and the nav buttons.
   // This lets the speaker hide all distracting chrome on a large screen.
   var navButtons = document.querySelector('.nav-buttons');
+  // Past the browser's own double-tap window, which is what has to expire
+  // before selection can be handed back. Measured against nothing here:
+  // this harness takes no selection from a synthetic tap, so the number
+  // is a margin over the ~300ms an engine waits, not a measurement.
+  var SELECTION_GATE_MS = 500;
+  var selectionGateTimer = null;
   function setNavIdle(isIdle) {
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
@@ -7383,6 +7397,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // drag, which is exactly what should not appear on a wall behind a
     // speaker who has stopped touching the mouse.
     document.documentElement.classList.toggle('nav-idle', isIdle);
+    // Selection is gated by a class of its OWN, not by `nav-idle`, and it
+    // outlives the reveal by a moment. Reported from a phone: a slow
+    // double tap brought the chrome back and a fast one selected a word
+    // instead. The cause is this very function — revealing the chrome
+    // re-enabled selection MID-GESTURE, and the browser's own pending
+    // word-selection then completed against a page that had just said yes.
+    // A slow double tap worked only because the browser had already given
+    // up by the time the class changed.
+    //
+    // So the gate goes down with the chrome and comes up late: long enough
+    // for the gesture that revealed the chrome to be over, short enough
+    // that a reader who then wants to select a quote never waits for it.
+    if (selectionGateTimer) {
+      clearTimeout(selectionGateTimer);
+      selectionGateTimer = null;
+    }
+    if (isIdle) {
+      document.documentElement.classList.add('no-select');
+    } else {
+      selectionGateTimer = setTimeout(function () {
+        selectionGateTimer = null;
+        document.documentElement.classList.remove('no-select');
+      }, SELECTION_GATE_MS);
+    }
   }
   // The root class is the one flag all four pieces share, so it is the
   // one thing to ask. Reading `.idle` off any single element would be

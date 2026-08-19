@@ -1347,7 +1347,7 @@ body.fs-noselect {
    taking selection away from a mouse would be a loss with nothing bought.
    `-webkit-` is not decoration: Safari still needs it, and it is the
    engine this was reported on. */
-@media (pointer: coarse) { :root.nav-idle .slide { -webkit-user-select: none; user-select: none; } }
+@media (pointer: coarse) { :root.no-select .slide { -webkit-user-select: none; user-select: none; } }
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */
@@ -1445,11 +1445,19 @@ body.fs-noselect {
    same scale, one cause: the rule was somewhere no rule could answer. */
 .index-page { padding: 60px max(8vw, (100% - var(--page-content-max)) / 2); }
 @media (max-width: 600px) {
-  .slide { padding: 40px 24px; }
+  /* `max(24px, …)`, not a flat 24px. The wide rule above centres the
+     column by making the padding BE the leftover, and this override
+     replaced that with a fixed number while the 84vw cap on the children
+     stayed — so the leftover all landed on one side. Measured: at 390 the
+     text sat 24px from the left and 38.4px from the right, at 600 it was
+     24 against 72. Visible, and reported. Above 300px `max()` picks the
+     centring value; below it, the cap no longer bites and 24px is what is
+     left. */
+  .slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
   /* The same turn for the index, in the same query: a breakpoint that
      reaches one page of a series and not the other is the defect this
      rule exists to close, not a detail of it. */
-  .index-page { padding: 40px 24px; }
+  .index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
   /* The number tracks the padding wherever the padding is restated, or it
      goes back to being measured against a different edge than the text. */
   .slide-num { right: 24px; }

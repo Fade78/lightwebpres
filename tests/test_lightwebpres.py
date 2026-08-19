@@ -9577,7 +9577,15 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # They are gone; a double tap is the switch now, and what
             # replaces them is one rule that stops a FADED button from
             # answering a finger, which `opacity: 0` alone does not do.
-            gone = set()      # lines the OLD page had and the new one does not
+            gone = {          # lines the OLD page had and the new one does not
+                # The narrow rule replaced the wide one's centring
+                # expression with a flat number while the cap on the
+                # children stayed, so the leftover all landed on the right:
+                # measured at 390, the text sat 24px from the left edge and
+                # 38px from the right. Reported from a phone.
+                b'.slide { padding: 40px 24px; }',
+                b'.index-page { padding: 40px 24px; }',
+            }
             arrived = {       # lines the NEW page has and the old one did not
                 # The series-nav's real old name. v0.42.0 gave it the rank
                 # alias `sN` and nothing else, but its id under v0.41.x was
@@ -9585,6 +9593,8 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 # and the name its pagination dot linked to. Found by
                 # rehearsing the upgrade rather than by reading the code.
                 b'<span id="s3-series"></span>',
+                b'.slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }',
+                b'.index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }',
                 # Selection is gated on the chrome's state, on touch only.
                 # The double tap that brings the navigation back is also
                 # the system's own gesture for selecting a word, and the
@@ -9594,7 +9604,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 # leave the closing brace as an undeclared difference, and
                 # declaring a bare `}` strips every one of the 346 in the
                 # page — the trap this table's own comment warns about.
-                b'@media (pointer: coarse) { :root.nav-idle .slide'
+                b'@media (pointer: coarse) { :root.no-select .slide'
                 b' { -webkit-user-select: none; user-select: none; } }',
             }
             # Arrivals and departures that belong to ONE page. The tables

@@ -91,6 +91,29 @@ class TheIndexAndTheArticlesShareOneMeasure(unittest.TestCase):
         assert measured.returncode == 0, measured.stdout + measured.stderr
         cls.rows = json.loads(measured.stdout)
 
+        # And once more with the column PINNED to something other than the
+        # default. The centring expression reads `--page-content-max`
+        # rather than repeating its value, and its comment promises that
+        # an author who pins a different width gets it centred too, with
+        # nothing else to set. At the default that promise is untestable:
+        # `8vw` and `max(8vw, (100% - 84vw) / 2)` are the same number, so a
+        # rule that dropped the centring entirely still measured centred —
+        # proved by mutation, which is why this second pass exists.
+        conf = root / 'templates' / 'settings.conf'
+        conf.write_text(conf.read_text(encoding='utf-8')
+                        + '\npage.content-max: 60vw\n', encoding='utf-8')
+        done = subprocess.run(
+            ['python3', str(LWP), 'build', str(root), '--output', str(built)],
+            capture_output=True, text=True, timeout=120)
+        assert done.returncode == 0, done.stdout + done.stderr
+        measured = subprocess.run(
+            ['node', str(SCRIPT), (built / 'index.html').as_uri(),
+             (built / 'first.html').as_uri()],
+            capture_output=True, text=True, timeout=180,
+            env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON})
+        assert measured.returncode == 0, measured.stdout + measured.stderr
+        cls.pinned = json.loads(measured.stdout)
+
     @classmethod
     def tearDownClass(cls):
         cls.tmpdir.cleanup()
@@ -127,6 +150,48 @@ class TheIndexAndTheArticlesShareOneMeasure(unittest.TestCase):
                 f"{row['index']['left']}/{row['index']['top']} and the "
                 f"article pads {row['article']['left']}/"
                 f"{row['article']['top']}")
+
+    def test_the_text_sits_in_the_middle_of_the_screen(self):
+        """Reported from a phone, and the padding assertions above could
+        not see it: they compare the CONTAINER's padding, which was
+        symmetric all along. What is capped at `--page-content-max` is the
+        child, and a capped child that is not centred puts the whole
+        leftover on one side.
+
+        Measured before the fix: at 390 the heading sat 24px from the left
+        and 38px from the right; at 600 it was 24 against 72. Above the
+        breakpoint the padding is itself `max(8vw, (100% - cap) / 2)`, so
+        it never bit — the narrow override had replaced that expression
+        with a flat 24px while the cap on the children stayed.
+
+        One pixel of slack for the rounding, and no more: a difference a
+        reader can see is several."""
+        for row in self.rows:
+            for page in ('index', 'article'):
+                left, right = row[page]['textLeft'], row[page]['textRight']
+                self.assertIsNotNone(left, f"{page} at {row['width']}px has "
+                                           f"no heading to measure")
+                self.assertLessEqual(
+                    abs(left - right), 1,
+                    f"at {row['width']}px the {page}'s text sits {left}px "
+                    f"from the left and {right}px from the right")
+
+    def test_a_pinned_column_is_centred_too(self):
+        """The promise the default cannot test. Non-vacuity first: the
+        pinned column has to be NARROWER than the default one, or the two
+        passes are measuring the same page twice."""
+        for default, pinned in zip(self.rows, self.pinned):
+            self.assertLess(
+                pinned['article']['column'], default['article']['column'],
+                f"at {pinned['width']}px pinning the column changed nothing, "
+                f"so this pass measures the default one over again")
+            for page in ('index', 'article'):
+                left, right = pinned[page]['textLeft'], pinned[page]['textRight']
+                self.assertLessEqual(
+                    abs(left - right), 1,
+                    f"at {pinned['width']}px, with the column pinned, the "
+                    f"{page}'s text sits {left}px from the left and "
+                    f"{right}px from the right")
 
     def test_a_wider_screen_never_gives_less_text(self):
         """The defect underneath the divergence, and the one that would

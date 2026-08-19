@@ -1805,6 +1805,17 @@ pointeur fin : là, le double-clic n'a jamais concurrencé la sélection (il
 sélectionne un mot **et** entre en plein écran, délibérément), et retirer
 la sélection à une souris serait une perte sans contrepartie.
 
+**La barrière survit au geste qui l'a levée.** Rapporté depuis un
+téléphone : un double tap **lent** rappelait le chrome, un **rapide**
+sélectionnait un mot. La cause est la révélation elle-même — elle rendait
+la sélection au milieu du geste, et la sélection de mot que le navigateur
+avait déjà commencée aboutissait alors contre une page qui venait de dire
+oui ; le tap lent ne marchait que parce que le navigateur avait déjà
+renoncé. La barrière porte donc une classe à elle (`no-select`), posée
+avec l'effacement et retirée un demi-second **après** la révélation :
+assez pour que le geste soit fini, assez peu pour qu'un lecteur qui veut
+ensuite citer n'attende jamais.
+
 **Boutons** : ↑/🏠/↓/partage/⛶ (plein écran)/L (filtre de tags, masqué
 quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
 d'inactivité hors plein écran, **1 s en plein écran** — c'est-à-dire
@@ -1818,6 +1829,18 @@ toucher (`pointer-events: none` — `opacity: 0` cache sans désarmer, et
 sans survol pour les révéler d'abord, le lecteur qui touche le coin de son
 propre texte déclencherait ce qui est invisible dessous). Le bouton ⛶
 donne accès au plein écran sans clavier.
+
+**Mesure et centrage.** La colonne de texte est plafonnée à
+`page.content-max` et **centrée par le rembourrage**, qui vaut
+`max(<minimum>, (100% - plafond) / 2)` — au-dessus du point de bascule
+comme en dessous. Un rembourrage fixe sous le plafond mettrait tout le
+reste d'un seul côté : mesuré à 390 px, le texte se tenait à 24 px du
+bord gauche et 38 px du droit, et à 600 px c'était 24 contre 72. Le
+`max()` lit `--page-content-max` plutôt que d'en répéter la valeur, de
+sorte qu'un auteur qui fixe une autre largeur l'obtient centrée sans rien
+régler d'autre — ce que la garde vérifie sur une seconde construction à
+colonne épinglée, la valeur par défaut rendant la promesse intestable
+(`8vw` et `max(8vw, (100% - 84vw) / 2)` sont le même nombre).
 
 **Fragment d'URL** : la barre d'adresse nomme la fiche courante, que le
 lecteur y soit arrivé par un saut ou **par un simple défilement** — la

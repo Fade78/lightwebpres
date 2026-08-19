@@ -10,22 +10,34 @@ const { chromium } = require('playwright');
     await p.goto(indexUrl);
     const index = await p.evaluate(() => {
       const cs = getComputedStyle(document.body);
+      // The TEXT's own gaps, not the container's padding. The padding was
+      // symmetric all along; what is capped at `--page-content-max` is the
+      // child, and a capped child that is not centred puts the whole
+      // leftover on one side. That is the difference this measures.
+      const t = document.querySelector('h1, h2, .article-title');
+      const r = t ? t.getBoundingClientRect() : null;
       return {
         left: Math.round(parseFloat(cs.paddingLeft)),
         top: Math.round(parseFloat(cs.paddingTop)),
         column: Math.round(document.body.clientWidth
           - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)),
+        textLeft: r ? Math.round(r.left) : null,
+        textRight: r ? Math.round(innerWidth - r.right) : null,
       };
     });
     await p.goto(articleUrl);
     const article = await p.evaluate(() => {
       const s = document.querySelector('.slide');
       const cs = getComputedStyle(s);
+      const t = s.querySelector('h1, h2');
+      const r = t ? t.getBoundingClientRect() : null;
       return {
         left: Math.round(parseFloat(cs.paddingLeft)),
         top: Math.round(parseFloat(cs.paddingTop)),
         column: Math.round(s.getBoundingClientRect().width
           - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)),
+        textLeft: r ? Math.round(r.left) : null,
+        textRight: r ? Math.round(innerWidth - r.right) : null,
       };
     });
     out.push({ width, index, article });

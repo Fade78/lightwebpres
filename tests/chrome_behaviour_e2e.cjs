@@ -483,7 +483,38 @@ async function main() {
   // take no selection, which is why the reveal above passes here and
   // failed on a real device. What can be asserted is the MECHANISM that
   // separates the two, and that is what this does.
-  await doubleTap();          // chrome up
+  // Read WITHOUT doubleTap()'s 600ms settle: that wait is for the opacity
+  // transition, and it is longer than the gate this is about. Observing
+  // the mid-gesture state means observing it mid-gesture.
+  await tapAt(195, 400);
+  await phone.waitForTimeout(60);
+  await tapAt(195, 400);
+  await phone.waitForTimeout(150);
+  // The gate outlives the reveal. Reported from a phone: a SLOW double tap
+  // brought the chrome back and a FAST one selected a word instead — and
+  // the cause is the reveal itself, which handed selection back while the
+  // browser's own double-tap gesture was still in flight. Read right after
+  // the taps, before the gate is due to lift.
+  const midGesture = await phone.evaluate(() => {
+    const slide = document.querySelector('section.slide');
+    return {
+      gated: document.documentElement.classList.contains('no-select'),
+      idle: document.documentElement.classList.contains('nav-idle'),
+      computed: getComputedStyle(slide).webkitUserSelect
+             || getComputedStyle(slide).userSelect,
+    };
+  });
+  if (midGesture.idle) {
+    fail('the chrome did not come up, so the gate timing is not under test: '
+         + JSON.stringify(midGesture));
+  }
+  if (!midGesture.gated || midGesture.computed !== 'none') {
+    fail('selection was handed back the instant the chrome came up, which '
+         + 'is what lets the browser finish the word-selection it had '
+         + 'already started: ' + JSON.stringify(midGesture));
+  }
+  // And it does lift, or a reader could never select anything again.
+  await phone.waitForTimeout(700);
   const working = await phone.evaluate(() => {
     const slide = document.querySelector('section.slide');
     return getComputedStyle(slide).webkitUserSelect
