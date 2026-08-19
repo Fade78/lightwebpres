@@ -1791,30 +1791,14 @@ le geste avancerait aussi de deux fiches. Le plein écran reste le bouton
 ⛶ de cette barre — un même geste qui voudrait dire deux choses selon un
 état que le lecteur ne voit pas venir n'en est pas un.
 
-**La sélection est réglée sur l'état du chrome, sur écran tactile
-seulement.** Rapporté depuis un téléphone : le double tap qui doit
-rappeler la navigation est aussi le geste système de sélection d'un mot,
-et le système gagne — le lecteur n'a alors aucun chemin de retour. Les
-deux ne peuvent pas posséder le même geste, ils sont donc séparés **par
-l'état** plutôt que par une supposition sur l'intention : chrome baissé =
-lecture, le double tap réveille ; chrome levé = travail, le double tap
-sélectionne. Et le compte à rebours **ne tourne pas tant qu'une sélection
-existe**, sinon le chrome s'effacerait sous elle et l'emporterait, puisque
-`user-select: none` arrive avec l'état inactif. Rien de tout cela sur
-pointeur fin : là, le double-clic n'a jamais concurrencé la sélection (il
-sélectionne un mot **et** entre en plein écran, délibérément), et retirer
-la sélection à une souris serait une perte sans contrepartie.
-
-**La barrière survit au geste qui l'a levée.** Rapporté depuis un
-téléphone : un double tap **lent** rappelait le chrome, un **rapide**
-sélectionnait un mot. La cause est la révélation elle-même — elle rendait
-la sélection au milieu du geste, et la sélection de mot que le navigateur
-avait déjà commencée aboutissait alors contre une page qui venait de dire
-oui ; le tap lent ne marchait que parce que le navigateur avait déjà
-renoncé. La barrière porte donc une classe à elle (`no-select`), posée
-avec l'effacement et retirée un demi-second **après** la révélation :
-assez pour que le geste soit fini, assez peu pour qu'un lecteur qui veut
-ensuite citer n'attende jamais.
+**Le deck ne touche pas à la sélection.** Il l'a fait brièvement —
+`user-select: none` tant que le chrome était baissé, pour que le double
+tap qui le rappelle ne perde pas contre la sélection de mot du système —
+et c'est retiré : sur téléphone, la sélection se fait par appui long, et
+un deck n'a pas à réapprendre à un téléphone ce qu'un appui long veut
+dire. Le geste peut donc encore se disputer entre le navigateur et nous,
+et c'est le navigateur qui gagne : un contrat perdu du côté du deck, pas
+du côté du lecteur.
 
 **L'appui long appartient au lecteur.** Il déclenche `contextmenu`, le
 même évènement que le second bouton d'une souris, et le deck y avait

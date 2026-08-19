@@ -5259,25 +5259,6 @@ body.fs-noselect {
    hover on a phone, so an invisible button in the bottom-right corner
    would fire on a reader who touched the corner of their own text. */
 @media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle, .slide-counter.idle { pointer-events: none; } }
-/* And selection is off while the chrome is down — on a touch screen only.
-   Reported from a phone: the double tap that is supposed to bring the
-   navigation back is the system's own gesture for selecting a word, and
-   the system wins. The two cannot both own it, so they are separated by
-   STATE rather than by guesswork about the reader's intent: chrome down
-   means reading, and a double tap wakes the chrome; chrome up means
-   working, and a double tap selects.
-
-   The reader loses nothing they cannot get back in one gesture, and a
-   selection they have already made is safe — the countdown does not run
-   while one exists, which is the other half of this rule and lives in the
-   script.
-
-   Not on a fine pointer: there, a double-click has never competed with
-   selection (it selects a word AND enters fullscreen, deliberately), and
-   taking selection away from a mouse would be a loss with nothing bought.
-   `-webkit-` is not decoration: Safari still needs it, and it is the
-   engine this was reported on. */
-@media (pointer: coarse) { :root.no-select .slide { -webkit-user-select: none; user-select: none; } }
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */
@@ -7391,12 +7372,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // the visibility of both the pagination dots and the nav buttons.
   // This lets the speaker hide all distracting chrome on a large screen.
   var navButtons = document.querySelector('.nav-buttons');
-  // Past the browser's own double-tap window, which is what has to expire
-  // before selection can be handed back. Measured against nothing here:
-  // this harness takes no selection from a synthetic tap, so the number
-  // is a margin over the ~300ms an engine waits, not a measurement.
-  var SELECTION_GATE_MS = 500;
-  var selectionGateTimer = null;
   function setNavIdle(isIdle) {
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
@@ -7407,30 +7382,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // drag, which is exactly what should not appear on a wall behind a
     // speaker who has stopped touching the mouse.
     document.documentElement.classList.toggle('nav-idle', isIdle);
-    // Selection is gated by a class of its OWN, not by `nav-idle`, and it
-    // outlives the reveal by a moment. Reported from a phone: a slow
-    // double tap brought the chrome back and a fast one selected a word
-    // instead. The cause is this very function — revealing the chrome
-    // re-enabled selection MID-GESTURE, and the browser's own pending
-    // word-selection then completed against a page that had just said yes.
-    // A slow double tap worked only because the browser had already given
-    // up by the time the class changed.
-    //
-    // So the gate goes down with the chrome and comes up late: long enough
-    // for the gesture that revealed the chrome to be over, short enough
-    // that a reader who then wants to select a quote never waits for it.
-    if (selectionGateTimer) {
-      clearTimeout(selectionGateTimer);
-      selectionGateTimer = null;
-    }
-    if (isIdle) {
-      document.documentElement.classList.add('no-select');
-    } else {
-      selectionGateTimer = setTimeout(function () {
-        selectionGateTimer = null;
-        document.documentElement.classList.remove('no-select');
-      }, SELECTION_GATE_MS);
-    }
   }
   // The root class is the one flag all four pieces share, so it is the
   // one thing to ask. Reading `.idle` off any single element would be
@@ -7463,35 +7414,15 @@ document.addEventListener('DOMContentLoaded', function() {
   function getIdleDelay() {
     return isFullscreen() ? 1000 : 3000;
   }
-  // A reader with text selected is in the middle of something. Letting
-  // the chrome fade under them would take the selection with it on a
-  // touch screen — `user-select: none` arrives with the idle state and
-  // drops what is selected — so the countdown simply does not run while a
-  // selection exists. It is the other half of the rule that gates
-  // selection on the chrome's state: chrome up means working, and the
-  // work is not over until the selection is.
-  function hasSelection() {
-    try {
-      return !!String(window.getSelection());
-    } catch (e) { return false; }
-  }
-
   function scheduleHide() {
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = setTimeout(function () {
-      if (hasSelection()) { scheduleHide(); return; }
       setNavIdle(true);
       // Only where there is one to hide. Setting it on a touch device is
       // harmless but says something false about what just happened.
       if (hasFinePointer) document.body.style.cursor = 'none';
     }, getIdleDelay());
   }
-  // Restart the countdown whenever the selection changes, so the delay is
-  // measured from the reader's last act rather than from whenever the
-  // chrome happened to come up.
-  document.addEventListener('selectionchange', function () {
-    if (hasSelection() && !navIsIdle()) scheduleHide();
-  });
   if (hasFinePointer) {
     document.addEventListener('mousemove', function () {
       // Nothing is revealed here. revealChrome() decides, on the one

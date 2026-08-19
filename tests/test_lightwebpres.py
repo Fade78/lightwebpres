@@ -9595,17 +9595,6 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 b'<span id="s3-series"></span>',
                 b'.slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }',
                 b'.index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }',
-                # Selection is gated on the chrome's state, on touch only.
-                # The double tap that brings the navigation back is also
-                # the system's own gesture for selecting a word, and the
-                # system wins — reported from a phone, and not reproducible
-                # in this harness, whose synthetic taps take no selection.
-                # One line, like its neighbour: a multi-line rule would
-                # leave the closing brace as an undeclared difference, and
-                # declaring a bare `}` strips every one of the 346 in the
-                # page — the trap this table's own comment warns about.
-                b'@media (pointer: coarse) { :root.no-select .slide'
-                b' { -webkit-user-select: none; user-select: none; } }',
             }
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the

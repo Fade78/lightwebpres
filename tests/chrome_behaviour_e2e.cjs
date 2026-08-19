@@ -473,95 +473,38 @@ async function main() {
          + JSON.stringify(state));
   }
 
-  // 5e. Selection is gated on the chrome's state, and a selection holds
-  // the chrome up.
+  // 5e. The deck does not touch selection at all.
   //
-  // Reported from a phone: the double tap that is supposed to bring the
-  // navigation back is also the system's gesture for selecting a word,
-  // and the system wins — so the reader has no way back at all. This
-  // harness does NOT reproduce that: synthetic taps in headless Chromium
-  // take no selection, which is why the reveal above passes here and
-  // failed on a real device. What can be asserted is the MECHANISM that
-  // separates the two, and that is what this does.
-  // Read WITHOUT doubleTap()'s 600ms settle: that wait is for the opacity
-  // transition, and it is longer than the gate this is about. Observing
-  // the mid-gesture state means observing it mid-gesture.
-  await tapAt(195, 400);
-  await phone.waitForTimeout(60);
-  await tapAt(195, 400);
-  await phone.waitForTimeout(150);
-  // The gate outlives the reveal. Reported from a phone: a SLOW double tap
-  // brought the chrome back and a FAST one selected a word instead — and
-  // the cause is the reveal itself, which handed selection back while the
-  // browser's own double-tap gesture was still in flight. Read right after
-  // the taps, before the gate is due to lift.
-  const midGesture = await phone.evaluate(() => {
+  // It did, briefly: `user-select: none` while the chrome was down, so
+  // that the double tap which brings the navigation back would not lose
+  // to the system's own word-selection. It was withdrawn on the owner's
+  // call — the deck should not be re-teaching a phone what a long press
+  // means — and this asserts the withdrawal rather than leaving it to be
+  // re-invented by someone reading the double-tap code and reasoning
+  // their way back to the same idea.
+  const untouched = await phone.evaluate(() => {
     const slide = document.querySelector('section.slide');
-    return {
-      gated: document.documentElement.classList.contains('no-select'),
-      idle: document.documentElement.classList.contains('nav-idle'),
-      computed: getComputedStyle(slide).webkitUserSelect
-             || getComputedStyle(slide).userSelect,
-    };
+    const root = document.documentElement;
+    // The root class is what the double-tap switch READS, so this probe
+    // has to put it back exactly as it found it. Measured the hard way:
+    // clearing it here flipped the next section's double tap into hiding
+    // the chrome instead of showing it.
+    const was = root.classList.contains('nav-idle');
+    const before = getComputedStyle(slide).webkitUserSelect
+                || getComputedStyle(slide).userSelect;
+    root.classList.add('nav-idle');
+    const idle = getComputedStyle(slide).webkitUserSelect
+              || getComputedStyle(slide).userSelect;
+    root.classList.toggle('nav-idle', was);
+    return { before, idle };
   });
-  if (midGesture.idle) {
-    fail('the chrome did not come up, so the gate timing is not under test: '
-         + JSON.stringify(midGesture));
-  }
-  if (!midGesture.gated || midGesture.computed !== 'none') {
-    fail('selection was handed back the instant the chrome came up, which '
-         + 'is what lets the browser finish the word-selection it had '
-         + 'already started: ' + JSON.stringify(midGesture));
-  }
-  // And it does lift, or a reader could never select anything again.
-  await phone.waitForTimeout(700);
-  const working = await phone.evaluate(() => {
-    const slide = document.querySelector('section.slide');
-    return getComputedStyle(slide).webkitUserSelect
-        || getComputedStyle(slide).userSelect;
-  });
-  if (working === 'none') {
-    fail('selection is off while the chrome is UP, so a reader can never '
-         + 'select anything at all: ' + working);
-  }
-  await doubleTap();          // chrome down
-  const reading = await phone.evaluate(() => {
-    const slide = document.querySelector('section.slide');
-    return getComputedStyle(slide).webkitUserSelect
-        || getComputedStyle(slide).userSelect;
-  });
-  if (reading !== 'none') {
-    fail('selection is still on while the chrome is down, so the system '
-         + 'takes the double tap and the reader has no way back: ' + reading);
+  if (untouched.before === 'none' || untouched.idle === 'none') {
+    fail('the deck is switching text selection off. On a phone that takes '
+         + 'the long press — the way anyone selects a word and reaches the '
+         + 'copy menu — away from the reader: ' + JSON.stringify(untouched));
   }
 
-  // And a selection keeps the chrome from fading out from under it —
-  // which on a touch screen would drop the selection with it.
-  await doubleTap();          // chrome up again
-  await phone.evaluate(() => {
-    const target = document.querySelector('section.slide h1, section.slide h2');
-    const range = document.createRange();
-    range.selectNodeContents(target);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  });
-  const held = await phone.evaluate(() => String(window.getSelection()).length);
-  if (!held) {
-    fail('the harness could not make a selection, so nothing below is under test');
-  }
-  await phone.waitForTimeout(4500);
-  state = await chromeState();
-  if (state.idle) {
-    fail('the chrome faded while text was selected, taking the selection '
-         + 'with it: ' + JSON.stringify(state));
-  }
-  await phone.evaluate(() => window.getSelection().removeAllRanges());
-  // Put it back down, so the next section starts from the state it
-  // expects. Each of these sections leaves the switch where it found it.
-  await doubleTap();
-
-  // 5g. A long press belongs to the reader.
+  // 5f. A long press belongs to the reader.
   //
   // Reported from a phone: pressing and holding — which is how anyone
   // selects a word and reaches the copy callout — threw the reader back a
@@ -615,7 +558,7 @@ async function main() {
          + ' -> ' + deskAfter);
   }
 
-  // 5f. Revealed chrome still fades on its own afterwards, so the switch
+  // 5g. Revealed chrome still fades on its own afterwards, so the switch
   // has not replaced the countdown with a latch.
   await doubleTap();
   if ((await chromeState()).idle) {

@@ -734,7 +734,6 @@ next slide without the 250 ms hold.
 | Swipe right | Previous slide |
 | Tap on content | Next slide |
 | Double tap | Show or hide the navigation buttons |
-| Double tap, buttons up | Select a word, as the system does |
 | Press and hold | Select text and open the copy menu — the deck does not take it |
 
 ### Navigation buttons
@@ -757,11 +756,11 @@ touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a
 gesture that meant two things depending on a state you cannot see coming
 would not be one.
 
-The double tap is also how a phone selects a word, and both cannot own it,
-so they take turns by state: with the buttons down a double tap wakes
-them, with the buttons up it selects — one gesture away either way. Text
-you have selected is safe: the buttons will not fade while a selection
-exists, because on a touch screen their fading would drop it. With a mouse, clicking the corner (not a button)
+The double tap is also how a phone selects a word, and the deck does not
+try to take it: selection, long press and the copy menu are the browser's,
+untouched. Which of the two wins a given double tap is the browser's call,
+and if it takes one, press and hold or use the ⛶ button — nothing the deck
+does will have got in your way. With a mouse, clicking the corner (not a button)
 toggles them on or off for good.
 
 ## 10. Shell completion (tab in the terminal)
