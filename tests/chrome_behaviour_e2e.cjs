@@ -208,6 +208,59 @@ async function main() {
     fail('the index has no fullscreen button');
   }
 
+  // --- 4b. Scrolling moves the address bar with the reader ------------
+  // Reported from the field: the fragment was written only by goTo, so a
+  // reader who SCROLLED to a card kept whatever `#id` their last jump had
+  // left behind. Press F5 and the page obeys that stale fragment — the
+  // reader is teleported to a card they left minutes ago. A page that
+  // lies about where you are, and lies worst at the moment you ask it to
+  // remember.
+  //
+  // Scrolled with the wheel rather than with goTo: what is under test is
+  // the path that does NOT go through the jump.
+  const scrollPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  collectConsoleErrors(scrollPage, errors);
+  await scrollPage.goto(articleUrl, { waitUntil: 'load' });
+  await scrollPage.waitForTimeout(300);
+  const atRest = await scrollPage.evaluate(
+    () => ({ hash: location.hash, entries: history.length }));
+  if (atRest.hash !== '') {
+    fail('a freshly loaded page already carries a fragment: ' + atRest.hash);
+  }
+  // Two cards down, then let the 80ms scroll debounce settle.
+  await scrollPage.mouse.wheel(0, 1700);
+  await scrollPage.waitForTimeout(800);
+  const scrolled = await scrollPage.evaluate(() => ({
+    hash: location.hash,
+    // What the page itself says is the current card, read from the dot
+    // it marks active — so this compares the URL against the page's own
+    // answer rather than against a number this test guessed.
+    active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+      .findIndex((d) => d.classList.contains('active')),
+    ids: Array.prototype.slice.call(document.querySelectorAll('section.slide'))
+      .map((s) => s.id),
+    entries: history.length,
+  }));
+  if (!scrolled.hash) {
+    fail('scrolling left the address bar behind: no fragment after scrolling to card '
+         + scrolled.active + ' of ' + JSON.stringify(scrolled.ids));
+  }
+  if (scrolled.active < 1) {
+    fail('the wheel did not reach another card, so nothing here is under test: '
+         + JSON.stringify(scrolled));
+  }
+  if (scrolled.hash !== '#' + scrolled.ids[scrolled.active]) {
+    fail('the fragment names a card the reader is not on: ' + JSON.stringify(scrolled));
+  }
+  // And it replaced rather than pushed. One history entry per card
+  // scrolled past would turn Back — the one way out of a deck — into a
+  // slow rewind of the article the reader has just read.
+  if (scrolled.entries !== atRest.entries) {
+    fail('scrolling pushed history entries instead of replacing: '
+         + atRest.entries + ' -> ' + scrolled.entries);
+  }
+  await scrollPage.close();
+
   // --- 5. The phone: the chrome fades, and the double tap is its switch
   // Reported from the field: on a phone the navigation never went away.
   // It was exempt by design — `@media (pointer: coarse)` pinned every

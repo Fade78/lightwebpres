@@ -6639,6 +6639,25 @@ document.addEventListener('DOMContentLoaded', function() {
     return best;
   }
 
+  // The address bar says which card the reader is on, whether they got
+  // there by jumping or by scrolling. It used to say it only after a
+  // jump, so a reader who scrolled to a card and pressed F5 was
+  // teleported back to whichever card they had last jumped to — a page
+  // that lies about where you are, and lies worst at the moment you ask
+  // it to remember.
+  //
+  // replaceState, never pushState: the fragment is a position, not a
+  // visit. Pushing would put one history entry under every card the
+  // reader scrolled past and turn the Back button — the one way out of a
+  // deck — into a slow rewind of the whole article.
+  function recordSlideInUrl(idx) {
+    var slide = slides[idx];
+    if (!slide || !slide.id) return;
+    if (!window.history || !window.history.replaceState) return;
+    if (window.location.hash.slice(1) === slide.id) return;
+    window.history.replaceState(null, '', '#' + slide.id);
+  }
+
   function goTo(idx) {
     if (!slides.length) {
       current = 0;
@@ -6649,9 +6668,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (idx === current && isScrolling) return;
     current = idx;
     focusedCard = -1;
-    if (slides[idx].id && window.history && window.history.replaceState) {
-      window.history.replaceState(null, '', '#' + slides[idx].id);
-    }
+    recordSlideInUrl(idx);
     isScrolling = true;
     slides[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
     updateUI();
@@ -6887,7 +6904,15 @@ document.addEventListener('DOMContentLoaded', function() {
       var rect = s.getBoundingClientRect();
       if (rect.top <= mid && rect.bottom >= mid) best = i;
     });
-    if (best !== current) { current = best; focusedCard = -1; updateUI(); }
+    if (best !== current) {
+      current = best;
+      focusedCard = -1;
+      // The other half of recordSlideInUrl's job, and the half that was
+      // missing. This runs 80ms after the last scroll event, so it fires
+      // on a settled position rather than on every frame of a scroll.
+      recordSlideInUrl(best);
+      updateUI();
+    }
   }
 
   var scrollTimer = null;

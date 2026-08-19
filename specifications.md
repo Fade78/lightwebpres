@@ -1805,6 +1805,16 @@ sans survol pour les révéler d'abord, le lecteur qui touche le coin de son
 propre texte déclencherait ce qui est invisible dessous). Le bouton ⛶
 donne accès au plein écran sans clavier.
 
+**Fragment d'URL** : la barre d'adresse nomme la fiche courante, que le
+lecteur y soit arrivé par un saut ou **par un simple défilement** — la
+détection de fiche courante (80 ms après le dernier évènement de scroll)
+écrit le fragment comme le fait un saut. Toujours par `replaceState`,
+jamais `pushState` : le fragment est une position, pas une visite, et
+empiler une entrée d'historique par fiche parcourue ferait du bouton
+Retour — la seule sortie d'un deck — un rembobinage lent de l'article. Une
+page fraîchement ouverte ne porte aucun fragment tant que le lecteur n'a
+pas bougé, de sorte que l'adresse partagée reste celle de l'article
+entier.
 
 **`--inline-images`** (v0.25.1) : chaque image référencée dans le
 Markdown **d'une fiche** est embarquée comme un data URI base64, et le
