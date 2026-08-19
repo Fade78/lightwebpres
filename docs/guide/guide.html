@@ -2057,22 +2057,22 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <tbody>
       <tr>
         <td><code>cover</code></td>
-        <td><code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code>, <code>comment</code>, <code>note</code></td>
+        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code>, <code>comment</code>, <code>note</code></td>
         <td>any number, anywhere — it is a look, not a structural marker</td>
       </tr>
       <tr>
         <td>standard <em>(the default)</em></td>
-        <td><code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, <code>comment</code>, <code>note</code>, then free Markdown</td>
+        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, <code>comment</code>, <code>note</code>, then free Markdown</td>
         <td>as many as you want</td>
       </tr>
       <tr>
         <td><code>series-nav</code></td>
-        <td><code>tags:</code>, <code>comment:</code> — the navigation itself is generated from <code>series.json</code></td>
+        <td><code>slug</code>, <code>tags:</code>, <code>comment:</code> — the navigation itself is generated from <code>series.json</code></td>
         <td>0 or 1 per article</td>
       </tr>
       <tr>
         <td><code>full-article</code></td>
-        <td><code>article: filename.md</code>, optional <code>tags:</code> and <code>comment:</code></td>
+        <td><code>article: filename.md</code>, optional <code>slug</code>, <code>tags:</code> and <code>comment:</code></td>
         <td>any number, each with its own file</td>
       </tr>
     </tbody>
@@ -2143,6 +2143,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <li><strong>A fact box appears only with <code>fact-label:</code>.</strong> Free text without it renders as plain paragraphs — which is often what you want.</li>
   </ul>
   <p><strong>Notes.</strong> <code>[^label]</code> calls a note, <code>[^label]: text</code> on its own line is its body. The label is a key, and a valid one is never displayed — the reader sees a position — so you never renumber when you insert one. Valid means word characters only: letters, digits and <code>_</code>, accents and non-Latin scripts included, but no <code>-</code>, no space, no punctuation. A label outside that is neither a note nor an error: the call ships as literal text, the body renders as an ordinary paragraph, and the label is the one thing on the page the reader was never meant to see. By default a body lands at the foot of the unit that called it (the card, or the end of the long-form article) and numbering restarts in each card, because a card is shareable on its own and a reader may arrive at it having read nothing else. <code>notes_placement: page</code> in the meta block instead collects every body into one notes section at the end of the page; <code>notes_tooltip: on</code> additionally puts the text on the call. <code>audit</code> names a label outside the pattern, a call with no body, a body nothing calls, and a body written inside a raw HTML block (where it ships as literal text).</p>
+  <p><strong>What a card's link is.</strong> Every card has its own address — <code>article.html#quelque-chose</code> — and the share button in the corner copies it, or shows it as a QR code you can point a phone at or print. That address is derived from what you wrote: your card's title, a long-form card's filename, or a <code>slug:</code> line if you want to choose it yourself (<code>slug: barrage-de-vajont</code>). It is <strong>not</strong> the card's position, which means you can reorder the deck, insert a card, or drop one with <code>tags: excluded</code> and the links you have already given out still land where they did. A card with no title and no <code>slug:</code> has nothing to derive from and falls back to its rank; <code>audit</code> says so, because that is the one link that will break. If two cards share a title they land on one address, are told apart anyway, and the build tells you — give one of them a <code>slug:</code>. <code>slug_prefix:</code> in the meta block (or in <code>series_meta</code>) puts a namespace in front of every address on the page.</p>
   <p>Register every article that should appear in navigation in <code>series.json</code> — next section.</p>
   <h3>Variants in one article</h3>
   <p><code>tags:</code> is a slide header field, not an instance styling tag. Its value is a space-separated list of case-insensitive variant names. Unicode letters, digits, <code>-</code>, and <code>_</code> are allowed, except that a name cannot start with <code>_</code>. The field is one physical line, like every structural field.</p>
@@ -2425,7 +2426,7 @@ note: Mention the 2020 study — the audience asked for it last time.
   <table class="comparison-table">
     <thead>
       <tr>
-        <th>Gesto</th>
+        <th>Gesture</th>
         <th>Action</th>
       </tr>
     </thead>
@@ -2442,10 +2443,15 @@ note: Mention the 2020 study — the audience asked for it last time.
         <td>Tap on content</td>
         <td>Next slide</td>
       </tr>
+      <tr>
+        <td>Double tap</td>
+        <td>Show or hide the navigation buttons</td>
+      </tr>
     </tbody>
   </table>
   <h3>Navigation buttons</h3>
-  <p>The round buttons in the bottom-right corner — previous, home, next, share, fullscreen, and a sixth for the variant menu that appears only when the article carries at least two tags. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall. Touch devices keep the buttons visible (there is no cursor to wake them). Clicking the corner (not a button) toggles them on or off for good.</p>
+  <p>The round buttons in the bottom-right corner — previous, home, next, share, fullscreen, and a sixth for the variant menu that appears only when the article carries at least two tags. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
+  <p>On a phone or a tablet they fade on the same 3 seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a gesture that meant two things depending on a state you cannot see coming would not be one. With a mouse, clicking the corner (not a button) toggles them on or off for good.</p>
   <h2>10. Shell completion (tab in the terminal)</h2>
   <p><code>lightwebpres completion --shell bash</code> (or <code>zsh</code>) prints a script that makes your shell complete commands, subcommands, and options when you press Tab. Install it by adding this line to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
   <pre><code class="language-bash">

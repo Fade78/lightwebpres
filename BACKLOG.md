@@ -1702,3 +1702,89 @@ this: a copy identical to the built-in one is removed (lossless by
 construction), a differing `nav.js` is saved as `.bak` and removed, a
 differing language pack is reported and kept, since its `rules` replace
 the base set wholesale and overwriting it would erase the author's own.
+
+## B33 — A moved anchor is invisible to everyone, including the tool that moved it — OPEN
+
+**Verified.** Since v0.42 a card's id is derived from what the author
+wrote (§12.1.1), so ordinary editing — reordering, inserting, excluding —
+no longer moves it. What still moves it is editing the thing it is
+derived FROM: rename a card's title and its identity changes, exactly as
+renaming a file changes its URL.
+
+That is not a defect, and no scheme avoids it. The defect is that
+**nothing says it happened**. The author renames a title, publishes, and
+every link and QR code pointing at that card is dead — with the same
+silence the rank had. A `slug:` on the card prevents it, but only for an
+author who thought of it before the fact.
+
+**What was measured.** Neither the slug nor the hash makes breakage
+visible. Only a tool that compares this build's identities with the
+previous one's can, and `audit` currently has nothing to compare against:
+it reports the identities that are not durable (a card with nothing to
+derive from), which is a different and weaker statement.
+
+**To decide.**
+
+1. *Where the previous set lives.* `public/.lwp-manifest.json` already
+   records what a build wrote and is already the basis of `clean`
+   (§11.13) — the obvious host, and it means the comparison works for
+   anyone who still has their last build. A separate file under
+   `.lwp-cache/` is the alternative, and it makes the record survive a
+   `clean`.
+2. *Whether it is `audit` or `build` that reports it.* `build` has both
+   sets in hand at the moment it writes; `audit` is where an author looks
+   before shipping. Reporting in both would say it twice, which B26's
+   sibling problem shows is worse than saying it once.
+3. *What it says.* "The anchor `#a1b2c3d4` is gone; the card that had it
+   now reads `#e5f6a7b8`" is actionable. A count is not.
+4. *Whether a page that has never been built is silent or loud.* The
+   first build of a series has nothing to compare against and must not
+   warn — but "no manifest" and "a manifest that lost every anchor" have
+   to be told apart, or the guard fires on the one case it cannot help.
+
+**Why not now.** Every one of the four is a decision about what the tool
+stores, where, and for how long — the sort that is cheap to get wrong and
+expensive to reverse. None of them blocks the identity work, which is
+complete without it.
+
+## B34 — A structural field converts an HTML entity; the body does not — OPEN
+
+**Verified, by sweeping all fourteen text fields with four payloads.**
+Ordinary punctuation (« », apostrophes, `100 %`, `—`, `3 < 4`) is escaped
+correctly everywhere. What is not consistent is the ampersand:
+
+| written | body | structural field |
+|---|---|---|
+| `Marks & Spencer` | `Marks &amp; Spencer` ✅ | `Marks & Spencer` — bare `&` |
+| `&sect;` | `&amp;sect;`, shown literally ✅ | `&sect;`, shown as `§` |
+| `<a href="?a=1&amp;b=2">` | `?a=1&amp;amp;b=2` ❌ **broken link** | verbatim ✅ |
+
+The consequence that is not theoretical: `source:
+https://x.test/rechercher?q=marks&copy=1&reg=2` reaches the reader as
+`…?q=marks©=1®=2`. `&copy` and `&reg` without a semicolon are in HTML5's
+legacy character-reference list, so a query string with either is
+silently destroyed. Nobody made a mistake typing that.
+
+§6.2 already states the position — every `&` is escaped, a hand-written
+entity is neutralised, write the Unicode character, the pipeline is UTF-8
+— and it states it for the BODY only. The structural fields fall under
+neither that rule nor the raw-HTML-block exception; they are a third
+territory nothing describes.
+
+**Proposed.** One rule for both grammars: escape a `&` **outside a tag**,
+leave what is inside a tag verbatim. That gives, everywhere: a bare `&`
+escaped, `&sect;` literal (the stated position), and a raw `<a
+href="…&amp;…">` untouched — which also repairs the body's broken link
+above. The engine already knows how to protect tags from a rewrite; that
+is what the typography engine does.
+
+**The one cost to state.** A bare `&` inside a raw tag would stop being
+corrected to `&amp;`. That is the author's own HTML, and the tool's
+declared position is that it does not touch raw HTML (§13.8) — coherent,
+but it has to be written down rather than discovered.
+
+**To decide.** Whether to adopt the rule (it changes the rendering of any
+existing page containing an `&` in a title, which the render-identity
+guard will report), or to document the divergence and leave it. Nothing
+in this repository uses an entity in a field, so no artefact of ours
+moves either way — verified.

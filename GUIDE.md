@@ -144,10 +144,10 @@ syntax and every edge case.
 
 | Type | Carries | How many |
 |---|---|---|
-| `cover` | `kicker`, `tags:`, `# Title`, `summary`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
-| standard *(the default)* | `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown | as many as you want |
-| `series-nav` | `tags:`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
-| `full-article` | `article: filename.md`, optional `tags:` and `comment:` | any number, each with its own file |
+| `cover` | `slug`, `kicker`, `tags:`, `# Title`, `summary`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
+| standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown | as many as you want |
+| `series-nav` | `slug`, `tags:`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
+| `full-article` | `article: filename.md`, optional `slug`, `tags:` and `comment:` | any number, each with its own file |
 
 Four, and only four. Mistype one — `<!-- lwp:slide:covre -->` — and the
 build stops and tells you which slide, what you wrote, and what the four
@@ -201,6 +201,21 @@ body into one notes section at the end of the page; `notes_tooltip: on`
 additionally puts the text on the call. `audit` names a label outside the
 pattern, a call with no body, a body nothing calls, and a body written
 inside a raw HTML block (where it ships as literal text).
+
+**What a card's link is.** Every card has its own address —
+`article.html#quelque-chose` — and the share button in the corner copies
+it, or shows it as a QR code you can point a phone at or print. That
+address is derived from what you wrote: your card's title, a long-form
+card's filename, or a `slug:` line if you want to choose it yourself
+(`slug: barrage-de-vajont`). It is **not** the card's position, which
+means you can reorder the deck, insert a card, or drop one with `tags:
+excluded` and the links you have already given out still land where they
+did. A card with no title and no `slug:` has nothing to derive from and
+falls back to its rank; `audit` says so, because that is the one link
+that will break. If two cards share a title they land on one address, are
+told apart anyway, and the build tells you — give one of them a `slug:`.
+`slug_prefix:` in the meta block (or in `series_meta`) puts a namespace
+in front of every address on the page.
 
 Register every article that should appear in navigation in
 `series.json` — next section.
@@ -713,11 +728,12 @@ next slide without the 250 ms hold.
 
 ### Touch (phone, tablet)
 
-| Gesto | Action |
+| Gesture | Action |
 |---|---|
 | Swipe left | Next slide |
 | Swipe right | Previous slide |
 | Tap on content | Next slide |
+| Double tap | Show or hide the navigation buttons |
 
 ### Navigation buttons
 
@@ -728,9 +744,17 @@ idleness they fade out, and the cursor goes with them: the speaker does
 not want chrome on the wall. In fullscreen both go after 1 second. Move
 the mouse to bring the buttons back; the cursor waits for 250ms of
 continuous movement, so a knock against the desk does not put it on the
-wall. Touch devices keep the buttons visible (there is no cursor to wake
-them). Clicking the corner (not a button) toggles them on or off for
-good.
+wall.
+
+On a phone or a tablet they fade on the same 3 seconds and come back on a
+**double tap**, which also puts them away again at once if you have seen
+enough. A touch or a scroll restarts the countdown while they are still
+up, so they never vanish under your finger; once they are gone they no
+longer answer a touch at all, so the corner of your own text is safe to
+touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a
+gesture that meant two things depending on a state you cannot see coming
+would not be one. With a mouse, clicking the corner (not a button)
+toggles them on or off for good.
 
 ## 10. Shell completion (tab in the terminal)
 

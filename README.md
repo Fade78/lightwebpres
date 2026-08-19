@@ -72,13 +72,19 @@ handout at Ctrl/Cmd+P.
   together at runtime.
 - **Share in one click, at whatever scope you need.** Copyable link or QR
   code, for the whole series, the current article, or the exact slide
-  being read — generated entirely client-side.
+  being read — generated entirely client-side. A slide's address is
+  derived from what you wrote (its title, a long-form slide's filename,
+  or a `slug:` you choose), never from where it sits, so reordering the
+  deck or dropping a slide does not repoint the links you have already
+  given out — including the printed ones.
 - **Built-in presentation mode.** Every generated page is a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
   screens), mouse (click advance, right-click back, double-click
-  fullscreen, middle-click exit), touch (swipe). Navigation chrome fades
-  after 3s idle (1s in fullscreen); the cursor hides on the same clock,
-  and both return only after 250ms of continuous movement. The mouse becomes
+  fullscreen, middle-click exit), touch (swipe, double tap). Navigation
+  chrome fades after 3s idle (1s in fullscreen) on every device; with a
+  pointer the cursor hides on the same clock and both return after 250ms
+  of continuous movement, and on a touch screen a double tap is the
+  switch, both ways. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the
   screen never dims mid-talk.
@@ -221,7 +227,9 @@ Press **L** in the generated page to choose a variant. The menu appears only
 when at least two tags exist; the choice is retained in
 `localStorage['lwp-active-tag']`. Navigation, slide counts, anchors, and the
 presenter panel operate on the visible subset. `tags: excluded` removes a
-slide at build time and never emits it in the HTML. `audit` reports malformed
+slide at build time and never emits it in the HTML — and, since a slide's
+anchor is derived from what it says rather than from its rank, excluding
+one no longer repoints the anchors of the slides after it. `audit` reports malformed
 tags and language tags whose declared pack is missing without blocking the
 build.
 

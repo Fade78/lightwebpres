@@ -89,6 +89,7 @@ taking priority when both are set (§20.3.1).
 | `license` | `series.json`, meta block | `series.json` > meta `license:` > `series_meta.license` > `''` (§20.3.1) | Content license; shown in the page footer; raw HTML allowed (a link) |
 | `date` | `series.json`, meta block | `series.json` > meta `date:` > `''` — never derived from file mtime (§20.3.1) | Free-text date shown verbatim in the footer byline |
 | `status` | `series.json`, meta block | `active` (§20.6) | What this article is worth to the series. `active`: built, carded, navigated, counted. `draft`: still an article of the series and counted as one, but kept out of the output unless `--include-drafts`, which builds it with a centered "draft" banner. `ignored`: out of the chain entirely — never built whatever the flags, never listed, never counted — so an article can be set aside without deleting the entry that carries all its settings. Case-insensitive; any other value is a fatal error naming the article |
+| `slug_prefix` | `series.json` `series_meta`, meta block | `''` — no prefix (§12.1.1) | A namespace put in front of every slide id on the page, declared and derived alike. The article's meta block wins over `series_meta`; a value outside `[A-Za-z0-9][A-Za-z0-9._-]*` is a fatal build error naming its origin |
 | `notes_placement` | `series.json` `series_meta`, meta block | `local` (§6.5.1) | Where note bodies land. `local`: at the foot of the unit that called them — that card, or the end of the long-form article; numbering restarts in each card. `page`: every body on the page collected into one notes section at the end, numbered continuously. The article's meta block wins over `series_meta`; an unknown value is a fatal build error naming the article |
 | `notes_tooltip` | `series.json` `series_meta`, meta block | `off` (§6.5.3) | `on` also puts the body's text on the call as a tooltip. Composes with either placement and is never the only carrier — the body stays in the document, because a tooltip does not exist on a touch screen, in print, or in the reading order |
 | `typo` | meta block only | Unset — typography stays on | `off` disables every typography rule (§4.5), for this article's own page only |
@@ -103,6 +104,7 @@ after these fields is a fatal error (§22.12).
 
 | Field | Default | Description |
 |---|---|---|
+| `slug` | Derived from what the slide says: a hash of its heading, of a `full-article`'s `article:` file, or the fixed name `series-nav` — and its rank only when there is nothing to derive from | The slide's own name in a URL (§12.1.1). Written when the link has to be readable or pinned by hand; a build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code |
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
 | `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
@@ -115,6 +117,7 @@ A standard slide's own header (default, or explicit `<!-- lwp:slide -->`).
 
 | Field | Default | Description |
 |---|---|---|
+| `slug` | Derived from what the slide says: a hash of its heading, of a `full-article`'s `article:` file, or the fixed name `series-nav` — and its rank only when there is nothing to derive from | The slide's own name in a URL (§12.1.1). Written when the link has to be readable or pinned by hand; a build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code |
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
 | `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
@@ -132,6 +135,7 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 
 | Field | Default | Description |
 |---|---|---|
+| `slug` | Derived from what the slide says: a hash of its heading, of a `full-article`'s `article:` file, or the fixed name `series-nav` — and its rank only when there is nothing to derive from | The slide's own name in a URL (§12.1.1). Written when the link has to be readable or pinned by hand; a build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code |
 | `tags` | `default` when absent or empty | Optional variant tags; `excluded` removes the generated slide before rendering |
 | `article` | None — required on this slide type | External `.md` file included as the article's long-form body |
 
@@ -139,7 +143,8 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 
 A `<!-- lwp:slide:series-nav -->` slide has no author-written body. Its
 navigation cards are generated from `series.json`; it accepts the shared
-`tags` field for variant filtering. `comment` is documented above because it
+`tags` and `slug` fields, the latter overriding the fixed name
+`series-nav` its identity otherwise takes. `comment` is documented above because it
 is accepted on every slide type and is never rendered.
 
 The historical `tag:` field is not an alias for either current field. Use
