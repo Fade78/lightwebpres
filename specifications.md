@@ -1035,14 +1035,46 @@ lignes suivantes comprise) : une phrase qui commence par un mot en gras
 (`<strong>Mot</strong> commence la phrase.`) n'est pas traitée
 différemment d'une phrase qui commence par du texte normal.
 
-**Esperluettes et entités.** Dans le texte Markdown ordinaire, tout `&`
-est échappé en `&amp;` — une entité HTML écrite à la main (`&rarr;`,
-`&nbsp;`...) y est donc neutralisée et s'affiche littéralement
-(`&rarr;`). Pour utiliser une entité, il faut être dans un **bloc** HTML
-brut (ligne commençant par une balise de bloc, ou bloc multi-lignes
+**Esperluettes et entités : une seule règle, les deux grammaires.** Un
+`&` **hors d'une balise** est échappé en `&amp;` ; ce qui est **dans une
+balise** passe verbatim. Cela vaut identiquement pour le texte Markdown
+et pour les champs structurels (`kicker:`, `summary:`, `source:`,
+`highlight:`, `nav_title`, `card_desc`, le pied de page, le titre de la
+série…). Une entité écrite à la main (`&rarr;`, `&nbsp;`...) est donc
+neutralisée et s'affiche littéralement : pour un caractère spécial,
+écrire le caractère Unicode directement (`→`, ` `) — tout le pipeline
+est UTF-8 natif (§13.1). Une entité peut encore servir dans un **bloc**
+HTML brut (ligne commençant par une balise de bloc, ou bloc multi-lignes
 ouvert par une balise non refermée), où les lignes passent verbatim.
-Dans une ligne-paragraphe ordinaire, écrire le caractère Unicode
-directement (`→`, ` `) — tout le pipeline est UTF-8 natif (§13.1).
+
+Le découpage entre « dans » et « hors » d'une balise est **celui du
+moteur typographique** (§19.3), littéralement le même motif : deux
+mécanismes qui ne s'accorderaient pas sur l'endroit où commence une
+balise protégeraient des moitiés différentes du même document. Il exige
+un nom de balise après `<`, si bien qu'un `3 < 4 … > 2` en prose n'est
+pas lu comme une balise géante couvrant tout ce qui les sépare.
+
+*Il y avait deux règles auparavant, fausses chacune à un bout.* Un champ
+structurel n'échappait rien : `source:
+https://x.test/rechercher?q=marks&copy=1&reg=2` arrivait au lecteur en
+`…?q=marks©=1®=2`, parce que `&copy` et `&reg` sans point-virgule
+figurent dans la liste des références légataires de HTML5 — personne
+n'a fait de faute en tapant cette URL. Et le corps échappait *tous* les
+`&`, y compris dans le HTML brut de l'auteur, si bien qu'un `<a
+href="?a=1&amp;b=2">` écrit à la main devenait `&amp;amp;`, lien mort.
+
+**Ce qui n'est plus corrigé, et qu'il vaut mieux savoir qu'apprendre par
+surprise.** Un `&` nu **à l'intérieur** d'une balise brute n'est plus
+transformé en `&amp;`. C'est du HTML invalide écrit par l'auteur, et le
+réparer serait exactement l'ingérence que §13.8 déclare ne pas faire.
+
+Gardé par un balayage : un article et une série portant une charge dans
+**chaque** champ du format, puis relecture des pages construites à la
+recherche de tout `&` qui ne soit pas une référence bien formée. La
+forme du test est délibérée — une liste des champs à vérifier ne
+couvrirait que ceux auxquels quelqu'un a pensé, et le balayage a
+effectivement trouvé deux surfaces qui manquaient à la liste écrite à la
+main : les cartes de la fiche `series-nav` et le pied de page d'article.
 
 ### 6.3 Citations et code
 

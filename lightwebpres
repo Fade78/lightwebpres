@@ -9017,6 +9017,48 @@ class NoteScope:
         return '  <ol class="note-body">\n' + '\n'.join(items) + '\n  </ol>'
 
 
+# The same split the typography engine uses, and deliberately the same:
+# two mechanisms that disagree about where a tag begins would protect
+# different halves of the same document. See TypoEngine.apply for why the
+# pattern demands a tag name after `<` rather than matching `<[^>]+>` --
+# a stray "< 5 ... > 10" in prose would otherwise be read as one giant
+# tag spanning everything between them.
+_TAG_SPLIT_RE = re.compile(r'(</?[a-zA-Z][^<>]*>)')
+
+
+def escape_amps(text):
+    """Escapes `&` OUTSIDE a tag, and leaves what is inside one verbatim.
+
+    One rule for both grammars (§6.2). They used to have two, and both
+    were wrong at one end:
+
+      - a structural field escaped nothing, so `Marks & Spencer` reached
+        the page as a bare `&`, and `&sect;` rendered as a section sign.
+        The consequence that is not theoretical: `source:
+        https://x.test/rechercher?q=marks&copy=1&reg=2` reached the reader
+        as `…?q=marks©=1®=2`, because `&copy` and `&reg` without a
+        semicolon are in HTML5's legacy character-reference list. Nobody
+        made a mistake typing that.
+      - the body escaped EVERY `&`, including inside the author's own raw
+        HTML, so a hand-written `<a href="?a=1&amp;b=2">` became
+        `&amp;amp;` and the link died.
+
+    Outside a tag, an `&` is a character an author typed and gets
+    escaped -- which also neutralises a hand-written entity, the position
+    §6.2 already states: write the Unicode character, the pipeline is
+    UTF-8. Inside a tag it is the author's own HTML, which this tool does
+    not touch (§13.8).
+
+    The one thing to know rather than discover: a bare `&` inside a raw
+    tag is no longer corrected to `&amp;`. That is invalid HTML the author
+    wrote, and repairing it would be exactly the interference §13.8 says
+    this tool does not do."""
+    parts = _TAG_SPLIT_RE.split(text)
+    for i in range(0, len(parts), 2):   # even indices are outside a tag
+        parts[i] = parts[i].replace('&', '&amp;')
+    return ''.join(parts)
+
+
 def md_inline(text, absorb_punct=False, inline_images=False, articles_dir=None):
     """Converts inline Markdown formatting to HTML."""
     # This function owns two control characters as internal placeholders
@@ -9045,8 +9087,9 @@ def md_inline(text, absorb_punct=False, inline_images=False, articles_dir=None):
 
     text = re.sub(r'(?<!\\)`([^`]+?)(?<!\\)`', _code_span, text)
 
-    # Escape ampersands before inserting our own tags
-    text = text.replace('&', '&amp;')
+    # Escape ampersands before inserting our own tags -- outside the
+    # author's own raw HTML, which is the whole of escape_amps's rule.
+    text = escape_amps(text)
     # Inline images: `![alt](src)` anywhere in a line. Unlike links —
     # restricted to http(s) — the src may be a relative path (images
     # live in articles/img/, copied to public/img/ at build). The tag
@@ -10560,9 +10603,9 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     # is redundant presentation most authors don't want.
 
     if slide.slide_type == 'cover':
-        kicker = apply_typo(typo_engine, slide.kicker or '', disabled)
-        h1 = apply_typo(typo_engine, slide.h1 or '', disabled)
-        summary = apply_typo(typo_engine, slide.summary or '', disabled)
+        kicker = apply_typo(typo_engine, escape_amps(slide.kicker or ''), disabled)
+        h1 = apply_typo(typo_engine, escape_amps(slide.h1 or ''), disabled)
+        summary = apply_typo(typo_engine, escape_amps(slide.summary or ''), disabled)
 
         parts = [f'<section class="slide slide-cover" id="{ident}" '
                  f'data-tags="{data_tags}">']
@@ -10611,9 +10654,9 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                 + f'{{FULL_ARTICLE_PLACEHOLDER:s{slide_num}}}\n</section>')
 
     else:  # standard
-        kicker = apply_typo(typo_engine, slide.kicker or '', disabled)
-        h2 = apply_typo(typo_engine, slide.h2 or '', disabled)
-        summary = apply_typo(typo_engine, slide.summary or '', disabled)
+        kicker = apply_typo(typo_engine, escape_amps(slide.kicker or ''), disabled)
+        h2 = apply_typo(typo_engine, escape_amps(slide.h2 or ''), disabled)
+        summary = apply_typo(typo_engine, escape_amps(slide.summary or ''), disabled)
 
         parts = [f'<section class="slide" id="{ident}" '
                  f'data-tags="{data_tags}">']
@@ -10631,8 +10674,8 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         # Highlight — no empty caption span when there is no caption
         # (§12.3: the caption is emitted only if present)
         if slide.highlight:
-            highlight = apply_typo(typo_engine, slide.highlight, disabled)
-            caption = apply_typo(typo_engine, slide.highlight_caption or '', disabled)
+            highlight = apply_typo(typo_engine, escape_amps(slide.highlight), disabled)
+            caption = apply_typo(typo_engine, escape_amps(slide.highlight_caption or ''), disabled)
             caption_html = f'<span class="highlight-caption">{caption}</span>' if caption else ''
             parts.append(f'  <div class="highlight"><span class="highlight-figure">{highlight}</span>{caption_html}</div>')
 
@@ -10660,7 +10703,7 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                                             inline_images=inline_images,
                                             articles_dir=articles_dir)
             if slide.fact_label:
-                label = apply_typo(typo_engine, slide.fact_label, disabled)
+                label = apply_typo(typo_engine, escape_amps(slide.fact_label), disabled)
                 fact_classes = 'fact-box'
                 if slide.fact_variant:
                     # The source names a MEANING (`fact-variant: warning`);
@@ -10704,7 +10747,9 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         # Source
         if slide.source:
             source_label = strings.get('source_label', 'Source')
-            source_line = apply_typo(typo_engine, f'{source_label} : {slide.source}', disabled)
+            source_line = apply_typo(
+                typo_engine, escape_amps(f'{source_label} : {slide.source}'),
+                disabled)
             parts.append(f'  <p class="source">{source_line}</p>')
 
         # Speaker note — parsed, never shown to the reader; the presenter
@@ -10737,11 +10782,11 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
         # card_label/nav_title/nav_desc are already resolved by
         # resolve_article_fields() (series.json > article meta > fallback
         # chain, §20.3.1).
-        label = apply_typo(typo_engine, entry.get('card_label', ''))
+        label = apply_typo(typo_engine, escape_amps(entry.get('card_label', '')))
         # No empty <div class="series-label"> when there is no label
         label_html = f'      <div class="series-label">{label}</div>\n' if label else ''
-        title = apply_typo(typo_engine, entry['nav_title'])
-        desc = apply_typo(typo_engine, entry['nav_desc'])
+        title = apply_typo(typo_engine, escape_amps(entry['nav_title']))
+        desc = apply_typo(typo_engine, escape_amps(entry['nav_desc']))
         if entry['page_dest'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
                 label_html=label_html,
@@ -10768,10 +10813,12 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
 
-    title = apply_typo(typo_engine, meta.get('title', strings.get('series_untitled_fallback', 'Article series')))
-    subtitle = apply_typo(typo_engine, meta.get('subtitle', ''))
+    title = apply_typo(typo_engine, escape_amps(
+        meta.get('title', strings.get('series_untitled_fallback',
+                                      'Article series'))))
+    subtitle = apply_typo(typo_engine, escape_amps(meta.get('subtitle', '')))
     version = meta.get('version', '')
-    intro = apply_typo(typo_engine, meta.get('intro', ''))
+    intro = apply_typo(typo_engine, escape_amps(meta.get('intro', '')))
 
     # <title> is RCDATA: unlike {{series_title}} (rendered inside the page
     # body, where raw HTML is allowed by design, same as a slide's own
@@ -10787,9 +10834,9 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         # card_title/card_desc/card_label are already fully resolved by
         # resolve_article_fields() (series.json > article meta > fallback,
         # §20.3.1) — no fallback logic needed here.
-        label = apply_typo(typo_engine, entry.get('card_label', ''))
-        card_title = apply_typo(typo_engine, entry.get('card_title', ''))
-        card_desc = apply_typo(typo_engine, entry.get('card_desc', ''))
+        label = apply_typo(typo_engine, escape_amps(entry.get('card_label', '')))
+        card_title = apply_typo(typo_engine, escape_amps(entry.get('card_title', '')))
+        card_desc = apply_typo(typo_engine, escape_amps(entry.get('card_desc', '')))
         # href is an attribute context: entry['page_dest'] is validated to be a
         # plain filename (validate_series), but it's escaped here too as
         # defense in depth against a future validation gap.
@@ -10805,8 +10852,8 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     # per-article values belong on the articles' own pages). Raw HTML
     # passthrough like every visible rendering (§6.2).
     index_footer = ''
-    footer_author = apply_typo(typo_engine, meta.get('author', ''))
-    footer_license = apply_typo(typo_engine, meta.get('license', ''))
+    footer_author = apply_typo(typo_engine, escape_amps(meta.get('author', '')))
+    footer_license = apply_typo(typo_engine, escape_amps(meta.get('license', '')))
     footer_parts = []
     if footer_author:
         footer_parts.append(f'  <div class="footer-byline">{footer_author}</div>')
@@ -11272,9 +11319,14 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     own_entry = next((e for e in articles if e.get('page_dest') == current_file), None)
     title = own_entry['page_title'] if own_entry else meta.get('page_title', current_file)
-    # Strip HTML tags from the title
+    # Strip HTML tags from the title, then escape what is left. The tags
+    # go first, so escape_amps has nothing to protect by the time it runs
+    # and every `&` in the title is an `&` the author typed -- which is
+    # what <title> needs, being RCDATA: a bare `&copy` there is read as
+    # an entity exactly as it is in the body.
     title_clean = strip_ws(re.sub(r'<[^<>]+>', ' ', title))
-    title_clean = apply_typo(article_typo_engine, title_clean, disabled_rules)
+    title_clean = apply_typo(article_typo_engine, escape_amps(title_clean),
+                             disabled_rules)
 
     # <head> metadata — author and description, both attribute contexts:
     # tag-stripped (they may legitimately carry inline HTML for the
@@ -11294,9 +11346,15 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # applied via this article's own engine (it IS this page's content).
     page_footer = ''
     if own_entry:
-        author = apply_typo(article_typo_engine, own_entry.get('author', ''), disabled_rules)
-        date = apply_typo(article_typo_engine, own_entry.get('date', ''), disabled_rules)
-        license_text = apply_typo(article_typo_engine, own_entry.get('license', ''), disabled_rules)
+        author = apply_typo(article_typo_engine,
+                            escape_amps(own_entry.get('author', '')),
+                            disabled_rules)
+        date = apply_typo(article_typo_engine,
+                          escape_amps(own_entry.get('date', '')),
+                          disabled_rules)
+        license_text = apply_typo(article_typo_engine,
+                                  escape_amps(own_entry.get('license', '')),
+                                  disabled_rules)
         byline = ' — '.join(part for part in (author, date) if part)
         parts = []
         if byline:

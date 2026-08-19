@@ -1747,7 +1747,7 @@ stores, where, and for how long — the sort that is cheap to get wrong and
 expensive to reverse. None of them blocks the identity work, which is
 complete without it.
 
-## B34 — A structural field converts an HTML entity; the body does not — OPEN
+## B34 — A structural field converts an HTML entity; the body does not — DONE (v0.42.3)
 
 **Verified, by sweeping all fourteen text fields with four payloads.**
 Ordinary punctuation (« », apostrophes, `100 %`, `—`, `3 < 4`) is escaped
@@ -1783,8 +1783,15 @@ corrected to `&amp;`. That is the author's own HTML, and the tool's
 declared position is that it does not touch raw HTML (§13.8) — coherent,
 but it has to be written down rather than discovered.
 
-**To decide.** Whether to adopt the rule (it changes the rendering of any
-existing page containing an `&` in a title, which the render-identity
-guard will report), or to document the divergence and leave it. Nothing
-in this repository uses an entity in a field, so no artefact of ours
-moves either way — verified.
+**Decided: adopted.** One rule, `escape_amps()`, splitting on the
+typography engine's own tag pattern — the same one literally, so the two
+cannot disagree about where a tag begins. §6.2 states it for both
+grammars now, including what stops being corrected: a bare `&` inside a
+raw tag, which is the author's HTML and §13.8's territory.
+
+The guard is a sweep rather than a list: an article and a series carrying
+a payload in EVERY field, then the built pages read back for any `&` that
+is not a well-formed reference. It earned its shape immediately — it
+found two surfaces the hand-written list had missed, the `series-nav`
+cards and the article page footer. Three mutations, three killed. No
+artefact of this repository moved, as predicted.

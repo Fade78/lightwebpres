@@ -1596,6 +1596,172 @@ class SlideTypesAreARegistry(unittest.TestCase):
             self.assertIn('comment', slide_type.fields, slide_type.name)
 
 
+class OneRuleForTheAmpersand(unittest.TestCase):
+    """§6.2: an `&` outside a tag is escaped; what is inside one is left
+    alone. One rule, both grammars.
+
+    There used to be two, and each was wrong at one end. A structural
+    field escaped nothing, so `source:
+    https://x.test/rechercher?q=marks&copy=1&reg=2` reached the reader as
+    `…?q=marks©=1®=2` — `&copy` and `&reg` without a semicolon are in
+    HTML5's legacy character-reference list, and nobody made a mistake
+    typing that URL. The body escaped every `&`, including inside the
+    author's own raw HTML, so a hand-written `<a href="?a=1&amp;b=2">`
+    became `&amp;amp;` and the link died.
+
+    The sweep below is the shape of the test, not a list of needles: it
+    puts a payload in EVERY field the format has and then reads the built
+    pages back looking for any `&` that is not a well-formed reference.
+    A list of the fields to check would only ever cover the ones somebody
+    thought of; the whole point is the field nobody thought of."""
+
+    # Every `&` a built page may legitimately carry, and nothing else.
+    # The four escapes, numeric references, and the arrows the INTERFACE
+    # strings emit (`&rarr;` on a navigation card, `&larr;` on the back
+    # link) — those come out of the tool's own language packs, never out
+    # of an author's field. Named on purpose rather than allowing
+    # `&[a-z]+;` wholesale: a fifth one appearing means the tool started
+    # emitting an entity somewhere new, and that is worth a failing test
+    # rather than a silent pass.
+    _BARE_AMP = re.compile(
+        r'&(?!amp;|lt;|gt;|quot;|rarr;|larr;|#39;|#\d+;|#x[0-9a-fA-F]+;)')
+    # <script> and <style> are the tool's own, not an author's, and JS
+    # says `&&` for reasons that have nothing to do with HTML escaping.
+    _NOT_CONTENT = re.compile(r'<(script|style)\b.*?</\1>', re.S)
+
+    PAYLOAD = 'Marks & Spencer &sect; &copy'
+
+    def _series(self, tmp):
+        root = Path(tmp) / 'series'
+        (root / 'articles').mkdir(parents=True)
+        meta = {'title': f'T {self.PAYLOAD}', 'subtitle': f'S {self.PAYLOAD}',
+                'intro': f'I {self.PAYLOAD}', 'author': f'A {self.PAYLOAD}',
+                'license': f'L {self.PAYLOAD}', 'version': 'v1'}
+        entry = {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': f'NT {self.PAYLOAD}',
+                 'nav_desc': f'ND {self.PAYLOAD}',
+                 'card_label': f'CL {self.PAYLOAD}',
+                 'card_title': f'CT {self.PAYLOAD}',
+                 'card_desc': f'CD {self.PAYLOAD}'}
+        second = dict(entry, page_dest='b.html', page_source='b.md')
+        (root / 'series.json').write_text(json.dumps(
+            {'series_meta': meta, 'articles': [entry, second]}),
+            encoding='utf-8')
+        # Every slide field that renders, on the types that render it.
+        for name in ('a.md', 'b.md'):
+            (root / 'articles' / name).write_text(
+                f'<!-- lwp:meta -->\n'
+                f'page_dest: {name[0]}.html\n'
+                f'page_title: PT {self.PAYLOAD}\n'
+                f'page_desc: PD {self.PAYLOAD}\n'
+                f'author: AU {self.PAYLOAD}\n'
+                f'license: LI {self.PAYLOAD}\n'
+                f'nav_title: NT {self.PAYLOAD}\n'
+                f'nav_desc: ND {self.PAYLOAD}\n'
+                f'---\n\n'
+                f'<!-- lwp:slide:cover -->\n'
+                f'kicker: KC {self.PAYLOAD}\n'
+                f'# H1 {self.PAYLOAD}\n'
+                f'summary: SC {self.PAYLOAD}\n\n'
+                f'---\n\n'
+                f'<!-- lwp:slide -->\n'
+                f'kicker: K {self.PAYLOAD}\n'
+                f'## H2 {self.PAYLOAD}\n'
+                f'summary: S {self.PAYLOAD}\n'
+                f'fact-label: FL {self.PAYLOAD}\n'
+                f'highlight: HI {self.PAYLOAD}\n'
+                f'highlight-caption: HC {self.PAYLOAD}\n'
+                f'source: https://x.test/r?q=marks&copy=1&reg=2\n'
+                f'note: N {self.PAYLOAD}\n\n'
+                f'Body {self.PAYLOAD}.\n\n'
+                f'---\n\n'
+                f'<!-- lwp:slide:series-nav -->\n',
+                encoding='utf-8')
+        return root
+
+    def _built(self, root, tmp):
+        out = Path(tmp) / 'public'
+        result = run('build', str(root), '--output', str(out))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return {p.name: p.read_text(encoding='utf-8')
+                for p in sorted(out.glob('*.html'))}
+
+    def test_no_field_anywhere_leaves_a_bare_ampersand_on_a_page(self):
+        """The sweep. A bare `&` on a page is either invalid markup or a
+        legacy reference the browser silently converts — the second is
+        what destroyed the query string."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pages = self._built(self._series(tmp), tmp)
+            self.assertEqual(sorted(pages), ['a.html', 'b.html', 'index.html'])
+            for name, html in pages.items():
+                content = self._NOT_CONTENT.sub('', html)
+                stray = self._BARE_AMP.findall(content)
+                self.assertEqual(
+                    stray, [],
+                    f'{name}: {len(stray)} bare ampersand(s) — '
+                    + repr([content[m.start():m.start() + 40]
+                            for m in self._BARE_AMP.finditer(content)][:6]))
+
+    def test_the_query_string_reaches_the_reader_intact(self):
+        """The reported harm, stated on its own so it cannot be lost in a
+        sweep that a future exemption might narrow. `&copy=1` is the one
+        that bites: with no semicolon it is still a legacy reference."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pages = self._built(self._series(tmp), tmp)
+            self.assertIn('https://x.test/r?q=marks&amp;copy=1&amp;reg=2',
+                          pages['a.html'])
+
+    def test_a_hand_written_entity_stays_literal_and_a_raw_tag_is_untouched(self):
+        """The two ends of the one rule, in one document. `&sect;` is the
+        author's text and must READ as `&sect;` rather than render as a
+        section sign (the position §6.2 already states: write the Unicode
+        character). A raw `<a href="…&amp;…">` is the author's own HTML
+        and must reach the page byte for byte — it used to come out
+        `&amp;amp;`, which is a dead link."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            (root / 'articles').mkdir(parents=True)
+            (root / 'series.json').write_text(json.dumps(
+                {'series_meta': {'title': 'T'},
+                 'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
+                               'nav_title': 'A', 'nav_desc': 'A'}]}),
+                encoding='utf-8')
+            (root / 'articles' / 'a.md').write_text(
+                '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\nkicker: K\n# T\nsummary: S\n\n'
+                '---\n\n'
+                '<!-- lwp:slide -->\nkicker: K\n## H\nsummary: S\n'
+                'fact-label: F\n\n'
+                'Text &sect; and <a href="https://x.test/?a=1&amp;b=2">link</a>.\n',
+                encoding='utf-8')
+            html = self._built(root, tmp)['a.html']
+            self.assertIn('Text &amp;sect; and', html)
+            self.assertIn('<a href="https://x.test/?a=1&amp;b=2">link</a>', html)
+
+    def test_the_split_is_the_one_the_typography_engine_uses(self):
+        """Two mechanisms that disagreed about where a tag begins would
+        protect different halves of the same document. Read from the
+        module, both of them, so a future edit to either has to move
+        both."""
+        lwp = load_lightwebpres_module()
+        self.assertEqual(
+            lwp._TAG_SPLIT_RE.pattern, r'(</?[a-zA-Z][^<>]*>)',
+            'the escape split is no longer the typography engine\'s')
+        source = inspect.getsource(lwp.TypoEngine.apply)
+        self.assertIn(r"re.split(r'(</?[a-zA-Z][^<>]*>)', text)", source,
+                      'the typography engine no longer splits the same way')
+
+    def test_prose_that_looks_like_a_tag_is_not_one(self):
+        """`3 < 4 … > 2 & 6` is arithmetic, not a tag spanning the middle
+        of the sentence — the exact trap the shared pattern was written
+        to avoid, asserted here so a "simpler" `<[^>]+>` cannot come
+        back."""
+        lwp = load_lightwebpres_module()
+        self.assertEqual(lwp.escape_amps('3 < 4 and 5 > 2 & 6'),
+                         '3 < 4 and 5 > 2 &amp; 6')
+
+
 class SeriesNavFullArticleStrictContent(unittest.TestCase):
     """§22.8/§22.9: series-nav and full-article slides render none of
     their own content beyond their directives — unrecognized lines are
