@@ -1329,6 +1329,25 @@ body.fs-noselect {
    hover on a phone, so an invisible button in the bottom-right corner
    would fire on a reader who touched the corner of their own text. */
 @media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle, .slide-counter.idle { pointer-events: none; } }
+/* And selection is off while the chrome is down — on a touch screen only.
+   Reported from a phone: the double tap that is supposed to bring the
+   navigation back is the system's own gesture for selecting a word, and
+   the system wins. The two cannot both own it, so they are separated by
+   STATE rather than by guesswork about the reader's intent: chrome down
+   means reading, and a double tap wakes the chrome; chrome up means
+   working, and a double tap selects.
+
+   The reader loses nothing they cannot get back in one gesture, and a
+   selection they have already made is safe — the countdown does not run
+   while one exists, which is the other half of this rule and lives in the
+   script.
+
+   Not on a fine pointer: there, a double-click has never competed with
+   selection (it selects a word AND enters fullscreen, deliberately), and
+   taking selection away from a mouse would be a loss with nothing bought.
+   `-webkit-` is not decoration: Safari still needs it, and it is the
+   engine this was reported on. */
+@media (pointer: coarse) { :root.nav-idle .slide { -webkit-user-select: none; user-select: none; } }
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */

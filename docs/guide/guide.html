@@ -1330,6 +1330,25 @@ body.fs-noselect {
    hover on a phone, so an invisible button in the bottom-right corner
    would fire on a reader who touched the corner of their own text. */
 @media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle, .slide-counter.idle { pointer-events: none; } }
+/* And selection is off while the chrome is down — on a touch screen only.
+   Reported from a phone: the double tap that is supposed to bring the
+   navigation back is the system's own gesture for selecting a word, and
+   the system wins. The two cannot both own it, so they are separated by
+   STATE rather than by guesswork about the reader's intent: chrome down
+   means reading, and a double tap wakes the chrome; chrome up means
+   working, and a double tap selects.
+
+   The reader loses nothing they cannot get back in one gesture, and a
+   selection they have already made is safe — the countdown does not run
+   while one exists, which is the other half of this rule and lives in the
+   script.
+
+   Not on a fine pointer: there, a double-click has never competed with
+   selection (it selects a word AND enters fullscreen, deliberately), and
+   taking selection away from a mouse would be a loss with nothing bought.
+   `-webkit-` is not decoration: Safari still needs it, and it is the
+   engine this was reported on. */
+@media (pointer: coarse) { :root.nav-idle .slide { -webkit-user-select: none; user-select: none; } }
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */
@@ -2448,11 +2467,16 @@ note: Mention the 2020 study — the audience asked for it last time.
         <td>Double tap</td>
         <td>Show or hide the navigation buttons</td>
       </tr>
+      <tr>
+        <td>Double tap, buttons up</td>
+        <td>Select a word, as the system does</td>
+      </tr>
     </tbody>
   </table>
   <h3>Navigation buttons</h3>
   <p>The round buttons in the bottom-right corner — previous, home, next, share, fullscreen, and a sixth for the variant menu that appears only when the article carries at least two tags. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
-  <p>On a phone or a tablet they fade on the same 3 seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a gesture that meant two things depending on a state you cannot see coming would not be one. With a mouse, clicking the corner (not a button) toggles them on or off for good.</p>
+  <p>On a phone or a tablet they fade on the same 3 seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a gesture that meant two things depending on a state you cannot see coming would not be one.</p>
+  <p>The double tap is also how a phone selects a word, and both cannot own it, so they take turns by state: with the buttons down a double tap wakes them, with the buttons up it selects — one gesture away either way. Text you have selected is safe: the buttons will not fade while a selection exists, because on a touch screen their fading would drop it. With a mouse, clicking the corner (not a button) toggles them on or off for good.</p>
   <h2>10. Shell completion (tab in the terminal)</h2>
   <p><code>lightwebpres completion --shell bash</code> (or <code>zsh</code>) prints a script that makes your shell complete commands, subcommands, and options when you press Tab. Install it by adding this line to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
   <pre><code class="language-bash">
@@ -4160,15 +4184,35 @@ document.addEventListener('DOMContentLoaded', function() {
   function getIdleDelay() {
     return isFullscreen() ? 1000 : 3000;
   }
+  // A reader with text selected is in the middle of something. Letting
+  // the chrome fade under them would take the selection with it on a
+  // touch screen — `user-select: none` arrives with the idle state and
+  // drops what is selected — so the countdown simply does not run while a
+  // selection exists. It is the other half of the rule that gates
+  // selection on the chrome's state: chrome up means working, and the
+  // work is not over until the selection is.
+  function hasSelection() {
+    try {
+      return !!String(window.getSelection());
+    } catch (e) { return false; }
+  }
+
   function scheduleHide() {
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = setTimeout(function () {
+      if (hasSelection()) { scheduleHide(); return; }
       setNavIdle(true);
       // Only where there is one to hide. Setting it on a touch device is
       // harmless but says something false about what just happened.
       if (hasFinePointer) document.body.style.cursor = 'none';
     }, getIdleDelay());
   }
+  // Restart the countdown whenever the selection changes, so the delay is
+  // measured from the reader's last act rather than from whenever the
+  // chrome happened to come up.
+  document.addEventListener('selectionchange', function () {
+    if (hasSelection() && !navIsIdle()) scheduleHide();
+  });
   if (hasFinePointer) {
     document.addEventListener('mousemove', function () {
       // Nothing is revealed here. revealChrome() decides, on the one

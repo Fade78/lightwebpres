@@ -473,7 +473,64 @@ async function main() {
          + JSON.stringify(state));
   }
 
-  // 5e. Revealed chrome still fades on its own afterwards, so the switch
+  // 5e. Selection is gated on the chrome's state, and a selection holds
+  // the chrome up.
+  //
+  // Reported from a phone: the double tap that is supposed to bring the
+  // navigation back is also the system's gesture for selecting a word,
+  // and the system wins — so the reader has no way back at all. This
+  // harness does NOT reproduce that: synthetic taps in headless Chromium
+  // take no selection, which is why the reveal above passes here and
+  // failed on a real device. What can be asserted is the MECHANISM that
+  // separates the two, and that is what this does.
+  await doubleTap();          // chrome up
+  const working = await phone.evaluate(() => {
+    const slide = document.querySelector('section.slide');
+    return getComputedStyle(slide).webkitUserSelect
+        || getComputedStyle(slide).userSelect;
+  });
+  if (working === 'none') {
+    fail('selection is off while the chrome is UP, so a reader can never '
+         + 'select anything at all: ' + working);
+  }
+  await doubleTap();          // chrome down
+  const reading = await phone.evaluate(() => {
+    const slide = document.querySelector('section.slide');
+    return getComputedStyle(slide).webkitUserSelect
+        || getComputedStyle(slide).userSelect;
+  });
+  if (reading !== 'none') {
+    fail('selection is still on while the chrome is down, so the system '
+         + 'takes the double tap and the reader has no way back: ' + reading);
+  }
+
+  // And a selection keeps the chrome from fading out from under it —
+  // which on a touch screen would drop the selection with it.
+  await doubleTap();          // chrome up again
+  await phone.evaluate(() => {
+    const target = document.querySelector('section.slide h1, section.slide h2');
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  const held = await phone.evaluate(() => String(window.getSelection()).length);
+  if (!held) {
+    fail('the harness could not make a selection, so nothing below is under test');
+  }
+  await phone.waitForTimeout(4500);
+  state = await chromeState();
+  if (state.idle) {
+    fail('the chrome faded while text was selected, taking the selection '
+         + 'with it: ' + JSON.stringify(state));
+  }
+  await phone.evaluate(() => window.getSelection().removeAllRanges());
+  // Put it back down, so the next section starts from the state it
+  // expects. Each of these sections leaves the switch where it found it.
+  await doubleTap();
+
+  // 5f. Revealed chrome still fades on its own afterwards, so the switch
   // has not replaced the countdown with a latch.
   await doubleTap();
   if ((await chromeState()).idle) {

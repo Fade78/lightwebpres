@@ -734,6 +734,7 @@ next slide without the 250 ms hold.
 | Swipe right | Previous slide |
 | Tap on content | Next slide |
 | Double tap | Show or hide the navigation buttons |
+| Double tap, buttons up | Select a word, as the system does |
 
 ### Navigation buttons
 
@@ -753,7 +754,13 @@ up, so they never vanish under your finger; once they are gone they no
 longer answer a touch at all, so the corner of your own text is safe to
 touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a
 gesture that meant two things depending on a state you cannot see coming
-would not be one. With a mouse, clicking the corner (not a button)
+would not be one.
+
+The double tap is also how a phone selects a word, and both cannot own it,
+so they take turns by state: with the buttons down a double tap wakes
+them, with the buttons up it selects — one gesture away either way. Text
+you have selected is safe: the buttons will not fade while a selection
+exists, because on a touch screen their fading would drop it. With a mouse, clicking the corner (not a button)
 toggles them on or off for good.
 
 ## 10. Shell completion (tab in the terminal)

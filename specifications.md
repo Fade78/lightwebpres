@@ -1791,6 +1791,20 @@ le geste avancerait aussi de deux fiches. Le plein écran reste le bouton
 ⛶ de cette barre — un même geste qui voudrait dire deux choses selon un
 état que le lecteur ne voit pas venir n'en est pas un.
 
+**La sélection est réglée sur l'état du chrome, sur écran tactile
+seulement.** Rapporté depuis un téléphone : le double tap qui doit
+rappeler la navigation est aussi le geste système de sélection d'un mot,
+et le système gagne — le lecteur n'a alors aucun chemin de retour. Les
+deux ne peuvent pas posséder le même geste, ils sont donc séparés **par
+l'état** plutôt que par une supposition sur l'intention : chrome baissé =
+lecture, le double tap réveille ; chrome levé = travail, le double tap
+sélectionne. Et le compte à rebours **ne tourne pas tant qu'une sélection
+existe**, sinon le chrome s'effacerait sous elle et l'emporterait, puisque
+`user-select: none` arrive avec l'état inactif. Rien de tout cela sur
+pointeur fin : là, le double-clic n'a jamais concurrencé la sélection (il
+sélectionne un mot **et** entre en plein écran, délibérément), et retirer
+la sélection à une souris serait une perte sans contrepartie.
+
 **Boutons** : ↑/🏠/↓/partage/⛶ (plein écran)/L (filtre de tags, masqué
 quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
 d'inactivité hors plein écran, **1 s en plein écran** — c'est-à-dire
