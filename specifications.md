@@ -199,11 +199,12 @@ L'exécutable contient en interne :
 
 1. La logique de build (parseur, convertisseur, moteur d'inclusion)
 2. Le moteur de thèmes (registre de propriétés typées, §9) et les templates
-   par défaut (JS de navigation, HTML) — le scaffold de `settings.conf` et
-   `nav.js` sont extraits par la commande `init` ; la feuille de style,
-   elle, est composée en mémoire à chaque build, jamais installée (§9.3)
+   par défaut (JS de navigation, HTML). `init` n'extrait que le scaffold de
+   `settings.conf` : la feuille de style est composée en mémoire à chaque
+   build (§9.3), et `nav.js` est lu depuis l'exécutable sauf si la série en
+   détient une copie (§9.4.5)
 3. Les règles typographiques par défaut (`fr` et `en`) — écrites en string
-   Python, extraites par la commande `init`
+   Python, lues depuis l'exécutable, jamais posées par `init` (§9.4.5)
 4. Le générateur de démo (crée des articles d'exemple)
 5. Le CLI — les commandes ne sont pas énumérées ici : le synopsis complet
    est en §2.4.2, et `--help` le dérive des tables d'options
@@ -229,10 +230,13 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 ├── templates/                     # La surface de personnalisation de cette série (§9)
 │   ├── settings.conf              # Les propriétés typées (le look) — scaffold complet commenté
 │   ├── custom.css                 # Les règles CSS libres de l'auteur (ajoutées en dernier)
-│   └── nav.js                     # Le JS de navigation (override)
-├── language/                       # Règles typographiques + vocabulaire d'interface (override)
-│   ├── fr.json
-│   └── en.json
+│   └── nav.js                     # ABSENT par défaut — le JS de navigation vient de
+│                                  # l'exécutable ; `template write nav.js` en pose une
+│                                  # copie pour qui veut le modifier (§9.4.5)
+├── language/                       # VIDE par défaut — les règles typographiques et le
+│   │                               # vocabulaire d'interface viennent de l'exécutable
+│   ├── fr.json                    # posé par `template write fr.json` seulement
+│   └── en.json                    # (ou un pack de langue que l'outil ne livre pas)
 ├── public/                        # Le HTML généré (output du build)
 │   ├── index.html
 │   ├── avant_propos.html
@@ -328,6 +332,8 @@ lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav]
 lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
+lightwebpres template show <nav.js|fr.json|en.json>
+lightwebpres template write <nav.js|fr.json|en.json> [répertoire] [--force]
 lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
 lightwebpres theme show [slug… | --all | répertoire] [--format text|json]   # sans cible : la série courante
 lightwebpres series theme [répertoire] [--format text|json]
@@ -1385,8 +1391,9 @@ l'anglais (`en`) — l'anglais sert aussi de **repli ultime** pour toute
 langue demandée via `--lang` qui n'a ni pack intégré ni fichier
 `language/{lang}.json`.
 
-Fichier `language/fr.json` — extrait de ce que `init` écrit réellement,
-deux règles sur huit et trois chaînes sur les quarante-quatre :
+Fichier `language/fr.json` — extrait du pack intégré, tel que
+`template write fr.json` le poserait (§9.4.5) : deux règles sur huit et
+trois chaînes sur les quarante-quatre.
 
 ```json
 {
@@ -1487,7 +1494,9 @@ d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
 
 L'utilisateur peut créer `language/fr.json`, `language/en.json`, ou tout
 autre `language/{lang}.json`, dans son répertoire de série pour override le
-pack par défaut. Le comportement diffère entre les deux blocs :
+pack par défaut — à la main, ou en partant d'une copie de l'intégré posée
+par `template write` (§9.4.5). Le comportement diffère entre les deux
+blocs :
 
 - **`rules`** : remplacement total. Si le fichier **définit** `rules`, elles
   remplacent entièrement les règles intégrées (l'ordre et les interactions
@@ -2084,7 +2093,7 @@ est inlinée dans chaque page, il suffit d'en afficher la source.
 | feuille émise | le système | régénérée à chaque build, jamais sur disque |
 | `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite (`series theme set` réécrit la seule ligne `theme:`, §9.4.2) |
 | `templates/custom.css` | l'auteur | **jamais** (créé vide à l'init) |
-| `templates/nav.js` | l'outil | remplacé par `template update`, sauvegarde `.bak` (§9.4.3) |
+| `nav.js`, `language/*.json` | l'outil | **absents par défaut** — l'outil les garde en interne. `template write` en pose une copie sur demande, `template update` retire une copie identique à l'intégrée (§9.4.5) |
 
 **C'est ce partage qui supprime l'appareillage.** Le marqueur de
 personnalisation, sa variante héritée, la recherche de sa première
@@ -2187,9 +2196,15 @@ Le JavaScript de navigation gère :
   de filtre par tag, navigation souris et tactile. §8.4 fait foi sur son
   contenu ; cette liste-ci ne se maintient pas en double
 
-Éditable via `templates/nav.js` — un override remplace `nav.js` **en
-bloc**, y compris le bouton de partage : il n'y a pas de mécanisme pour
-ne remplacer qu'une partie du comportement de navigation.
+Lu depuis l'exécutable. `init` ne pose pas de `templates/nav.js` : la
+série n'en a pas besoin pour être construite, et une copie sur disque ne
+sait pas suivre les corrections de l'outil (§9.4.5, B32).
+
+Modifiable quand même, et c'est un choix explicite : `template write
+nav.js` pose la copie, le build l'utilise alors à la place de l'intégrée,
+et le dit à chaque exécution. L'override remplace `nav.js` **en bloc**, y
+compris le bouton de partage : il n'y a pas de mécanisme pour ne
+remplacer qu'une partie du comportement de navigation.
 
 #### 9.3.4 Bouton de partage
 
@@ -2329,8 +2344,9 @@ propriété invalide.
 `init` écrit les trois fichiers : `settings.conf` — le scaffold
 complet du thème choisi, avec sa ligne `theme: <slug>` et son
 `# scaffold-for: <slug>` (sans `--theme` : pas de ligne `theme:` active,
-scaffold aux défauts intégrés) —, `custom.css` (vide, §9.3.2) et
-`nav.js`. Aucune substitution dans du CSS : choisir
+scaffold aux défauts intégrés) —, et `custom.css` (vide, §9.3.2). Il ne pose ni `nav.js`
+ni pack de langue : ceux-là appartiennent à l'outil et y restent
+(§9.4.5). Aucune substitution dans du CSS : choisir
 un thème à l'init, c'est écrire un mot dans un fichier de données. Un
 slug inconnu est une erreur fatale qui liste les slugs valides.
 
@@ -2365,11 +2381,35 @@ jamais corrigé d'office.
 #### 9.4.3 `template update`
 
 Sous le modèle de feuille composée, la feuille est toujours fraîche par
-construction : elle vient de l'exécutable courant à chaque build. Le seul
-fichier de l'outil restant sur disque est `nav.js` — remplacé s'il
-diffère de la version intégrée, l'ancien sauvegardé en
-`templates/nav.js.bak` ; rapporté « already up to date » sinon. Plus de
-marqueur, plus de `[SKIP]`. En complément, la commande **crée** les
+construction : elle vient de l'exécutable courant à chaque build. Plus de
+marqueur, plus de `[SKIP]`.
+
+**Ce que la commande fait des fichiers de l'outil.** Depuis que l'outil
+les garde en interne (§9.4.5), `template update` **retire** de la série
+la copie de `nav.js` ou d'un pack de langue qui est identique à
+l'intégrée. Le retrait est sans perte par construction : identique, la
+copie ne change rien au build sinon le côté d'où viennent les octets, et
+son seul effet restant est de figer la série le jour où l'exécutable
+avance. C'est ainsi qu'une série créée avant cette version se répare
+d'elle-même, sans que rien de l'auteur ne soit touché — ce qui est le
+principe de cette section, pas une exception à ce principe.
+
+Une copie qui **diffère** est traitée selon le fichier. Le build ne sait
+pas distinguer « personnalisé » de « périmé », cette commande non plus,
+et celle qui se trompe détruit du travail. `nav.js` garde sa voie
+historique — sauvegardé en `templates/nav.js.bak`, puis retiré, ce qui
+donne le résultat que cette commande a toujours produit (le build fait
+tourner la navigation de l'outil, la version de l'auteur est conservée à
+côté) en n'ayant plus de copie qui repérimera. Un pack de langue est
+seulement **rapporté** : ses `rules` remplacent le jeu de base en bloc
+(§19.2), donc l'écraser effacerait ce que l'auteur y a ajouté ; le
+message nomme `template show <pack>` pour comparer.
+
+Quand il n'y a rien à faire — l'état normal d'une série saine — la
+commande le dit. Une commande qui n'imprimerait que « run build again »
+se lirait comme une commande qui a échoué en silence.
+
+En complément, la commande **crée** les
 fichiers de la surface auteur s'ils manquent (série d'avant la
 refonte) : un `settings.conf` neuf (scaffold aux défauts, aucun thème
 déclaré) et un `custom.css` vide. Un `templates/style.css` hérité est
@@ -2449,6 +2489,58 @@ et ne déclenche pas le rendu, donc il reste bon marché :
 une note informative (`[NOTE]`, pas un avertissement compté) : ce sont
 des interventions d'auteur qui survivent à tout changement de thème, et
 cette visibilité est ce qui rend les littéraux dans le texte acceptables.
+
+#### 9.4.5 `template show` et `template write` : les fichiers que l'outil garde
+
+Trois fichiers appartiennent à l'exécutable : `nav.js`, `fr.json`,
+`en.json`. Ils vivent **dedans** et sont lus de là. La série n'en reçoit
+aucun.
+
+**Pourquoi ils n'y sont plus.** `init` les écrivait dans chaque série,
+octet pour octet identiques à ce que l'exécutable contenait déjà. La
+copie n'était donc jamais une personnalisation — seulement un instantané,
+que le build préférait ensuite à celui de l'exécutable. Une correction de
+l'outil n'atteignait personne qui avait déjà une série : trois
+corrections livrées en v0.39.0 n'ont touché aucune série existante
+(B32). L'autonomie n'en pâtit pas : `init` copie l'exécutable lui-même
+dans le répertoire (§11.1), et l'exécutable contient les trois fichiers.
+L'archive, c'est l'exécutable ; les copies séparées n'y ajoutaient rien
+et retiraient de la justesse.
+
+**`template show <fichier>`** imprime l'un d'eux sur la sortie standard.
+Il ne lit rien et n'écrit rien, et n'a besoin d'aucune série : la réponse
+est dans le programme. C'est le besoin le plus courant — savoir ce que
+fait une touche — et personne ne devrait avoir à créer une série pour le
+satisfaire, ni se retrouver propriétaire d'une copie figée pour avoir
+posé la question.
+
+**`template write <fichier> [répertoire]`** installe l'un d'eux là où le
+build le lit, par la **même résolution de chemins que le build**
+(`LWP_TEMPLATES_DIR` et `LWP_LANGUAGE_DIR` compris), pour que ce qu'il
+écrit ne puisse pas atterrir là où le build ne regarde pas. Les deux
+commandes existent, et pas par symétrie : `show > fichier` laisserait le
+**chemin** à l'auteur, et un chemin à un répertoire près est un fichier
+posé là qui ne fait rien, sans erreur — le no-op silencieux que ce
+projet passe son temps à tuer. `write` rend le **geste** explicite et le
+**chemin** affaire de l'outil.
+
+Trois règles le distinguent de l'ancien `init` :
+
+1. **Il refuse d'écraser sans `--force`.** Un fichier déjà présent à cet
+   endroit peut être le travail de quelqu'un.
+2. **Il dit le prix au moment où on le paie** : à partir de là le build
+   utilise cette copie, elle ne suit plus les corrections de l'outil, et
+   le build le rappelle à chaque exécution (§9.4.3). C'est toute la leçon
+   de B32 — le piège n'était pas la copie, c'était que personne ne savait
+   l'avoir prise. Demandée par son nom et son prix annoncé, c'est un
+   choix.
+3. **Il exige un nom de fichier.** Un `write` nu qui écrirait tout serait
+   le comportement d'`init` restauré sous un autre nom.
+
+L'ensemble est **fermé et connu** : trois fichiers. `settings.conf` et
+`custom.css` n'en font pas partie et ne doivent pas en faire partie — ils
+sont à l'auteur, et `template update` les crée déjà s'ils manquent.
+Nommer autre chose est une erreur fatale qui énumère l'ensemble.
 
 ### 9.5 Thèmes de couleurs prédéfinis
 
@@ -3346,28 +3438,30 @@ Crée la structure de travail dans `[répertoire]` :
      défauts intégrés, sans ligne `theme:` active) ; `<nom>` inconnu de
      `THEMES` est une erreur fatale, qui liste les noms valides
    - `templates/custom.css` — vide, zéro octet (§9.3.2)
-   - `templates/nav.js`
-   (pas de `templates/style.css` : la feuille est composée au build, §9.3)
-4. Extrait les packs de langue par défaut depuis l'exécutable :
-   - `language/fr.json`
-   - `language/en.json`
-5. Crée un `series.json` de départ : `series_meta` pré-rempli de
+   (pas de `templates/style.css` : la feuille est composée au build, §9.3 ;
+   pas de `templates/nav.js` ni de pack de langue : ils appartiennent à
+   l'outil et y restent, §9.4.5)
+4. Crée un `series.json` de départ : `series_meta` pré-rempli de
    valeurs génériques (`title`/`subtitle`/`version`/`intro`, plus
    `author`/`license` vides — présents pour faire connaître les champs,
    rien n'est rendu tant qu'ils sont vides) et un tableau `articles`
    vide
-6. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
+5. Crée un `.gitlab-ci.yml` de base, **mais seulement si `--gitlab-ci` est
    passé** — `init` seul ne présuppose jamais un déploiement GitLab
    (§10) ; par défaut, aucun fichier de CI n'est créé. La commande de
    build de ce fichier porte la langue choisie (`build . --lang <lang>`,
    `fr` par défaut)
-7. Copie l'exécutable `lightwebpres` dans le répertoire (pour autonomie),
+6. Copie l'exécutable `lightwebpres` dans le répertoire (pour autonomie),
    accompagné de `COPYING` et `COPYING.EXCEPTION` — les fichiers de
    licence voyagent avec la copie, ce n'est pas une commodité mais
-   l'article 4 de la GPL (§1.2)
+   l'article 4 de la GPL (§1.2). C'est cette copie qui porte l'autonomie
+   de la série, et elle contient `nav.js` et les deux packs : les poser
+   en plus à côté n'ajoutait rien (§9.4.5)
+7. Nomme en dernier `template show` et `template write` : ce que la série
+   ne contient pas est ce qu'un auteur ne pensera pas à demander
 
 **`--lang` à l'init.** La langue n'est **pas** une propriété du projet
-stockée quelque part : les deux packs (fr, en) sont toujours installés, et
+stockée quelque part : les deux packs sont toujours dans l'exécutable, et
 la langue est un choix **par build** (`--lang` sur `build`/`demo`, ou
 `$LWP_LANG`, `fr` par défaut — §7.1/§12.1). À l'install, `--lang` ne fait
 qu'une chose : fixer la langue inscrite dans la commande de build du
@@ -3889,26 +3983,32 @@ de l'outil qui parlera jamais d'eux.
 lightwebpres template update [répertoire] [--scaffold]
 ```
 
-Met à jour ce qui, dans `templates/`, appartient à l'outil — voir §9.4.3
-pour le raisonnement. Sous le modèle de feuille composée, la feuille est
-toujours fraîche par construction (elle vient de l'exécutable courant à
-chaque build) ; le seul fichier de l'outil restant sur disque est
-`nav.js`.
+Remet la série dans l'état où les fichiers de l'outil sont chez l'outil —
+voir §9.4.3 pour le raisonnement. Sous le modèle de feuille composée, la
+feuille est toujours fraîche par construction (elle vient de l'exécutable
+courant à chaque build) ; ce qui peut rester sur disque, c'est une copie
+de `nav.js` ou d'un pack de langue, prise à l'`init` d'une version
+antérieure ou par `template write` (§9.4.5).
 
 1. Erreur fatale si `templates/` n'existe pas (`init` pas encore fait)
-2. `templates/nav.js` : remplacé s'il diffère de la version intégrée
-   (l'ancien est sauvegardé en `templates/nav.js.bak`), rapporté
-   « already up to date » sinon
-3. Crée les fichiers de la surface auteur s'ils **manquent** (série
+2. Une copie **identique** à celle de l'exécutable — `templates/nav.js`
+   comme `language/fr.json` ou `language/en.json` — est **retirée** :
+   sans perte, puisqu'elle ne change rien au build, et son seul effet
+   restant serait de figer la série
+3. Une copie qui **diffère** : `templates/nav.js` est sauvegardé en
+   `templates/nav.js.bak` puis retiré ; un pack de langue est seulement
+   rapporté, ses `rules` remplaçant le jeu de base en bloc (§19.2)
+4. S'il n'y a rien à faire — l'état normal — la commande le dit
+5. Crée les fichiers de la surface auteur s'ils **manquent** (série
    installée avant la refonte §9) : `templates/settings.conf` (scaffold
    aux défauts, aucun thème déclaré) et `templates/custom.css` (vide) —
    écrire un fichier qui n'existe pas ne trahit aucune promesse de
    propriété ; un fichier présent n'est **jamais** touché
-4. Avertit (`[WARNING]`) si un `templates/style.css` hérité existe encore :
+6. Avertit (`[WARNING]`) si un `templates/style.css` hérité existe encore :
    il n'est plus lu et n'est **jamais migré** — ses valeurs sont les
    décisions de l'auteur ; `audit` nomme chaque renommage de variable
    pour rendre le déplacement mécanique (§9.8)
-5. **Avec `--scaffold`** : régénère en plus la surface commentée de
+7. **Avec `--scaffold`** : régénère en plus la surface commentée de
    `templates/settings.conf` aux valeurs du thème déclaré, en
    **conservant** les lignes décommentées — les valeurs épinglées par
    l'auteur — et avertit sur celles qui épinglent une propriété disparue.
@@ -3923,6 +4023,43 @@ n'existait que parce que l'outil écrivait dans un fichier que l'auteur
 Ne relance pas `build` automatiquement : les fichiers HTML déjà générés
 dans `public/` restent inchangés tant que `build` n'est pas relancé à la
 main.
+
+#### 11.6.1 `template show` et `template write`
+
+```bash
+lightwebpres template show <nav.js|fr.json|en.json>
+lightwebpres template write <nav.js|fr.json|en.json> [répertoire] [--force]
+```
+
+Les deux portes vers les fichiers que l'outil garde en interne. Le
+raisonnement est en §9.4.5 ; voici le contrat.
+
+**`show`** écrit le fichier demandé sur **stdout** et rien d'autre :
+aucune lecture de disque, aucune écriture, aucun répertoire de série
+requis. L'unique positionnel est le nom du fichier — pas un répertoire —,
+et il est obligatoire : sans lui, erreur fatale qui énumère l'ensemble.
+Redirigeable (`> templates/nav.js`), mais c'est alors l'auteur qui répond
+du chemin, ce que `write` évite.
+
+**`write`** installe le fichier là où le build le lit, par
+`resolve_paths` — la fonction même du build, donc `LWP_TEMPLATES_DIR` et
+`LWP_LANGUAGE_DIR` sont honorés : `nav.js` sous `templates/`, un pack
+sous `language/`. Deux positionnels : le nom du fichier d'abord, le
+répertoire de série ensuite (par défaut `$LWP_SERIES_DIR`, sinon `.`).
+L'ordre est sans ambiguïté, l'ensemble des noms étant fermé.
+
+1. Nom absent ou hors de l'ensemble : erreur fatale qui énumère les trois
+2. Destination déjà occupée et pas de `--force` : erreur fatale, rien
+   n'est écrit, le message nomme `--force` et `template show` pour
+   comparer d'abord
+3. Écriture faite : la commande imprime le chemin, puis ce que la copie
+   coûte — le build l'utilisera à la place de l'intégrée, elle ne suivra
+   plus les corrections de l'outil, et chaque build le rappellera
+   (§9.4.3)
+
+Ni `settings.conf` ni `custom.css` ne sont dans l'ensemble : ils
+appartiennent à l'auteur, et `template update` les crée s'ils manquent
+(§11.6).
 
 ### 11.7 `theme gallery`
 
@@ -5935,9 +6072,16 @@ mise en page du §19.3.1 reste celle qu'un auteur de pack doit suivre.
 ### 19.5 Packs par défaut embarqués dans l'exécutable
 
 L'exécutable contient en interne les packs `fr` et `en` (règles + chaînes)
-sous forme de strings JSON. La commande `init` les extrait dans
-`language/fr.json` et `language/en.json`. L'utilisateur peut ensuite les
-modifier — en partie pour `strings` (§7.4).
+sous forme de strings JSON, et **c'est de là qu'ils sont lus**. `init` ne
+les extrait pas : une copie dans la série serait identique à l'intégrée
+et ne saurait que figer la série (§9.4.5, B32).
+
+Qui veut les modifier les obtient en le demandant — `template write
+fr.json` pose la copie où le build la lira, ou `--language-file` désigne
+un fichier ailleurs. Un pack posé dans la série est un **override** : ses
+`rules` remplacent le jeu de base en bloc, ses `strings` sont fusionnées
+clé à clé (§7.4), et le build signale qu'il diffère de l'intégré à chaque
+exécution (§9.4.3).
 
 Au moment du build, le moteur charge le pack de langue depuis :
 1. `--language-file chemin/vers/fichier.json` (option CLI, priorité max) —

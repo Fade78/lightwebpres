@@ -35,6 +35,8 @@ Usage:
   lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres template update [directory] [--scaffold]
+  lightwebpres template show <file>
+  lightwebpres template write <file> [directory] [--force]
   lightwebpres theme list [--polarity light|dark] [--hue name] [--family name]
   lightwebpres theme show <slug> [--format text|json]
   lightwebpres series theme [directory] [--format text|json]
@@ -11756,7 +11758,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
 def cmd_completion(args):
     """completion --shell bash|zsh — prints a shell completion script.
 
-    The script completes subcommands (series, theme, template update),
+    The script completes subcommands (series, theme, template),
     root shortcuts (init, build, verify, ...), and options (--lang,
     --output, --theme, ...). Install with:
 
@@ -11777,6 +11779,7 @@ def cmd_completion(args):
     root_cmds = sorted(set(_SHORTCUTS) | set(_LEGACY_ALIASES))
     series_verbs = sorted(_SERIES_VERBS)
     theme_verbs = sorted(_THEME_VERBS)
+    template_verbs = sorted(_TEMPLATE_VERBS)
     all_opts = sorted(_VALUE_OPTIONS | set().union(*_COMMAND_OPTIONS.values())
                       | _GLOBAL_OPTIONS)
 
@@ -11790,6 +11793,10 @@ def cmd_completion(args):
     root_list = ' '.join(root_cmds + ['series', 'theme', 'template'])
     series_list = ' '.join(series_verbs)
     theme_list = ' '.join(theme_verbs)
+    template_list = ' '.join(template_verbs)
+    # The closed set `template show`/`write` accept, offered where the
+    # shell would otherwise offer every file in the directory.
+    owned_list = ' '.join(sorted(tool_owned_files()))
     opts_list = ' '.join(all_opts)
 
     if shell == 'bash':
@@ -11838,9 +11845,16 @@ _lightwebpres_completion() {{
         return 0
     fi
 
-    # template update (two-word)
+    # template <verb> (two-word)
     if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 2 ]; then
-        COMPREPLY=($(compgen -W "update" -- "$cur"))
+        COMPREPLY=($(compgen -W "{template_list}" -- "$cur"))
+        return 0
+    fi
+
+    # template show|write <file>: a closed set of three, not the filesystem
+    if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 3 ] \
+       && {{ [ "${{COMP_WORDS[2]}}" = "show" ] || [ "${{COMP_WORDS[2]}}" = "write" ]; }}; then
+        COMPREPLY=($(compgen -W "{owned_list}" -- "$cur"))
         return 0
     fi
 
@@ -13416,21 +13430,26 @@ def cmd_install(target_dir, args):
     _mkdir(td / 'language', exist_ok=True)
     _mkdir(td / 'public', exist_ok=True)
 
-    # The author's surface (§9 rewrite): settings.conf, every property
-    # commented at its value under the chosen theme, and an empty
-    # custom.css for rules. No style.css — the stylesheet is composed in
-    # memory at build time and never owned by anyone but the tool. nav.js
-    # stays extracted and overridable as before; an optional
-    # templates/index_extra.html is inserted as-is into the index page if
-    # the author creates one (no default content, nothing to extract).
+    # The author's surface (§9 rewrite), and ONLY the author's surface:
+    # settings.conf, every property commented at its value under the
+    # chosen theme, and an empty custom.css for rules. No style.css — the
+    # stylesheet is composed in memory at build time and never owned by
+    # anyone but the tool. An optional templates/index_extra.html is
+    # inserted as-is into the index page if the author creates one (no
+    # default content, nothing to extract).
+    #
+    # nav.js and the two language packs are NOT written any more, and
+    # this is the repair to the cause of B32. They were copied in byte
+    # for byte identical to what the executable already holds, so the
+    # copy was never a customisation — only a snapshot that the build
+    # then preferred to the executable's own, freezing the series at the
+    # version of the day. Autonomy does not need them either: `init`
+    # copies the executable itself further down, and the executable
+    # contains all three. `template show` and `template write` hand them
+    # over to whoever actually wants one.
     _write_file(td / 'templates' / SETTINGS_FILENAME,
                 build_settings_scaffold(theme_key))
     _write_file(td / 'templates' / CUSTOM_CSS_FILENAME, CUSTOM_CSS_STUB)
-    _write_file(td / 'templates' / 'nav.js', TEMPLATE_NAV_JS)
-
-    # Extract the language packs
-    _write_file(td / 'language' / 'fr.json', LANG_FR)
-    _write_file(td / 'language' / 'en.json', LANG_EN)
 
     # Empty series.json
     series_json = {
@@ -13483,8 +13502,9 @@ def cmd_install(target_dir, args):
         progress(f'  theme: {THEMES[theme_key]["label"]}')
     progress(f'  articles/   — your .md files')
     progress(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
-    progress(f'              {CUSTOM_CSS_FILENAME} (your own rules), nav.js')
-    progress(f'  language/   — typography rules + interface strings (fr, en)')
+    progress(f'              {CUSTOM_CSS_FILENAME} (your own rules)')
+    progress(f'  language/   — empty: the typography rules and interface '
+             f'strings come from the executable')
     progress(f'  public/     — generated HTML (build output)')
     progress(f'  series.json — article list')
     if gitlab_ci:
@@ -13498,6 +13518,112 @@ def cmd_install(target_dir, args):
     progress(f'  1. Create articles in {td}/articles/')
     progress(f'  2. Add entries to {td}/series.json')
     progress(f'  3. Run: lightwebpres build {td}')
+    progress()
+    # Where the guidance goes now that the files themselves are gone: the
+    # navigation script and the language packs live inside the executable
+    # and are used from there. Named here because `init` is where someone
+    # reads what a series is made of, and a file they cannot see is a file
+    # they will not think to ask for.
+    progress('The navigation script and the language packs stay in the '
+             'executable and are used from it.')
+    progress(f'  lightwebpres template show nav.js      — read one')
+    progress(f'  lightwebpres template write nav.js {td} — take a copy '
+             f'(it then stops following the tool)')
+
+
+# ============================================================================
+# TEMPLATE SHOW / WRITE — the files the tool keeps
+# ============================================================================
+
+# The three files the executable owns, and no longer hands out. `init`
+# used to write all three into every series, byte for byte identical to
+# what the executable already contained -- so the copy was never a
+# customisation, only a snapshot, and from then on the build used the
+# snapshot. A behaviour the tool fixed reached nobody who already had a
+# series: three fixes in v0.39.0 landed nowhere, reported three times as
+# "it still does not work" (BACKLOG B32).
+#
+# They stay reachable, because being unable to get at them would be a
+# real loss -- someone who wants to rewrite the keyboard handling has
+# nowhere else to start, and `template update` never created a missing
+# nav.js, only replaced an existing one. So: `show` prints one, `write`
+# installs one where the build will read it.
+#
+# Both exist on purpose, and the reason is not symmetry. Reading is the
+# commoner need -- what does the B key do -- and `show` serves it with no
+# series in play at all. Writing needs the LAYOUT, which is knowledge
+# this program has and its user does not: nav.js goes under templates/,
+# a pack under language/, and LWP_TEMPLATES_DIR / LWP_LANGUAGE_DIR can
+# move either. `show > file` would leave the path to the author, and a
+# path one directory off is a file that sits there doing nothing, with
+# no error -- the silent no-op this codebase spends its time killing.
+# `write` makes the ACT explicit and the PATH the tool's business.
+def tool_owned_files():
+    """{filename: (contents, which directory it belongs in)}.
+
+    A closed set of three. `settings.conf` and `custom.css` are not in it
+    and must not be: they belong to the author, and `template update`
+    already creates them when they are missing."""
+    return {
+        'nav.js': (TEMPLATE_NAV_JS, 'templates'),
+        'fr.json': (LANG_FR, 'language'),
+        'en.json': (LANG_EN, 'language'),
+    }
+
+
+def _tool_owned_or_die(name):
+    """The contents and home of `name`, or a fatal error naming the set."""
+    files = tool_owned_files()
+    if name not in files:
+        log('error', f'{name!r} is not a file this executable owns. '
+            f'It ships {", ".join(sorted(files))} — settings.conf and '
+            f'{CUSTOM_CSS_FILENAME} are yours, and `template update` '
+            f'creates them if they are missing.')
+        sys.exit(1)
+    return files[name]
+
+
+def cmd_template_show(name, args):
+    """`template show <file>` — prints one tool-owned file on stdout.
+
+    Reads nothing and writes nothing: the answer is inside this
+    executable, so the command needs no series and works from anywhere.
+    That is the point of having it alongside `write` — someone who wants
+    to know what a key does should not have to scaffold a series to find
+    out, nor end up owning a frozen copy for having asked."""
+    contents, _home = _tool_owned_or_die(name)
+    sys.stdout.write(contents)
+
+
+def cmd_template_write(name, args, target_dir):
+    """`template write <file> [dir]` — installs one tool-owned file where
+    the build reads it, through the same path resolution the build uses
+    (LWP_TEMPLATES_DIR / LWP_LANGUAGE_DIR included), so what it writes
+    cannot land somewhere the build ignores.
+
+    It refuses to overwrite without --force, because an existing file at
+    that path may be someone's work, and it says what the copy costs at
+    the moment the cost is taken on. That sentence is the whole lesson of
+    B32: the trap was never the copy, it was that nobody knew they had
+    one. Asked for by name and told the price, it is a choice."""
+    contents, home = _tool_owned_or_die(name)
+    sd, _articles, templates_dir, lang_dir, _out, _lang, _lf = resolve_paths(
+        target_dir, args)
+    dest_dir = templates_dir if home == 'templates' else lang_dir
+    dest = dest_dir / name
+    if dest.exists() and not args.get('--force'):
+        log('error', f'{dest} already exists. Pass --force to replace it '
+            f'(there is no backup: use `template show {name}` to compare '
+            f'first if you have changed it).')
+        sys.exit(1)
+    _mkdir(dest_dir, parents=True, exist_ok=True)
+    _write_file(dest, contents)
+    progress(f'Wrote {dest}')
+    progress()
+    progress(f'The build will now use this copy of {name} instead of the '
+             f'one built into the executable.')
+    progress('It will not follow the tool\'s fixes any more, and every '
+             'build will say so until you remove it or take a newer one.')
 
 
 def cmd_refresh_templates(target_dir, args):
@@ -13574,17 +13700,63 @@ def cmd_refresh_templates(target_dir, args):
         _write_file(custom_path, CUSTOM_CSS_STUB)
         refreshed.append(f'templates/{CUSTOM_CSS_FILENAME} (new, empty)')
 
+    # The tool's own files, which `init` no longer hands out (B32). A copy
+    # IDENTICAL to the built-in one is removed rather than left alone, and
+    # that is lossless by construction: identical, it changes nothing about
+    # the build except which side of the comparison the bytes come from,
+    # and its only remaining effect is to freeze the series the day the
+    # executable moves on. Removing it is how a series scaffolded before
+    # this version repairs itself, without anything of the author's being
+    # touched -- which is §9.4.3's principle, not an exception to it.
+    #
+    # A copy that DIFFERS is kept. The build cannot tell "customised" from
+    # "stale", so neither can this command, and the one that guesses wrong
+    # destroys work. nav.js keeps its replace-with-a-.bak path because
+    # `template update` is the command that means "give me the tool's
+    # version"; the language packs are only reported, because their `rules`
+    # replace the base set wholesale and overwriting one erases whatever
+    # the author added.
+    removed, kept = [], []
     nav_path = templates_dir / 'nav.js'
     if nav_path.exists():
         old_nav = read_text_file(nav_path)
         if old_nav == TEMPLATE_NAV_JS:
-            up_to_date.append('templates/nav.js')
+            _remove(nav_path)
+            removed.append('templates/nav.js (was identical to the '
+                           'built-in one)')
         else:
-            backup_path = templates_dir / 'nav.js.bak'
-            _write_file(backup_path, old_nav)
-            _write_file(nav_path, TEMPLATE_NAV_JS)
-            refreshed.append('templates/nav.js (previous version saved as templates/nav.js.bak)')
+            # Saved, then removed. The outcome is what this command has
+            # always produced -- the build runs the tool's navigation and
+            # the author's version is preserved beside it -- reached by
+            # having no file rather than by holding a copy, which is the
+            # only difference and the whole point: a copy would go stale
+            # again at the next release.
+            _write_file(templates_dir / 'nav.js.bak', old_nav)
+            removed.append('templates/nav.js (yours saved as '
+                           'templates/nav.js.bak)')
+            _remove(nav_path)
 
+    lang_dir = Path(os.environ.get('LWP_LANGUAGE_DIR', td / 'language'))
+    for pack_name, builtin in sorted({'fr.json': LANG_FR,
+                                      'en.json': LANG_EN}.items()):
+        pack_path = lang_dir / pack_name
+        if not pack_path.exists():
+            continue
+        if read_text_file(pack_path) == builtin:
+            _remove(pack_path)
+            removed.append(f'language/{pack_name} (was identical to the '
+                           f'built-in pack)')
+        else:
+            kept.append(f'language/{pack_name} — differs from the built-in '
+                        f'pack, so it may be yours. Compare with '
+                        f'`lightwebpres template show {pack_name}`, then '
+                        f'delete it to follow the tool again.')
+
+    if removed:
+        progress('Removed — the executable carries these, and the build '
+                 'now uses them from there:')
+        for item in removed:
+            progress(f'  {item}')
     if refreshed:
         progress('Refreshed:')
         for item in refreshed:
@@ -13593,6 +13765,18 @@ def cmd_refresh_templates(target_dir, args):
         progress('Already up to date:')
         for item in up_to_date:
             progress(f'  {item}')
+    if kept:
+        progress('Kept:')
+        for item in kept:
+            progress(f'  {item}')
+    if not (removed or refreshed or up_to_date or kept):
+        # Since v0.40.0 this is the NORMAL state of a healthy series, not
+        # an unusual one, so it has to be said: a command that printed
+        # only "run build again" would read as one that failed quietly.
+        progress('Nothing to update — this series holds none of the '
+                 'tool\'s files, which is where they belong. Your '
+                 f'{SETTINGS_FILENAME} and {CUSTOM_CSS_FILENAME} are '
+                 'untouched, as always.')
     progress()
     progress('Run build again to apply the refreshed templates.')
 
@@ -15229,8 +15413,16 @@ COMMANDS
     Renders the series in memory and reports everything worth a second
     look (never blocking unless --strict)
   lightwebpres template update [directory] [--scaffold]
-    Refreshes tool-owned templates/ files (nav.js); creates a missing
-    settings.conf or custom.css (see §9.4.3)
+    Removes the tool's own files from the series — nav.js and the language
+    packs live in this executable and are used from it — and creates a
+    missing settings.conf or custom.css (see §9.4.3)
+  lightwebpres template show <nav.js|fr.json|en.json>
+    Prints one of the files this executable owns, on stdout. Needs no
+    series: the answer is inside the program (see §9.4.5)
+  lightwebpres template write <nav.js|fr.json|en.json> [directory] [--force]
+    Installs one of them where the build reads it, to be modified. The
+    build then uses your copy and stops following the tool's fixes, and
+    says so on every run (see §9.4.5)
   lightwebpres theme list [--polarity ...] [--hue ...] [--family ...]
     Lists the built-in color themes, narrowed by facet (see THEMES below, §11.9)
   lightwebpres theme show [<slug>...] [--all] [--format text|json]
@@ -15585,6 +15777,8 @@ _COMMAND_OPTIONS = {
               '--include-drafts', '--no-nav'},
     'audit': {'--lang', '--strict', '--templates'},
     'refresh-templates': {'--scaffold'},
+    'template-show': set(),
+    'template-write': {'--force'},
     'themes': {'--polarity', '--hue', '--family'},
     'theme-info': {'--format', '--all'},
     'series-info': {'--format'},
@@ -15686,6 +15880,15 @@ _SERIES_VERBS = {
 _THEME_VERBS = {
     'list': 'themes', 'show': 'theme-info', 'gallery': 'themes-gallery',
 }
+# `template` is the node for the files the EXECUTABLE owns, which is why
+# `show` and `write` live here rather than under `series`: neither needs a
+# series to answer (show needs none at all), and what they hand over comes
+# out of this file, not off a disk.
+_TEMPLATE_VERBS = {
+    'update': 'refresh-templates',
+    'show': 'template-show',
+    'write': 'template-write',
+}
 
 
 # Dispatch key -> the name a user should type. The keys are the LEGACY
@@ -15705,6 +15908,8 @@ for _verb, _key in _THEME_VERBS.items():
 _CANONICAL_NAME.update({
     'set-theme': 'series theme set',
     'refresh-templates': 'template update',
+    'template-show': 'template show',
+    'template-write': 'template write',
     'series-theme': 'series theme',
     'completion': 'completion',
 })
@@ -15734,9 +15939,23 @@ _MAX_POSITIONAL = {
     'install': 1, 'demo': 1, 'build': 1, 'check': 1, 'audit': 1,
     'clean': 1, 'watch': 1, 'series-info': 1, 'series-theme': 1,
     'set-theme': 1, 'refresh-templates': 1,
+    # `template show <file>` takes the file and nothing else -- it
+    # reads the executable, so there is no series to name. `write`
+    # takes the file first, then the series it goes into.
+    'template-show': 1, 'template-write': 2,
     'resolve': 2,
     'themes': 0, 'completion': 0,
     'theme-info': None, 'themes-gallery': None,
+}
+
+# Where the count above cannot say the shape. `template show` takes a file
+# name and no directory at all; `template write` takes the file FIRST and
+# the series after it. The derived form would print `[directory] <name>`,
+# which the parser refuses -- a synopsis promising a rejected form is the
+# one failure the help generator exists to prevent.
+_POSITIONAL_SHAPE = {
+    'template-show': ' <nav.js|fr.json|en.json>',
+    'template-write': ' <nav.js|fr.json|en.json> [directory]',
 }
 
 
@@ -15757,10 +15976,17 @@ def print_command_help(command):
     # The argument shape comes from the same table that enforces it, so
     # the synopsis cannot promise a form the parser refuses.
     limit = _MAX_POSITIONAL.get(command, 1)
-    shape = ('' if limit == 0 else
-             ' [directory]' if limit == 1 else
-             ' [directory] <name>' if limit == 2 else
-             ' <slug>...')
+    # Two commands take their positionals the other way round -- the FILE
+    # first, the optional directory second -- so the derived shape would
+    # promise a form the parser refuses, which is the one thing this
+    # function exists not to do. Named rather than inferred: a count
+    # cannot say which order a command wants.
+    shape = _POSITIONAL_SHAPE.get(
+        command,
+        '' if limit == 0 else
+        ' [directory]' if limit == 1 else
+        ' [directory] <name>' if limit == 2 else
+        ' <slug>...')
     print(f'lightwebpres {name}{shape} [options]')
     print()
     own = sorted(_COMMAND_OPTIONS.get(command, set()) - _GLOBAL_OPTIONS)
@@ -15854,14 +16080,14 @@ def _resolve_command(args):
               f"Run `lightwebpres --help` for the command list.")
         sys.exit(1)
 
-    # Two-word shortcut: `template update`.
-    if head == 'template' and len(args) >= 2 and args[1] == 'update':
-        return 'refresh-templates', args[2:], False
+    # `template <verb>`: update, show, write.
+    if head == 'template' and len(args) >= 2 and args[1] in _TEMPLATE_VERBS:
+        return _TEMPLATE_VERBS[args[1]], args[2:], False
     # Lone `template` is NOT a shortcut (series template reading is abandoned).
     if head == 'template':
         log('error', "`template` alone is not a command. Use "
-              "`lightwebpres template update [dir]` (the reading command "
-              "was replaced by `audit --templates`).")
+              f"{', '.join('`lightwebpres template ' + v + '`' for v in sorted(_TEMPLATE_VERBS))}"
+              " (the reading command was replaced by `audit --templates`).")
         sys.exit(1)
 
     if head in _SHORTCUTS:
@@ -16076,6 +16302,25 @@ def main():
         cmd_audit(target, opts)
     elif command == 'refresh-templates':
         cmd_refresh_templates(target, opts)
+    elif command == 'template-show':
+        # The file name is the only positional here, so the generic
+        # `target` above -- which defaults to a directory -- is not what
+        # this command wants. Naming nothing is fatal and lists the set,
+        # rather than printing a menu: §2.4, no silent no-op.
+        if not positional:
+            log('error', 'template show: name a file — '
+                f'{", ".join(sorted(tool_owned_files()))}.')
+            sys.exit(1)
+        cmd_template_show(positional[0], opts)
+    elif command == 'template-write':
+        if not positional:
+            log('error', 'template write: name a file — '
+                f'{", ".join(sorted(tool_owned_files()))}.')
+            sys.exit(1)
+        cmd_template_write(
+            positional[0], opts,
+            positional[1] if len(positional) > 1
+            else os.environ.get('LWP_SERIES_DIR', '.'))
     elif command == 'themes':
         # Not a series-directory command: it reads the built-in table
         # only, so a stray positional would mean nothing.

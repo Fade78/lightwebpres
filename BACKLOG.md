@@ -1644,7 +1644,7 @@ where its type is named. Deciding which of the existing length properties
 legitimately accept `auto` is the work, and it is a sweep of the
 registry, not a patch.
 
-## B32 — A fix to `nav.js` or a language pack never reaches a series that already exists — FIXED
+## B32 — A fix to `nav.js` or a language pack never reaches a series that already exists — FIXED, cause and symptom both
 
 Two files the tool owns live inside the series and are read from disk at
 every build: `templates/nav.js` and `language/*.json`. `init` copies them
@@ -1672,6 +1672,33 @@ the message says which: `template update` for `nav.js`, the author's
 judgement for a pack, since `rules` replaces the base set wholesale and
 overwriting the file would erase what they added.
 
-What stays open is the transition: whether `init` should keep writing
-these copies at all. Warning about a copy is a repair to the symptom; not
-handing out the copy is a repair to the cause.
+**And then the cause**, in the same release. Warning about a copy repairs
+the symptom; not handing out the copy repairs the cause, and the measured
+fact settles which was needed: on a fresh `init`, all three files were
+byte for byte identical to what the executable already held. Not one was
+a customisation. What they were was a snapshot, and the snapshot is the
+freezing mechanism.
+
+Autonomy did not depend on them either — `init` copies the executable
+into the series (§11.1) and the executable contains all three, so the
+archive was always the executable and the copies added nothing to it.
+Measured on a demo series: four pages built from a series holding the
+copies are byte-identical to four built from one without them.
+
+So `init` writes none of them, and two commands hand them over to whoever
+wants one. `template show <file>` prints one on stdout — no series
+needed, which serves the commoner need (what does the B key do) without
+leaving anyone owning a frozen copy for having asked. `template write
+<file> [dir]` installs one where the build reads it, through the build's
+own path resolution, because the LAYOUT is the tool's knowledge and not
+the author's: a redirect to the wrong directory leaves a file that does
+nothing, with no error. It refuses to overwrite without `--force`, and it
+says what the copy costs at the moment the cost is taken on — which is
+the whole lesson above, that the trap was never the copy but the not
+knowing.
+
+`template update` became the repair path for a series scaffolded before
+this: a copy identical to the built-in one is removed (lossless by
+construction), a differing `nav.js` is saved as `.bak` and removed, a
+differing language pack is reported and kept, since its `rules` replace
+the base set wholesale and overwriting it would erase the author's own.

@@ -292,12 +292,14 @@ the series or within one article.
 
 | Command | What it does |
 |---|---|
-| `init [dir]` | Scaffolds a series directory (`articles/`, `templates/`, `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed) |
+| `init [dir]` | Scaffolds a series directory (`articles/`, `templates/` with your `settings.conf` and `custom.css`, an empty `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script, the language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — variant tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
-| `template update [dir]` | Replaces the tool-owned `templates/nav.js` after an executable upgrade (previous version saved as `.bak`) and creates a missing `settings.conf`/`custom.css`; never touches a file you own. A build warns — at warning level, so `--quiet` keeps it — when your `nav.js` or a `language/*.json` pack differs from the one built into the executable, since the build reads those from disk and a fix in a new version cannot reach a series that still holds the old copy |
+| `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, a differing language pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
+| `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json` — on stdout. No series needed: the answer is inside the program |
+| `template write <file> [dir]` | Installs one of them where the build reads it, to be modified. The build then prefers your copy to the built-in one and warns on every run that it no longer follows the tool's fixes — at warning level, so `--quiet` keeps it. `--force` to replace an existing file |
 | `theme list` | Lists the built-in color themes with their facets; `--family`/`--polarity`/`--hue` narrow the list |
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
 | `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` |
@@ -429,9 +431,11 @@ long argument the reader takes in as a whole.
 
 Built-in French and English packs (typography rules — non-breaking
 spaces, etc. — plus every UI string: nav button tooltips, "copy link",
-series navigation labels). `--lang fr|en` picks the build-wide fallback; a
-`language/{lang}.json` file lets you override just the keys you care
-about, falling back to the built-in pack for the rest. `series_meta.lang_tags`
+series navigation labels). Both live in the executable and
+are read from there. `--lang fr|en` picks the build-wide fallback; a
+`language/{lang}.json` file in your series overrides just the keys you
+care about, falling back to the built-in pack for the rest —
+`template write fr.json` gives you the built-in one to start from. `series_meta.lang_tags`
 maps slide tags to packs so typography can change per slide, for example
 `{"fr": "fr", "en": "en"}`. The first mapped language tag on a slide wins;
 slides with no mapped language tag use `--lang`. English is the ultimate

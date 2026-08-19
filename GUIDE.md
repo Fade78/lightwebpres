@@ -72,12 +72,18 @@ Section 8 has the shape of a pipeline that uses all of it.
 xdg-open my-series/public/index.html         # `open` on macOS
 ```
 
-`init` scaffolds a working project — `articles/` (empty, for your
-`.md` files), `templates/` (your customization surface: `settings.conf`,
-`custom.css`, `nav.js` — see section 5), `language/` (both the French and
-English packs — typography rules + interface strings), a starter
+`init` scaffolds a working project — `articles/` (empty, for your `.md`
+files), `templates/` (your customization surface: `settings.conf` and
+`custom.css`, see section 5), an empty `language/`, a starter
 `series.json`, and a copy of the `lightwebpres` executable itself, so the
 project directory is self-sufficient.
+
+What it does *not* scaffold is the tool's own files — the navigation
+script and the typography/interface language packs. Those live inside the
+executable and are read from there, so a fix in a new version reaches
+your series the moment you upgrade. You can still have them: `template
+show nav.js` prints one, `template write nav.js` installs one to modify
+(section 7).
 
 **Language is chosen per build, not stored in the project** — both packs
 are always installed. Pass `--lang fr|en` to `build`/`demo`, or set
@@ -226,9 +232,9 @@ For language-specific typography, map tags to packs in `series_meta`:
 ```
 
 The first mapped language tag on a slide selects its pack. A slide without a
-mapped language tag uses the build's `--lang`/`LWP_LANG` fallback. Built-in
-`fr` and `en` packs are available; another pack name refers to
-`language/<name>.json`. `audit` reports invalid tags and missing packs without
+mapped language tag uses the build's `--lang`/`LWP_LANG` fallback. The built-in
+`fr` and `en` packs come from the executable; another pack name refers to
+`language/<name>.json` in your series. `audit` reports invalid tags and missing packs without
 blocking, while `build` rejects malformed declarations.
 
 ## 4. Organizing a series
@@ -400,8 +406,13 @@ file is not. New selectors, media queries, `@font-face` (name the family at
 the head of a stack in `settings.conf`, declare the face here). The
 composed sheet's `--component-axis` variables are usable in it
 (`border-color: var(--color-mark)`), and that is the recommended way to
-follow the theme. `templates/nav.js` overrides the navigation behaviour
-wholesale; the page and index HTML structure is fixed, not a template.
+follow the theme.
+
+Behaviour is the third surface, and it isn't in your series by default:
+the navigation script lives in the executable. `template write nav.js`
+puts a copy under `templates/` if you want to change it, and it then
+overrides the navigation wholesale — there is no partial override. The
+page and index HTML structure is fixed, not a template.
 
 ## 6. Verifying before you ship
 
@@ -492,33 +503,36 @@ into the chain.
 
 ## 7. Keeping templates current
 
-`lightwebpres` is a single file you copy into each project (`init`
-does this). When you drop in a newer copy, the built-in JS baked into
-`templates/` doesn't update on its own:
+`lightwebpres` is a single file you copy into each project (`init` does
+this). Dropping in a newer copy is the whole upgrade: the stylesheet is
+composed in memory at every build, the navigation script and the language
+packs are read out of the executable, and your `settings.conf` and
+`custom.css` are yours — never touched. Your theme choice needs no
+reapplying either: it's the `theme:` line of `settings.conf`, which an
+upgrade cannot revert.
+
+That leaves one thing an upgrade cannot reach: a copy of a tool-owned
+file sitting in your series. `template write` puts one there, and a
+series scaffolded before v0.40.0 was given three without being asked.
+Such a copy is used in preference to the executable's own, so it keeps
+whatever behaviour it was frozen with — and a build warns when it differs
+from the built-in version, at warning level, so `--quiet` doesn't silence
+it in a pipeline. The build can't tell *stale* from *customised*, so it
+says `differs` and uses your file either way.
 
 ```bash
 ./lightwebpres template update my-series
 ```
 
-The stylesheet is composed in memory from the current executable at every
-build, so it is fresh by construction, and your `settings.conf` and
-`custom.css` are yours — never touched. The one tool-owned file
-`template update` replaces is `nav.js`: it swaps in the built-in version
-if yours differs (saving the old one as `nav.js.bak`) and reports
-`already up to date` otherwise. Your theme choice needs no reapplying:
-it's the `theme:` line of `settings.conf`, which an upgrade cannot
-revert.
-
-Two files in your series come from the tool and are read from disk at
-every build: `nav.js` and the `language/*.json` packs. A build warns when
-either differs from the version built into the executable you're running
-— at warning level, so `--quiet` doesn't silence it in a pipeline. The
-build can't tell *stale* from *customised*, so it says `differs` and uses
-your file either way. For `nav.js` the remedy is the command above; for a
-language pack it's your call, since `rules` replaces the base set
-wholesale and overwriting the file would erase whatever you added. A pack
-for a language the tool doesn't ship — `de.json`, say — is your work, and
-nothing is said about it.
+That is the command that clears them. A copy identical to the built-in
+one is removed — it was doing nothing but freezing you. A `nav.js` that
+differs is saved as `nav.js.bak` and removed, so you keep your version
+and the build follows the tool again. A language pack that differs is
+left alone and reported: its `rules` replace the base set wholesale, so
+overwriting it would erase whatever you added — compare with `template
+show fr.json` and delete it when you're ready. A pack for a language the
+tool doesn't ship — `de.json`, say — is your work, and nothing is said
+about it.
 
 `--scaffold` additionally regenerates `settings.conf`'s commented block
 against the current theme and the current property registry, keeping

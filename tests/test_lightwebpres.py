@@ -4650,20 +4650,19 @@ class InstallContent(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'series.json').exists())
             self.assertTrue((root / 'articles').is_dir())
-            # The author surface: values, rules, behaviour. No style.css —
-            # the stylesheet is composed at build time and owns no file.
+            # The author surface, and ONLY the author surface: values and
+            # rules. No style.css — the stylesheet is composed at build
+            # time and owns no file. No nav.js and no language pack
+            # either, since v0.40.0: those are the tool's, they live in
+            # the executable, and a copy of them in the series was never
+            # a customisation — only a snapshot that froze the series at
+            # the version of the day (BACKLOG B32).
             self.assertTrue((root / 'templates' / 'settings.conf').exists())
             self.assertTrue((root / 'templates' / 'custom.css').exists())
-            self.assertTrue((root / 'templates' / 'nav.js').exists())
             self.assertFalse((root / 'templates' / 'style.css').exists())
-            self.assertTrue((root / 'language' / 'fr.json').exists())
-            self.assertTrue((root / 'language' / 'en.json').exists())
-            fr_pack = json.loads((root / 'language' / 'fr.json').read_text(encoding='utf-8'))
-            self.assertIn('rules', fr_pack)
-            self.assertIn('strings', fr_pack)
-            en_pack = json.loads((root / 'language' / 'en.json').read_text(encoding='utf-8'))
-            self.assertIn('rules', en_pack)
-            self.assertIn('strings', en_pack)
+            self.assertFalse((root / 'templates' / 'nav.js').exists())
+            self.assertFalse((root / 'language' / 'fr.json').exists())
+            self.assertFalse((root / 'language' / 'en.json').exists())
 
 
 class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
@@ -4705,6 +4704,10 @@ class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
     def test_a_stale_nav_js_warns_even_under_quiet(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
+            # Taken deliberately, which is the only way to have one now
+            # (`init` stopped handing it out), then aged by a line.
+            self.assertEqual(
+                run('template', 'write', 'nav.js', str(root)).returncode, 0)
             nav = root / 'templates' / 'nav.js'
             nav.write_text('// from an older version\n' + nav.read_text(),
                            encoding='utf-8')
@@ -4720,6 +4723,8 @@ class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
         stale one keeps an old vocabulary as well as an old spacing."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
+            self.assertEqual(
+                run('template', 'write', 'fr.json', str(root)).returncode, 0)
             pack = root / 'language' / 'fr.json'
             data = json.loads(pack.read_text(encoding='utf-8'))
             for rule in data['rules']:
@@ -4736,6 +4741,7 @@ class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
         that a file it did not write is not the file it did not write."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
+            (root / 'language').mkdir(exist_ok=True)
             (root / 'language' / 'de.json').write_text(
                 json.dumps({'lang': 'de', 'rules': []}), encoding='utf-8')
             r = run('build', str(root), '--output', str(root / 'public'))
@@ -4781,6 +4787,203 @@ class LogRefusesALevelItDoesNotKnow(unittest.TestCase):
                 used.add(node.args[0].value)
         self.assertTrue(used, 'no log() call found — the scan is broken')
         self.assertEqual(used - {'error', 'warn', 'info', 'verbose'}, set())
+
+
+class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
+    """The repair to the CAUSE of B32, the warning having only treated the
+    symptom. `init` wrote nav.js and both language packs into every
+    series, byte for byte identical to what the executable already held —
+    so the copy was never a customisation, only a snapshot the build then
+    preferred to the executable's own. Three fixes shipped in v0.39.0
+    reached nobody who already had a series.
+
+    They stay reachable, because not being able to get at them would be a
+    real loss and `template update` never created a missing nav.js — it
+    only replaced an existing one, so removing the scaffold with nothing
+    else would have left no way to obtain the file at all. `show` prints
+    one, `write` installs one where the build reads it.
+
+    Both exist, and not for symmetry: `show >` would leave the PATH to
+    the author, and a path one directory off is a file that sits there
+    doing nothing, silently. `write` makes the act explicit and the path
+    the tool's business."""
+
+    OWNED = ('nav.js', 'fr.json', 'en.json')
+
+    def _series(self, tmp, *extra):
+        root = Path(tmp) / 'series'
+        self.assertEqual(run('init', str(root), *extra).returncode, 0)
+        return root
+
+    def test_a_new_series_holds_none_of_the_tools_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            self.assertFalse((root / 'templates' / 'nav.js').exists())
+            self.assertFalse((root / 'language' / 'fr.json').exists())
+            self.assertFalse((root / 'language' / 'en.json').exists())
+
+    def test_a_page_is_the_same_with_the_copies_and_without(self):
+        """The measurement the whole change rests on. If a page built
+        from a series holding the copies differed from one built without
+        them, removing them would be a behaviour change rather than the
+        removal of a redundancy — and this would be the wrong lot."""
+        md = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+              'nav_title: A\nnav_desc: A\n---\n\n'
+              '<!-- lwp:slide:cover -->\nkicker: K\n# T\nsummary: S.\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            pages = []
+            for name, take_copies in (('bare', False), ('copied', True)):
+                root = Path(tmp) / name
+                self.assertEqual(run('init', str(root)).returncode, 0)
+                (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+                (root / 'series.json').write_text(json.dumps({'articles': [
+                    {'page_dest': 'a.html', 'page_source': 'a.md',
+                     'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+                if take_copies:
+                    for f in self.OWNED:
+                        self.assertEqual(
+                            run('template', 'write', f, str(root)).returncode,
+                            0)
+                r = run('build', str(root), '--output', str(root / 'public'))
+                self.assertEqual(r.returncode, 0, r.stderr)
+                pages.append((root / 'public' / 'a.html').read_bytes())
+            self.assertEqual(pages[0], pages[1])
+
+    def test_show_prints_the_file_and_touches_nothing(self):
+        """It needs no series at all — the answer is inside the program —
+        which is the case `write` cannot serve: someone wanting to know
+        what a key does should not have to scaffold a series to find out,
+        nor end up owning a frozen copy for having asked."""
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in self.OWNED:
+                r = run('template', 'show', name, cwd=tmp)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertGreater(len(r.stdout), 1000, name)
+            self.assertEqual(sorted(Path(tmp).iterdir()), [])
+            self.assertIn('"rules"', run('template', 'show', 'fr.json').stdout)
+
+    def test_show_refuses_a_file_that_is_not_the_tools(self):
+        """settings.conf and custom.css are the AUTHOR's. Handing them
+        out here would blur the one line this whole lot draws."""
+        for name in ('settings.conf', 'custom.css', 'style.css', 'nothing'):
+            r = run('template', 'show', name)
+            self.assertEqual(r.returncode, 1, name)
+            self.assertIn('nav.js', r.stderr)
+
+    def test_write_puts_each_file_where_the_build_reads_it(self):
+        """The reason `write` exists next to `show`: the LAYOUT is the
+        tool's knowledge, not the author's. nav.js goes under templates/,
+        a pack under language/, and a redirect to the wrong one of those
+        would leave a file that does nothing, with no error."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            for name in self.OWNED:
+                self.assertEqual(
+                    run('template', 'write', name, str(root)).returncode, 0)
+            self.assertTrue((root / 'templates' / 'nav.js').exists())
+            self.assertTrue((root / 'language' / 'fr.json').exists())
+            self.assertTrue((root / 'language' / 'en.json').exists())
+            # And what it wrote is what the executable holds, so a fresh
+            # copy raises no staleness warning.
+            r = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotIn('differs', r.stderr)
+
+    def test_write_says_what_the_copy_costs(self):
+        """The whole lesson of B32 in one line. The trap was never the
+        copy — it was that nobody knew they had one. Asked for by name
+        and told the price at the moment it is taken on, it is a choice."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            r = run('template', 'write', 'nav.js', str(root))
+            said = r.stdout + r.stderr
+            self.assertIn('not follow', said)
+            self.assertIn('every build will say so', said)
+
+    def test_write_refuses_to_replace_a_file_without_force(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            nav = root / 'templates' / 'nav.js'
+            self.assertEqual(
+                run('template', 'write', 'nav.js', str(root)).returncode, 0)
+            nav.write_text('// mine\n', encoding='utf-8')
+            r = run('template', 'write', 'nav.js', str(root))
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(nav.read_text(encoding='utf-8'), '// mine\n')
+            r = run('template', 'write', 'nav.js', str(root), '--force')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertNotEqual(nav.read_text(encoding='utf-8'), '// mine\n')
+
+    def test_write_follows_the_environment_the_build_follows(self):
+        """Through the build's own path resolution, so what it writes
+        cannot land where the build does not look. LWP_LANGUAGE_DIR moves
+        the packs, and a `write` that ignored it would produce exactly
+        the silent no-op this command exists to prevent."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            elsewhere = Path(tmp) / 'packs'
+            r = run('template', 'write', 'fr.json', str(root),
+                    env={'LWP_LANGUAGE_DIR': str(elsewhere)})
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertTrue((elsewhere / 'fr.json').exists())
+            self.assertFalse((root / 'language' / 'fr.json').exists())
+
+    def test_update_removes_a_copy_identical_to_the_built_in_one(self):
+        """Lossless by construction: identical, the copy changes nothing
+        about the build except which side of the comparison the bytes
+        come from, and its only remaining effect is to freeze the series
+        the day the executable moves on. This is how a series scaffolded
+        before this version repairs itself."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            for name in self.OWNED:
+                self.assertEqual(
+                    run('template', 'write', name, str(root)).returncode, 0)
+            r = run('template', 'update', str(root))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertFalse((root / 'templates' / 'nav.js').exists())
+            self.assertFalse((root / 'language' / 'fr.json').exists())
+            self.assertFalse((root / 'language' / 'en.json').exists())
+            self.assertNotIn('nav.js.bak',
+                             [p.name for p in (root / 'templates').iterdir()])
+
+    def test_update_keeps_a_language_pack_that_differs(self):
+        """The build cannot tell "customised" from "stale", so neither
+        can this command, and the one that guesses wrong destroys work.
+        A pack's `rules` replace the base set wholesale, so overwriting
+        one erases whatever the author added — it is reported instead."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            self.assertEqual(
+                run('template', 'write', 'fr.json', str(root)).returncode, 0)
+            pack = root / 'language' / 'fr.json'
+            data = json.loads(pack.read_text(encoding='utf-8'))
+            data['rules'] = data['rules'][:1]
+            pack.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            r = run('template', 'update', str(root))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertTrue(pack.exists())
+            self.assertEqual(len(json.loads(
+                pack.read_text(encoding='utf-8'))['rules']), 1)
+            self.assertIn('may be yours', r.stdout + r.stderr)
+
+    def test_update_saves_a_customised_nav_js_before_removing_it(self):
+        """The outcome `template update` has always produced — the build
+        runs the tool's navigation, the author's version preserved beside
+        it — reached by having no file rather than by holding a copy. The
+        difference is the whole point: a copy goes stale again."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            self.assertEqual(
+                run('template', 'write', 'nav.js', str(root)).returncode, 0)
+            nav = root / 'templates' / 'nav.js'
+            nav.write_text(nav.read_text(encoding='utf-8') + '\n// mine\n',
+                           encoding='utf-8')
+            r = run('template', 'update', str(root))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertFalse(nav.exists())
+            bak = root / 'templates' / 'nav.js.bak'
+            self.assertTrue(bak.exists())
+            self.assertIn('// mine', bak.read_text(encoding='utf-8'))
 
 
 class CheckDrift(unittest.TestCase):
@@ -5976,15 +6179,20 @@ class RefreshTemplates(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('init', result.stderr.lower())
 
-    def test_reports_up_to_date_when_untouched(self):
+    def test_it_says_so_when_there_is_nothing_to_do(self):
+        """A freshly scaffolded series holds nothing this command owns —
+        since v0.40.0 that is the normal state, not an unusual one — and
+        saying nothing at all would read as a command that failed
+        quietly. The author's two files are named as untouched, because
+        "nothing to do" has to mean nothing was done."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
             before = {name: (root / 'templates' / name).read_text(encoding='utf-8')
-                      for name in ('settings.conf', 'custom.css', 'nav.js')}
+                      for name in ('settings.conf', 'custom.css')}
             result = run('template', 'update', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('Already up to date', result.stdout)
+            self.assertIn('Nothing to update', result.stdout)
             for name, text in before.items():
                 self.assertEqual((root / 'templates' / name).read_text(encoding='utf-8'),
                                  text, name)
@@ -6044,23 +6252,6 @@ class RefreshTemplates(unittest.TestCase):
             self.assertNotIn('[ERROR]', result.stderr, result.stderr)
             self.assertIn('style.css is no longer read', result.stderr)
             self.assertEqual(style_path.read_text(encoding='utf-8'), legacy)
-
-    def test_nav_js_is_replaced_and_previous_version_backed_up(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.assertEqual(run('init', str(root)).returncode, 0)
-            nav_path = root / 'templates' / 'nav.js'
-            old_nav = nav_path.read_text(encoding='utf-8') + '\n// OLD-CUSTOM-NAV\n'
-            nav_path.write_text(old_nav, encoding='utf-8')
-
-            result = run('template', 'update', str(root))
-            self.assertEqual(result.returncode, 0, result.stderr)
-
-            refreshed = nav_path.read_text(encoding='utf-8')
-            self.assertNotIn('OLD-CUSTOM-NAV', refreshed)
-            backup = root / 'templates' / 'nav.js.bak'
-            self.assertTrue(backup.exists())
-            self.assertIn('OLD-CUSTOM-NAV', backup.read_text(encoding='utf-8'))
 
 
 class ScaffoldRegeneration(unittest.TestCase):
@@ -7150,18 +7341,38 @@ class TheMitNoticeTravelsWithEveryCopyItIsRequiredTo(unittest.TestCase):
 
     def test_the_notice_reaches_a_scaffolded_series_and_a_built_page(self):
         """Through the real `init` and the real `demo`, not the test
-        fixture: the fixture writes a bare series and never produces
-        `templates/nav.js`, which is precisely the file the notice has to
-        reach. Checking it against a fixture would pass without ever
-        exercising the copy the licence is about."""
+        fixture: what MIT asks is that the notice travel with the CODE,
+        and a fixture writes neither of the two places it travels to.
+
+        Those two places changed shape when `init` stopped writing
+        `templates/nav.js` (BACKLOG B32), and the obligation did not: the
+        series still receives the encoder, inside the copy of the
+        executable that `init` puts there, and every built page that
+        inlines the encoder still carries it. A file fewer, the same two
+        conveyances, checked here where they actually land — and
+        `template write nav.js` is a third, covered by the first
+        assertion since it writes TEMPLATE_NAV_JS verbatim."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             done = run('init', str(root))
             self.assertEqual(done.returncode, 0, done.stderr)
-            nav = root / 'templates' / 'nav.js'
-            self.assertTrue(nav.exists(), 'init wrote no templates/nav.js')
-            self.assertIn(self.ATTRIBUTION, nav.read_text(encoding='utf-8'),
-                          'the notice does not travel into a scaffolded series')
+            self.assertFalse((root / 'templates' / 'nav.js').exists(),
+                             'init is writing nav.js again — if that is '
+                             'deliberate, this test wants the notice '
+                             'checked in it too')
+            bundled = root / 'lightwebpres'
+            self.assertTrue(bundled.exists(), 'init bundled no executable')
+            self.assertIn(self.ATTRIBUTION,
+                          bundled.read_text(encoding='utf-8'),
+                          'the notice does not travel into a scaffolded '
+                          'series')
+            taken = run('template', 'write', 'nav.js', str(root))
+            self.assertEqual(taken.returncode, 0, taken.stderr)
+            self.assertIn(self.ATTRIBUTION,
+                          (root / 'templates' / 'nav.js')
+                          .read_text(encoding='utf-8'),
+                          'the notice does not travel with a copy handed '
+                          'out by `template write`')
             done = run('demo', str(root))
             self.assertEqual(done.returncode, 0, done.stderr)
             pages = sorted((root / 'public').glob('*.html'))
