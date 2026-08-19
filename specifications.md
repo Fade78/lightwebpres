@@ -5134,9 +5134,39 @@ eval "$(lightwebpres completion --shell bash)"   # ou zsh
 
 Le script complète les raccourcis racine (`init`, `build`, `verify`, …),
 les sous-commandes (`series <Tab>` → `build`, `theme`, `status`,
-`resolve`), et les options (`--lang`, `--output`, …). Il est généré
-depuis les tables de commandes de l'exécutable, donc reste synchrone
-avec la version en cours.
+`resolve`), et les options. Il est généré depuis les tables de commandes
+de l'exécutable, donc reste synchrone avec la version en cours.
+
+**Les options proposées sont celles de la commande tapée**, lues dans
+`_COMMAND_OPTIONS` — la table même contre laquelle l'analyseur refuse.
+Le script émettait auparavant l'union de toutes les options pour toutes
+les commandes, ce qui revenait à ce que le programme dicte ce qu'il va
+lui-même rejeter : rapporté depuis un vrai shell, `build --<Tab>`
+proposait `--polarity`, `--hue`, `--family`, `--shell` et `--format`, et
+`build --polarity dark` répondait alors « Unknown option: --polarity (not
+an option of `build`) ».
+
+La table est indexée par ce que l'utilisateur **tape**, pas par le nom
+interne de dispatch : `build` et `series build` sont une commande et deux
+chemins. `series theme` (lire le thème d'une série) et `series theme set`
+(l'écrire) sont deux commandes distinctes et ont chacune leur entrée,
+sans quoi la seconde se voyait proposer `--format`, qu'elle refuse, et
+jamais `--theme`, qui est la raison même de la taper.
+
+**Avant toute commande, seules les globales.** `lightwebpres --polarity
+dark theme list` n'atteint jamais l'analyseur d'options : le premier mot
+EST la commande, et la réponse est « Unknown command: --polarity ». Un
+nœud sans verbe est le même cas un mot plus loin — `series --quiet build`
+lit `--quiet` comme verbe et le refuse par son nom — donc `series
+--<Tab>` ne propose que `--help`.
+
+Après une commande, l'offre est celle de la commande plus les globales
+**moins `--version`** : c'est la seule globale qu'une commande refuse
+(§B22, `verify --version` est fatal). Quatre tests tiennent le contrat,
+dont un qui passe chaque mot proposé, pour chaque commande, dans
+`parse_cli_options()` — la fonction qui imprime le refus — et un autre
+qui lance réellement l'outil sur `--version` postfixé plutôt que de lire
+une table.
 
 ### 11.16 Alias legacy
 

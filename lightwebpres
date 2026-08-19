@@ -12368,8 +12368,12 @@ def cmd_completion(args):
     series_verbs = sorted(_SERIES_VERBS)
     theme_verbs = sorted(_THEME_VERBS)
     template_verbs = sorted(_TEMPLATE_VERBS)
-    all_opts = sorted(_VALUE_OPTIONS | set().union(*_COMMAND_OPTIONS.values())
-                      | _GLOBAL_OPTIONS)
+    # Before a command has been named, the ONLY options the tool reads are
+    # the globals: `lightwebpres --polarity dark verify` does not reach
+    # parse_cli_options at all, it answers "Unknown command: --polarity".
+    # Offering the union here was offering a word the tool cannot parse in
+    # that position.
+    root_opts = ' '.join(sorted(_GLOBAL_OPTIONS))
 
     # Derived from the tables and NOTHING else, which is what the GUIDE
     # and the spec both promise. Appending by hand offered `theme set`,
@@ -12385,7 +12389,46 @@ def cmd_completion(args):
     # The closed set `template show`/`write` accept, offered where the
     # shell would otherwise offer every file in the directory.
     owned_list = ' '.join(sorted(tool_owned_files()))
-    opts_list = ' '.join(all_opts)
+
+    # What each command ACCEPTS, from the same table the parser refuses
+    # against. Offering the union was the program telling you to type what
+    # the program will reject: reported from a real shell, `build --` put
+    # `--polarity`, `--hue`, `--family`, `--shell` and `--format` in front
+    # of someone, and `build --polarity` then answered "not an option of
+    # `build`".
+    #
+    # Keyed by what a user TYPES, not by the dispatch key: `series build`
+    # and `build` are one command and two paths, and a table indexed by
+    # the internal name could not say so.
+    def offers(key):
+        return ' '.join(sorted(_COMMAND_OPTIONS.get(key, set())
+                               | _GLOBAL_MODIFIERS | {'--help'}))
+
+    per_command = {}
+    for token, key in _SHORTCUTS.items():
+        per_command[token] = offers(key)
+    for node, verbs in (('series', _SERIES_VERBS), ('theme', _THEME_VERBS),
+                        ('template', _TEMPLATE_VERBS)):
+        for verb, key in verbs.items():
+            per_command[f'{node} {verb}'] = offers(key)
+    # The one three-word path, mirroring the special case _resolve_command
+    # makes for it: `series theme` reads the series' theme and `series theme
+    # set` writes it, and they are two commands with two option sets. Keyed
+    # on the reading command's path, the writing one was offered `--format`,
+    # which it refuses, and never offered `--theme`, which is the whole
+    # point of typing it.
+    per_command['series theme set'] = offers('set-theme')
+    # A node with no verb yet. `series --quiet build` is not a command --
+    # _resolve_command reads the second word as the verb and answers
+    # "Unknown series verb: `series --quiet`" -- so the only option a bare
+    # node takes is the one it answers: --help.
+    for _node in ('series', 'theme', 'template'):
+        per_command[_node] = '--help'
+    # Longest path first, so `series build` is matched before `series`.
+    cases = '\n'.join(
+        f'            {path!r}) opts="{opts}" ;;'.replace("'", '"')
+        for path, opts in sorted(per_command.items(),
+                                 key=lambda kv: (-kv[0].count(' '), kv[0])))
 
     if shell == 'bash':
         hook = 'complete -F _lightwebpres_completion lightwebpres'
@@ -12414,7 +12457,7 @@ _lightwebpres_completion() {{
     # Root-level: commands OR global options (--help, --version, --lang, ...)
     if [ "$COMP_CWORD" -eq 1 ]; then
         if [[ "$cur" == --* ]]; then
-            COMPREPLY=($(compgen -W "{opts_list}" -- "$cur"))
+            COMPREPLY=($(compgen -W "{root_opts}" -- "$cur"))
         else
             COMPREPLY=($(compgen -W "{root_list}" -- "$cur"))
         fi
@@ -12422,39 +12465,59 @@ _lightwebpres_completion() {{
     fi
 
     # series <verb>
-    if [ "${{COMP_WORDS[1]}}" = "series" ] && [ "$COMP_CWORD" -eq 2 ]; then
+    if [ "${{COMP_WORDS[1]}}" = "series" ] && [ "$COMP_CWORD" -eq 2 ] \
+       && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{series_list}" -- "$cur"))
         return 0
     fi
 
     # theme <verb>
-    if [ "${{COMP_WORDS[1]}}" = "theme" ] && [ "$COMP_CWORD" -eq 2 ]; then
+    if [ "${{COMP_WORDS[1]}}" = "theme" ] && [ "$COMP_CWORD" -eq 2 ] \
+       && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{theme_list}" -- "$cur"))
         return 0
     fi
 
     # template <verb> (two-word)
-    if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 2 ]; then
+    if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 2 ] \
+       && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "{template_list}" -- "$cur"))
         return 0
     fi
 
     # template show|write <file>: a closed set of three, not the filesystem
     if [ "${{COMP_WORDS[1]}}" = "template" ] && [ "$COMP_CWORD" -eq 3 ] \
+       && [[ "$cur" != --* ]] \
        && {{ [ "${{COMP_WORDS[2]}}" = "show" ] || [ "${{COMP_WORDS[2]}}" = "write" ]; }}; then
         COMPREPLY=($(compgen -W "{owned_list}" -- "$cur"))
         return 0
     fi
 
     # series theme set (three-word: series theme set)
-    if [ "${{COMP_WORDS[1]}}" = "series" ] && [ "${{COMP_WORDS[2]}}" = "theme" ] && [ "$COMP_CWORD" -eq 3 ]; then
+    if [ "${{COMP_WORDS[1]}}" = "series" ] && [ "${{COMP_WORDS[2]}}" = "theme" ] \
+       && [ "$COMP_CWORD" -eq 3 ] && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "set" -- "$cur"))
         return 0
     fi
 
-    # Options (any position after the command)
+    # Options (any position after the command) — the ones THIS command
+    # takes, from the same table the parser refuses against.
     if [[ "$cur" == --* ]]; then
-        COMPREPLY=($(compgen -W "{opts_list}" -- "$cur"))
+        local path="${{COMP_WORDS[1]}}"
+        if [ "$COMP_CWORD" -gt 2 ]; then
+            case "$path" in
+                series|theme|template) path="${{COMP_WORDS[1]}} ${{COMP_WORDS[2]}}" ;;
+            esac
+        fi
+        if [ "$path" = "series theme" ] && [ "${{COMP_WORDS[3]}}" = "set" ]; then
+            path="series theme set"
+        fi
+        local opts=""
+        case "$path" in
+{cases}
+            *) opts="{root_opts}" ;;
+        esac
+        COMPREPLY=($(compgen -W "$opts" -- "$cur"))
         return 0
     fi
 

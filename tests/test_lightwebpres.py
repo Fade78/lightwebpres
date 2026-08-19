@@ -16,6 +16,8 @@ Run with: python3 tests/run_tests.py
 import time
 import base64
 import ast
+import contextlib
+import io
 import json
 import os
 import inspect
@@ -3526,20 +3528,19 @@ class CliVersionAndShortcuts(unittest.TestCase):
         every table it named.
 
         Now it compares the offered SET against the table, both
-        directions, so a missing entry and a stray one both fail."""
+        directions, so a missing entry and a stray one both fail.
+
+        The commands, here. The options moved out to the three tests
+        further down, because there is no such thing as "the option
+        list": every command has its own, and the single list this test
+        used to assert was the union that put `--polarity` in front of
+        someone typing `build --`."""
         lwp = load_lightwebpres_module()
         script = run('completion', '--shell', 'bash').stdout
         self.assertEqual(
             sorted(self._complete(script, ['lightwebpres', ''], 1)),
             sorted(set(lwp._SHORTCUTS) | {'series', 'theme', 'template'}),
             'the root command list is not what the tables say')
-        all_opts = set(lwp._VALUE_OPTIONS) | set(lwp._GLOBAL_OPTIONS)
-        for opts in lwp._COMMAND_OPTIONS.values():
-            all_opts |= opts
-        self.assertEqual(
-            sorted(self._complete(script, ['lightwebpres', '--'], 1)),
-            sorted(all_opts),
-            'the option list is not what the tables say')
 
     def test_completion_offers_nothing_the_tool_refuses(self):
         """The lists are derived from the tables in BOTH directions.
@@ -3577,6 +3578,125 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertEqual(result.returncode, 0,
                              f'completion offers `theme {verb}`, which the '
                              f'tool refuses: {result.stderr}')
+
+    @staticmethod
+    def _command_paths(lwp):
+        """Every option-taking path a user can type, paired with the
+        dispatch key the tool's OWN resolver gives it.
+
+        Built by asking `_resolve_command`, not by a second copy of the
+        verb tables: a path the completion offers and the resolver reads
+        differently is exactly the bug this file is here to catch."""
+        typed = list(lwp._SHORTCUTS)
+        typed += [f'series {v}' for v in lwp._SERIES_VERBS]
+        typed += [f'theme {v}' for v in lwp._THEME_VERBS]
+        typed += [f'template {v}' for v in lwp._TEMPLATE_VERBS]
+        typed.append('series theme set')
+        paths = []
+        for path in typed:
+            key, _rest = lwp._resolve_command(path.split() + ['x'])
+            paths.append((path, key))
+        return paths
+
+    def test_completion_offers_only_options_the_command_accepts(self):
+        """Reported from a real shell: `build --<TAB>` put `--polarity`,
+        `--hue`, `--family`, `--shell` and `--format` in front of someone,
+        and `build --polarity dark` then answered "Unknown option:
+        --polarity (not an option of `build`)". The script emitted
+        `all_opts` -- the UNION of every command's options -- for every
+        command, so the completion was the program telling you to type
+        what the program will reject.
+
+        Both directions, against the table the parser refuses against:
+        nothing offered that the command refuses, and nothing withheld
+        that it accepts. The second half is what catches a command
+        dropping out of the case block and falling to the default arm,
+        which is a narrower lie but a lie all the same.
+
+        `--version` is the one global that is NOT offered after a command,
+        because it is the one global a command refuses -- see the postfix
+        test below, which runs the tool rather than reading a table."""
+        lwp = load_lightwebpres_module()
+        script = run('completion', '--shell', 'bash').stdout
+        for path, key in self._command_paths(lwp):
+            words = ['lightwebpres'] + path.split() + ['--']
+            offered = set(self._complete(script, words, len(words) - 1))
+            self.assertTrue(offered, f'`{path} --` offers nothing at all')
+            accepted = lwp._COMMAND_OPTIONS[key] | lwp._GLOBAL_OPTIONS
+            self.assertFalse(
+                offered - accepted,
+                f'completion offers {sorted(offered - accepted)} for '
+                f'`{path}`, which `{lwp.canonical(key)}` refuses')
+            withheld = accepted - offered - {'--version'}
+            self.assertFalse(
+                withheld,
+                f'completion withholds {sorted(withheld)} from `{path}`, '
+                f'which `{lwp.canonical(key)}` accepts')
+
+    def test_completion_offers_nothing_before_a_command_but_globals(self):
+        """`lightwebpres --polarity dark theme list` never reaches
+        parse_cli_options: the first word IS the command, and the answer
+        is "Unknown command: --polarity". Only the globals are read in
+        that position, so only the globals belong in the offer.
+
+        A bare node is the same case one word later: `series --quiet
+        build` is read as the verb `--quiet` and refused by name."""
+        lwp = load_lightwebpres_module()
+        script = run('completion', '--shell', 'bash').stdout
+        self.assertEqual(
+            sorted(self._complete(script, ['lightwebpres', '--'], 1)),
+            sorted(lwp._GLOBAL_OPTIONS))
+        for node in ('series', 'theme', 'template'):
+            self.assertEqual(
+                self._complete(script, ['lightwebpres', node, '--'], 2),
+                ['--help'], node)
+        # And the refusal is real, not a reading of the table.
+        result = run('--polarity', 'dark', 'theme', 'list')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Unknown command', result.stderr)
+
+    def test_every_option_the_completion_offers_survives_the_parser(self):
+        """The test above compares two tables. This one runs the parser
+        on every single word the completion offers, for every command,
+        and fails if any of them exits.
+
+        `parse_cli_options` is the function that prints "Unknown option"
+        and calls sys.exit(1); calling it directly is the refusal itself,
+        not a description of it. Each option is given a value, which a
+        flag simply leaves as a positional and a value option consumes."""
+        lwp = load_lightwebpres_module()
+        script = run('completion', '--shell', 'bash').stdout
+        refused = []
+        for path, key in self._command_paths(lwp):
+            words = ['lightwebpres'] + path.split() + ['--']
+            for opt in self._complete(script, words, len(words) - 1):
+                try:
+                    with contextlib.redirect_stderr(io.StringIO()):
+                        lwp.parse_cli_options(key, [opt, 'x'])
+                except SystemExit:
+                    refused.append(f'{path} {opt}')
+        self.assertFalse(refused,
+                         'the completion offers words the parser refuses: '
+                         + ', '.join(refused))
+
+    def test_the_only_global_refused_after_a_command_is_not_offered(self):
+        """`verify --version` is fatal (B22: --version reports the version
+        and exits, it does not modify a command), and it is the sole
+        reason the offer is the globals MINUS one rather than the globals.
+        Measured by running the tool, so the day that decision is reversed
+        this test says so instead of the completion quietly disagreeing
+        with the parser."""
+        lwp = load_lightwebpres_module()
+        result = run('verify', '--version')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn('--version', result.stderr)
+        script = run('completion', '--shell', 'bash').stdout
+        self.assertNotIn(
+            '--version',
+            self._complete(script, ['lightwebpres', 'verify', '--'], 2))
+        # ... and it IS offered where it works.
+        self.assertIn('--version',
+                      self._complete(script, ['lightwebpres', '--'], 1))
 
     def test_the_module_docstring_lists_every_command(self):
         """The usage block at the top of the source -- what a reader of
