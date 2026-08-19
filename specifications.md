@@ -1816,6 +1816,17 @@ avec l'effacement et retirée un demi-second **après** la révélation :
 assez pour que le geste soit fini, assez peu pour qu'un lecteur qui veut
 ensuite citer n'attende jamais.
 
+**L'appui long appartient au lecteur.** Il déclenche `contextmenu`, le
+même évènement que le second bouton d'une souris, et le deck y avait
+attaché « fiche précédente » avec un `preventDefault()` qui emporte le
+geste natif. Rapporté : sur téléphone, un appui long renvoyait le lecteur
+une fiche en arrière **et** lui retirait toute possibilité de sélectionner
+quoi que ce soit — c'est ainsi qu'on sélectionne un mot et qu'on atteint
+le menu « Copier ». L'évènement ne distingue pas les deux gestes ; le
+pointeur, si : une souris a un second bouton, un doigt n'en a pas. La
+liaison est donc conservée sur pointeur fin et ignorée sur pointeur
+grossier.
+
 **Boutons** : ↑/🏠/↓/partage/⛶ (plein écran)/L (filtre de tags, masqué
 quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
 d'inactivité hors plein écran, **1 s en plein écran** — c'est-à-dire

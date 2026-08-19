@@ -16148,12 +16148,20 @@ class RegressionFixes(unittest.TestCase):
 
     # --- B7: contextmenu handler clears the pending left-click timer ---
     def test_b7_contextmenu_clears_timer(self):
+        """A window of 400 characters after the listener's name used to
+        stand in for "inside the handler". It is not the same thing:
+        adding a paragraph of comment to that handler pushed
+        `clearTimeout` out of the window and failed a guard about
+        behaviour that had not changed. The window now ends where the
+        handler does — at the `});` that closes it — so a comment can grow
+        and a moved call still fails."""
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
             i = html.find("'contextmenu'")
             self.assertNotEqual(i, -1)
-            seg = html[i:i + 400]
-            self.assertIn('clearTimeout', seg)
+            end = html.find('\n  });', i)
+            self.assertNotEqual(end, -1, 'the contextmenu handler has no end')
+            self.assertIn('clearTimeout', html[i:end])
 
     # --- B9: audit must not false-positive a retired name as a prefix ---
     def test_b9_audit_no_false_retired_prefix(self):

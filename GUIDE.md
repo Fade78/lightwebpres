@@ -735,6 +735,7 @@ next slide without the 250 ms hold.
 | Tap on content | Next slide |
 | Double tap | Show or hide the navigation buttons |
 | Double tap, buttons up | Select a word, as the system does |
+| Press and hold | Select text and open the copy menu — the deck does not take it |
 
 ### Navigation buttons
 

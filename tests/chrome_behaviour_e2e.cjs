@@ -561,6 +561,60 @@ async function main() {
   // expects. Each of these sections leaves the switch where it found it.
   await doubleTap();
 
+  // 5g. A long press belongs to the reader.
+  //
+  // Reported from a phone: pressing and holding — which is how anyone
+  // selects a word and reaches the copy callout — threw the reader back a
+  // card, and left them unable to select anything at all. A long press
+  // fires `contextmenu`, the same event a mouse's second button fires,
+  // and the deck bound that to "previous slide" with a `preventDefault()`
+  // that takes the native gesture with it. The event cannot tell the two
+  // apart; the pointer can.
+  const beforePress = await phone.evaluate(() => {
+    const dots = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'));
+    return dots.findIndex((d) => d.classList.contains('active'));
+  });
+  const pressed = await phone.evaluate(() => {
+    const slide = document.querySelectorAll('section.slide')[1];
+    const target = slide.querySelector('h2, p') || slide;
+    const evt = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    target.dispatchEvent(evt);
+    return evt.defaultPrevented;
+  });
+  await phone.waitForTimeout(900);
+  const afterPress = await phone.evaluate(() => {
+    const dots = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'));
+    return dots.findIndex((d) => d.classList.contains('active'));
+  });
+  if (pressed) {
+    fail('a long press was swallowed on a touch screen, which is what takes '
+         + 'the selection callout away from the reader');
+  }
+  if (afterPress !== beforePress) {
+    fail('a long press moved the deck: card ' + beforePress + ' -> '
+         + afterPress);
+  }
+
+  // And the mouse keeps its second button, which is the whole point of
+  // guarding on the pointer rather than dropping the binding.
+  const deskBefore = await currentSlide(page);
+  const deskPrevented = await page.evaluate(() => {
+    const slide = document.querySelectorAll('section.slide')[1];
+    const evt = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    (slide.querySelector('h2, p') || slide).dispatchEvent(evt);
+    return evt.defaultPrevented;
+  });
+  await page.waitForTimeout(900);
+  if (!deskPrevented) {
+    fail('right-click no longer goes back on a mouse, so the guard took the '
+         + 'binding away instead of scoping it');
+  }
+  const deskAfter = await currentSlide(page);
+  if (deskAfter === deskBefore && deskBefore !== 0) {
+    fail('right-click did not move the deck on a mouse: ' + deskBefore
+         + ' -> ' + deskAfter);
+  }
+
   // 5f. Revealed chrome still fades on its own afterwards, so the switch
   // has not replaced the countdown with a latch.
   await doubleTap();

@@ -2479,6 +2479,10 @@ note: Mention the 2020 study — the audience asked for it last time.
         <td>Double tap, buttons up</td>
         <td>Select a word, as the system does</td>
       </tr>
+      <tr>
+        <td>Press and hold</td>
+        <td>Select text and open the copy menu — the deck does not take it</td>
+      </tr>
     </tbody>
   </table>
   <h3>Navigation buttons</h3>
@@ -4068,7 +4072,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   document.addEventListener('contextmenu', function (e) {
-    // Right-click = go back, but only on slide content.
+    // Right-click = go back, but only on slide content — and only where
+    // there is a right button. On a touch screen this event IS the long
+    // press, which is how a reader selects a word and opens the copy
+    // callout. Reported: a long press threw the reader back a card and
+    // left them unable to select anything at all, because
+    // `preventDefault()` below takes the native gesture with it.
+    //
+    // Guarded on the pointer rather than on the event, because the event
+    // is the same one: a mouse has a second button and a finger does not,
+    // and that is the whole of the distinction.
+    if (!hasFinePointer) return;
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) return;
     e.preventDefault();
