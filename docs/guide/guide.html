@@ -1298,10 +1298,17 @@ body.fs-noselect {
   z-index: 200;
   transition: opacity 0.4s;
 }
-/* Auto-hide in presentation: the buttons fade out after 3s of mouse
-   idleness and come back on 250ms of continuous movement, the same
-   condition as the cursor. Touch devices keep them — there is no cursor
-   to wake them. */
+/* Auto-hide in presentation: the buttons fade out after 3s of idleness
+   and come back on 250ms of continuous mouse movement, the same
+   condition as the cursor.
+
+   Touch devices fade out on the same delay and come back on a double
+   tap. They used to keep the chrome forever — the reason given was that
+   there is no cursor to wake it, which was true of the mechanism and
+   false of the need: on a phone the buttons sit permanently over the
+   text, and a reader has no way at all to put them away. A deliberate
+   gesture is the wake, and it is the one the reader already knows from
+   every video player. */
 /* The scroll bar is navigation too, and it was the last thing left
    answering to the pointer on its own: with the buttons and the cursor
    correctly hidden, moving the mouse painted an overlay bar down the
@@ -1315,10 +1322,14 @@ body.fs-noselect {
    an engine that does not support it simply keeps its bar rather than
    relaying out the page. */
 :root.nav-idle { scrollbar-color: transparent transparent; }
-@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
-@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
+/* Faded chrome must also stop answering the finger. `opacity: 0` hides a
+   thing without disarming it, and with a mouse that is harmless — the
+   hover rule above brings it back before any click can land. There is no
+   hover on a phone, so an invisible button in the bottom-right corner
+   would fire on a reader who touched the corner of their own text. */
+@media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle, .slide-counter.idle { pointer-events: none; } }
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */
@@ -1390,7 +1401,6 @@ body.fs-noselect {
 }
 .nav-dots.idle { opacity: 0; }
 .nav-dots.idle:hover { opacity: 1; }
-@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }
 .nav-dots a {
   width: 8px;
   height: 8px;
@@ -1484,7 +1494,6 @@ body.fs-noselect {
 }
 .slide-counter.idle { opacity: 0; }
 .slide-counter.idle:hover { opacity: 1; }
-@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }
 /* The one part of the page a SPEAKER reads, and it was the flattest:
    15.2px at 375 and 15.2px at 3840, measured, because its three children
    are all `em` of a body that never grew. Same expression as .slide-body,
@@ -3892,6 +3901,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   var clickTimer = null;
   var CLICK_DELAY = 250;
+  // A double tap is detected from the touch events themselves (see the
+  // touch section below), never from the clicks a browser synthesises
+  // afterwards. Measured, and it is the reason this variable exists: a
+  // mobile engine can hold a synthesised click back by around 300ms
+  // while it waits to see whether a second tap is coming, so two taps
+  // 60ms apart arrive here as clicks 300ms apart — outside CLICK_DELAY,
+  // read as two singles, and the gesture is never seen at all.
+  //
+  // Having decided on the touch side, this suppresses the clicks still
+  // in flight so the gesture does not also advance the deck twice.
+  var swallowClicksUntil = 0;
   // Releasing the button after highlighting a quotation is not a click to
   // advance, and treating it as one costs the reader both the selection
   // and their place. A drag that selected nothing is not one either — it
@@ -3913,6 +3933,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   document.addEventListener('click', function (e) {
     if (isInteractive(e)) return;
+    // A click the touch side has already answered for. See
+    // swallowClicksUntil.
+    if (Date.now() < swallowClicksUntil) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
     // Only the left button (0) drives navigation from here on.
     if (e.button !== 0) return;
@@ -3969,8 +3992,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isFullscreen()) toggleFullscreen();
   });
 
-  // --- Touch swipe (mobile / tablet) ---
+  // --- Touch swipe and double tap (mobile / tablet) ---
   var touchStartX = null, touchStartY = null, touchStartT = 0;
+  var lastTapT = 0;
+  // Two taps close together, each of them short and still. The window is
+  // wider than the mouse's CLICK_DELAY on purpose: a finger is slower
+  // and less accurate than a pointer, and the cost of missing the
+  // gesture — chrome the reader cannot put away — is worse than the cost
+  // of catching one tap too many.
+  var DOUBLE_TAP_MS = 350;
+  var TAP_SLOP_PX = 20;
   document.addEventListener('touchstart', function (e) {
     if (e.touches.length !== 1) return;
     touchStartX = e.touches[0].clientX;
@@ -3988,7 +4019,37 @@ document.addEventListener('DOMContentLoaded', function() {
     // the next slide comes FROM).
     if (dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       if (dx < 0) runStepped(stepForward); else runStepped(stepBackward);
+      lastTapT = 0;
+      return;
     }
+    // A double tap is the reader's switch for the navigation chrome:
+    // it puts it away when they have seen enough and brings it back when
+    // they want it, which on a touch screen nothing else can do — there
+    // is no pointer whose movement could be read as "I am still here".
+    //
+    // Fullscreen keeps the button in that chrome rather than this
+    // gesture. One gesture that means two things depending on a state
+    // the reader cannot see coming is not a gesture, it is a lottery.
+    if (isInteractive(e)) { lastTapT = 0; return; }
+    if (dt >= 500 || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
+      lastTapT = 0;
+      return;
+    }
+    var now = Date.now();
+    if (lastTapT && now - lastTapT < DOUBLE_TAP_MS) {
+      lastTapT = 0;
+      // The first tap's advance is still pending on a timer, and the
+      // synthesised clicks for both taps may not even have arrived yet.
+      // Cancel the one and suppress the others, or the gesture that put
+      // the chrome away would also have moved the reader two cards on.
+      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+      swallowClicksUntil = now + 450;
+      var goingIdle = !navIsIdle();
+      setNavIdle(goingIdle);
+      if (!goingIdle) scheduleHide();
+      return;
+    }
+    lastTapT = now;
   }, { passive: true });
 
   // --- Toggle nav chrome (buttons + dots) by clicking bottom-right ---
@@ -4007,6 +4068,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // speaker who has stopped touching the mouse.
     document.documentElement.classList.toggle('nav-idle', isIdle);
   }
+  // The root class is the one flag all four pieces share, so it is the
+  // one thing to ask. Reading `.idle` off any single element would be
+  // right until someone hides a piece that no longer exists on the page.
+  function navIsIdle() {
+    return document.documentElement.classList.contains('nav-idle');
+  }
   if (navButtons) {
     navButtons.addEventListener('click', function (e) {
       if (e.target === navButtons) {
@@ -4015,23 +4082,33 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // --- Auto-hide nav chrome after 3s of mouse idleness (1s in fullscreen) ---
-  // The speaker does not want chrome on the wall while talking. Buttons
-  // and dots fade out when the mouse stops, come back when it moves.
-  // Touch devices (no cursor) keep them — the @media (pointer: coarse)
-  // rules override the .idle class.
-  if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
-    var idleTimer = null;
-    function getIdleDelay() {
-      return isFullscreen() ? 1000 : 3000;
-    }
-    function scheduleHide() {
-      if (idleTimer) clearTimeout(idleTimer);
-      idleTimer = setTimeout(function () {
-        setNavIdle(true);
-        document.body.style.cursor = 'none';
-      }, getIdleDelay());
-    }
+  // --- Auto-hide nav chrome after 3s of idleness (1s in fullscreen) ---
+  // The speaker does not want chrome on the wall while talking; the
+  // reader on a phone does not want it sitting on their text. One delay,
+  // two ways back, because the two devices do not offer the same signal:
+  // continuous mouse movement where there is a pointer, a deliberate
+  // double tap where there is none.
+  //
+  // Touch used to be exempt outright, and the reason recorded was that
+  // there is no cursor to wake the chrome. That was a fact about the
+  // mechanism, not about the reader, and it left the phone as the one
+  // device where the buttons could never be put away.
+  var idleTimer = null;
+  var hasFinePointer = !!(window.matchMedia
+                          && window.matchMedia('(pointer: fine)').matches);
+  function getIdleDelay() {
+    return isFullscreen() ? 1000 : 3000;
+  }
+  function scheduleHide() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      setNavIdle(true);
+      // Only where there is one to hide. Setting it on a touch device is
+      // harmless but says something false about what just happened.
+      if (hasFinePointer) document.body.style.cursor = 'none';
+    }, getIdleDelay());
+  }
+  if (hasFinePointer) {
     document.addEventListener('mousemove', function () {
       // Nothing is revealed here. revealChrome() decides, on the one
       // condition that governs both: movement that has already lasted
@@ -4040,11 +4117,22 @@ document.addEventListener('DOMContentLoaded', function() {
       revealChrome();
       scheduleHide();
     });
-    // Reschedule on fullscreen change to use the correct delay
-    document.addEventListener('fullscreenchange', scheduleHide);
-    document.addEventListener('webkitfullscreenchange', scheduleHide);
-    scheduleHide();
+  } else {
+    // Nothing here reveals anything: that is the point of asking for a
+    // double tap. What a touch does do is restart the countdown WHILE
+    // the chrome is still up, so it never fades out from under a finger
+    // that is in the middle of using it. Once it is down, touching and
+    // scrolling leave it down.
+    function keepAwakeOnTouch() {
+      if (!navIsIdle()) scheduleHide();
+    }
+    document.addEventListener('touchstart', keepAwakeOnTouch, { passive: true });
+    window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
   }
+  // Reschedule on fullscreen change to use the correct delay
+  document.addEventListener('fullscreenchange', scheduleHide);
+  document.addEventListener('webkitfullscreenchange', scheduleHide);
+  scheduleHide();
 
   if (btnTags) btnTags.addEventListener('click', toggleTagMenu);
   renderTagMenu();

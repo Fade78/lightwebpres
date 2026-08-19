@@ -9037,8 +9037,23 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # healthy state: every drift they used to declare is inside
             # the tag this test now reads. A line goes back in only for
             # drift introduced AFTER v0.41.1.
-            gone = set()      # lines the OLD page had and the new one does not
-            arrived = set()   # lines the NEW page has and the old one did not
+            # The touch exemption, withdrawn. Four rules pinned every
+            # piece of the navigation chrome — and the scroll bar — back
+            # to visible on a coarse pointer, so on a phone the buttons
+            # sat on the reader's text and nothing could put them away.
+            # They are gone; a double tap is the switch now, and what
+            # replaces them is one rule that stops a FADED button from
+            # answering a finger, which `opacity: 0` alone does not do.
+            gone = {          # lines the OLD page had and the new one does not
+                b'@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }',
+                b'@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }',
+                b'@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }',
+                b'@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }',
+            }
+            arrived = {       # lines the NEW page has and the old one did not
+                b'@media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle,'
+                b' .slide-counter.idle { pointer-events: none; } }',
+            }
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
             # index gained a button the article pages always had" --

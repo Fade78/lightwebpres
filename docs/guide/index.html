@@ -1297,10 +1297,17 @@ body.fs-noselect {
   z-index: 200;
   transition: opacity 0.4s;
 }
-/* Auto-hide in presentation: the buttons fade out after 3s of mouse
-   idleness and come back on 250ms of continuous movement, the same
-   condition as the cursor. Touch devices keep them — there is no cursor
-   to wake them. */
+/* Auto-hide in presentation: the buttons fade out after 3s of idleness
+   and come back on 250ms of continuous mouse movement, the same
+   condition as the cursor.
+
+   Touch devices fade out on the same delay and come back on a double
+   tap. They used to keep the chrome forever — the reason given was that
+   there is no cursor to wake it, which was true of the mechanism and
+   false of the need: on a phone the buttons sit permanently over the
+   text, and a reader has no way at all to put them away. A deliberate
+   gesture is the wake, and it is the one the reader already knows from
+   every video player. */
 /* The scroll bar is navigation too, and it was the last thing left
    answering to the pointer on its own: with the buttons and the cursor
    correctly hidden, moving the mouse painted an overlay bar down the
@@ -1314,10 +1321,14 @@ body.fs-noselect {
    an engine that does not support it simply keeps its bar rather than
    relaying out the page. */
 :root.nav-idle { scrollbar-color: transparent transparent; }
-@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
-@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
+/* Faded chrome must also stop answering the finger. `opacity: 0` hides a
+   thing without disarming it, and with a mouse that is harmless — the
+   hover rule above brings it back before any click can land. There is no
+   hover on a phone, so an invisible button in the bottom-right corner
+   would fire on a reader who touched the corner of their own text. */
+@media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle, .slide-counter.idle { pointer-events: none; } }
 /* No width/height here: the circle is drawn against the glyph, so the
    engine derives both from `nav-btn.size` (see the nav-btn composite).
    The skeleton stating a second number is how they drifted apart. */
@@ -1389,7 +1400,6 @@ body.fs-noselect {
 }
 .nav-dots.idle { opacity: 0; }
 .nav-dots.idle:hover { opacity: 1; }
-@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }
 .nav-dots a {
   width: 8px;
   height: 8px;
@@ -1483,7 +1493,6 @@ body.fs-noselect {
 }
 .slide-counter.idle { opacity: 0; }
 .slide-counter.idle:hover { opacity: 1; }
-@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }
 /* The one part of the page a SPEAKER reads, and it was the flattest:
    15.2px at 375 and 15.2px at 3840, measured, because its three children
    are all `em` of a body that never grew. Same expression as .slide-body,

@@ -1779,13 +1779,32 @@ sélectionne le mot sous le pointeur, donc la garder là rendrait le plein
 
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.
+**Double tap = interrupteur des boutons de navigation** : il les rappelle
+quand ils se sont effacés et les range immédiatement quand ils sont là.
+Le geste est détecté sur les évènements tactiles eux-mêmes (deux taps de
+moins de 350 ms, à moins de 20 px), jamais sur les clics que le
+navigateur synthétise ensuite : un moteur mobile peut retenir un clic
+synthétisé d'environ 300 ms le temps de voir si un second tap arrive,
+donc deux taps de 60 ms d'écart y parviennent trop espacés pour être lus
+comme un geste. Les clics encore en vol sont ensuite ignorés, sans quoi
+le geste avancerait aussi de deux fiches. Le plein écran reste le bouton
+⛶ de cette barre — un même geste qui voudrait dire deux choses selon un
+état que le lecteur ne voit pas venir n'en est pas un.
 
 **Boutons** : ↑/🏠/↓/partage/⛶ (plein écran)/L (filtre de tags, masqué
 quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
-d'inactivité souris hors plein écran, **1 s en plein écran** — c'est-à-dire
+d'inactivité hors plein écran, **1 s en plein écran** — c'est-à-dire
 dans le mode où l'orateur se trouve, où le chrome doit s'effacer plus vite.
-Réapparition au mouvement ; les tactiles les gardent visibles. Le bouton ⛶
+Le délai est le même partout ; c'est le chemin de retour qui diffère selon
+l'appareil : mouvement de souris là où il y a un pointeur, double tap là
+où il n'y en a pas. Sur écran tactile, un toucher ou un défilement relance
+le compte à rebours **tant que les boutons sont visibles**, pour qu'ils ne
+s'effacent pas sous le doigt ; une fois effacés, ils ne répondent plus au
+toucher (`pointer-events: none` — `opacity: 0` cache sans désarmer, et
+sans survol pour les révéler d'abord, le lecteur qui touche le coin de son
+propre texte déclencherait ce qui est invisible dessous). Le bouton ⛶
 donne accès au plein écran sans clavier.
+
 
 **`--inline-images`** (v0.25.1) : chaque image référencée dans le
 Markdown **d'une fiche** est embarquée comme un data URI base64, et le

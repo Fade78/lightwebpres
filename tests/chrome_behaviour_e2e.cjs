@@ -208,6 +208,137 @@ async function main() {
     fail('the index has no fullscreen button');
   }
 
+  // --- 5. The phone: the chrome fades, and the double tap is its switch
+  // Reported from the field: on a phone the navigation never went away.
+  // It was exempt by design — `@media (pointer: coarse)` pinned every
+  // piece to opacity 1 and the idle timer was not even armed — and the
+  // reason recorded was that there is no cursor to wake it again. True
+  // of the mechanism, and it left the one device where the buttons sit
+  // permanently over the text as the one device that could not put them
+  // away.
+  //
+  // A real touch context, because every assertion below rests on the
+  // page seeing a coarse pointer: emulate it wrong and the whole section
+  // measures the desktop path and passes for the wrong reason.
+  const touch = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+    deviceScaleFactor: 3,
+  });
+  const phone = await touch.newPage();
+  collectConsoleErrors(phone, errors);
+  await phone.goto(articleUrl, { waitUntil: 'load' });
+
+  // Non-vacuity first, and it comes before anything else: the script
+  // branches on `(pointer: fine)`, so if this context reports a fine
+  // pointer then everything after it is a desktop test wearing a phone's
+  // viewport.
+  const pointerKind = await phone.evaluate(() => ({
+    coarse: matchMedia('(pointer: coarse)').matches,
+    fine: matchMedia('(pointer: fine)').matches,
+  }));
+  if (!pointerKind.coarse || pointerKind.fine) {
+    fail('this context is not a touch device, so nothing below is under '
+         + 'test: ' + JSON.stringify(pointerKind));
+  }
+
+  // Read the class AND the computed style. The class alone would pass on
+  // a page where the `(pointer: coarse)` override is still pinning the
+  // opacity back to 1, which is precisely the defect being fixed.
+  const chromeState = () => phone.evaluate(() => {
+    const nav = document.querySelector('.nav-buttons');
+    const style = nav ? getComputedStyle(nav) : null;
+    return {
+      idle: document.documentElement.classList.contains('nav-idle'),
+      opacity: style ? style.opacity : null,
+      pointerEvents: style ? style.pointerEvents : null,
+      fullscreenAsked: window.__askedForFullscreen,
+    };
+  });
+  await phone.evaluate(() => {
+    window.__askedForFullscreen = 0;
+    document.documentElement.requestFullscreen = function () {
+      window.__askedForFullscreen++;
+      return Promise.resolve();
+    };
+  });
+
+  // 5a. It goes away on its own, on the same 3s the desk gets. 4s of
+  // stillness is past it with room to spare.
+  await phone.waitForTimeout(4000);
+  let state = await chromeState();
+  if (!state.idle || state.opacity !== '0') {
+    fail('the navigation never faded on a touch screen: '
+         + JSON.stringify(state));
+  }
+  // And a faded button must not still answer the finger. `opacity: 0`
+  // hides a thing without disarming it; with no hover to bring it back
+  // first, the reader who touches the corner of their own text would
+  // fire whatever is invisible under it.
+  if (state.pointerEvents !== 'none') {
+    fail('a faded button still takes touches: ' + JSON.stringify(state));
+  }
+
+  const tapAt = async (x, y) => { await phone.touchscreen.tap(x, y); };
+  const doubleTap = async () => {
+    // Inside CLICK_DELAY (250ms), which is what makes it one gesture
+    // rather than two taps that each advance the deck.
+    await tapAt(195, 400);
+    await phone.waitForTimeout(60);
+    await tapAt(195, 400);
+    // Past the 0.4s opacity transition, so the reads below are of a
+    // settled value. Measured: at 300ms they land mid-fade (0.94, 0.04)
+    // and the assertions fail on a behaviour that is correct.
+    await phone.waitForTimeout(600);
+  };
+
+  // 5b. A single tap does not bring it back. That is the whole point of
+  // asking for a deliberate gesture: an ordinary tap advances the deck,
+  // and a reader tapping through an article would otherwise re-raise the
+  // chrome on every card.
+  await tapAt(195, 400);
+  await phone.waitForTimeout(700);
+  state = await chromeState();
+  if (!state.idle) {
+    fail('a single tap brought the navigation back: ' + JSON.stringify(state));
+  }
+
+  // 5c. The double tap does, and it spends itself doing only that.
+  await doubleTap();
+  state = await chromeState();
+  if (state.idle || state.opacity !== '1') {
+    fail('a double tap did not bring the navigation back: '
+         + JSON.stringify(state));
+  }
+  if (state.fullscreenAsked !== 0) {
+    fail('the double tap also asked for fullscreen, which is a second '
+         + 'change the reader did not ask for: ' + JSON.stringify(state));
+  }
+
+  // 5d. And it is a switch, not a wake-up: tapping twice again puts the
+  // chrome away AT ONCE, without waiting out the countdown. Asserted
+  // well inside the 3s delay, so a pass here cannot be the timer firing.
+  await doubleTap();
+  state = await chromeState();
+  if (!state.idle || state.opacity !== '0') {
+    fail('a double tap on visible chrome did not put it away: '
+         + JSON.stringify(state));
+  }
+
+  // 5e. Revealed chrome still fades on its own afterwards, so the switch
+  // has not replaced the countdown with a latch.
+  await doubleTap();
+  if ((await chromeState()).idle) {
+    fail('the chrome did not come back for the fade test');
+  }
+  await phone.waitForTimeout(4000);
+  state = await chromeState();
+  if (!state.idle) {
+    fail('once revealed by a double tap the chrome never faded again: '
+         + JSON.stringify(state));
+  }
+
   await browser.close();
   if (errors.length) {
     fail('console errors: ' + errors.join(' | '));
