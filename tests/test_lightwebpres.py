@@ -8156,6 +8156,130 @@ class ContrastFloors(unittest.TestCase):
             'exemption must go with it.')
 
 
+class MeasurementReportsItDoesNotPolice(unittest.TestCase):
+    """§9.5 / §11.9.1. The tool measures a theme's contrast and prints the
+    level with the offending pairs. It stops there. No palette value is
+    rewritten, no theme is rejected, demoted, reordered or withheld
+    because of what it measures.
+
+    That is the direct corollary of "a theme is a stance": a command that
+    refused `terminal` over its phosphor halo would have decided, in the
+    author's place, what a good theme is — which is exactly the competence
+    this tool does not have. `audit` is the other side of the line and it
+    is not the same thing: its thresholds sit BELOW everything the
+    catalogue measures, so no shipped theme can trip them, and it warns
+    rather than refusing.
+
+    Written as a guard because the rule is one sentence and its violation
+    would be one line: a `if level == 'fail': continue` in the listing, a
+    check in `--theme`. Nothing else in the suite would notice."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def _below_aa(self):
+        """The shipped themes measuring below AA in at least one category,
+        by the executable's own report — the very themes the rule is about,
+        and the reason this class is not vacuous."""
+        out = []
+        for slug in self.lwp.THEMES:
+            measured = self.lwp.measure_contrast(self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug)))
+            if any(cat['level'] == 'fail' for cat in measured.values()):
+                out.append(slug)
+        return out
+
+    def test_the_catalogue_really_does_contain_themes_below_aa(self):
+        """Non-vacuity, and it comes first. Every assertion below says
+        `and it is offered anyway`; if the catalogue were uniformly AA or
+        better, all of them would pass while proving nothing at all."""
+        below = self._below_aa()
+        self.assertGreater(
+            len(below), 0,
+            'no shipped theme measures below AA, so every "offered anyway" '
+            'assertion in this class asserts nothing. Re-derive this guard.')
+
+    def test_theme_list_offers_every_theme_whatever_it_measures(self):
+        """The listing is the catalogue, not a filtered view of it."""
+        listed = run('theme', 'list')
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        for slug in sorted(self.lwp.THEMES):
+            self.assertIn(slug, listed.stdout,
+                          f'`theme list` does not offer {slug}')
+
+    def test_a_theme_below_aa_is_applied_whatever_it_measures(self):
+        """`init --theme` and `series theme set` take any theme in the
+        catalogue, and record the choice.
+
+        What is forbidden is DECIDING: refusing, substituting, silently
+        altering, or dropping a theme from what can be applied. Informing
+        is not — a warning or a note is allowed, and this guard does not
+        forbid one. The line is between telling the author something and
+        taking the choice away from them.
+
+        (An earlier draft did assert that nothing is printed at warning
+        level here. That was stricter than the rule and would have blocked
+        a legitimate future warning; it is the refusal that is the
+        violation, not the sentence.)"""
+        below = sorted(self._below_aa())
+        self.assertTrue(below, 'no below-AA theme to try — see the guard above')
+        # EVERY one of them, not a representative. Written as one theme
+        # first, and a mutation showed why that was not enough: a refusal
+        # aimed at any theme other than the alphabetically first went
+        # straight through a green suite. A rule that holds for the whole
+        # catalogue has to be asked of the whole catalogue.
+        for slug in below:
+            with tempfile.TemporaryDirectory() as tmp:
+                series = os.path.join(tmp, 'series')
+                made = run('init', series, '--theme', slug)
+                self.assertEqual(made.returncode, 0,
+                                 f'`init --theme {slug}` was refused: {made.stderr}')
+                settings = Path(series) / 'templates' / 'settings.conf'
+                self.assertIn(f'theme: {slug}', settings.read_text(encoding='utf-8'))
+                changed = run('series', 'theme', 'set', series, '--theme', slug)
+                self.assertEqual(changed.returncode, 0,
+                                 f'`series theme set --theme {slug}` was refused: '
+                                 f'{changed.stderr}')
+
+    def test_the_measured_level_never_reaches_a_built_page(self):
+        """The reader of a presentation is not told the contrast level of
+        the theme chosen for them: it is tooling data, not publication
+        data. Checked on a page built from a theme that measures below AA,
+        which is the one case where a well-meaning marker would be most
+        tempting to add.
+
+        CSS comments are stripped first, and that is not a convenience:
+        the composed sheet carries the engine's own design notes, and some
+        of them discuss contrast in these very words — measured on a demo
+        page, 115 comment blocks, 19634 bytes, 14.4% of the page. Those
+        are a separate matter (they ship to every reader, which is worth
+        its own decision) and matching them here would make this guard
+        fail for a reason it is not about."""
+        below = sorted(self._below_aa())
+        self.assertTrue(below, 'no below-AA theme to try — see the guard above')
+        slug = below[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            series = os.path.join(tmp, 'series')
+            self.assertEqual(run('init', series, '--theme', slug).returncode, 0)
+            self.assertEqual(run('demo', series).returncode, 0)
+            out = Path(series) / 'public'
+            self.assertTrue(list(out.glob('*.html')), 'demo built no pages')
+            for page in sorted(out.glob('*.html')):
+                text = re.sub(r'/\*.*?\*/', '', page.read_text(encoding='utf-8'),
+                              flags=re.S)
+                # The vocabulary of the REPORT, not of the subject. A page
+                # that named a level, a threshold or a measured pair would
+                # be telling its reader something only the author was ever
+                # meant to see.
+                for marker in ('below AA', 'threshold_aa', 'threshold_aaa',
+                               'pairs_measured', 'accessibility',
+                               'contrast-level', 'data-contrast', 'WCAG'):
+                    self.assertNotIn(
+                        marker, text,
+                        f'{page.name} tells its reader {marker!r} — the '
+                        f'measured level is tooling data and must not ship')
+
+
 class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     """§11.9.1. The accessibility level of a theme is COMPUTED from the
     property registry, never written into a THEMES entry. A hand-written

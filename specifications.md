@@ -4362,6 +4362,31 @@ présentation n'a pas à être informé du niveau de contraste du thème qu'on
 a choisi pour lui ; c'est une donnée d'outillage, pas de publication. Le
 format ne change pas, `build` ne change pas.
 
+Et elle **ne tranche rien**. Aucune valeur de palette n'est réécrite,
+aucun thème n'est rejeté, dégradé, réordonné ni retiré du catalogue à
+cause de ce qu'il mesure : `theme list` les offre tous, dans l'ordre du
+catalogue, et `init --theme` comme `series theme set` acceptent
+n'importe lequel sans commentaire. **La mesure rapporte, elle ne fait pas
+la police.** C'est le corollaire direct de « un thème est un parti pris »
+ci-dessus : une commande qui refuserait `terminal` sur son niveau de
+contraste aurait décidé à la place de l'auteur ce qu'est un bon thème,
+et c'est précisément la compétence que cet outil n'a pas.
+
+La frontière porte aussi sur la **présentation**, et pas seulement sur le
+code : un rapport qui rendrait « sous AA » dans le rouge réservé aux
+erreurs aurait rendu un verdict sans qu'aucune ligne de code ne rejette
+quoi que ce soit. La galerie et `theme show` écrivent donc le niveau, les
+catégories et les paires fautives, et rien de plus — le nombre est mis
+devant la personne qui choisit, et le choix lui appartient.
+
+Ce qui **est** jugé, et qui n'est pas une affaire de goût, vit ailleurs :
+`audit` (§11.5) signale une feuille composée où une commande de
+navigation est invisible sur son propre rail, où du texte est peint de la
+couleur de son fond, où une taille passe sous le plancher de lisibilité.
+Ces seuils sont placés **sous** tout ce que le catalogue livré mesure —
+aucun thème tel qu'il est livré ne peut les déclencher — et ils
+avertissent : `build` sort 0, `audit` nu aussi.
+
 #### Deux cibles
 
 - **Un slug** (`theme show nord`) : le thème intégré, tel qu'il est
