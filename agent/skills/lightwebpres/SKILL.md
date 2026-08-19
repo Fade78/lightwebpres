@@ -336,8 +336,10 @@ on a `cover` / first `##` on a non-`cover` slide is ever captured as the
 slide's title at all; a second one, or the wrong level for that slide
 type, always falls through to content (§22.2 in `specifications.md`).
 
-`series-nav` and `full-article` are **at most one each** per article —
-having two is a fatal build error, not "the second one wins." Both also
+`series-nav` is **at most one** per article — having two is a fatal build
+error, not "the second one wins." `full-article` has no such limit: a page
+may pull in several long-form files, each `full-article` slide naming its
+own (§22.8). Both also
 accept `tags:` and `comment:` like every other slide; beyond that, any
 unrecognized non-blank line inside either one is fatal, not ignored: a
 `series-nav` slide takes no free body, and a `full-article` slide takes

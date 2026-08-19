@@ -272,6 +272,47 @@ class FatalErrorCases(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
 
+    def test_help_states_the_cardinality_the_build_actually_enforces(self):
+        """The behaviour below was fixed, tested, and written up in the
+        specification (§22.8) — and every surface a user reads went on
+        saying the opposite for releases afterwards. `--help` was the
+        worst of them, because its slide-type text comes from SLIDE_TYPES,
+        the table whose own comment calls it "the only place that list is
+        written": the one description that cannot be dismissed as a stale
+        copy said `at most one such slide per article` while the build
+        rendered two quite happily.
+
+        Asserted in both directions, because a limit dropped from the text
+        is as wrong as one invented in it — and asserted on the table AND
+        on the rendered help, since a summary that is right in the table
+        and never printed would leave the reader exactly where they were.
+        `test_duplicate_series_nav_slides_is_fatal` above is the
+        behavioural half for series-nav; the one below is full-article's."""
+        types = {t.name: t.summary
+                 for t in load_lightwebpres_module().SLIDE_TYPES}
+        limit_words = ('at most one', 'only one', '0 or 1', 'a single')
+        text = run('--help').stdout
+
+        for word in limit_words:
+            self.assertNotIn(
+                word, types['full-article'].lower(),
+                f'SLIDE_TYPES limits how many full-article slides a page may '
+                f'carry ({word!r}); the build does not (§22.8)')
+        self.assertTrue(
+            any(word in types['series-nav'].lower() for word in limit_words),
+            'SLIDE_TYPES does not say a page carries one series-nav, and the '
+            'build refuses a second one fatally — an author meets that error '
+            'with nothing to have warned them')
+
+        # And the help really is that table talking. Compared on the first
+        # sentence: --help re-wraps, so the whole summary never survives
+        # as one line.
+        for name, summary in types.items():
+            first = summary.split('. ')[0]
+            self.assertIn(' '.join(first.split()), ' '.join(text.split()),
+                          f'--help does not print SLIDE_TYPES\' summary for '
+                          f'{name}, so the table can be right and the help wrong')
+
     def test_two_full_article_slides_each_carry_their_own_file(self):
         """A page may hold more than one long-form piece. It could not,
         and the reason was never a rule about the format: the renderer

@@ -147,7 +147,7 @@ syntax and every edge case.
 | `cover` | `kicker`, `tags:`, `# Title`, `summary`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
 | standard *(the default)* | `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown | as many as you want |
 | `series-nav` | `tags:`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
-| `full-article` | `article: filename.md`, optional `tags:` and `comment:` | 0 or 1 per article |
+| `full-article` | `article: filename.md`, optional `tags:` and `comment:` | any number, each with its own file |
 
 Four, and only four. Mistype one — `<!-- lwp:slide:covre -->` — and the
 build stops and tells you which slide, what you wrote, and what the four

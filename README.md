@@ -357,7 +357,8 @@ new one.
   `series.json` (at most one per article); it accepts optional `tags:` and
   `comment:` fields but no free body.
 - **`full-article`** — includes a separate long-form Markdown file, accepts
-  `article:` plus optional `tags:` and `comment:`, and has no free body;
+  `article:` plus optional `tags:` and `comment:`, and has no free body. A
+  page may carry several of them, each naming its own file;
   converted with full support for headings (levels 1–6: `####` renders as
   a bold-font paragraph, `#####`/`######` as plain text), bold/italic,
   links, notes (see below), lists, tables, blockquotes, images with

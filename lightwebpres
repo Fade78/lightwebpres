@@ -9579,11 +9579,13 @@ SLIDE_TYPES = (
     SlideType(
         'series-nav', None, ('tags', 'comment'), None,
         'The list of the other articles in the series, generated from '
-        'series.json — you place the marker, the build writes the list.'),
+        'series.json — you place the marker, the build writes the list. '
+        'At most one per article.'),
     SlideType(
         'full-article', None, ('article', 'tags', 'comment'), None,
-        'Pulls in a long-form .md file named by its `article:` field. '
-        'Required field, and at most one such slide per article.'),
+        'Pulls in a long-form .md file named by its `article:` field, '
+        'which is required. A page may carry several, each with its own '
+        'file (§22.8).'),
 )
 
 SLIDE_TYPES_BY_NAME = {t.name: t for t in SLIDE_TYPES}
