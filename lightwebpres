@@ -86,7 +86,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.40.3"
+VERSION = "0.41.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -11845,7 +11845,7 @@ def cmd_completion(args):
         sys.exit(1)
 
     # Collect the command names from the tables (single source of truth).
-    root_cmds = sorted(set(_SHORTCUTS) | set(_LEGACY_ALIASES))
+    root_cmds = sorted(_SHORTCUTS)
     series_verbs = sorted(_SERIES_VERBS)
     theme_verbs = sorted(_THEME_VERBS)
     template_verbs = sorted(_TEMPLATE_VERBS)
@@ -15532,9 +15532,8 @@ COMMANDS
     Describes one or more themes without installing: palette, fonts,
     facets, and the WCAG contrast level it actually reaches, measured
     (see §11.9.1). With no slug, reads the EFFECTIVE theme of the series
-    you are standing in; a series [directory] instead of a slug does the
-    same for another one (both are `series theme`, kept as the legacy
-    form).
+    you are standing in, the habit every other command keeps. Naming a
+    DIRECTORY is not a form here: that is `series theme [directory]`.
   lightwebpres series theme [directory] [--format text|json]
     Same, for the EFFECTIVE theme of an installed series — after the
     values it pins in templates/settings.conf
@@ -15566,10 +15565,7 @@ COMMANDS
 
   The commands above are shortcuts. The canonical form is `series <verb>`
   (or `theme <verb>` for the catalogue): `lightwebpres series build`,
-  `lightwebpres theme list`, etc. The old names (install, check,
-  refresh-templates, themes, theme-info, set-theme, themes-gallery,
-  series-info) remain accepted as aliases for one MAJOR version, with a
-  [WARNING] on stderr naming the new form.
+  `lightwebpres theme list`, etc.
 
 OPTIONS
   (--option value and --option=value are equivalent; an unknown or
@@ -15948,28 +15944,37 @@ _SHORTCUTS = {
 # (No other two-word shortcuts yet — `template update` is handled inline.)
 # Legacy names → new dispatch key. Each emits a [WARNING] on stderr naming the
 # new form. The dispatch key is the OLD cmd_* name (option tables stay valid).
-_LEGACY_ALIASES = {
-    'install': 'install',
-    'check': 'check',
-    'refresh-templates': 'refresh-templates',
-    'themes': 'themes',
-    'theme-info': 'theme-info',
-    'set-theme': 'set-theme',
-    'themes-gallery': 'themes-gallery',
-    'series-info': 'series-info',
-}
-# Map of legacy alias → recommended new invocation, for the [WARNING] message.
-# (Tokens that are also canonical shortcuts — demo, build, audit, resolve —
-# never reach this table: _SHORTCUTS is consulted first.)
-_LEGACY_REPLACEMENT = {
-    'install': 'init',
-    'check': 'verify',
-    'refresh-templates': 'template update',
-    'themes': 'theme list',
-    'theme-info': 'theme show <slug>  (or  series theme <dir>  for the effective theme)',
-    'set-theme': 'series theme set',
-    'themes-gallery': 'theme gallery',
-    'series-info': 'status',
+# Spellings this program used to accept and no longer does. They are NOT
+# commands: nothing here is offered by completion, named in --help, or
+# written in any document. The table exists for one purpose, which is to
+# refuse them by name.
+#
+# They were accepted as deprecated aliases, each printing a [WARNING] and
+# then working. That is a worse teacher than a refusal: the completion
+# offered them, so a reader learning the CLI met `install` and `check`
+# alongside `init` and `verify` with nothing to say which was which, and
+# a command that works after complaining is a command people keep typing.
+#
+# Refused rather than made unknown, because the two are not the same
+# service. An unknown token prints the whole help and leaves the reader
+# to find the word themselves; this names it. Same shape as the `theme
+# set` refusal, which has always worked this way.
+#
+# Whole sentences rather than bare command names, because one of them
+# needs two: `theme-info` became a catalogue reading and a series
+# reading, which are not the same question, and a table that could hold
+# only one command would have had to pick.
+_RETIRED_SPELLINGS = {
+    'install': 'Use `lightwebpres init`.',
+    'check': 'Use `lightwebpres verify`.',
+    'refresh-templates': 'Use `lightwebpres template update`.',
+    'themes': 'Use `lightwebpres theme list`.',
+    'theme-info': 'Use `lightwebpres theme show <slug>` for the catalogue, '
+                  'or `lightwebpres series theme [dir]` for the effective '
+                  'theme of a series.',
+    'set-theme': 'Use `lightwebpres series theme set`.',
+    'themes-gallery': 'Use `lightwebpres theme gallery`.',
+    'series-info': 'Use `lightwebpres status`.',
 }
 # Canonical `series <verbe>` and `theme <verbe>` forms. `series` is the
 # dominant object; almost every series verb has a root shortcut. `theme` is
@@ -16125,20 +16130,21 @@ def _node_help(node, verbs):
           f'`lightwebpres --help` for everything.')
 
 
-def _warn_legacy(alias):
-    # 'warn', not 'error'. A deprecated alias still does the job and still
-    # exits 0, so tagging its notice [ERROR] made `grep '^\[ERROR\]'` match
-    # successful runs -- and left real warnings to be found under [INFO],
-    # which --quiet then hid. Both halves of that are fixed now: warnings
-    # have their own level, and it survives --quiet.
-    log('warn', f'`{alias}` is deprecated; use `{_LEGACY_REPLACEMENT[alias]}` '
-        f'instead. (`{alias}` remains an alias until the next MAJOR version.)')
+def _refuse_retired(spelling):
+    # 'error' and a non-zero exit, because this is no longer a way to run
+    # anything. It used to be 'warn' over a successful run, which is the
+    # arrangement this retirement ends.
+    log('error', f'`{spelling}` is not a command. '
+        f'{_RETIRED_SPELLINGS[spelling]}')
+    sys.exit(1)
 
 
 def _resolve_command(args):
     """Resolves the user's first token(s) to a dispatch key and the remaining
-    args. Returns (dispatch_key, remaining_args, is_legacy) or (None, args, False)
-    if no command is recognised.
+    args. Returns (dispatch_key, remaining_args), or (None, args) if no
+    command is recognised. There is no third element any more: it used to
+    say whether the token was a deprecated alias, and there are no
+    deprecated aliases.
 
     Acceptance order (first match wins):
       1. `--version` / `--help` / `-h` as a global flag (handled by main).
@@ -16148,7 +16154,7 @@ def _resolve_command(args):
       5. Legacy aliases (`install`, `check`, ...).
     """
     if not args:
-        return None, args, False
+        return None, args
     head = args[0]
 
     if head == 'series' and len(args) >= 2:
@@ -16158,9 +16164,9 @@ def _resolve_command(args):
             sys.exit(0)
         # `series theme set <dir> --theme X` — two-word series verb.
         if verb == 'theme' and len(args) >= 3 and args[2] == 'set':
-            return 'set-theme', args[3:], False
+            return 'set-theme', args[3:]
         if verb in _SERIES_VERBS:
-            return _SERIES_VERBS[verb], args[2:], False
+            return _SERIES_VERBS[verb], args[2:]
         log('error', f"Unknown series verb: `series {verb}`. "
               f"Run `lightwebpres --help` for the command list.")
         sys.exit(1)
@@ -16171,7 +16177,7 @@ def _resolve_command(args):
             _node_help('theme', _THEME_VERBS)
             sys.exit(0)
         if verb in _THEME_VERBS:
-            return _THEME_VERBS[verb], args[2:], False
+            return _THEME_VERBS[verb], args[2:]
         # `theme set` is NOT a shortcut (DECISION §3): the `theme` node never
         # touches a series. Point at the canonical form.
         if verb == 'set':
@@ -16185,7 +16191,7 @@ def _resolve_command(args):
 
     # `template <verb>`: update, show, write.
     if head == 'template' and len(args) >= 2 and args[1] in _TEMPLATE_VERBS:
-        return _TEMPLATE_VERBS[args[1]], args[2:], False
+        return _TEMPLATE_VERBS[args[1]], args[2:]
     # Lone `template` is NOT a shortcut (series template reading is abandoned).
     if head == 'template':
         log('error', "`template` alone is not a command. Use "
@@ -16194,13 +16200,12 @@ def _resolve_command(args):
         sys.exit(1)
 
     if head in _SHORTCUTS:
-        return _SHORTCUTS[head], args[1:], False
+        return _SHORTCUTS[head], args[1:]
 
-    if head in _LEGACY_ALIASES:
-        _warn_legacy(head)
-        return _LEGACY_ALIASES[head], args[1:], True
+    if head in _RETIRED_SPELLINGS:
+        _refuse_retired(head)
 
-    return None, args, False
+    return None, args
 
 
 def parse_cli_options(command, rest, global_opts=None):
@@ -16338,7 +16343,7 @@ def main():
     # circuit inside _parse_global_options.
     global_opts, args = _parse_global_options(args)
 
-    command, rest, is_legacy = _resolve_command(args)
+    command, rest = _resolve_command(args)
     # `<command> --help`, in any position after the command. Honouring it
     # only in leading position made the most reflexive keystroke in a
     # nested grammar a hard error. Only up to `--`: after the terminator a
@@ -16440,13 +16445,12 @@ def main():
         # only, so a stray positional would mean nothing.
         cmd_themes(opts)
     elif command == 'theme-info':
-        # `theme show <slug> [<slug>…] [--all]` (DECISION §1 Phase 2): the
-        # slug-reading branch of the old theme-info, now accepting multiple
-        # slugs and --all. The directory branch is `series theme [dir]`.
-        # Legacy compat: the `theme-info` alias may still be called with a
-        # directory (the old form). If the first positional is not a slug
-        # but is a directory, redirect to the series-theme command so the
-        # alias keeps working until the next MAJOR.
+        # `theme show <slug> [<slug>…] [--all]`: the catalogue reading.
+        # The series reading is `series theme [dir]`, and naming a
+        # DIRECTORY here is refused rather than redirected -- it was the
+        # last surviving shape of the old `theme-info`, which did both
+        # jobs, and a form kept working for compatibility is a form people
+        # keep learning.
         #
         # No slug, no --all, and the working directory IS a series: read
         # that series, exactly as `theme show .` already does. Every other
@@ -16462,19 +16466,10 @@ def main():
             cmd_series_theme('.', opts)
         elif (positional and positional[0] not in THEMES
                 and Path(positional[0]).is_dir()):
-            # The legacy directory form describes ONE series, so it has no
-            # room for anything after it. Everything past the directory
-            # used to be dropped without a word: `theme show <dir> nord
-            # dracula` printed the series' effective theme, exit 0, and
-            # said nothing about the two slugs -- known-good slugs, which
-            # the spec says must be reported when they cannot be honoured.
-            if len(positional) > 1:
-                log('error', f'`theme show` reads either a directory or a '
-                    f'list of slugs, not both. Drop '
-                    f'{", ".join(repr(a) for a in positional[1:])}, or ask '
-                    f'for the slugs alone.')
-                sys.exit(1)
-            cmd_series_theme(positional[0], opts)
+            log('error', f'`theme show` reads the catalogue, not a series. '
+                f'For {positional[0]!r}, use `lightwebpres series theme '
+                f'{positional[0]}`; for a catalogue entry, name a theme.')
+            sys.exit(1)
         else:
             cmd_theme_info(positional, opts)
     elif command == 'series-info':

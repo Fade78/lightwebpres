@@ -1748,29 +1748,22 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('LightWebPres v', result.stdout)
 
-    def test_legacy_install_emits_warn_and_still_works(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            target = str(Path(tmp) / 's')
-            result = run('install', target)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            # [WARNING], not [WARN] inside an [ERROR] line: a deprecated
-            # alias still works and still exits 0, so tagging its notice as
-            # an error made `grep '^[ERROR]'` match successful runs.
-            self.assertIn('[WARNING]', result.stderr)
-            self.assertNotIn('[ERROR]', result.stderr, result.stderr)
-            self.assertIn('deprecated', result.stderr)
-            self.assertIn('init', result.stderr)
+    def test_a_retired_spelling_is_refused_and_nothing_is_written(self):
+        """They were deprecated aliases: a [WARNING], then the command ran
+        anyway. That taught the old spelling rather than the new one —
+        completion offered `install` beside `init` with nothing to say
+        which was which, and a command that works after complaining is a
+        command people keep typing.
 
-    def test_legacy_check_emits_warn(self):
+        Refused now, and nothing happens: `install` wrote a whole series
+        before, so the directory is the assertion that matters."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
-            # Build once so check has something to compare.
-            run('build', str(root), '--output', str(root / 'public'))
-            result = run('check', str(root), '--output', str(root / 'public'))
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('[WARNING]', result.stderr)
-            self.assertNotIn('[ERROR]', result.stderr, result.stderr)
-            self.assertIn('verify', result.stderr)
+            target = Path(tmp) / 's'
+            result = run('install', str(target))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('[ERROR]', result.stderr)
+            self.assertIn('`lightwebpres init`', result.stderr)
+            self.assertFalse(target.exists(), 'the refused command still ran')
 
     def test_shortcut_init_works_without_warn(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2011,23 +2004,28 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertNotIn('Traceback', result.stderr)
             self.assertNotIn('Traceback', result.stdout)
 
-    def test_theme_show_refuses_a_directory_mixed_with_slugs(self):
-        """`theme show <dir> nord dracula` printed the series' effective
-        theme, exited 0, and said nothing about the two slugs -- known-good
-        slugs, which the spec requires be reported when they cannot be
-        honoured."""
+    def test_theme_show_never_reads_a_series_however_it_is_asked(self):
+        """`theme show <dir> nord dracula` used to print the series\'
+        effective theme, exit 0, and say nothing about the two slugs —
+        known-good slugs, which the spec requires be reported when they
+        cannot be honoured. The mixed form was caught first; the plain
+        `theme show <dir>` kept working, as the last shape of the old
+        `theme-info` that did both jobs.
+
+        Neither reads a series now. `theme show` is the catalogue, full
+        stop, and both refusals name `series theme`."""
         with tempfile.TemporaryDirectory() as tmp:
-            # A real init: `theme show <dir>` reads the series' templates,
-            # so a bare scaffold would fail for an unrelated reason and
-            # prove nothing about the mixing.
             root = str(Path(tmp) / 's')
             self.assertEqual(run('init', root).returncode, 0)
-            mixed = run('theme', 'show', root, 'nord', 'dracula')
-            self.assertNotEqual(mixed.returncode, 0, mixed.stdout)
-            self.assertIn('nord', mixed.stderr)
-            # Both single forms keep working.
-            self.assertEqual(run('theme', 'show', root).returncode, 0)
+            for argv in ((root,), (root, 'nord', 'dracula')):
+                refused = run('theme', 'show', *argv)
+                self.assertNotEqual(refused.returncode, 0, refused.stdout)
+                self.assertIn('series theme', refused.stderr,
+                              f'`theme show {" ".join(argv)}`')
+            # The catalogue reading is untouched, and so is the series
+            # reading under the command that owns it.
             self.assertEqual(run('theme', 'show', 'nord', 'dracula').returncode, 0)
+            self.assertEqual(run('series', 'theme', root).returncode, 0)
 
     def test_every_command_and_node_answers_its_own_help(self):
         """`build --help` exited 1 with "Unknown option: --help", because
@@ -2089,8 +2087,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 self.assertIn(f'`{wanted}`', result.stderr,
                               f'`{" ".join(argv)}`:\n{result.stderr}')
                 self.assertNotIn(f'`{forbidden}`', result.stderr,
-                                 f'the error names the deprecated form:\n'
-                                 f'{result.stderr}')
+                                 f'the error names a spelling this tool '
+                                 f'does not accept:\n{result.stderr}')
 
     def test_an_unusable_argument_is_fatal_not_discarded(self):
         """`init A B` created A, printed "Installed: A", and never
@@ -2207,98 +2205,39 @@ class CliVersionAndShortcuts(unittest.TestCase):
                                   f'was acted on instead of named:\n{result.stderr}')
                     self.assertNotIn('LightWebPres v', result.stdout)
 
-    def test_every_legacy_alias_warns_and_runs_the_canonical_command(self):
-        """§11.16 claims a test covers every alias. It did not: three of
-        the eight were run by their alias name anywhere in this suite, and
-        the only test that walked _LEGACY_ALIASES checked the completion
-        script -- not the warning, not the dispatch. The claim outlived
-        its guard, which is the failure mode this whole file exists to
-        catch.
+    def test_every_retired_spelling_is_refused_and_names_its_replacement(self):
+        """They used to warn and then run, and this test used to prove
+        each one dispatched to the right command. It proves the other
+        thing now: that none of them runs, and that each says what to
+        type instead.
 
-        Each alias is run twice, in identical fresh directories: once by
-        its legacy name, once by the canonical form. The legacy run must
-        warn and name its replacement; both runs must produce the same
-        stdout and the same exit code. Comparing against the canonical
-        run is what makes 'runs the canonical command' an assertion
-        rather than a hope -- an alias wired to the wrong cmd_* passes a
-        'did it exit 0' check and fails this one."""
+        Driven off `_RETIRED_SPELLINGS`, so a spelling added to that
+        table without a case here fails, and a case left behind after its
+        entry is gone fails too. The replacement each one names must be a
+        form the tool actually accepts — checked by running it with
+        `--help`, which no retired spelling survives."""
         lwp = load_lightwebpres_module()
-        # alias argv (relative to a fresh dir 's'), canonical argv.
-        # `prepare` says what must exist before the run.
-        cases = {
-            'install':           (('install', 's'), ('init', 's'), 'empty'),
-            'check':             (('check', 's'), ('verify', 's'), 'built'),
-            'refresh-templates': (('refresh-templates', 's'),
-                                  ('template', 'update', 's'), 'built'),
-            'themes':            (('themes',), ('theme', 'list'), 'empty'),
-            'theme-info':        (('theme-info', 'nord'),
-                                  ('theme', 'show', 'nord'), 'empty'),
-            'set-theme':         (('set-theme', 's', '--theme', 'ember'),
-                                  ('series', 'theme', 'set', 's',
-                                   '--theme', 'ember'), 'inited'),
-            'themes-gallery':    (('themes-gallery', 'nord', '--output', 'g.html'),
-                                  ('theme', 'gallery', 'nord',
-                                   '--output', 'g.html'), 'empty'),
-            'series-info':       (('series-info', 's'), ('status', 's'), 'inited'),
-        }
-        self.assertEqual(set(cases), set(lwp._LEGACY_ALIASES),
-                         'an alias was added or removed without a case here')
-
-        def prepare(root, kind):
-            if kind == 'empty':
-                return
-            self.assertEqual(run('init', 's', cwd=root).returncode, 0)
-            if kind == 'inited':
-                return
-            self.assertEqual(run('demo', 's', cwd=root).returncode, 0)
-            self.assertEqual(run('build', 's', cwd=root).returncode, 0)
-
-        for alias, (legacy_argv, canonical_argv, kind) in sorted(cases.items()):
-            with self.subTest(alias=alias):
-                with tempfile.TemporaryDirectory() as a, \
-                     tempfile.TemporaryDirectory() as b:
-                    prepare(a, kind)
-                    prepare(b, kind)
-                    old = run(*legacy_argv, cwd=a)
-                    new = run(*canonical_argv, cwd=b)
-                    # It warns, on stderr, naming what to type instead.
-                    self.assertIn('[WARNING]', old.stderr,
-                                  f'`{alias}` did not warn:\n{old.stderr}')
-                    self.assertIn('deprecated', old.stderr)
-                    replacement = lwp._LEGACY_REPLACEMENT[alias].split('  ')[0]
-                    self.assertIn(replacement, old.stderr,
-                                  f'`{alias}` did not name `{replacement}`:\n'
-                                  + old.stderr)
-                    # And it does the same work as the canonical form.
-                    self.assertEqual(old.returncode, new.returncode,
-                                     f'`{alias}` exited {old.returncode}, '
-                                     f'canonical exited {new.returncode}:\n'
-                                     + old.stderr)
-                    # The two runs live in different temp dirs, and
-                    # several commands echo the path they wrote.
-                    self.assertEqual(old.stdout.replace(a, '<dir>'),
-                                     new.stdout.replace(b, '<dir>'),
-                                     f'`{alias}` and its canonical form '
-                                     'printed different things')
-
-    def test_a_deprecated_alias_warns_it_does_not_error(self):
-        """The notice was tagged [ERROR] on a run that exits 0, so
-        `grep '^\\[ERROR\\]'` matched successes -- while real warnings hid
-        under [INFO], where --quiet then removed them. Both halves are the
-        same missing level."""
-        with tempfile.TemporaryDirectory() as tmp:
-            target = str(Path(tmp) / 's')
-            result = run('install', target)          # alias for `init`
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('deprecated', result.stderr)
-            self.assertIn('[WARNING]', result.stderr)
-            self.assertNotIn('[ERROR]', result.stderr,
-                             'a successful run printed an [ERROR] line:\n'
-                             + result.stderr)
-            # And, being a warning, it outlives --quiet.
-            hushed = run('--quiet', 'install', str(Path(tmp) / 's2'))
-            self.assertEqual(hushed.returncode, 0, hushed.stderr)
-            self.assertIn('deprecated', hushed.stderr)
+        self.assertEqual(
+            sorted(lwp._RETIRED_SPELLINGS),
+            ['check', 'install', 'refresh-templates', 'series-info',
+             'set-theme', 'theme-info', 'themes', 'themes-gallery'],
+            'a retired spelling was added or removed without a case here')
+        for spelling, sentence in sorted(lwp._RETIRED_SPELLINGS.items()):
+            with tempfile.TemporaryDirectory() as tmp:
+                r = run(spelling, cwd=tmp)
+                self.assertEqual(r.returncode, 1, f'{spelling}: {r.stdout}')
+                self.assertIn('is not a command', r.stderr, spelling)
+                self.assertEqual(sorted(Path(tmp).iterdir()), [],
+                                 f'{spelling} still did something')
+                # Every command the message names must be one the tool
+                # answers to. A refusal that recommends a second refusal
+                # is worse than the alias it replaced.
+                for named in re.findall(r'`lightwebpres ([a-z ]+?)[`<]',
+                                        sentence):
+                    helped = run(*named.split(), '--help')
+                    self.assertEqual(helped.returncode, 0,
+                                     f'{spelling} recommends `{named}`, '
+                                     f'which the tool refuses: {helped.stderr}')
 
     def test_quiet_suppresses_progress_and_keeps_warnings(self):
         """--quiet was exactly inverted, in the direction that matters
@@ -2346,7 +2285,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             root = scaffold(tmp, _MINIMAL_MD)
             answers = (
                 ('resolve', str(root), 'page_title', '--article', 'a.md'),
-                ('series-info', str(root), '--format', 'json'),
+                ('status', str(root), '--format', 'json'),
                 ('theme', 'show', 'nord'),
                 ('theme', 'list'),
                 ('audit', str(root)),
@@ -3449,7 +3388,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
     def test_completion_stays_in_sync_with_command_tables(self):
         """The completion script is generated from _SHORTCUTS,
-        _LEGACY_ALIASES, _SERIES_VERBS, _THEME_VERBS, _TEMPLATE_VERBS and
+        _SERIES_VERBS, _THEME_VERBS, _TEMPLATE_VERBS and
         _COMMAND_OPTIONS. A command or option added to those tables and
         not to the script must fail here, so an evolution of the CLI
         cannot silently break completion.
@@ -3470,8 +3409,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         script = run('completion', '--shell', 'bash').stdout
         self.assertEqual(
             sorted(self._complete(script, ['lightwebpres', ''], 1)),
-            sorted(set(lwp._SHORTCUTS) | set(lwp._LEGACY_ALIASES)
-                   | {'series', 'theme', 'template'}),
+            sorted(set(lwp._SHORTCUTS) | {'series', 'theme', 'template'}),
             'the root command list is not what the tables say')
         all_opts = set(lwp._VALUE_OPTIONS) | set(lwp._GLOBAL_OPTIONS)
         for opts in lwp._COMMAND_OPTIONS.values():
@@ -3563,8 +3501,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         lwp = load_lightwebpres_module()
         keys = (set(lwp._SHORTCUTS.values()) | set(lwp._SERIES_VERBS.values())
                 | set(lwp._THEME_VERBS.values())
-                | set(lwp._TEMPLATE_VERBS.values())
-                | set(lwp._LEGACY_ALIASES.values()))
+                | set(lwp._TEMPLATE_VERBS.values()))
         self.assertEqual(sorted(keys - set(lwp._COMMAND_OPTIONS)), [])
         self.assertEqual(sorted(keys - set(lwp._MAX_POSITIONAL)), [])
         # And every canonical name is a form the dispatcher accepts:
@@ -8228,8 +8165,16 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         return ground
 
     def _report(self, *args):
-        """theme-info's JSON, through the CLI, as the GUI would get it."""
-        result = run('theme-info', *args, '--format', 'json')
+        """The theme report's JSON, through the CLI, as the GUI gets it.
+
+        Two commands produce it and the caller says which by what it
+        passes: a slug reads the catalogue (`theme show`), a directory
+        reads a series (`series theme`). They were one verb once and the
+        directory form of `theme show` is refused now, so the split is
+        made here rather than left to a command that no longer guesses."""
+        reads_a_series = bool(args) and Path(args[0]).is_dir()
+        verb = ('series', 'theme') if reads_a_series else ('theme', 'show')
+        result = run(*verb, *args, '--format', 'json')
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
@@ -8331,7 +8276,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
             self.assertEqual(pair['required'], 4.5)
             self.assertLess(pair['ratio'], 4.5)
         # And the text format carries the same evidence, not just a word.
-        text = run('theme-info', 'nord')
+        text = run('theme', 'show', 'nord')
         self.assertEqual(text.returncode, 0, text.stderr)
         self.assertIn('verdict.yes.fg', text.stdout)
         self.assertRegex(text.stdout, r'Body text\s+fail')
@@ -8403,7 +8348,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
             custom.write_text(custom.read_text(encoding='utf-8')
                               + '\n.slide { color: red; }\n', encoding='utf-8')
             self.assertTrue(self._report(str(root))['target']['custom_css'])
-            self.assertIn('NOT', run('theme-info', str(root)).stdout)
+            self.assertIn('NOT', run('series', 'theme', str(root)).stdout)
 
     # --- the JSON contract with lightwebpres-gui (§1.2, §11.9.1) ---
 
@@ -8491,7 +8436,7 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
         rejected and list what is accepted. Answering "no such theme" and
         stopping would send a reader hunting for something that exists, a
         typo away."""
-        result = run('theme-info', 'nrod')
+        result = run('theme', 'show', 'nrod')
         self.assertEqual(result.returncode, 1)
         self.assertIn('nrod', result.stderr)
         self.assertEqual(result.stdout, '')
@@ -8505,18 +8450,40 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
 
     def test_a_directory_that_was_never_installed_points_at_init(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = run('theme-info', tmp)
+            result = run('series', 'theme', tmp)
             self.assertEqual(result.returncode, 1)
             self.assertIn('init', result.stderr)
 
+    def test_theme_show_refuses_a_directory_and_names_the_series_reading(self):
+        """`theme show <dir>` was the last shape of the old `theme-info`,
+        which read the catalogue and a series with one verb. The two are
+        not the same question, and a form kept working for compatibility
+        is a form people keep learning — so it is refused, and the refusal
+        names `series theme`.
+
+        `theme show` with NO argument inside a series still reads that
+        series: that is not the inherited form, it is the habit every
+        other command already follows."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 's'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            refused = run('theme', 'show', str(root))
+            self.assertEqual(refused.returncode, 1)
+            self.assertIn('series theme', refused.stderr)
+            named = run('series', 'theme', str(root))
+            self.assertEqual(named.returncode, 0, named.stderr)
+            standing = run('theme', 'show', cwd=str(root))
+            self.assertEqual(standing.returncode, 0, standing.stderr)
+            self.assertEqual(standing.stdout, named.stdout)
+
     def test_an_unknown_format_is_a_named_error(self):
-        result = run('theme-info', 'nord', '--format', 'yaml')
+        result = run('theme', 'show', 'nord', '--format', 'yaml')
         self.assertEqual(result.returncode, 1)
         self.assertIn('text', result.stderr)
         self.assertIn('json', result.stderr)
 
     def test_the_command_takes_no_option_it_does_not_own(self):
-        result = run('theme-info', 'nord', '--theme', 'graphite')
+        result = run('theme', 'show', 'nord', '--theme', 'graphite')
         self.assertEqual(result.returncode, 1)
         self.assertIn('Unknown option', result.stderr)
 
@@ -8707,7 +8674,11 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             for name, executable in (('before', before_exe),
                                      ('after', EXECUTABLE)):
                 root = Path(tmp) / name
-                for step in (['install', str(root), '--theme', 'pop-lemon'],
+                # `init`, not the `install` this used to type: the
+                # spelling was retired, and the guard runs the CURRENT
+                # executable as well as the tagged one. Both accept
+                # `init`, which is what the canonical form is for.
+                for step in (['init', str(root), '--theme', 'pop-lemon'],
                              ['demo', str(root)]):
                     done = subprocess.run(
                         [sys.executable, str(executable), *step],
@@ -9189,11 +9160,12 @@ class ThemesCommand(unittest.TestCase):
             bare = run('theme', 'show', cwd=str(root))
             self.assertEqual(bare.returncode, 0, bare.stderr)
             self.assertIn('effective theme', bare.stdout)
-            # And it is the same answer the explicit forms give.
-            named = run('theme', 'show', str(root))
-            self.assertEqual(named.stdout, bare.stdout)
+            # And it is the same answer the command that owns the series
+            # reading gives, from inside and by name alike.
             canonical = run('series', 'theme', cwd=str(root))
             self.assertEqual(canonical.stdout, bare.stdout)
+            named = run('series', 'theme', str(root))
+            self.assertEqual(named.stdout, bare.stdout)
 
     def test_a_slug_still_wins_over_the_series_you_are_standing_in(self):
         """The default may not shadow the command's own subject. Standing
@@ -15436,7 +15408,7 @@ class RegressionFixes(unittest.TestCase):
             r1 = run('build', str(root), '--no-nav',
                      '--output', str(root / 'public'))
             self.assertEqual(r1.returncode, 0, r1.stderr)
-            r2 = run('check', str(root), '--no-nav',
+            r2 = run('verify', str(root), '--no-nav',
                      '--output', str(root / 'public'))
             self.assertEqual(r2.returncode, 0, r2.stderr)
             self.assertNotIn('[DRIFT]', r2.stdout + r2.stderr)

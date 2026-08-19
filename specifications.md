@@ -4308,10 +4308,12 @@ série » répondrait à une question qui n'a pas été posée.
 **La cible « répertoire » explicite a sa propre commande.** `series theme
 [répertoire]` est la forme canonique — elle vit sous le nœud `series`,
 avec les autres commandes qui interrogent une série, et porte le même
-`--format`. `theme show [répertoire]` continue de fonctionner et donne le
-même résultat, mais c'est la **forme héritée** de l'époque où la commande
-s'appelait `theme-info` ; elle est conservée jusqu'à la prochaine MAJEURE
-(§11.16).
+`--format`. `theme show <répertoire>` était la **forme héritée** de
+l'époque où la commande s'appelait `theme-info` et faisait les deux
+métiers ; elle est **refusée**, et le refus nomme `series theme` (§11.16).
+`theme show` sans argument, dans une série, continue de lire cette
+série : ce n'est pas la forme héritée mais l'habitude que toutes les
+autres commandes suivent déjà.
 
 Les formes ne se mélangent pas. Un répertoire de série **et** des slugs
 dans le même lancement est une erreur fatale : les deux demandent des
@@ -5036,23 +5038,36 @@ avec la version en cours.
 
 ### 11.16 Alias legacy
 
-Les anciens noms de commandes restent acceptés pendant une version
-MAJEURE complète, avec un `[WARNING]` sur stderr nommant le nouveau forme :
+Les anciens noms ne sont **plus des commandes**. Ils ne sont ni proposés
+par la complétion, ni nommés par `--help`, ni écrits dans aucun document.
+Ils sont **refusés**, et le refus nomme la forme à taper :
 
-| Ancien nom | Nouveau forme |
+| Orthographe retirée | Ce qu'il faut taper |
 |---|---|
 | `install` | `init` |
 | `check` | `verify` |
 | `refresh-templates` | `template update` |
 | `themes` | `theme list` |
-| `theme-info` | `theme show <slug>` (ou `series theme <dir>`) |
+| `theme-info` | `theme show <slug>` pour le catalogue, `series theme [rép]` pour une série |
 | `set-theme` | `series theme set` |
 | `themes-gallery` | `theme gallery` |
 | `series-info` | `status` |
 
-Un test automatique vérifie que chaque alias émet le `[WARNING]` et
-exécute la commande canonique. Les alias seront retirés à la prochaine
-version MAJEURE (§13.9).
+**Refusé plutôt qu'inconnu**, parce que ce ne sont pas le même service :
+un jeton inconnu imprime toute l'aide et laisse le lecteur trouver le mot
+lui-même ; ici on le lui donne. C'est la forme du refus de `theme set`,
+qui a toujours fonctionné ainsi.
+
+Ils étaient auparavant des alias dépréciés : un `[WARNING]`, puis la
+commande s'exécutait. C'est un plus mauvais professeur qu'un refus. La
+complétion les proposait, si bien qu'un lecteur qui découvrait le CLI
+rencontrait `install` à côté de `init` sans rien pour dire lequel des
+deux était le bon ; et une commande qui fonctionne après avoir râlé est
+une commande qu'on continue de taper.
+
+Un test parcourt la table : chaque orthographe doit être refusée, ne rien
+écrire, et nommer un remplaçant que l'outil accepte réellement — vérifié
+en le lançant, ce qu'aucune orthographe retirée ne survit.
 
 ---
 
@@ -5601,11 +5616,10 @@ la section, jamais en la croyant sur parole.
   séparés par langue, `fr` et `en` intégrés par défaut, `en` en repli ultime ✓
 - **Édition par LLM** : format Markdown lisible et modifiable ✓
 - **Exécutable unique** : un seul fichier Python, pas de dépendance externe ✓
-- **Commandes séparées** ✓ — les noms courants se lisent à `--help`, qui
-  les dérive des tables d'options ; ils ne sont pas recopiés ici, et
-  quatre des sept qui l'étaient (`install`, `check`, `refresh-templates`,
-  `themes-gallery`) sont devenus des alias dépréciés sans que la ligne
-  suive (§11.16)
+- **Commandes séparées** ✓ — les noms se lisent à `--help`, qui les dérive
+  des tables d'options ; ils ne sont pas recopiés ici. Cette ligne en a
+  recopié quatre autrefois, et n'a pas suivi quand ils ont cessé d'être
+  des commandes (§11.16) : une liste recopiée est une liste qui dérive
 - **Variables d'environnement** : `LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, etc. ✓
 - **Override** : `settings.conf`/`custom.css`/`nav.js` et le fichier de
   langue sont éditables (§9, §7) ; la structure HTML des pages ne l'est

@@ -339,11 +339,12 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
 | `--format json` | `resolve`, `status`, `theme show`, `series theme` | machine-readable output |
 
-Legacy command names (`install`, `check`, `themes`, `theme-info`,
-`set-theme`, `series-info`, `refresh-templates`, `themes-gallery`) remain
-usable as aliases and print a `[WARNING]` on stderr pointing to the new name;
-they are kept for existing scripts and will be dropped in a later major
-version.
+The spellings this tool used before the CLI was reorganised — `install`,
+`check`, `themes`, `theme-info`, `set-theme`, `series-info`,
+`refresh-templates`, `themes-gallery` — are not commands. Typing one is an
+error that names what to type instead. They were deprecated aliases that
+warned and then worked, which taught the old spelling as readily as the
+new one.
 
 ## Slide types
 

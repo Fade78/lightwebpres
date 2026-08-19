@@ -323,7 +323,7 @@ class ThemesGalleryFacets(unittest.TestCase):
             gallery = Path(tmp) / 'themes-gallery.html'
             generated = subprocess.run(
                 [sys.executable, str(REPO_ROOT / 'lightwebpres'),
-                 'themes-gallery', str(gallery)],
+                 'theme', 'gallery', str(gallery)],
                 capture_output=True, text=True, timeout=60,
             )
             self.assertEqual(generated.returncode, 0,
@@ -355,7 +355,7 @@ class GalleryPanelsShowWhatTheyName(unittest.TestCase):
             gallery = Path(tmp) / 'themes-gallery.html'
             generated = subprocess.run(
                 [sys.executable, str(REPO_ROOT / 'lightwebpres'),
-                 'themes-gallery', str(gallery)],
+                 'theme', 'gallery', str(gallery)],
                 capture_output=True, text=True, timeout=120,
             )
             self.assertEqual(generated.returncode, 0,
