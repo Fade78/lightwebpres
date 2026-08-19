@@ -1808,7 +1808,18 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
         It cannot fire before the tag exists: nothing can know which
         number the owner will choose. It fires on the first run after the
-        tag, which is the earliest moment the answer is knowable."""
+        tag, which is the earliest moment the answer is knowable.
+
+        Local refs, and that is a real limit rather than a detail: a clone
+        that has not fetched cannot see a tag the owner has just pushed,
+        and this test is silent for exactly as long as that lasts. It
+        happened -- v0.42.1 was cut and the tree kept announcing 0.42.1
+        through six further commits with a green suite, because the clone
+        those commits were written in had never fetched the tag. So
+        `git fetch --tags` belongs to cutting a release, before the suite
+        is believed. Reading the remote here instead would put a network
+        call in a unit test and make it fail where there is no network,
+        which is a worse trade than a documented blind spot."""
         root = Path(__file__).resolve().parent.parent
         def git(*args):
             return subprocess.run(['git', '-C', str(root), *args],
