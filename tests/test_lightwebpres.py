@@ -1781,6 +1781,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(),
                          f'LightWebPres v{lwp.VERSION}')
+        # Version is not buried in help: --version prints only the version.
+        self.assertNotIn('COMMANDS', result.stdout)
 
     def test_the_number_the_tool_says_is_the_number_it_was_released_as(self):
         """The test above asks whether the tool agrees with itself, which
@@ -1840,8 +1842,6 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 f'{tag} is already released under that number or a later '
                 f'one. An unreleased number is fine; a released one is a '
                 f'second thing claiming to be the first')
-        # Version is not buried in help: --version prints only the version.
-        self.assertNotIn('COMMANDS', result.stdout)
 
     def test_help_contains_version_in_header(self):
         result = run('--help')
