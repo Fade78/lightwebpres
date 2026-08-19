@@ -5209,6 +5209,99 @@ build(répertoire):
   # ne construit que les articles `status: draft`.
 ```
 
+### 12.1.1 Attribution des identités de fiche
+
+Ce que porte une fiche dans une URL — et ce que vise un lien partagé, ou
+un **QR code imprimé**, après que l'article a été modifié.
+
+C'était le rang de la fiche (`s1`, `s2`…). Toute insertion, tout
+réordonnancement, tout `tags: excluded` repointait donc chaque lien
+suivant, en silence. Mesuré sur une page de quatre fiches filtrée :
+`s1 s2 s3 s4` devient `s1 s2 s3`, et le lecteur qui suit un lien vers
+`#s4` n'arrive nulle part. Sur papier, c'est irréversible.
+
+**L'identité est dérivée de ce que l'auteur a écrit**, jamais de l'endroit
+où la fiche se trouve. Cinq règles, dans cet ordre :
+
+1. `slug:` sur la fiche — le mot de l'auteur, et la seule identité qu'il
+   contrôle entièrement.
+2. Une fiche `series-nav` prend le nom fixe `series-nav` (au plus une par
+   article, §22.13).
+3. Une fiche `full-article` prend le hachage de son fichier `article:` —
+   une page peut en porter plusieurs et aucune n'a de titre, donc le
+   fichier qu'elle nomme est ce qui les distingue (§22.8).
+4. Une fiche titrée prend le hachage de son titre (`#` pour une cover,
+   `##` sinon).
+5. À défaut, le rang — dernier recours et non défaut.
+
+**Le hachage** est un SHA-256 tronqué à 8 caractères hexadécimaux. La
+longueur est une mesure, pas un goût : le QR de partage, au niveau de
+correction M, change de capacité à 43, 63, 85 et 107 caractères d'URL, et
+une identité de 6 comme de 8 hexadécimaux tient dans la version 4 —
+33 modules de côté. La plus large ne coûte rien.
+
+**La normalisation** précède le hachage, pour que deux façons d'écrire le
+même titre donnent la même identité : NFKC, puis `casefold()`, puis
+repli des marques combinantes **sur base latine seulement**, puis
+réduction des suites d'espaces. Ainsi la casse, les espaces multiples, les
+formes pleine chasse, les ligatures et l'insécable que le moteur
+typographique insère avant un deux-points se replient tous — ce dernier
+point évitant d'avoir à spécifier de quel côté du moteur l'identité est
+prise. Le repli est restreint au latin parce que « enlever les accents »
+est une consigne de locuteur latin : elle transforme हिन्दी en हिनदी, qui
+n'est pas un mot, et fait de même à l'arabe et à l'hébreu vocalisés. Le
+vietnamien reste exposé — c'est de l'écriture latine et ses marques sont
+des lettres, donc `má` et `ma` se rejoignent : c'est le coût assumé, et
+c'est précisément ce que le rapport de collision sert à signaler.
+
+**Préfixe.** `slug_prefix:` (bloc meta de l'article, ou `series_meta`,
+même cascade qu'`author`) précède **toutes** les identités de la page,
+déclarées comme dérivées. Un préfixe qui ne couvrirait que la moitié
+d'entre elles ne serait pas un espace de noms mais une décoration :
+l'auteur ne saurait pas, sans vérifier fiche par fiche, lesquelles le
+portent.
+
+**Unicité.** L'ensemble des identités déjà prises démarre aux `id` du
+squelette de page (dont `notes`, forgé par le rendu et non écrit dans le
+gabarit) et court sur toute la page. Deux fiches qui atterrissent sur la
+même identité sont séparées par un suffixe `-2`, `-3`, dans l'ordre du
+document — déterministe, donc deux builds de sources inchangées
+s'accordent — et le build le **signale** : deux fiches sur une identité
+signifie presque toujours deux fiches de même titre, ce que seul l'auteur
+peut arbitrer.
+
+**Charset.** Un `slug:` et un `slug_prefix:` doivent commencer par une
+lettre ou un chiffre, puis ne contenir que lettres, chiffres, `-`, `_` et
+`.`. Autre chose est une erreur fatale : la valeur devient un `id`, un
+fragment d'URL et la queue d'un QR imprimé, et rien d'autre ne survit aux
+trois. Une identité dérivée est hexadécimale et ne peut pas échouer ce
+contrôle ; seul ce que l'auteur écrit à la main est vérifié.
+
+**L'alias.** Chaque fiche dont l'identité diffère de son rang porte en
+plus un `<span id="sN"></span>` vide. Tous les liens déjà partagés disent
+`sN` et aucun ne peut être rappelé — celui qui est imprimé moins que tout
+autre. L'élément est vide, sans style et sans boîte propre : mesuré, un
+élément sans boîte de rendu (`display: none`, `hidden`) **n'est pas** une
+cible de fragment, l'alias doit donc être un élément réel. Il n'est pas
+émis quand l'identité *est* le rang, sans quoi la page porterait deux fois
+le même `id` et le lecteur arriverait sur celui que le navigateur choisit.
+
+Côté navigateur, `applyHash` accepte l'alias comme la fiche elle-même — y
+compris quand la fiche est masquée par le filtre de tags du lecteur, cas
+que le saut natif ne peut pas traiter puisqu'une fiche filtrée n'a pas de
+boîte — puis l'URL est **canonicalisée** vers l'identité durable : le
+lecteur arrive par l'ancien nom et repart avec le nouveau.
+
+**Les notes** suivent la fiche : la localité d'une note est l'identité de
+sa fiche, pas son rang, donc l'ancre d'une note se déplace avec la fiche
+comme le fait celle de la fiche elle-même.
+
+**Ce que la fiche `series-nav` a gagné.** Elle porte désormais la classe
+`slide-series-nav`. Le bouton de partage lisait le type dans la *forme* de
+l'`id` (`/^s\d+$/`, que `sN-series` ne satisfaisait pas) ; une identité
+dérivée de ce que l'auteur a écrit ne dit rien du type, donc le type
+s'écrit.
+
 ### 12.2 Parseur Markdown étendu
 
 ```

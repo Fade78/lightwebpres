@@ -8373,6 +8373,240 @@ class SlideIdentityIsDerivedFromWhatTheAuthorWrote(unittest.TestCase):
                          self.lwp.identity_hash('Pourquoi ce format'))
 
 
+class TheIdentityReachesThePageAndOldLinksStillLand(unittest.TestCase):
+    """§12.1.1, the rendering half. The engine has its own class above and
+    is tested without building anything; this one is about what a reader's
+    browser actually receives.
+
+    Two promises, and they pull against each other. The new one: a card's
+    id survives an edit, so a link shared today still points at the same
+    card tomorrow. The old one: every link ALREADY shared says `sN`, and
+    those were minted by a tool that promised nothing — they still have to
+    land. An empty `<span id="sN">` inside the section carries the second
+    while the section's own id carries the first."""
+
+    PAGE = (
+        '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+        'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+        '<!-- lwp:slide:cover -->\nkicker: K\n# Pourquoi ce format\n'
+        'summary: S\n\n---\n\n'
+        '<!-- lwp:slide -->\n## Le tableau\nsummary: s\nfact-label: F\n\n'
+        'Un corps avec une note[^n].\n\n[^n]: la note.\n\n---\n\n'
+        '<!-- lwp:slide -->\nslug: mon-ancre\n## Une fiche nommee\n'
+        'summary: s\n\n---\n\n'
+        '<!-- lwp:slide:series-nav -->\ntags: default\n\n---\n\n'
+        '<!-- lwp:slide:full-article -->\narticle: fond.md\n'
+    )
+
+    def _build(self, extra='', page=None):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, (page or self.PAGE).format(extra=extra))
+        (root / 'articles' / 'fond.md').write_text('# Le fond\n', encoding='utf-8')
+        made = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(made.returncode, 0, made.stderr)
+        html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        return html, made
+
+    def _sections(self, html):
+        return re.findall(r'<section class="([^"]*)" id="([^"]*)"', html)
+
+    def test_every_source_of_identity_reaches_the_section_it_named(self):
+        html, _ = self._build()
+        classes_and_ids = self._sections(html)
+        self.assertEqual(len(classes_and_ids), 5, classes_and_ids)
+        ids = [i for _c, i in classes_and_ids]
+        # Declared, and untouched.
+        self.assertIn('mon-ancre', ids)
+        # The fixed name for the generated list, on a section that now says
+        # its own type — the share button used to read the type off the id.
+        self.assertIn('series-nav', ids)
+        self.assertIn('slide-series-nav',
+                      ' '.join(c for c, _i in classes_and_ids).split())
+        # The derived ones are hashes: opaque, and none of them a rank.
+        derived = [i for i in ids if i not in ('mon-ancre', 'series-nav')]
+        self.assertEqual(len(derived), 3, ids)
+        for value in derived:
+            self.assertRegex(value, r'\A[0-9a-f]{8}\Z')
+        self.assertEqual(len(set(ids)), len(ids), f'two cards share an id: {ids}')
+
+    def test_a_link_shared_before_this_change_still_lands(self):
+        """The alias, and the reason the whole scheme is publishable. A
+        reader's bookmark, a printed QR code and every link already sent
+        say `sN`; none of them can be recalled."""
+        html, _ = self._build()
+        for ordinal in range(1, 6):
+            self.assertIn(f'<span id="s{ordinal}"></span>', html,
+                          f'the rank s{ordinal} no longer names anything')
+
+    def test_a_card_that_kept_its_rank_is_not_given_the_name_twice(self):
+        """A card with nothing to derive from falls back to its rank, so
+        the section already IS `sN`. Emitting the alias as well would put
+        two elements with one id in the document, and the reader following
+        the link arrives at whichever the browser picks."""
+        page = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+                '<!-- lwp:slide -->\nsummary: pas de titre\n')
+        html, _ = self._build(page=page)
+        self.assertIn('id="s1"', html)
+        self.assertNotIn('<span id="s1"></span>', html)
+
+    def test_moving_a_card_moves_its_rank_and_not_its_identity(self):
+        """Stated on its own, because it is the whole point: the same card
+        at another rank is the same card, and the alias is what moved."""
+        first, _ = self._build()
+        named = [i for _c, i in self._sections(first) if i == 'mon-ancre']
+        self.assertEqual(named, ['mon-ancre'])
+        tabled = [i for _c, i in self._sections(first)][1]
+
+        # The same page with one card inserted before them all.
+        moved = self.PAGE.replace(
+            '<!-- lwp:slide:cover -->',
+            '<!-- lwp:slide -->\n## Une fiche ajoutee\nsummary: s\n\n---\n\n'
+            '<!-- lwp:slide:cover -->', 1)
+        after, _ = self._build(page=moved)
+        after_ids = [i for _c, i in self._sections(after)]
+        self.assertIn('mon-ancre', after_ids)
+        self.assertIn(tabled, after_ids,
+                      'inserting a card ahead of it changed a card\'s identity')
+
+    def test_a_notes_anchor_travels_with_the_card_it_belongs_to(self):
+        html, _ = self._build()
+        anchors = re.findall(r'id="(note-[^"]+)"', html)
+        self.assertTrue(anchors, 'the page carries no note anchor to check')
+        ids = [i for _c, i in self._sections(html)]
+        self.assertTrue(
+            any(a.startswith(f'note-{i}-') for a in anchors for i in ids),
+            f'no note anchor is named after a card: {anchors} / {ids}')
+
+    def test_the_prefix_cascades_from_the_series_and_the_article_wins(self):
+        html, _ = self._build()
+        self.assertFalse([i for _c, i in self._sections(html)
+                          if i.startswith('chap-')], 'a prefix appeared unasked')
+
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, self.PAGE.format(extra=''))
+        (root / 'articles' / 'fond.md').write_text('# Le fond\n', encoding='utf-8')
+        data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+        data['series_meta'] = {'slug_prefix': 'serie-'}
+        (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+        made = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(made.returncode, 0, made.stderr)
+        from_series = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        for _c, value in self._sections(from_series):
+            self.assertTrue(value.startswith('serie-'), value)
+
+        # And the article's own line wins over the series' — the common
+        # case is one prefix for a whole series, the exception is one
+        # article inside it wanting another.
+        (root / 'articles' / 'a.md').write_text(
+            self.PAGE.format(extra='slug_prefix: article-\n'), encoding='utf-8')
+        made = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(made.returncode, 0, made.stderr)
+        overridden = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+        for _c, value in self._sections(overridden):
+            self.assertTrue(value.startswith('article-'), value)
+
+    def test_an_unusable_slug_is_refused_rather_than_published(self):
+        """It becomes an id, a fragment and the tail of a printed QR code.
+        A space or a quote does not survive all three, and publishing it
+        anyway would put the failure in the reader's hands."""
+        for bad in ('a b', 'a"b', '-lead', 'accentué'):
+            page = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                    'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+                    f'<!-- lwp:slide -->\nslug: {bad}\n## Titre\nsummary: s\n')
+            with tempfile.TemporaryDirectory() as tmp:
+                root = scaffold(tmp, page.format(extra=''))
+                made = run('build', str(root), '--output', str(root / 'public'))
+                self.assertNotEqual(made.returncode, 0, f'{bad!r} was accepted')
+                self.assertIn('slug', made.stderr)
+
+    def test_an_unusable_prefix_is_refused_too(self):
+        page = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+                '<!-- lwp:slide -->\n## Titre\nsummary: s\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, page.format(extra='slug_prefix: deux mots\n'))
+            made = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(made.returncode, 0)
+            self.assertIn('slug_prefix', made.stderr)
+
+    def test_two_cards_on_one_identity_are_separated_and_the_author_told(self):
+        page = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+                '<!-- lwp:slide -->\n## Le tableau\nsummary: s\n\n---\n\n'
+                '<!-- lwp:slide -->\n## LE TABLEAU\nsummary: s\n')
+        html, made = self._build(page=page)
+        ids = [i for _c, i in self._sections(html)]
+        self.assertEqual(len(set(ids)), 2, ids)
+        self.assertEqual(ids[1], ids[0] + '-2')
+        self.assertIn('WARNING', made.stdout + made.stderr)
+
+    def test_audit_names_an_anchor_that_will_not_survive_an_edit(self):
+        """The one finding `audit` adds that a build does not. A card with
+        no title, no `article:` and no `slug:` falls back to its rank — the
+        one identity the whole scheme exists to stop being durable — and
+        only the authoring tool is in a position to say so before the link
+        is shared."""
+        page = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+                '<!-- lwp:slide -->\nsummary: pas de titre\n')
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, page.format(extra=''))
+        report = run('audit', str(root))
+        self.assertEqual(report.returncode, 0, report.stderr)
+        self.assertIn('nothing to derive an anchor from',
+                      report.stdout + report.stderr)
+
+        # And it stays quiet about a card that has one, or the warning
+        # would be a standing complaint on every ordinary series.
+        titled = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                  'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+                  '<!-- lwp:slide -->\n## Un titre\nsummary: s\n')
+        # `scaffold` returns the temporary directory ITSELF, not something
+        # inside it. Cleaning up `.parent` here deleted /tmp — measured,
+        # the hard way, when every other test in the suite started failing
+        # with ENOENT on a path it had just been given.
+        other = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, other, True)
+        root2 = scaffold(other, titled.format(extra=''))
+        quiet = run('audit', str(root2))
+        self.assertNotIn('nothing to derive an anchor from',
+                         quiet.stdout + quiet.stderr)
+
+    def test_slug_prefix_is_a_meta_field_the_tool_admits_to(self):
+        """`audit` refuses meta keys it does not know, so a field wired
+        into the build and missing from that vocabulary is reported to the
+        author as a mistake of theirs. Measured: it was."""
+        page = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\nslug_prefix: chap1-\n---\n\n'
+                '<!-- lwp:slide -->\n## Un titre\nsummary: s\n')
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = scaffold(tmp, page)
+        report = run('audit', str(root))
+        self.assertNotIn('slug_prefix', report.stdout + report.stderr)
+
+    def test_a_slug_line_is_read_rather_than_swallowed(self):
+        """The defect this caught: `slug:` matched the field regex, fell
+        through a dispatch chain that had no branch for it, and vanished —
+        neither set nor published as text. A silent no-op, which is the
+        one failure mode this tool's whole error discipline exists to
+        refuse. Asserted on both parsing branches, because the two slide
+        families are read by two different loops."""
+        page = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n{extra}---\n\n'
+                '<!-- lwp:slide -->\nslug: sur-une-standard\n## Titre\n'
+                'summary: s\n\n---\n\n'
+                '<!-- lwp:slide:series-nav -->\nslug: sur-une-nav\n')
+        html, _ = self._build(page=page)
+        ids = [i for _c, i in self._sections(html)]
+        self.assertEqual(ids, ['sur-une-standard', 'sur-une-nav'], ids)
+        self.assertNotIn('slug:', html, 'the field was published as text')
+
+
 class MeasurementReportsItDoesNotPolice(unittest.TestCase):
     """§9.5 / §11.9.1. The tool measures a theme's contrast and prints the
     level with the offending pairs. It stops there. No palette value is
@@ -9135,6 +9369,41 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 page = re.sub(rb'(<script\b[^>]*>)(.*?)(</script>)',
                               rb'\1[script]\3', page,
                               flags=re.IGNORECASE | re.DOTALL)
+                # And a card's IDENTITY, replaced by its position. Same
+                # reasoning as the script above, and forced by the same
+                # arithmetic: a card's id stopped being its rank and became
+                # a hash of what the author wrote (§12.1.1), which moved
+                # 132 lines across four pages — the section's own id, every
+                # navigation dot's href, every note anchor and every return
+                # link. Declaring 132 lines is not a declaration anyone can
+                # read, and a guard nobody reads is a guard nobody trusts.
+                #
+                # Not a blind spot, and the substitute is stronger than
+                # what it replaces: `TheIdentityReachesThePageAndOldLinks
+                # StillLand` asserts every rule the identity follows, on
+                # every build rather than against one tagged release, and
+                # `test_every_id_in_the_page_is_unique` catches the one
+                # thing a positional marker could hide — two cards given
+                # one name — before this normalisation ever runs.
+                #
+                # What survives here is the STRUCTURE: a dot still has to
+                # point at the card it belongs to, a note body still has to
+                # be named after its card, and any of that coming apart
+                # still shows up as a diff, because the marker is the
+                # card's position and every reference is rewritten with it.
+                #
+                # Rewritten only where the value is an ANCHOR, never as a
+                # bare string. Measured: the series-nav's identity is the
+                # word `series-nav`, and a blunt replace turned every
+                # `--series-nav-current-bg` in the stylesheet into a
+                # marker — a normalisation that quietly eats the thing it
+                # is meant to leave alone.
+                for index, value in enumerate(
+                        re.findall(rb'<section class="[^"]*" id="([^"]+)"', page)):
+                    page = re.sub(
+                        rb'(id="|href="#)((?:note-|noteref-)?)'
+                        + re.escape(value) + rb'(?=["-])',
+                        rb'\1\2[slide-%d]' % index, page)
                 # A navigation button is reduced to its identity. What it
                 # contains is an icon and what it carries is a TRANSLATED
                 # title, and comparing the two together as bytes makes a
@@ -9223,12 +9492,30 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             gone = {          # lines the OLD page had and the new one does not
                 b'@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }',
                 b'@media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }',
+                b'<section class="slide" id="[slide-2]" data-tags="default">',
                 b'@media (pointer: coarse) { .nav-dots.idle { opacity: 1; } }',
                 b'@media (pointer: coarse) { .slide-counter.idle { opacity: 1; } }',
             }
             arrived = {       # lines the NEW page has and the old one did not
                 b'@media (pointer: coarse) { .nav-buttons.idle, .nav-dots.idle,'
                 b' .slide-counter.idle { pointer-events: none; } }',
+                # The rank alias. A card's id is now derived from what the
+                # author wrote, so an empty span carries the `sN` name every
+                # link already shared still says — including the ones on
+                # paper, which is why they cannot simply be let go. Four
+                # lines because the demo's longest page has four cards; a
+                # declared line strips every occurrence, so these cover all
+                # four pages at once.
+                b'<span id="s1"></span>',
+                b'<span id="s2"></span>',
+                b'<span id="s3"></span>',
+                b'<span id="s4"></span>',
+                # And the class that now carries the series-nav's TYPE.
+                # The share button used to read the type off the id, which
+                # happened to end in `-series`; an identity derived from
+                # what the author wrote says nothing about type, so the
+                # type had to be written down.
+                b'<section class="slide slide-series-nav" id="[slide-2]" data-tags="default">',
             }
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
@@ -9300,8 +9587,17 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # excused: a line named `gone` that the new page still carries
             # was not removed, and one named `arrived` that it does not
             # carry was never added.
-            after_all = b'\n'.join(outputs[1].values())
-            before_all = b'\n'.join(outputs[0].values())
+            # Compared against the NORMALISED pages, not the raw ones.
+            # The tables declare lines of the text this test actually
+            # compares, and once a card's identity is rewritten to its
+            # position the two are no longer the same string — a
+            # declaration naming `[slide-2]` would be refused as stale
+            # while describing a real, present line. Measured, on exactly
+            # that line.
+            after_all = b'\n'.join(without_css_comments(page)
+                                   for page in outputs[1].values())
+            before_all = b'\n'.join(without_css_comments(page)
+                                    for page in outputs[0].values())
             for line in gone:
                 self.assertNotIn(line, after_all,
                                  f'{line.decode()!r} is declared gone and the '
@@ -14166,12 +14462,24 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return (root / 'public' / 'a.html').read_text(encoding='utf-8')
 
+    def _card_ids(self, html):
+        """The cards' own ids, in document order.
+
+        A note's locality is the card's IDENTITY (§12.1.1), not its rank,
+        so these tests ask the page what its cards are called rather than
+        assuming `sN`. That assumption is the very thing the identity work
+        removed: inserting a card ahead of another used to move every note
+        anchor after it, and a test that hard-codes the rank would go on
+        passing through exactly that breakage."""
+        return re.findall(r'<section class="[^"]*" id="([^"]+)"', html)
+
     def test_the_call_and_the_body_point_at_each_other(self):
         html = self._build()
-        self.assertIn('<a id="noteref-s2-1" href="#note-s2-1" '
+        two = self._card_ids(html)[1]
+        self.assertIn(f'<a id="noteref-{two}-1" href="#note-{two}-1" '
                       'role="doc-noteref">1</a>', html)
-        self.assertIn('<li id="note-s2-1" role="doc-footnote">', html)
-        self.assertIn('href="#noteref-s2-1" role="doc-backlink"', html)
+        self.assertIn(f'<li id="note-{two}-1" role="doc-footnote">', html)
+        self.assertIn(f'href="#noteref-{two}-1" role="doc-backlink"', html)
 
     def test_the_authors_label_never_reaches_the_page(self):
         # The label is a key, not content: it can be anything, and
@@ -14185,9 +14493,10 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         # 5 having seen nothing else; a note numbered 7 there would send
         # them looking for six they will never find (specifications.md §6.5.2).
         html = self._build()
-        self.assertIn('id="note-s2-1"', html)
-        self.assertIn('id="note-s2-2"', html)
-        self.assertIn('id="note-s3-1"', html)   # next card, back to 1
+        two, three = self._card_ids(html)[1], self._card_ids(html)[2]
+        self.assertIn(f'id="note-{two}-1"', html)
+        self.assertIn(f'id="note-{two}-2"', html)
+        self.assertIn(f'id="note-{three}-1"', html)   # next card, back to 1
         self.assertIn('id="note-article-1"', html)
         self.assertIn('id="note-article-2"', html)
 
@@ -14203,19 +14512,21 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
     def test_one_label_called_twice_is_one_body_with_two_return_links(self):
         # Duplicating the body would give two numbers to one reference.
         html = self._build()
-        self.assertEqual(html.count('id="note-s2-1"'), 1)
-        self.assertIn('href="#noteref-s2-1" role="doc-backlink"', html)
-        self.assertIn('href="#noteref-s2-1-2" role="doc-backlink"', html)
+        two = self._card_ids(html)[1]
+        self.assertEqual(html.count(f'id="note-{two}-1"'), 1)
+        self.assertIn(f'href="#noteref-{two}-1" role="doc-backlink"', html)
+        self.assertIn(f'href="#noteref-{two}-1-2" role="doc-backlink"', html)
 
     def test_local_is_the_default_and_bodies_stay_with_their_card(self):
         html = self._build()
         self.assertIn('class="notes-local"', html)
         self.assertNotIn('class="slide notes-section"', html)
         # The card's own block, inside the card's own section.
-        card = html.split('id="s2"', 1)[1].split('<section', 1)[0]
-        self.assertIn('id="note-s2-1"', card)
-        self.assertIn('id="note-s2-2"', card)
-        self.assertNotIn('id="note-s3-1"', card)
+        two, three = self._card_ids(html)[1], self._card_ids(html)[2]
+        card = html.split(f'id="{two}"', 1)[1].split('<section', 1)[0]
+        self.assertIn(f'id="note-{two}-1"', card)
+        self.assertIn(f'id="note-{two}-2"', card)
+        self.assertNotIn(f'id="note-{three}-1"', card)
 
     def test_page_placement_collects_into_one_section_of_the_page(self):
         html = self._build(extra='notes_placement: page\n')
@@ -14253,7 +14564,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         self.assertNotIn('title="Measured at 230 V."', plain)
         withtip = self._build(extra='notes_tooltip: on\n')
         self.assertIn('title="Measured at 230 V."', withtip)
-        self.assertIn('<li id="note-s2-1"', withtip)
+        self.assertIn(f'<li id="note-{self._card_ids(withtip)[1]}-1"', withtip)
 
     def test_placement_cascades_from_series_meta_and_the_article_wins(self):
         for meta_line, expected_section in (('', True), ('notes_placement: local\n', False)):

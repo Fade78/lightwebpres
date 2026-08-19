@@ -90,7 +90,15 @@ class ChromeBehaviour(unittest.TestCase):
             '<!-- lwp:slide -->\nkicker: S1\n## Second slide\n'
             'summary: Somewhere to advance to.\n\n---\n\n'
             '<!-- lwp:slide -->\nkicker: S2\n## Third slide\n'
-            'summary: And somewhere after that.\n',
+            'summary: And somewhere after that.\n\n---\n\n'
+            # A card the default filter HIDES. It is the only way to
+            # tell the page's own hash handling apart from the
+            # browser's: a filtered card has no layout box, so a
+            # native fragment jump cannot reach it, and only a script
+            # that reads the fragment, selects the card's tag and
+            # then goes there will land the reader on it.
+            '<!-- lwp:slide -->\nkicker: S3\ntags: avance\n'
+            '## Fourth slide\nsummary: Behind a tag filter.\n',
             encoding='utf-8',
         )
         (root / 'articles' / 'b.md').write_text(

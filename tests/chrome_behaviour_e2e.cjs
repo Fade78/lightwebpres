@@ -261,6 +261,100 @@ async function main() {
   }
   await scrollPage.close();
 
+  // --- 4c. An old `sN` link lands, and the address bar is corrected ----
+  // A card's id is now derived from what the author wrote (§12.1.1), so it
+  // survives an edit. Every link ALREADY shared says `sN`, and none of them
+  // can be recalled — a printed QR code least of all. The empty span
+  // carrying the old name is what keeps them landing, and this is the only
+  // place that can say whether a browser agrees: an element with no layout
+  // box is not a fragment target, so "it is in the HTML" proves nothing.
+  const aliasPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  collectConsoleErrors(aliasPage, errors);
+  await aliasPage.goto(articleUrl + '#s3', { waitUntil: 'load' });
+  await aliasPage.waitForTimeout(1200);
+  const landed = await aliasPage.evaluate(() => {
+    const sections = Array.prototype.slice.call(
+      document.querySelectorAll('section.slide'));
+    const mid = window.innerHeight / 2;
+    return {
+      visible: sections.findIndex((s) => {
+        const r = s.getBoundingClientRect();
+        return r.top <= mid && r.bottom >= mid;
+      }),
+      ids: sections.map((s) => s.id),
+      hash: location.hash,
+      aliases: Array.prototype.slice.call(
+        document.querySelectorAll('span[id]')).map((s) => s.id),
+    };
+  });
+  // Non-vacuity, both ways: no alias means the case never happened, and an
+  // id still called s3 means the alias was never exercised.
+  if (!landed.aliases.includes('s3')) {
+    fail('this page carries no s3 alias, so the case never happened: '
+         + JSON.stringify(landed));
+  }
+  if (landed.ids.includes('s3')) {
+    fail('the third card is still called s3, so the alias is not exercised: '
+         + JSON.stringify(landed));
+  }
+  if (landed.visible !== 2) {
+    fail('an old #s3 link did not land on the third card: '
+         + JSON.stringify(landed));
+  }
+  // And the reader who arrives by the old name leaves with the new one, so
+  // the link they copy out of the address bar is the durable one.
+  if (landed.hash !== '#' + landed.ids[2]) {
+    fail('the address bar was not corrected to the card own id: '
+         + JSON.stringify(landed));
+  }
+  await aliasPage.close();
+
+  // 4d. And an old link to a card the reader's own tag filter is HIDING.
+  // This is the one case the browser cannot handle for us, which is what
+  // makes it the guard for the page's own hash handling: a filtered card
+  // is display:none, has no layout box, and a native fragment jump lands
+  // nowhere at all. Only a script that reads the fragment, notices the
+  // card is filtered out, selects that card's tag and then goes there
+  // will put the reader in front of what the link named.
+  //
+  // Everything above this line passes with the page's own applyHash
+  // removed entirely — measured, by mutation — because the browser does
+  // the scrolling and the scroll observer corrects the URL afterwards.
+  const filtered = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  collectConsoleErrors(filtered, errors);
+  await filtered.goto(articleUrl, { waitUntil: 'load' });
+  await filtered.evaluate(() => localStorage.setItem('lwp-active-tag', 'default'));
+  await filtered.goto(articleUrl + '#s4', { waitUntil: 'load' });
+  await filtered.waitForTimeout(1200);
+  const behindTag = await filtered.evaluate(() => {
+    const sections = Array.prototype.slice.call(
+      document.querySelectorAll('section.slide'));
+    const fourth = sections[3];
+    const mid = window.innerHeight / 2;
+    const r = fourth ? fourth.getBoundingClientRect() : null;
+    return {
+      count: sections.length,
+      tags: fourth ? fourth.getAttribute('data-tags') : null,
+      shown: !!(r && r.width && r.height),
+      onScreen: !!(r && r.top <= mid && r.bottom >= mid),
+      hash: location.hash,
+      id: fourth ? fourth.id : null,
+    };
+  });
+  if (behindTag.count !== 4 || behindTag.tags !== 'avance') {
+    fail('the fixture no longer carries a tag-filtered fourth card, so '
+         + 'nothing here is under test: ' + JSON.stringify(behindTag));
+  }
+  if (!behindTag.shown) {
+    fail('an old link to a filtered card left it hidden: '
+         + JSON.stringify(behindTag));
+  }
+  if (!behindTag.onScreen) {
+    fail('an old link to a filtered card did not put it in front of the '
+         + 'reader: ' + JSON.stringify(behindTag));
+  }
+  await filtered.close();
+
   // --- 5. The phone: the chrome fades, and the double tap is its switch
   // Reported from the field: on a phone the navigation never went away.
   // It was exempt by design — `@media (pointer: coarse)` pinned every

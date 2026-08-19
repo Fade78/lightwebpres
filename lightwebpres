@@ -6530,6 +6530,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
+    if (!target) {
+      // Not a card's own id — so try the alias. Every card that took a
+      // derived identity also carries an empty span holding the `sN` name
+      // it used to have, which is what every link shared or printed
+      // before this change still says. Landing them on the right card is
+      // the whole reason that span exists.
+      var anchor = document.getElementById(id);
+      target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
+    }
     if (!target) return;
     if (!slideMatchesTag(target, selectedTag)) {
       var candidate = slideTags(target).find(function (tag) {
@@ -6930,8 +6939,17 @@ document.addEventListener('DOMContentLoaded', function() {
   // first position.
   function currentSlideId() {
     var s = slides[current];
-    if (!s || !/^s\d+$/.test(s.id)) return null;
+    if (!s || !s.id) return null;
+    // Type, not shape. This used to test /^s\d+$/, which stood in for "a
+    // card worth linking to": it excluded the cover by class and the
+    // series-nav only because that one's id happened to end in `-series`.
+    // An id derived from what the author wrote says nothing about type,
+    // so the two exclusions now say themselves — and had this kept the
+    // regex, the share button would simply have gone dead on every card,
+    // silently, which is the failure this comment exists to prevent
+    // someone re-introducing.
     if (s.classList.contains('slide-cover')) return null;
+    if (s.classList.contains('slide-series-nav')) return null;
     return s.id;
   }
 
@@ -9844,6 +9862,24 @@ def identity_hash(text):
     return digest[:IDENTITY_HASH_LENGTH]
 
 
+# What an author may write in `slug:`, and what a `slug_prefix` may be.
+#
+# This is not a taste in punctuation. The value becomes an `id` attribute,
+# the target of a fragment, part of a note anchor and — through the share
+# button — the tail of a printed QR code, so the three grammars it has to
+# survive are HTML, the URL and whatever reads the QR back. The charset
+# below is the intersection: no space (an id with a space is two tokens to
+# a CSS selector), no `"` (it would leave the attribute), nothing that a
+# URL would percent-encode and hand back looking different from what the
+# author typed.
+#
+# A derived identity is hexadecimal and cannot fail this. Only the two
+# things the author writes by hand are checked, which is also the only
+# place a mistake is theirs to fix.
+SLUG_CHARSET_RE = re.compile(r'\A[A-Za-z0-9][A-Za-z0-9._-]*\Z')
+SLUG_PREFIX_RE = re.compile(r'\A[A-Za-z0-9][A-Za-z0-9._-]*\Z')
+
+
 def derive_slide_identity(slide, ordinal):
     """The identity a card claims before prefixing and collision handling.
 
@@ -9853,7 +9889,15 @@ def derive_slide_identity(slide, ordinal):
     the way it does for every other field."""
     explicit = getattr(slide, 'slug', None)
     if explicit:
-        return explicit.strip(), 'declared'
+        value = explicit.strip()
+        if not SLUG_CHARSET_RE.match(value):
+            raise PropertyError(
+                f'slug: {value!r} is not usable as an anchor — a slug must '
+                f'start with a letter or a digit and may then contain '
+                f'letters, digits, "-", "_" and ".". It becomes an id, a URL '
+                f'fragment and the tail of a shared QR code, so anything '
+                f'else would arrive somewhere different from what was typed.')
+        return value, 'declared'
     if slide.slide_type == 'series-nav':
         return 'series-nav', 'type'
     if slide.slide_type == 'full-article':
@@ -9893,6 +9937,50 @@ def resolve_slide_slug(slide, ordinal, prefix, taken):
         candidate = f'{value}-{n}'
     taken.add(candidate)
     return candidate, source, (candidate != value)
+
+
+def resolve_page_slide_ids(visible_slides, prefix=''):
+    """Every visible card's id, in document order, for one page.
+
+    One function rather than a loop at the call site, because the `taken`
+    set has to start from the skeleton's own ids and be carried across the
+    whole page: a card resolved with a fresh set would happily mint an id
+    another card already holds, and the duplicate is invisible until a
+    reader follows a link and lands on the wrong one.
+
+    `excluded` cards are not passed in and take no identity — they produce
+    no section, so there is nothing to point at, and letting them consume
+    a name would make the visible cards' ids depend on a card the page
+    does not contain."""
+    taken = set(RESERVED_SLIDE_IDS)
+    return [resolve_slide_slug(slide, ordinal, prefix, taken)
+            for ordinal, slide in enumerate(visible_slides, 1)]
+
+
+def resolve_slug_prefix(meta, series_meta, source_name):
+    """`slug_prefix`: the namespace an author puts in front of every id on
+    a page, declared and derived alike.
+
+    The same cascade as `author`, `license` and the notes settings —
+    series.json first, the article's own meta block over it — because the
+    common case is a whole series wanting one, and the exception is one
+    article inside it wanting another.
+
+    A wrong value is a build error rather than a silent drop, for the
+    reason every typed value in this tool is: an author who mistyped a
+    prefix would otherwise publish a page whose anchors are not the ones
+    they think they minted, and find out from a broken link."""
+    for source, origin in ((meta, source_name), (series_meta, 'series.json')):
+        if 'slug_prefix' in source and str(source['slug_prefix']).strip():
+            value = str(source['slug_prefix']).strip()
+            if not SLUG_PREFIX_RE.match(value):
+                log('error', f'{origin}: slug_prefix: {value!r} must start '
+                             f'with a letter or a digit and may then contain '
+                             f'letters, digits, "-", "_" and ".".')
+                sys.exit(1)
+            return value
+    return ''
+
 
 class Slide:
     def __init__(self, slide_type='standard'):
@@ -10026,6 +10114,10 @@ def parse_markdown_extended(md_text):
                 if tags_match:
                     slide.tags = tags_match.group(1)
                     continue
+                slug_match = re.match(r'^slug:[ \t]*(.*)', stripped)
+                if slug_match:
+                    slide.slug = slug_match.group(1)
+                    continue
                 if slide.slide_type == 'full-article':
                     article_match = re.match(r'^article:\s*(.+)$', stripped)
                     if article_match:
@@ -10075,7 +10167,9 @@ def parse_markdown_extended(md_text):
             if field_match and not in_content:
                 key = field_match.group(1)
                 value = field_match.group(2)
-                if key == 'kicker':
+                if key == 'slug':
+                    slide.slug = value
+                elif key == 'kicker':
                     slide.kicker = value
                 elif key == 'tags':
                     slide.tags = value
@@ -10405,13 +10499,34 @@ def resolve_slide_page_numbers(meta, series_meta, source_name, args):
 
 def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                   disabled=None, notes=None, absorb_punct=False,
-                  inline_images=False, articles_dir=None, show_slide_num=False):
-    """Generates the HTML for a slide."""
+                  inline_images=False, articles_dir=None, show_slide_num=False,
+                  slide_id=None):
+    """Generates the HTML for a slide.
+
+    `slide_id` is the card's resolved identity (§12.1.1), derived from what
+    the author wrote rather than from where the card sits. It defaults to
+    the rank so that a caller with no page-wide view — a preview, a test —
+    still gets a working page; a real build always passes one, because
+    uniqueness is a property of the page and cannot be decided here."""
     if 'excluded' in _slide_tag_set(slide):
         return ''
     tags = slide.tags if isinstance(slide.tags, (list, tuple)) else sorted(_slide_tag_set(slide))
     data_tags = html_escape(' '.join(tags), quote=True)
     num_str = f'{slide_num:02d} / {total_slides:02d}'
+    ident = html_escape(slide_id or f's{slide_num}', quote=True)
+    # Every link that was ever shared, printed or bookmarked names a card
+    # by its rank, because that is what the id used to be. An empty span
+    # carrying the old name keeps all of them landing on the right card
+    # while the canonical id becomes the durable one — and it is a span
+    # with nothing in it on purpose: measured, an element with no layout
+    # box (`display: none`, `hidden`) is NOT a fragment target, so the
+    # alias has to be a real, empty, unstyled element. It shifts nothing.
+    #
+    # Emitted only when it differs from the identity: a card that fell
+    # back to its rank already carries the name, and two elements with one
+    # id leave the reader at whichever the browser picks.
+    alias = ('' if ident == f's{slide_num}'
+             else f'  <span id="s{slide_num}"></span>\n')
     # The engraved top-right number is opt-in (off by default): the live
     # bottom-left counter already carries current/total, so the static mark
     # is redundant presentation most authors don't want.
@@ -10421,8 +10536,10 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         h1 = apply_typo(typo_engine, slide.h1 or '', disabled)
         summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
-        parts = [f'<section class="slide slide-cover" id="s{slide_num}" '
+        parts = [f'<section class="slide slide-cover" id="{ident}" '
                  f'data-tags="{data_tags}">']
+        if alias:
+            parts.append(alias.rstrip('\n'))
         if show_slide_num:
             parts.append(f'  <span class="slide-num">{num_str}</span>')
         if kicker:
@@ -10438,19 +10555,31 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     elif slide.slide_type == 'series-nav':
         # Will be generated later by the navigation engine
         title = strings.get('series_nav_title', 'This series')
-        return (f'<section class="slide" id="s{slide_num}-series" '
-                f'data-tags="{data_tags}">\n  <h2>{title}</h2>\n'
+        # `slide-series-nav` is new, and it is what the id used to say.
+        # The share button read `/^s\d+$/` to mean "a card worth linking
+        # to", which excluded this one only because its id happened to end
+        # in `-series`. An id derived from what the author wrote says
+        # nothing about type, so the type has to say itself.
+        return (f'<section class="slide slide-series-nav" id="{ident}" '
+                f'data-tags="{data_tags}">\n{alias}  <h2>{title}</h2>\n'
                 f'  <div class="series-list">\n{{SERIES_NAV_PLACEHOLDER}}\n'
                 f'  </div>\n</section>')
 
     elif slide.slide_type == 'full-article':
         # Content will be injected later
         tag_text = strings.get('full_article_kicker', 'Full article')
-        return (f'<section class="slide full-article" id="s{slide_num}" '
+        return (f'<section class="slide full-article" id="{ident}" '
                 f'data-tags="{data_tags}">\n'
+                + alias
                 + (f'  <span class="slide-num">{num_str}</span>\n'
                    if show_slide_num else '')
                 + f'  <span class="slide-kicker">{tag_text}</span>\n'
+                # Keyed by RANK, deliberately, and it is the one thing here
+                # that still is. This token never reaches a reader: it is
+                # minted and consumed inside one function, and the rank is
+                # the only key guaranteed both unique and free of anything
+                # an author could type — a declared slug may contain a `}`
+                # right where this token ends.
                 + f'{{FULL_ARTICLE_PLACEHOLDER:s{slide_num}}}\n</section>')
 
     else:  # standard
@@ -10458,8 +10587,10 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         h2 = apply_typo(typo_engine, slide.h2 or '', disabled)
         summary = apply_typo(typo_engine, slide.summary or '', disabled)
 
-        parts = [f'<section class="slide" id="s{slide_num}" '
+        parts = [f'<section class="slide" id="{ident}" '
                  f'data-tags="{data_tags}">']
+        if alias:
+            parts.append(alias.rstrip('\n'))
         if show_slide_num:
             parts.append(f'  <span class="slide-num">{num_str}</span>')
         if kicker:
@@ -10482,7 +10613,19 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
             # A card is its own numbering locality under `local` placement:
             # the slide number is what makes the anchors unique in the page
             # while the reader sees 1, 2, 3 in every card (ARCHI-NOTES §4).
-            slide_notes = notes if notes is not None else NoteScope(f's{slide_num}')
+            # The locality is the card's identity, not its rank, so a
+            # note's anchor travels with the card the way the card's own
+            # does. Reordering a page used to repoint every note anchor
+            # in it, for the same reason it repointed every card link.
+            #
+            # The `else` is a fallback for a caller with no page-wide
+            # view, and a mutation proved it unreachable from a build:
+            # the render loop always hands a scope down. Kept for the
+            # same reason `slide_id` has a default — a preview or a
+            # test that renders one card still gets a coherent page —
+            # and labelled so nobody reads a passing suite as covering
+            # it.
+            slide_notes = notes if notes is not None else NoteScope(ident)
             content_html = convert_markdown(slide.fact_content, typo_engine,
                                             disabled, slide_notes, strings,
                                             absorb_punct=absorb_punct,
@@ -10948,6 +11091,29 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     total_slides = len(visible_slides)
     show_slide_num = resolve_slide_page_numbers(
         meta, series_meta_of(series_data), source_path.name, args)
+    # Identities for the whole page, before any card is rendered: a card's
+    # id has to be unique across the page, so it cannot be decided card by
+    # card (§12.1.1).
+    slug_prefix = resolve_slug_prefix(meta, series_meta_of(series_data),
+                                      source_path.name)
+    try:
+        identities = resolve_page_slide_ids(visible_slides, slug_prefix)
+    except PropertyError as exc:
+        log('error', f'{source_path.name}: {exc}')
+        sys.exit(1)
+    # Two cards landing on one identity is not an error — they are still
+    # told apart, deterministically — but it is worth saying, because it
+    # almost always means two cards carry the same title, and the author
+    # is the only one who can decide whether that is intended. The card is
+    # named by its rank here because a colliding identity is precisely the
+    # thing that cannot name it unambiguously.
+    for ordinal, (value, _source, clashed) in enumerate(identities, 1):
+        if clashed:
+            log('warn', f'{source_path.name}: slide {ordinal} lands on an '
+                           f'identity another slide already took; it is '
+                           f'published as {value!r}. Give it a `slug:` if the '
+                           f'link to it has to survive an edit.')
+
     slide_htmls = []
 
     # Instance tags and fact variants are validated during rendering; their
@@ -10958,13 +11124,15 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             slide_typo_engine = typo_engine_for_slide(
                 slide, article_typo_engine, article_lang_tag_engines)
             slide_notes = (page_notes if page_notes is not None
-                           else NoteScope(f's{i}', tooltip=notes_tooltip))
+                           else NoteScope(identities[i - 1][0],
+                                          tooltip=notes_tooltip))
             html = render_slide(slide, i, total_slides, slide_typo_engine,
                                 strings, disabled_rules, slide_notes,
                                 absorb_punct=absorb_punct,
                                 inline_images=inline_images,
                                 articles_dir=articles_dir,
-                                show_slide_num=show_slide_num)
+                                show_slide_num=show_slide_num,
+                                slide_id=identities[i - 1][0])
             slide_htmls.append(html)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
@@ -11031,7 +11199,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                 article_notes = (
                     page_notes if page_notes is not None
                     else NoteScope('article' if articles_here == 1
-                                   else f'article-s{i}',
+                                   else f'article-{identities[i - 1][0]}',
                                    tooltip=notes_tooltip))
                 slide_typo_engine = typo_engine_for_slide(
                     slide, article_typo_engine, article_lang_tag_engines)
@@ -12968,6 +13136,51 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir):
     return warnings
 
 
+def audit_slide_identities(filename, meta, series_meta, slides):
+    """Reports the card identities that will not survive an edit (§12.1.1).
+
+    Two findings, and both are the author's to act on rather than the
+    tool's to fix. A card that fell back to its RANK has nothing to derive
+    an identity from — no title, no `article:` file, no `slug:` — so its
+    link is the one thing the identity work was meant to end: insert a
+    card ahead of it and the link points elsewhere. And two cards landing
+    on ONE identity are separated deterministically, which keeps the page
+    correct, but the second one's id then depends on the first still being
+    there.
+
+    What this does NOT do is compare against the previous build. Telling
+    an author "this anchor moved since you last published" needs the
+    previous set of identities on disk, which is a decision about what the
+    tool stores and where; it is written down in BACKLOG.md rather than
+    guessed at here.
+    """
+    warnings = 0
+    visible = [slide for slide in slides
+               if 'excluded' not in _slide_tag_set(slide)]
+    prefix = ''
+    for source in (meta, series_meta or {}):
+        if 'slug_prefix' in source and str(source['slug_prefix']).strip():
+            prefix = str(source['slug_prefix']).strip()
+            break
+    try:
+        identities = resolve_page_slide_ids(visible, prefix)
+    except PropertyError as exc:
+        print(f'[WARNING] {filename}: {exc}')
+        return 1
+    for ordinal, (value, source, _clashed) in enumerate(identities, 1):
+        if source == 'ordinal':
+            warnings += 1
+            print(f'[WARNING] {filename}: slide {ordinal} has nothing to '
+                  f'derive an anchor from, so it is published as '
+                  f'{value!r} — its rank. A link to it breaks the next time '
+                  f'a slide is inserted before it. Give it a title or a '
+                  f'`slug:` (§12.1.1).')
+    # Collisions are NOT reported here. `audit` runs the render pass, and
+    # the render pass already names them; saying it twice would count one
+    # finding as two and teach an author to skim the list.
+    return warnings
+
+
 def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
                      language_file=None):
     """Audits the variant vocabulary without duplicating build validation.
@@ -13587,6 +13800,8 @@ def cmd_audit(series_dir, args):
         warnings += audit_slide_tags(
             entry['page_source'], slides, series_meta, lang_dir, lang,
             language_file)
+        warnings += audit_slide_identities(
+            entry['page_source'], meta, series_meta, slides)
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
         if not has_cover:
@@ -14839,7 +15054,7 @@ _TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
 _ARTICLE_LEVEL_NAMES = frozenset(
     _RESOLVED_FIELDS + _EDITORIAL_FIELDS + _TYPO_FIELD_NAMES
     + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'status',
-                                      'slide_page_numbers'))
+                                      'slide_page_numbers', 'slug_prefix'))
 
 # The complete article-level meta vocabulary, assembled from the names the
 # engine actually reads rather than restated by hand -- a second list would
@@ -16115,7 +16330,8 @@ ARTICLE-LEVEL FIELDS (series.json entry, overriding the .md meta block)
   series; author/date/license are displayed (page footer + <meta> tags),
   page_desc feeds <meta name="description">. notes_placement, notes_tooltip
   and slide_page_numbers are set in series_meta or the article's meta
-  block — never in an articles[] entry.
+  block — never in an articles[] entry. So is slug_prefix, which puts a
+  namespace in front of every card id on the page (§12.1.1).
 
   Only page_source is ever required: every other field falls back to the
   .md meta block, then to what the article already says (its cover's

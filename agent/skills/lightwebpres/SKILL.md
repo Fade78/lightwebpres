@@ -265,12 +265,12 @@ slide tags and missing mapped packs; it does not block the build.
 
 | Type | Fields | Cardinality |
 |---|---|---|
-| `cover` | `kicker`, `tags`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
-| standard (default, or explicit `<!-- lwp:slide -->`) | `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
-| `series-nav` | `tags`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
-| `full-article` | `article: filename.md` (required), `tags`, `comment` | Any number — each carries its own file. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
+| `cover` | `slug`, `kicker`, `tags`, `# Title`, `summary`, `comment`, `note` | Any number, anywhere — it's a layout style, not a structural marker. No fact-box: don't put free text after its fields, that's a fatal error. |
+| standard (default, or explicit `<!-- lwp:slide -->`) | `slug`, `kicker`, `tags`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown text | As many as you want |
+| `series-nav` | `slug`, `tags`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
+| `full-article` | `slug`, `article: filename.md` (required), `tags`, `comment` | Any number — each carries its own file. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
 
-`kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
+`slug`, `kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
 `highlight`/`highlight-caption`, `comment`, and `note` are all optional — omit
 the line if you don't need it. An empty value
 behaves like omitting it everywhere **except on a cover slide**, where
@@ -279,6 +279,20 @@ a bare `fact-label:` on a cover raises a warning that omitting the line
 would not. `highlight` is a short standalone figure (a number, a stat, a
 quote) with an optional caption underneath; it renders above the free
 text, not instead of it.
+
+**The `slug` field** names the card in a URL. Leave it out and the
+build derives one from what you wrote — a hash of the card's title, of a
+long-form card's filename, or the fixed name `series-nav` — so the link
+survives you reordering the deck, inserting a card, or excluding one with
+`tags: excluded`. Write it when the link matters enough to be readable or
+to be pinned by hand: `slug: barrage-de-vajont`. A slug must start with a
+letter or a digit and may then contain letters, digits, `-`, `_` and `.`;
+anything else is a build error, because the value also becomes a URL
+fragment and the tail of a printed QR code. Two cards landing on the same
+identity are still told apart, and the build says so — give one of them a
+`slug:` if the link to it has to be durable. `slug_prefix:` in the meta
+block (or in `series_meta`) puts a namespace in front of every id on the
+page, declared and derived alike.
 
 **The `source` field on a standard slide** is the designated place for
 the slide's citation. Write the reference there (e.g. `source: Baking

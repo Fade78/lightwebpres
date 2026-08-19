@@ -97,12 +97,28 @@ async function main() {
     if (!qrClosed) fail('QR modal did not close via its close button');
 
     // 6. Fiche-scope copy on the standard slide: the clipboard URL must
-    // anchor to the slide itself (#s2), not just the article.
+    // anchor to the slide itself, not just the article — and to the
+    // slide's OWN id, read off the page. It used to be `#s2`, written out
+    // here as a literal; a card's id is now derived from what the author
+    // wrote (§12.1.1), so the rank is no longer the answer and a literal
+    // would only pin what this test happens to build today. What is under
+    // test is that the copied link names the card the reader is on.
+    const ficheId = await page.evaluate(() => {
+      const mid = window.innerHeight / 2;
+      const here = Array.prototype.slice.call(
+        document.querySelectorAll('section.slide')).find((s) => {
+          const r = s.getBoundingClientRect();
+          return r.top <= mid && r.bottom >= mid;
+        });
+      return here ? here.id : null;
+    });
+    if (!ficheId) fail('could not tell which card the reader is on');
     await page.click('#navShare');
     await page.click('[data-action="copy"][data-scope="fiche"]');
     const clipboardFiche = await page.evaluate(() => navigator.clipboard.readText());
-    if (clipboardFiche !== expectedArticleUrl + '#s2') {
-      fail('fiche copy-link mismatch: got ' + clipboardFiche + ' expected ' + expectedArticleUrl + '#s2');
+    if (clipboardFiche !== expectedArticleUrl + '#' + ficheId) {
+      fail('fiche copy-link mismatch: got ' + clipboardFiche + ' expected '
+           + expectedArticleUrl + '#' + ficheId);
     }
     await page.keyboard.press('Escape');
 
