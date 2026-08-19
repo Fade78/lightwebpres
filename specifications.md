@@ -3501,7 +3501,7 @@ Crée la structure de travail dans `[répertoire]` :
 **`--lang` à l'init.** La langue n'est **pas** une propriété du projet
 stockée quelque part : les deux packs sont toujours dans l'exécutable, et
 la langue est un choix **par build** (`--lang` sur `build`/`demo`, ou
-`$LWP_LANG`, `fr` par défaut — §7.1/§12.1). À l'install, `--lang` ne fait
+`$LWP_LANG`, `fr` par défaut — §7.1/§12.1). À l'`init`, `--lang` ne fait
 qu'une chose : fixer la langue inscrite dans la commande de build du
 `.gitlab-ci.yml` généré (donc utile surtout avec `--gitlab-ci`).
 
@@ -3561,7 +3561,7 @@ Construit le site :
    (§20.6) sortent de la liste d'abord et sans condition. Les articles
    `status: draft` sont ensuite **entièrement exclus** — pas de page, pas
    de carte d'index, pas d'entrée dans les navigations des autres
-   articles — sauf avec `--include-drafts` (build **et** check), qui les
+   articles — sauf avec `--include-drafts` (build **et** verify), qui les
    construit tous, chaque page brouillon portant alors un bandeau
    « Brouillon » (clé `draft_banner` du fichier de langue) affiché au
    centre de l'en-tête de page, entre l'éventuel build stamp (§11.3.2) et

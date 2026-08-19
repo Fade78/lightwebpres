@@ -78,9 +78,11 @@ xdg-open my-series/public/index.html         # `open` on macOS
 
 `init` scaffolds a working project — `articles/` (empty, for your `.md`
 files), `templates/` (your customization surface: `settings.conf` and
-`custom.css`, see section 5), an empty `language/`, a starter
-`series.json`, and a copy of the `lightwebpres` executable itself, so the
-project directory is self-sufficient.
+`custom.css`, see section 5), an empty `language/`, an empty `public/`
+for the build to write into, a starter `series.json`, and a copy of the
+`lightwebpres` executable itself with its `COPYING` and
+`COPYING.EXCEPTION` beside it, so the project directory is self-sufficient
+and the copy travels with its licence.
 
 What it does *not* scaffold is the tool's own files — the navigation
 script and the typography/interface language packs. Those live inside the
@@ -90,7 +92,7 @@ show nav.js` prints one, `template write nav.js` installs one to modify
 (section 7).
 
 **Language is chosen per build, not stored in the project** — both packs
-are always installed. Pass `--lang fr|en` to `build`/`demo`, or set
+are always inside the executable. Pass `--lang fr|en` to `build`/`demo`, or set
 `LWP_LANG`. French is the default, which is why the commands above say
 so explicitly.
 

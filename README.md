@@ -464,7 +464,7 @@ off` (every rule, that article's page only), and the CLI flag
 ## Theming & customization
 
 Every visual decision is a **typed property**, `component.axis: value`.
-`templates/settings.conf`, written once at install, lists **all** of
+`templates/settings.conf`, written once by `init`, lists **all** of
 them commented out at your theme's values — the complete surface under
 your eyes, no docs needed (the exact count is derived from the tool's
 own registry; `--help` shows it live). Uncomment a line to pin it: it

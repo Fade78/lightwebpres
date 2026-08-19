@@ -3511,6 +3511,28 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertIn(f'lightwebpres {name}', text,
                           f'--help never names `{name}`')
 
+    def test_helps_series_layout_is_the_layout_init_writes(self):
+        """--help's SERIES DIRECTORY block is prose, and prose about a
+        file list is the part that rots: it named `templates/nav.js` and
+        `language/fr.json` as things `init` creates for a whole release
+        after `init` stopped creating them, and nothing failed. The
+        listing is a claim about the disk, so it is checked against a
+        disk: scaffold a series and compare the two sets."""
+        text = run('--help').stdout
+        block = text.split('Written by `init`:', 1)[1].split(
+            'Written by `build`:', 1)[0]
+        named = {m.group(1).rstrip('/') for m in
+                 re.finditer(r'^  (\S+)\s{2,}\S', block, re.M)}
+        with tempfile.TemporaryDirectory() as tmp:
+            series = os.path.join(tmp, 'series')
+            result = run('init', series)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            on_disk = set(os.listdir(series))
+        self.assertEqual(
+            named, on_disk,
+            '--help says `init` writes %s; it writes %s'
+            % (sorted(named), sorted(on_disk)))
+
     def test_every_command_is_wired_into_every_table(self):
         """A verb reaches the dispatcher through one table and is then
         governed by three others: which options it accepts, how many
@@ -8670,7 +8692,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.40.0),
+        by the executable as it stood at the last tagged release (v0.41.1),
         and by this one, compared byte for byte after CSS comments are
         removed from ``<style>`` blocks. Comments are not rendering, while
         every other byte remains covered. --build-stamp is off by default,
@@ -8685,10 +8707,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.40.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.41.1:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.40.0 tag to read the previous version from')
+            self.skipTest('no v0.41.1 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -8788,7 +8810,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
             # Deliberate drift since the tag, declared line for line, and
             # empty at the start of a release cycle -- which is where it
-            # is now, freshly repointed at v0.40.0.
+            # is now, freshly repointed at v0.41.1.
             #
             # It exists because the docstring's instruction has a gap.
             # Repointing at the newest tag is the acknowledgement that a
@@ -8846,53 +8868,19 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # for a reason that reads as a false alarm until you count the
             # occurrences. Declare a line that is unique, or accept that
             # you are declaring all of its twins with it.
-            # The three halo declarations the reference theme no longer
-            # carries. It sets no halo, and a composite whose every axis is
-            # at its default is not emitted any more -- because emitting
-            # `text-shadow` at its default does not paint nothing, it
-            # BLOCKS what the page set, and twenty-nine components were
-            # about to start doing that (B20).
+            # Both tables are empty at a fresh repoint, and that is the
+            # healthy state: every drift they used to declare is inside
+            # the tag this test now reads. A line goes back in only for
+            # drift introduced AFTER v0.41.1.
             gone = set()      # lines the OLD page had and the new one does not
-            arrived = {
-                # The scroll bar joined the navigation chrome: it fades
-                # with the buttons and the cursor instead of answering
-                # the pointer on its own (§8.4). Two rules, one for the
-                # idle state and one exempting touch devices, exactly as
-                # the three nav elements already had.
-                b':root.nav-idle { scrollbar-color: transparent transparent; }',
-                b'@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }',
-                # The index column moved out of an inline attribute and
-                # into the composed sheet, so it now reaches every page —
-                # including the article pages, which do not use it. The
-                # sheet is shared; a rule for one page is bytes on both.
-                #
-                # Written on ONE line each, and that is not a style
-                # preference: a declared line strips every occurrence of
-                # itself, so declaring a rule spread over three lines
-                # means declaring `}` — 346 of them on a page. The
-                # caution is written twenty lines above this table and I
-                # walked into it anyway.
-                b'.index-page { padding: 60px max(8vw, (100% - var(--page-content-max)) / 2); }',
-                b'.index-page { padding: 40px 24px; }',
-            }
+            arrived = set()   # lines the NEW page has and the old one did not
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
             # index gained a button the article pages always had" --
             # named globally, such a line is refused as stale, correctly,
             # because the released version does carry it elsewhere.
-            arrived_in = {
-                # The index body carries a class now and nothing else. The
-                # rules it names are in the global `arrived` table above,
-                # because the sheet is shared and they land on every page;
-                # only the element that opts into them is index-only.
-                'index.html': {b'<body class="index-page">'},
-            }
-            gone_in = {
-                'index.html': {
-                    b'<body style="padding: 60px 8vw; max-width: 1200px;'
-                    b' margin: 0 auto;">',
-                },
-            }
+            arrived_in = {}
+            gone_in = {}
 
             def strip_added(page):
                 return b'\n'.join(
@@ -8973,7 +8961,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                                  f'{line.decode()!r} is declared arrived and '
                                  f'the released version already had it')
             self.assertEqual(seen, set(drift.items()),
-                             'the drift since v0.40.0 is not the drift this '
+                             'the drift since v0.41.1 is not the drift this '
                              'test declares')
 
     def test_the_page_carries_exactly_the_script_the_tool_ships(self):

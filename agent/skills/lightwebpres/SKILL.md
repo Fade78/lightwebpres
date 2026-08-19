@@ -612,7 +612,9 @@ else is stripped: an unclosed tag in a field value ends up in the page.
 
 **Trust boundary.** Raw HTML — a `<script>` included — passes through to
 the published page. That is the contract for the *author's own* text: the
-author already owns the page (custom.css, nav.js). If the markdown you
+author already owns the page (`templates/custom.css` is appended verbatim
+to it, and `template write nav.js` hands over the navigation script too).
+If the markdown you
 are assembling comes from a source the author does not control (a CMS
 export, a database, another agent's output, a third-party translation),
 sanitize it upstream before the build — LightWebPres does not filter raw
