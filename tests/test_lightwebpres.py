@@ -2205,6 +2205,28 @@ class CliVersionAndShortcuts(unittest.TestCase):
                                   f'was acted on instead of named:\n{result.stderr}')
                     self.assertNotIn('LightWebPres v', result.stdout)
 
+    def test_no_retired_spelling_is_shadowed_by_a_live_command(self):
+        """`_SHORTCUTS` is consulted BEFORE `_RETIRED_SPELLINGS` in
+        `_resolve_command`, so a live command sharing a name with a
+        retired one makes the refusal unreachable — dead code that still
+        reads as a live promise, and a table entry nobody would think to
+        remove.
+
+        The tables are disjoint today. This fails the day they are not,
+        which forces the choice to be made on purpose: either the name is
+        a command again and its entry goes, or it is not and the new
+        command needs another word."""
+        lwp = load_lightwebpres_module()
+        retired = set(lwp._RETIRED_SPELLINGS)
+        for label, live in (('_SHORTCUTS', lwp._SHORTCUTS),
+                            ('_SERIES_VERBS', lwp._SERIES_VERBS),
+                            ('_THEME_VERBS', lwp._THEME_VERBS),
+                            ('_TEMPLATE_VERBS', lwp._TEMPLATE_VERBS)):
+            self.assertEqual(
+                sorted(retired & set(live)), [],
+                f'{label} shares a name with a retired spelling, whose '
+                f'refusal is now unreachable')
+
     def test_every_retired_spelling_is_refused_and_names_its_replacement(self):
         """They used to warn and then run, and this test used to prove
         each one dispatched to the right command. It proves the other
