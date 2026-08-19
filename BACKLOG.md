@@ -1682,8 +1682,8 @@ freezing mechanism.
 Autonomy did not depend on them either — `init` copies the executable
 into the series (§11.1) and the executable contains all three, so the
 archive was always the executable and the copies added nothing to it.
-Measured on a demo series: four pages built from a series holding the
-copies are byte-identical to four built from one without them.
+Measured on a demo series: every page built from a series holding the
+copies was byte-identical to the page built from one without them.
 
 So `init` writes none of them, and two commands hand them over to whoever
 wants one. `template show <file>` prints one on stdout — no series

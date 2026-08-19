@@ -4849,18 +4849,32 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
                 pages.append((root / 'public' / 'a.html').read_bytes())
             self.assertEqual(pages[0], pages[1])
 
-    def test_show_prints_the_file_and_touches_nothing(self):
+    def test_show_prints_the_file_whole_and_touches_nothing(self):
         """It needs no series at all — the answer is inside the program —
         which is the case `write` cannot serve: someone wanting to know
         what a key does should not have to scaffold a series to find out,
-        nor end up owning a frozen copy for having asked."""
+        nor end up owning a frozen copy for having asked.
+
+        WHOLE, compared against what `write` puts on disk. A size check
+        was the first version of this, and it let a `show` truncated to
+        2000 bytes pass — measured, not supposed. A reader who pipes this
+        into a file gets what the other command would have written, or
+        the command is worse than useless."""
         with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
             for name in self.OWNED:
                 r = run('template', 'show', name, cwd=tmp)
                 self.assertEqual(r.returncode, 0, r.stderr)
-                self.assertGreater(len(r.stdout), 1000, name)
-            self.assertEqual(sorted(Path(tmp).iterdir()), [])
-            self.assertIn('"rules"', run('template', 'show', 'fr.json').stdout)
+                self.assertEqual(
+                    run('template', 'write', name, str(root)).returncode, 0)
+                written = (root / ('templates' if name.endswith('.js')
+                                   else 'language') / name)
+                self.assertEqual(r.stdout,
+                                 written.read_text(encoding='utf-8'), name)
+            # And it wrote nothing of its own: the series above is the
+            # only thing in tmp, put there by `init` rather than by show.
+            self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()),
+                             ['series'])
 
     def test_show_refuses_a_file_that_is_not_the_tools(self):
         """settings.conf and custom.css are the AUTHOR's. Handing them
@@ -4898,6 +4912,81 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
             said = r.stdout + r.stderr
             self.assertIn('not follow', said)
             self.assertIn('every build will say so', said)
+
+    def test_the_error_for_too_many_arguments_names_a_typable_command(self):
+        """The dispatch keys are internal: `series-info`, `themes`,
+        `template-show`. `_CANONICAL_NAME` exists so no message echoes
+        one, and this call site was missed when that table was written —
+        `status a b` answered "`series-info` takes...", recommending a
+        word the program refuses. This lot made it visible by adding a
+        key that is not a token at all.
+
+        Every command with a positional limit, driven off the tables, so
+        a command added later cannot reintroduce it."""
+        lwp = load_lightwebpres_module()
+        for command, limit in sorted(lwp._MAX_POSITIONAL.items()):
+            if limit is None:
+                continue
+            typable = lwp.canonical(command)
+            r = run(*typable.split(), *[f'a{i}' for i in range(limit + 1)])
+            self.assertEqual(r.returncode, 1, f'{typable}: {r.stderr}')
+            self.assertIn(f'`{typable}`', r.stderr,
+                          f'{command}: the error names a key, not a command')
+            self.assertNotIn(f'`{command}`' if command != typable else '\0',
+                             r.stderr, command)
+
+    def test_write_refuses_a_directory_that_is_not_a_series(self):
+        """It used to scaffold `templates/nav.js` into an empty directory
+        and announce that the build would use it — a promise about a
+        build that cannot happen there. `template update` has always
+        refused the same way, and the two write to the same directory."""
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = Path(tmp) / 'not-a-series'
+            r = run('template', 'write', 'nav.js', str(empty))
+            self.assertEqual(r.returncode, 1)
+            self.assertIn('init', r.stderr)
+            self.assertFalse(empty.exists())
+
+    def test_neither_command_claims_a_dry_run_did_something(self):
+        """--dry-run journals every write and removal through the
+        helpers, so a summary in the past tense contradicts the journal
+        three lines above it — and the summary is the half a reader
+        believes. Both verbs, since `update` had the same wart before
+        this lot touched it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            nav = root / 'templates' / 'nav.js'
+            r = run('template', 'write', 'nav.js', str(root), '--dry-run')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertFalse(nav.exists())
+            self.assertIn('Would write', r.stdout + r.stderr)
+            self.assertNotIn('Wrote ', r.stdout + r.stderr)
+
+            self.assertEqual(
+                run('template', 'write', 'nav.js', str(root)).returncode, 0)
+            r = run('template', 'update', str(root), '--dry-run')
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertTrue(nav.exists(), 'a dry run removed a file')
+            self.assertIn('Would remove', r.stdout + r.stderr)
+
+    def test_update_looks_where_the_build_looks(self):
+        """Both directories through the build's own resolver. It read
+        `templates/` directly while the language half honoured
+        LWP_LANGUAGE_DIR — one function reading one of the two variables,
+        which is worse than reading neither: it works until someone moves
+        the other directory."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            elsewhere = Path(tmp) / 'tpl'
+            (root / 'templates').rename(elsewhere)
+            self.assertEqual(
+                run('template', 'write', 'nav.js', str(root),
+                    env={'LWP_TEMPLATES_DIR': str(elsewhere)}).returncode, 0)
+            self.assertTrue((elsewhere / 'nav.js').exists())
+            r = run('template', 'update', str(root),
+                    env={'LWP_TEMPLATES_DIR': str(elsewhere)})
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertFalse((elsewhere / 'nav.js').exists())
 
     def test_write_refuses_to_replace_a_file_without_force(self):
         with tempfile.TemporaryDirectory() as tmp:

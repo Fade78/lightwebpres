@@ -13525,10 +13525,12 @@ def cmd_install(target_dir, args):
     # reads what a series is made of, and a file they cannot see is a file
     # they will not think to ask for.
     progress('The navigation script and the language packs stay in the '
-             'executable and are used from it.')
-    progress(f'  lightwebpres template show nav.js      — read one')
-    progress(f'  lightwebpres template write nav.js {td} — take a copy '
-             f'(it then stops following the tool)')
+             'executable and are used from it:')
+    progress('  lightwebpres template show nav.js     — read one')
+    progress('  lightwebpres template write nav.js .  — take a copy into '
+             'this series')
+    progress('A copy stops following the tool\'s fixes, and every build '
+             'says so until you remove it.')
 
 
 # ============================================================================
@@ -13607,8 +13609,19 @@ def cmd_template_write(name, args, target_dir):
     B32: the trap was never the copy, it was that nobody knew they had
     one. Asked for by name and told the price, it is a choice."""
     contents, home = _tool_owned_or_die(name)
-    sd, _articles, templates_dir, lang_dir, _out, _lang, _lf = resolve_paths(
+    _sd, _articles, templates_dir, lang_dir, _out, _lang, _lf = resolve_paths(
         target_dir, args)
+    # An existing series, or nothing. Without this the command cheerfully
+    # scaffolds a lone templates/nav.js in an empty directory and then
+    # announces that the build will use it -- a promise about a build
+    # that cannot happen there. `template update` has always refused the
+    # same way, and the two commands write to the same directory.
+    if not templates_dir.is_dir():
+        log('error', f'{templates_dir} not found — `template write` puts a '
+            f'file into an existing series, it does not make one. Run '
+            f'`lightwebpres init` there first, or `template show {name}` '
+            f'if you only want to read the file.')
+        sys.exit(1)
     dest_dir = templates_dir if home == 'templates' else lang_dir
     dest = dest_dir / name
     if dest.exists() and not args.get('--force'):
@@ -13618,6 +13631,16 @@ def cmd_template_write(name, args, target_dir):
         sys.exit(1)
     _mkdir(dest_dir, parents=True, exist_ok=True)
     _write_file(dest, contents)
+    # Past tense only when it happened. --dry-run journals the write
+    # through the helper as "would write", and a summary saying "Wrote"
+    # over that journal is the half a reader believes.
+    if _LOG_STATE['dry_run']:
+        progress(f'Would write {dest}')
+        progress()
+        progress(f'The build would then use that copy of {name} instead of '
+                 f'the one built into the executable, and would say so on '
+                 f'every run.')
+        return
     progress(f'Wrote {dest}')
     progress()
     progress(f'The build will now use this copy of {name} instead of the '
@@ -13643,13 +13666,23 @@ def cmd_refresh_templates(target_dir, args):
     A legacy templates/style.css is reported, not migrated: its values are
     the author's decisions, and moving them is theirs to do — audit names
     every variable rename to make that mechanical."""
-    td = Path(target_dir).resolve()
-    templates_dir = td / 'templates'
+    # Through the build's own resolver, so this command looks where the
+    # build looks. It used to read `td / 'templates'` directly while the
+    # language half (added with the tool-owned-file removal) honoured
+    # LWP_LANGUAGE_DIR -- one function reading one of the two variables,
+    # which is worse than reading neither: it works until the day someone
+    # moves the other directory.
+    _sd, _articles, templates_dir, lang_dir, _out, _lang, _lf = resolve_paths(
+        target_dir, args)
     if not templates_dir.is_dir():
         log('error', f'{templates_dir} not found. Run init first.')
         sys.exit(1)
 
-    refreshed, up_to_date = [], []
+    # No `up_to_date` list any more: the only thing that ever went in it
+    # was a nav.js identical to the built-in one, and an identical copy
+    # is now REMOVED rather than left alone and reported as fine. It was
+    # never fine -- it was the freeze, waiting for the next release.
+    refreshed = []
     settings_path = templates_dir / SETTINGS_FILENAME
 
     if args.get('--scaffold'):
@@ -13736,7 +13769,6 @@ def cmd_refresh_templates(target_dir, args):
                            'templates/nav.js.bak)')
             _remove(nav_path)
 
-    lang_dir = Path(os.environ.get('LWP_LANGUAGE_DIR', td / 'language'))
     for pack_name, builtin in sorted({'fr.json': LANG_FR,
                                       'en.json': LANG_EN}.items()):
         pack_path = lang_dir / pack_name
@@ -13752,24 +13784,26 @@ def cmd_refresh_templates(target_dir, args):
                         f'`lightwebpres template show {pack_name}`, then '
                         f'delete it to follow the tool again.')
 
+    # Past tense only when it happened. --dry-run journals every write
+    # and removal through the helpers, and a summary saying "Removed"
+    # over a journal saying "would remove" is the summary a reader
+    # believes.
+    done = 'Would remove' if _LOG_STATE['dry_run'] else 'Removed'
     if removed:
-        progress('Removed — the executable carries these, and the build '
-                 'now uses them from there:')
+        progress(f'{done} — the executable carries these, and the build '
+                 f'{"would use" if _LOG_STATE["dry_run"] else "now uses"} '
+                 f'them from there:')
         for item in removed:
             progress(f'  {item}')
     if refreshed:
-        progress('Refreshed:')
+        progress('Would refresh:' if _LOG_STATE['dry_run'] else 'Refreshed:')
         for item in refreshed:
-            progress(f'  {item}')
-    if up_to_date:
-        progress('Already up to date:')
-        for item in up_to_date:
             progress(f'  {item}')
     if kept:
         progress('Kept:')
         for item in kept:
             progress(f'  {item}')
-    if not (removed or refreshed or up_to_date or kept):
+    if not (removed or refreshed or kept):
         # Since v0.40.0 this is the NORMAL state of a healthy series, not
         # an unusual one, so it has to be said: a command that printed
         # only "run build again" would read as one that failed quietly.
@@ -16279,11 +16313,22 @@ def main():
 
     _limit = _MAX_POSITIONAL.get(command, 1)
     if _limit is not None and len(positional) > _limit:
-        wanted = ('no arguments' if _limit == 0 else
+        # The shape when one is declared, the count otherwise: `template
+        # show` takes a file and no directory at all, so "at most a
+        # directory" named the wrong thing entirely.
+        wanted = (f'{_POSITIONAL_SHAPE[command].strip()}'
+                  if command in _POSITIONAL_SHAPE else
+                  'no arguments' if _limit == 0 else
                   'at most a directory' if _limit == 1 else
                   f'at most {_limit} arguments')
         unused = ', '.join(repr(a) for a in positional[_limit:])
-        log('error', f'`{command}` takes {wanted}; got {len(positional)}. '
+        # canonical(), because the dispatch KEY is not a word a user can
+        # type: `status a b` answered "`series-info` takes...", and this
+        # lot added `template-show`, which is not a token at all. The
+        # table exists for exactly this and this site was missed when it
+        # was written.
+        log('error', f'`{canonical(command)}` takes {wanted}; '
+            f'got {len(positional)}. '
             f'Unused: {unused}. (A single-dash typo such as `-x` is read '
             f'as an argument, not as an option.)')
         sys.exit(1)

@@ -4049,13 +4049,23 @@ répertoire de série ensuite (par défaut `$LWP_SERIES_DIR`, sinon `.`).
 L'ordre est sans ambiguïté, l'ensemble des noms étant fermé.
 
 1. Nom absent ou hors de l'ensemble : erreur fatale qui énumère les trois
-2. Destination déjà occupée et pas de `--force` : erreur fatale, rien
+2. Répertoire qui n'est pas une série (pas de `templates/`) : erreur
+   fatale. `write` pose un fichier dans une série existante, il n'en crée
+   pas — sans ce refus, la commande fabriquait un `templates/nav.js`
+   seul dans un répertoire vide et annonçait un build qui ne peut pas y
+   avoir lieu. `template update` refuse de la même façon, et les deux
+   écrivent dans le même répertoire
+3. Destination déjà occupée et pas de `--force` : erreur fatale, rien
    n'est écrit, le message nomme `--force` et `template show` pour
    comparer d'abord
-3. Écriture faite : la commande imprime le chemin, puis ce que la copie
+4. Écriture faite : la commande imprime le chemin, puis ce que la copie
    coûte — le build l'utilisera à la place de l'intégrée, elle ne suivra
    plus les corrections de l'outil, et chaque build le rappellera
    (§9.4.3)
+
+Sous `--dry-run`, les deux verbes parlent au conditionnel (« Would write
+… ») : le journal des helpers dit déjà « would », et un résumé au passé
+au-dessus de ce journal est la moitié que le lecteur croit.
 
 Ni `settings.conf` ni `custom.css` ne sont dans l'ensemble : ils
 appartiennent à l'auteur, et `template update` les crée s'ils manquent
