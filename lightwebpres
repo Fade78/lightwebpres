@@ -177,9 +177,10 @@ def log(level, msg):
     Each level carries its own prefix tag so the output stays greppable.
     --timestamp prepends an RFC 3339 timestamp.
 
-    An unknown level is DROPPED SILENTLY below, which is a real trap and
-    has been sprung once already: a hand-written log('warning', ...)
-    refused an unsafe read and told nobody. The level is spelt 'warn'.
+    An unknown level RAISES below. It used to be dropped silently, and
+    that trap was sprung three times: a hand-written log('warning', ...)
+    refused an unsafe read and told nobody. The level is spelt 'warn',
+    and a misspelling now stops the run that contains it.
 
     Getting that spelling right now matters twice over. This text used to
     say there was no warning level and to route anything meaning one
@@ -223,7 +224,17 @@ def log(level, msg):
             return
         prefix = '[DEBUG] '
     else:
-        return  # unknown level: drop silently
+        # LOUDLY, and this is the third time the silent version has cost
+        # something. The docstring above has warned about the spelling
+        # since the second; a warning written `log('warning', ...)`
+        # printed nothing, and the person who wrote it had no way to
+        # know. A trap that is only documented is a trap. The level set
+        # is closed and known at authoring time, so an unknown one is a
+        # typo in this file and nothing else -- there is no input that
+        # can reach it, and nothing to degrade gracefully for.
+        raise ValueError(
+            f'log(): unknown level {level!r} — the levels are '
+            f"'error', 'warn', 'info', 'verbose' (a warning is 'warn')")
     if _LOG_STATE['timestamp']:
         from datetime import datetime
         ts = datetime.now().astimezone().isoformat(timespec='seconds')
@@ -4123,10 +4134,21 @@ def compose_stylesheet(resolved):
 SETTINGS_FILENAME = 'settings.conf'
 CUSTOM_CSS_FILENAME = 'custom.css'
 
-CUSTOM_CSS_STUB = '''/* Your own CSS. lightwebpres never writes this file, and appends it after
-   the generated stylesheet. Anything CSS can do, you can do here — new
-   rules, @font-face, media queries. Plain VALUES belong in settings.conf. */
-'''
+# Created EMPTY, and that is the whole of the decision. This file is
+# concatenated verbatim into every page, so anything in it is published:
+# the four lines of guidance that used to sit here -- addressed to the
+# AUTHOR, about the tool's own contract -- went out in every article of
+# every series, forever. `settings.conf` carries five hundred comment
+# lines and none of them reach a page, because settings.conf is PARSED;
+# custom.css is APPENDED, and that difference is invisible until you read
+# a built page.
+#
+# What the guidance did is still done, where guidance belongs: `init`
+# prints "custom.css (your own rules)" as it creates the file, and the
+# guide says the rest. The file exists to be found in a listing and
+# opened; it does not exist to explain itself to a reader who never
+# asked.
+CUSTOM_CSS_STUB = ''
 
 
 def parse_settings_text(text, source='settings.conf'):
@@ -11484,21 +11506,49 @@ def load_build_context(series_dir, args):
     nav_js_file = templates_dir / 'nav.js'
     if nav_js_file.exists():
         on_disk = read_text_file(nav_js_file)
-        # nav.js is tool-owned (§9.4.3): the build warns when it does
-        # not match the executable's own TEMPLATE_NAV_JS — the author
-        # may have customised it (the build still uses it as-is), or it
-        # may simply be stale from an old init. The warning names the
-        # fix (`template update`), which is the one command that does
-        # the replacement (with a .bak backup).
+        # nav.js is tool-owned (§9.4.3), and a copy of it on disk is a
+        # copy that can fall behind. The build cannot tell "stale" from
+        # "customised" -- it only knows "differs" -- so it uses the file
+        # as it finds it and says so.
+        #
+        # At WARNING level, not info, and the difference is the whole
+        # point: info is silenced by --quiet, which is what a pipeline
+        # runs, so this said nothing where it most needed to. Three
+        # behaviour fixes shipped in v0.39.0 -- the cursor, the
+        # drag-select, the F key on the index -- reached no existing
+        # series, and the only line that mentioned it was the one
+        # nobody saw.
         if on_disk != TEMPLATE_NAV_JS:
-            log('info', '  [NOTE] templates/nav.js differs from the '
-                'executable\'s built-in version — run '
-                '`lightwebpres template update .` to refresh it '
-                '(your {custom_css} and settings.conf are never touched)'
+            log('warn', 'templates/nav.js differs from this '
+                'executable\'s built-in version, and the build is using '
+                'yours — run `lightwebpres template update .` to take '
+                'the built-in one instead (settings.conf and '
+                '{custom_css} are never touched)'
                 .format(custom_css=CUSTOM_CSS_FILENAME))
         nav_js = on_disk
     else:
         nav_js = TEMPLATE_NAV_JS
+
+    # The same for the language packs, which said NOTHING at all. They
+    # are the same shape as nav.js -- shipped by the tool, copied whole
+    # into the series by `init`, used from disk if present -- and they
+    # carry rules and interface strings, so a stale one silently keeps
+    # an old typography and an old vocabulary. `typo_units: off` learning
+    # to reach any pack (§19.2) is exactly the kind of repair that never
+    # arrives while nobody is told.
+    shipped_packs = {'fr.json': LANG_FR, 'en.json': LANG_EN}
+    on_disk_packs = sorted(lang_dir.glob('*.json')) if lang_dir.is_dir() else []
+    for pack in on_disk_packs:
+        pack_name = pack.name
+        builtin = shipped_packs.get(pack_name)
+        if builtin is None:
+            continue      # a pack the tool does not ship is the author's
+        if read_text_file(pack) != builtin:
+            log('warn', f'language/{pack_name} differs from this '
+                f'executable\'s built-in pack, and the build is using '
+                f'yours — copy the built-in one over it to take the '
+                f'tool\'s rules and strings, or keep yours if the '
+                f'difference is deliberate')
     nav_js = apply_strings(nav_js, strings)
 
     series_data = load_series_data(sd)

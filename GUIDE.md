@@ -392,7 +392,11 @@ while keeping every pinned line.
 ### Rules rather than values (`templates/custom.css`)
 
 Full CSS, no subset, appended after the composed stylesheet so your rules
-win ties. New selectors, media queries, `@font-face` (name the family at
+win ties. `init` creates it strictly empty, because "appended" means
+appended verbatim: anything the tool wrote in there as advice to you
+would be published to every reader of every page. `settings.conf` can
+carry five hundred comment lines precisely because it is parsed and this
+file is not. New selectors, media queries, `@font-face` (name the family at
 the head of a stack in `settings.conf`, declare the face here). The
 composed sheet's `--component-axis` variables are usable in it
 (`border-color: var(--color-mark)`), and that is the recommended way to
@@ -498,12 +502,23 @@ does this). When you drop in a newer copy, the built-in JS baked into
 
 The stylesheet is composed in memory from the current executable at every
 build, so it is fresh by construction, and your `settings.conf` and
-`custom.css` are yours — never touched. The one tool-owned file on disk
-is `nav.js`: `template update` replaces it if it differs from the
-built-in version (saving the old one as `nav.js.bak`) and reports
+`custom.css` are yours — never touched. The one tool-owned file
+`template update` replaces is `nav.js`: it swaps in the built-in version
+if yours differs (saving the old one as `nav.js.bak`) and reports
 `already up to date` otherwise. Your theme choice needs no reapplying:
 it's the `theme:` line of `settings.conf`, which an upgrade cannot
 revert.
+
+Two files in your series come from the tool and are read from disk at
+every build: `nav.js` and the `language/*.json` packs. A build warns when
+either differs from the version built into the executable you're running
+— at warning level, so `--quiet` doesn't silence it in a pipeline. The
+build can't tell *stale* from *customised*, so it says `differs` and uses
+your file either way. For `nav.js` the remedy is the command above; for a
+language pack it's your call, since `rules` replaces the base set
+wholesale and overwriting the file would erase whatever you added. A pack
+for a language the tool doesn't ship — `de.json`, say — is your work, and
+nothing is said about it.
 
 `--scaffold` additionally regenerates `settings.conf`'s commented block
 against the current theme and the current property registry, keeping

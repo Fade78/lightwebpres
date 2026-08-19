@@ -1643,3 +1643,35 @@ emission site — the engine's whole shape is that a value is checked once,
 where its type is named. Deciding which of the existing length properties
 legitimately accept `auto` is the work, and it is a sweep of the
 registry, not a patch.
+
+## B32 — A fix to `nav.js` or a language pack never reaches a series that already exists — FIXED
+
+Two files the tool owns live inside the series and are read from disk at
+every build: `templates/nav.js` and `language/*.json`. `init` copies them
+in whole, and from then on the build uses the copy. So a behaviour the
+tool fixes reaches nobody who already has a series — and the only thing
+between an author and that is what the build says about it.
+
+It said the wrong amount. `nav.js` got an `[INFO]`, which `--quiet`
+silences, and `--quiet` is what a pipeline runs. The language packs got
+nothing whatsoever, on any command, though a pack carries the typography
+rules *and* the interface strings, so a stale one keeps an old spacing
+and an old vocabulary at once.
+
+The bill was three fixes shipped in v0.39.0 — the cursor, the mouse
+selection, the F key on the index — none of which reached an existing
+series, reported three times as "it still does not work" by the person
+who asked for them. The line that would have explained it was the one
+nobody saw.
+
+**FIXED** at warning level, for both files, with a case each way: a
+current series stays silent, a stale one warns under `--quiet`, and a
+pack the tool does not ship (`de.json`) is left alone, because that is
+somebody's work rather than a stale copy. The remedy differs by file and
+the message says which: `template update` for `nav.js`, the author's
+judgement for a pack, since `rules` replaces the base set wholesale and
+overwriting the file would erase what they added.
+
+What stays open is the transition: whether `init` should keep writing
+these copies at all. Warning about a copy is a repair to the symptom; not
+handing out the copy is a repair to the cause.

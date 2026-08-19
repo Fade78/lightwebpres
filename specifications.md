@@ -2139,9 +2139,21 @@ pas, il peut le dire.
 
 #### 9.3.2 `templates/custom.css` : les règles
 
-Du CSS complet, sans sous-ensemble, jamais écrit par l'outil (installé
-vide, avec un commentaire d'usage). Il est ajouté **après** la feuille
-composée, donc ses règles gagnent tout arbitrage à spécificité égale.
+Du CSS complet, sans sous-ensemble, jamais écrit par l'outil — et
+installé **rigoureusement vide**, zéro octet. Il est ajouté **après** la
+feuille composée, donc ses règles gagnent tout arbitrage à spécificité
+égale.
+
+Vide, parce que le fichier est ajouté **verbatim** : tout ce que l'outil
+y écrirait pour l'auteur serait publié à chaque lecteur de chaque page.
+`init` y écrivait 227 octets de prose expliquant à quoi le fichier
+servait, et toute page bâtie depuis une série neuve portait la phrase
+« lightwebpres never writes this file ». Le contraste qui le rend
+évident, c'est `settings.conf` : cinq cents lignes de commentaire qui
+n'atteignent aucune page, parce que `settings.conf` est **analysé** là où
+`custom.css` ne l'est pas. Ce que la prose faisait est fait où va
+l'explication : `init` annonce « custom.css (your own rules) » en créant
+le fichier, et le guide dit le reste.
 C'est la borne de la rigidité du vocabulaire (§9.1) : tout ce que les
 propriétés ne savent pas dire — une règle nouvelle, un sélecteur
 d'exception, une media query, un `@font-face`.
@@ -2317,8 +2329,8 @@ propriété invalide.
 `init` écrit les trois fichiers : `settings.conf` — le scaffold
 complet du thème choisi, avec sa ligne `theme: <slug>` et son
 `# scaffold-for: <slug>` (sans `--theme` : pas de ligne `theme:` active,
-scaffold aux défauts intégrés) —, `custom.css` (le gabarit commenté,
-vide de règles) et `nav.js`. Aucune substitution dans du CSS : choisir
+scaffold aux défauts intégrés) —, `custom.css` (vide, §9.3.2) et
+`nav.js`. Aucune substitution dans du CSS : choisir
 un thème à l'init, c'est écrire un mot dans un fichier de données. Un
 slug inconnu est une erreur fatale qui liste les slugs valides.
 
@@ -2379,11 +2391,29 @@ fichier — préservée d'une régénération à la suivante, jamais
 silencieusement supprimée — avec un avertissement, car un build la
 rejetterait.
 
-`build` émet un `[NOTE]` si `templates/nav.js` diffère de la version
-intégrée à l'exécutable (`TEMPLATE_NAV_JS`) — soit parce qu'il est
-périermé d'un ancien `init`, soit parce que l'auteur l'a personnalisé.
-Le build utilise le fichier tel quel (un nav.js personnalisé est
-respecté) ; la note nomme `template update` comme remède.
+**Ce que le build dit d'une copie périmée.** Deux fichiers de l'outil
+vivent dans la série et sont lus depuis le disque : `templates/nav.js` et
+`language/*.json`. Le build les utilise tels qu'il les trouve — une
+personnalisation est respectée — et **avertit** (`[WARNING]`, donc jamais
+silencié par `--quiet`) quand l'un diffère de la version intégrée. Il ne
+sait pas distinguer « périmé » de « personnalisé » : il ne connaît que
+« diffère », et c'est ce qu'il dit. L'avertissement sur `nav.js` nomme
+`template update` comme remède ; celui sur un pack de langue laisse le
+choix à l'auteur, parce que `rules` remplace le jeu de base en bloc
+(§19.2) et qu'écraser son pack effacerait ses règles.
+
+Le niveau est le fond de l'affaire. Un `[INFO]` disparaît sous `--quiet`,
+qui est exactement ce que lance une chaîne d'intégration : trois
+corrections de comportement livrées en v0.39.0 — le curseur, la sélection
+à la souris, la touche F sur l'index — n'ont atteint aucune série
+existante, et la seule ligne qui l'expliquait était celle que personne ne
+voyait. Un pack de langue, lui, ne disait rien du tout, sur aucune
+commande, alors qu'il porte les règles typographiques **et** les chaînes
+d'interface : un pack périmé garde en silence une vieille typographie et
+un vieux vocabulaire.
+
+Un pack que l'outil ne livre pas (`de.json`) n'est pas périmé : c'est le
+travail de quelqu'un, et le build n'en dit rien.
 
 #### 9.4.4 `audit` (volet présentation)
 
@@ -3315,7 +3345,7 @@ Crée la structure de travail dans `[répertoire]` :
      `theme: <nom>` si `--theme <nom>` est fourni (sinon, scaffold aux
      défauts intégrés, sans ligne `theme:` active) ; `<nom>` inconnu de
      `THEMES` est une erreur fatale, qui liste les noms valides
-   - `templates/custom.css` — le gabarit commenté, vide de règles
+   - `templates/custom.css` — vide, zéro octet (§9.3.2)
    - `templates/nav.js`
    (pas de `templates/style.css` : la feuille est composée au build, §9.3)
 4. Extrait les packs de langue par défaut depuis l'exécutable :

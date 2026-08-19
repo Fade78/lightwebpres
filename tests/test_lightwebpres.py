@@ -15,6 +15,7 @@ Run with: python3 tests/run_tests.py
 
 import time
 import base64
+import ast
 import json
 import os
 import inspect
@@ -4665,6 +4666,123 @@ class InstallContent(unittest.TestCase):
             self.assertIn('strings', en_pack)
 
 
+class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
+    """A series holds copies of two files the tool wrote — `nav.js` and
+    the language packs — and the build uses the copies. So a behaviour
+    the tool fixes never reaches a page that was made before the fix,
+    and the only thing standing between an author and that is what the
+    build says.
+
+    It said the wrong amount. `nav.js` got an `[INFO]`, which `--quiet`
+    silences — and `--quiet` is what a pipeline runs. The language packs
+    got nothing at all. Three behaviour fixes shipped in v0.39.0 reached
+    no existing series, and the line that would have explained it was
+    the one nobody saw."""
+
+    def _series(self, tmp):
+        root = Path(tmp) / 'series'
+        self.assertEqual(run('init', str(root)).returncode, 0)
+        (root / 'articles' / 'a.md').write_text(
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: A\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# A\nsummary: S.\n',
+            encoding='utf-8')
+        (root / 'series.json').write_text(json.dumps({'articles': [
+            {'page_dest': 'a.html', 'page_source': 'a.md',
+             'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+        return root
+
+    def test_a_current_series_is_told_nothing(self):
+        """The other half, and the one that decides whether the warning
+        is worth having: a series that is up to date must stay silent, or
+        the warning becomes noise every author learns to skip."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            r = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertNotIn('differs', r.stderr)
+
+    def test_a_stale_nav_js_warns_even_under_quiet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            nav = root / 'templates' / 'nav.js'
+            nav.write_text('// from an older version\n' + nav.read_text(),
+                           encoding='utf-8')
+            r = run('build', str(root), '--quiet',
+                    '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn('nav.js differs', r.stderr)
+            self.assertIn('template update', r.stderr)
+
+    def test_a_stale_language_pack_warns_even_under_quiet(self):
+        """It used to say nothing whatsoever, on any command. A pack
+        carries the typography rules AND the interface strings, so a
+        stale one keeps an old vocabulary as well as an old spacing."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            pack = root / 'language' / 'fr.json'
+            data = json.loads(pack.read_text(encoding='utf-8'))
+            for rule in data['rules']:
+                rule.pop('category', None)
+            pack.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            r = run('build', str(root), '--quiet',
+                    '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn('language/fr.json differs', r.stderr)
+
+    def test_a_pack_the_tool_does_not_ship_is_the_authors_business(self):
+        """A language the tool has never heard of is not stale, it is
+        someone's work. Warning about it would be the tool complaining
+        that a file it did not write is not the file it did not write."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (root / 'language' / 'de.json').write_text(
+                json.dumps({'lang': 'de', 'rules': []}), encoding='utf-8')
+            r = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertNotIn('de.json', r.stderr)
+
+
+class LogRefusesALevelItDoesNotKnow(unittest.TestCase):
+    """The level is spelt `warn`. `log('warning', ...)` printed nothing
+    and told nobody, which has now cost something three times — the
+    docstring above the function has warned about it since the second.
+
+    A trap that is only documented is a trap. The level set is closed and
+    known when the call is written, so an unknown one is a typo in this
+    file and nothing else: no input can reach it, and there is nothing to
+    degrade gracefully for."""
+
+    def test_an_unknown_level_raises_instead_of_vanishing(self):
+        lwp = load_lightwebpres_module()
+        with self.assertRaises(ValueError) as ctx:
+            lwp.log('warning', 'a message nobody would ever see')
+        self.assertIn("'warn'", str(ctx.exception))
+
+    def test_every_level_the_code_uses_is_one_log_knows(self):
+        """Every CALL, found through the AST rather than by matching
+        text. A regex reads the prose too, and the docstring on `log`
+        quotes `log(\'warning\', ...)` on purpose, as the mistake to
+        avoid — so a textual scan fails on the very sentence that exists
+        to prevent the failure. The tree knows a call from a quotation.
+
+        Read off the source rather than trusted at runtime, because a
+        miswritten level is invisible until the line it guards matters,
+        which is exactly the moment nobody is looking."""
+        source = (Path(__file__).resolve().parent.parent
+                  / 'lightwebpres').read_text(encoding='utf-8')
+        used = set()
+        for node in ast.walk(ast.parse(source)):
+            if (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == 'log' and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and isinstance(node.args[0].value, str)):
+                used.add(node.args[0].value)
+        self.assertTrue(used, 'no log() call found — the scan is broken')
+        self.assertEqual(used - {'error', 'warn', 'info', 'verbose'}, set())
+
+
 class CheckDrift(unittest.TestCase):
     """§11.3: check must actually detect drift, not just report its absence."""
 
@@ -5709,6 +5827,45 @@ class TemplateOverride(unittest.TestCase):
             # the composed sheet, so they beat it at equal specificity.
             self.assertGreater(html.index('/* CUSTOM-MARKER-CSS */'),
                                html.index('--color-page:'))
+
+    def test_the_file_init_creates_contributes_nothing_to_the_page(self):
+        """The test above is the reason this one has to exist. custom.css
+        is appended verbatim, so anything the tool writes into it as
+        advice to the author is advice published to every reader.
+
+        It was: `init` wrote 227 bytes of prose explaining what the file
+        was for, and every page built from a scaffolded series carried
+        the sentence "lightwebpres never writes this file". The contrast
+        that makes it plain is settings.conf, which carries five hundred
+        comment lines that reach nothing — because settings.conf is
+        parsed and this file is not.
+
+        Asserted as a byte comparison rather than a search for the old
+        wording, which would pass again the moment someone writes
+        different prose."""
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nkicker: T\n# Title\nsummary: S.\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+            custom = root / 'templates' / 'custom.css'
+            self.assertTrue(custom.exists())
+            out = root / 'public'
+            self.assertEqual(run('build', str(root), '--output', str(out))
+                             .returncode, 0)
+            with_file = (out / 'a.html').read_text(encoding='utf-8')
+            custom.unlink()
+            self.assertEqual(run('build', str(root), '--output', str(out))
+                             .returncode, 0)
+            without_file = (out / 'a.html').read_text(encoding='utf-8')
+            self.assertEqual(with_file, without_file)
 
     def test_settings_conf_values_reach_the_page(self):
         md = (
@@ -7739,9 +7896,10 @@ class ThemeInfoMeasuresRatherThanDeclares(unittest.TestCase):
     def test_custom_css_is_reported_as_unmeasured_only_once_it_has_rules(self):
         """custom.css is free CSS, outside the typed surface, so it is
         not measured — and saying nothing about that would be the
-        hand-written label all over again. `install` writes the file with
-        only its explanatory comment in it, so existence alone must not
-        raise the flag or it would be raised on every series."""
+        hand-written label all over again. `init` creates the file empty
+        — everything in it is published verbatim, so the tool puts
+        nothing there — and existence alone must not raise the flag or it
+        would be raised on every series."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             self.assertEqual(run('init', str(root), '--theme', 'nord')
