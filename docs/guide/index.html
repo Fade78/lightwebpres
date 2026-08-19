@@ -1298,8 +1298,23 @@ body.fs-noselect {
   transition: opacity 0.4s;
 }
 /* Auto-hide in presentation: the buttons fade out after 3s of mouse
-   idleness and come back on mousemove. Touch devices keep them — there
-   is no cursor to wake them. */
+   idleness and come back on 250ms of continuous movement, the same
+   condition as the cursor. Touch devices keep them — there is no cursor
+   to wake them. */
+/* The scroll bar is navigation too, and it was the last thing left
+   answering to the pointer on its own: with the buttons and the cursor
+   correctly hidden, moving the mouse painted an overlay bar down the
+   edge of the wall. Reported from a real talk.
+
+   Colour, not width. `scrollbar-width: none` and a zero-width
+   ::-webkit-scrollbar remove the bar's BOX, which on a platform with
+   classic (space-taking) bars reflows the whole page every time the
+   chrome hides or shows — far worse than a visible bar. `scrollbar-color`
+   only recolours, so the gutter is untouched wherever there is one, and
+   an engine that does not support it simply keeps its bar rather than
+   relaying out the page. */
+:root.nav-idle { scrollbar-color: transparent transparent; }
+@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
 @media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }

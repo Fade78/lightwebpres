@@ -118,8 +118,13 @@ async function main() {
       // the report this covers.
       const nav = document.querySelector('.nav-buttons');
       const idle = () => (nav ? nav.classList.contains('idle') : null);
+      // The scroll bar answers to the same class, on the root: read the
+      // COMPUTED colour, not the class, so the CSS rule is under test
+      // and not just the toggle that arms it.
+      const bar = () => getComputedStyle(document.documentElement).scrollbarColor;
       document.body.style.cursor = 'none';
       if (nav) nav.classList.add('idle');
+      document.documentElement.classList.add('nav-idle');
       // A twitch: two events one frame apart, then nothing.
       send();
       setTimeout(() => {
@@ -127,6 +132,7 @@ async function main() {
         setTimeout(() => {
           const afterTwitch = document.body.style.cursor;
           const navAfterTwitch = idle();
+          const barAfterTwitch = bar();
           // A real movement: events every 30ms for 400ms.
           const started = Date.now();
           const timer = setInterval(() => {
@@ -134,9 +140,10 @@ async function main() {
             if (Date.now() - started > 400) {
               clearInterval(timer);
               resolve({
-                afterTwitch, navAfterTwitch,
+                afterTwitch, navAfterTwitch, barAfterTwitch,
                 afterMoving: document.body.style.cursor,
                 navAfterMoving: idle(),
+                barAfterMoving: bar(),
               });
             }
           }, 30);
@@ -155,6 +162,15 @@ async function main() {
   }
   if (cursorVerdict.navAfterMoving !== false) {
     fail('sustained movement did not bring the navigation back: ' + JSON.stringify(cursorVerdict));
+  }
+  // The scroll bar is navigation: transparent while idle, painted again
+  // once the movement has earned it. Compared as "did the value change",
+  // because the resting value is the theme's and not this test's to name.
+  if (!/rgba\(0, 0, 0, 0\)/.test(cursorVerdict.barAfterTwitch)) {
+    fail('a two-event twitch repainted the scroll bar: ' + JSON.stringify(cursorVerdict));
+  }
+  if (/rgba\(0, 0, 0, 0\)/.test(cursorVerdict.barAfterMoving)) {
+    fail('sustained movement did not repaint the scroll bar: ' + JSON.stringify(cursorVerdict));
   }
 
   // --- 3b. And it hides again on its own, outside fullscreen ---------

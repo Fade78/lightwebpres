@@ -56,7 +56,9 @@ to exit), and touch (swipe) all work out of the box. The navigation
 buttons fade after 3 seconds of idleness (1 second in fullscreen) — the
 speaker sees only slides. The cursor hides on that same clock, and
 neither comes back until the mouse has moved continuously for 250 ms — a
-brush past the sensor flashes nothing back onto the wall. Entering or
+brush past the sensor flashes nothing back onto the wall. The scroll bar
+counts as navigation and follows the same state: it fades to transparent
+rather than being removed, so nothing on the page moves. Entering or
 leaving fullscreen, and clicking in the button corner, reveal the chrome
 at once: those are deliberate gestures, not stray movement. The mouse becomes
 a remote: left-click advances, right-click goes back, two distinct

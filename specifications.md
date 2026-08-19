@@ -1743,6 +1743,18 @@ Entrer ou sortir du plein écran, ou cliquer dans la zone des boutons,
 révèle le chrome immédiatement : ce sont des gestes explicites, pas des
 mouvements de souris, et ils ne passent pas par cette condition.
 
+**La barre de défilement fait partie de la navigation** et suit le même
+état. C'était la dernière chose à répondre au pointeur pour son compte :
+boutons et curseur correctement masqués, un mouvement de souris peignait
+quand même une barre en surimpression le long du bord du mur. Elle est
+rendue **transparente**, pas supprimée — `scrollbar-color`, jamais
+`scrollbar-width: none` ni une `::-webkit-scrollbar` de largeur nulle :
+celles-là retirent la **boîte** de la barre, ce qui, sur une plateforme à
+barres classiques (qui occupent de la place), ré-agence toute la page à
+chaque masquage et à chaque réapparition — bien pire qu'une barre
+visible. Un moteur qui ignore `scrollbar-color` garde sa barre plutôt que
+de déplacer le texte.
+
 **La réapparition demande 250 ms de mouvement continu**, pour le curseur
 **et pour les boutons**, sur la même condition. Les boutons revenaient au
 premier mouvement, au motif qu'un bouton qui apparaît coûte moins qu'un

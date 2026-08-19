@@ -86,7 +86,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.40.2"
+VERSION = "0.40.3"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -5227,8 +5227,23 @@ body.fs-noselect {
   transition: opacity 0.4s;
 }
 /* Auto-hide in presentation: the buttons fade out after 3s of mouse
-   idleness and come back on mousemove. Touch devices keep them — there
-   is no cursor to wake them. */
+   idleness and come back on 250ms of continuous movement, the same
+   condition as the cursor. Touch devices keep them — there is no cursor
+   to wake them. */
+/* The scroll bar is navigation too, and it was the last thing left
+   answering to the pointer on its own: with the buttons and the cursor
+   correctly hidden, moving the mouse painted an overlay bar down the
+   edge of the wall. Reported from a real talk.
+
+   Colour, not width. `scrollbar-width: none` and a zero-width
+   ::-webkit-scrollbar remove the bar's BOX, which on a platform with
+   classic (space-taking) bars reflows the whole page every time the
+   chrome hides or shows — far worse than a visible bar. `scrollbar-color`
+   only recolours, so the gutter is untouched wherever there is one, and
+   an engine that does not support it simply keeps its bar rather than
+   relaying out the page. */
+:root.nav-idle { scrollbar-color: transparent transparent; }
+@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
 @media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
@@ -7223,6 +7238,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
     if (slideCounter) slideCounter.classList.toggle('idle', isIdle);
+    // The scroll bar belongs to the scrolling element, not to any of the
+    // three above, so it takes a class of its own on the root. It is
+    // navigation all the same: it says where you are and it invites a
+    // drag, which is exactly what should not appear on a wall behind a
+    // speaker who has stopped touching the mouse.
+    document.documentElement.classList.toggle('nav-idle', isIdle);
   }
   if (navButtons) {
     navButtons.addEventListener('click', function (e) {

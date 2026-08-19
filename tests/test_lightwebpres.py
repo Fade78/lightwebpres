@@ -8860,7 +8860,15 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # BLOCKS what the page set, and twenty-nine components were
             # about to start doing that (B20).
             gone = set()      # lines the OLD page had and the new one does not
-            arrived = set()   # lines the NEW page has and the old one did not
+            arrived = {
+                # The scroll bar joined the navigation chrome: it fades
+                # with the buttons and the cursor instead of answering
+                # the pointer on its own (§8.4). Two rules, one for the
+                # idle state and one exempting touch devices, exactly as
+                # the three nav elements already had.
+                b':root.nav-idle { scrollbar-color: transparent transparent; }',
+                b'@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }',
+            }
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
             # index gained a button the article pages always had" --

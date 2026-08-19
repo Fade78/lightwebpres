@@ -29,7 +29,9 @@ exit), and touch (swipe) all work out of the box. Navigation buttons fade
 after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
 only slides. The cursor hides on the same clock, and both come back on
 the same condition: 250 ms of continuous mouse movement, so a knock
-against the desk puts nothing back on the wall. The mouse becomes a
+against the desk puts nothing back on the wall. The scroll bar goes with
+them — it is navigation too, and it fades rather than being removed, so
+the page never reflows. The mouse becomes a
 remote: left-click advances, right-click goes back, two distinct buttons,
 no aiming. Fullscreen also neutralizes OS power-saving so the screen never
 dims mid-talk. A `X / N` counter and a direct number-jump (type the slide

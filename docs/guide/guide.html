@@ -1299,8 +1299,23 @@ body.fs-noselect {
   transition: opacity 0.4s;
 }
 /* Auto-hide in presentation: the buttons fade out after 3s of mouse
-   idleness and come back on mousemove. Touch devices keep them — there
-   is no cursor to wake them. */
+   idleness and come back on 250ms of continuous movement, the same
+   condition as the cursor. Touch devices keep them — there is no cursor
+   to wake them. */
+/* The scroll bar is navigation too, and it was the last thing left
+   answering to the pointer on its own: with the buttons and the cursor
+   correctly hidden, moving the mouse painted an overlay bar down the
+   edge of the wall. Reported from a real talk.
+
+   Colour, not width. `scrollbar-width: none` and a zero-width
+   ::-webkit-scrollbar remove the bar's BOX, which on a platform with
+   classic (space-taking) bars reflows the whole page every time the
+   chrome hides or shows — far worse than a visible bar. `scrollbar-color`
+   only recolours, so the gutter is untouched wherever there is one, and
+   an engine that does not support it simply keeps its bar rather than
+   relaying out the page. */
+:root.nav-idle { scrollbar-color: transparent transparent; }
+@media (pointer: coarse) { :root.nav-idle { scrollbar-color: auto; } }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
 @media (pointer: coarse) { .nav-buttons.idle { opacity: 1; } }
@@ -1976,7 +1991,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from somewhere else entirely — a CMS export, a database, a generator, an agent upstream — and LightWebPres is what turns it into publishable pages.</li>
   </ul>
   <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
-  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
+  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, double-click for fullscreen, middle-click to exit), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Set up &amp; your first build</h2>
   <pre><code class="language-bash">
@@ -3970,6 +3985,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
     if (slideCounter) slideCounter.classList.toggle('idle', isIdle);
+    // The scroll bar belongs to the scrolling element, not to any of the
+    // three above, so it takes a class of its own on the root. It is
+    // navigation all the same: it says where you are and it invites a
+    // drag, which is exactly what should not appear on a wall behind a
+    // speaker who has stopped touching the mouse.
+    document.documentElement.classList.toggle('nav-idle', isIdle);
   }
   if (navButtons) {
     navButtons.addEventListener('click', function (e) {
