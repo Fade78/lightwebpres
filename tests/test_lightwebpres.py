@@ -8498,6 +8498,35 @@ class TheIdentityReachesThePageAndOldLinksStillLand(unittest.TestCase):
             self.assertIn(f'<span id="s{ordinal}"></span>', html,
                           f'the rank s{ordinal} no longer names anything')
 
+    def test_the_series_nav_carries_the_name_it_really_had(self):
+        """A series-nav's id was `sN-series`, not `sN`. That is the name
+        `goTo` wrote into the address bar and the name its pagination dot
+        linked to, so it is the one a reader could have copied — and it is
+        the only card whose old name was not simply its rank.
+
+        Found by rehearsing the upgrade rather than by reading the code:
+        building a demo with v0.41.1, rebuilding it with this version, and
+        looking for a landing place for every id the first build had.
+        `#s3-series` had none, which is exactly the promise the alias
+        exists to keep."""
+        html, _ = self._build()
+        classes_and_ids = self._sections(html)
+        nav = [n for n, (c, _i) in enumerate(classes_and_ids, 1)
+               if 'slide-series-nav' in c.split()]
+        self.assertEqual(len(nav), 1, classes_and_ids)
+        ordinal = nav[0]
+        self.assertIn(f'<span id="s{ordinal}-series"></span>', html,
+                      'the name this card really had points at nothing')
+        self.assertIn(f'<span id="s{ordinal}"></span>', html,
+                      'the rank alias is missing on the one card that had two')
+        # And only that card. An `sN-series` on every card would mint ids
+        # nothing ever pointed at, and would make this guard's own claim —
+        # "the name it really had" — false for four cards out of five.
+        self.assertEqual(
+            re.findall(r'<span id="(s\d+-series)"></span>', html),
+            [f's{ordinal}-series'],
+            'a card that never had a -series name was given one')
+
     def test_a_card_that_kept_its_rank_is_not_given_the_name_twice(self):
         """A card with nothing to derive from falls back to its rank, so
         the section already IS `sN`. Emitting the alias as well would put
@@ -9549,7 +9578,14 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # replaces them is one rule that stops a FADED button from
             # answering a finger, which `opacity: 0` alone does not do.
             gone = set()      # lines the OLD page had and the new one does not
-            arrived = set()   # lines the NEW page has and the old one did not
+            arrived = {       # lines the NEW page has and the old one did not
+                # The series-nav's real old name. v0.42.0 gave it the rank
+                # alias `sN` and nothing else, but its id under v0.41.x was
+                # `sN-series` — the name `goTo` wrote into the address bar
+                # and the name its pagination dot linked to. Found by
+                # rehearsing the upgrade rather than by reading the code.
+                b'<span id="s3-series"></span>',
+            }
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
             # index gained a button the article pages always had" --

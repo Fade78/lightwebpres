@@ -10525,8 +10525,18 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
     # Emitted only when it differs from the identity: a card that fell
     # back to its rank already carries the name, and two elements with one
     # id leave the reader at whichever the browser picks.
-    alias = ('' if ident == f's{slide_num}'
-             else f'  <span id="s{slide_num}"></span>\n')
+    # A series-nav did not carry `sN` under the old scheme: it carried
+    # `sN-series`, and that is the name in every address bar a reader ever
+    # copied from that card — `goTo` wrote it there, and the pagination dot
+    # linked to it. Measured on an upgrade from v0.41.1: emitting only `sN`
+    # left `#s3-series` pointing at nothing, which is precisely the promise
+    # this alias exists to keep. Both are emitted for that one type: the
+    # rank so the rule stays uniform, and the name that was really used.
+    old_names = [f's{slide_num}']
+    if slide.slide_type == 'series-nav':
+        old_names.append(f's{slide_num}-series')
+    alias = ''.join(f'  <span id="{name}"></span>\n'
+                    for name in old_names if name != ident)
     # The engraved top-right number is opt-in (off by default): the live
     # bottom-left counter already carries current/total, so the static mark
     # is redundant presentation most authors don't want.
