@@ -9657,7 +9657,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
 # the shape its level requires. `slide_title` is absent on purpose — it is
 # written `#`/`##`, never as a `key:` line.
 SLIDE_FIELD_NAMES = (
-    'kicker', 'tags', 'summary', 'fact-label', 'fact-variant',
+    'slug', 'kicker', 'tags', 'summary', 'fact-label', 'fact-variant',
     'source', 'highlight', 'highlight-caption', 'comment', 'note',
 )
 
@@ -9683,7 +9683,7 @@ class SlideType:
 # everywhere and rendered nowhere (GLOSSARY.md).
 SLIDE_TYPES = (
     SlideType(
-        'cover', '#', ('kicker', 'tags', 'summary', 'comment', 'note'), None,
+        'cover', '#', ('slug', 'kicker', 'tags', 'summary', 'comment', 'note'), None,
         "The article's opening slide: a title, an optional kicker above it, "
         'and the one sentence that says what the article is about.'),
     SlideType(
@@ -9691,12 +9691,12 @@ SLIDE_TYPES = (
         'The ordinary slide, and the only one that takes free text: '
         'anything written below the fields becomes its fact-box.'),
     SlideType(
-        'series-nav', None, ('tags', 'comment'), None,
+        'series-nav', None, ('slug', 'tags', 'comment'), None,
         'The list of the other articles in the series, generated from '
         'series.json — you place the marker, the build writes the list. '
         'At most one per article.'),
     SlideType(
-        'full-article', None, ('article', 'tags', 'comment'), None,
+        'full-article', None, ('slug', 'article', 'tags', 'comment'), None,
         'Pulls in a long-form .md file named by its `article:` field, '
         'which is required. A page may carry several, each with its own '
         'file (§22.8).'),
@@ -9713,9 +9713,193 @@ _SLIDE_FIELD_ATTRS['article'] = 'article_file'
 
 
 
+# ============================================================================
+# SLIDE IDENTITY
+# ============================================================================
+#
+# What a card is called in a URL — and what a link someone shared, or a QR
+# code someone PRINTED, still points at after the article is edited.
+#
+# The id used to be the card's RANK, `s4`. Measured on a four-card article:
+# marking one card `tags: excluded` turned `s1 s2 s3 s4` into `s1 s2 s3`, so
+# `#s2` opened the card that had been `#s3` and `#s4` stopped existing.
+# Nothing said so — the navigation script gives up in silence on a fragment
+# it cannot find — and paper cannot be corrected. Inserting or reordering a
+# card does the same thing.
+#
+# So identity is derived from what the AUTHOR WROTE, never from where it
+# sits. The order of resolution, first hit wins:
+#
+#   1. `slug:` on the card. The author's own word, and the only identity
+#      that survives rewriting the title. It is also the privacy answer:
+#      a derived value is computed FROM the title, and this project's GUI
+#      spec already refused a readable slug for series directories on the
+#      grounds "qu'un identifiant technique révèle le contenu d'un titre
+#      potentiellement privé". A hash does not read out, and `slug:` lets
+#      an author choose what it says instead.
+#   2. A hash of the card's own title — cover `# Title`, standard
+#      `## Title`.
+#   3. For a `full-article` card, a hash of the file it names. It has no
+#      title, and a page may carry SEVERAL of them (§22.8), so the file is
+#      what tells them apart.
+#   4. For a `series-nav` card, a fixed name: at most one per article.
+#   5. Otherwise the rank, as before — a standard card with no heading has
+#      nothing stable to derive from, and `audit` says so rather than
+#      pretending the link is durable.
+#
+# WHY A HASH RATHER THAN A READABLE SLUG. Measured with this file's own QR
+# encoder at error-correction level M, on a 38-character base URL: `#s3`
+# needs 29 modules, an 8-hex hash 33, a short readable slug 33, a long one
+# 37. The capacity steps sit at 43, 63, 85 and 107 characters of URL, so
+# what costs is crossing a step, not adding a character — and a long title
+# crosses one. A printed code 27% finer per side is a cost paid on paper.
+#
+# WHY EIGHT HEX AND NOT SIX. Six would do: 16.8 million values, one page in
+# 3400 colliding at a hundred cards. Eight was free on both base URLs
+# measured — same QR version — and buys 4.3 billion. Free is not a general
+# law: two characters cross a capacity step about one time in ten,
+# depending on the base URL's own length.
+
+IDENTITY_HASH_LENGTH = 8
+
+# The ids the page skeleton already uses. DERIVED from the template rather
+# than listed here, because a list of literals is exactly what goes stale
+# — and the skeleton carries 22 of them today, ten of which the
+# specification's own extract of it does not show.
+#
+# A DERIVED identity can never land on one: it is hexadecimal, and every
+# skeleton id is a word. The set earns its place for the other two sources.
+# A declared `slug: notes` would otherwise mint the notes section's own id,
+# and a document with two `notes` has one of them unreachable — the reader
+# who follows the link arrives at whichever the browser picks. And the
+# ordinal fallback shares its shape with the legacy `sN` alias, which is
+# the one namespace a card must not wander into by accident.
+RESERVED_SLIDE_IDS = frozenset(
+    set(re.findall(r'id="([^"]+)"', TEMPLATE_PAGE))
+    # `notes` is minted by the renderer under `notes_placement: page`, not
+    # written in the skeleton, so deriving from the template alone misses
+    # it — measured: `slug: notes` sailed through while `slug: navPrev`
+    # was caught, and the two are the same mistake. A derivation that
+    # covers one source and not the other is worse than a literal list,
+    # because it looks complete.
+    #
+    # Note BODIES (`note-<locality>-<n>`) are not here on purpose. Their
+    # locality is itself derived from the card's identity, so they move
+    # with it and cannot be claimed ahead of time; the collision that
+    # matters there is between two localities, and it is settled where
+    # they are minted.
+    | {'notes'})
+
+
+def _fold_latin_marks(text):
+    """Drops combining marks, but only where the base character is Latin.
+
+    "Replace the accents" is a Latin-speaker's instruction and it destroys
+    other scripts. Measured: stripping every combining mark turns the Hindi
+    हिन्दी into हिनदी, which is not a word — a matra is a letter, not an
+    ornament — and does the same to vocalised Arabic and Hebrew. Restricted
+    to Latin bases, French folds (Réponse → Reponse) and those three are
+    untouched.
+
+    Vietnamese stays exposed, because it IS Latin script and its marks are
+    letters: má (mother) and ma (ghost) fold together. That is what the
+    collision report is for — the fold is deliberate and aggressive, and
+    the author is told when two cards land on one identity."""
+    out, base_is_latin = [], False
+    for char in unicodedata.normalize('NFD', text):
+        if unicodedata.combining(char):
+            if not base_is_latin:
+                out.append(char)
+            continue
+        base_is_latin = 'LATIN' in unicodedata.name(char, '')
+        out.append(char)
+    return unicodedata.normalize('NFC', ''.join(out))
+
+
+def normalise_for_identity(text):
+    """The form two titles are compared in before they are hashed.
+
+    NFKC first, and it earns its place three times over: it folds the
+    presentation variants (full-width Ｒ, the ﬁ ligature, half-width
+    katakana ｶ) that are the same title typed on another keyboard, and it
+    turns U+00A0 back into a plain space. That last one settles a question
+    that would otherwise have needed a rule: the typography engine inserts
+    non-breaking spaces into titles, so an identity taken before and after
+    it would differ. After NFKC they are equal, and the order stops
+    mattering.
+
+    `casefold()`, not `lower()`: measured, only casefold takes Straße to
+    strasse. The Turkish dotted İ stays distinct from i — a known limit of
+    case folding, not something to paper over here."""
+    text = unicodedata.normalize('NFKC', text)
+    text = text.casefold()
+    text = _fold_latin_marks(text)
+    return ' '.join(text.split())
+
+
+def identity_hash(text):
+    """A stable, opaque name for a piece of authored text."""
+    normalised = normalise_for_identity(text)
+    digest = hashlib.sha256(normalised.encode('utf-8')).hexdigest()
+    return digest[:IDENTITY_HASH_LENGTH]
+
+
+def derive_slide_identity(slide, ordinal):
+    """The identity a card claims before prefixing and collision handling.
+
+    Returns (value, source) — the source names which of the five rules
+    fired, so `audit` can report the one that is not durable without
+    re-deriving the answer, and `resolve` can say where a value came from
+    the way it does for every other field."""
+    explicit = getattr(slide, 'slug', None)
+    if explicit:
+        return explicit.strip(), 'declared'
+    if slide.slide_type == 'series-nav':
+        return 'series-nav', 'type'
+    if slide.slide_type == 'full-article':
+        if slide.article_file:
+            return identity_hash(slide.article_file), 'article-file'
+        return f's{ordinal}', 'ordinal'
+    title = slide.h1 if slide.slide_type == 'cover' else slide.h2
+    if title and title.strip():
+        return identity_hash(title), 'title'
+    return f's{ordinal}', 'ordinal'
+
+
+def resolve_slide_slug(slide, ordinal, prefix, taken):
+    """The id a card is finally given, unique within its page.
+
+    `taken` is the set of ids already spoken for — the skeleton's own plus
+    every card resolved before this one — and it is MUTATED here, because
+    the answer for one card depends on the answers for all the ones before
+    it and a caller that forgot to record them would mint duplicates in
+    silence.
+
+    The prefix applies to a declared slug exactly as it does to a derived
+    one. A prefix that covered only half of them would not be a namespace,
+    it would be a decoration: an author could not tell, without checking
+    each card, which of their ids carried it.
+
+    A collision suffixes `-2`, `-3`, in document order — deterministic, so
+    two builds of unchanged sources agree. It is not silent: the caller
+    reports it, since two cards landing on one identity usually means two
+    cards carry the same title, which is worth knowing for its own sake."""
+    value, source = derive_slide_identity(slide, ordinal)
+    if prefix:
+        value = f'{prefix}{value}'
+    candidate, n = value, 1
+    while candidate in taken:
+        n += 1
+        candidate = f'{value}-{n}'
+    taken.add(candidate)
+    return candidate, source, (candidate != value)
+
 class Slide:
     def __init__(self, slide_type='standard'):
         self.slide_type = slide_type  # one of SLIDE_TYPES (validated per article)
+        # What this card is called in a URL, when the author names it
+        # rather than letting it be derived (see SLIDE IDENTITY above).
+        self.slug = None
         self.kicker = None
         self.tags = None
         self.h2 = None

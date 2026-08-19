@@ -8197,6 +8197,182 @@ class ContrastFloors(unittest.TestCase):
             'exemption must go with it.')
 
 
+class SlideIdentityIsDerivedFromWhatTheAuthorWrote(unittest.TestCase):
+    """§12.1.1. A card's id is what a shared link — and a PRINTED QR code —
+    still points at after the article is edited. It used to be the card's
+    rank, so any insertion, reorder or `tags: excluded` repointed every
+    link after it, in silence and irreversibly on paper.
+
+    The engine is pure: text in, identity out. It is tested here without
+    building anything, because every one of these rules is a decision that
+    can be got wrong quietly, and a page render would hide which one."""
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def _card(self, slide_type='standard', **fields):
+        card = self.lwp.Slide(slide_type)
+        for name, value in fields.items():
+            setattr(card, name, value)
+        return card
+
+    # --- normalisation -----------------------------------------------------
+
+    def test_the_same_title_typed_differently_is_the_same_identity(self):
+        """Each pair is one title a reader would call the same, and one
+        way a keyboard, a copy-paste or this tool's own typography engine
+        can change its bytes without changing what it says."""
+        same = [
+            ('case', 'Pourquoi ce format', 'POURQUOI CE FORMAT'),
+            ('runs of spaces', 'Pourquoi ce format', 'Pourquoi  ce   format'),
+            ('French accents', 'Réponse', 'Reponse'),
+            ('German sharp s', 'Straße', 'STRASSE'),
+            ('full-width', 'Ｆｉｃｈｉｅｒ', 'Fichier'),
+            ('ligature', 'ﬁchier', 'fichier'),
+            # The one that settles an ordering question rather than a
+            # typing one: the typography engine puts U+00A0 before a colon
+            # in French. NFKC turns it back into a space, so an identity
+            # taken before it and one taken after agree, and nothing has
+            # to specify which side of the engine this runs on.
+            ('non-breaking space', 'Chapitre\u00a0: un', 'Chapitre : un'),
+        ]
+        for label, left, right in same:
+            self.assertEqual(self.lwp.identity_hash(left),
+                             self.lwp.identity_hash(right),
+                             f'{label}: {left!r} and {right!r} are the same title')
+
+    def test_marks_that_are_letters_are_not_folded_away(self):
+        """"Strip the accents" is a Latin-speaker's instruction. In
+        Devanagari a matra is a letter: dropping it turns हिन्दी into
+        हिनदी, which is not a word. Same for vocalised Arabic and Hebrew.
+        Folding is restricted to Latin bases for exactly this."""
+        for label, left, right in [
+            ('Hindi', 'हिन्दी', 'हिनदी'),
+            ('Arabic', 'كَتَبَ', 'كتب'),
+            ('Hebrew', 'שָׁלוֹם', 'שלום'),
+            ('plain French words', 'Le format', 'Les formats'),
+        ]:
+            self.assertNotEqual(self.lwp.identity_hash(left),
+                                self.lwp.identity_hash(right),
+                                f'{label}: {left!r} and {right!r} are different')
+
+    def test_vietnamese_folds_and_that_is_a_known_cost(self):
+        """Vietnamese IS Latin script and its marks are letters, so no
+        rule restricted to script can spare it: má (mother) and ma (ghost)
+        land on one identity. Asserted rather than left implicit, because
+        it is the case the collision report exists to catch — and the day
+        someone widens the fold, this says what it costs."""
+        self.assertEqual(self.lwp.identity_hash('má'), self.lwp.identity_hash('ma'))
+
+    def test_the_hash_is_the_length_the_qr_measurement_chose(self):
+        """Eight, and the literal is written out here on purpose.
+
+        This guard read `IDENTITY_HASH_LENGTH` on both sides at first, and
+        a mutation to 6 walked straight through it: an assertion that pins
+        a constant to itself pins nothing. The number is a measurement,
+        not a preference — the share QR was measured at error-correction
+        level M, where capacity steps fall at 43, 63, 85 and 107
+        characters of URL, and a 6-hex and an 8-hex identity both land in
+        version 4, 33 modules a side, so the wider one costs nothing.
+        Changing the length is allowed; changing it without re-measuring
+        the QR is what this stops."""
+        self.assertEqual(self.lwp.IDENTITY_HASH_LENGTH, 8)
+        value = self.lwp.identity_hash('Pourquoi ce format')
+        self.assertEqual(len(value), 8)
+        self.assertRegex(value, r'\A[0-9a-f]+\Z')
+
+    # --- the five rules ----------------------------------------------------
+
+    def test_each_source_of_identity_fires_where_it_should(self):
+        """The order is the contract: a declared slug beats everything,
+        and the rank is the last resort rather than the default."""
+        cases = [
+            ('declared beats a title',
+             self._card(slug='mon-ancre', h2='Un titre'), 'declared'),
+            ('a standard card uses its own heading',
+             self._card(h2='Le tableau'), 'title'),
+            ('a cover uses its own heading',
+             self._card('cover', h1='Pourquoi'), 'title'),
+            ('a long-form card is told apart by its file',
+             self._card('full-article', article_file='fond.md'), 'article-file'),
+            ('one series-nav per article, so a fixed name',
+             self._card('series-nav'), 'type'),
+            ('a card with no heading has nothing to derive from',
+             self._card(), 'ordinal'),
+        ]
+        for label, card, expected in cases:
+            _value, source = self.lwp.derive_slide_identity(card, 7)
+            self.assertEqual(source, expected, label)
+
+    def test_two_long_form_cards_on_one_page_are_told_apart(self):
+        """A page may carry several (§22.8) and none of them has a title,
+        so the file they name is the only thing that distinguishes them."""
+        first, _ = self.lwp.derive_slide_identity(
+            self._card('full-article', article_file='un.md'), 1)
+        second, _ = self.lwp.derive_slide_identity(
+            self._card('full-article', article_file='deux.md'), 2)
+        self.assertNotEqual(first, second)
+
+    def test_moving_a_card_does_not_move_its_identity(self):
+        """The whole point, stated on its own: the same card at another
+        rank is the same card."""
+        card = self._card(h2='Le tableau')
+        self.assertEqual(self.lwp.derive_slide_identity(card, 2),
+                         self.lwp.derive_slide_identity(card, 9))
+
+    # --- prefix and collisions ---------------------------------------------
+
+    def test_the_prefix_covers_declared_and_derived_alike(self):
+        """A prefix that covered only one of them would not be a
+        namespace: an author could not tell which of their ids carried it
+        without checking each card."""
+        for card in (self._card(slug='mon-ancre'), self._card(h2='Le tableau'),
+                     self._card(), self._card('series-nav')):
+            value, _source, _clashed = self.lwp.resolve_slide_slug(
+                card, 3, 'chap3-', set())
+            self.assertTrue(value.startswith('chap3-'), value)
+
+    def test_a_declared_slug_cannot_take_an_id_the_page_already_uses(self):
+        """A document with two elements sharing an id has one of them
+        unreachable: the reader who follows the link arrives at whichever
+        the browser picks. `notes` is the case that caught this engine out
+        — it is minted by the renderer, not written in the skeleton, so a
+        reserved set derived from the template alone let it through while
+        catching `navPrev`, which is the same mistake."""
+        for reserved in ('notes', 'navPrev', 'slideCounter'):
+            self.assertIn(reserved, self.lwp.RESERVED_SLIDE_IDS)
+            taken = set(self.lwp.RESERVED_SLIDE_IDS)
+            value, _source, clashed = self.lwp.resolve_slide_slug(
+                self._card(slug=reserved), 1, '', taken)
+            self.assertTrue(clashed, f'{reserved} was handed out twice')
+            self.assertNotEqual(value, reserved)
+
+    def test_two_cards_that_land_on_one_identity_are_separated_and_reported(self):
+        taken = set()
+        first = self.lwp.resolve_slide_slug(self._card(h2='Le tableau'), 1, '', taken)
+        second = self.lwp.resolve_slide_slug(self._card(h2='LE TABLEAU'), 2, '', taken)
+        self.assertNotEqual(first[0], second[0])
+        self.assertFalse(first[2], 'the first card did not collide with anything')
+        self.assertTrue(second[2], 'the collision was not reported')
+        self.assertEqual(second[0], first[0] + '-2')
+
+    def test_the_answer_does_not_depend_on_this_process(self):
+        """A hash seeded per process would give every build a different
+        set of anchors — the defect being fixed, in a new costume. Run in
+        a subprocess so PYTHONHASHSEED cannot be shared."""
+        code = ('import sys; sys.argv=["x"];'
+                'exec(open(%r).read().replace("if __name__ == \'__main__\':", "if False:"));'
+                'print(identity_hash("Pourquoi ce format"))' % str(EXECUTABLE))
+        first = subprocess.run([sys.executable, '-c', code],
+                               capture_output=True, text=True)
+        second = subprocess.run([sys.executable, '-c', code],
+                                capture_output=True, text=True)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(first.stdout.strip(), second.stdout.strip())
+        self.assertEqual(first.stdout.strip(),
+                         self.lwp.identity_hash('Pourquoi ce format'))
+
+
 class MeasurementReportsItDoesNotPolice(unittest.TestCase):
     """§9.5 / §11.9.1. The tool measures a theme's contrast and prints the
     level with the offending pairs. It stops there. No palette value is
