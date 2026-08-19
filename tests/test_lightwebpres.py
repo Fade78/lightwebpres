@@ -4789,6 +4789,15 @@ class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
                     '--output', str(root / 'public'))
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertIn('language/fr.json differs', r.stderr)
+            # And it names what to RUN. The first wording said "copy the
+            # built-in one over it" without saying with what, at a moment
+            # when three commands could do it — so the one person who hit
+            # this worked the remedy out by hand, from a message that did
+            # not contain it. Deletion first: it is the state the tool
+            # now wants a series to be in.
+            self.assertIn('delete it', r.stderr)
+            self.assertIn('template show fr.json', r.stderr)
+            self.assertIn('template write fr.json', r.stderr)
 
     def test_a_pack_the_tool_does_not_ship_is_the_authors_business(self):
         """A language the tool has never heard of is not stale, it is
@@ -5989,6 +5998,101 @@ class TypographyDisableSwitches(unittest.TestCase):
     """§4.5/§19.6: typo_units/typo_thousands/typo meta fields and
     --no-typography each turn off part or all of the typography engine,
     scoped exactly as documented — per-rule, per-article, or global."""
+
+    def test_a_switch_with_nothing_to_disable_says_so(self):
+        """Resolving the opt-outs through categories fixed one silent
+        no-op and opened another. A pack whose rules carry no `category`
+        — hand-written, or copied into a series by an `init` older than
+        v0.40.0 — yields an empty set, so the field is read, accepted,
+        and ignored.
+
+        Measured on a real series before this warning: with a v0.39.0
+        pack in `language/`, `typo_units: off` still produced
+        `170<nbsp>millions`; with the pack deleted, it produced
+        `170 millions`. Nothing said a word. §2.4's promise that nothing
+        is a silent no-op is not a promise about options only."""
+        md = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+              'nav_title: A\nnav_desc: A\ntypo_units: off\n---\n\n'
+              '<!-- lwp:slide:cover -->\nkicker: K\n# T\n'
+              'summary: Environ 170 millions de personnes.\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(
+                run('template', 'write', 'fr.json', str(root)).returncode, 0)
+            pack = root / 'language' / 'fr.json'
+            data = json.loads(pack.read_text(encoding='utf-8'))
+            for rule in data['rules']:
+                rule.pop('category', None)
+            pack.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+            r = run('build', str(root), '--quiet',
+                    '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn('typo_units: off has nothing to disable', r.stderr)
+            self.assertIn('a.md', r.stderr)
+            # And the switch really is inert, which is what makes the
+            # warning worth printing rather than a nicety.
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('170\u00a0millions', html)
+
+    def test_the_switch_is_silent_when_it_has_something_to_disable(self):
+        """The other half. A warning that fires on a healthy series is
+        noise every author learns to skip past."""
+        md = ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+              'nav_title: A\nnav_desc: A\ntypo_units: off\n---\n\n'
+              '<!-- lwp:slide:cover -->\nkicker: K\n# T\n'
+              'summary: Environ 170 millions de personnes.\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_dest': 'a.html', 'page_source': 'a.md',
+                 'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
+            r = run('build', str(root), '--quiet',
+                    '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertNotIn('nothing to disable', r.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('170 millions', html)
+
+    def test_the_warning_is_said_once_a_build_not_once_an_article(self):
+        """The cause is the pack in force, not the article. A series that
+        sets the field on every article would otherwise print the same
+        line once per article — twenty-eight times on the series this was
+        found in, which is how a real warning becomes wallpaper."""
+        meta = ('<!-- lwp:meta -->\npage_dest: {d}.html\npage_title: T\n'
+                'nav_title: {d}\nnav_desc: {d}\ntypo_units: off\n---\n\n'
+                '<!-- lwp:slide:cover -->\nkicker: K\n# T\n'
+                'summary: Environ 170 millions de gens.\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(
+                run('template', 'write', 'fr.json', str(root)).returncode, 0)
+            pack = root / 'language' / 'fr.json'
+            data = json.loads(pack.read_text(encoding='utf-8'))
+            for rule in data['rules']:
+                rule.pop('category', None)
+            pack.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            entries = []
+            for name in ('a', 'b', 'c'):
+                (root / 'articles' / f'{name}.md').write_text(
+                    meta.format(d=name), encoding='utf-8')
+                entries.append({'page_dest': f'{name}.html',
+                                'page_source': f'{name}.md',
+                                'nav_title': name, 'nav_desc': name})
+            (root / 'series.json').write_text(
+                json.dumps({'articles': entries}), encoding='utf-8')
+            r = run('build', str(root), '--quiet',
+                    '--output', str(root / 'public'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(r.stderr.count('has nothing to disable'), 1,
+                             r.stderr)
 
     def _two_article_series(self, tmp, meta_extra_b=''):
         root = Path(tmp)
@@ -8577,7 +8681,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
     def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
         """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.39.0),
+        by the executable as it stood at the last tagged release (v0.40.0),
         and by this one, compared byte for byte after CSS comments are
         removed from ``<style>`` blocks. Comments are not rendering, while
         every other byte remains covered. --build-stamp is off by default,
@@ -8592,10 +8696,10 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         outside a git checkout there is nothing to compare against, and
         a comparison with nothing is not a pass."""
         previous = subprocess.run(
-            ['git', 'show', 'v0.39.0:lightwebpres'], capture_output=True,
+            ['git', 'show', 'v0.40.0:lightwebpres'], capture_output=True,
             cwd=str(EXECUTABLE.parent))
         if previous.returncode != 0:
-            self.skipTest('no v0.39.0 tag to read the previous version from')
+            self.skipTest('no v0.40.0 tag to read the previous version from')
         with tempfile.TemporaryDirectory() as tmp:
             before_exe = Path(tmp) / 'lightwebpres-before'
             before_exe.write_bytes(previous.stdout)
@@ -8691,7 +8795,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
 
             # Deliberate drift since the tag, declared line for line, and
             # empty at the start of a release cycle -- which is where it
-            # is now, freshly repointed at v0.39.0.
+            # is now, freshly repointed at v0.40.0.
             #
             # It exists because the docstring's instruction has a gap.
             # Repointing at the newest tag is the acknowledgement that a
@@ -8844,7 +8948,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                                  f'{line.decode()!r} is declared arrived and '
                                  f'the released version already had it')
             self.assertEqual(seen, set(drift.items()),
-                             'the drift since v0.39.0 is not the drift this '
+                             'the drift since v0.40.0 is not the drift this '
                              'test declares')
 
     def test_the_page_carries_exactly_the_script_the_tool_ships(self):

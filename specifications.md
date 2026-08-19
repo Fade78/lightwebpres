@@ -6104,6 +6104,17 @@ Au moment du build, le moteur charge le pack de langue depuis :
 
 ### 19.6 Désactivation complète (`--no-typography`)
 
+**Un interrupteur qui ne trouve rien à désactiver le dit.** Résoudre les
+opt-outs par catégorie (§19.2) a tué un no-op silencieux et en a ouvert un
+autre : un pack dont les règles ne portent pas de `category` — écrit à la
+main, ou copié dans la série par un `init` antérieur à v0.40.0 — ne rend
+aucune règle, donc le champ est lu, accepté, et ignoré. Mesuré sur une
+série réelle : avec un pack v0.39.0 dans `language/`, `typo_units: off`
+produisait toujours `170<insécable>millions`. Le build avertit désormais,
+une fois par champ et par build — la cause est le pack en vigueur, pas
+l'article, et une série qui pose le champ sur chacun de ses articles
+imprimerait sinon la même ligne autant de fois.
+
 `--no-typography`, sur `build`, `verify` et `watch` (§11.3/§11.4), saute entièrement
 le chargement d'un moteur de règles pour ce lancement — aucune règle,
 qu'elle vienne du pack intégré ou d'un override (§7.4/§19.5), ne s'exécute

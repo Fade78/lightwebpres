@@ -86,7 +86,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.40.0"
+VERSION = "0.40.1"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -10465,7 +10465,7 @@ TYPO_OPT_OUTS = {
 }
 
 
-def typo_disabled_rules(meta, engine=None):
+def typo_disabled_rules(meta, engine=None, source=''):
     """Reads an article's typo_units/typo_thousands meta fields (§4.5) and
     returns the set of rule names to skip on that article's own page.
     'off' (case-insensitive) is the only value that disables a rule;
@@ -10482,6 +10482,21 @@ def typo_disabled_rules(meta, engine=None):
     `--lang en` with the field set. A pack states what its rules are for;
     the opt-out reads it, and reaches a pack nobody here has seen.
 
+    A switch that finds NOTHING to disable warns. Resolving through
+    categories fixed one silent no-op and opened another: a pack whose
+    rules carry no `category` -- one written by hand, or copied into a
+    series by an `init` older than v0.40.0 -- yields an empty set, so the
+    field is read, accepted, and ignored. Measured on a series holding a
+    v0.39.0 pack: `typo_units: off` still produced `170<nbsp>millions`.
+    The build says so now, because §2.4's promise that nothing is a
+    silent no-op is not a promise about options only.
+
+    Warned once per field per build, not once per article: the cause is
+    the pack in force, and a series that sets the field on every article
+    would otherwise print the same line twenty-eight times. The set that
+    remembers lives on the ENGINE, which is built once per build, so
+    nothing here is module state to reset.
+
     The third, blanket meta field (typo: off, disabling every rule for
     the article, not just these two) is handled separately in
     build_article via article_typo_engine, since it needs to swap in a
@@ -10492,8 +10507,24 @@ def typo_disabled_rules(meta, engine=None):
     for field, categories in TYPO_OPT_OUTS.items():
         if str(meta.get(field, '')).strip().lower() != 'off':
             continue
+        found = set()
         for category in categories:
-            disabled |= engine.categories.get(category, set())
+            found |= engine.categories.get(category, set())
+        if not found:
+            warned = getattr(engine, '_opt_out_warned', None)
+            if warned is None:
+                warned = engine._opt_out_warned = set()
+            if field not in warned:
+                warned.add(field)
+                where = f'{source}: ' if source else ''
+                named = ', '.join(f'"{c}"' for c in categories)
+                log('warn', f'{where}{field}: off has nothing to disable — '
+                    f'no rule in the language pack in force declares a '
+                    f'{named} category, so the field is read and does '
+                    f'nothing. A pack from before v0.40.0 has no '
+                    f'categories: delete it to use the built-in one, or '
+                    f'add a "category" to the rules it carries.')
+        disabled |= found
     return disabled
 
 
@@ -10543,7 +10574,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         except PropertyError:
             pass
 
-    disabled_rules = typo_disabled_rules(meta, typo_engine)
+    disabled_rules = typo_disabled_rules(meta, typo_engine, source_path.name)
     # typo: off (§4.5) is this article's own --no-typography: skip the
     # engine entirely for its page, the same `None` the CLI flag passes
     # for a whole build, not just the two rules disabled_rules can name.
@@ -11523,9 +11554,9 @@ def load_build_context(series_dir, args):
         if on_disk != TEMPLATE_NAV_JS:
             log('warn', 'templates/nav.js differs from this '
                 'executable\'s built-in version, and the build is using '
-                'yours — run `lightwebpres template update .` to take '
-                'the built-in one instead (settings.conf and '
-                '{custom_css} are never touched)'
+                'yours — run `lightwebpres template update .` to go back '
+                'to the built-in one (yours is kept as nav.js.bak; '
+                'settings.conf and {custom_css} are never touched)'
                 .format(custom_css=CUSTOM_CSS_FILENAME))
         nav_js = on_disk
     else:
@@ -11546,11 +11577,21 @@ def load_build_context(series_dir, args):
         if builtin is None:
             continue      # a pack the tool does not ship is the author's
         if read_text_file(pack) != builtin:
+            # Naming the commands, because the previous wording told the
+            # reader WHAT to do ("copy the built-in one over it") and not
+            # WITH WHAT, at a moment when three commands could do it. The
+            # deletion comes first: it is the state this tool now wants a
+            # series to be in, and it is what the one person who hit this
+            # worked out for himself, by hand, from a message that did not
+            # say it.
             log('warn', f'language/{pack_name} differs from this '
                 f'executable\'s built-in pack, and the build is using '
-                f'yours — copy the built-in one over it to take the '
-                f'tool\'s rules and strings, or keep yours if the '
-                f'difference is deliberate')
+                f'yours. If you did not change it on purpose, delete it — '
+                f'the built-in pack is used when the file is absent, and '
+                f'`lightwebpres template update .` removes it for you when '
+                f'the two are identical. To compare first: `lightwebpres '
+                f'template show {pack_name}`. To take the built-in one: '
+                f'`lightwebpres template write {pack_name} . --force`.')
     nav_js = apply_strings(nav_js, strings)
 
     series_data = load_series_data(sd)
