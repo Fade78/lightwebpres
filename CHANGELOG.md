@@ -147,6 +147,39 @@ comes back as a proposal in six months. It stays, under one dated label
 instead of the three phrasings it had grown, saying whose day it is and
 that its present tense reads as past.
 
+`specifications.md` gets a way in. It is 23 sections and 7 000 lines and
+it had no table of contents at all: the only way to find the format, the
+commands, the themes or the `series.json` schema was to already know they
+are §4, §11, §9 and §20 — knowledge you get by having read the document
+you are trying to enter. There is now a generated one, derived from the
+headings by `tools/spec_index.py` and guarded like the register's index.
+It is fence-aware, which is load-bearing rather than tidy: §4.2 carries a
+complete example article whose slide headings are `##`, so read without
+tracking fences, "La température change tout" becomes a section of the
+specification. The guard was proved on exactly that mutation.
+
+The numbering does not move, and that is measured rather than assumed:
+about 1 200 `§N.N` references point at it — 575 inside the document, 308
+in the executable and therefore in error messages users read, 219 in the
+test suite, 46 in the glossary, 43 in the register, more in the sibling
+project. A section number is an address, like a card's slug, and for the
+same reason: you do not rename an address you have handed out. So the
+reading order is added rather than rearranged. §1.3 is an itinerary — the
+steps of writing a series, each pointing at the section that answers it —
+and it says why the numbering is frozen so the next reader does not have
+to rediscover the arithmetic.
+
+§14, the "parcours utilisateur", was that itinerary's stale ancestor: four
+bash snippets at 77% of the way through, written when the tool had a third
+of its commands, whose first step was to copy the executable into the PATH
+and whose example files came from a series that no longer exists. It now
+runs on the current surface — `audit`, `status`, `series slug set`, `theme
+show`, `resolve` — and on the same apple-tart example as §4.2 instead of a
+second vocabulary. It also stops teaching one thing that does not work:
+`verify` builds in memory and compares to the `public/` on disk, so run
+just after a build it compares the output to itself and is green by
+construction. Its place is CI, or before picking a series back up.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot

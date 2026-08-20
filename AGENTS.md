@@ -72,6 +72,14 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `tools/guide-deck.md` — deck source du guide, à côté du script qui le
   lit (`tools/build_guide.py`, qui assemble `GUIDE.md` comme article).
   Entrée de build, pas documentation : se corrige comme du code.
+- **Deux blocs de ces documents sont générés** et se réécrivent au lieu
+  de s'éditer. Chacun a sa garde dans la suite, donc une édition à la
+  main ne survit ni au script ni au test :
+  - `tools/spec_index.py` — le sommaire de `specifications.md`, dérivé
+    des titres. Conscient des blocs de code : §4.2 contient un article
+    d'exemple dont les titres de fiche sont des `##`.
+  - `tools/decisions_index.py` — l'index de `DECISIONS.md`, dérivé des
+    lignes de champs.
 
 ### Artefacts régénérables — `generated/`
 Sortie de build committée. **Rien ne s'y édite à la main** : la

@@ -2187,6 +2187,33 @@ class CliVersionAndShortcuts(unittest.TestCase):
                          (r.stdout + r.stderr).strip() or
                          'the index of DECISIONS.md is stale')
 
+    def test_the_spec_index_matches_the_file(self):
+        """`specifications.md` may have a table of contents for the same
+        reason `DECISIONS.md` may have an index: it is derived, and this
+        fails if it drifts.
+
+        The document went 23 sections and 7 000 lines without one. The
+        only way in was to already know that the format is §4, the
+        commands §11, the themes §9 and the `series.json` schema §20 —
+        knowledge you get by having read the thing you are trying to find
+        your way into.
+
+        The generator is fence-aware and that is load-bearing rather than
+        tidy: §4.2 carries a complete example article, and its slide
+        headings are `#` and `##` like any other. Read without tracking
+        fences, "La température change tout" is a section of this
+        specification, sitting between §4 and §5."""
+        root = Path(__file__).resolve().parent.parent
+        script = root / 'tools' / 'spec_index.py'
+        spec = root / 'specifications.md'
+        if not script.exists() or not spec.exists():
+            self.skipTest('no spec_index.py or specifications.md in this checkout')
+        r = subprocess.run([sys.executable, str(script), '--check'],
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0,
+                         (r.stdout + r.stderr).strip() or
+                         'the table of contents of specifications.md is stale')
+
     def test_every_decision_entry_declares_one_of_the_six_states(self):
         """A register whose entries do not declare a state is a register
         that cannot be counted, which is how the old one decayed: an entry

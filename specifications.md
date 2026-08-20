@@ -1,5 +1,94 @@
 # LightWebPres — Spécifications du framework
 
+<!-- SOMMAIRE: généré par `python3 tools/spec_index.py`. Ne pas éditer
+     à la main : la source est les titres du document. -->
+
+**§1. Objectif**
+
+1.1 Documents du projet · 1.2 Contrat avec `lightwebpres-gui` · 1.3 Itinéraire : ce document dans l'ordre où l'on travaille
+
+**§2. Architecture générale**
+
+2.1 Exécutable unique · 2.2 Le répertoire de série · 2.3 Variables d'environnement · 2.4 Options en ligne de commande
+
+**§3. Niveaux d'objets**
+
+3.1 Niveau série (le site) · 3.2 Niveau article (la page) · 3.3 Niveau fiche (slide)
+
+**§4. Format Markdown étendu**
+
+4.1 Syntaxe générale · 4.2 Exemple complet · 4.3 Champs d'une fiche standard · 4.4 Types de slides · 4.5 Désactiver la typographie automatique pour un article · 4.6 Notes de relecture (`comment`)
+
+**§5. Inclusions**
+
+5.1 Inclusion de fichier Markdown (`.md`) · 5.2 Inclusion indirecte (référence par nom) · 5.3 Inclusion des fichiers de présentation
+
+**§6. Convertisseur Markdown → HTML**
+
+6.1 Conventions de conversion · 6.2 HTML inline autorisé · 6.3 Citations et code · 6.4 Espacement et indentation · 6.5 Notes
+
+**§7. Langue (typographie et interface)**
+
+7.1 Fichier de langue · 7.2 Règles typographiques · 7.3 Chaînes d'interface (strings) · 7.4 Override et repli · 7.5 Règles insécables par défaut (`fr`) · 7.6 Préservation d'une espace insécable déjà présente dans la source
+
+**§8. Pages calculées**
+
+8.1 Page d'index · 8.2 Navigation de série · 8.3 README · 8.4 Pack présentateur (v0.26.0)
+
+**§9. Thèmes et personnalisation : les propriétés typées**
+
+9.1 Le principe et le vocabulaire · 9.2 Les types et les renvois · 9.3 La cascade à cinq couches et les trois fichiers · 9.4 Les commandes · 9.5 Thèmes de couleurs prédéfinis · 9.6 La couche article, et les balises d'instance · 9.7 Effets et dégradés · 9.8 Migration depuis `templates/style.css`
+
+**§10. Pipeline GitLab CI**
+
+**§11. Commandes de l'exécutable**
+
+11.1 `init` · 11.2 `demo` · 11.3 `build` · 11.3.1 `build --only` : reconstruction d'un seul article · 11.3.2 `build --build-stamp` / `--build-stamp-minimal` : marqueur de fraîcheur · 11.3.3 Un article qui réclame `index.html` · 11.4 `verify` · 11.5 `audit` · 11.6 `template update` · 11.7 `theme gallery` · 11.8 `--help` · 11.9 `theme list` · 11.9.1 `theme show` · 11.10 `series theme set` · 11.11 `status` · 11.12 `resolve` · 11.13 `clean` · 11.14 `watch` · 11.15 `completion` · 11.16 Alias legacy
+
+**§12. Algorithme du build**
+
+12.1 Étape par étape · 12.1.1 Attribution des identités de fiche · 12.1.2 `series slug` et `series slug set` · 12.2 Parseur Markdown étendu · 12.3 Rendu d'une fiche standard
+
+**§13. Contraintes**
+
+13.1 UTF-8 · 13.2 HTML autonome · 13.3 Idempotence · 13.4 Pas de dépendance externe · 13.5 Édition par LLM · 13.6 Validation du HTML généré · 13.7 Modèle de menace et contenances · 13.8 Dépendance vendorisée (page navigateur) · 13.9 Politique de versionnage
+
+**§14. Parcours utilisateur**
+
+14.1 Créer une série et la publier · 14.2 Reprendre une série qui existe · 14.3 Changer l'allure · 14.4 Pipeline CI · 14.5 Édition par un agent
+
+**§15. Limites (volontairement non couvertes)**
+
+**§16. Feuille de route de développement**
+
+**§17. Relevé de couverture**
+
+17.1 Tous les niveaux sont couverts · 17.2 Tous les types de fiches sont couverts · 17.3 Toutes les inclusions sont couvertes · 17.4 Toutes les pages calculées sont couvertes · 17.5 Toutes les contraintes sont couvertes · 17.6 Ce qui n'est PAS couvert (volontairement)
+
+**§18. Placeholders de templates**
+
+18.1 Template `page.html` · 18.2 Template `index.html` · 18.3 Fragments de la slide series-nav · 18.4 Règles de remplacement
+
+**§19. Schéma du fichier de langue (`fr.json`)**
+
+19.1 Structure du fichier · 19.2 Champs · 19.3 Règles d'application · 19.4 Fichier `en.json` (anglais) · 19.5 Packs par défaut embarqués dans l'exécutable · 19.6 Désactivation complète (`--no-typography`)
+
+**§20. Schéma formel de `series.json`**
+
+20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.6 Statut d'un article (`status`)
+
+**§21. Cas de validation informel (contenu privé, hors dépôt)**
+
+**§22. Cas limites du parseur**
+
+22.1 Séparateur `---` dans le corps d'une fact-box · 22.2 `kicker:` dans le texte d'une fact-box · 22.3 Slide sans `kicker:` · 22.4 Slide `cover` sans `summary:` · 22.5 Fichier `.md` sans `<!-- lwp:slide:full-article -->` · 22.6 Fichier `.md` avec `<!-- lwp:slide:full-article -->` mais sans `article:` · 22.7 Contenu avant `<!-- lwp:meta -->` (y compris un `---`) · 22.8 Plusieurs `<!-- lwp:slide:full-article -->` dans le même fichier · 22.9 Plusieurs `<!-- lwp:slide:series-nav -->` dans le même fichier · 22.9.1 Contenu non reconnu dans une fiche `series-nav` ou `full-article` · 22.9.2 Type inconnu dans un marqueur `<!-- lwp:slide:TYPE -->` · 22.10 Fichier `.md` vide (aucune slide) · 22.11 Retour à la ligne sans ligne vide à l'intérieur d'un paragraphe · 22.12 Contenu inattendu après les champs reconnus d'une fiche `cover` · 22.13 Nombre et position des fiches `cover` · 22.14 Bloc HTML brut multi-lignes ouvert par une balise inline · 22.15 Bloc de code ouvert sans être refermé · 22.16 `>` qui n'est pas en tout début de ligne · 22.17 Backtick isolé (sans backtick fermant sur la même ligne)
+
+**§23. Version navigateur (`web/`)**
+
+23.1 Principe · 23.2 Confidentialité · 23.3 Ce que ça change (et ne change pas) pour l'exécutable · 23.4 Fichiers · 23.5 Test · 23.6 Ne fonctionne pas ouvert directement (`file://`) · 23.7 Auto-hébergement sur un vrai serveur web : type MIME de `.mjs` · 23.8 Où chercher l'exécutable `lightwebpres` · 23.9 Onglet GitLab : synchronisation depuis le navigateur · 23.10 CORS : condition nécessaire, hors du périmètre de cette page · 23.11 Jeton d'accès personnel · 23.12 Ce que push ne fait jamais : supprimer · 23.13 Test de l'onglet GitLab
+
+<!-- /SOMMAIRE -->
+
 ## 1. Objectif
 
 LightWebPres est un framework de génération de pages web autonomes à partir de
@@ -191,6 +280,52 @@ Réciproquement, les fonctionnalités propres au GUI (édition assistée,
 chiffrement au repos, aperçu, synchronisation Git…) sont **hors** de ce
 document : elles vivent dans le dépôt `lightwebpres-gui` et n'imposent
 rien à l'exécutable.
+
+### 1.3 Itinéraire : ce document dans l'ordre où l'on travaille
+
+Les sections sont numérotées dans l'ordre où elles ont été écrites, qui
+est celui du système — le format, puis le convertisseur, puis les thèmes,
+puis les commandes. Ce n'est pas l'ordre dans lequel on écrit une série.
+Cette section donne le second, sans toucher au premier.
+
+**La numérotation ne bouge pas, et c'est une décision mesurée.** Environ
+1 200 renvois en `§N.N` pointent dessus : 575 dans ce document, 308 dans
+l'exécutable — donc dans les messages d'erreur que lit un utilisateur —
+219 dans la suite de tests, 46 au `GLOSSARY.md`, 43 au `DECISIONS.md`,
+sans compter le projet frère. Un numéro de section est une **adresse**,
+au même titre qu'un slug de fiche (§12.1.1), et pour la même raison : on
+ne renomme pas une adresse qu'on a distribuée. Réordonner le document
+voudrait dire réécrire ces renvois ou les laisser mentir. Ce qui se
+construit à la place, c'est une entrée.
+
+| Ce que vous faites | Où c'est écrit |
+|---|---|
+| **Comprendre ce que produit l'outil** avant d'écrire quoi que ce soit | §2 l'architecture, §3 les trois niveaux d'objets (série → article → fiche) |
+| **Écrire une fiche** : les champs, les types de fiche, la bascule champ → texte libre | §4, avec un exemple complet en §4.2 ; §22 pour ce que le parseur fait des cas tordus |
+| **Écrire le texte long** derrière les fiches, et le rattacher | §5 les inclusions, §8.4 le deck d'article |
+| **Savoir ce que le Markdown devient** : listes, tableaux, notes, images, liens | §6, et §6.5 pour la passe de jugement qui vous signale ce qui a l'air d'un accident |
+| **Décrire la série** : `series.json`, l'ordre des articles, les pages calculées | §20 le schéma formel, §8 ce que le build en tire (index, nav, README) |
+| **Nommer les fiches** pour que les liens survivent aux relectures | §12.1.1, et `series slug` / `series slug set` en §11 |
+| **Choisir une allure** : un thème du catalogue, puis l'ajuster | §9 en entier ; §9.5 pour ce qu'une palette dit et ne dit pas |
+| **Régler un détail précis** : une taille, une couleur, un halo, un alignement | §9.2 les types, §9.3 la cascade, §18 les placeholders ; `resolve` (§11.12) répond plus vite que la lecture |
+| **La langue et la typographie** : insécables, guillemets, chaînes d'interface | §7, §19 le schéma du pack de langue |
+| **Construire, vérifier, publier** | §11 les commandes, §12 l'algorithme du build, §10 le pipeline CI |
+| **Comprendre un avertissement** que vous venez de lire | §6.5 et §11 pour la commande qui l'a émis ; §13 pour ce que l'outil refuse par principe |
+| **Voir des enchaînements concrets** de commandes | §14 |
+| **Savoir ce que l'outil ne fait pas**, et pourquoi c'est délibéré | §15 |
+
+**Trois entrées valent mieux que la lecture linéaire**, et ce document
+n'est pas la première à essayer :
+
+- `GUIDE.md` est le parcours rédigé, en anglais, pour quelqu'un qui
+  démarre. Ce document-ci répond « qu'est-ce qui est vrai », pas
+  « comment fait-on » ; quand les deux se contredisent, c'est celui-ci
+  qui fait foi et l'autre qui se corrige (§1.1).
+- `GLOSSARY.md` répond à « ce champ, il vaut quoi par défaut et d'où
+  tombe-t-il ? » sans qu'on ait à trouver la section.
+- `lightwebpres resolve <nom>` répond à la même question sur **votre**
+  série, avec le niveau qui a tranché. Une lecture de spec dit la règle ;
+  `resolve` dit le résultat.
 
 ---
 
@@ -5725,69 +5860,129 @@ au sens ci-dessus.
 
 ## 14. Parcours utilisateur
 
-### 14.1 Parcours de création
+Des enchaînements concrets, dans l'ordre où on les tape. Ce que chaque
+commande fait exactement est en §11 ; ici c'est **quand** on l'appelle.
+§1.3 route dans l'autre sens, de la question vers la section.
+
+Les fichiers d'exemple portent les noms de l'exemple du §4.2 — la tarte
+aux pommes — pour qu'on puisse suivre les deux ensemble.
+
+### 14.1 Créer une série et la publier
 
 ```bash
-# 1. Installer le framework
-cp lightwebpres /usr/local/bin/  # ou utiliser ./lightwebpres
+# 1. Créer la structure. L'exécutable suffit : rien à installer.
+#    init dépose une COPIE de lui-même dans la série (§11.1), qui est ce
+#    qui rend la série autonome — pas besoin de le mettre dans le PATH.
+./lightwebpres init ma-serie --theme nord
 
-# 2. Créer une nouvelle série
-lightwebpres init ma-serie
+# 2. Voir à quoi ressemble une série remplie, avant d'écrire la sienne.
+#    demo écrit trois articles d'exemple et NE construit PAS (§11.2).
+./lightwebpres demo ma-serie
+./lightwebpres build ma-serie
 
-# 3. (Optionnel) Voir la démo
-lightwebpres demo ma-serie
+# 3. Écrire. Une fiche par bloc, un `---` entre deux (§4).
+#    ma-serie/articles/tarte.md          les fiches
+#    ma-serie/articles/tarte_article.md  le texte long qu'elles incluent (§5)
+#    ma-serie/series.json                l'ordre et les titres (§20)
 
-# 4. Créer ses articles (manuel ou par LLM)
-# Éditer ma-serie/articles/snapchat.md
-# Éditer ma-serie/articles/snapchat_article.md
-# Éditer ma-serie/series.json
+# 4. Nommer les fiches. Chaque fiche déclare son `slug:` et rien ne le
+#    dérive (§12.1.1) : un build sans slug s'arrête en nommant la commande.
+./lightwebpres series slug set ma-serie --dry-run   # ce qu'il écrirait
+./lightwebpres series slug set ma-serie             # il l'écrit
+#    Puis renommer en lisible dans le fichier : `slug: cuisson` vaut mieux
+#    que `slug: 3f7c1a9e`, et c'est l'ancre que porteront les liens.
 
-# 5. Construire
-lightwebpres build ma-serie
+# 5. Construire.
+./lightwebpres build ma-serie
 
-# 6. Ouvrir le résultat
+# 6. Relire ce que l'outil a remarqué sans rien bloquer (§11.5).
+./lightwebpres audit ma-serie
+
+# 7. Ouvrir.
 open ma-serie/public/index.html
 ```
 
-### 14.2 Parcours de correction
+### 14.2 Reprendre une série qui existe
 
 ```bash
-# 1. Modifier un article
-# Éditer ma-serie/articles/snapchat.md
+# 1. Se rappeler ce qu'il y a dedans, sans construire : les articles dans
+#    l'ordre de series.json, chaque champ RÉSOLU comme le build le
+#    résoudrait, et d'où vient chaque valeur (§11.11).
+./lightwebpres status ma-serie
 
-# 2. Reconstruire
-lightwebpres build ma-serie
+# 2. Modifier.
+#    Éditer ma-serie/articles/tarte.md
 
-# 3. Vérifier les changements
-lightwebpres verify ma-serie
+# 3. Construire, puis relire les remarques.
+./lightwebpres build ma-serie
+./lightwebpres audit ma-serie
 
-# 4. Si le résultat convient, livrer
+# 4. Livrer.
 git add . && git commit && git push
 ```
 
-### 14.3 Parcours d'édition par LLM
+**`verify` ne va pas ici.** Il construit en mémoire et compare au
+`public/` déjà sur le disque (§11.4) : lancé juste après un `build`, il
+compare la sortie à elle-même et est vert par construction. Sa place est
+là où personne ne vient de construire — en CI (§14.4), ou avant de
+reprendre une série pour savoir si le `public/` committé correspond
+encore à ses sources.
+
+### 14.3 Changer l'allure
 
 ```bash
-# 1. L'LLM reçoit une instruction : « Corrige le vocabulaire des fiches de
-#    snapchat.md »
-# 2. L'LLM lit ma-serie/articles/snapchat.md
-# 3. L'LLM modifie le fichier
-# 4. L'LLM lance : lightwebpres build ma-serie
-# 5. L'LLM vérifie : lightwebpres verify ma-serie
-# 6. Si OK, l'LLM signale que la correction est faite
+# 1. Voir le catalogue, filtré par facette (§11.9).
+./lightwebpres theme list --polarity dark
+
+# 2. Lire ce qu'un thème contient AVANT de l'installer : palette, polices,
+#    facettes, et le niveau de contraste qu'il atteint, mesuré (§11.9.1).
+./lightwebpres theme show nord
+
+# 3. L'appliquer à une série existante (§11.10).
+./lightwebpres series theme set ma-serie --theme nord
+
+# 4. Ajuster une valeur : elle s'épingle dans templates/settings.conf, et
+#    la cascade décide (§9.3). Pour savoir ce qu'UN nom vaut ici et quel
+#    niveau a tranché — les niveaux perdants compris (§11.12) :
+./lightwebpres resolve ma-serie title1.shadow.blur
+
+# 5. Reconstruire : un thème ne se voit que dans une page bâtie.
+./lightwebpres build ma-serie
 ```
 
-### 14.4 Parcours de pipeline CI
+### 14.4 Pipeline CI
 
 ```bash
-# Le .gitlab-ci.yml (créé par init --gitlab-ci, opt-in — §10/§11.1) fait :
+# .gitlab-ci.yml, créé par `init --gitlab-ci` (opt-in — §10, §11.1).
+#
+# Le geste utile en CI n'est pas de construire : c'est de refuser un
+# public/ qui ne correspond plus à ses sources.
+#   python3 lightwebpres verify .          # échoue sur [DRIFT] (§11.4)
+#   python3 lightwebpres audit . --strict  # échoue sur le moindre
+#                                          # avertissement (§11.5)
 #   python3 lightwebpres build .
 #   artifacts: public/
 #
-# À chaque push :
-# 1. GitLab CI lance le build
-# 2. Le HTML généré est dans les artifacts
-# 3. GitLab Pages peut servir le répertoire public/
+# audit sans --strict sort 0 quoi qu'il trouve : c'est un rapport, pas
+# une barrière. --strict est ce qui en fait une porte, et c'est un choix
+# à faire explicitement.
+```
+
+### 14.5 Édition par un agent
+
+Le format est fait pour être écrit aussi bien par un humain que par un
+modèle (§1), et l'enchaînement ne change pas — ce qui change est ce sur
+quoi l'agent s'appuie pour ne pas inventer.
+
+```bash
+# 1. L'agent lit agent/skills/lightwebpres/SKILL.md : le format, écrit
+#    pour lui. Ce document-ci est la référence de comportement ; le skill
+#    est ce qu'il faut avoir en tête pour écrire un fichier valide.
+# 2. Il lit et modifie ma-serie/articles/tarte.md
+# 3. ./lightwebpres build ma-serie      les erreurs sont fatales et nommées
+# 4. ./lightwebpres audit ma-serie      ce qui mérite un second regard
+# 5. Il rend compte de ce que audit a dit plutôt que de conclure que
+#    c'est bon : un build vert ne dit pas que le texte est juste.
 ```
 
 ---
