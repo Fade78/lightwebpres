@@ -225,6 +225,31 @@ in a test is a third place to be wrong. That file is the vocabulary
 contract the GUI binds itself to, so a field it does not name is a field
 the GUI has no reason to know exists.
 
+The catalogue gets the typography it was drawn with, four months after
+the pass that drew it. 99 values on 31 themes: text and display faces,
+the tracking of a kicker, the angle and stops of seven cover gradients,
+and a halo on the two palettes built around a glow. `pop` becomes a sans
+family, `crimson` an old-style serif, `dread` and `ember` take their
+display faces.
+
+**What was left out is the reason this took a measurement first.** The
+2026-08 revision delivered 31 property layers holding 541 values, and
+they were verified to resolve — then. Resolved against the catalogue as
+it stands, they would change between 9 and 49 properties per theme,
+because they also restate palettes, leadings, sizes and `nav-dot.*` as
+those were before `color.nav` gave the navigation dot a role of its own,
+before four borrowed palettes went back to their own grounds, before the
+highlighter question was decided. Applied whole, delivering the report
+would have been a rollback. A design document is a snapshot; the entry's
+own sentence about what was left — faces, tracking, gradients, two halos
+— turned out to be exactly the right list, and extracting only that is
+what made the pass safe.
+
+On a built page the whole pass shows as nine lines, measured on the theme
+the render guard uses. Seven of them are one decision reaching six
+variables that take the text face by reference — the reference working,
+declared rather than absorbed.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot

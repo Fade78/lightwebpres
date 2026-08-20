@@ -3581,6 +3581,191 @@ _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
 # Each value clears 3:1 against `color.page` AND against the fill of the
 # control it outlines -- the ring is drawn outside the border edge, so it
 # lands on both.
+# --- Per-theme typography (B9) --------------------------------------------
+# What a palette does with FACES, not with colour: its text and display
+# faces, the tracking of its kicker, the angle and stops of its cover
+# gradient, and — on two of them — a halo the palette was drawn around.
+#
+# These come from the catalogue revision of 2026-08, delivered as 31
+# property layers and verified to resolve. Only this much of them is
+# applied. The layers also restated leadings, sizes, palettes and
+# `nav-dot.*`, and the catalogue has moved since: `color.nav` gave the
+# navigation dot a role of its own (§9.5.7), four borrowed palettes went
+# back to their own grounds, the highlighter question was decided. Applied
+# whole, the layers would have reverted all of it. A design document is a
+# snapshot, and this one is being read four months after it was taken.
+#
+# The two halos are the report's own, on the two palettes drawn around a
+# glow — `ember` and `synthwave`. It added none anywhere else, and that is
+# a decision rather than an omission: a theme may hold that its atmosphere
+# is uniform (B20), and 29 of the 31 do.
+#
+# `kicker.tracking` is written `tag.tracking` in the layers, from before
+# the editorial rename of `tag:` to `kicker:`.
+THEME_TYPOGRAPHY = {
+    'blueprint-night': {
+        'font.display': 'text',
+        'font.text': "Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', sans-serif",
+        'font.ui': 'mono',
+        'kicker.tracking': '1px',
+    },
+    'blueprint': {
+        'font.display': 'text',
+        'font.text': "Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', sans-serif",
+        'font.ui': 'mono',
+        'kicker.tracking': '1px',
+    },
+    'catppuccin': {
+        'font.display': 'text',
+    },
+    'crimson': {
+        'cover.bg.angle': '170deg',
+        'cover.bg.to': '#23060BFF',
+        'font.display': 'text',
+        'font.text': "'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif",
+        'kicker.tracking': '2.5px',
+    },
+    'dracula': {
+        'font.display': 'text',
+        'font.ui': 'mono',
+    },
+    'dread': {
+        'cover.bg.angle': '200deg',
+        'cover.bg.from': '#140F12FF',
+        'cover.bg.to': '#030203FF',
+        'font.display': "Bahnschrift, 'DIN Alternate', 'Franklin Gothic Medium', 'Nimbus Sans Narrow', sans-serif-condensed, sans-serif",
+        'font.ui': "Bahnschrift, 'DIN Alternate', 'Franklin Gothic Medium', 'Nimbus Sans Narrow', sans-serif-condensed, sans-serif",
+        'kicker.tracking': '4px',
+    },
+    'ember': {
+        'cover.bg.angle': '155deg',
+        'cover.bg.from': '#1E0C08FF',
+        'cover.bg.to': '#0A0505FF',
+        'font.display': "Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif",
+        'highlight.shadow.blur': '22px',
+        'highlight.shadow.fg': '#F4622E4D',
+    },
+    'everforest': {
+        'font.display': 'text',
+    },
+    'evergreen': {
+        'cover.bg.angle': '165deg',
+        'cover.bg.from': '#14231BFF',
+        'cover.bg.to': '#060C09FF',
+        'font.display': 'text',
+        'font.text': "'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif",
+    },
+    'gold-leaf': {
+        'cover.bg.angle': '160deg',
+        'cover.bg.from': '#12100BFF',
+        'cover.bg.to': '#05050AFF',
+        'font.display': "Didot, 'Bodoni MT', 'Noto Serif Display', 'URW Palladio L', P052, Sylfaen, serif",
+        'kicker.tracking': '3.5px',
+    },
+    'graphite': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+    },
+    'gruvbox': {
+        'font.display': "Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif",
+    },
+    'high-contrast': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+        'kicker.tracking': '1.5px',
+    },
+    'monochrome': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+    },
+    'monokai': {
+        'font.display': 'mono',
+        'font.text': 'mono',
+        'font.ui': 'mono',
+    },
+    'newsprint': {
+        'font.display': "Superclarendon, 'Bookman Old Style', 'URW Bookman', 'URW Bookman L', 'Georgia Pro', Georgia, serif",
+        'kicker.tracking': '2.5px',
+    },
+    'nord': {
+        'font.display': "Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif",
+        'font.text': "Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', sans-serif",
+        'kicker.tracking': '2.5px',
+    },
+    'pop-cobalt': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+        'kicker.tracking': '3px',
+    },
+    'pop-lemon': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+        'kicker.tracking': '3px',
+    },
+    'pop-lime': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+        'kicker.tracking': '3px',
+    },
+    'pop-red': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+        'kicker.tracking': '3px',
+    },
+    'pop-tangerine': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+        'kicker.tracking': '3px',
+    },
+    'pop-violet': {
+        'font.display': 'text',
+        'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+        'kicker.tracking': '3px',
+    },
+    'rose-pine': {
+        'font.display': 'text',
+        'font.text': "'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif",
+    },
+    'sage': {
+        'font.display': 'text',
+        'font.text': "'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif",
+    },
+    'solarized': {
+        'font.display': 'text',
+    },
+    'sprout': {
+        'font.display': "Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif",
+        'font.text': "Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', sans-serif",
+    },
+    'synthwave': {
+        'cover.bg.angle': '165deg',
+        'cover.bg.from': '#2A1350FF',
+        'cover.bg.to': '#0C0620FF',
+        'font.display': "Bahnschrift, 'DIN Alternate', 'Franklin Gothic Medium', 'Nimbus Sans Narrow', sans-serif-condensed, sans-serif",
+        'highlight.shadow.blur': '14px',
+        'highlight.shadow.fg': '#2DE2C566',
+        'kicker.tracking': '3px',
+        'title1.shadow.blur': '18px',
+        'title1.shadow.fg': '#FF2E9759',
+    },
+    'terminal': {
+        'font.display': 'text',
+        'font.text': "Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif",
+        'font.ui': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+    },
+    'tokyo-night': {
+        'font.display': 'text',
+        'font.ui': 'mono',
+    },
+    'vaporwave': {
+        'cover.bg.angle': '200deg',
+        'cover.bg.to': '#3A0B63FF',
+        'font.display': 'text',
+        'font.text': "Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif",
+        'kicker.tracking': '4px',
+    },
+}
+
 THEME_PROPERTY_OVERRIDES = {
     # --- the rule down the side of a snapshot column ----------------------
     # `table.col-snap.rule-fg` defaults to `mark`, and on most palettes
@@ -3988,6 +4173,7 @@ def theme_property_layer(theme_key):
                 _ROLE_TO_COLOR[t['fact_decoration_color']])
 
     layer.update(THEME_NOTE_PROPS.get(theme_key, {}))
+    layer.update(THEME_TYPOGRAPHY.get(theme_key, {}))
     layer.update(THEME_PROPERTY_OVERRIDES.get(theme_key, {}))
     return layer
 

@@ -10023,7 +10023,51 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # Each entry is one CSS custom-property line, before and after,
             # e.g.  b'--nav-dot-bg-active: #7A6A00FF;':
             #       b'--nav-dot-bg-active: #8F0049FF;'
-            drift = {}
+            drift = {
+                # B9's typography pass, on the theme this guard builds
+                # with. `pop-lemon` is a poster palette and the catalogue
+                # revision put the pop family in sans: its text and
+                # display faces become the UI stack, and its kicker opens
+                # from 2px to 3px. Three lines, and they are the whole
+                # visible effect of the pass on this page — the other 96
+                # values land on the 30 other themes.
+                (b"--font-display: Charter, 'Bitstream Charter', "
+                 b"'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--font-display: Inter, Roboto, 'Helvetica Neue', "
+                     b"'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                (b"--font-text: Charter, 'Bitstream Charter', "
+                 b"'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--font-text: Inter, Roboto, 'Helvetica Neue', "
+                     b"'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                b'--kicker-tracking: 2px;': b'--kicker-tracking: 3px;',
+                # Six more variables take the text face by reference,
+                # so one decision moves seven lines. That is the point
+                # of the reference and not a defect in it.
+                (b"--page-font: "
+                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--page-font: "
+                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                (b"--title1-font: "
+                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--title1-font: "
+                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                (b"--title2-font: "
+                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--title2-font: "
+                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                (b"--highlight-font: "
+                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--highlight-font: "
+                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                (b"--header-title-font: "
+                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--header-title-font: "
+                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                (b"--note-page-title-font: "
+                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
+                    (b"--note-page-title-font: "
+                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+            }
 
             # Deliberate ADDITIONS since the tag, declared by property
             # name, and likewise empty at the start of a cycle.

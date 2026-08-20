@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 5 · **à faire** 6 · **en cours** 0 · **terminé** 25 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 4 · **en cours** 0 · **terminé** 26 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -108,15 +108,14 @@ gets its own entry and its own state**, however small.
 - **B11** — Dichromat separability is not verified
 - **B30** — Nested emphasis, and a net for whatever the checks do not name
 - **B35** — Reaching a verdict class without writing HTML
+- **B36** — The engine can halo 32 components; the catalogue haloes three
 
 ### à faire
 
-- **B9** — Typographic revision of the historical catalogue
 - **B25** — Two rules the project states and does not follow
 - **B26** — `audit` prints its warnings on stdout, the render's on stderr
 - **B27** — The default sheet fails the navigation floor its own test enforces
 - **B31** — `auto` is a length, and on a shadow axis it deletes the shadow
-- **B36** — The engine can halo 32 components; the catalogue haloes three
 
 ### terminé
 
@@ -126,6 +125,7 @@ gets its own entry and its own state**, however small.
 - **B4** — Key-figure alignment, as an option
 - **B6** — The slide-progress dots miss the 3:1 readability floor
 - **B7** — Text alignment axes (center, justify, per-component and per-block)
+- **B9** — Typographic revision of the historical catalogue
 - **B12** — Box drop-shadow (elevation) axes
 - **B13** — `--content-max` is the one themeless variable
 - **B14** — Literalize the skeleton; retire TEMPLATE_STYLE
@@ -649,7 +649,33 @@ own.
 
 ## B9 — Typographic revision of the historical catalogue
 
-**État :** à faire
+**État :** terminé · **Depuis :** 2026-08-20
+
+**Applied, and narrower than the report.** `THEME_TYPOGRAPHY` carries 99
+values on 31 themes: 58 faces, 19 cover-gradient stops and angles on 7
+themes, 16 kicker trackings, and the 6 halo values that are the report's
+"two extra halos" — `ember` and `synthwave`, the two palettes drawn
+around a glow.
+
+**What was NOT applied, and this is the finding.** The 31 layers declare
+541 values, not 99. The rest restates leadings, sizes, palettes and
+`nav-dot.*` as they stood in 2026-08, and measured against the current
+catalogue they would have changed between 9 and 49 properties per theme
+— reverting `color.nav` (§9.5.7), the four palettes returned to their own
+grounds, the highlighter decisions, the elevation axes. **A design
+document is a snapshot, and this one was read four months after it was
+taken.** Applying it whole would have looked like delivering the report
+and been a rollback.
+
+The four families this entry says are left were the right list, and
+extracting exactly them is what made the pass safe. `tag.tracking` in the
+layers is `kicker.tracking` here, from before the editorial rename.
+
+The visible effect on a built page, measured on `pop-lemon` against
+v0.42.3: nine lines. Seven of them are one decision — the pop family
+moves to sans — reaching six variables that take the text face by
+reference. That is the reference working, and it is declared in the
+render guard rather than absorbed.
 
 **Report delivered and verified** (`c4156e8`):
 `delete-before-1.0/REVISION-THEMES.md`, with 31 validated property layers
@@ -1967,7 +1993,28 @@ It is an addition to the input contract: a MINOR version, never a fix
 
 ## B36 — The engine can halo 32 components; the catalogue haloes three
 
-**État :** à faire · **Voir :** B20
+**État :** à étudier · **Voir :** B20, B9
+
+**Narrowed by the B9 pass of 2026-08-20, and half of it answered.** The
+revision's halos are applied: 15 themes now carry one, up from 13. Still
+three components — `page` (9 themes), `title1` (14), `highlight` (15) —
+and that is no longer an accident of which anchor points existed. A
+design pass went over all 31 palettes, added halos to two of them, and
+gave `title2` one on none. B20's first branch, that a theme may hold its
+atmosphere uniform, is what the catalogue's own author chose.
+
+**What stays open is not coverage, it is a number nobody picked.**
+`title2` still inherits `page.shadow`, and the measurement below is
+unchanged: a blur-to-size ratio of 0.054 where `title1` sits at 0.38. On
+a palette that declares no page halo that is nothing at all, which is
+fine. On the 9 that declare one it is a faint smear at a seventh of the
+proportion the same theme chose for its other heading — not a decision,
+an arithmetic leftover of `em` resolving once at the root.
+
+So the question is narrow: on those 9, does `title2` want its own halo,
+`page.shadow` want to stop reaching headings, or the ratio to stand as
+drawn? Taste, not measurement, which is why it is `à étudier` rather than
+`à faire`. `dx` is still declared by no palette and still unasked.
 
 B20 is delivered on the engine side and was never carried into the
 catalogue. Counted on the registry and on `THEME_PROPERTY_OVERRIDES`,
