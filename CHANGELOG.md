@@ -265,6 +265,23 @@ defaulted to it, no built-in theme resolved to it. There was no narrower
 type missing; there was one value that never belonged. It is refused by
 name, with the reason, because someone who wrote it wrote it on purpose.
 
+`audit` puts its warnings on stderr, where §2.4.1 has always said
+diagnostics go. All 26 of its own warning sites printed to stdout
+instead, which was survivable while audit was the only thing talking and
+stopped being so in v0.37.0, when the rendering pass began raising its
+warnings through the funnel that obeys the rule. One run then split its
+findings across both streams — editorial on stdout, render-borne on
+stderr — and nothing said so, so grepping stderr returned half of them.
+stdout now carries the count line and nothing else: the command's answer.
+
+Exit codes are untouched; `--strict` gates on audit's own count and never
+looked at the stream. What moved is what a person reads.
+
+The guard is on the source rather than on an output — no `print()` of a
+`[WARNING]`, `[ERROR]`, `[INFO]` or `[DEBUG]` line anywhere in the
+executable — so a site added on a path no test exercises is caught all
+the same.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot

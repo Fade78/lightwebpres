@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 3 · **en cours** 0 · **terminé** 27 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 2 · **en cours** 0 · **terminé** 28 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -113,7 +113,6 @@ gets its own entry and its own state**, however small.
 ### à faire
 
 - **B25** — Two rules the project states and does not follow
-- **B26** — `audit` prints its warnings on stdout, the render's on stderr
 - **B27** — The default sheet fails the navigation floor its own test enforces
 
 ### terminé
@@ -140,6 +139,7 @@ gets its own entry and its own state**, however small.
 - **B22** — `--version` after a command is a silent no-op
 - **B23** — `--inline-images` does not reach an included article's images
 - **B24** — `audit` inspects a poorer representation than the one that builds the page
+- **B26** — `audit` prints its warnings on stdout, the render's on stderr
 - **B28** — A list item was one line, and its continuation left the list
 - **B29** — A structural field ships Markdown to the reader, and nothing said so
 - **B31** — `auto` is a length, and on a shadow axis it deletes the shadow
@@ -1628,7 +1628,42 @@ lives in `web/`, not in the executable, and it wants its own lot.
 
 ## B26 — `audit` prints its warnings on stdout, the render's on stderr
 
-**État :** à faire
+**État :** terminé · **Depuis :** 2026-08-20 · **Voir :** spec §2.4.1
+
+**Rerouted, all 26 of them.** `audit`'s warnings go through `log('warn',
+…)` like every other diagnostic in the program, which puts them on stderr
+with the same `[WARNING]` tag. stdout keeps what §2.4.1 puts there and
+nothing else: the count line, which is the command's answer.
+
+**Two of this entry's own numbers were wrong, and both understated.** It
+said twenty print sites; there were twenty-six. It said "exactly one test
+assertion couples `[WARNING]` with stdout, so the change is small";
+nineteen tests failed, over roughly thirty assertions, because most of
+them read the warning TEXT out of `result.stdout` without the tag being
+in the needle. Counting by grepping for a literal missed everything
+phrased differently — the same shape of error as the count in B19 that
+had gone stale, and the reason the warning collector hooks the funnel
+rather than enumerating sites.
+
+Four of the sites needed more than a reroute. They sat inside
+`collect_warnings` and were tallied by hand in a `fatal` counter beside
+the sink; through `log()` the sink sees them, so the parallel tally is
+gone and they are counted once. They were the only warnings in the
+program two mechanisms had to agree about.
+
+One test asserted the defect: `plain.stderr.count('[WARNING]') == 0`,
+standing in for "the render itself warned about nothing". A true proxy
+while audit's warnings were elsewhere, and meaningless once they moved.
+It now asserts what it stood for — that no warning on stderr is anything
+other than the one saying the series does not build.
+
+The guard reads the SOURCE, not an output: no `print()` of a `[WARNING]`,
+`[ERROR]`, `[INFO]` or `[DEBUG]` line anywhere in the executable. A site
+added tomorrow on a path no test exercises is caught anyway. Proved by
+mutation — printing one warning again fails it by line number.
+
+Exit codes are unchanged, as the entry said: `--strict` gates on audit's
+own count and never looked at the stream.
 
 `specifications.md` §2.4.1 is unambiguous: error, warning, info and debug
 go to **stderr**; progress and a command's answer go to stdout. Twenty

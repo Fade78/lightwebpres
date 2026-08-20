@@ -612,18 +612,18 @@ class AuditCommand(unittest.TestCase):
             # audit never blocks: an unrecognized key does not stop the tool
             # working, it only fails to do what its author meant (§9.5.6).
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('`page-title:` is not a meta field', result.stdout)
-            self.assertIn('Did you mean `page_title:`?', result.stdout)
-            self.assertIn('`nav_titel:` is not a meta field', result.stdout)
-            self.assertIn('Did you mean `nav_title:`?', result.stdout)
+            self.assertIn('`page-title:` is not a meta field', result.stderr)
+            self.assertIn('Did you mean `page_title:`?', result.stderr)
+            self.assertIn('`nav_titel:` is not a meta field', result.stderr)
+            self.assertIn('Did you mean `nav_title:`?', result.stderr)
             # named, but no suggestion invented for it
             self.assertIn('`zzz_unlike_anything:` is not a meta field',
-                          result.stdout)
-            zzz = next(l for l in result.stdout.splitlines()
+                          result.stderr)
+            zzz = next(l for l in result.stderr.splitlines()
                        if 'zzz_unlike_anything' in l)
             self.assertNotIn('Did you mean', zzz)
             # the two that are unresolved on purpose stay quiet
-            self.assertNotIn('`comment:` is not a meta field', result.stdout)
+            self.assertNotIn('`comment:` is not a meta field', result.stderr)
             self.assertNotIn('style.kicker.fg', result.stdout)
 
             # and the build itself says nothing and still succeeds: the
@@ -641,7 +641,7 @@ class AuditCommand(unittest.TestCase):
             root = scaffold(tmp, md)
             result = run('audit', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('no cover slide', result.stdout)
+            self.assertIn('no cover slide', result.stderr)
 
     def test_audit_warns_when_cover_not_first(self):
         md = (
@@ -653,7 +653,7 @@ class AuditCommand(unittest.TestCase):
             root = scaffold(tmp, md)
             result = run('audit', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('is not a cover', result.stdout)
+            self.assertIn('is not a cover', result.stderr)
 
     def test_audit_reports_bad_tags_and_missing_language_pack_without_blocking(self):
         md = (
@@ -669,9 +669,9 @@ class AuditCommand(unittest.TestCase):
             (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
             result = run('audit', str(root))
             self.assertEqual(result.returncode, 0, 'audit must never block')
-            self.assertIn("invalid tag '_private'", result.stdout)
-            self.assertIn("points to missing language pack 'missing-pack'", result.stdout)
-            self.assertIn("uses language tag 'xx'", result.stdout)
+            self.assertIn("invalid tag '_private'", result.stderr)
+            self.assertIn("points to missing language pack 'missing-pack'", result.stderr)
+            self.assertIn("uses language tag 'xx'", result.stderr)
 
     def test_audit_names_the_scaffold_theme_drift_after_a_set_theme(self):
         """§9 rewrite: set-theme changes the theme line and leaves the
@@ -688,8 +688,8 @@ class AuditCommand(unittest.TestCase):
             self.assertEqual(run('series', 'theme', 'set', tmp, '--theme', 'evergreen').returncode, 0)
             result = run('audit', tmp)
             self.assertEqual(result.returncode, 0, 'audit must never block')
-            self.assertIn("generated for theme 'nord'", result.stdout)
-            self.assertIn("declares 'evergreen'", result.stdout)
+            self.assertIn("generated for theme 'nord'", result.stderr)
+            self.assertIn("declares 'evergreen'", result.stderr)
 
     def test_audit_reports_invalid_settings_without_blocking(self):
         """A mistyped key in settings.conf is a named error at build
@@ -705,8 +705,8 @@ class AuditCommand(unittest.TestCase):
                                 + 'summary.color: #000000\n', encoding='utf-8')
             result = run('audit', tmp)
             self.assertEqual(result.returncode, 0, 'audit must never block')
-            self.assertIn('summary.color', result.stdout)
-            self.assertIn('unknown property', result.stdout)
+            self.assertIn('summary.color', result.stderr)
+            self.assertIn('unknown property', result.stderr)
 
     def test_audit_does_not_crash_when_series_json_omits_file(self):
         """§20.3.1: series.json needs only `source` — audit must resolve
@@ -727,8 +727,8 @@ class AuditCommand(unittest.TestCase):
                 json.dumps({'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
             result = run('audit', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('a.html', result.stdout)
-            self.assertIn('no cover slide', result.stdout)
+            self.assertIn('a.html', result.stderr)
+            self.assertIn('no cover slide', result.stderr)
 
 
 class HighlightField(unittest.TestCase):
@@ -1309,7 +1309,7 @@ class Axis4CommandGaps(unittest.TestCase):
             ]}), encoding='utf-8')
             result = run('audit', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('no cover slide', result.stdout)
+            self.assertIn('no cover slide', result.stderr)
             self.assertIn('1 warning(s).', result.stdout)
 
     def test_corrupt_nav_cache_falls_back_to_full_build(self):
@@ -6073,7 +6073,7 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
             self.assertNotIn('No warnings', plain.stdout,
                              'audit called a series clean that cannot build:\n'
                              + plain.stdout)
-            self.assertIn('does not build', plain.stdout)
+            self.assertIn('does not build', plain.stderr)
             # The count, and not only the sentence. Mutation found that
             # every other assertion here is held up by audit_presentation,
             # which reports the unknown property on its own: the fatal
@@ -6112,10 +6112,18 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
             self.assertEqual(run('build', root).returncode, 1,
                              'the premise changed: this still has to be fatal')
             plain, strict = self._audit(root)
-            self.assertEqual(plain.stderr.count('[WARNING]'), 0,
+            # The premise is that the RENDER warns about nothing, so the
+            # only finding is the one saying the series does not build.
+            # That used to be written `stderr has no [WARNING]`, which
+            # worked only while audit's own warnings went to stdout: the
+            # proxy died when they moved (B26), and what it stood for is
+            # asserted directly.
+            others = [line for line in plain.stderr.split('\n')
+                      if '[WARNING]' in line and 'does not build' not in line]
+            self.assertEqual(others, [],
                              'the premise changed: this fatal now warns too, '
                              'so it no longer pins the count:\n' + plain.stderr)
-            self.assertIn('does not build', plain.stdout)
+            self.assertIn('does not build', plain.stderr)
             self.assertEqual(strict.returncode, 1,
                              '--strict passed on a series that cannot build '
                              'and warned about nothing else')
@@ -10424,7 +10432,7 @@ class PaletteRoleNames(unittest.TestCase):
                 ':root { --marker: #ff0000; }\n', encoding='utf-8')
             result = run('audit', tmp)
             self.assertEqual(result.returncode, 0, 'audit must never block')
-            self.assertIn('no longer read', result.stdout)
+            self.assertIn('no longer read', result.stderr)
             self.assertIn('--marker -> --color-mark', result.stdout)
 
 
@@ -12776,7 +12784,7 @@ class PageDescMetaDescription(unittest.TestCase):
             self.assertNotIn('<meta name="description"', html)
             result = run('audit', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('no description anywhere', result.stdout)
+            self.assertIn('no description anywhere', result.stderr)
 
 
 class ArticleStatus(unittest.TestCase):
@@ -14063,6 +14071,39 @@ class TypedSurfaceCannotLeaveItsDeclaration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lwp = load_lightwebpres_module()
+
+    def test_no_diagnostic_is_printed_instead_of_logged(self):
+        """B26. §2.4.1 puts error, warning, info and debug on stderr and
+        the command's ANSWER on stdout, and `audit` ignored it for 26
+        sites — every warning it raised itself.
+
+        Survivable while audit was the only thing talking. It stopped
+        being survivable in v0.37.0, when the rendering pass began
+        raising warnings through `log()`, which obeys the rule: one run
+        then split its findings across both streams, the editorial ones
+        on stdout and the render-borne ones on stderr, with nothing
+        saying so. Someone grepping stderr got half of them.
+
+        Guarded on the SOURCE rather than on an output, because the
+        defect is the site and not the run: a `print()` of a diagnostic
+        added tomorrow is caught tomorrow, on any code path, including
+        ones no test exercises. `log()` is the funnel and the only way
+        out."""
+        source = (Path(__file__).resolve().parent.parent
+                  / 'lightwebpres').read_text(encoding='utf-8')
+        tags = ('[WARNING]', '[ERROR]', '[INFO]', '[DEBUG]')
+        offenders = []
+        for i, line in enumerate(source.split('\n'), 1):
+            stripped = line.strip()
+            if not stripped.startswith(('print(', "print(f'", 'print("')):
+                continue
+            if any(tag in line for tag in tags):
+                offenders.append(f'{i}: {stripped[:78]}')
+        self.assertEqual(
+            offenders, [],
+            'a diagnostic printed instead of logged — it lands on stdout, '
+            'where §2.4.1 puts the command\'s answer, and the collector '
+            'that feeds `--strict` never sees it:\n' + '\n'.join(offenders))
 
     def test_auto_is_refused_on_every_length_because_it_fits_none_of_them(self):
         """B31. `auto` validated, resolved and emitted, and no browser
@@ -15522,7 +15563,9 @@ class AuditNamesTheThreeWaysANoteBreaks(unittest.TestCase):
         (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
         result = run('audit', str(root))
         self.assertEqual(result.returncode, 0, result.stderr)
-        return result.stdout
+        # Warnings are diagnostics and go to stderr (§2.4.1). stdout
+        # carries the command's answer, which here is the count line.
+        return result.stderr
 
     def test_a_body_nothing_calls_and_a_call_with_no_body_are_both_named(self):
         out = self._audit()
@@ -16824,7 +16867,7 @@ class RegressionFixes(unittest.TestCase):
             root = scaffold(tmp, md, source_name='a.md', file_name='a.html')
             full = run('audit', str(root))
             self.assertEqual(full.returncode, 0, full.stderr)
-            self.assertIn('no cover slide', full.stdout,
+            self.assertIn('no cover slide', full.stderr,
                           'editorial check should fire without --templates')
             tmpl = run('audit', str(root), '--templates')
             self.assertEqual(tmpl.returncode, 0, tmpl.stderr)
@@ -17050,7 +17093,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
             self.assertEqual(run('build', root).returncode, 1,
                              'the premise changed: this still has to be fatal')
             plain = run('audit', root)
-            self.assertIn('index does not build', plain.stdout,
+            self.assertIn('index does not build', plain.stderr,
                           'a draft claimed the index and took it out of the '
                           'audit:\n' + plain.stdout + plain.stderr)
             self.assertEqual(plain.returncode, 0)
@@ -17072,7 +17115,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
                              'the premise changed: a build without drafts '
                              'still has to succeed here')
             plain = run('audit', root)
-            self.assertIn('this draft does not render', plain.stdout,
+            self.assertIn('this draft does not render', plain.stderr,
                           plain.stdout + plain.stderr)
             self.assertNotIn('the series does not build', plain.stdout,
                              'audit called the series broken while build '
@@ -17344,7 +17387,7 @@ class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):
                 'fact-label: Le fait\n'
                 'source: Voir [la source](https://example.org)\n\n'
                 'Le corps, lui, rend **le gras** correctement.\n'))
-            report = run('audit', root).stdout
+            report = run('audit', root).stderr
             for field in ('## title', 'summary', 'highlight-caption', 'source'):
                 self.assertIn(f'`{field}` contains', report,
                               f'{field} ships its markup unnamed:\n' + report)

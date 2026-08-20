@@ -13194,8 +13194,8 @@ def audit_meta_keys(filename, meta):
         near = difflib.get_close_matches(key, sorted(ARTICLE_META_KEYS),
                                          n=1, cutoff=0.6)
         hint = f' Did you mean `{near[0]}:`?' if near else ''
-        print(f'[WARNING] {filename}: `{key}:` is not a meta field — '
-              f'nothing reads it and it has no effect.{hint}')
+        log('warn', f'{filename}: `{key}:` is not a meta field — '
+                    f'nothing reads it and it has no effect.{hint}')
         warnings += 1
     return warnings
 
@@ -13426,15 +13426,15 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir):
     for where, _, text in localities:
         for label, is_body in unrecognized_note_labels(text):
             if is_body:
-                print(f'[WARNING] {entry["page_source"]}: [^{label}]: in '
-                      f'{where} is not a note body — a label is word '
+                log('warn', f'{entry["page_source"]}: [^{label}]: in '
+                            f'{where} is not a note body — a label is word '
                       f'characters only (letters, digits, underscore, '
                       f'accents included; not `-`, space or punctuation), '
                       f'so the line renders as an ordinary paragraph, the '
                       f'label in plain view.')
             else:
-                print(f'[WARNING] {entry["page_source"]}: [^{label}] in '
-                      f'{where} is not a note call — a label is word '
+                log('warn', f'{entry["page_source"]}: [^{label}] in '
+                            f'{where} is not a note call — a label is word '
                       f'characters only (letters, digits, underscore, '
                       f'accents included; not `-`, space or punctuation), '
                       f'so it ships to the reader as literal text. Rename '
@@ -13447,18 +13447,18 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir):
             continue
         seen.add(id(scope))
         for label in scope.orphan_calls():
-            print(f'[WARNING] {entry["page_source"]}: [^{label}] is called in '
-                  f'{where} but has no body — the marker renders without a '
+            log('warn', f'{entry["page_source"]}: [^{label}] is called in '
+                        f'{where} but has no body — the marker renders without a '
                   f'link, and the reader cannot reach the source.')
             warnings += 1
         for label in scope.unreferenced_bodies():
-            print(f'[WARNING] {entry["page_source"]}: [^{label}] has a body in '
-                  f'{where} that nothing calls — it renders at the end of the '
+            log('warn', f'{entry["page_source"]}: [^{label}] has a body in '
+                        f'{where} that nothing calls — it renders at the end of the '
                   f'block, numbered after a number no marker carries.')
             warnings += 1
         for label in scope.swallowed:
-            print(f'[WARNING] {entry["page_source"]}: [^{label}]: sits inside a '
-                  f'raw HTML block in {where} — raw HTML is passed through '
+            log('warn', f'{entry["page_source"]}: [^{label}]: sits inside a '
+                        f'raw HTML block in {where} — raw HTML is passed through '
                   f'verbatim, so it ships as literal text, not as a note.')
             warnings += 1
     return warnings
@@ -13487,8 +13487,8 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
     for tag, pack in lang_tags.items():
         if not pack_exists(pack):
             missing_packs[tag] = pack
-            print(f'[WARNING] {filename}: series_meta.lang_tags tag '
-                  f'{tag!r} points to missing language pack {pack!r} in '
+            log('warn', f'{filename}: series_meta.lang_tags tag '
+                        f'{tag!r} points to missing language pack {pack!r} in '
                   f'language/.')
             warnings += 1
 
@@ -13500,12 +13500,12 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
             canonical = token.casefold()
             if (canonical.startswith('_')
                     or not _TAG_TOKEN_RE.fullmatch(canonical)):
-                print(f'[WARNING] {filename}: slide {number}: invalid tag '
-                      f'{token!r} (build will reject this tags: value).')
+                log('warn', f'{filename}: slide {number}: invalid tag '
+                            f'{token!r} (build will reject this tags: value).')
                 warnings += 1
             elif canonical in missing_packs:
-                print(f'[WARNING] {filename}: slide {number} uses language '
-                      f'tag {canonical!r}, but its pack '
+                log('warn', f'{filename}: slide {number} uses language '
+                            f'tag {canonical!r}, but its pack '
                       f'{missing_packs[canonical]!r} is missing.')
                 warnings += 1
     return warnings
@@ -13579,7 +13579,10 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
     args.pop('--drafts-only', None)
     # audit_presentation has already reported a legacy templates/style.css,
     # and said more about it than the build path does.
-    fatal = 0
+    # No parallel tally beside the sink. These four findings used to be
+    # printed and counted by hand, which made them the only warnings in
+    # the program that two mechanisms had to agree about; they go through
+    # log() like everything else and the sink counts them once.
     with collect_warnings(
             already_said=('templates/style.css is no longer read',)) as sink:
         try:
@@ -13592,11 +13595,10 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
             # here would be the double count `already_said` exists to stop,
             # arriving through the one door that mechanism does not cover.
             if not caller_named_the_cause:
-                print('[WARNING] the series does not build: the error above '
-                      'is fatal, and no page would be produced. audit does '
-                      'not block, but this is not an editorial remark.')
-                fatal += 1
-            return len(sink.messages) + fatal
+                log('warn', 'the series does not build: the error above '
+                    'is fatal, and no page would be produced. audit does '
+                    'not block, but this is not an editorial remark.')
+            return len(sink.messages)
 
         # The index claim is the BUILD's decision, not this render's.
         # Rendering with drafts is right -- a draft is exactly the article
@@ -13624,17 +13626,16 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                     inline_images=ctx.args.get('--inline-images', False),
                     args=args, lang_tag_engines=ctx.lang_tag_engines)
             except SystemExit:
-                fatal += 1
                 if entry['status'] == 'draft':
-                    print(f'[WARNING] {entry["page_source"]}: this draft does '
-                          f'not render — the error above is fatal. A build '
-                          f'without --include-drafts would not produce it, so '
-                          f'the series still builds; this page does not.')
+                    log('warn', f'{entry["page_source"]}: this draft does '
+                        f'not render — the error above is fatal. A build '
+                        f'without --include-drafts would not produce it, so '
+                        f'the series still builds; this page does not.')
                 else:
-                    print(f'[WARNING] {entry["page_source"]}: the series does '
-                          f'not build — the error above is fatal, and this '
-                          f'page would not be produced. audit does not block, '
-                          f'but this is not an editorial remark.')
+                    log('warn', f'{entry["page_source"]}: the series does '
+                        f'not build — the error above is fatal, and this '
+                        f'page would not be produced. audit does not block, '
+                        f'but this is not an editorial remark.')
         if claimant is None:
             try:
                 extra = ctx.templates_dir / 'index_extra.html'
@@ -13642,10 +13643,9 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                             ctx.strings, ctx.lang,
                             read_text_file(extra) if extra.exists() else '')
             except SystemExit:
-                fatal += 1
-                print('[WARNING] the series index does not build — the error '
-                      'above is fatal, and index.html would not be produced.')
-    return len(sink.messages) + fatal
+                log('warn', 'the series index does not build — the error '
+                    'above is fatal, and index.html would not be produced.')
+    return len(sink.messages)
 
 
 # ----------------------------------------------------------------------------
@@ -13959,7 +13959,7 @@ def audit_resolved_theme(templates_dir, articles, articles_dir):
 
     series_findings = judge_resolved_theme(series_resolved)
     for _, message in series_findings:
-        print(f'[WARNING] templates/{SETTINGS_FILENAME}: {message}')
+        log('warn', f'templates/{SETTINGS_FILENAME}: {message}')
         warnings += 1
 
     already = {key for key, _ in series_findings}
@@ -13979,7 +13979,7 @@ def audit_resolved_theme(templates_dir, articles, articles_dir):
         for key, message in judge_resolved_theme(resolved):
             if key in already:
                 continue
-            print(f'[WARNING] {entry["page_source"]}: {message}')
+            log('warn', f'{entry["page_source"]}: {message}')
             warnings += 1
 
     return warnings
@@ -14089,16 +14089,16 @@ def cmd_audit(series_dir, args):
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
         if not has_cover:
-            print(f'[WARNING] {entry["page_dest"]}: no cover slide')
+            log('warn', f'{entry["page_dest"]}: no cover slide')
             warnings += 1
         elif slides[0].slide_type != 'cover':
-            print(f'[WARNING] {entry["page_dest"]}: the first slide is not a cover (found: {slides[0].slide_type})')
+            log('warn', f'{entry["page_dest"]}: the first slide is not a cover (found: {slides[0].slide_type})')
             warnings += 1
 
         for number, field, marker in unrendered_field_markup(slides):
             warnings += 1
-            print(f'[WARNING] {entry["page_source"]}: slide {number}, '
-                  f'`{field}` contains {marker}, which a field does not '
+            log('warn', f'{entry["page_source"]}: slide {number}, '
+                        f'`{field}` contains {marker}, which a field does not '
                   f'render — it ships to the reader as the characters you '
                   f'typed. A field is a value; Markdown lives in the free '
                   f'text below it (§6.1).')
@@ -14112,8 +14112,8 @@ def cmd_audit(series_dir, args):
         # rather than invent one from other display fields: descriptions
         # are not silently substituted across display contexts.
         if not entry.get('page_desc'):
-            print(f'[WARNING] {entry["page_dest"]}: no description anywhere '
-                  f'(page_desc, meta block, or cover summary) — the page will '
+            log('warn', f'{entry["page_dest"]}: no description anywhere '
+                        f'(page_desc, meta block, or cover summary) — the page will '
                   f'have no <meta name="description">')
             warnings += 1
 
@@ -14222,15 +14222,15 @@ def audit_presentation(templates_dir):
     legacy = templates_dir / 'style.css'
     if legacy.exists():
         warnings += 1
-        print(f'[WARNING] templates/style.css exists but is no longer read: '
-              f'the stylesheet is composed at build time. Move your values '
+        log('warn', f'templates/style.css exists but is no longer read: '
+                    f'the stylesheet is composed at build time. Move your values '
               f'to {SETTINGS_FILENAME}, your rules to {CUSTOM_CSS_FILENAME}, '
               f'then delete it.')
         legacy_text = audit_read(legacy)
         if legacy_text is None:
             warnings += 1
-            print(f'[WARNING] templates/style.css cannot be read as text, so '
-                  f'it was not checked for retired variable names. The error '
+            log('warn', f'templates/style.css cannot be read as text, so '
+                        f'it was not checked for retired variable names. The error '
                   f'above names the file.')
         found = _retired_in(legacy_text or '')
         if found:
@@ -14248,15 +14248,15 @@ def audit_presentation(templates_dir):
             # on stdout, with `--strict` green -- the summary contradicting a
             # message two lines above it, on a series `build` refuses.
             warnings += 1
-            print(f'[WARNING] templates/{CUSTOM_CSS_FILENAME} cannot be read '
-                  f'as text, so it was not checked for retired variable '
+            log('warn', f'templates/{CUSTOM_CSS_FILENAME} cannot be read '
+                        f'as text, so it was not checked for retired variable '
                   f'names — and the build will refuse it. The error above '
                   f'names the file.')
         found = _retired_in(custom_text or '')
         if found:
             warnings += 1
-            print(f'[WARNING] templates/{CUSTOM_CSS_FILENAME}: these variables '
-                  f'no longer exist, so the declarations using them are '
+            log('warn', f'templates/{CUSTOM_CSS_FILENAME}: these variables '
+                        f'no longer exist, so the declarations using them are '
                   f'silently ignored:')
             for old in found:
                 print(f'          {old} -> {RETIRED_VARIABLES[old]}')
@@ -14270,15 +14270,15 @@ def audit_presentation(templates_dir):
             declared, props = parse_settings_text(text)
         except PropertyError as exc:
             warnings += 1
-            print(f'[WARNING] templates/{SETTINGS_FILENAME}: {exc}')
+            log('warn', f'templates/{SETTINGS_FILENAME}: {exc}')
         else:
             m = re.search(r'^# scaffold-for: (\S+)$', text, re.MULTILINE)
             scaffold_for = m.group(1) if m else None
             declared_name = declared or 'default'
             if scaffold_for and scaffold_for != declared_name:
                 warnings += 1
-                print(f'[WARNING] templates/{SETTINGS_FILENAME}: the commented '
-                      f'values were generated for theme {scaffold_for!r} but '
+                log('warn', f'templates/{SETTINGS_FILENAME}: the commented '
+                            f'values were generated for theme {scaffold_for!r} but '
                       f'the file now declares {declared_name!r}. Uncommenting '
                       f'a line would pin a value from the theme you left. '
                       f'Run `lightwebpres template update --scaffold` to '
@@ -14290,7 +14290,7 @@ def audit_presentation(templates_dir):
                 resolve_theme_properties(*layers)
             except PropertyError as exc:
                 warnings += 1
-                print(f'[WARNING] templates/{SETTINGS_FILENAME}: {exc}')
+                log('warn', f'templates/{SETTINGS_FILENAME}: {exc}')
 
     return warnings
 
