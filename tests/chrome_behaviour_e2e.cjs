@@ -261,18 +261,17 @@ async function main() {
   }
   await scrollPage.close();
 
-  // --- 4c. An old `sN` link lands, and the address bar is corrected ----
-  // A card's id is now derived from what the author wrote (§12.1.1), so it
-  // survives an edit. Every link ALREADY shared says `sN`, and none of them
-  // can be recalled — a printed QR code least of all. The empty span
-  // carrying the old name is what keeps them landing, and this is the only
-  // place that can say whether a browser agrees: an element with no layout
-  // box is not a fragment target, so "it is in the HTML" proves nothing.
-  const aliasPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  collectConsoleErrors(aliasPage, errors);
-  await aliasPage.goto(articleUrl + '#s3', { waitUntil: 'load' });
-  await aliasPage.waitForTimeout(1200);
-  const landed = await aliasPage.evaluate(() => {
+  // --- 4c. A link to a card lands, and the address bar says that card ---
+  // A card's id is what its author declared (§12.1.1), so it survives an
+  // edit and a link written against it stays valid. This is the only
+  // place that can say whether a browser agrees: what the page ships is
+  // a `<section>`, and whether a fragment reaches it is the browser's
+  // answer, not the HTML's.
+  const linkPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  collectConsoleErrors(linkPage, errors);
+  await linkPage.goto(articleUrl + '#c3', { waitUntil: 'load' });
+  await linkPage.waitForTimeout(1200);
+  const landed = await linkPage.evaluate(() => {
     const sections = Array.prototype.slice.call(
       document.querySelectorAll('section.slide'));
     const mid = window.innerHeight / 2;
@@ -283,33 +282,27 @@ async function main() {
       }),
       ids: sections.map((s) => s.id),
       hash: location.hash,
-      aliases: Array.prototype.slice.call(
-        document.querySelectorAll('span[id]')).map((s) => s.id),
     };
   });
-  // Non-vacuity, both ways: no alias means the case never happened, and an
-  // id still called s3 means the alias was never exercised.
-  if (!landed.aliases.includes('s3')) {
-    fail('this page carries no s3 alias, so the case never happened: '
-         + JSON.stringify(landed));
-  }
-  if (landed.ids.includes('s3')) {
-    fail('the third card is still called s3, so the alias is not exercised: '
-         + JSON.stringify(landed));
+  // Non-vacuity: the name in the link has to be the name the fixture
+  // declared, or a pass says nothing about anything.
+  if (landed.ids[2] !== 'c3') {
+    fail('the third card is not the one the fixture named, so nothing '
+         + 'here is under test: ' + JSON.stringify(landed));
   }
   if (landed.visible !== 2) {
-    fail('an old #s3 link did not land on the third card: '
+    fail('a #c3 link did not land on the third card: '
          + JSON.stringify(landed));
   }
-  // And the reader who arrives by the old name leaves with the new one, so
-  // the link they copy out of the address bar is the durable one.
-  if (landed.hash !== '#' + landed.ids[2]) {
-    fail('the address bar was not corrected to the card own id: '
+  // And the reader leaves with the name they arrived by: the scroll
+  // observer must not rewrite a fragment that is already correct.
+  if (landed.hash !== '#c3') {
+    fail('the address bar no longer names the card the link named: '
          + JSON.stringify(landed));
   }
-  await aliasPage.close();
+  await linkPage.close();
 
-  // 4d. And an old link to a card the reader's own tag filter is HIDING.
+  // 4d. And a link to a card the reader's own tag filter is HIDING.
   // This is the one case the browser cannot handle for us, which is what
   // makes it the guard for the page's own hash handling: a filtered card
   // is display:none, has no layout box, and a native fragment jump lands
@@ -324,7 +317,7 @@ async function main() {
   collectConsoleErrors(filtered, errors);
   await filtered.goto(articleUrl, { waitUntil: 'load' });
   await filtered.evaluate(() => localStorage.setItem('lwp-active-tag', 'default'));
-  await filtered.goto(articleUrl + '#s4', { waitUntil: 'load' });
+  await filtered.goto(articleUrl + '#c4', { waitUntil: 'load' });
   await filtered.waitForTimeout(1200);
   const behindTag = await filtered.evaluate(() => {
     const sections = Array.prototype.slice.call(
@@ -346,11 +339,11 @@ async function main() {
          + 'nothing here is under test: ' + JSON.stringify(behindTag));
   }
   if (!behindTag.shown) {
-    fail('an old link to a filtered card left it hidden: '
+    fail('a link to a filtered card left it hidden: '
          + JSON.stringify(behindTag));
   }
   if (!behindTag.onScreen) {
-    fail('an old link to a filtered card did not put it in front of the '
+    fail('a link to a filtered card did not put it in front of the '
          + 'reader: ' + JSON.stringify(behindTag));
   }
   await filtered.close();

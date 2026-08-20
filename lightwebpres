@@ -41,6 +41,8 @@ Usage:
   lightwebpres theme show <slug> [--format text|json]
   lightwebpres series theme [directory] [--format text|json]
   lightwebpres status [directory] [--format text|json]
+  lightwebpres series slug [directory] [--format text|json]
+  lightwebpres series slug set [directory] [--dry-run]
   lightwebpres resolve [directory] <name> [--article file.md] [--format text|json]
   lightwebpres series theme set [directory] --theme name
   lightwebpres theme gallery [path]
@@ -65,7 +67,7 @@ import base64
 import mimetypes
 import difflib
 import hashlib
-import unicodedata
+import secrets
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -87,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.42.3"
+VERSION = "0.43.0"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -6539,11 +6541,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
     if (!target) {
-      // Not a card's own id — so try the alias. Every card that took a
-      // derived identity also carries an empty span holding the `sN` name
-      // it used to have, which is what every link shared or printed
-      // before this change still says. Landing them on the right card is
-      // the whole reason that span exists.
+      // Not a card's own id, so look for an element carrying it and
+      // take the card AROUND it. That is what a note anchor is:
+      // `#note-<slug>-1` names a line inside a card, and a reader who
+      // follows a footnote link has to arrive at the card that holds it.
+      // This used to serve the `sN` alias as well, back when a card's id
+      // was its rank; the alias is gone and the notes are why the branch
+      // stays.
       var anchor = document.getElementById(id);
       target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
     }
@@ -9799,60 +9803,25 @@ _SLIDE_FIELD_ATTRS['article'] = 'article_file'
 # What a card is called in a URL — and what a link someone shared, or a QR
 # code someone PRINTED, still points at after the article is edited.
 #
-# The id used to be the card's RANK, `s4`. Measured on a four-card article:
-# marking one card `tags: excluded` turned `s1 s2 s3 s4` into `s1 s2 s3`, so
-# `#s2` opened the card that had been `#s3` and `#s4` stopped existing.
-# Nothing said so — the navigation script gives up in silence on a fragment
-# it cannot find — and paper cannot be corrected. Inserting or reordering a
-# card does the same thing.
+# ONE RULE: the author declares it, with `slug:`. A card without one is a
+# build error naming the card and the command that fills them in.
 #
-# So identity is derived from what the AUTHOR WROTE, never from where it
-# sits. The order of resolution, first hit wins:
+# It used to be derived — from the heading, from a long-form file's name,
+# from the card's rank — through a normalisation (NFKC, casefold, a
+# combining-mark fold restricted to Latin bases) and a truncated hash.
+# That machinery answered a question nobody should have to ask: an
+# identity derived from a title moves when the title is edited, which is
+# not a defect of the derivation but the whole of what a derivation IS.
+# Every mechanism built on top of it — the `sN` alias, the collision
+# suffix, the audit finding about identities that are not durable —
+# existed to soften a consequence that declaring the slug removes
+# outright. So it is gone, and 184 lines of engine with it.
 #
-#   1. `slug:` on the card. The author's own word, and the only identity
-#      that survives rewriting the title. It is also the privacy answer:
-#      a derived value is computed FROM the title, and this project's GUI
-#      spec already refused a readable slug for series directories on the
-#      grounds "qu'un identifiant technique révèle le contenu d'un titre
-#      potentiellement privé". A hash does not read out, and `slug:` lets
-#      an author choose what it says instead.
-#   2. A hash of the card's own title — cover `# Title`, standard
-#      `## Title`.
-#   3. For a `full-article` card, a hash of the file it names. It has no
-#      title, and a page may carry SEVERAL of them (§22.8), so the file is
-#      what tells them apart.
-#   4. For a `series-nav` card, a fixed name: at most one per article.
-#   5. Otherwise the rank, as before — a standard card with no heading has
-#      nothing stable to derive from, and `audit` says so rather than
-#      pretending the link is durable.
-#
-# WHY A HASH RATHER THAN A READABLE SLUG. Measured with this file's own QR
-# encoder at error-correction level M, on a 38-character base URL: `#s3`
-# needs 29 modules, an 8-hex hash 33, a short readable slug 33, a long one
-# 37. The capacity steps sit at 43, 63, 85 and 107 characters of URL, so
-# what costs is crossing a step, not adding a character — and a long title
-# crosses one. A printed code 27% finer per side is a cost paid on paper.
-#
-# WHY EIGHT HEX AND NOT SIX. Six would do: 16.8 million values, one page in
-# 3400 colliding at a hundred cards. Eight was free on both base URLs
-# measured — same QR version — and buys 4.3 billion. Free is not a general
-# law: two characters cross a capacity step about one time in ten,
-# depending on the base URL's own length.
+# What that buys, beyond the deletion: an identity now says what it is at
+# a glance. Reading a source, `slug: le-sucre` is a decision someone
+# made; a hash of a heading looked exactly like the heading's business,
+# and moved without anyone touching it.
 
-IDENTITY_HASH_LENGTH = 8
-
-# The ids the page skeleton already uses. DERIVED from the template rather
-# than listed here, because a list of literals is exactly what goes stale
-# — and the skeleton carries 22 of them today, ten of which the
-# specification's own extract of it does not show.
-#
-# A DERIVED identity can never land on one: it is hexadecimal, and every
-# skeleton id is a word. The set earns its place for the other two sources.
-# A declared `slug: notes` would otherwise mint the notes section's own id,
-# and a document with two `notes` has one of them unreachable — the reader
-# who follows the link arrives at whichever the browser picks. And the
-# ordinal fallback shares its shape with the legacy `sN` alias, which is
-# the one namespace a card must not wander into by accident.
 RESERVED_SLIDE_IDS = frozenset(
     set(re.findall(r'id="([^"]+)"', TEMPLATE_PAGE))
     # `notes` is minted by the renderer under `notes_placement: page`, not
@@ -9870,109 +9839,42 @@ RESERVED_SLIDE_IDS = frozenset(
     | {'notes'})
 
 
-def _fold_latin_marks(text):
-    """Drops combining marks, but only where the base character is Latin.
-
-    "Replace the accents" is a Latin-speaker's instruction and it destroys
-    other scripts. Measured: stripping every combining mark turns the Hindi
-    हिन्दी into हिनदी, which is not a word — a matra is a letter, not an
-    ornament — and does the same to vocalised Arabic and Hebrew. Restricted
-    to Latin bases, French folds (Réponse → Reponse) and those three are
-    untouched.
-
-    Vietnamese stays exposed, because it IS Latin script and its marks are
-    letters: má (mother) and ma (ghost) fold together. That is what the
-    collision report is for — the fold is deliberate and aggressive, and
-    the author is told when two cards land on one identity."""
-    out, base_is_latin = [], False
-    for char in unicodedata.normalize('NFD', text):
-        if unicodedata.combining(char):
-            if not base_is_latin:
-                out.append(char)
-            continue
-        base_is_latin = 'LATIN' in unicodedata.name(char, '')
-        out.append(char)
-    return unicodedata.normalize('NFC', ''.join(out))
-
-
-def normalise_for_identity(text):
-    """The form two titles are compared in before they are hashed.
-
-    NFKC first, and it earns its place three times over: it folds the
-    presentation variants (full-width Ｒ, the ﬁ ligature, half-width
-    katakana ｶ) that are the same title typed on another keyboard, and it
-    turns U+00A0 back into a plain space. That last one settles a question
-    that would otherwise have needed a rule: the typography engine inserts
-    non-breaking spaces into titles, so an identity taken before and after
-    it would differ. After NFKC they are equal, and the order stops
-    mattering.
-
-    `casefold()`, not `lower()`: measured, only casefold takes Straße to
-    strasse. The Turkish dotted İ stays distinct from i — a known limit of
-    case folding, not something to paper over here."""
-    text = unicodedata.normalize('NFKC', text)
-    text = text.casefold()
-    text = _fold_latin_marks(text)
-    return ' '.join(text.split())
-
-
-def identity_hash(text):
-    """A stable, opaque name for a piece of authored text."""
-    normalised = normalise_for_identity(text)
-    digest = hashlib.sha256(normalised.encode('utf-8')).hexdigest()
-    return digest[:IDENTITY_HASH_LENGTH]
-
-
-# What an author may write in `slug:`, and what a `slug_prefix` may be.
-#
-# This is not a taste in punctuation. The value becomes an `id` attribute,
-# the target of a fragment, part of a note anchor and — through the share
-# button — the tail of a printed QR code, so the three grammars it has to
-# survive are HTML, the URL and whatever reads the QR back. The charset
-# below is the intersection: no space (an id with a space is two tokens to
-# a CSS selector), no `"` (it would leave the attribute), nothing that a
-# URL would percent-encode and hand back looking different from what the
-# author typed.
-#
-# A derived identity is hexadecimal and cannot fail this. Only the two
-# things the author writes by hand are checked, which is also the only
-# place a mistake is theirs to fix.
+# The alphabet a slug may use. Only a DECLARED value is checked, because
+# only a declared value exists: it becomes an id, a URL fragment and the
+# tail of a shared QR code, so anything outside this set would arrive
+# somewhere other than what was typed.
 SLUG_CHARSET_RE = re.compile(r'\A[A-Za-z0-9][A-Za-z0-9._-]*\Z')
 SLUG_PREFIX_RE = re.compile(r'\A[A-Za-z0-9][A-Za-z0-9._-]*\Z')
 
-
-def derive_slide_identity(slide, ordinal):
-    """The identity a card claims before prefixing and collision handling.
-
-    Returns (value, source) — the source names which of the five rules
-    fired, so `audit` can report the one that is not durable without
-    re-deriving the answer, and `resolve` can say where a value came from
-    the way it does for every other field."""
-    explicit = getattr(slide, 'slug', None)
-    if explicit:
-        value = explicit.strip()
-        if not SLUG_CHARSET_RE.match(value):
-            raise PropertyError(
-                f'slug: {value!r} is not usable as an anchor — a slug must '
-                f'start with a letter or a digit and may then contain '
-                f'letters, digits, "-", "_" and ".". It becomes an id, a URL '
-                f'fragment and the tail of a shared QR code, so anything '
-                f'else would arrive somewhere different from what was typed.')
-        return value, 'declared'
-    if slide.slide_type == 'series-nav':
-        return 'series-nav', 'type'
-    if slide.slide_type == 'full-article':
-        if slide.article_file:
-            return identity_hash(slide.article_file), 'article-file'
-        return f's{ordinal}', 'ordinal'
-    title = slide.h1 if slide.slide_type == 'cover' else slide.h2
-    if title and title.strip():
-        return identity_hash(title), 'title'
-    return f's{ordinal}', 'ordinal'
+# What `series slug set` writes, and how long. Eight was measured against
+# the QR encoder on both base URLs tried: same QR version as six, and it
+# buys 4.3 billion values instead of 16.8 million. Hexadecimal rather
+# than a wider alphabet so the value reads as a machine's and not as a
+# word someone chose — an author who wants a readable anchor writes one.
+ASSIGNED_SLUG_LENGTH = 8
 
 
-def resolve_slide_slug(slide, ordinal, prefix, taken):
-    """The id a card is finally given, unique within its page.
+def assigned_slug(taken):
+    """A fresh slug for a card that has none, unique against `taken`.
+
+    Random, not derived: once the slug is written into the source it is
+    the identity, and deriving it from a title would make it LOOK as
+    though it still followed that title. It does not, and a value that
+    misleads about what it depends on is worse than one that says
+    nothing.
+
+    `secrets` rather than `random` for no security reason — it is simply
+    the module that does not carry a global seed, so nothing in a test or
+    a plugin can make two runs agree by accident."""
+    while True:
+        candidate = secrets.token_hex(ASSIGNED_SLUG_LENGTH // 2)
+        if candidate not in taken:
+            taken.add(candidate)
+            return candidate
+
+
+def resolve_slide_slug(slide, ordinal, prefix, taken, where):
+    """The id a card is given, or a fatal error naming what to run.
 
     `taken` is the set of ids already spoken for — the skeleton's own plus
     every card resolved before this one — and it is MUTATED here, because
@@ -9980,27 +9882,40 @@ def resolve_slide_slug(slide, ordinal, prefix, taken):
     it and a caller that forgot to record them would mint duplicates in
     silence.
 
-    The prefix applies to a declared slug exactly as it does to a derived
-    one. A prefix that covered only half of them would not be a namespace,
-    it would be a decoration: an author could not tell, without checking
-    each card, which of their ids carried it.
+    A collision is an ERROR, not a suffix. Two derived identities could
+    collide innocently (two cards with the same heading); two declared
+    ones are a typing mistake, and `-2` appended in silence would publish
+    an anchor the author never wrote while the card they meant to reach
+    keeps the other."""
+    explicit = (getattr(slide, 'slug', None) or '').strip()
+    if not explicit:
+        log('error',
+            f'{where}: slide {ordinal} has no `slug:`, and every card needs '
+            f'one — it is what a shared link and a printed QR code point '
+            f'at. Run `lightwebpres series slug set` to give one to every '
+            f'card that has none, or write it yourself: a readable name '
+            f'(`slug: le-sucre`) is worth more than a generated one.')
+        sys.exit(1)
+    if not SLUG_CHARSET_RE.match(explicit):
+        raise PropertyError(
+            f'slug: {explicit!r} is not usable as an anchor — a slug must '
+            f'start with a letter or a digit and may then contain '
+            f'letters, digits, "-", "_" and ".". It becomes an id, a URL '
+            f'fragment and the tail of a shared QR code, so anything '
+            f'else would arrive somewhere different from what was typed.')
+    value = f'{prefix}{explicit}' if prefix else explicit
+    if value in taken:
+        log('error',
+            f'{where}: slide {ordinal} takes the id {value!r}, which is '
+            f'already used on this page — by another card, or by the page '
+            f'skeleton itself. Two things with one id means a reader who '
+            f'follows the link lands on whichever the browser picks.')
+        sys.exit(1)
+    taken.add(value)
+    return value
 
-    A collision suffixes `-2`, `-3`, in document order — deterministic, so
-    two builds of unchanged sources agree. It is not silent: the caller
-    reports it, since two cards landing on one identity usually means two
-    cards carry the same title, which is worth knowing for its own sake."""
-    value, source = derive_slide_identity(slide, ordinal)
-    if prefix:
-        value = f'{prefix}{value}'
-    candidate, n = value, 1
-    while candidate in taken:
-        n += 1
-        candidate = f'{value}-{n}'
-    taken.add(candidate)
-    return candidate, source, (candidate != value)
 
-
-def resolve_page_slide_ids(visible_slides, prefix=''):
+def resolve_page_slide_ids(visible_slides, prefix='', where=''):
     """Every visible card's id, in document order, for one page.
 
     One function rather than a loop at the call site, because the `taken`
@@ -10010,12 +9925,11 @@ def resolve_page_slide_ids(visible_slides, prefix=''):
     reader follows a link and lands on the wrong one.
 
     `excluded` cards are not passed in and take no identity — they produce
-    no section, so there is nothing to point at, and letting them consume
-    a name would make the visible cards' ids depend on a card the page
-    does not contain."""
+    no section, so there is nothing to point at."""
     taken = set(RESERVED_SLIDE_IDS)
-    return [resolve_slide_slug(slide, ordinal, prefix, taken)
+    return [resolve_slide_slug(slide, ordinal, prefix, taken, where)
             for ordinal, slide in enumerate(visible_slides, 1)]
+
 
 
 def resolve_slug_prefix(meta, series_meta, source_name):
@@ -10564,40 +10478,24 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                   slide_id=None):
     """Generates the HTML for a slide.
 
-    `slide_id` is the card's resolved identity (§12.1.1), derived from what
-    the author wrote rather than from where the card sits. It defaults to
-    the rank so that a caller with no page-wide view — a preview, a test —
-    still gets a working page; a real build always passes one, because
-    uniqueness is a property of the page and cannot be decided here."""
+    `slide_id` is the card's identity (§12.1.1): what its author declared
+    in `slug:`. Required, and deliberately so — it used to default to the
+    card's rank, which was harmless while the rank WAS an identity and is
+    a silent lie now that nothing derives one. A caller with no page-wide
+    view (the theme gallery's panels) names its own; a build passes what
+    resolve_page_slide_ids worked out, because uniqueness is a property of
+    the page and cannot be decided here."""
     if 'excluded' in _slide_tag_set(slide):
         return ''
     tags = slide.tags if isinstance(slide.tags, (list, tuple)) else sorted(_slide_tag_set(slide))
     data_tags = html_escape(' '.join(tags), quote=True)
     num_str = f'{slide_num:02d} / {total_slides:02d}'
-    ident = html_escape(slide_id or f's{slide_num}', quote=True)
-    # Every link that was ever shared, printed or bookmarked names a card
-    # by its rank, because that is what the id used to be. An empty span
-    # carrying the old name keeps all of them landing on the right card
-    # while the canonical id becomes the durable one — and it is a span
-    # with nothing in it on purpose: measured, an element with no layout
-    # box (`display: none`, `hidden`) is NOT a fragment target, so the
-    # alias has to be a real, empty, unstyled element. It shifts nothing.
-    #
-    # Emitted only when it differs from the identity: a card that fell
-    # back to its rank already carries the name, and two elements with one
-    # id leave the reader at whichever the browser picks.
-    # A series-nav did not carry `sN` under the old scheme: it carried
-    # `sN-series`, and that is the name in every address bar a reader ever
-    # copied from that card — `goTo` wrote it there, and the pagination dot
-    # linked to it. Measured on an upgrade from v0.41.1: emitting only `sN`
-    # left `#s3-series` pointing at nothing, which is precisely the promise
-    # this alias exists to keep. Both are emitted for that one type: the
-    # rank so the rule stays uniform, and the name that was really used.
-    old_names = [f's{slide_num}']
-    if slide.slide_type == 'series-nav':
-        old_names.append(f's{slide_num}-series')
-    alias = ''.join(f'  <span id="{name}"></span>\n'
-                    for name in old_names if name != ident)
+    ident = html_escape(slide_id, quote=True)
+    # No alias span. A card's id was its rank once, and every card
+    # carried an empty span holding that old name so a link shared before
+    # the change still landed. There is nothing left to alias: an id is
+    # what the author declared, and the rank is not a name any card has
+    # ever had under this rule.
     # The engraved top-right number is opt-in (off by default): the live
     # bottom-left counter already carries current/total, so the static mark
     # is redundant presentation most authors don't want.
@@ -10609,8 +10507,6 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
 
         parts = [f'<section class="slide slide-cover" id="{ident}" '
                  f'data-tags="{data_tags}">']
-        if alias:
-            parts.append(alias.rstrip('\n'))
         if show_slide_num:
             parts.append(f'  <span class="slide-num">{num_str}</span>')
         if kicker:
@@ -10632,7 +10528,7 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         # in `-series`. An id derived from what the author wrote says
         # nothing about type, so the type has to say itself.
         return (f'<section class="slide slide-series-nav" id="{ident}" '
-                f'data-tags="{data_tags}">\n{alias}  <h2>{title}</h2>\n'
+                f'data-tags="{data_tags}">\n  <h2>{title}</h2>\n'
                 f'  <div class="series-list">\n{{SERIES_NAV_PLACEHOLDER}}\n'
                 f'  </div>\n</section>')
 
@@ -10641,7 +10537,6 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         tag_text = strings.get('full_article_kicker', 'Full article')
         return (f'<section class="slide full-article" id="{ident}" '
                 f'data-tags="{data_tags}">\n'
-                + alias
                 + (f'  <span class="slide-num">{num_str}</span>\n'
                    if show_slide_num else '')
                 + f'  <span class="slide-kicker">{tag_text}</span>\n'
@@ -10660,8 +10555,6 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
 
         parts = [f'<section class="slide" id="{ident}" '
                  f'data-tags="{data_tags}">']
-        if alias:
-            parts.append(alias.rstrip('\n'))
         if show_slide_num:
             parts.append(f'  <span class="slide-num">{num_str}</span>')
         if kicker:
@@ -11213,22 +11106,11 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     slug_prefix = resolve_slug_prefix(meta, series_meta_of(series_data),
                                       source_path.name)
     try:
-        identities = resolve_page_slide_ids(visible_slides, slug_prefix)
+        identities = resolve_page_slide_ids(visible_slides, slug_prefix,
+                                            source_path.name)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
-    # Two cards landing on one identity is not an error — they are still
-    # told apart, deterministically — but it is worth saying, because it
-    # almost always means two cards carry the same title, and the author
-    # is the only one who can decide whether that is intended. The card is
-    # named by its rank here because a colliding identity is precisely the
-    # thing that cannot name it unambiguously.
-    for ordinal, (value, _source, clashed) in enumerate(identities, 1):
-        if clashed:
-            log('warn', f'{source_path.name}: slide {ordinal} lands on an '
-                           f'identity another slide already took; it is '
-                           f'published as {value!r}. Give it a `slug:` if the '
-                           f'link to it has to survive an edit.')
 
     slide_htmls = []
 
@@ -11240,7 +11122,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
             slide_typo_engine = typo_engine_for_slide(
                 slide, article_typo_engine, article_lang_tag_engines)
             slide_notes = (page_notes if page_notes is not None
-                           else NoteScope(identities[i - 1][0],
+                           else NoteScope(identities[i - 1],
                                           tooltip=notes_tooltip))
             html = render_slide(slide, i, total_slides, slide_typo_engine,
                                 strings, disabled_rules, slide_notes,
@@ -11248,7 +11130,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                 inline_images=inline_images,
                                 articles_dir=articles_dir,
                                 show_slide_num=show_slide_num,
-                                slide_id=identities[i - 1][0])
+                                slide_id=identities[i - 1])
             slide_htmls.append(html)
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
@@ -11315,7 +11197,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                 article_notes = (
                     page_notes if page_notes is not None
                     else NoteScope('article' if articles_here == 1
-                                   else f'article-{identities[i - 1][0]}',
+                                   else f'article-{identities[i - 1]}',
                                    tooltip=notes_tooltip))
                 slide_typo_engine = typo_engine_for_slide(
                     slide, article_typo_engine, article_lang_tag_engines)
@@ -12559,6 +12441,14 @@ def cmd_completion(args):
     # which it refuses, and never offered `--theme`, which is the whole
     # point of typing it.
     per_command['series theme set'] = offers('set-theme')
+    # And the second one, for the same reason: `series slug` lists what the
+    # cards are called and `series slug set` writes into the author's
+    # files, and `--format` belongs to the reading command alone. The path
+    # rewrite in the script below is what stops `--format` being offered
+    # after `set`; this entry is what makes the answer come from the table
+    # rather than from the default arm, which happens to hold the right
+    # answer today only because `assign-slug` takes no option of its own.
+    per_command['series slug set'] = offers('assign-slug')
     # A node with no verb yet. `series --quiet build` is not a command --
     # _resolve_command reads the second word as the verb and answers
     # "Unknown series verb: `series --quiet`" -- so the only option a bare
@@ -12634,8 +12524,9 @@ _lightwebpres_completion() {{
         return 0
     fi
 
-    # series theme set (three-word: series theme set)
-    if [ "${{COMP_WORDS[1]}}" = "series" ] && [ "${{COMP_WORDS[2]}}" = "theme" ] \
+    # The two three-word paths: `series theme set` and `series slug set`
+    if [ "${{COMP_WORDS[1]}}" = "series" ] \
+       && {{ [ "${{COMP_WORDS[2]}}" = "theme" ] || [ "${{COMP_WORDS[2]}}" = "slug" ]; }} \
        && [ "$COMP_CWORD" -eq 3 ] && [[ "$cur" != --* ]]; then
         COMPREPLY=($(compgen -W "set" -- "$cur"))
         return 0
@@ -12650,8 +12541,9 @@ _lightwebpres_completion() {{
                 series|theme|template) path="${{COMP_WORDS[1]}} ${{COMP_WORDS[2]}}" ;;
             esac
         fi
-        if [ "$path" = "series theme" ] && [ "${{COMP_WORDS[3]}}" = "set" ]; then
-            path="series theme set"
+        if {{ [ "$path" = "series theme" ] || [ "$path" = "series slug" ]; }} \
+           && [ "${{COMP_WORDS[3]}}" = "set" ]; then
+            path="$path set"
         fi
         local opts=""
         case "$path" in
@@ -13368,51 +13260,6 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir):
     return warnings
 
 
-def audit_slide_identities(filename, meta, series_meta, slides):
-    """Reports the card identities that will not survive an edit (§12.1.1).
-
-    Two findings, and both are the author's to act on rather than the
-    tool's to fix. A card that fell back to its RANK has nothing to derive
-    an identity from — no title, no `article:` file, no `slug:` — so its
-    link is the one thing the identity work was meant to end: insert a
-    card ahead of it and the link points elsewhere. And two cards landing
-    on ONE identity are separated deterministically, which keeps the page
-    correct, but the second one's id then depends on the first still being
-    there.
-
-    What this does NOT do is compare against the previous build. Telling
-    an author "this anchor moved since you last published" needs the
-    previous set of identities on disk, which is a decision about what the
-    tool stores and where; it is written down in BACKLOG.md rather than
-    guessed at here.
-    """
-    warnings = 0
-    visible = [slide for slide in slides
-               if 'excluded' not in _slide_tag_set(slide)]
-    prefix = ''
-    for source in (meta, series_meta or {}):
-        if 'slug_prefix' in source and str(source['slug_prefix']).strip():
-            prefix = str(source['slug_prefix']).strip()
-            break
-    try:
-        identities = resolve_page_slide_ids(visible, prefix)
-    except PropertyError as exc:
-        print(f'[WARNING] {filename}: {exc}')
-        return 1
-    for ordinal, (value, source, _clashed) in enumerate(identities, 1):
-        if source == 'ordinal':
-            warnings += 1
-            print(f'[WARNING] {filename}: slide {ordinal} has nothing to '
-                  f'derive an anchor from, so it is published as '
-                  f'{value!r} — its rank. A link to it breaks the next time '
-                  f'a slide is inserted before it. Give it a title or a '
-                  f'`slug:` (§12.1.1).')
-    # Collisions are NOT reported here. `audit` runs the render pass, and
-    # the render pass already names them; saying it twice would count one
-    # finding as two and teach an author to skim the list.
-    return warnings
-
-
 def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
                      language_file=None):
     """Audits the variant vocabulary without duplicating build validation.
@@ -14032,8 +13879,6 @@ def cmd_audit(series_dir, args):
         warnings += audit_slide_tags(
             entry['page_source'], slides, series_meta, lang_dir, lang,
             language_file)
-        warnings += audit_slide_identities(
-            entry['page_source'], meta, series_meta, slides)
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
         if not has_cover:
@@ -14956,6 +14801,183 @@ def cmd_theme_info(positional, args):
             print_theme_info_text(report)
 
 
+SERIES_SLUG_SCHEMA = 'lightwebpres.series-slug/1'
+
+# The separator the parser splits on, so the writer below cuts a file
+# exactly where the reader does. Two rules would eventually disagree, and
+# the disagreement would be a slug written into the wrong card.
+_SLIDE_SPLIT_RE = re.compile(r'\n---\n')
+_SLIDE_MARKER_RE = re.compile(r'\A\s*<!--\s*lwp:slide(?::[^>]*)?\s*-->\s*$',
+                              re.M)
+
+
+def _split_article_parts(text):
+    """(head, parts) — the meta block as written, then one string per
+    card, using the parser's own separator.
+
+    The head is returned verbatim rather than re-serialised: this
+    function exists to put ONE line into someone's file, and a writer
+    that reformats what it did not come for is a writer nobody trusts
+    twice."""
+    marker = re.search(r'<!--\s*lwp:meta\s*-->', text)
+    terminator = (re.search(r'(?:^|\n)---', text[marker.end():])
+                  if marker else None)
+    if not terminator:
+        return '', _SLIDE_SPLIT_RE.split(text)
+    cut = marker.end() + terminator.end()
+    return text[:cut], _SLIDE_SPLIT_RE.split(text[cut:])
+
+
+def _part_with_slug(part, value):
+    """`part` with a `slug:` line added, after the type marker if there is
+    one and at the top otherwise.
+
+    An unmarked part IS a standard card — that is the parser's rule, not a
+    guess — so it has to be handled, and it has no marker to sit under."""
+    m = _SLIDE_MARKER_RE.search(part)
+    if m:
+        return part[:m.end()] + f'\nslug: {value}' + part[m.end():]
+    stripped = part.lstrip('\n')
+    lead = part[:len(part) - len(stripped)]
+    return f'{lead}slug: {value}\n{stripped}'
+
+
+def _slugs_in_article(text):
+    """Every card of one file, as (index into the part list, slug or '')."""
+    _head, parts = _split_article_parts(text)
+    out = []
+    for index, part in enumerate(parts):
+        if not strip_ws(part):
+            continue
+        found = ''
+        for line in part.split('\n'):
+            m = re.match(r'\A\s*slug:\s*(.*)$', line)
+            if m:
+                found = m.group(1).strip()
+                break
+        out.append((index, found))
+    return out
+
+
+def cmd_series_slug(series_dir, args):
+    """`series slug [dir]` — every card in the series and the name it is
+    published under.
+
+    The inventory half of the identity contract (§12.1.1). `status`
+    answers by ARTICLE, which is the unit series.json describes; a link
+    points at a CARD, and until this command existed the only way to know
+    a card's anchor was to build the page and read the HTML."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
+        sys.exit(1)
+    sd, articles_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
+    series_data = load_series_data(sd)
+    articles = (series_data.get('articles', series_data)
+                if isinstance(series_data, dict) else series_data)
+    validate_series(articles)
+    report = {'schema': SERIES_SLUG_SCHEMA,
+              'lightwebpres_version': VERSION,
+              'target': {'kind': 'series', 'directory': str(sd)},
+              'articles': []}
+    for entry in articles:
+        source = articles_dir / entry['page_source']
+        try:
+            text = read_text_file(source)
+        except OSError:
+            report['articles'].append(
+                {'page_source': entry['page_source'], 'source_read': False,
+                 'slides': []})
+            continue
+        slides = [{'ordinal': n, 'slug': slug or None}
+                  for n, (_i, slug) in enumerate(_slugs_in_article(text), 1)]
+        report['articles'].append(
+            {'page_source': entry['page_source'], 'source_read': True,
+             'slides': slides})
+
+    if fmt == 'json':
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return
+    missing = 0
+    for article in report['articles']:
+        print(f"\n{article['page_source']}")
+        if not article['source_read']:
+            print('  (could not be read)')
+            continue
+        for slide in article['slides']:
+            if slide['slug']:
+                print(f"  {slide['ordinal']:>3}  {slide['slug']}")
+            else:
+                missing += 1
+                print(f"  {slide['ordinal']:>3}  — no slug")
+    if missing:
+        print(f'\n{missing} card(s) without a slug. '
+              f'`lightwebpres series slug set` gives one to each.')
+
+
+def cmd_assign_slug(series_dir, args):
+    """`series slug set [dir]` — writes a slug into every card that has
+    none.
+
+    THE ONE COMMAND THAT EDITS AN AUTHOR'S ARTICLES. Everything else in
+    this tool reads sources and writes to `public/`; `demo` creates files
+    and refuses to overwrite. That is why this is a verb someone types on
+    purpose and not a flag on the build: a build that rewrote its own
+    inputs would surprise a read-only CI, a version-controlled tree that
+    comes back dirty, and an encrypted series in the browser GUI.
+
+    Random, not derived from the title. Once the value is in the file it
+    IS the identity; deriving it would make it look as though it still
+    followed the title it came from, and it does not.
+
+    Never touches a card that already has one — including a `slug:` line
+    the author left empty, which is a decision in progress, not an
+    absence. `--dry-run` says what it would write and writes nothing."""
+    sd, articles_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
+    series_data = load_series_data(sd)
+    articles = (series_data.get('articles', series_data)
+                if isinstance(series_data, dict) else series_data)
+    validate_series(articles)
+    dry_run = bool(args.get('--dry-run'))
+    written = 0
+    for entry in articles:
+        source = articles_dir / entry['page_source']
+        try:
+            text = read_text_file(source)
+        except OSError as exc:
+            log('warn', f'{source}: {exc} — skipped.')
+            continue
+        head, parts = _split_article_parts(text)
+        present = _slugs_in_article(text)
+        # Unique within the FILE, and against the skeleton's own ids: a
+        # page cannot hold two things with one id, whoever minted them.
+        taken = set(RESERVED_SLIDE_IDS) | {s for _i, s in present if s}
+        added = 0
+        for index, slug in present:
+            if slug:
+                continue
+            value = assigned_slug(taken)
+            parts[index] = _part_with_slug(parts[index], value)
+            added += 1
+            log('verbose', f'  {entry["page_source"]}: slide '
+                           f'{index + 1} -> {value}')
+        if not added:
+            continue
+        written += added
+        if dry_run:
+            log('info', f'{entry["page_source"]}: would write {added} slug(s).')
+            continue
+        _write_file(source, head + '\n---\n'.join(parts))
+        log('info', f'{entry["page_source"]}: wrote {added} slug(s).')
+    if not written:
+        log('info', 'Every card already has a slug. Nothing to write.')
+    elif dry_run:
+        log('info', f'{written} slug(s) would be written. '
+                    f'Run without --dry-run to write them.')
+    else:
+        log('info', f'{written} slug(s) written.')
+
+
 def cmd_series_theme(series_dir, args):
     """series theme [dir] — the EFFECTIVE theme of an installed series
     (DECISION §1 Phase 2, ex-`theme-info [dir]`).
@@ -15750,10 +15772,12 @@ def build_theme_preview_document(theme_key, panel='card'):
 
     if panel == 'cover':
         body = render_slide(slides[0], 1, len(slides), typo_engine, strings,
-                            absorb_punct=absorb_punct, show_slide_num=True)
+                            absorb_punct=absorb_punct, show_slide_num=True,
+                            slide_id='preview-cover')
     elif panel == 'card':
         body = render_slide(slides[1], 2, len(slides), typo_engine, strings,
-                            absorb_punct=absorb_punct, show_slide_num=True)
+                            absorb_punct=absorb_punct, show_slide_num=True,
+                            slide_id='preview-card')
     elif panel == 'notes':
         # The real object, fed the real bodies: a scope that has been
         # called once per body, so the return links are there too.
@@ -15983,6 +16007,7 @@ comment: A review note — recognized everywhere, never published (check this pa
 ---
 
 <!-- lwp:slide:cover -->
+slug: ouverture
 kicker: First
 # First article
 summary: This is the first demo article. It tests the "first" position in navigation.
@@ -15990,6 +16015,7 @@ summary: This is the first demo article. It tests the "first" position in naviga
 ---
 
 <!-- lwp:slide -->
+slug: le-fait
 kicker: A fact
 ## First fact
 summary: A short summary.
@@ -16001,10 +16027,12 @@ This is the **fact-box** content with some **bold** and *italic* text.
 ---
 
 <!-- lwp:slide:series-nav -->
+slug: la-serie
 
 ---
 
 <!-- lwp:slide:full-article -->
+slug: article-complet
 article: first_article.md
 '''
 
@@ -16048,6 +16076,7 @@ card_label: Article 2
 ---
 
 <!-- lwp:slide:cover -->
+slug: ouverture
 kicker: Middle
 # Middle article
 summary: This article tests the "middle" position in navigation.
@@ -16055,6 +16084,7 @@ summary: This article tests the "middle" position in navigation.
 ---
 
 <!-- lwp:slide -->
+slug: le-fait
 kicker: Highlight
 ## A slide with a highlight
 summary: This slide tests the highlight component.
@@ -16068,10 +16098,12 @@ The answer is **42**. But the question remains unknown.
 ---
 
 <!-- lwp:slide:series-nav -->
+slug: la-serie
 
 ---
 
 <!-- lwp:slide:full-article -->
+slug: article-complet
 article: middle_article.md
 '''
 
@@ -16101,6 +16133,7 @@ This is the full article for the second demo article [^1].
 ---
 
 <!-- lwp:slide:cover -->
+slug: ouverture
 kicker: Last
 # Last article
 summary: This article tests the "last" position in navigation.
@@ -16108,6 +16141,7 @@ summary: This article tests the "last" position in navigation.
 ---
 
 <!-- lwp:slide -->
+slug: le-fait
 kicker: Inline HTML
 ## Inline HTML test
 summary: This slide tests inline HTML directly in Markdown.
@@ -16119,10 +16153,12 @@ A regular paragraph followed by a link: <a href="https://example.com" target="_b
 ---
 
 <!-- lwp:slide:series-nav -->
+slug: la-serie
 
 ---
 
 <!-- lwp:slide:full-article -->
+slug: article-complet
 article: last_article.md
 '''
 
@@ -16312,6 +16348,15 @@ COMMANDS
     Says what is in a series without building: its articles in
     series.json order, each field RESOLVED as a build would resolve it,
     and where each value came from (see §11.11)
+  lightwebpres series slug [directory] [--format text|json]
+    Lists every card of the series and the name it is published under —
+    the anchor a shared link and a printed QR code point at. `status`
+    answers by article; this one answers by card (see §12.1.1)
+  lightwebpres series slug set [directory] [--dry-run]
+    Writes a slug into every card that has none, and only those. The one
+    command that edits your articles: a build never rewrites its own
+    inputs. Rename what it wrote to something readable before you
+    publish — the value is the identity from then on (see §12.1.1)
   lightwebpres resolve [directory] <name> [--article file.md] [--format text|json]
     Says what ONE name is worth here and which level decided it, losing
     levels included. The shape of the name picks the cascade: dotted =
@@ -16669,6 +16714,8 @@ _COMMAND_OPTIONS = {
     'series-info': {'--format'},
     'resolve': {'--format', '--article'},
     'set-theme': {'--theme'},
+    'series-slug': {'--format'},
+    'assign-slug': set(),
     'series-theme': {'--format'},
     'themes-gallery': {'--all', '--output'},
     # --output because cmd_clean has always read it: a site built with
@@ -16770,6 +16817,7 @@ _SERIES_VERBS = {
     'audit': 'audit', 'status': 'series-info', 'clean': 'clean',
     'watch': 'watch', 'resolve': 'resolve',
     'theme': 'series-theme',
+    'slug': 'series-slug',
 }
 _THEME_VERBS = {
     'list': 'themes', 'show': 'theme-info', 'gallery': 'themes-gallery',
@@ -16801,6 +16849,8 @@ for _verb, _key in _THEME_VERBS.items():
     _CANONICAL_NAME[_key] = f'theme {_verb}'
 _CANONICAL_NAME.update({
     'set-theme': 'series theme set',
+    'series-slug': 'series slug',
+    'assign-slug': 'series slug set',
     'refresh-templates': 'template update',
     'template-show': 'template show',
     'template-write': 'template write',
@@ -16833,6 +16883,7 @@ _MAX_POSITIONAL = {
     'install': 1, 'demo': 1, 'build': 1, 'check': 1, 'audit': 1,
     'clean': 1, 'watch': 1, 'series-info': 1, 'series-theme': 1,
     'set-theme': 1, 'refresh-templates': 1,
+    'series-slug': 1, 'assign-slug': 1,
     # `template show <file>` takes the file and nothing else -- it
     # reads the executable, so there is no series to name. `write`
     # takes the file first, then the series it goes into.
@@ -16953,6 +17004,11 @@ def _resolve_command(args):
         # `series theme set <dir> --theme X` — two-word series verb.
         if verb == 'theme' and len(args) >= 3 and args[2] == 'set':
             return 'set-theme', args[3:]
+        # `series slug set [dir]` — the one command that writes into an
+        # author's articles, which is why it is a verb of its own and not
+        # a flag on the build.
+        if verb == 'slug' and len(args) >= 3 and args[2] == 'set':
+            return 'assign-slug', args[3:]
         if verb in _SERIES_VERBS:
             return _SERIES_VERBS[verb], args[2:]
         log('error', f"Unknown series verb: `series {verb}`. "
@@ -17285,6 +17341,10 @@ def main():
                         positional[0], opts)
     elif command == 'set-theme':
         cmd_set_theme(target, opts)
+    elif command == 'series-slug':
+        cmd_series_slug(target, opts)
+    elif command == 'assign-slug':
+        cmd_assign_slug(target, opts)
     elif command == 'series-theme':
         # `series theme [dir]` — the effective theme of an installed series
         # (DECISION §1 Phase 2). The directory branch of the old theme-info,

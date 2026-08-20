@@ -83,13 +83,13 @@ class ChromeBehaviour(unittest.TestCase):
         (root / 'articles' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Chrome test\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\nkicker: C\n# Chrome test\n'
+            '<!-- lwp:slide:cover -->\nslug: c1\nkicker: C\n# Chrome test\n'
             'summary: A summary long enough that a pointer can be dragged '
             'across it from one side to the other and take a real selection '
             'with it on the way.\n\n---\n\n'
-            '<!-- lwp:slide -->\nkicker: S1\n## Second slide\n'
+            '<!-- lwp:slide -->\nslug: c2\nkicker: S1\n## Second slide\n'
             'summary: Somewhere to advance to.\n\n---\n\n'
-            '<!-- lwp:slide -->\nkicker: S2\n## Third slide\n'
+            '<!-- lwp:slide -->\nslug: c3\nkicker: S2\n## Third slide\n'
             'summary: And somewhere after that.\n\n---\n\n'
             # A card the default filter HIDES. It is the only way to
             # tell the page's own hash handling apart from the
@@ -97,14 +97,14 @@ class ChromeBehaviour(unittest.TestCase):
             # native fragment jump cannot reach it, and only a script
             # that reads the fragment, selects the card's tag and
             # then goes there will land the reader on it.
-            '<!-- lwp:slide -->\nkicker: S3\ntags: avance\n'
+            '<!-- lwp:slide -->\nslug: c4\nkicker: S3\ntags: avance\n'
             '## Fourth slide\nsummary: Behind a tag filter.\n',
             encoding='utf-8',
         )
         (root / 'articles' / 'b.md').write_text(
             '<!-- lwp:meta -->\npage_dest: b.html\npage_title: Article B\n'
             'nav_title: B\nnav_desc: B\n---\n\n'
-            '<!-- lwp:slide:cover -->\nkicker: C\n# Article B\n'
+            '<!-- lwp:slide:cover -->\nslug: c5\nkicker: C\n# Article B\n'
             'summary: Cover slide.\n',
             encoding='utf-8',
         )

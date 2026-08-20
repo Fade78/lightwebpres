@@ -67,11 +67,11 @@ class ShareButton(unittest.TestCase):
         (root / 'articles' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Share button test\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\nkicker: T\n# Share button test\n'
+            '<!-- lwp:slide:cover -->\nslug: c1\nkicker: T\n# Share button test\n'
             'summary: Cover slide.\n\n---\n\n'
-            '<!-- lwp:slide -->\nkicker: T2\n## Second slide\n'
+            '<!-- lwp:slide -->\nslug: c2\nkicker: T2\n## Second slide\n'
             'summary: A second slide, to leave the cover behind.\n\n---\n\n'
-            '<!-- lwp:slide:series-nav -->\n',
+            '<!-- lwp:slide:series-nav -->\nslug: c3\n',
             encoding='utf-8',
         )
         output_dir = root / 'public'

@@ -499,7 +499,7 @@ sont activés (§3.3.5), et il est **absent par défaut**.
 #### 3.3.3 Fiche de navigation de série (`series-nav`)
 
 ```html
-<section class="slide" id="sN-series" data-tags="default">
+<section class="slide slide-series-nav" id="SLUG" data-tags="default">
   <h2>Cette série</h2>
   <div class="series-list">
     <!-- généré depuis series.json -->
@@ -516,7 +516,7 @@ Générée depuis `series.json`. L'article courant est marqué `series-current`.
 #### 3.3.4 Fiche d'article complet (`full-article`)
 
 ```html
-<section class="slide full-article" id="sN" data-tags="default">
+<section class="slide full-article" id="SLUG" data-tags="default">
   <span class="slide-num">NN / NN</span>
   <span class="slide-kicker">Article complet</span>
   <!-- contenu converti depuis le fichier .md inclus -->
@@ -1698,7 +1698,7 @@ Chaque carte d'article :
 Générée depuis `series.json`. Le bloc inclus dans chaque article :
 
 ```html
-<section class="slide" id="sN-series" data-tags="default">
+<section class="slide slide-series-nav" id="SLUG" data-tags="default">
   <h2>Cette série</h2>
   <div class="series-list">
     <a href="introduction.html" class="series-item series-link">
@@ -2348,15 +2348,14 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
 
 |                        | Série | Article | Fiche |
 |------------------------|-------|---------|-------|
-| **Copier le lien**     | lien vers `index.html` | lien vers la page courante | lien vers la fiche courante (`#sN`) |
+| **Copier le lien**     | lien vers `index.html` | lien vers la page courante | lien vers la fiche courante (`#slug`) |
 | **Afficher le QR code**| idem  | idem    | idem  |
 
 - « Fiche » désigne la slide actuellement affichée (même détection que les
   nav-dots, §9.3.3). Elle n'a de sens que pour une slide standard ou
-  `full-article` munie d'un ancrage propre (`id="sN"`) — pas pour la
-  slide `cover` (qui se confond avec l'article lui-même) ni pour la slide
-  `series-nav` (dont l'ancrage `sN-series` n'identifie pas un point de
-  lecture précis). Sur ces deux cas, la colonne « Fiche » est grisée et
+  `full-article` — pas pour la slide `cover` (qui se confond avec
+  l'article lui-même) ni pour la slide `series-nav` (dont l'ancrage
+  n'identifie pas un point de lecture précis). Sur ces deux cas, la colonne « Fiche » est grisée et
   désactivée, pas masquée : la matrice garde sa forme, seule l'action est
   indisponible. La décision se fait par **type** de slide (classe
   `slide-cover`), jamais par position — l'ordre des fiches étant libre
@@ -5364,93 +5363,86 @@ build(répertoire):
 Ce que porte une fiche dans une URL — et ce que vise un lien partagé, ou
 un **QR code imprimé**, après que l'article a été modifié.
 
-C'était le rang de la fiche (`s1`, `s2`…). Toute insertion, tout
-réordonnancement, tout `tags: excluded` repointait donc chaque lien
-suivant, en silence. Mesuré sur une page de quatre fiches filtrée :
-`s1 s2 s3 s4` devient `s1 s2 s3`, et le lecteur qui suit un lien vers
-`#s4` n'arrive nulle part. Sur papier, c'est irréversible.
+**Une seule règle : l'auteur déclare `slug:`.** Rien n'est dérivé, rien
+n'est deviné, rien ne se replie sur le rang.
 
-**L'identité est dérivée de ce que l'auteur a écrit**, jamais de l'endroit
-où la fiche se trouve. Cinq règles, dans cet ordre :
+Une fiche sans `slug:` est une **erreur fatale de build**, qui nomme la
+commande qui la corrige : `lightwebpres series slug set` écrit un slug
+dans chaque fiche qui n'en a pas (§12.1.2). Le build ne réécrit jamais
+ses propres entrées ; c'est un verbe que l'on tape.
 
-1. `slug:` sur la fiche — le mot de l'auteur, et la seule identité qu'il
-   contrôle entièrement.
-2. Une fiche `series-nav` prend le nom fixe `series-nav` (au plus une par
-   article, §22.13).
-3. Une fiche `full-article` prend le hachage de son fichier `article:` —
-   une page peut en porter plusieurs et aucune n'a de titre, donc le
-   fichier qu'elle nomme est ce qui les distingue (§22.8).
-4. Une fiche titrée prend le hachage de son titre (`#` pour une cover,
-   `##` sinon).
-5. À défaut, le rang — dernier recours et non défaut.
-
-**Le hachage** est un SHA-256 tronqué à 8 caractères hexadécimaux. La
-longueur est une mesure, pas un goût : le QR de partage, au niveau de
-correction M, change de capacité à 43, 63, 85 et 107 caractères d'URL, et
-une identité de 6 comme de 8 hexadécimaux tient dans la version 4 —
-33 modules de côté. La plus large ne coûte rien.
-
-**La normalisation** précède le hachage, pour que deux façons d'écrire le
-même titre donnent la même identité : NFKC, puis `casefold()`, puis
-repli des marques combinantes **sur base latine seulement**, puis
-réduction des suites d'espaces. Ainsi la casse, les espaces multiples, les
-formes pleine chasse, les ligatures et l'insécable que le moteur
-typographique insère avant un deux-points se replient tous — ce dernier
-point évitant d'avoir à spécifier de quel côté du moteur l'identité est
-prise. Le repli est restreint au latin parce que « enlever les accents »
-est une consigne de locuteur latin : elle transforme हिन्दी en हिनदी, qui
-n'est pas un mot, et fait de même à l'arabe et à l'hébreu vocalisés. Le
-vietnamien reste exposé — c'est de l'écriture latine et ses marques sont
-des lettres, donc `má` et `ma` se rejoignent : c'est le coût assumé, et
-c'est précisément ce que le rapport de collision sert à signaler.
+Les deux règles qui ont précédé celle-ci disent pourquoi il n'y en a plus
+qu'une. Le **rang** (`s1`, `s2`…) faisait de toute insertion, de tout
+réordonnancement, de tout `tags: excluded` un repointage silencieux de
+chaque lien suivant : mesuré sur une page de quatre fiches filtrée,
+`s1 s2 s3 s4` devient `s1 s2 s3` et le lien vers `#s4` n'arrive nulle
+part. La **dérivation depuis le titre** a déplacé le problème sans le
+résoudre : elle était stable tant que le titre l'était, et un titre est
+précisément ce qu'un auteur retouche. Dans les deux cas, l'identité
+bougeait sans que personne ne l'ait demandée. Une valeur écrite dans la
+source ne bouge que si on l'y change.
 
 **Préfixe.** `slug_prefix:` (bloc meta de l'article, ou `series_meta`,
-même cascade qu'`author`) précède **toutes** les identités de la page,
-déclarées comme dérivées. Un préfixe qui ne couvrirait que la moitié
-d'entre elles ne serait pas un espace de noms mais une décoration :
-l'auteur ne saurait pas, sans vérifier fiche par fiche, lesquelles le
-portent.
+même cascade qu'`author`) précède **toutes** les identités de la page. Un
+préfixe qui ne couvrirait que la moitié d'entre elles ne serait pas un
+espace de noms mais une décoration : l'auteur ne saurait pas, sans
+vérifier fiche par fiche, lesquelles le portent. C'est désormais la seule
+chose qui puisse encore transformer ce que l'auteur a écrit.
 
 **Unicité.** L'ensemble des identités déjà prises démarre aux `id` du
 squelette de page (dont `notes`, forgé par le rendu et non écrit dans le
-gabarit) et court sur toute la page. Deux fiches qui atterrissent sur la
-même identité sont séparées par un suffixe `-2`, `-3`, dans l'ordre du
-document — déterministe, donc deux builds de sources inchangées
-s'accordent — et le build le **signale** : deux fiches sur une identité
-signifie presque toujours deux fiches de même titre, ce que seul l'auteur
-peut arbitrer.
+gabarit) et court sur toute la page. Deux fiches sur une même identité
+sont une **erreur fatale**, jamais un suffixe : deux valeurs déclarées
+identiques sont une faute de frappe, et un `-2` ajouté en silence
+publierait une ancre que personne n'a écrite pendant que la fiche visée
+garde l'autre.
 
 **Charset.** Un `slug:` et un `slug_prefix:` doivent commencer par une
 lettre ou un chiffre, puis ne contenir que lettres, chiffres, `-`, `_` et
 `.`. Autre chose est une erreur fatale : la valeur devient un `id`, un
 fragment d'URL et la queue d'un QR imprimé, et rien d'autre ne survit aux
-trois. Une identité dérivée est hexadécimale et ne peut pas échouer ce
-contrôle ; seul ce que l'auteur écrit à la main est vérifié.
-
-**L'alias.** Chaque fiche dont l'identité diffère de son rang porte en
-plus un `<span id="sN"></span>` vide. Tous les liens déjà partagés disent
-`sN` et aucun ne peut être rappelé — celui qui est imprimé moins que tout
-autre. L'élément est vide, sans style et sans boîte propre : mesuré, un
-élément sans boîte de rendu (`display: none`, `hidden`) **n'est pas** une
-cible de fragment, l'alias doit donc être un élément réel. Il n'est pas
-émis quand l'identité *est* le rang, sans quoi la page porterait deux fois
-le même `id` et le lecteur arriverait sur celui que le navigateur choisit.
-
-Côté navigateur, `applyHash` accepte l'alias comme la fiche elle-même — y
-compris quand la fiche est masquée par le filtre de tags du lecteur, cas
-que le saut natif ne peut pas traiter puisqu'une fiche filtrée n'a pas de
-boîte — puis l'URL est **canonicalisée** vers l'identité durable : le
-lecteur arrive par l'ancien nom et repart avec le nouveau.
+trois.
 
 **Les notes** suivent la fiche : la localité d'une note est l'identité de
-sa fiche, pas son rang, donc l'ancre d'une note se déplace avec la fiche
-comme le fait celle de la fiche elle-même.
+sa fiche, donc l'ancre d'une note se déplace avec la fiche comme le fait
+celle de la fiche elle-même.
 
-**Ce que la fiche `series-nav` a gagné.** Elle porte désormais la classe
-`slide-series-nav`. Le bouton de partage lisait le type dans la *forme* de
-l'`id` (`/^s\d+$/`, que `sN-series` ne satisfaisait pas) ; une identité
-dérivée de ce que l'auteur a écrit ne dit rien du type, donc le type
-s'écrit.
+**La fiche `series-nav`** porte la classe `slide-series-nav`. Le bouton de
+partage lisait le type dans la *forme* de l'`id` (`/^s\d+$/`) ; une
+identité que l'auteur écrit ne dit rien du type, donc le type s'écrit.
+
+### 12.1.2 `series slug` et `series slug set`
+
+`lightwebpres series slug [dir]` liste, article par article, chaque fiche
+et le nom sous lequel elle est publiée. `status` répond par **article**,
+qui est l'unité que décrit `series.json` ; un lien vise une **fiche**, et
+sans cette commande le seul moyen de connaître l'ancre d'une fiche était
+de construire la page et de lire le HTML. `--format json` en donne la
+version machine, sous le schéma `lightwebpres.series-slug/1`.
+
+`lightwebpres series slug set [dir]` écrit un slug dans chaque fiche qui
+n'en a pas, et seulement dans celles-là. **C'est la seule commande qui
+modifie les articles de l'auteur.** Tout le reste de l'outil lit les
+sources et écrit dans `public/` ; `demo` crée des fichiers et refuse
+d'écraser. D'où un verbe que l'on tape et non un drapeau du build : un
+build qui réécrirait ses entrées surprendrait une CI en lecture seule, un
+arbre versionné qui revient sale, et une série chiffrée dans le GUI.
+`--dry-run` dit ce qui serait écrit et n'écrit rien.
+
+La valeur écrite est **aléatoire**, pas dérivée du titre : une fois dans
+le fichier, elle *est* l'identité, et la dériver donnerait l'impression
+qu'elle suit encore le titre dont elle vient — ce qui n'est pas le cas.
+Huit caractères hexadécimaux, tirés de `secrets` et non de `random` :
+`random` porte un état global qu'un autre appel peut avoir semé. La
+longueur est une mesure, pas un goût : le QR de partage, au niveau de
+correction M, change de capacité à 43, 63, 85 et 107 caractères d'URL, et
+une identité de huit hexadécimaux tient dans la version 4 — 33 modules de
+côté.
+
+Une fiche qui porte déjà un `slug:` n'est jamais touchée — y compris une
+ligne `slug:` laissée vide, qui est une décision en cours et non une
+absence. Et un nom lisible vaut mieux qu'un nom tiré au sort : ce que la
+commande écrit est fait pour être renommé avant publication.
 
 ### 12.2 Parseur Markdown étendu
 

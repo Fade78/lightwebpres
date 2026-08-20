@@ -1703,49 +1703,28 @@ construction), a differing `nav.js` is saved as `.bak` and removed, a
 differing language pack is reported and kept, since its `rules` replace
 the base set wholesale and overwriting it would erase the author's own.
 
-## B33 — A moved anchor is invisible to everyone, including the tool that moved it — OPEN
+## B33 — A moved anchor is invisible to everyone, including the tool that moved it — CLOSED (v0.43.0)
 
-**Verified.** Since v0.42 a card's id is derived from what the author
-wrote (§12.1.1), so ordinary editing — reordering, inserting, excluding —
-no longer moves it. What still moves it is editing the thing it is
-derived FROM: rename a card's title and its identity changes, exactly as
-renaming a file changes its URL.
+**Closed by removing what made it possible, not by adding a report.**
 
-That is not a defect, and no scheme avoids it. The defect is that
-**nothing says it happened**. The author renames a title, publishes, and
-every link and QR code pointing at that card is dead — with the same
-silence the rank had. A `slug:` on the card prevents it, but only for an
-author who thought of it before the fact.
+The entry was written against the derived identity: a card's id was a
+hash of its title, so renaming a title moved the anchor, and nothing said
+so. The four decisions it listed — where the previous set of identities
+lives, whether `build` or `audit` compares them, what the message says,
+how a first build stays quiet — were all about detecting a move after the
+fact.
 
-**What was measured.** Neither the slug nor the hash makes breakage
-visible. Only a tool that compares this build's identities with the
-previous one's can, and `audit` currently has nothing to compare against:
-it reports the identities that are not durable (a card with nothing to
-derive from), which is a different and weaker statement.
+There is nothing left to detect. A card's id is the `slug:` its author
+declared and nothing derives it (§12.1.1), so no ordinary edit moves it:
+not reordering, not inserting, not excluding, and not rewriting the
+title. The only thing that changes an anchor now is the author changing
+the slug, which is a line they edited on purpose in a file they own —
+the same act as renaming a file, and it needs no report.
 
-**To decide.**
-
-1. *Where the previous set lives.* `public/.lwp-manifest.json` already
-   records what a build wrote and is already the basis of `clean`
-   (§11.13) — the obvious host, and it means the comparison works for
-   anyone who still has their last build. A separate file under
-   `.lwp-cache/` is the alternative, and it makes the record survive a
-   `clean`.
-2. *Whether it is `audit` or `build` that reports it.* `build` has both
-   sets in hand at the moment it writes; `audit` is where an author looks
-   before shipping. Reporting in both would say it twice, which B26's
-   sibling problem shows is worse than saying it once.
-3. *What it says.* "The anchor `#a1b2c3d4` is gone; the card that had it
-   now reads `#e5f6a7b8`" is actionable. A count is not.
-4. *Whether a page that has never been built is silent or loud.* The
-   first build of a series has nothing to compare against and must not
-   warn — but "no manifest" and "a manifest that lost every anchor" have
-   to be told apart, or the guard fires on the one case it cannot help.
-
-**Why not now.** Every one of the four is a decision about what the tool
-stores, where, and for how long — the sort that is cheap to get wrong and
-expensive to reverse. None of them blocks the identity work, which is
-complete without it.
+What remains from the entry, and is delivered: the author has to be able
+to SEE the anchors without building the page. `lightwebpres series slug`
+lists every card of the series and the name it is published under, in
+text or as JSON.
 
 ## B34 — A structural field converts an HTML entity; the body does not — DONE (v0.42.3)
 

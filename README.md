@@ -72,11 +72,11 @@ handout at Ctrl/Cmd+P.
   together at runtime.
 - **Share in one click, at whatever scope you need.** Copyable link or QR
   code, for the whole series, the current article, or the exact slide
-  being read — generated entirely client-side. A slide's address is
-  derived from what you wrote (its title, a long-form slide's filename,
-  or a `slug:` you choose), never from where it sits, so reordering the
-  deck or dropping a slide does not repoint the links you have already
-  given out — including the printed ones.
+  being read — generated entirely client-side. A slide's address is the
+  `slug:` its author declared, never where it sits and never its title,
+  so reordering the deck, rewriting a heading or dropping a slide does
+  not repoint the links you have already given out — including the
+  printed ones.
 - **Built-in presentation mode.** Every generated page is a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
   screens), mouse (click advance, right-click back, double-click
@@ -315,6 +315,8 @@ the series or within one article.
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
 | `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` |
 | `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
+| `series slug [dir]` | Lists every card of the series and the name it is published under — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
+| `series slug set [dir]` | Writes a `slug:` into every card that has none, and only those. The one command that edits your articles — a build never rewrites its own inputs. What it writes is random and meant to be renamed to something readable; `--dry-run` says what it would write |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |

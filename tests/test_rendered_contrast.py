@@ -102,6 +102,7 @@ nav_desc: A
 ---
 
 <!-- lwp:slide:cover -->
+slug: c1
 kicker: PROBE
 # Contrast probe
 summary: A cover, whose ground is a gradient rather than one colour.
@@ -109,6 +110,7 @@ summary: A cover, whose ground is a gradient rather than one colour.
 ---
 
 <!-- lwp:slide -->
+slug: c2
 kicker: FIGURE
 ## A card with a key figure and a fact box
 summary: The summary line, which is prose over the card's own ground.
@@ -121,6 +123,7 @@ The fact box body, **with a marked run** and a [link](https://example.org).
 ---
 
 <!-- lwp:slide -->
+slug: c3
 kicker: VARIANT
 ## A card carrying an author-defined variant
 summary: Nothing in the registry knows this variant exists.
@@ -132,6 +135,7 @@ report cannot reach at all.
 ---
 
 <!-- lwp:slide -->
+slug: c4
 kicker: FREE
 ## A card whose body is free Markdown
 summary: No fact-label, so the body is a .slide-body.
@@ -149,6 +153,7 @@ A bare paragraph, a **bold run**, and `some code`.
 ---
 
 <!-- lwp:slide:full-article -->
+slug: c5
 article: a_article.md
 """
 

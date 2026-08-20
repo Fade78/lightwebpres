@@ -280,19 +280,23 @@ would not. `highlight` is a short standalone figure (a number, a stat, a
 quote) with an optional caption underneath; it renders above the free
 text, not instead of it.
 
-**The `slug` field** names the card in a URL. Leave it out and the
-build derives one from what you wrote — a hash of the card's title, of a
-long-form card's filename, or the fixed name `series-nav` — so the link
-survives you reordering the deck, inserting a card, or excluding one with
-`tags: excluded`. Write it when the link matters enough to be readable or
-to be pinned by hand: `slug: barrage-de-vajont`. A slug must start with a
-letter or a digit and may then contain letters, digits, `-`, `_` and `.`;
+**The `slug` field** names the card in a URL, and it is REQUIRED on
+every card. It is the card's whole identity: not its position, not its
+title, so the link survives you reordering the deck, inserting a card,
+rewriting a heading, or excluding a card with `tags: excluded`. Write a
+readable one — `slug: barrage-de-vajont`. A slug must start with a letter
+or a digit and may then contain letters, digits, `-`, `_` and `.`;
 anything else is a build error, because the value also becomes a URL
-fragment and the tail of a printed QR code. Two cards landing on the same
-identity are still told apart, and the build says so — give one of them a
-`slug:` if the link to it has to be durable. `slug_prefix:` in the meta
-block (or in `series_meta`) puts a namespace in front of every id on the
-page, declared and derived alike.
+fragment and the tail of a printed QR code. Two cards on the same slug is
+a build error too, never a silent suffix.
+
+A card without a `slug:` stops the build. `lightwebpres series slug set`
+writes a random one into every card that has none — the only command in
+this tool that edits the author's articles — and `lightwebpres series
+slug` lists every card and the name it is published under. What that
+command writes is meant to be renamed to something readable before
+publication. `slug_prefix:` in the meta block (or in `series_meta`) puts
+a namespace in front of every id on the page.
 
 **The `source` field on a standard slide** is the designated place for
 the slide's citation. Write the reference there (e.g. `source: Baking

@@ -70,6 +70,7 @@ nav_desc: A
 ---
 
 <!-- lwp:slide:cover -->
+slug: c1
 kicker: PROBE
 # Deck probe
 summary: A cover, whose gradient is what the counter sits on.
@@ -78,6 +79,7 @@ note: THE-SPEAKER-NOTE-MARKER, which only the presenter panel may show.
 ---
 
 <!-- lwp:slide -->
+slug: c2
 tags: alpha
 kicker: ALPHA
 ## A card tagged alpha
@@ -86,6 +88,7 @@ summary: Two distinct tags, so the variant menu has something to offer.
 ---
 
 <!-- lwp:slide -->
+slug: c3
 tags: beta
 kicker: BETA
 ## A card tagged beta

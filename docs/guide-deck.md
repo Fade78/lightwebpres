@@ -6,6 +6,7 @@ nav_desc: Install, anatomy of a page, series, look, shipping
 ---
 
 <!-- lwp:slide:cover -->
+slug: lightwebpres
 kicker: Guide
 # LightWebPres
 summary: Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.
@@ -13,6 +14,7 @@ summary: Markdown in, self-contained HTML out. This deck is the short version; t
 ---
 
 <!-- lwp:slide -->
+slug: ce-qu-il-fait
 kicker: Scope
 ## What it does, and what it leaves to you
 
@@ -25,6 +27,7 @@ A second skill, `sourced-presentation`, ships alongside as a courtesy for anyone
 ---
 
 <!-- lwp:slide -->
+slug: trois-commandes
 kicker: Install
 ## Three commands to a built site
 
@@ -40,6 +43,7 @@ typography pack per slide.
 ---
 
 <!-- lwp:slide -->
+slug: anatomie
 kicker: Anatomy
 ## A page is slides, a slide has components
 
@@ -59,6 +63,7 @@ A note[^note] is reached the standard way, and its number is a position rather t
 ---
 
 <!-- lwp:slide -->
+slug: variantes
 kicker: Variants
 ## Several versions, one HTML page
 
@@ -77,6 +82,7 @@ build's `--lang` remains the fallback.
 ---
 
 <!-- lwp:slide -->
+slug: gestes
 kicker: Look
 ## Four gestures, smallest first
 
@@ -89,6 +95,7 @@ The stylesheet is composed in memory at every build, so nothing the tool writes 
 ---
 
 <!-- lwp:slide -->
+slug: themes
 kicker: Look
 ## Themes, found by facet
 
@@ -104,6 +111,7 @@ A list of names tells you nothing. What the theme is for, light or dark, and wha
 ---
 
 <!-- lwp:slide -->
+slug: pipeline
 kicker: Automation
 ## A step in a content pipeline
 
@@ -119,6 +127,7 @@ The Markdown can come from anywhere — a CMS export, a database, a generator, a
 ---
 
 <!-- lwp:slide -->
+slug: verifications
 kicker: Shipping
 ## Two checks, two different moments
 
@@ -131,8 +140,10 @@ fact-label: A nudge and a gate
 ---
 
 <!-- lwp:slide:series-nav -->
+slug: la-serie
 
 ---
 
 <!-- lwp:slide:full-article -->
+slug: guide-complet
 article: guide_article.md

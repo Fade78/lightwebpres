@@ -147,7 +147,7 @@ syntax and every edge case.
 | `cover` | `slug`, `kicker`, `tags:`, `# Title`, `summary`, `comment`, `note` | any number, anywhere — it is a look, not a structural marker |
 | standard *(the default)* | `slug`, `kicker`, `tags:`, `## Title`, `summary`, `highlight`, `highlight-caption`, `fact-label`, `fact-variant`, `source`, `comment`, `note`, then free Markdown | as many as you want |
 | `series-nav` | `slug`, `tags:`, `comment:` — the navigation itself is generated from `series.json` | 0 or 1 per article |
-| `full-article` | `article: filename.md`, optional `slug`, `tags:` and `comment:` | any number, each with its own file |
+| `full-article` | `slug`, `article: filename.md`, `tags:` and `comment:` | any number, each with its own file |
 
 Four, and only four. Mistype one — `<!-- lwp:slide:covre -->` — and the
 build stops and tells you which slide, what you wrote, and what the four
@@ -203,19 +203,31 @@ pattern, a call with no body, a body nothing calls, and a body written
 inside a raw HTML block (where it ships as literal text).
 
 **What a card's link is.** Every card has its own address —
-`article.html#quelque-chose` — and the share button in the corner copies
-it, or shows it as a QR code you can point a phone at or print. That
-address is derived from what you wrote: your card's title, a long-form
-card's filename, or a `slug:` line if you want to choose it yourself
-(`slug: barrage-de-vajont`). It is **not** the card's position, which
-means you can reorder the deck, insert a card, or drop one with `tags:
-excluded` and the links you have already given out still land where they
-did. A card with no title and no `slug:` has nothing to derive from and
-falls back to its rank; `audit` says so, because that is the one link
-that will break. If two cards share a title they land on one address, are
-told apart anyway, and the build tells you — give one of them a `slug:`.
+`article.html#barrage-de-vajont` — and the share button in the corner
+copies it, or shows it as a QR code you can point a phone at or print.
+That address is the `slug:` line you write on the card, and nothing
+else: it is not the card's position and not its title, so you can
+reorder the deck, insert a card, rewrite a heading, or drop a card with
+`tags: excluded`, and the links you have already given out still land
+where they did.
+
+`slug:` is required. A card without one stops the build, which names the
+command that fixes it in one pass: `lightwebpres series slug set` writes
+a slug into every card that has none. It is the only command that edits
+your articles — a build never rewrites its own inputs — and what it
+writes is a random eight-character name, because a name derived from the
+title would look as though it still followed the title. Rename it to
+something readable before you publish: `slug: barrage-de-vajont` is
+worth more than `slug: 3f7c1a9e`, and the value is the identity from
+then on.
+
+Two cards on one slug is a build error, not a `-2` appended in silence.
 `slug_prefix:` in the meta block (or in `series_meta`) puts a namespace
-in front of every address on the page.
+in front of every address on the page, which is what a series whose
+pages reuse card names (`intro`, `sources`) needs.
+
+`lightwebpres series slug` lists every card of the series and the name
+it is published under, without building anything.
 
 Register every article that should appear in navigation in
 `series.json` — next section.

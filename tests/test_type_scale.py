@@ -96,6 +96,7 @@ nav_desc: A
 ---
 
 <!-- lwp:slide:cover -->
+slug: c1
 kicker: PROBE
 # Type scale probe
 summary: A cover, so the page is a real page.
@@ -103,6 +104,7 @@ summary: A cover, so the page is a real page.
 ---
 
 <!-- lwp:slide -->
+slug: c2
 kicker: FIGURE
 ## A card with a key figure and a fact box
 summary: The summary line, which is prose and scales with the column.
@@ -115,6 +117,7 @@ The fact box body, **with a marked run** and a [link](https://example.org).
 ---
 
 <!-- lwp:slide -->
+slug: c3
 kicker: FREE
 ## A card whose body is free Markdown
 summary: No fact-label on this one, so the body is a .slide-body.
@@ -129,6 +132,7 @@ not render at a different size for that reason alone.
 ---
 
 <!-- lwp:slide:full-article -->
+slug: c4
 article: a_article.md
 """
 

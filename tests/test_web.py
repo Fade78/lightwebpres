@@ -66,9 +66,9 @@ def _make_test_zip(zip_path):
         (root / 'articles' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Web test\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\nkicker: T\n# Web build test\n'
+            '<!-- lwp:slide:cover -->\nslug: c1\nkicker: T\n# Web build test\n'
             'summary: Built entirely in the browser.\n\n---\n\n'
-            '<!-- lwp:slide:full-article -->\narticle: a_article.md\n',
+            '<!-- lwp:slide:full-article -->\nslug: c2\narticle: a_article.md\n',
             encoding='utf-8',
         )
         (root / 'articles' / 'a_article.md').write_text(
@@ -145,13 +145,13 @@ class SlideTagsRuntime(unittest.TestCase):
         (root / 'articles' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Slide tags\n'
             'nav_title: Tags\nnav_desc: Runtime tags\n---\n\n'
-            '<!-- lwp:slide:cover -->\nkicker: Shared\n# Shared\n'
+            '<!-- lwp:slide:cover -->\nslug: c3\nkicker: Shared\n# Shared\n'
             'summary: Shared cover.\n\n---\n\n'
-            '<!-- lwp:slide -->\ntags: en\nkicker: English\n'
+            '<!-- lwp:slide -->\nslug: c4\ntags: en\nkicker: English\n'
             '## English\nsummary: English variant.\n\n---\n\n'
-            '<!-- lwp:slide -->\ntags: fr\nkicker: Français\n'
+            '<!-- lwp:slide -->\nslug: c5\ntags: fr\nkicker: Français\n'
             '## Français\nsummary: French variant.\n\n---\n\n'
-            '<!-- lwp:slide -->\nkicker: Common\n## Common\n'
+            '<!-- lwp:slide -->\nslug: c6\nkicker: Common\n## Common\n'
             'summary: Shared content.\n',
             encoding='utf-8',
         )
