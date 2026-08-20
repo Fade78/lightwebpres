@@ -80,6 +80,8 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
     d'exemple dont les titres de fiche sont des `##`.
   - `tools/decisions_index.py` — l'index de `DECISIONS.md`, dérivé des
     lignes de champs.
+- `tools/check_refs.py` — vérifie que chaque `§N.N` du dépôt pointe sur
+  une section qui existe. Ne génère rien ; c'est une garde.
 
 ### Artefacts régénérables — `generated/`
 Sortie de build committée. **Rien ne s'y édite à la main** : la
@@ -157,6 +159,22 @@ reproductible à l'octet, à refaire à la main quand la galerie change.
   décomposition à connaître ici — une convention citée de mémoire survit
   à la pratique qu'elle décrit — d'où la règle : **lire le style plutôt
   que ce paragraphe**, avec `git log --format=%s -20`.
+- **Un renvoi `§N.N` est une adresse, et trois règles la tiennent.**
+  Une garde (`tools/check_refs.py`) les fait respecter.
+  - **Sans qualificatif, c'est `specifications.md`.** C'est l'usage de
+    tout le dépôt. Cinq renvois à une section 9.2.1 avaient survécu à la
+    refonte du §9 qui a déplacé la matrice de partage en §9.3.4.
+  - **Un renvoi qualifié doit nommer ce que son lecteur peut atteindre.**
+    L'exécutable est le livrable — on récupère cet outil en téléchargeant
+    un fichier — et il citait 31 fois les documents de conception de la
+    CLI, qui vivent dans `delete-before-1.0/` et ne sont pas distribués.
+    Le raisonnement était déjà dans le commentaire d'à côté ; seule
+    l'adresse était hors de portée, donc les adresses sont parties.
+  - **Un renvoi mort s'écrit sans le signe.** `§` veut dire « va voir »,
+    et une section supprimée ne mène nulle part : on écrit le numéro nu,
+    `9.2.1`. Sans cette règle, un document ne pourrait plus nommer ce
+    qu'il vient de corriger — et la garde ne peut pas non plus citer la
+    forme qu'elle interdit, ce qu'on découvre en essayant.
 - **Push** : `git push -u origin main`. Il n'y a qu'un remote, `origin`, et
   qu'une branche de travail, `main` — pas de branche de fonctionnalité.
   Jamais de push forcé.

@@ -10,7 +10,8 @@ things:
   - a ground that arrives from an ancestor. A transparent background
     takes whatever is behind it, which the registry does not model.
   - a card variant an AUTHOR defines, which the registry has never heard
-    of — the open half of the audit's §5.9.
+    of. Nothing reads it, so nothing can report on the text sitting on
+    it — the one case the registry report is structurally blind to.
 
 So this walks the DOM of a built page: for every element that paints its
 own text it resolves the ink, composites the grounds upward until an
@@ -74,9 +75,10 @@ def _node_playwright_available():
 AVAILABLE, NPM_ROOT_OR_REASON = _node_playwright_available()
 
 # A card variant the AUTHOR defines, which no registry property covers.
-# §5.9 of the audit: variants paint nothing by design, so nothing
-# guaranteed one an author writes would be legible. Here is a CAREFUL
-# one -- ground and both inks -- measured like everything else.
+# A variant paints nothing by design: the engine emits the class and the
+# author supplies the colours, so the registry has no property to read.
+# Here is a CAREFUL one -- ground and both inks -- measured like
+# everything else.
 _CUSTOM_CSS = """
 .fact-box.fact--warn { background: #FFF3CD; }
 .fact-box.fact--warn .fact-content { color: #4A3D14; }
@@ -85,8 +87,9 @@ _CUSTOM_CSS = """
 
 # The same variant written carelessly: a ground, and only the body ink
 # recoloured. The label keeps whatever the theme gave it, over a colour
-# the theme has never seen. This is the §5.9 case, and it is the first
-# thing the instrument found -- on twelve of the thirteen themes the
+# the theme has never seen. This is the case the registry cannot see,
+# and it is the first thing the instrument found -- on twelve of the
+# thirteen themes the
 # registry reports as AA, because a careful author is not what the
 # registry is checking.
 _CARELESS_CSS = """
@@ -296,8 +299,8 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
                 f'measurement, not the design, is what failed')
         # The author-defined variant is on the page and was measured. It
         # is the one case the registry report cannot reach, so a fixture
-        # that quietly stopped producing it would leave §5.9 uncovered
-        # while looking covered.
+        # that quietly stopped producing it would leave that case
+        # uncovered while looking covered.
         #
         # Checked by its GROUND, not by its class: the variant class sits
         # on `.fact-box`, which paints no text of its own, so it never
@@ -437,7 +440,7 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
             f'invisible: {invisible}')
 
     def test_a_careless_author_variant_is_caught_here_and_nowhere_else(self):
-        """The §5.9 case, demonstrated rather than asserted in the
+        """The blind spot, demonstrated rather than asserted in the
         abstract.
 
         A variant is a ground the author paints and the registry has

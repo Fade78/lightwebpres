@@ -1457,7 +1457,7 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
 
 
 class ShareSlideScopeByType(unittest.TestCase):
-    """§9.2.1: the share matrix's slide scope is disabled by slide TYPE
+    """§9.3.4: the share matrix's slide scope is disabled by slide TYPE
     (cover, series-nav), not by position — slide order is free (§4.4)."""
 
     def test_nav_js_tests_cover_class_not_first_position(self):
@@ -2186,6 +2186,63 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertEqual(r.returncode, 0,
                          (r.stdout + r.stderr).strip() or
                          'the index of DECISIONS.md is stale')
+
+    def test_no_section_reference_points_at_nothing(self):
+        """A `§N.N` that resolves to no section is a document lying about
+        itself, and it is the cheapest lie to tell: nothing breaks when a
+        section is renumbered, so nobody finds out.
+
+        Measured when this was written: 1 359 references across the
+        repository, of which five pointed at a section 9.2.1 — the share
+        matrix, moved to §9.3.4 by the §9 rewrite months earlier — in
+        three test files that had been green the whole time.
+
+        Note the shape of the sentence above: a dead reference is written
+        WITHOUT the section sign, because `§` means "go there" and this
+        one goes nowhere. That is the convention, and this test is what
+        made it necessary — its first draft cited both dead references
+        with the sign, in these docstrings, and failed on itself.
+
+        Unqualified means `specifications.md`, which is how the whole
+        repository uses it. A reference qualified by the sibling project
+        is skipped: `lightwebpres-gui` has its own numbering and a reader
+        can open it.
+
+        Dated records and the doomed tree are out of scope by §1.1: an
+        audit says the state of its day and is not maintained."""
+        root = Path(__file__).resolve().parent.parent
+        script = root / 'tools' / 'check_refs.py'
+        if not script.exists() or not (root / 'specifications.md').exists():
+            self.skipTest('no check_refs.py or specifications.md in this checkout')
+        r = subprocess.run([sys.executable, str(script)],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0,
+                         'dangling section references:\n' + r.stdout + r.stderr)
+
+    def test_the_shipped_executable_cites_only_what_a_reader_can_reach(self):
+        """The executable is the deliverable: people get this tool by
+        downloading one file.
+
+        It carried 31 citations of the CLI refonte's design documents —
+        DECISION 1 Phase 2, PROPOSITION 5.10, DECISION-CLI.md 4 — which
+        live in `delete-before-1.0/`, are not distributed, and whose
+        directory name promises they will be deleted. Someone reading the
+        file they downloaded had no way to resolve any of them, ever.
+
+        None of the 31 was load-bearing: each sat beside a comment that
+        already explained the decision, so the address went and the
+        reasoning stayed. `specifications.md` references are a different
+        matter and stay — that document ships with the repository."""
+        root = Path(__file__).resolve().parent.parent
+        text = (root / 'lightwebpres').read_text(encoding='utf-8')
+        unreachable = ('DECISION-CLI', 'PLAN-CLI.md', 'PROPOSITION-CLI',
+                       'JOURNAL-1.0', 'RELECTURE.md', 'delete-before-1.0')
+        found = [name for name in unreachable if name in text]
+        self.assertEqual(
+            found, [],
+            f'the executable cites {found}, which lives in '
+            f'delete-before-1.0/ and is never distributed. Put the reason '
+            f'in the comment; an address a reader cannot reach is not one')
 
     def test_the_spec_index_matches_the_file(self):
         """`specifications.md` may have a table of contents for the same

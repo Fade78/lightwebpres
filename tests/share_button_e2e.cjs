@@ -1,4 +1,4 @@
-// Playwright driver for the article-page share button (§9.2.1): a single
+// Playwright driver for the article-page share button (§9.3.4): a single
 // "share" icon in the nav-buttons cluster that opens a floating popover
 // with a copy-link / QR-code matrix scoped to the series index, the
 // current article, or the current fiche (slide). Invoked by
@@ -123,7 +123,7 @@ async function main() {
     await page.keyboard.press('Escape');
 
     // 7. Move to the series-nav slide: the fiche column must be disabled
-    // again — the scope follows the slide TYPE (§9.2.1), and series-nav
+    // again — the scope follows the slide TYPE (§9.3.4), and series-nav
     // is not a reading position.
     await page.click('#navNext');
     await page.waitForTimeout(800);

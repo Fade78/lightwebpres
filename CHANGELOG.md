@@ -180,6 +180,32 @@ second vocabulary. It also stops teaching one thing that does not work:
 just after a build it compares the output to itself and is green by
 construction. Its place is CI, or before picking a series back up.
 
+Every section reference in the repository now resolves, and a guard keeps
+it that way. There are 1 359 of them — in the documents, in the
+executable's error messages, in the test suite — and they are how one
+document says "the reason is over there". Nothing breaks when a section
+is renumbered, which is why five references to a section 9.2.1 had
+survived the rewrite that moved the share matrix to §9.3.4, in three test
+files, green the whole time.
+
+The same check found the executable citing, 31 times, the CLI refonte's
+design documents — DECISION 1 Phase 2, PROPOSITION 5.10, DECISION-CLI.md
+4. Those live in `delete-before-1.0/`, are not distributed, and their
+directory name promises they will be deleted. This tool is delivered as
+one file people download: someone reading it had no way to resolve any of
+those addresses, ever. None was load-bearing — each sat beside a comment
+that already gave the reason — so the addresses went and the reasons
+stayed. `specifications.md` references are a different matter and stay:
+that document ships with the repository.
+
+Writing the guard produced a third rule by failing on itself. Its
+docstring cited the two dead references it exists to describe, with the
+sign, and the checker counted them as references — correctly, since it
+cannot read intent. So: **a dead reference is written without the sign.**
+`§` means "go there", and a retired section goes nowhere. The
+distinction is worth making in prose anyway, and without it no document
+could ever name what it had just fixed.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot

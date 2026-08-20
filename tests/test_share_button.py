@@ -1,4 +1,4 @@
-"""End-to-end test for the article-page share button (§9.2.1): a real
+"""End-to-end test for the article-page share button (§9.3.4): a real
 browser click-through of the popover matrix (copy-link / QR code, scoped
 to series/article/fiche), including a real clipboard read and a real QR
 SVG render — not just string assertions against the generated HTML.
@@ -52,7 +52,7 @@ class ShareButton(unittest.TestCase):
     """A built article with three slides (cover + one standard slide +
     series-nav), so the "fiche" scope can be exercised disabled (on the
     cover), enabled (standard slide, with a real #s2 clipboard check),
-    and disabled again (series-nav — §9.2.1 says the scope follows the
+    and disabled again (series-nav — §9.3.4 says the scope follows the
     slide TYPE, and this slide type was previously absent from the
     fixture entirely)."""
 

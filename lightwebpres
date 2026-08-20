@@ -91,11 +91,11 @@ if sys.version_info < (3, 8):
 
 VERSION = "0.43.2"
 
-# --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
+# --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
 # Normal user output (the value resolve returns, the HTML build prints,
 # the themes listing) stays on stdout via plain print(), so --quiet can
-# silence the chatter without silencing the answer (DECISION §4).
+# silence the chatter without silencing the answer.
 _LOG_STATE = {'quiet': False, 'verbose': False, 'no_color': False,
               'timestamp': False, 'dry_run': False}
 
@@ -268,7 +268,7 @@ def progress(msg=''):
     print(msg)
 
 
-# --- Write helpers (Phase 3, DECISION-CLI.md §4) --------------------------
+# --- Write helpers --------------------------------------------------------
 # Every filesystem write goes through _write_file / _mkdir / _copy / _remove
 # so --dry-run can journal the action without touching the disk. A test
 # guards that no bare write, create or delete call exists outside these
@@ -11142,7 +11142,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     # Inject the series navigation — the build-wide typo_engine, not
     # article_typo_engine: this block's entries aren't "this article's
     # own page content" even when it's this article's own entry (§4.5).
-    # --no-nav (DECISION §4): the placeholder is replaced by an empty string,
+    # --no-nav: the placeholder is replaced by an empty string,
     # leaving the container (<h2> + <div class="series-list">) in the HTML,
     # empty but not an error.
     if include_nav:
@@ -11503,7 +11503,7 @@ def load_series_data(series_dir):
 
 # Field names retired in v0.7.0 by the nomenclature freeze that 1.0 will
 # GUARANTEE -- the freeze was performed then, 1.0 is when it becomes a
-# compatibility promise (spec §13.9, JOURNAL-1.0.md §2.1),
+# compatibility promise (spec §13.9),
 # mapped to their replacements — recognized only to produce a clear
 # migration error instead of a mystifying "missing required field".
 _LEGACY_SERIES_FIELDS = {'source': 'page_source', 'file': 'page_dest'}
@@ -12570,7 +12570,7 @@ _MANIFEST_NAME = '.lwp-manifest.json'
 def _write_manifest(output_dir, articles_built, include_index=True,
                     images=()):
     """Writes .lwp-manifest.json in public/ listing every file the build
-    produced, so `clean` can purge orphans without guessing (DECISION §3).
+    produced, so `clean` can purge orphans without guessing.
 
     Carries the PREVIOUS build's list forward under `previous`, because
     that is what makes `clean` answerable. A manifest alone only says what
@@ -12604,7 +12604,7 @@ def _write_manifest(output_dir, articles_built, include_index=True,
 
 
 def cmd_clean(series_dir, args):
-    """clean command (DECISION §1 Phase 3, §3) — purges public/ of files
+    """clean command — purges public/ of files
     that are no longer produced by the build, using the manifest written by
     the last build. Dry-run by default: --force deletes for real."""
     sd = Path(series_dir).resolve() if series_dir else Path(
@@ -12668,7 +12668,7 @@ def cmd_clean(series_dir, args):
             print(f'  {verb} {rel}')
         print(f'{summary} {len(orphans)} orphan file(s) from {output_dir}.')
     else:
-        # Dry-run by default (DECISION §3): list what would be removed.
+        # Dry-run by default: list what would be removed.
         print(f'{len(orphans)} orphan file(s) would be removed from '
               f'{output_dir}:')
         for rel in orphans:
@@ -12678,7 +12678,7 @@ def cmd_clean(series_dir, args):
 
 def _cmd_watch_poll(sources, interval=0.5):
     """Yields when any of `sources` (file paths) changed mtime since the
-    last call. A simple stdlib polling loop (DECISION §3: no watchdog)."""
+    last call. A simple stdlib polling loop, no watchdog dependency."""
     import time
     mtimes = {}
     while True:
@@ -12699,7 +12699,7 @@ def _cmd_watch_poll(sources, interval=0.5):
 
 
 def cmd_watch(series_dir, args):
-    """watch command (DECISION §1 Phase 3, §3) — polls the sources and
+    """watch command — polls the sources and
     rebuilds on every change. --serve (opt-in) starts a local HTTP server
     on 127.0.0.1:--port. --open opens the browser. Ctrl-C exits 0."""
     import http.server
@@ -12827,7 +12827,7 @@ def cmd_build(series_dir, args):
     # Build each article (every page_source was checked to exist by
     # load_build_context — fatal before any output is written)
     include_nav = not args.get('--no-nav')
-    # --drafts-only (DECISION §4): build only status: draft articles. The
+    # --drafts-only: build only status: draft articles. The
     # index and nav still point to every article, so links may reach pages
     # that were not built — accepted, it is a preview not a publication.
     articles_to_build = ctx.articles
@@ -12849,7 +12849,7 @@ def cmd_build(series_dir, args):
     # Build the index — unless a lone article has claimed its name
     # (§11.3.3), in which case the page just written IS what lives there
     # and dropping an index on top of it would destroy it.
-    # --no-index (DECISION §4): skip index.html generation entirely.
+    # --no-index: skip index.html generation entirely.
     if claimant is None and not args.get('--no-index'):
         progress('  index.html')
         index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
@@ -12861,7 +12861,7 @@ def cmd_build(series_dir, args):
         _write_file(ctx.output_dir / 'index.html', index_html)
     elif claimant is not None:
         progress(_no_index_notice(claimant))
-    # --no-readme (DECISION §4): skip README.md generation.
+    # --no-readme: skip README.md generation.
     if not args.get('--no-readme'):
         readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
         _write_file(ctx.sd / 'README.md', readme)
@@ -12874,7 +12874,7 @@ def cmd_build(series_dir, args):
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
 
-    # Manifest for `clean` (DECISION §3): lists every file this build
+    # Manifest for `clean`: lists every file this build
     # produced in public/, so clean can purge orphans without guessing.
     _write_manifest(ctx.output_dir, ctx.articles,
                     include_index=claimant is None and not args.get('--no-index'),
@@ -12883,7 +12883,7 @@ def cmd_build(series_dir, args):
     tail = ' + index' if claimant is None and not args.get('--no-index') else ''
     progress(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
 
-    # --open (DECISION §1 Phase 3): open the result in the browser.
+    # --open: open the result in the browser.
     if args.get('--open'):
         import webbrowser
         index_url = (ctx.output_dir / 'index.html').resolve().as_uri()
@@ -13801,7 +13801,7 @@ def cmd_audit(series_dir, args):
     series_meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     if args.get('--templates'):
-        # DECISION-CLI.md §3: `--templates` restricts audit to the
+        # `--templates` restricts audit to the
         # presentation/template layer and skips per-article editorial checks.
         articles = []
     # entry['page_dest'] below needs the resolution §20.3.1 describes
@@ -13942,7 +13942,7 @@ def cmd_audit(series_dir, args):
         print('No warnings: all editorial conventions are respected.')
     else:
         print(f'{warnings} warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
-        # --strict (DECISION §1 Phase 2): make audit fail on warnings, so a CI
+        # --strict: make audit fail on warnings, so a CI
         # can enforce editorial conventions. Without it, audit always exits 0.
         if args.get('--strict'):
             sys.exit(1)
@@ -14745,7 +14745,7 @@ def print_theme_info_text(report):
 
 def cmd_theme_info(positional, args):
     """theme show <slug> [<slug>…] [--all] — describes one or more built-in
-    themes without installing anything (§11.9.1, DECISION §1 Phase 2).
+    themes without installing anything (§11.9.1).
 
     The directory branch of the old `theme-info` is now `series theme [dir]`
     (cmd_series_theme). This command handles only built-in slugs: one, many
@@ -14983,13 +14983,13 @@ def cmd_assign_slug(series_dir, args):
 
 def cmd_series_theme(series_dir, args):
     """series theme [dir] — the EFFECTIVE theme of an installed series
-    (DECISION §1 Phase 2, ex-`theme-info [dir]`).
+    (formerly `theme-info [dir]`).
 
     Reads the theme a series actually uses after the values it pinned in
     templates/settings.conf. This is the directory branch of the old
     `theme-info` split out as its own command, so the slug reading
     (`theme show`) and the directory reading no longer share one command
-    with an ambiguous positional (PROPOSITION §5.10)."""
+    with an ambiguous positional."""
     fmt = args.get('--format', 'text')
     if fmt not in ('text', 'json'):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
@@ -16731,10 +16731,10 @@ _COMMAND_OPTIONS = {
     'completion': {'--shell'},
 }
 
-# --- Refonte CLI v0.24.0 (DECISION-CLI.md / PLAN-CLI.md) ---------------------
+# --- Refonte CLI v0.24.0 ----------------------------------------------------
 # Options accepted BEFORE the command (git-style): --lang, the logging
 # switches and --version/--help act immediately. The option nearest the
-# command wins (DECISION §2: precedence).
+# command wins.
 #
 # Two natures share this table, and conflating them is what let `build s
 # --version` build the series and print nothing. A MODIFIER changes how a
@@ -16754,9 +16754,9 @@ _GLOBAL_FLAGS = frozenset({'--quiet', '--verbose', '--no-color', '--timestamp',
                            '--dry-run', '--version', '--help'})
 _GLOBAL_VALUES = frozenset({'--lang'})
 
-# Canonical commands are the source of truth (PROPOSITION §4.2). Shortcuts are
+# Canonical commands are the source of truth. Shortcuts are
 # a root-level comfort layer; legacy aliases are the previous names, kept for
-# one MAJOR with a [WARNING] on stderr (DECISION §1 Phase 1, §9 of PROPOSITION).
+# one MAJOR with a [WARNING] on stderr.
 # Each entry maps the user-facing token → the internal `cmd_*` dispatch key.
 # The dispatch key is also what _COMMAND_OPTIONS is indexed by, so the option
 # tables above stay valid without duplication.
@@ -16774,8 +16774,8 @@ _SHORTCUTS = {
 }
 # Two-word shortcuts: `template update` → refresh-templates. Parsed by
 # _resolve_command when the first token is `template` and the second is
-# `update`; a lone `template` is NOT a shortcut (DECISION §3 abandoned the
-# `series template` reading command).
+# `update`; a lone `template` is NOT a shortcut: the `series template`
+# reading command it would have led to was abandoned.
 # (No other two-word shortcuts yet — `template update` is handled inline.)
 # Legacy names → new dispatch key. Each emits a [WARNING] on stderr naming the
 # new form. The dispatch key is the OLD cmd_* name (option tables stay valid).
@@ -17024,7 +17024,7 @@ def _resolve_command(args):
             sys.exit(0)
         if verb in _THEME_VERBS:
             return _THEME_VERBS[verb], args[2:]
-        # `theme set` is NOT a shortcut (DECISION §3): the `theme` node never
+        # `theme set` is NOT a shortcut: the `theme` node never
         # touches a series. Point at the canonical form.
         if verb == 'set':
             log('error', "`theme set` is not a root command: the `theme` "
@@ -17062,7 +17062,7 @@ def parse_cli_options(command, rest, global_opts=None):
 
     `global_opts` (optional) is the dict of options already consumed before
     the command. They are merged in, with the per-command option winning on
-    conflict (nearest-to-the-command wins, DECISION §2)."""
+    conflict (nearest-to-the-command wins)."""
     # The globals belong to every command, before it or after it. They were
     # fatal in postfix -- `build s --quiet` exited 1 -- while --lang, which
     # IS one of them, worked in both positions, and a global the target
@@ -17349,25 +17349,25 @@ def main():
         cmd_assign_slug(target, opts)
     elif command == 'series-theme':
         # `series theme [dir]` — the effective theme of an installed series
-        # (DECISION §1 Phase 2). The directory branch of the old theme-info,
+        # The directory branch of the old theme-info,
         # split out so the slug reading (theme show) and the directory reading
         # no longer share one ambiguous positional.
         cmd_series_theme(target, opts)
     elif command == 'themes-gallery':
-        # `theme gallery [<slug>… | --all] [--output path]` (DECISION §1 P2).
+        # `theme gallery [<slug>… | --all] [--output path]`.
         # The output path is now --output (default: themes-gallery.html), and
         # the positionals are slugs to restrict the gallery to. The legacy
         # `themes-gallery [path]` form is kept via the alias: a single
         # positional that is not a slug is treated as the output path.
         cmd_themes_gallery(positional, opts)
     elif command == 'clean':
-        # `clean [dir] [--force]` (DECISION §1 Phase 3, §3): purges public/
+        # `clean [dir] [--force]`: purges public/
         # of orphan files using the manifest written by build. Dry-run by
         # default, --force to remove.
         cmd_clean(target, opts)
     elif command == 'watch':
-        # `watch [dir] [--serve] [--port N] [--open]` (DECISION §1 Phase 3,
-        # §3): polls sources, rebuilds on change, optionally serves.
+        # `watch [dir] [--serve] [--port N] [--open]`: polls sources,
+        # rebuilds on change, optionally serves.
         cmd_watch(target, opts)
     elif command == 'completion':
         # `completion --shell bash|zsh` — prints a shell completion script.
