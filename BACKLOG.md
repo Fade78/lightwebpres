@@ -312,124 +312,64 @@ per-figure form — the exact per-series / per-figure pair this entry was
 weighing. Alignment as a whole was deferred by owner decision; this entry
 survives only as B7's first concrete case. See B7.
 
-## B5 — Three palette roles fail AA against their own page — DECIDED, and the decision is that this is not a defect
+## B5 — Palette roles below AA against their own page — CLOSED, there was never a defect here
 
-**The premise is what changed, not the numbers (2026-08-17).** This entry
-was written as a debt: roles below 4.5:1 against their own page, to be
-paid off theme by theme until the catalogue was uniformly AA. The owner's
-position is the opposite one, and it settles the entry: **a theme is not
-required to reach AA.** What the project owes a reader is not a catalogue
-where every entry clears the same bar — it is an honest statement of which
-bar each entry clears. That is what `theme info` and the gallery report,
-per theme, per WCAG category, measured rather than asserted.
+**Closed by the position, not by the numbers.** This entry was written as
+a debt: roles under 4.5:1 against their own page, to be paid off theme by
+theme until the catalogue was uniformly AA. There is no such bar, and the
+entry had no subject. A theme is a stance; the project publishes what each
+one measures, and that is the whole of what it owes a reader (§9.5.2).
 
-So the roles below AA stay below AA where a palette's own identity puts
-them there, and the catalogue says so. What would be a defect is a theme
-whose level is *misreported*, or a surface nobody measured at all — and
-those are guarded: every colour property is either in `CONTRAST_SITES` or
-carries a written exemption in `CONTRAST_UNMEASURED`, and a property in
-neither fails the suite.
+Anything a project-owned palette needs is the project's own affair as a
+theme author and is settled in the theme file, not tracked here as a debt.
+Two things do survive this entry, and neither is about a level.
 
-Two things survive this decision as real work, and neither is this entry:
-the per-theme floor on navigation furniture, which is about the tool
-functioning rather than about taste (closed by B6), and D6 — nothing yet
-distinguishes a borrowed palette from a measured one in the catalogue
-listing.
+**One is fidelity, and it is a real defect of a different kind.** Seven of
+the nine borrowed palettes are colour schemes drawn for a *dark* ground and
+were rendered here on a light one. Dracula's green `#50FA7B` is meant to
+sit on `#282A36`; on `#F8F8F2` it measured 1.29:1. That is not a palette
+that scores low, it is a palette shown on a ground its authors never chose
+— the theme notes recorded the compromise ("borrows the text-on-black
+here, for want of an official light one") and nobody had measured the
+consequence. Four of them — `dracula`, `tokyo-night`, `monokai`,
+`everforest` — have since been returned to their own dark grounds, which
+appendix A of `delete-before-1.0/REVISION-THEMES.md` establishes as a
+**restoration** of fidelity rather than a correction of a score. Whether
+the remaining three should follow is the same question, and it is the only
+one this entry leaves open.
 
-The reading below is kept: it is the measurement that made the decision
-possible, and the account of why a borrowed dark scheme on a light ground
-cannot be argued into compliance.
+**The other is D6**, and the recent scoping decision makes it matter more
+than it did: nothing in `theme list` or in the gallery distinguishes a
+palette this project drew from one it borrowed. The distinction is now
+load-bearing — the project holds its own palettes to its own floor as a
+theme author and holds borrowed ones to nothing, precisely because they
+are someone else's design — and a reader of the catalogue cannot see which
+is which.
 
-Found by rendering a series that exercises the whole format under all 33
-themes and measuring, 2026-08-04. This is the residue of that sweep: what
-is left once every stylesheet-level defect is fixed.
+**What was measured, kept because measurements do not expire.** Three
+roles paint real text, and against `--page` on the pre-B9 catalogue of 33:
+`ink-quiet` under 4.5:1 on 9, worst 2.48 (`solarized`); `positive` on 11,
+worst 1.29 (`dracula`); `accent` on 11, worst 2.05 (`tokyo-night`). After
+B9 returned four palettes to their grounds: `ink-quiet` on 7 (worst 2.48,
+`solarized`), `affirm` on 7 (worst 1.77, `nord`), `call` on 8 (worst 2.94,
+`vaporwave`). Read them as a description of the catalogue, which is what
+they always were.
 
-Three of the six roles are used to paint real text, and three of them are
-below WCAG AA (4.5:1) against `--page` on a third of the catalogue:
-
-| Role | What it paints | Below AA | Worst |
-|---|---|---|---|
-| `--ink-muted` | summary, caption, source, tag, byline, the "no" verdict | 9/33 | 2.48 (solarized) |
-| `--positive` | the "yes" verdict | 11/33 | 1.29 (dracula) |
-| `--accent` | footnote call and definition, the "partial" verdict | 11/33 | 2.05 (tokyo-night) |
-
-**Not a stylesheet defect.** Every rule that dimmed text has been fixed
-(§9.5.3); these are palette values themselves. The criteria in §9.5.2 are
-a catalogue target, not a renderer guarantee: they were applied to the
-twenty-four project-owned palettes and **never retro-applied to the nine
-borrowed ones**, which predate them.
-
-**Re-measured after B9, and this entry's own numbers were stale.** The
-failure counts above describe the pre-B9 catalogue: `ink-quiet` now fails
-on 7 themes of 33 (worst 2.48, `solarized`), `affirm` on 7 (worst 1.77,
-`nord`), `call` on 8 (worst 2.94, `vaporwave`). Four of the nine borrowed
-palettes were returned to their own dark grounds and clear AA there, so
-"eight of the nine failures are borrowed palettes" is now four of seven.
-And the criteria were applied to the project palettes but are **met by
-nineteen of the twenty-four** — B9 names the five that are not.
-
-**The root cause is deeper than a few values.** Seven of the nine
-borrowed palettes are colour schemes designed for a *dark* background,
-rendered here on a light one. Dracula's green `#50FA7B` is meant to sit
-on `#282A36`; on `#F8F8F2` it measures 1.29:1. The theme notes record the
-compromise honestly — `--page` "borrows the text-on-black here, for want
-of an official light one" — but the consequence was never measured. The
-accents keep their upstream brightness and the ground was inverted under
-them.
-
-**What the §9 rewrite changed (2026-08-04).** The finding still stands:
-the default registry paints the verdicts and the footnote call with the
-shared palette colours (`verdict.yes.fg: affirm`, `verdict.partial.fg:
-call`, `verdict.no.fg: ink-quiet`, `footnote-call.fg: call`), so on the
-borrowed palettes the measured ratios above are unchanged. What changed
-is the cost and the blast radius of every option. Each verdict is its own
-component now — the theme refactor gave every one of them its own
-property — so retinting one moves nothing else. Option 3 — text
-takes the body ink, colour stays on the shape mark — is a **one-line
-property** (`verdict.yes.fg: ink`), settable per theme, per series
-(`settings.conf`) or as the shipped default, instead of a stylesheet
-change forced on everyone at once. And the engine's own weight rule (only
-`normal`/`bold` survive a generic family) means the shape mark already
-carries the yes/partial distinction alone — the user's argument below is
-now an architectural fact, not an opinion.
-
-**What remains is editorial, not mechanical**: revise the affected catalogue
-entries. Per entry, the coherent outcomes are unchanged — flip
-the dark-designed schemes to `dark_background` (which the per-colour
-measurements in `delete-before-1.0/REVISION-THEMES.md` appendix A establish as a
-*restoration* of fidelity, not a loss), set their
-verdict/footnote inks to `ink`, retune the values, or declare-and-mark
-them (D6, still undone: nothing in `theme list` or the gallery distinguishes
-the nine borrowed palettes from the twenty-four measured ones). Owner's
-call, one line per theme once made. The catalogue revision pass (B9) is
-the natural vehicle.
-
-**The argument for option 3, and where it actually comes from.** This
-paragraph used to read as third-party testimony — "the team that reported
-B2", quoted, "one user, not a mandate". There is no such team. The project
-has exactly one user, who is its owner, and the sentence below was the
-owner's own reasoning about their own series, written in the third
-person. Rewritten
-because a register that stages an outside witness is worse than one that
-argues in its own name: the appeal to a user who does not exist adds
-nothing and can only mislead a later reader — including a later me, who
-read it as external validation and nearly left it alone for that reason.
-
-The argument stands on its own, which is why it survives the correction:
+**And one argument worth keeping, because it outlived its occasion.** Each
+verdict is its own component since the theme refactor, so retinting one
+moves nothing else, and `verdict.yes.fg: ink` is a one-line property
+settable per theme, per series or as the shipped default. The reason to
+reach for it is not a number:
 
 > If the shape carries the information, the colour no longer has to carry
-> it alone, and it stops having to clear a contrast threshold that a
-> borrowed palette cannot guarantee.
+> it alone.
 
-That reframes option 3. It is not a loss of colour bolted on to fix a
-number: it is the conclusion of the change already shipped when the
-verdicts gained their shape markers for WCAG 1.4.1. Once meaning rests on
-shape, a palette colour on that cell is decoration, and decoration is not
-held to 4.5:1.
-
-The practical note that came with it also holds and costs nothing: the
-cells in question are regenerated at every build, so changing their
-appearance a second time is free.
+Every verdict already carries a shape marker (WCAG 1.4.1, and the engine's
+weight rule means the marker survives a generic family alone). Once meaning
+rests on shape, the colour on that cell is decoration — and decoration is
+free to be whatever the theme wants it to be. That is an architectural
+fact, and it is the reason a palette can be bold there without anything
+being lost.
 
 ## B6 — The slide-progress dots miss the 3:1 readability floor — DONE
 
@@ -501,7 +441,8 @@ where needed, one line per theme. What remains to decide is pure design:
 default values that clear 3:1 over **both** grounds the row floats on
 (page and cover), and whether that requires giving the row a declared
 ground of its own (which would now be two more properties, not a new
-mechanism). Fold into the catalogue revision pass (B9) alongside B5.
+mechanism). It is theme work, and it belongs with B9's remaining
+typographic blocks.
 
 ## B7 — Text alignment axes (center, justify, per-component and per-block) — DONE
 
@@ -571,24 +512,24 @@ order, and its audit story. Do not build before the external-theme-format
 question (out of scope of the §9 refactor by decision) is opened on its
 own.
 
-## B9 — Typographic revision of the historical 33-theme catalogue — PARTLY APPLIED
+## B9 — Typographic revision of the historical catalogue — WHAT IS LEFT IS TYPOGRAPHY
 
-**Report delivered and verified** (`c4156e8`): `delete-before-1.0/REVISION-THEMES.md`, with
-31 validated property layers in `delete-before-1.0/themes-revision/`.
+**Report delivered and verified** (`c4156e8`):
+`delete-before-1.0/REVISION-THEMES.md`, with 31 validated property layers
+in `delete-before-1.0/themes-revision/`. It covered the historical
+catalogue of 33 themes; the registry now carries 57.
 
-**Two of the three decisions applied.** The revision report concerned the
-historical catalogue of **33 themes**; the live registry now contains 34.
+**Three of its decisions are settled.**
 
 1. **Four borrowed palettes returned to their own ground.** `dracula`,
-   `tokyo-night`, `monokai` and `everforest` are `dark_background`.
-   Measured after: **zero text roles below AA on all four**, against
-   1.29:1 and 1.41:1 before. `monokai` keeps its pink on rules and rings
-   only (3.93:1), which its slug override enforces. Three entry notes
-   that were factually false are rewritten.
-2. **The serif-text / sans-UI default split adopted.** Verified the `ch`
-   measure is font-independent as designed: characters per line are
-   unchanged at 62 and 67 wherever the measure binds, and stay in band
-   (48, 56) on the narrow phone where the padding binds instead.
+   `tokyo-night`, `monokai` and `everforest` are `dark_background`. This
+   was a fidelity repair, not a score repair: they were drawn for dark
+   grounds and were being shown on a light one. Three entry notes that
+   were factually false are rewritten.
+2. **The serif-text / sans-UI default split adopted.** The `ch` measure is
+   font-independent as designed — characters per line unchanged at 62 and
+   67 wherever the measure binds, and in band (48, 56) on the narrow phone
+   where the padding binds instead.
 3. **Dropping `pop-lagoon` and `pop-fuchsia`: rejected, and the report was
    wrong.** Its case was that lagoon is crowded between lime and cobalt.
    Measured on the hue wheel, lagoon's neighbours are *further away than
@@ -598,50 +539,31 @@ historical catalogue of **33 themes**; the live registry now contains 34.
    and `red` are the closest dark pair at 26°, with different `mark` and
    `affirm`: not a duplicate. Nothing measured supports a removal.
 
-**Policy decided 2026-08-15, and REVERSED since — do not apply it.** It
-read: every built-in theme must meet a readability floor (AA for
-informative text, 3:1 for informative non-text), while only a subset must
-meet the higher project standard.
+**One of its decisions is void.** It proposed that every built-in theme
+meet a readability floor, with a subset meeting a higher standard. There
+is no such obligation and there never was one in the program (§9.5.2). Do
+not apply it, and do not re-derive it: a "theme that misses the floor" is
+not a category this project recognises.
 
-The owner's later position, recorded at B5, is the opposite on the first
-half: **a theme is not obliged to reach AA.** What the project owes a
-reader is an honest statement of the level each theme reaches, not a
-uniform catalogue. Measured on the current catalogue, a substantial
-minority of themes are reported `fail` on body text, deliberately — the
-1.9-era floor is not enforced, and enforcing it now would mean retuning
-palettes that are doing what their authors intended.
+Half of that sentence was never about levels and survives on its own:
+**visual families such as `pop`, halo and monochrome are editorial
+categories**, and `theme show` remains the measured report.
 
-One half of it did survive, and is worth keeping separate: **visual
-families such as `pop`, halo and monochrome are editorial categories, not
-accessibility levels**, and `theme show` remains the measured report. That
-sentence is still the project's position. Only the obligation is gone.
+**What is actually left, and it is all typography:** the per-theme blocks
+— named display faces, tracking, cover gradients, the two extra halos.
+They are in `delete-before-1.0/themes-revision/`, 31 of them, all verified
+to resolve. That is the work; it needs no pass structure and no floor.
 
-The single hard floor that does exist is elsewhere and has a different
-justification: navigation furniture must clear 3:1, because an invisible
-progress dot is a broken control rather than a bold palette
-(`specifications.md` §9.5.6). It is not an accessibility policy for
-themes; it is the boundary between what a test may refuse and what it may
-not.
-
-**Still open from the report:** the per-theme typographic blocks (named
-display faces, tracking, cover gradients, the two extra halos) and the
-themes that miss the new readability floor or the high standard. The blocks
-are in `delete-before-1.0/themes-revision/`, all 31 verified to resolve. B5, B6 and B18 now
-belong to the readability-floor pass; the remaining catalogue choices belong
-to the high-standard and visual-family pass.
+The one hard floor in the project is elsewhere and has nothing to do with
+this entry: navigation furniture clears 3:1 because an invisible progress
+dot is a broken control, not a bold palette (§9.5.6). B6 closed it.
 
 Original framing follows.
 
-
-
 The engine gave themes fonts, shadows and per-component axes; only
 `terminal` uses them (fixed pitch plus phosphor halo, the owner's
-decision). The architecture records that all 33 entries are to be
-reviewed under this light — theme-construction work, out of the engine's
-scope. Natural vehicle for the per-theme value choices of B5 (readable
-verdict and secondary inks), B6 (nav-dot values), and B18 (cover kicker
-values), plus the visual-family metadata that distinguishes fidelity from
-accessibility level. 32 entries remaining.
+decision). The architecture records that all entries are to be reviewed
+under this light — theme-construction work, out of the engine's scope.
 
 ## B10 — Gamut mapping for lightness-shifted inks — NOTED
 
@@ -928,8 +850,9 @@ below the floor.
 set rather than a floor, so fixing the palette makes that test fail and
 forces the exemption out with it.
 
-Same class as B9's five themes: a palette value below AA, needing a
-measured replacement rather than a mechanism.
+A palette value the project drew, on a surface it pinned as an exact
+set: if it is to move, it moves by a measured replacement in the theme
+file, not by a mechanism.
 
 ## B18 — `cover.kicker.fg` is below AA on three themes — DECIDED, by the same rule as B5
 
