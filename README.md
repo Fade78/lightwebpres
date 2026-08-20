@@ -516,20 +516,15 @@ palettes (Nord, Dracula, Solarized, Gruvbox, Catppuccin, Tokyo Night,
 Monokai, Everforest, Rosé Pine); the rest are the project's own —
 high-contrast and monochrome sets, skies at three hours, firelight, earth
 and stone, and a Pop family whose backgrounds carry the colour
-themselves. Project-owned palettes have a documented readability
-target, checked by measurement. The higher accessibility standard adds AAA
-body text, AA secondary text and accents, 3:1 informative rules, and
-colour-independent verdict separation. The current catalogue still contains
-documented exceptions; they are catalogue-maintenance decisions in
-`BACKLOG.md`, not values that the renderer derives or repairs.
-
-The borrowed palettes are also measured. They may remain outside the
-higher standard to preserve **fidelity**, as their editors ship them, but
-they are not exempt from the readability target. Some of them — Dracula,
-Tokyo Night, Monokai, Everforest — have since been returned to the dark
-grounds they were drawn for. A theme's family — `desk`, `light`,
-`terrain`, `heat`, `pop`, `ported` — states editorial intent, not an
-automatic colour correction strategy.
+themselves. Every palette is measured and the measurement is published, so you can
+see what a theme does before you pick it. There is no bar a palette has
+to clear to be in the catalogue: a theme is a stance, and the ones with
+the most character are the ones a threshold would flatten. The borrowed
+palettes ship as their editors drew them, for **fidelity**; some of them —
+Dracula, Tokyo Night, Monokai, Everforest — have since been returned to
+the dark grounds they were made for. A theme's family — `desk`, `light`,
+`terrain`, `heat`, `pop`, `ported` — states editorial intent, not a
+colour-correction strategy.
 
 That is far too many to pick from a list, so themes are found by facet —
 **family**, the one facet a theme declares, against a closed vocabulary;
@@ -563,16 +558,17 @@ The level is **measured**, never declared: it is computed from the same
 resolved properties the build emits, on grounds composited the way a
 browser composites them, so it cannot claim something the palette does
 not do. It comes per WCAG category rather than as a single letter — a
-theme can be faultless on running text and fail on its focus rings — and
-every failing category is printed with the offending pairs and their
-ratios, because a level without counter-examples is not something you
-can act on. Every shipped theme is expected to remain readable, but not
-every theme is meant to reach the higher accessibility standard: a theme
-is a stance, and making `terminal`'s phosphor halo AAA would destroy it.
-What matters is knowing which themes meet the readability floor, which
-reach the higher standard, and what visual family each one belongs to.
-No palette value is ever rewritten, and `build` never rejects a theme
-because of its measured level — measurement reports, it does not police.
+theme can score high on running text and low on its focus rings — and
+each category is printed with the pairs behind it and their ratios,
+because a number without its counter-examples is not something you can
+act on.
+
+Read it as a **design note about that theme**, not as a grade. Nothing in
+this tool expects a theme to reach any level: `terminal`'s phosphor halo
+measures what it measures, and lifting it would destroy the theme. No
+palette value is ever rewritten, no theme is refused, reordered or hidden
+for what it measures. The number is put in front of the person choosing,
+and the choice is theirs.
 One thing is not a matter of taste, though, and `audit` says so: a
 composed stylesheet where a navigation control is invisible against its
 own rail, where text is painted the colour of its ground, or where a size

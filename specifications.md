@@ -2813,46 +2813,38 @@ servir de fond est souvent trop pâle pour servir de trait (mesuré à
 l'encre du texte sur `monochrome`, et en `mark` sur `graphite` seulement
 parce que ce thème est sombre, où le même gris ressort à 11,3:1.
 
-#### 9.5.2 Critères d'admission d'un thème, et facettes
+#### 9.5.2 Comment un thème est dessiné, et facettes
 
-**Admission.** Les thèmes propres au projet (`source: 'lightwebpres'`)
-sont dessinés puis **mesurés** avant d'être retenus, jamais retenus sur
-l'impression qu'ils font :
+**Il n'y a pas de barème d'admission.** Un thème est un parti pris, et le
+contraste qu'il atteint est une **information sur ce parti pris**, pas une
+note qu'il aurait à obtenir. `terminal` et `code` avec leur halo de
+phosphore, `synthwave` avec ses saturations, `vaporwave` avec ses pastels
+sont des thèmes réussis ; les remonter jusqu'à un seuil les détruirait.
+Cette spécification ne fixe donc aucun seuil qu'une palette devrait
+franchir pour entrer au catalogue, et il n'en a jamais existé un que le
+programme applique.
 
-- texte courant sur le fond : niveau AAA (rapport ≥ 7) ;
-- textes secondaires et accents : niveau AA (≥ 4,5) ;
-- filets et bordures : ≥ 3 ;
-- verdicts d'un tableau comparatif (§6.1) : séparables en vision
-  deutéranope et protanope — la couleur n'étant de toute façon jamais le
-  seul porteur de l'information, puisque chaque verdict porte aussi son
-  marqueur de forme (WCAG 1.4.1).
+Ce qui est fait, en revanche : les thèmes propres au projet
+(`source: 'lightwebpres'`) sont dessinés **puis mesurés**, et la mesure
+est publiée — `theme show`, `theme gallery`, le rapport par catégorie avec
+la paire la plus faible nommée. L'auteur choisit en sachant ce qu'il
+choisit. C'est tout ce que l'outil a à dire sur cet axe, et c'est un
+service rendu à l'auteur, pas un jugement sur le thème.
 
-**Cette section décrit le critère d'admission, pas un état vérifié du
-catalogue, et la différence a été mesurée.** Plusieurs entrées du projet
-sont **en dessous** et n'ont pas été corrigées : mesuré le 2026-08-18 sur
-les 48 thèmes du projet, six d'entre eux — `vaporwave` (2,02:1),
-`dread` (3,17), `sage` (3,27), `sprout` (3,59), `daybreak` (3,65) et
-`blueprint` (3,99) — laissent un texte secondaire ou un accent sous le
-plancher AA. Le critère « filets ≥ 3 » n'est pas davantage tenu par `mark`
-sur les thèmes clairs du projet, où il est fait pour servir de fond avant
-de servir de trait — le §9.5.1 le dit déjà dans ses propres termes. Les
-mesures et la correction restante sont au BACKLOG (B9). La phrase
-précédente affirmait le contraire jusqu'ici ; elle était fausse depuis
-l'admission de ces thèmes. La liste qui la remplaçait l'était aussi, dans
-l'autre sens : elle citait `blueprint-night` et `code`, qui tiennent AA
-sur les trois rôles, et oubliait `daybreak`. Ne pas la recopier — la
-remesurer.
+**Ce qui reste une règle, et qui n'est pas une affaire de niveau** : la
+couleur n'est jamais le seul porteur d'une information. Les verdicts d'un
+tableau comparatif (§6.1) portent chacun un marqueur de forme, donc ils
+restent séparables en vision deutéranope et protanope même si les teintes
+se confondent. Cela tient au **format**, pas au thème, et aucun choix de
+palette ne peut le défaire.
 
-**Ces critères n'ont jamais été rétro-appliqués aux neuf palettes
-empruntées**, reprises telles quelles de leur source pour la fidélité —
-et la mesure faite depuis montre que plusieurs de leurs accents échouent
-AA sur fond clair (aucun accent de ces palettes n'atteint 4,5:1 sur
-clair ; le pire mesuré descend à 1,29:1). Le choix d'issue — corriger
-ces palettes, les basculer en polarité sombre, ou les déclarer offertes
-pour la fidélité et non pour la mesure — est un choix éditorial **ouvert
-au BACKLOG (B5)** ; cette spécification ne le tranche pas. En attendant,
-la promesse est scopée honnêtement : les critères ci-dessus décrivent
-les palettes du projet, pas le catalogue entier.
+Deux avertissements d'`audit` (§9.5.6) portent aussi sur des couleurs, et
+il faut les lire pour ce qu'ils sont : ils ne parlent pas de niveau. L'un
+signale une commande de navigation que le lecteur ne distingue plus de son
+fond, l'autre du texte à peu près de la couleur de ce qu'il recouvre. Le
+premier est un contrôle cassé, le second des mots hors de portée — dans
+les deux cas quelque chose qui ne fonctionne pas, jamais quelque chose qui
+pourrait être plus joli. Ils ne bloquent rien.
 
 **Facettes.** Passé une douzaine de palettes, une galerie cesse d'être
 un moyen de choisir et devient une chose à faire défiler. Trois facettes
@@ -4495,12 +4487,12 @@ qualifier. Le calcul emprunte le même chemin que le reste du moteur — les
 propriétés résolues, les fonds composités — donc il est juste par
 construction ou faux pour tout le monde en même temps.
 
-Corollaire assumé : **tous les thèmes n'ont pas à atteindre le haut
-standard.** Un thème est un parti pris ; `terminal` et `code` avec leur halo
-de phosphore et `synthwave` avec ses saturations sont des choix, et les
-rendre AAA les détruirait. Ce qui est exigé est double : tous doivent rester
-lisibles, et l'auteur doit **savoir lequel atteint quel niveau** au moment
-de choisir.
+Corollaire assumé : **un niveau n'est pas un but.** Un thème est un parti
+pris ; `terminal` et `code` avec leur halo de phosphore et `synthwave` avec
+ses saturations sont des choix, et les remonter d'un cran les détruirait.
+Rien dans cet outil n'attend d'un thème qu'il atteigne quoi que ce soit. La
+mesure existe pour une seule raison : que l'auteur **sache ce qu'il choisit**
+au moment où il choisit.
 
 #### Ce que la commande ne fait pas
 

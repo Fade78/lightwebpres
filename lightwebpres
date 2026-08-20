@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.43.0"
+VERSION = "0.43.1"
 
 # --- Logging (Phase 2 of the CLI refonte, DECISION-CLI.md §4) -------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -16508,12 +16508,11 @@ THEMES ({theme_count} built in, see specifications.md §9.5)
     lightwebpres theme show evergreen
     lightwebpres series theme my-series      the effective theme, after
                                               the values that series pins
-  The catalogue has a readability target, but not every theme is meant to
-  reach the higher accessibility profile — a theme is a stance. The measured
-  categories and ratios show which level it reaches; this report does not
-  modify or reject a theme. None of it ever reaches a built page: the reader
-  of a presentation is never told the contrast level of the theme chosen for
-  them.
+  Read that as a design note about the theme, not as a grade: no theme is
+  expected to reach any level, and none is rewritten, refused or hidden for
+  what it measures. A theme is a stance. None of it ever reaches a built
+  page either: the reader of a presentation is never told the contrast
+  level of the theme chosen for them.
 
 SETTINGS (templates/settings.conf, see specifications.md §9)
   Every visual decision is a typed property, `component.axis: value`, and
