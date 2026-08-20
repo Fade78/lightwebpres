@@ -428,3 +428,74 @@ class EveryNoteAxisLandsWhereItIsAimed(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TheSharedZipGuardIsOneRuleInTwoPlaces(unittest.TestCase):
+    """B25 / §23.1: `_validate_zip_members` is defined at module level in
+    BOTH `web/app.py` and `web/git_sync.py`, and that sharing is
+    deliberate rather than an accident.
+
+    `index.html` runs the two glue scripts one after the other into the
+    same Python namespace, so the second loaded wins — for both call
+    sites, including the one in the file whose definition was replaced.
+    It is a path-traversal guard on zip members. Two copies that drifted
+    apart would leave the surviving one governing an extraction the other
+    file believes it is protecting, and nothing would say so: same name,
+    same signature, no error, no warning, a build that works.
+
+    §23.1 states the rule and said, until this existed, that nothing
+    checked it.
+
+    Compared by AST with docstrings stripped, because the docstrings
+    legitimately differ — one explains the defence, the other points at
+    it — and because comparing source text would fail on a reflowed line
+    and pass on a changed constant. What has to match is the RULE."""
+
+    FILES = ('app.py', 'git_sync.py')
+    NAME = '_validate_zip_members'
+
+    def _rule(self, filename):
+        import ast
+        source = (REPO_ROOT / 'web' / filename).read_text(encoding='utf-8')
+        tree = ast.parse(source, filename=filename)
+        found = [n for n in tree.body
+                 if isinstance(n, ast.FunctionDef) and n.name == self.NAME]
+        self.assertEqual(
+            len(found), 1,
+            f'web/{filename} defines {self.NAME} {len(found)} times at '
+            f'module level; §23.1 says exactly one, in each of the two')
+        fn = found[0]
+        body = fn.body
+        # Drop a leading docstring: it is prose about the rule, not the rule.
+        if (body and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)):
+            body = body[1:]
+        return ast.dump(ast.Module(body=body, type_ignores=[]))
+
+    def test_the_two_bodies_are_the_same_rule(self):
+        first = self._rule('app.py')
+        second = self._rule('git_sync.py')
+        self.assertEqual(
+            first, second,
+            'web/app.py and web/git_sync.py disagree about '
+            f'{self.NAME}. They share one namespace and the second loaded '
+            'wins for both call sites, so the difference would apply '
+            'silently — to an extraction the other file thinks it is '
+            'guarding. Either make them identical or stop sharing the '
+            'name (§23.1)')
+
+    def test_both_files_still_carry_it(self):
+        """The pair is the point. One file losing the definition leaves
+        the survivor governing both extractions by accident rather than
+        by the decision §23.1 records — which happens to work, and works
+        for no stated reason."""
+        import ast
+        for filename in self.FILES:
+            source = (REPO_ROOT / 'web' / filename).read_text(encoding='utf-8')
+            names = [n.name for n in ast.parse(source).body
+                     if isinstance(n, ast.FunctionDef)]
+            self.assertIn(
+                self.NAME, names,
+                f'web/{filename} no longer defines {self.NAME}; §23.1 says '
+                f'both files carry it and both bodies stay identical')

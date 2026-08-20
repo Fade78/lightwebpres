@@ -7320,8 +7320,17 @@ pour `app.py`, `GIT_WORK_DIR`/`_find_series_dir_in_archive` pour
 Un troisième nom reste **volontairement partagé**, `_validate_zip_members`
 — la garde de traversée sur les membres d'un zip, définie au niveau module
 dans les deux fichiers. Les deux corps doivent rester **identiques** :
-c'est la même règle de sécurité, et le second chargé gagne, en silence.
-Rien ne le vérifie aujourd'hui ; c'est au `DECISIONS.md` (B25).
+c'est la même règle de sécurité, et le second chargé gagne, en silence,
+pour les deux sites d'appel — y compris celui du fichier dont la
+définition vient d'être écrasée. Deux copies qui divergeraient
+laisseraient la survivante gouverner une extraction que l'autre fichier
+croit protéger, sans erreur ni avertissement.
+
+`TheSharedZipGuardIsOneRuleInTwoPlaces` le vérifie : les deux corps sont
+comparés **par AST, docstrings retirées**. Les docstrings diffèrent
+légitimement — l'une explique la défense, l'autre y renvoie — et comparer
+le texte source échouerait sur un retour à la ligne tout en passant sur
+une constante changée. Ce qui doit coïncider, c'est la règle.
 
 ### 23.2 Confidentialité
 

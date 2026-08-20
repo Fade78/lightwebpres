@@ -282,6 +282,18 @@ The guard is on the source rather than on an output — no `print()` of a
 executable — so a site added on a path no test exercises is caught all
 the same.
 
+The zip-traversal guard that `web/` defines twice is checked for being
+one rule. `_validate_zip_members` sits at module level in both `app.py`
+and `git_sync.py`, which `index.html` runs one after the other into a
+single Python namespace: the second loaded wins for BOTH call sites,
+including the one in the file whose definition was just replaced. Two
+copies drifting apart would leave the survivor governing an extraction
+the other file believes it is protecting — same name, same signature, no
+error, a build that works. §23.1 declared the sharing deliberate and said
+nothing verified it; now something does, comparing the two by AST with
+docstrings stripped, because what has to match is the rule and not the
+prose around it.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot

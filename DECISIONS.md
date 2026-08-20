@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 2 · **en cours** 0 · **terminé** 28 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 29 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -112,7 +112,6 @@ gets its own entry and its own state**, however small.
 
 ### à faire
 
-- **B25** — Two rules the project states and does not follow
 - **B27** — The default sheet fails the navigation floor its own test enforces
 
 ### terminé
@@ -139,6 +138,7 @@ gets its own entry and its own state**, however small.
 - **B22** — `--version` after a command is a silent no-op
 - **B23** — `--inline-images` does not reach an included article's images
 - **B24** — `audit` inspects a poorer representation than the one that builds the page
+- **B25** — Two rules the project states and does not follow
 - **B26** — `audit` prints its warnings on stdout, the render's on stderr
 - **B28** — A list item was one line, and its continuation left the list
 - **B29** — A structural field ships Markdown to the reader, and nothing said so
@@ -1589,7 +1589,34 @@ note rule ever sees it.
 
 ## B25 — Two rules the project states and does not follow
 
-**État :** à faire
+**État :** terminé · **Depuis :** 2026-08-20 · **Voir :** spec §19.3.1, §23.1
+
+Both halves are closed. The non-breaking space landed in v0.37.0, below.
+The shared guard is closed here, and the entry's fork was already
+answered by the document it cited.
+
+**The fork did not need deciding.** It offered "either prefix it like the
+other two, or keep it shared and add the test that asserts the bodies
+match" — and §23.1 already said the sharing is deliberate, naming the two
+pairs that WERE prefixed apart and this third name that was not. What was
+missing was never a decision; it was the instrument, and that same
+sentence said so: *rien ne le vérifie aujourd'hui*.
+
+Prefixing would also have been the weaker answer. It removes the
+collision and keeps the duplication, leaving two copies of one security
+rule that must agree with nobody watching. Shared plus checked keeps one
+rule and makes disagreement fail.
+
+**Compared by AST with docstrings stripped.** The docstrings differ on
+purpose — one explains the defence, the other points at it — so text
+comparison would fail on prose and on a reflowed line, while passing on a
+changed constant. A second test asserts both files still define it: one
+of them losing the name leaves the survivor governing both extractions by
+accident rather than by the decision §23.1 records.
+
+Proved by mutation both ways: dropping the backslash from one copy's
+prefix check fails the equality, and renaming the function in one file
+fails the pair.
 
 Two invariants written down as requirements, neither applied nor guarded.
 Filed together because they share a shape: a rule that reads as settled
