@@ -2117,6 +2117,44 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 f'one. An unreleased number is fine; a released one is a '
                 f'second thing claiming to be the first')
 
+    def test_the_version_it_announces_has_a_changelog_entry(self):
+        """The number is in the tool; what changed is in CHANGELOG.md.
+
+        The two live in different files and nothing but this test makes
+        them meet. The failure it prevents is not exotic: a version ships,
+        the entry is written next week from memory, and the entry is a
+        summary of a diff rather than the text the release was announced
+        in. CHANGELOG.md says the entry IS the release body, written once
+        at bump time — a rule that only holds if forgetting is caught.
+
+        Matched on the heading, not on prose, and both spellings count: a
+        version that is tagged is `## v0.43.1 — <date>`, one that is not
+        yet is `## Unreleased — 0.43.2`. Which of the two is correct is
+        the tag guard's business, not this one's; here the question is
+        only whether the number appears at all.
+
+        Deliberately not checking the entry's length or shape. A guard
+        that demanded three paragraphs would be satisfied by three
+        paragraphs of nothing, and this project's release texts are
+        written to be read rather than to clear a counter."""
+        root = Path(__file__).resolve().parent.parent
+        changelog = root / 'CHANGELOG.md'
+        self.assertTrue(changelog.exists(),
+                        'CHANGELOG.md is gone: the tool can say which '
+                        'version it is and nothing can say what that '
+                        'version changed')
+        version = load_lightwebpres_module().VERSION
+        headings = re.findall(r'^## +(.+)$', changelog.read_text(encoding='utf-8'),
+                              re.M)
+        self.assertTrue(
+            any(re.search(r'(?:^|\s|v)' + re.escape(version) + r'(?:$|\s|—|-)',
+                          heading) for heading in headings),
+            f'CHANGELOG.md has no section for {version}, the version this '
+            f'tree announces. Write the entry when you bump VERSION, not '
+            f'when you cut the release: it IS the release body, and a text '
+            f'written twice is a text that disagrees with itself. '
+            f'Headings found: {headings}')
+
     def test_help_contains_version_in_header(self):
         result = run('--help')
         self.assertEqual(result.returncode, 0, result.stderr)

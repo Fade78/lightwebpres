@@ -721,6 +721,7 @@ for both tabs of the browser-based tool.
 
 ```
 lightwebpres          # the executable — the only thing you need to run this
+CHANGELOG.md          # what changed between versions, in the release's own words
 specifications.md     # full reference specification (French)
 themes-gallery.html   # preview of every built-in color theme (generated, see below)
 themes-gallery.png    # a contact sheet of the above, for this README
@@ -740,6 +741,7 @@ tests/                # regression suite
 | [`GLOSSARY.md`](GLOSSARY.md) | Every field, its default, and where it falls back from |
 | [`agent/skills/lightwebpres/SKILL.md`](agent/skills/lightwebpres/SKILL.md) | The exact article format — written for an agent, readable by a person |
 | [`agent/skills/sourced-presentation/SKILL.md`](agent/skills/sourced-presentation/SKILL.md) | One method the format suits — a sourced deck backed by a fully referenced article. Optional: nothing here is required to use LightWebPres |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed between versions. The entry under a version IS the body of that version's release, written once — not a second telling of it |
 | [`BACKLOG.md`](BACKLOG.md) | Known gaps and deferred decisions |
 
 

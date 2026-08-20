@@ -49,6 +49,8 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `GLOSSARY.md` — contrat de vocabulaire partagé (avec `lightwebpres-gui`).
 - `README.md`, `GUIDE.md` — documentation utilisateur.
 - `BACKLOG.md` — registre pérenne des dettes et décisions différées.
+- `CHANGELOG.md` — ce qui a changé d'une version à l'autre, dans les
+  mots de l'annonce. L'entrée **est** le corps de la release GitHub.
 - `agent/skills/` — les skills (format LWP, méthode éditoriale) + index.
 - `AGENTS.md` — ce document.
 - `THIRD-PARTY-NOTICES.md` — licences de ce qui est embarqué.
@@ -106,6 +108,18 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
   se mesure par le module.
 - **Versionnage sémantique** (spec §13.9) : MAJOR = incompatible, MINOR =
   rétrocompatible. La constante `VERSION` est dans `lightwebpres`.
+- **Bumper `VERSION`, c'est ouvrir une section du `CHANGELOG.md`** dans le
+  même commit, sous le titre `## Unreleased — X.Y.Z`. Une garde
+  (`test_the_version_it_announces_has_a_changelog_entry`) refuse la suite
+  si le numéro annoncé n'a pas de section, donc les deux ne peuvent pas
+  diverger en silence. La section se remplit au fil du travail, pas le
+  jour de la release : c'est ce texte-là, tel quel, qui est collé dans le
+  formulaire GitHub, et le titre devient `## vX.Y.Z — AAAA-MM-JJ` quand le
+  propriétaire a tagué. Un texte, un endroit — un second récit du même
+  changement s'écarte du premier en quelques mois.
+- **Le propriétaire seul tague et publie.** L'agent ne crée ni tag ni
+  release ; le proxy git refuse d'ailleurs les nouveaux `refs/tags/`. Ce
+  que l'agent fournit, c'est le texte, dans un bloc copiable.
 - **Style de commit** : un sujet en phrase, qui dit ce que le changement
   fait — **aucun préfixe**, pas même pour une release. Le corps n'est pas
   replié à 72 colonnes et explique le *pourquoi*, avec les mesures quand

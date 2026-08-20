@@ -1,0 +1,110 @@
+# Changelog
+
+What changed between versions, in the words the release was announced in.
+
+**One text, one place.** The entry below a version heading IS the body of
+that version's GitHub release — written once, when `VERSION` is bumped,
+then pasted into the release form unchanged. Nothing here is a second
+telling of what the release notes say, because a second telling drifts
+from the first within a few months, and this project has paid for that
+more than once.
+
+Why the file exists at all, given the releases are on GitHub: the way
+people get this tool is by **downloading one file**. Someone holding
+v0.38.0 has no way, from the repository or from `--version`, to learn what
+has changed since. The git history is not an answer — a release carries
+around thirty commits and most of them are internal. And a release body
+that lives only on a hosting service is one outage, one migration or one
+renderer away from being gone. The proof is in this file: GitHub's own
+copy of the v0.43.0 body has lost the characters that release was about
+(see the note under that version).
+
+`Unreleased` is a real state, not a placeholder. `VERSION` names a number
+that has not been tagged yet, and the section for it is written as the
+work lands rather than assembled on release day. A test asserts that the
+number `VERSION` announces has a section here, so the two cannot drift
+apart in silence.
+
+Entries for **v0.42.3 and earlier** were published only as GitHub releases
+and are not reproduced here: reading them back out of the API means
+retyping them, and a hand copy of fifty-one texts is a worse record than a
+link to the originals. They are at
+<https://github.com/Fade78/lightwebpres/releases>.
+
+---
+
+## Unreleased — 0.43.2
+
+Documentation and test-suite work; the engine's behaviour is unchanged.
+
+A theme's contrast level stops being written as a standard anywhere in the
+project. §9.5.2 stated an admission barème per role, §9.5 said "ce qui est
+exigé est double", and the README promised "a documented readability
+target" — none of which was ever true of the program, which has never
+refused, rewritten, reordered or hidden a theme for what it measures.
+Written at that weight, the axis became the frame every reader picked up,
+including reviewers who turned it back on the tool and reported, as a
+defect, that it "fails the standard it enforces on its output". There is
+no such standard. What a theme measures is a design note about that theme.
+
+Delivering a catalogue is a second trade, and the project does hold its
+own palettes to its own floor — as their author, in its own test suite,
+over the 48 palettes it drew. That guard used to run over all 57 entries,
+nine of which it did not draw; measured at the site in question, its own
+48 run 5.02:1 to 18.66:1 and the nine borrowed ones 4.51:1 to 14.70:1, so
+it sat one hundredth of a point from failing the suite over a decision the
+Catppuccin authors made about their own palette. It is scoped to what the
+project draws.
+
+Two backlog entries existed only because of a bar that never existed and
+are closed. What survives from them is real and is not about levels: seven
+of the nine borrowed palettes are colour schemes drawn for a dark ground
+and were shown on a light one, which is a fidelity defect, and four have
+been returned to their own grounds.
+
+`tests/run_tests.py` fetches tags before running. The guard that compares
+`VERSION` to the newest tag reads local refs on purpose — a network call
+inside a unit test fails where there is no network — and the blind spot
+that follows had bitten twice in two days, for six commits and then three.
+The runner may make the call the test may not.
+
+## v0.43.1 — 2026-08-20
+
+A contrast level is a note about a theme, not a bar it has to clear
+
+The documents had grown a doctrine out of a measurement. A theme's contrast level was written as a standard: §9.5.2 stated an admission barème per role — AAA body text, AA secondary text and accents, 3:1 rules — §9.5 said "ce qui est exigé est double", and the README promised "a documented readability target, checked by measurement". None of that was ever true of the program. Nothing in this executable has ever refused, rewritten, reordered or hidden a theme for what it measures, and the same sections said so two paragraphs later.
+
+Written at that weight, the axis became the frame every reader picked up. It produced two backlog entries about which themes fail a bar nobody enforces, three paragraphs of the spec accounting for which ones fail it, and — the reason this is being corrected now — reviewers who turn it back on the tools themselves and report, as a defect, that a piece of software "fails the standard it enforces on its output". There is no such standard. Deciding what a good theme is was never this software's trade.
+
+So the axis is demoted to what it is. §9.5.2 is no longer "critères d'admission" but how a theme is drawn: there is no bar, the project's own palettes are drawn and then measured, and the measurement is published so an author knows what they are choosing. §9.5's "ce qui est exigé" is gone; a level is not a goal. The README's "readability target" and "higher accessibility standard" are gone; the measurement is a design note about that theme. `--help` says the same in one sentence.
+
+What survives untouched, because it is not about grading: colour is never the only carrier of an information — a comparison table's verdicts each carry a shape marker, and that is a property of the FORMAT no palette can undo. And audit's two colour warnings, which do not speak of levels at all: a navigation control the reader can no longer make out, and text almost exactly the colour of what it sits on. A broken control and words out of reach — things that do not work, never things that could be prettier. Their thresholds sit far below AA on purpose, and they block nothing.
+
+## v0.43.0 — 2026-08-20
+
+A card is called what its author declared, and nothing else.
+
+One rule replaces five. A card's id is the `slug:` line its author wrote. Nothing derives it, nothing falls back to its position, and no ordinary edit moves it — not reordering the deck, not inserting a card, not `tags: excluded`, and not rewriting the heading. That last one is what the derived identity could not hold: it was stable exactly as long as the title was, and a title is what an author retouches. A link you have already given out, or printed as a QR code, now survives everything except you changing the slug on purpose.
+
+`slug:` is required. A card without one stops the build with an error that names the remedy, because someone meeting it for the first time has a series that will not build and no way to guess a command exists to fix it.
+
+Two new commands. `lightwebpres series slug` lists every card of the series and the name it is published under, in text or JSON — `status` answers by article, which is the unit `series.json` describes, and a link points at a card. `lightwebpres series slug set` writes a slug into every card that has none, and only those. It is the one command in this tool that edits your articles, which is why it is a verb you type rather than a flag on the build: a build that rewrote its own inputs would surprise a read-only CI, a version-controlled tree that comes back dirty, and an encrypted series in the browser editor. `--dry-run` says what it would write and writes nothing.
+
+What it writes is random, not derived from your title. Once the value is in the file it IS the identity, and deriving it would make it look as though it still followed the title it came from. Rename it to something readable before you publish: `slug: barrage-de-vajont` is worth more than `slug: 3f7c1a9e`, and the error message says so too.
+
+Two cards on one slug is now an error rather than a silent `-2`. Two values you declared that happen to match are a typing mistake, and a suffix appended in silence would publish an anchor nobody wrote while the card you meant to reach keeps the other.
+
+Gone with the derivation: the Latin-mark folding, the truncated hash, the `sN` and `sN-series` aliases, the collision suffix, and the audit finding about identities that are not durable. The only visible change to a built page is the disappearance of those empty alias spans.
+
+`slug_prefix:` survives, and is now the only thing left that can change what you wrote: it puts a namespace in front of every card id on the page, which is what a series whose pages reuse card names needs.
+
+Also in this release: one rule for the ampersand across both grammars — a `&` outside a tag is escaped, what is inside a tag is left verbatim — so a `source:` line carrying `?q=marks&copy=1&reg=2` no longer reaches the reader as `?q=marks©=1®=2`. A CommonMark autolink is refused by name instead of being blamed on a tag nobody wrote. `--build-stamp` is legible on every theme. And the shell completion offers each command only the options that command accepts, on every typed path.
+
+> **The published body of this release is not this text, in one sentence.**
+> The paragraph above ends on the example that gives the release its point:
+> a query string carrying `&copy=1&reg=2` used to reach the reader as
+> `©=1®=2`. GitHub's stored copy has resolved both entities, so it reads
+> `?q=marks©=1` twice and the before and the after are the same string —
+> the release announcing the ampersand fix lost its ampersands. The text
+> here is the one that was written, with the example intact. It is also
+> why a release body that exists only on a hosting service is not a record.
