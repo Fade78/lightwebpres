@@ -39,7 +39,7 @@ projet, au même titre que le code. Les documents normatifs et leur rôle :
   (`README.md`). `lightwebpres/SKILL.md` est la référence du format à
   destination d'un agent LLM qui écrit ou modifie des articles ; les
   autres portent des méthodes éditoriales et n'engagent pas le format.
-- **`BACKLOG.md`** (anglais) — le registre *pérenne* des manques relevés
+- **`DECISIONS.md`** (anglais) — le registre *pérenne* des manques relevés
   et des décisions différées : ce qui doit rester trouvable « plus tard »
   y va, et y reste au travers des releases. Cette spécification y renvoie
   par numéro d'entrée.
@@ -67,7 +67,7 @@ contrat, et se répartissent dans les familles suivantes :
 - **transitoire** — `delete-before-1.0/JOURNAL-1.0.md`, la mémoire de
   travail de la 1.0 : supprimée du dépôt juste avant la release. Ses
   renvois internes en `§x.y` ne sont pas tenus à jour et peuvent pointer
-  dans le vide. `BACKLOG.md` la cite une fois, en tête, pour dire ce qu'il
+  dans le vide. `DECISIONS.md` la cite une fois, en tête, pour dire ce qu'il
   n'est pas.
 - **relevés** — des mesures avec leurs conditions, les hypothèses
   qu'elles ont tuées, une enquête datée : ce qu'une spec normative ne peut
@@ -127,7 +127,7 @@ un métier, nommé d'après ce métier.
 **Ce que « absorbé » exige avant de sortir un document.** Un plan livré
 porte souvent une décision que personne n'a prise et qui ne vit nulle part
 ailleurs — c'est ce qui distingue l'absorption du rangement. Avant de
-sortir un document, ce qui y reste ouvert va au `BACKLOG.md`, avec sa
+sortir un document, ce qui y reste ouvert va au `DECISIONS.md`, avec sa
 mesure. B19, B20 et B21 sont arrivés ainsi.
 
 ### 1.2 Contrat avec `lightwebpres-gui`
@@ -1974,7 +1974,7 @@ artistique. Les mêler produirait un moteur qui **juge ses entrées au lieu
 de les traiter** — et un auteur ne pourrait plus obtenir la couleur qu'il
 a demandée, seulement celle que l'outil aurait jugée acceptable.
 
-C'est la frontière à laquelle se rattachent les entrées de `BACKLOG.md`
+C'est la frontière à laquelle se rattachent les entrées de `DECISIONS.md`
 qui parlent de gamut et de séparabilité : ce sont des travaux de
 catalogue, pas des fonctionnalités du moteur. `theme show` (§11.9.1) ne
 la franchit pas non plus — il **mesure** et rapporte, il ne corrige rien.
@@ -7125,7 +7125,7 @@ Un troisième nom reste **volontairement partagé**, `_validate_zip_members`
 — la garde de traversée sur les membres d'un zip, définie au niveau module
 dans les deux fichiers. Les deux corps doivent rester **identiques** :
 c'est la même règle de sécurité, et le second chargé gagne, en silence.
-Rien ne le vérifie aujourd'hui ; c'est au `BACKLOG.md` (B25).
+Rien ne le vérifie aujourd'hui ; c'est au `DECISIONS.md` (B25).
 
 ### 23.2 Confidentialité
 

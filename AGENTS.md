@@ -48,7 +48,9 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `specifications.md` — spécification normative du format (référence).
 - `GLOSSARY.md` — contrat de vocabulaire partagé (avec `lightwebpres-gui`).
 - `README.md`, `GUIDE.md` — documentation utilisateur.
-- `BACKLOG.md` — registre pérenne des dettes et décisions différées.
+- `DECISIONS.md` — registre pérenne des décisions et des dettes, sur
+  six états. Le fichier s'appelait `BACKLOG.md` ; une entrée qui
+  s'avérait ne demander aucun travail n'avait alors aucun état où aller.
 - `CHANGELOG.md` — ce qui a changé d'une version à l'autre, dans les
   mots de l'annonce. L'entrée **est** le corps de la release GitHub.
 - `agent/skills/` — les skills (format LWP, méthode éditoriale) + index.
@@ -94,7 +96,7 @@ reproductible à l'octet, à refaire à la main quand la galerie change.
 
   **Avant d'y envoyer un document, vérifier ce qu'il porte encore.** Un
   plan livré contient souvent une décision que personne n'a prise et qui
-  ne vit nulle part ailleurs ; elle va au `BACKLOG.md` avec sa mesure
+  ne vit nulle part ailleurs ; elle va au `DECISIONS.md` avec sa mesure
   avant que le document ne sorte. Sans ce geste, ranger revient à perdre
   (`specifications.md` §1.1).
 
@@ -187,7 +189,7 @@ reproductible à l'octet, à refaire à la main quand la galerie change.
   son apparence, et les seuils de l'avertissement sont dérivés du
   catalogue livré, jamais choisis : la règle est en `specifications.md`
   §9.5.6, à lire avant d'en déplacer un. L'expertise accessibilité
-  (atteindre AA sur une palette donnée) est externe. Les dettes ouvertes sont au `BACKLOG.md` ; elles ne sont pas
+  (atteindre AA sur une palette donnée) est externe. Les dettes ouvertes sont au `DECISIONS.md` ; elles ne sont pas
   énumérées ici, parce qu'une liste de numéros dans un second fichier se
   périme sans que rien ne le signale — celle qui était là citait quatre
   entrées, toutes closes depuis.

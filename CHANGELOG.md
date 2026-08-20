@@ -84,6 +84,30 @@ Nothing normative moved. `specifications.md`, `GUIDE.md`, `GLOSSARY.md`
 and the rest keep their addresses, which are quoted from a sibling
 project, from `--help`, and from links already given out.
 
+`BACKLOG.md` becomes `DECISIONS.md`, on six states. The old name was
+wrong in a way that showed: a backlog is work waiting to be done, so an
+entry that turned out to need no work had nowhere to go and stayed OPEN.
+Most of what is in there is not waiting for anything — it is a decision,
+with the measurement that made it. Thirty-eight entries carried about a
+dozen status vocabularies in two languages (`DONE`, `FIXED`, `SETTLED`,
+`CLOSED`, `NOTED`, `OPEN`, `EXCLU`, `HALF FIXED`, `IMPLEMENTÉ ET TESTÉ EN
+NAVIGATEUR`), and between them they said nothing you could sort by. Each
+entry now declares one of six — à étudier, à faire, en cours, terminé,
+abandonné, sans objet — on a field line under its title, which is the one
+place its state lives. `sans objet` exists for three entries that neither
+finished nor were dropped: two were written against a bar this project
+does not hold, and one described a defect that stopped being possible.
+
+That register also gets the index its own rules forbade. The rule was
+earned — the block that used to sit at its top listed three fixed entries
+among the open ones — but it was right about the danger and wrong about
+the remedy. A second place to be wrong is only dangerous while nothing
+checks it. The index is generated from the field lines by
+`tools/decisions_index.py`, and a guard recomputes it and refuses the
+suite if the two disagree. Proved by mutation three ways: a state changed
+without regenerating, a seventh state invented, an entry left without a
+field line.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot

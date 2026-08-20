@@ -741,7 +741,7 @@ tests/                # regression suite
 | [`agent/skills/lightwebpres/SKILL.md`](agent/skills/lightwebpres/SKILL.md) | The exact article format — written for an agent, readable by a person |
 | [`agent/skills/sourced-presentation/SKILL.md`](agent/skills/sourced-presentation/SKILL.md) | One method the format suits — a sourced deck backed by a fully referenced article. Optional: nothing here is required to use LightWebPres |
 | [`CHANGELOG.md`](CHANGELOG.md) | What changed between versions. The entry under a version IS the body of that version's release, written once — not a second telling of it |
-| [`BACKLOG.md`](BACKLOG.md) | Known gaps and deferred decisions |
+| [`DECISIONS.md`](DECISIONS.md) | What has been decided and what has not, on six states — with the measurement behind each |
 
 
 `specifications.md` is the complete, detailed specification (in French) —

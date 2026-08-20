@@ -1,21 +1,61 @@
-# Backlog
+# Decisions
 
-The **permanent** register of things raised but not dealt with: bugs
-with no urgency, change requests, format decisions still to be made.
-Unlike `delete-before-1.0/JOURNAL-1.0.md` (the 1.0 working memory, deleted at release),
-this file outlives releases — anything that has to be findable "later"
-goes here, not in the journal.
+The **permanent** register of what this project has decided, and of what
+it has not decided yet: defects with no urgency, change requests, format
+questions still open. Unlike `delete-before-1.0/JOURNAL-1.0.md` (the 1.0
+working memory, deleted at release), this file outlives releases —
+anything that has to be findable "later" goes here, not in the journal.
 
 Every entry says what has been **verified** and what remains to be
 **decided**.
 
+This file was called `BACKLOG.md`, and the name was wrong in a way that
+showed: a backlog is a list of work waiting to be done, so an entry that
+turned out to need no work had nowhere to go and stayed OPEN. Most of
+what is here is not waiting for anything. It is a decision, with the
+measurement that made it.
+
+## The six states
+
+An entry is in exactly one of these, named on the field line directly
+under its title:
+
+| État | Ce que cela veut dire |
+|---|---|
+| `à étudier` | La question n'est pas assez mûre pour qu'on agisse. Ce qui manque est dit dans l'entrée. |
+| `à faire` | Décidé, pas implémenté. |
+| `en cours` | En cours d'implémentation. |
+| `terminé` | Fait, avec la mesure qui le montre. |
+| `abandonné` | Décidé de ne pas faire. La raison est dans l'entrée, parce que la question reviendra. |
+| `sans objet` | L'entrée n'a plus de sujet — soit elle n'en a jamais eu, soit il a cessé d'exister. Ce n'est ni un abandon ni un achèvement. |
+
+The other three fields appear only when they are known: `Depuis` (the
+date the state was reached), `Version` (the release that carried it),
+`Voir` (where the answer now lives). **A field is never filled from
+memory.**
+
+`sans objet` exists because of three entries. Two were written against a
+bar the project does not hold and never held (B5, B18), and one described
+a defect that stopped being possible when the mechanism under it was
+removed (B33). Filed as `terminé` they would claim credit for work nobody
+did; filed as `abandonné` they would suggest a live question was dropped.
+Neither is what happened.
+
 ## How to read this file, and how it decayed
 
-**The header of an entry is its state. Nothing else in the file is.**
-There is no index, on purpose: a list of entry numbers with their statuses
-is a second place to be wrong, and this file already learned that lesson
-the hard way — the revision block that used to sit here listed B15, B16
-and B17 among the open entries long after all three had been fixed.
+**The field line under a title is the entry's state. Nothing else in the
+file is** — not the title, not the prose, not the index below.
+
+**There is now an index, and what changed is not the reasoning.** The old
+rule here was that a list of entry numbers with their statuses is a second
+place to be wrong, and it was right on the evidence: the revision block
+that used to sit at the top listed B15, B16 and B17 among the open entries
+long after all three had been fixed. What that argument was missing is
+that a second place to be wrong is only dangerous while nothing checks it.
+The index below is generated from the field lines by
+`tools/decisions_index.py`, and `test_the_decisions_index_matches_the_file`
+recomputes it and refuses the suite if the two disagree. It cannot drift
+without failing, so it may exist.
 
 **How it decayed, because the mechanism matters more than the instance.**
 An entry gets written when a defect is found. It gets fixed weeks later,
@@ -35,9 +75,71 @@ fixes something this file records, the entry moves in the same commit,
 with the measurement that shows it. An entry closed later, from memory, is
 how the numbers above happened.
 
-**And a status is a measurement, not a memory.** `DONE` here means someone
-ran something and wrote down what came back. Where an entry claims a
-figure, the figure is in it.
+**And a state is a measurement, not a memory.** `terminé` here means
+someone ran something and wrote down what came back. Where an entry claims
+a figure, the figure is in it.
+
+## Index
+
+<!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
+     la main : la source est la ligne de champs de chaque entrée. -->
+
+**à étudier** 4 · **à faire** 5 · **en cours** 0 · **terminé** 25 · **abandonné** 1 · **sans objet** 3
+
+### à étudier
+
+- **B8** — `extends` for external theme files
+- **B10** — Gamut mapping for lightness-shifted inks
+- **B11** — Dichromat separability is not verified
+- **B30** — Nested emphasis, and a net for whatever the checks do not name
+
+### à faire
+
+- **B9** — Typographic revision of the historical catalogue
+- **B25** — Two rules the project states and does not follow
+- **B26** — `audit` prints its warnings on stdout, the render's on stderr
+- **B27** — The default sheet fails the navigation floor its own test enforces
+- **B31** — `auto` is a length, and on a shadow axis it deletes the shadow
+
+### terminé
+
+- **B1** — Mid-paragraph image with a title
+- **B2** — Visual verdict in a table cell
+- **B3** — Body-text links are not themed
+- **B4** — Key-figure alignment, as an option
+- **B6** — The slide-progress dots miss the 3:1 readability floor
+- **B7** — Text alignment axes (center, justify, per-component and per-block)
+- **B12** — Box drop-shadow (elevation) axes
+- **B13** — `--content-max` is the one themeless variable
+- **B14** — Literalize the skeleton; retire TEMPLATE_STYLE
+- **B15** — The share popover's mobile overrides never apply
+- **B16** — `page_dest: index.html` loses a page in silence
+- **B17** — catppuccin's bold-on-highlight is at 3.05:1
+- **C1** — Test AST « aucune écriture nue hors helpers »
+- **C3** — Variantes filtrables par `tags:`
+- **C4** — Audit 2026-08 : décisions actées et dettes restantes
+- **B19** — `audit --strict` is blind to every warning the build emits
+- **B20** — Only three components can carry a halo, and the worst-served one is a slide heading
+- **B21** — Pinning dark colours does not make the furniture dark, and nothing says so
+- **B22** — `--version` after a command is a silent no-op
+- **B23** — `--inline-images` does not reach an included article's images
+- **B24** — `audit` inspects a poorer representation than the one that builds the page
+- **B28** — A list item was one line, and its continuation left the list
+- **B29** — A structural field ships Markdown to the reader, and nothing said so
+- **B32** — A fix to `nav.js` or a language pack never reaches a series that already exists
+- **B34** — A structural field converts an HTML entity; the body does not
+
+### abandonné
+
+- **C2** — `series article add/remove/set`
+
+### sans objet
+
+- **B5** — Palette roles below AA against their own page
+- **B18** — `cover.kicker.fg` is below AA on three themes
+- **B33** — A moved anchor is invisible to everyone, including the tool that moved it
+
+<!-- /INDEX -->
 
 ## Who this project has, and what that settles
 
@@ -84,7 +186,9 @@ stating so nobody has to rediscover them:
 
 ---
 
-## B1 — Mid-paragraph image with a title — FIXED in v0.12.0
+## B1 — Mid-paragraph image with a title
+
+**État :** terminé · **Version :** v0.12.0
 
 **Type:** implementation bug (the expected behaviour was already
 specified).
@@ -157,7 +261,9 @@ being tested separately.
 
 ---
 
-## B2 — Visual verdict in a table cell — SETTLED in v0.12.0
+## B2 — Visual verdict in a table cell
+
+**État :** terminé · **Version :** v0.12.0
 
 **Status:** the question "gap or choice?" got an answer, and it was
 neither. The default stylesheet **already** shipped `.yes` / `.no` /
@@ -244,7 +350,9 @@ choice if it is written somewhere. If it's 2, plan the column case
 
 In every case: **post-1.0**. This is not a release blocker.
 
-## B3 — Body-text links are not themed — FIXED in v0.12.2
+## B3 — Body-text links are not themed
+
+**État :** terminé · **Version :** v0.12.2
 
 Noticed during the cross-review of 2026-08-04.
 
@@ -293,7 +401,9 @@ the typed property `link.decoration-color` (default: the body ink, which
 cannot fail), and `RETIRED_VARIABLES` maps the old name for legacy
 sheets. Nothing left to decide.
 
-## B4 — Key-figure alignment, as an option — DONE via B7
+## B4 — Key-figure alignment, as an option
+
+**État :** terminé · **Voir :** B7
 
 Proposed by the owner on 2026-08-04, on noticing that the gallery preview
 showed the "180 °C" block aligned left.
@@ -312,7 +422,9 @@ per-figure form — the exact per-series / per-figure pair this entry was
 weighing. Alignment as a whole was deferred by owner decision; this entry
 survives only as B7's first concrete case. See B7.
 
-## B5 — Palette roles below AA against their own page — CLOSED, there was never a defect here
+## B5 — Palette roles below AA against their own page
+
+**État :** sans objet · **Voir :** spec §9.5.2
 
 **Closed by the position, not by the numbers.** This entry was written as
 a debt: roles under 4.5:1 against their own page, to be paid off theme by
@@ -371,7 +483,9 @@ free to be whatever the theme wants it to be. That is an architectural
 fact, and it is the reason a palette can be bold there without anything
 being lost.
 
-## B6 — The slide-progress dots miss the 3:1 readability floor — DONE
+## B6 — The slide-progress dots miss the 3:1 readability floor
+
+**État :** terminé · **Depuis :** 2026-08-17
 
 **Closed by `color.nav` (2026-08-17), and the entry's own diagnosis is
 why.** It concluded there was no single-value fix "for either dot", and
@@ -444,7 +558,9 @@ ground of its own (which would now be two more properties, not a new
 mechanism). It is theme work, and it belongs with B9's remaining
 typographic blocks.
 
-## B7 — Text alignment axes (center, justify, per-component and per-block) — DONE
+## B7 — Text alignment axes (center, justify, per-component and per-block)
+
+**État :** terminé
 
 **Done.** Ten align axes (`title1`, `title2`, `summary`, `fact`, `cover`,
 `table.head`, `table.cell`, `caption`, `article`, `highlight`), enum
@@ -500,7 +616,9 @@ Absorbs B4: `highlight.align` (the key-figure block, today centred with
 no recourse) is the first concrete case and the acceptance test —
 per-series via `settings.conf`, per-figure via the instance tag.
 
-## B8 — `extends` for external theme files — NOTED
+## B8 — `extends` for external theme files
+
+**État :** à étudier
 
 Recorded at the catalogue port (2026-08-04): the scaffold is generated
 complete and no user-facing include mechanism exists — the one legitimate
@@ -512,7 +630,9 @@ order, and its audit story. Do not build before the external-theme-format
 question (out of scope of the §9 refactor by decision) is opened on its
 own.
 
-## B9 — Typographic revision of the historical catalogue — WHAT IS LEFT IS TYPOGRAPHY
+## B9 — Typographic revision of the historical catalogue
+
+**État :** à faire
 
 **Report delivered and verified** (`c4156e8`):
 `delete-before-1.0/REVISION-THEMES.md`, with 31 validated property layers
@@ -565,7 +685,9 @@ The engine gave themes fonts, shadows and per-component axes; only
 decision). The architecture records that all entries are to be reviewed
 under this light — theme-construction work, out of the engine's scope.
 
-## B10 — Gamut mapping for lightness-shifted inks — NOTED
+## B10 — Gamut mapping for lightness-shifted inks
+
+**État :** à étudier · **Voir :** B9
 
 The former ink solver was a historical prototype, not used by the executable;
 it has been removed from the active tree. The shipped engine deliberately
@@ -579,7 +701,9 @@ the design document that first recorded it has been absorbed into
 `specifications.md` §9 and removed, and this is the only remaining
 statement of it.
 
-## B11 — Dichromat separability is not verified — NOTED
+## B11 — Dichromat separability is not verified
+
+**État :** à étudier
 
 The architecture explicitly does not guarantee separability under
 dichromat vision; the verdicts' shape marks already serve it (and are now
@@ -588,7 +712,9 @@ simulation exists and nothing measures the palettes. Assumed gap,
 recorded at the owner's level: a check would belong to theme construction
 (the catalogue side), never to the renderer.
 
-## B12 — Box drop-shadow (elevation) axes — DONE
+## B12 — Box drop-shadow (elevation) axes
+
+**État :** terminé
 
 Text shadows are properties (`shadow.fg/blur/dy`); the box shadows that
 paint depth — cards, nav buttons, the share modal, series links — stay
@@ -632,7 +758,9 @@ The catalogue's motivation, stated plainly: every one of those thirteen
 shadows was black at an alpha chosen against a white page, and on a dark
 ground a black shadow is not a shadow, it is nothing at all.
 
-## B13 — `--content-max` is the one themeless variable — DONE
+## B13 — `--content-max` is the one themeless variable
+
+**État :** terminé
 
 **Done: exposed, not exempted.** `page.content-max` is an ordinary length
 property, default **`50ch`** — a measure, not a pixel width. The old
@@ -678,7 +806,9 @@ expose it as a length property (`page.content-max`) like everything else,
 or record the exemption as permanent — today the exemption lives only in
 a code comment and the gap-check test.
 
-## B14 — Literalize the skeleton; retire TEMPLATE_STYLE — DONE
+## B14 — Literalize the skeleton; retire TEMPLATE_STYLE
+
+**État :** terminé
 
 **Done** (`19188d6`). `TEMPLATE_SKELETON` is the frozen extraction result,
 450 lines, 113 rules; `extract_skeleton`, `_strip_driven`,
@@ -726,7 +856,9 @@ Plan, in order (the order matters — doing step 2 first is churn):
    `SkeletonGapError` — optionally keeping a driven-declaration collision
    test between skeleton and registry.
 
-## B15 — The share popover's mobile overrides never apply — DONE
+## B15 — The share popover's mobile overrides never apply
+
+**État :** terminé · **Depuis :** 2026-08-18
 
 **Closed by measurement (2026-08-18), and the entry was right about the
 cause.** It described a media query sitting BEFORE the base rule at equal
@@ -772,7 +904,9 @@ Related, same family, also pre-existing: `.share-cell-head-disabled`'s
 a different rule from the `font-size: 11px` it dims. A hole in that
 heuristic, not in the seam.
 
-## B16 — `page_dest: index.html` loses a page in silence — DONE
+## B16 — `page_dest: index.html` loses a page in silence
+
+**État :** terminé · **Depuis :** 2026-08-18
 
 **Closed, verified 2026-08-18.** The collision is now a fatal error, exit
 1, and the message names the article, explains what would overwrite what,
@@ -820,7 +954,9 @@ before it lands: someone may have a single-article series relying on the
 index being the only page — which today means their article is the thing
 being thrown away, not the index.
 
-## B17 — catppuccin's bold-on-highlight is at 3.05:1 — DONE
+## B17 — catppuccin's bold-on-highlight is at 3.05:1
+
+**État :** terminé · **Depuis :** 2026-08-18
 
 **Closed, re-measured 2026-08-18 at 4.51:1** — `fact.strong.fg` against
 its own `fact.strong.bg`, composited over the fact ground and the page.
@@ -854,7 +990,9 @@ A palette value the project drew, on a surface it pinned as an exact
 set: if it is to move, it moves by a measured replacement in the theme
 file, not by a mechanism.
 
-## B18 — `cover.kicker.fg` is below AA on three themes — DECIDED, by the same rule as B5
+## B18 — `cover.kicker.fg` is below AA on three themes
+
+**État :** sans objet · **Voir :** B5
 
 **The measurement is unchanged and the premise is not.** The three themes
 are still the three, still pinned as an exact set, and the tag is still
@@ -918,7 +1056,9 @@ someone decides that default.
 
 ---
 
-## C1 — Test AST « aucune écriture nue hors helpers » — DONE in v0.33.2
+## C1 — Test AST « aucune écriture nue hors helpers »
+
+**État :** terminé · **Version :** v0.33.2
 
 **Type:** test d'architecture.
 **Signalé dans:** `delete-before-1.0/newargs/PLAN-CLI.md` §6 Phase 3 (ligne 199), comme non
@@ -930,7 +1070,9 @@ l'intention de l'entrée ; aucun second test AST n'est nécessaire.
 
 **Status:** résolu ; vérifié le 2026-08-15.
 
-## C2 — `series article add/remove/set` — EXCLU (décision)
+## C2 — `series article add/remove/set`
+
+**État :** abandonné
 
 Hors périmètre de la refonte CLI v0.24 (`delete-before-1.0/newargs/PLAN-CLI.md` §7).
 Nécessite son propre cahier des charges ; ce n'est pas une dette mais une
@@ -940,7 +1082,9 @@ décision de périmètre. Non implémenté et volontairement absent.
 
 ---
 
-## C3 — Variantes filtrables par `tags:` — IMPLEMENTÉ ET TESTÉ EN NAVIGATEUR
+## C3 — Variantes filtrables par `tags:`
+
+**État :** terminé
 
 Le format accepte désormais des tags de variante sur les slides : `default`
 est implicite, `excluded` est retiré au build, et les autres tags sont filtrés
@@ -960,7 +1104,9 @@ exécutés le 2026-08-15 avec Node + Playwright.
 
 ---
 
-## C4 — Audit 2026-08 : décisions actées et dettes restantes — v0.33.0
+## C4 — Audit 2026-08 : décisions actées et dettes restantes
+
+**État :** terminé · **Version :** v0.33.0
 
 L'audit `docs/AUDIT-2026-08.md` (14/08/2026) a été dépouillé. Ce qui a été
 corrigé dans la release `v0.33.0` :
@@ -1012,7 +1158,9 @@ Ce qui reste volontairement ouvert :
 « e2e navigateur en attente de l'outillage » de l'ancienne section C3 est
 historique et ne s'applique plus.
 
-## B19 — `audit --strict` is blind to every warning the build emits — FIXED in v0.37.0
+## B19 — `audit --strict` is blind to every warning the build emits
+
+**État :** terminé · **Version :** v0.37.0
 
 Recorded here on 2026-08-18 because it was the one open point left in
 `delete-before-1.0/docs/PLAN-CORRECTIONS-2026-08-17.md`, a design document whose lots are
@@ -1068,7 +1216,9 @@ One thing the fix made worse and did not close: `audit`'s own warnings go
 to stdout while the render's go to stderr, so a single run splits them
 across both streams. Filed as **B26** rather than folded in.
 
-## B20 — Only three components can carry a halo, and the worst-served one is a slide heading — DECIDED 2026-08-18: the halo belongs to the theme
+## B20 — Only three components can carry a halo, and the worst-served one is a slide heading
+
+**État :** terminé · **Depuis :** 2026-08-18
 
 From `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
 reason as B19: the document is delivered, this decision is not.
@@ -1123,7 +1273,9 @@ is the one axis of the four with no reasonable one-sided default, since a
 shadow offset only to the right is as arbitrary as one offset only down —
 its default is `0`, like `dy`, and the neutral halo stays the centred one.
 
-## B21 — Pinning dark colours does not make the furniture dark, and nothing says so — FIXED in v0.37.0
+## B21 — Pinning dark colours does not make the furniture dark, and nothing says so
+
+**État :** terminé · **Version :** v0.37.0
 
 Same origin as B20, and the most consequential of the three.
 `DARK_FURNITURE_PROPS` keys off the theme definition's `dark_background`
@@ -1208,7 +1360,9 @@ because B5 and B18 decided a theme is not required to reach AA and a
 threshold that made a shipped theme warn would be a wrong threshold. A
 test sweeps every theme plus the default sheet to keep it that way.
 
-## B22 — `--version` after a command is a silent no-op — FIXED in v0.37.0
+## B22 — `--version` after a command is a silent no-op
+
+**État :** terminé · **Version :** v0.37.0
 
 `--version` is declared a global option: §2.4.1 promised all eight are
 accepted "before or after" the command, and that no command can refuse
@@ -1248,7 +1402,9 @@ did. `_GLOBAL_MODIFIERS` and `_GLOBAL_ACTIONS` now carry the distinction in
 the code. The `--` terminator, which the `--help` check had been ignoring,
 covers both actions.
 
-## B23 — `--inline-images` does not reach an included article's images — FIXED in v0.37.0
+## B23 — `--inline-images` does not reach an included article's images
+
+**État :** terminé · **Version :** v0.37.0
 
 `--inline-images` promises "a single self-contained HTML file" (§8.4).
 For an image written in a slide, it delivers: measured, a 309-byte SVG
@@ -1277,7 +1433,9 @@ survives its warning. Both would ship a dangling reference.
 Worth recording: the full suite passed with the one-line fix reverted. The
 defect had no guard at all, which is why two were written.
 
-## B24 — `audit` inspects a poorer representation than the one that builds the page — FIXED in v0.37.0
+## B24 — `audit` inspects a poorer representation than the one that builds the page
+
+**État :** terminé · **Version :** v0.37.0
 
 Filed first as a small defect: a footnote label outside `\w+` reaches the
 reader as literal text, and `audit` reports nothing. Measured: `[^a-b]` in
@@ -1360,7 +1518,9 @@ so that acting on a warning is always the right move: code spans, fenced
 blocks, raw HTML, and `[^a-b](url)`, which the link rule claims before the
 note rule ever sees it.
 
-## B25 — Two rules the project states and does not follow — HALF FIXED in v0.37.0
+## B25 — Two rules the project states and does not follow
+
+**État :** à faire
 
 Two invariants written down as requirements, neither applied nor guarded.
 Filed together because they share a shape: a rule that reads as settled
@@ -1397,7 +1557,9 @@ diverging would be silent. Either prefix it like the other two, or keep it
 shared and add the test that asserts the bodies match. **Still open**: it
 lives in `web/`, not in the executable, and it wants its own lot.
 
-## B26 — `audit` prints its warnings on stdout, the render's on stderr — OPEN
+## B26 — `audit` prints its warnings on stdout, the render's on stderr
+
+**État :** à faire
 
 `specifications.md` §2.4.1 is unambiguous: error, warning, info and debug
 go to **stderr**; progress and a command's answer go to stdout. Twenty
@@ -1424,7 +1586,9 @@ Filed rather than folded into the v0.37.0 lot. That lot was "audit renders
 and judges"; rerouting twenty print sites is a different change, and doing
 it quietly under cover of another is how a diff becomes unreviewable.
 
-## B27 — The default sheet fails the navigation floor its own test enforces — OPEN
+## B27 — The default sheet fails the navigation floor its own test enforces
+
+**État :** à faire
 
 Found while deriving the thresholds for the judgement pass, and it is a
 defect in the delivered defaults, not in the new guard.
@@ -1464,7 +1628,9 @@ entry does it. Re-reading them is theme work, small, and it is what is
 left of this entry.
 
 
-## B28 — A list item was one line, and its continuation left the list — FIXED in v0.37.0
+## B28 — A list item was one line, and its continuation left the list
+
+**État :** terminé · **Version :** v0.37.0
 
 Reported 2026-08 from a real 28-article corpus (29 pages, 5.4 MB), where
 `build`, `verify` and `audit` were all green and **73 Markdown markers
@@ -1500,7 +1666,9 @@ produced two collateral casualties — a note body glued to the previous one
 (which `audit` caught) and five unbalanced paragraphs. That is the
 argument for fixing the parser rather than teaching authors to avoid it.
 
-## B29 — A structural field ships Markdown to the reader, and nothing said so — FIXED in v0.37.0
+## B29 — A structural field ships Markdown to the reader, and nothing said so
+
+**État :** terminé · **Version :** v0.37.0
 
 Same report, 32 fields across 16 pages, `source:` lines among them — the
 exact place a reader checking a claim looks. A field is a VALUE, one
@@ -1518,7 +1686,9 @@ is Python, and warning on those is the noise that gets a check switched
 off. It reads the parsed slide rather than the source, because only the
 parse says which side of the border a given `**` fell on.
 
-## B30 — Nested emphasis, and a net for whatever the checks do not name — OPEN
+## B30 — Nested emphasis, and a net for whatever the checks do not name
+
+**État :** à étudier
 
 Two proposals from the same report, neither delivered, both for the same
 reason: measured, they carry false positives that a release meant for
@@ -1556,7 +1726,9 @@ precisely to catch what nobody enumerated.
 Not in the release the owner is about to write 28 articles with. A noisy
 `audit` in that release is worse than a silent one.
 
-## B31 — `auto` is a length, and on a shadow axis it deletes the shadow — OPEN
+## B31 — `auto` is a length, and on a shadow axis it deletes the shadow
+
+**État :** à faire
 
 `LengthType` accepts `auto` alongside `0` and the units, which is right
 for the axes that can take it and wrong for the ones that cannot. Written
@@ -1579,7 +1751,9 @@ where its type is named. Deciding which of the existing length properties
 legitimately accept `auto` is the work, and it is a sweep of the
 registry, not a patch.
 
-## B32 — A fix to `nav.js` or a language pack never reaches a series that already exists — FIXED, cause and symptom both
+## B32 — A fix to `nav.js` or a language pack never reaches a series that already exists
+
+**État :** terminé
 
 Two files the tool owns live inside the series and are read from disk at
 every build: `templates/nav.js` and `language/*.json`. `init` copies them
@@ -1638,7 +1812,9 @@ construction), a differing `nav.js` is saved as `.bak` and removed, a
 differing language pack is reported and kept, since its `rules` replace
 the base set wholesale and overwriting it would erase the author's own.
 
-## B33 — A moved anchor is invisible to everyone, including the tool that moved it — CLOSED (v0.43.0)
+## B33 — A moved anchor is invisible to everyone, including the tool that moved it
+
+**État :** sans objet · **Version :** v0.43.0 · **Voir :** spec §12.1.1
 
 **Closed by removing what made it possible, not by adding a report.**
 
@@ -1661,7 +1837,9 @@ to SEE the anchors without building the page. `lightwebpres series slug`
 lists every card of the series and the name it is published under, in
 text or as JSON.
 
-## B34 — A structural field converts an HTML entity; the body does not — DONE (v0.42.3)
+## B34 — A structural field converts an HTML entity; the body does not
+
+**État :** terminé · **Version :** v0.42.3
 
 **Verified, by sweeping all fourteen text fields with four payloads.**
 Ordinary punctuation (« », apostrophes, `100 %`, `—`, `3 < 4`) is escaped

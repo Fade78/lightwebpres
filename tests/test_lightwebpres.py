@@ -2155,6 +2155,71 @@ class CliVersionAndShortcuts(unittest.TestCase):
             f'written twice is a text that disagrees with itself. '
             f'Headings found: {headings}')
 
+    def test_the_decisions_index_matches_the_file(self):
+        """`DECISIONS.md` may have an index because this refuses to let it
+        drift.
+
+        The register carried a rule for a long time forbidding an index,
+        and the rule was earned: the block that used to sit at its top
+        listed B15, B16 and B17 among the open entries long after all
+        three were fixed. That argument is right about the danger and
+        wrong about the remedy — a second place to be wrong is only
+        dangerous while nothing checks it.
+
+        So the index is derived from the field line under each entry, by
+        `tools/decisions_index.py`, and this recomputes it and compares.
+        The comparison is on the whole file rather than on the block,
+        because a splice that lands in the wrong place is the same defect
+        as a stale list.
+
+        This also rejects an entry whose field line is missing or names a
+        state outside the six: the generator raises rather than skipping
+        it, since an entry silently absent from an index is exactly the
+        failure the rule was written against."""
+        root = Path(__file__).resolve().parent.parent
+        script = root / 'tools' / 'decisions_index.py'
+        register = root / 'DECISIONS.md'
+        if not script.exists() or not register.exists():
+            self.skipTest('no decisions_index.py or DECISIONS.md in this checkout')
+        r = subprocess.run([sys.executable, str(script), '--check'],
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0,
+                         (r.stdout + r.stderr).strip() or
+                         'the index of DECISIONS.md is stale')
+
+    def test_every_decision_entry_declares_one_of_the_six_states(self):
+        """A register whose entries do not declare a state is a register
+        that cannot be counted, which is how the old one decayed: an entry
+        fixed in a lot named after something else kept saying `NOTED`
+        because nothing ever asked it.
+
+        The states are a closed set on purpose. `DONE`, `FIXED`,
+        `SETTLED`, `CLOSED`, `NOTED`, `OPEN`, `EXCLU`, `HALF FIXED` and
+        `IMPLEMENTÉ ET TESTÉ EN NAVIGATEUR` all meant something once and
+        between them said nothing you could sort by."""
+        root = Path(__file__).resolve().parent.parent
+        register = root / 'DECISIONS.md'
+        if not register.exists():
+            self.skipTest('no DECISIONS.md in this checkout')
+        text = register.read_text(encoding='utf-8')
+        states = {'à étudier', 'à faire', 'en cours', 'terminé',
+                  'abandonné', 'sans objet'}
+        lines = text.split('\n')
+        titles = [(i, ln) for i, ln in enumerate(lines)
+                  if re.match(r'^## [BC]\d+ — ', ln)]
+        self.assertTrue(titles, 'DECISIONS.md has no entries')
+        for i, title in titles:
+            field = next((ln for ln in lines[i + 1:i + 4]
+                          if ln.startswith('**État :**')), None)
+            self.assertIsNotNone(
+                field, f'{title!r} has no field line under its title')
+            state = re.match(r'^\*\*État :\*\* ([^·\n]+?)(?: ·|$)', field)
+            self.assertIsNotNone(
+                state, f'{title!r}: unreadable field line {field!r}')
+            self.assertIn(
+                state.group(1).strip(), states,
+                f'{title!r} declares a state outside the six')
+
     def test_help_contains_version_in_header(self):
         result = run('--help')
         self.assertEqual(result.returncode, 0, result.stderr)
