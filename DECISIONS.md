@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 5 · **à faire** 5 · **en cours** 0 · **terminé** 25 · **abandonné** 1 · **sans objet** 3
+**à étudier** 5 · **à faire** 6 · **en cours** 0 · **terminé** 25 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -116,6 +116,7 @@ gets its own entry and its own state**, however small.
 - **B26** — `audit` prints its warnings on stdout, the render's on stderr
 - **B27** — The default sheet fails the navigation floor its own test enforces
 - **B31** — `auto` is a length, and on a shadow axis it deletes the shadow
+- **B36** — The engine can halo 32 components; the catalogue haloes three
 
 ### terminé
 
@@ -1237,7 +1238,7 @@ across both streams. Filed as **B26** rather than folded in.
 
 ## B20 — Only three components can carry a halo, and the worst-served one is a slide heading
 
-**État :** terminé · **Depuis :** 2026-08-18 · **Voir :** B12
+**État :** terminé · **Depuis :** 2026-08-18 · **Voir :** B12, B36
 
 **Delivered, measured 2026-08-20 on the registry: 32 components carry a
 halo, each with all four axes** — `fg`, `blur`, `dx`, `dy`, 128 axes in
@@ -1253,6 +1254,14 @@ so — which is the decay this register describes in its own header. It
 survived the pass that sorted every entry into a state, too: `terminé`
 was assigned from the work having been done, not from anything the entry
 said. A state is a measurement, so here is the measurement.
+
+**What the engine can do, the catalogue does not do.** The 32 components
+are a capability; 13 themes declare a halo and all 13 use the same three
+anchor points this entry counted, so `title2` — the element named above
+as the worst served, and the reason this entry exists — still has no halo
+of its own on any theme. That is **B36**, and it is theme work rather
+than engine work, which is why this entry is finished and that one is
+open.
 
 From `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
 reason as B19: the document is delivered, this decision is not.
@@ -1955,3 +1964,49 @@ which is what B2 asked for and the reason to keep them together.
 
 It is an addition to the input contract: a MINOR version, never a fix
 (§13.9). Nothing about it is urgent — the need is covered, verbosely.
+
+## B36 — The engine can halo 32 components; the catalogue haloes three
+
+**État :** à faire · **Voir :** B20
+
+B20 is delivered on the engine side and was never carried into the
+catalogue. Counted on the registry and on `THEME_PROPERTY_OVERRIDES`,
+2026-08-20:
+
+| | engine | catalogue |
+|---|---|---|
+| components that can carry a halo | 32 | 3 — `page`, `title1`, `highlight` |
+| axes per component | 4 (`fg`, `blur`, `dx`, `dy`) | `fg` 35×, `blur` 35×, `dy` 6×, **`dx` 0×** |
+| themes declaring any halo | — | 13 of 57 |
+
+**So the element B20 was written about still has no halo of its own.**
+The entry's table names the slide heading as the worst-served element in
+the page and says "the slide heading is the worst served, and it is a
+heading". Zero themes give `title2` a halo, and the 31 revision layers
+waiting in `delete-before-1.0/themes-revision/` (B9) do not add one
+either — they add `title1` and `highlight` halos to two themes, which is
+what B9 means by "the two extra halos".
+
+What `title2` gets instead is `page.shadow`, inherited. Computed from the
+declared values rather than measured in a browser: `body` declares no
+`font-size`, so `page.shadow.blur: 0.17em` on `lava` resolves once
+against the browser's default size and propagates as that absolute
+length. At 1920×1080, `--title2-size` is `max(24px, 4.7vmin)` = 50.8 px
+and the inherited blur is 2.7 px — **a blur-to-size ratio of 0.054, where
+`title1` sits at 0.38 by declaring its own**, a factor of seven. That is
+the same disproportion B20 measured on 2026-08-18, unchanged, because
+nothing about the catalogue changed.
+
+**Not a defect in the engine, and not an obligation on every theme.** A
+theme may decide all of it, which includes deciding that its atmosphere
+is uniform — that was B20's first branch and it is defensible. What is
+not defensible is the current state, where the disproportion is an
+accident of which three anchor points happened to exist in 2026-08, on
+13 palettes whose author never got to choose.
+
+The work is theme-authoring, on the 13 that halo: decide per palette
+whether `title2` — and the kickers, the sources, the fact-box body B20
+lists — carry their own halo, and at what ratio. It is the same trade as
+the rest of B9 and belongs with it in a pass, not before. `dx` needs a
+separate look: it exists so a halo can be offset sideways, no palette
+uses it, and nobody has asked whether any should.

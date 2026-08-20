@@ -127,6 +127,18 @@ register's own reorganisation. It now carries the measurement: 32 components wit
 halo and all four axes each, 128 in all, against the three components and
 nine axes it counted.
 
+Asking whether the themes had followed found the other half of the same
+entry. They have not: the engine can halo 32 components with four axes
+each, and the 13 themes that halo at all use the three anchor points that
+existed before the extension, with `dx` used by none. `title2` — the
+slide heading B20 exists to name as the worst-served element on the page
+— has a halo on no theme, and receives the page's own, resolved once
+against the root and propagated as an absolute length. Computed from
+`lava`'s declared values at 1920×1080: a blur-to-size ratio of 0.054
+where `title1` sits at 0.38. That is B36, `à faire`, and it is theme
+work: a theme may decide its atmosphere is uniform, but none of the
+thirteen was ever asked.
+
 The deliberation in settled entries was not deleted, which was the other
 half of this pass and turned out to be the wrong trade. What makes the
 register worth keeping is not the verdicts — those are in the code — but
