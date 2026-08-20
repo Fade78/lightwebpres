@@ -2244,6 +2244,75 @@ class CliVersionAndShortcuts(unittest.TestCase):
             f'delete-before-1.0/ and is never distributed. Put the reason '
             f'in the comment; an address a reader cannot reach is not one')
 
+    def test_no_document_tells_a_reader_to_type_a_retired_command(self):
+        """A document that teaches a retired name teaches a warning.
+
+        Thirteen names have a canonical replacement — `install` → `init`,
+        `themes-gallery` → `theme gallery`, `refresh-templates` →
+        `template update` — kept as aliases for one MAJOR, each printing
+        a `[WARNING]` that `--quiet` swallows. So a reader who follows
+        such a document gets working output today and a broken command at
+        the next MAJOR, with nothing in between to warn them.
+
+        The class has bitten: the sibling project taught retired names for
+        months. Measured here when this was written: zero sites, and this
+        is what keeps it there.
+
+        Matched on the INVOCATION, never on the word. `check`, `install`
+        and `themes` are ordinary English, and the sourced-presentation
+        skill says "check" a dozen times about verifying a fact. Only
+        `lightwebpres <verb>` counts."""
+        root = Path(__file__).resolve().parent.parent
+        lwp = load_lightwebpres_module()
+        retired = {k: v for k, v in lwp._CANONICAL_NAME.items() if v != k}
+        for legacy in ('install', 'check', 'themes'):
+            retired.setdefault(legacy, lwp.canonical(legacy))
+        pattern = re.compile(r'(?:\./)?(?:python3 )?`?lightwebpres`? '
+                             r'([a-z][a-z-]+)')
+        skip = ('delete-before-1.0/', 'docs/AUDIT', 'generated/')
+        listed = subprocess.run(['git', '-C', str(root), 'ls-files'],
+                                capture_output=True, text=True, timeout=30)
+        bad = []
+        for name in listed.stdout.split('\n'):
+            if not name or name.startswith(skip) or name.endswith(('.png', '.pyc')):
+                continue
+            try:
+                text = (root / name).read_text(encoding='utf-8')
+            except (OSError, UnicodeDecodeError):
+                continue
+            for i, line in enumerate(text.split('\n'), 1):
+                for verb in pattern.findall(line):
+                    if verb in retired:
+                        bad.append(f'{name}:{i}: `{verb}` is now '
+                                   f'`{retired[verb]}` — {line.strip()[:70]}')
+        self.assertEqual(bad, [], 'documents teaching a retired command:\n'
+                                  + '\n'.join(bad))
+
+    def test_every_format_field_is_in_the_glossary(self):
+        """`GLOSSARY.md` indexes every `key: value` of the format (§1.1),
+        and it is the vocabulary contract the sibling project binds itself
+        to (§1.2). A field the code accepts and the glossary never names
+        is a field the GUI has no reason to know exists.
+
+        Read from the code's own tables rather than from a list written
+        here: a list in a test is a third place to be wrong."""
+        root = Path(__file__).resolve().parent.parent
+        glossary = root / 'GLOSSARY.md'
+        if not glossary.exists():
+            self.skipTest('no GLOSSARY.md in this checkout')
+        lwp = load_lightwebpres_module()
+        fields = (set(lwp.ARTICLE_META_KEYS) | set(lwp.SLIDE_FIELD_NAMES)
+                  | set(lwp._SERIES_STRING_FIELDS)
+                  | set(lwp._SERIES_META_STRING_FIELDS)
+                  | set(lwp._SLIDE_FIELD_ATTRS))
+        named = set(re.findall(r'`([a-z][a-z0-9_.-]*)`',
+                               glossary.read_text(encoding='utf-8')))
+        missing = sorted(fields - named)
+        self.assertEqual(
+            missing, [],
+            f'the format accepts {missing} and GLOSSARY.md never names '
+            f'them, which is the contract lightwebpres-gui reads')
+
     def test_the_spec_index_matches_the_file(self):
         """`specifications.md` may have a table of contents for the same
         reason `DECISIONS.md` may have an index: it is derived, and this

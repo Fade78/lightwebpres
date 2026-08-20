@@ -206,6 +206,25 @@ cannot read intent. So: **a dead reference is written without the sign.**
 distinction is worth making in prose anyway, and without it no document
 could ever name what it had just fixed.
 
+Two more couplings between the documents and the program are checked
+rather than trusted, and both came out clean — the point of measuring
+them was not knowing that.
+
+No document tells a reader to type a retired command. Thirteen names have
+a canonical replacement kept as an alias for one MAJOR, each printing a
+warning `--quiet` swallows, so a document teaching one gives working
+output today and a broken command later with nothing in between. Zero
+sites here; the sibling project taught retired names for months, which is
+why this is a guard and not a note. It matches the invocation, never the
+word: `check` and `install` are ordinary English, and one skill says
+"check" a dozen times about verifying a fact.
+
+Every field the format accepts is named in `GLOSSARY.md` — 36 of 36 — and
+the guard reads the code's own tables rather than a list, because a list
+in a test is a third place to be wrong. That file is the vocabulary
+contract the GUI binds itself to, so a field it does not name is a field
+the GUI has no reason to know exists.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot
