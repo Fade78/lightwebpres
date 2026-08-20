@@ -13663,7 +13663,7 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
     def test_the_committed_guide_is_the_guide_the_tool_makes(self):
         """The guard `themes-gallery.html` has had all along and this
         did not. Both are generated artefacts committed to the repo;
-        only one of them was compared to a fresh build, so `docs/guide/`
+        only one of them was compared to a fresh build, so `generated/guide/`
         drifted 184 CSS declarations behind the stylesheet — the halo
         and the elevation — while the whole suite stayed green. A dated
         audit even recorded that both were checked byte for byte, which
@@ -13674,9 +13674,9 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
         instrument rather than a flaky one."""
         root = Path(__file__).resolve().parent.parent
         script = root / 'tools' / 'build_guide.py'
-        committed = root / 'docs' / 'guide'
+        committed = root / 'generated' / 'guide'
         if not script.exists() or not committed.is_dir():
-            self.skipTest('no build_guide.py or docs/guide in this checkout')
+            self.skipTest('no build_guide.py or generated/guide in this checkout')
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'guide'
             r = subprocess.run([sys.executable, str(script), '--output', str(out)],
@@ -13685,7 +13685,7 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
             for name in sorted(p.name for p in out.iterdir() if p.is_file()):
                 self.assertEqual(
                     (committed / name).read_bytes(), (out / name).read_bytes(),
-                    f'docs/guide/{name} is stale: re-run '
+                    f'generated/guide/{name} is stale: re-run '
                     f'`python3 tools/build_guide.py`')
 
     def test_the_guide_builds_and_shows_what_it_names(self):
@@ -13778,7 +13778,8 @@ class TheGalleryInTheRepoIsTheGalleryTheToolMakes(unittest.TestCase):
     in sync, and nothing kept it so."""
 
     def test_the_committed_gallery_is_byte_identical_to_a_fresh_one(self):
-        repo_copy = Path(__file__).resolve().parent.parent / 'themes-gallery.html'
+        repo_copy = (Path(__file__).resolve().parent.parent
+                     / 'generated' / 'themes-gallery.html')
         if not repo_copy.exists():
             self.skipTest('no committed gallery in this checkout')
         with tempfile.TemporaryDirectory() as tmp:
@@ -13786,8 +13787,8 @@ class TheGalleryInTheRepoIsTheGalleryTheToolMakes(unittest.TestCase):
             self.assertEqual(run('theme', 'gallery', str(out)).returncode, 0)
             self.assertEqual(
                 out.read_bytes(), repo_copy.read_bytes(),
-                'themes-gallery.html is stale: re-run '
-                '`lightwebpres theme gallery themes-gallery.html`')
+                'generated/themes-gallery.html is stale: re-run '
+                '`lightwebpres theme gallery generated/themes-gallery.html`')
 
 
 class TypedSurfaceCannotLeaveItsDeclaration(unittest.TestCase):

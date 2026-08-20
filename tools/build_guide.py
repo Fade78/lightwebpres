@@ -3,7 +3,7 @@
 
 The guide describes a tool for making card decks backed by a long-form
 article. So it is one: `GUIDE.md` becomes the long-form piece, and
-`docs/guide-deck.md` is the deck that summarises it. Reading the built
+`tools/guide-deck.md` is the deck that summarises it. Reading the built
 result shows every component the guide names, in situ, styled by the real
 engine.
 
@@ -12,7 +12,7 @@ This is not a copy of the guide. The long-form file is assembled from
 the test suite runs this script, so an example that stops working stops
 the build.
 
-    python3 tools/build_guide.py [--output docs/guide] [--theme slug]
+    python3 tools/build_guide.py [--output generated/guide] [--theme slug]
                                  [--lang fr|en]
 
 `--lang` defaults to `en` here, where the tool's own default is `fr`:
@@ -47,7 +47,7 @@ SERIES = {
 def build(output, theme=None, lang='en'):
     exe = ROOT / 'lightwebpres'
     guide = ROOT / 'GUIDE.md'
-    deck = ROOT / 'docs' / 'guide-deck.md'
+    deck = ROOT / 'tools' / 'guide-deck.md'
     for f in (exe, guide, deck):
         if not f.exists():
             sys.exit(f'missing: {f}')
@@ -90,7 +90,7 @@ def build(output, theme=None, lang='en'):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--output', type=pathlib.Path,
-                    default=ROOT / 'docs' / 'guide')
+                    default=ROOT / 'generated' / 'guide')
     ap.add_argument('--theme', default=None)
     ap.add_argument('--lang', default='en')
     args = ap.parse_args()

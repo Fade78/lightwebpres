@@ -56,20 +56,34 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `THIRD-PARTY-NOTICES.md` — licences de ce qui est embarqué.
 
 ### Relevés datés (consultables, non normatifs)
-- `docs/AUDIT-*.md` — les audits, avec leurs mesures et leurs conditions.
-  Les nombres qu'ils portent disent l'état du jour de la mesure : ils ne
-  se périment pas, et ne se lisent pas comme des affirmations présentes.
+- `docs/` — les audits datés (`AUDIT-*.md`), avec leurs mesures et leurs
+  conditions. Les nombres qu'ils portent disent l'état du jour de la
+  mesure : ils ne se périment pas, et ne se lisent pas comme des
+  affirmations présentes.
+
+  **Le répertoire ne porte que cette famille**, et c'est ce que
+  `specifications.md` §1.1 en dit depuis toujours. Il a longtemps porté
+  aussi une entrée de build et une sortie de build ; il fallait alors la
+  prose de ce document pour savoir laquelle était laquelle.
 
 ### Outillage
-- `docs/guide-deck.md` — deck source du guide (se compile via
-  `tools/build_guide.py`, qui assemble `GUIDE.md` comme article). Entrée
-  de build, pas documentation : se corrige comme du code.
+- `tools/guide-deck.md` — deck source du guide, à côté du script qui le
+  lit (`tools/build_guide.py`, qui assemble `GUIDE.md` comme article).
+  Entrée de build, pas documentation : se corrige comme du code.
 
-### Artefacts régénérables
-- `themes-gallery.html` — généré par `lightwebpres theme gallery` (le test
-  `test_the_committed_gallery_is_byte_identical_to_a_fresh_one` vérifie qu'il
-  est à jour).
-- `docs/guide/` — build output du guide (`tools/build_guide.py`).
+### Artefacts régénérables — `generated/`
+Sortie de build committée. **Rien ne s'y édite à la main** : la
+correction se fait à la source, puis on régénère. Les deux artefacts HTML
+ont leur garde de fraîcheur dans la suite, qui compare octet pour octet ;
+la planche-contact PNG n'en a pas — c'est une capture d'écran, pas
+reproductible à l'octet, à refaire à la main quand la galerie change.
+- `generated/themes-gallery.html` — `lightwebpres theme gallery
+  generated/themes-gallery.html` (garde :
+  `test_the_committed_gallery_is_byte_identical_to_a_fresh_one`).
+- `generated/themes-gallery.png` — planche-contact de la précédente, pour
+  le README (`tools/`).
+- `generated/guide/` — `python3 tools/build_guide.py` (garde :
+  `test_the_committed_guide_is_the_guide_the_tool_makes`).
 
 ### Documents d'étape (consultables, hors arborescence active)
 - `delete-before-1.0/` — miroir de la racine. Ce qui y entre reste

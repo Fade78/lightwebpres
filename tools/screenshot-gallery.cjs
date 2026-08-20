@@ -1,6 +1,6 @@
-// Renders themes-gallery.html to themes-gallery.png, the snapshot the
-// README embeds. Maintenance script — not part of the test suite, and
-// not something a user of lightwebpres ever needs to run.
+// Renders generated/themes-gallery.html to generated/themes-gallery.png,
+// the snapshot the README embeds. Maintenance script — not part of the
+// test suite, and not something a user of lightwebpres ever needs to run.
 //
 //   node tools/screenshot-gallery.cjs [in.html] [out.png] [--full]
 //
@@ -34,8 +34,8 @@ const { chromium } = require('playwright');
 const REPO = path.resolve(__dirname, '..');
 const args = process.argv.slice(2).filter((a) => a !== '--full');
 const FULL = process.argv.includes('--full');
-const IN = path.resolve(args[0] || path.join(REPO, 'themes-gallery.html'));
-const OUT = path.resolve(args[1] || path.join(REPO, 'themes-gallery.png'));
+const IN = path.resolve(args[0] || path.join(REPO, 'generated', 'themes-gallery.html'));
+const OUT = path.resolve(args[1] || path.join(REPO, 'generated', 'themes-gallery.png'));
 
 // CONTACT SHEET is the default, and the page's own layout is the reason.
 // The gallery gives each theme a ROW of four panels — cover, card,

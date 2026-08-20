@@ -81,19 +81,36 @@ contrat, et se répartissent dans les familles suivantes :
 
   - `docs/` — les relevés qu'on consulte encore : les audits datés
     (`AUDIT-*.md`). Ils restent dans l'arborescence active parce qu'on y
-    revient, et le backlog y renvoie.
+    revient, et le backlog y renvoie. Le répertoire ne porte que cette
+    famille. Il a longtemps porté aussi une entrée de build et une sortie
+    de build, si bien que la phrase ci-dessus était le seul endroit du
+    dépôt où l'on pouvait apprendre laquelle était laquelle.
   - `delete-before-1.0/` — les relevés dont le raisonnement est versé
     ailleurs, et les plans dont le travail est fait. Le répertoire n'est
     pas énuméré ici : ce serait reproduire le défaut que cette section
     vient de décrire. Ce qui y entre est nommé par son chemin quand un
     document pérenne en parle, et pas autrement.
 
-- **outillage** — les fichiers qu'un outil lit : `docs/guide-deck.md`, le
-  deck source du guide, compilé par `tools/build_guide.py` vers
-  `docs/guide/`. Ce n'est pas de la documentation *sur* le projet, c'est
-  une entrée de build, et elle se corrige comme du code. `web/vendor/`
-  porte aussi les notices de ce qui y est vendorisé (§13.8) : elles
-  appartiennent au tiers, pas au projet, et se remplacent avec lui.
+- **outillage** — les fichiers qu'un outil lit : `tools/guide-deck.md`,
+  le deck source du guide, compilé par `tools/build_guide.py`. Ce n'est
+  pas de la documentation *sur* le projet, c'est une entrée de build, et
+  elle se corrige comme du code — d'où sa place auprès du script qui la
+  lit plutôt qu'auprès des documents. `web/vendor/` porte aussi les
+  notices de ce qui y est vendorisé (§13.8) : elles appartiennent au
+  tiers, pas au projet, et se remplacent avec lui.
+- **sortie de build committée** — `generated/`. Un artefact que le dépôt
+  garde parce qu'on le consulte sans le construire — la galerie des
+  thèmes, le guide bâti avec l'outil qu'il décrit — mais qu'aucune main
+  ne modifie : la correction se fait à la source, puis on régénère. Les
+  deux artefacts HTML ont chacun leur garde, qui compare octet pour octet
+  la copie committée à une construction neuve — parce que la seule chose
+  qui distingue ce répertoire d'un répertoire ordinaire est une
+  discipline, et qu'une discipline sans instrument se perd. La
+  planche-contact PNG n'en a pas : c'est une capture d'écran, elle exige
+  un navigateur et son rendu n'est pas reproductible à l'octet. Elle se
+  refait à la main quand la galerie change, et c'est le point faible
+  connu de ce répertoire. Le nom du répertoire dit au lecteur ce que la
+  prose seule ne lui disait pas.
 
 `delete-before-1.0/` est un miroir de la racine : ce qui y entre reste
 consultable mais quitte l'arborescence active, git en conserve

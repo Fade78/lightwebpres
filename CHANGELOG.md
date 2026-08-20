@@ -62,6 +62,28 @@ of the nine borrowed palettes are colour schemes drawn for a dark ground
 and were shown on a light one, which is a fidelity defect, and four have
 been returned to their own grounds.
 
+The repository gets a changelog — this file — on the rule that the entry
+under a version heading IS the body of that version's GitHub release,
+written once rather than told twice. The reason it exists at all is at the
+top of the file, and so is the proof: GitHub's stored copy of the v0.43.0
+body has lost the characters that release was about.
+
+Every directory now holds one kind of file. `docs/` held a dated audit, a
+build input and a build output at the same time, so the only place you
+could learn which was which was a paragraph of prose — and the spec had
+been declaring `docs/` to be the audits alone the whole time. The deck the
+guide is built from moves to `tools/`, beside the script that reads it,
+because it is a build input and corrects like code. The two committed
+build outputs, which sat in different rooms, are now peers in
+`generated/`: the theme gallery, its contact sheet, and the guide built
+with the tool it describes. The directory's name is the instruction —
+nothing in it is edited by hand — and the root sheds 18 MB of generated
+matter it was carrying unmarked.
+
+Nothing normative moved. `specifications.md`, `GUIDE.md`, `GLOSSARY.md`
+and the rest keep their addresses, which are quoted from a sibling
+project, from `--help`, and from links already given out.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot
