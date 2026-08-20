@@ -2824,12 +2824,36 @@ Cette spécification ne fixe donc aucun seuil qu'une palette devrait
 franchir pour entrer au catalogue, et il n'en a jamais existé un que le
 programme applique.
 
-Ce qui est fait, en revanche : les thèmes propres au projet
-(`source: 'lightwebpres'`) sont dessinés **puis mesurés**, et la mesure
-est publiée — `theme show`, `theme gallery`, le rapport par catégorie avec
-la paire la plus faible nommée. L'auteur choisit en sachant ce qu'il
-choisit. C'est tout ce que l'outil a à dire sur cet axe, et c'est un
-service rendu à l'auteur, pas un jugement sur le thème.
+Ce qui est fait, en revanche : les thèmes sont mesurés et la mesure est
+publiée — `theme show`, `theme gallery`, le rapport par catégorie avec la
+paire la plus faible nommée. L'auteur choisit en sachant ce qu'il
+choisit. C'est tout ce que l'**outil** a à dire sur cet axe, et c'est un
+service rendu à l'auteur, pas un jugement porté sur le thème.
+
+**Livrer un catalogue est un second métier**, et il ne faut pas le
+confondre avec le premier. En dessinant des thèmes pour accompagner ce
+logiciel, le projet endosse un rôle de créateur de thèmes, et à ce
+titre-là il a le droit de se donner des exigences — c'est son travail. Le
+plancher qu'il se donne aujourd'hui sur les palettes qu'il dessine
+lui-même (`source: 'lightwebpres'`) est AA sur le texte gras de la
+boîte-fait posé sur son propre surligneur, tenu par une garde de la suite
+de tests.
+
+Cette exigence est **la nôtre, sur ce que nous dessinons**, et la portée
+est le point. Les neuf palettes empruntées sont livrées telles que leurs
+auteurs les ont faites, pour la fidélité : les mesurer est légitime et
+publier la mesure est tout le service, mais les tenir à une barre que
+nous nous fixons pour notre propre travail reviendrait à nous arroger une
+compétence sur le design d'autrui. Mesuré le 2026-08-20 sur ce site : nos
+48 entrées vont de 5,02:1 (`pop-lagoon`) à 18,66:1, les neuf empruntées
+de 4,51:1 (`catppuccin`) à 14,70:1 — sous la forme précédente, qui
+balayait tout le catalogue, cette garde était à un centième de faire
+échouer la suite sur une décision de palette qui n'était pas la nôtre.
+
+Rien de tout cela n'est dans le programme. Aucune de ces exigences n'est
+lue à l'exécution, aucune ne conditionne quoi que ce soit pour l'auteur
+d'une série : ce sont des règles d'atelier, elles vivent dans les tests,
+et elles ne concernent que les fichiers de thème que ce dépôt écrit.
 
 **Ce qui reste une règle, et qui n'est pas une affaire de niveau** : la
 couleur n'est jamais le seul porteur d'une information. Les verdicts d'un
