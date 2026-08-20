@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 4 · **en cours** 0 · **terminé** 26 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 3 · **en cours** 0 · **terminé** 27 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -115,7 +115,6 @@ gets its own entry and its own state**, however small.
 - **B25** — Two rules the project states and does not follow
 - **B26** — `audit` prints its warnings on stdout, the render's on stderr
 - **B27** — The default sheet fails the navigation floor its own test enforces
-- **B31** — `auto` is a length, and on a shadow axis it deletes the shadow
 
 ### terminé
 
@@ -143,6 +142,7 @@ gets its own entry and its own state**, however small.
 - **B24** — `audit` inspects a poorer representation than the one that builds the page
 - **B28** — A list item was one line, and its continuation left the list
 - **B29** — A structural field ships Markdown to the reader, and nothing said so
+- **B31** — `auto` is a length, and on a shadow axis it deletes the shadow
 - **B32** — A fix to `nav.js` or a language pack never reaches a series that already exists
 - **B34** — A structural field converts an HTML entity; the body does not
 
@@ -1797,7 +1797,27 @@ Not in the release the owner is about to write 28 articles with. A noisy
 
 ## B31 — `auto` is a length, and on a shadow axis it deletes the shadow
 
-**État :** à faire
+**État :** terminé · **Depuis :** 2026-08-20 · **Voir :** spec §9.2
+
+**Closed by removing the value, and the entry's own plan was wider than
+the defect.** It expected a narrower type for the axes where `auto` is
+meaningless, and a decision about which length properties legitimately
+accept it. Swept over the registry: **none of the 212 do.** Every one
+reaches a CSS context that refuses it — shadow offsets, blurs and
+spreads, font sizes, border and ring widths, tracking, padding, and the
+two max-widths, whose keyword is `none` rather than `auto`. No property
+defaults to it and no built-in theme resolves to it.
+
+So there was no type to add. `LengthType` stops accepting `auto`, which
+is one line, and refuses it **by name** with the reason: someone who
+wrote it did so on purpose and is owed an explanation, not a units list.
+What used to happen instead was the failure typing exists to prevent — a
+value surviving every check the tool makes and dying in the renderer.
+
+The guard asserts it over the whole registry rather than on a sample,
+because this entry's own history is that the hole was found on one axis
+and was open on sixty-five. Proved by mutation: putting `auto` back in
+the accepted set fails it on `page.shadow.blur`.
 
 `LengthType` accepts `auto` alongside `0` and the units, which is right
 for the axes that can take it and wrong for the ones that cannot. Written

@@ -2347,10 +2347,28 @@ class LengthType(PropType):
                     f'function (balanced parentheses, no punctuation that '
                     f'could leave the declaration)')
             return value
-        if value in ('0', 'auto'):
+        if value == '0':
             return value
         m = re.match(r'^-?\d*\.?\d+([a-z%]+)$', value)
         if not m or m.group(1) not in LENGTH_UNITS:
+            # `auto` used to be accepted here and is refused by name,
+            # because it validated, resolved and emitted: written on a
+            # shadow axis it produced `box-shadow: auto 1px 8px 0 …`,
+            # which no browser parses, so the shadow vanished with no
+            # build error, no audit warning and nothing in `theme show`.
+            # Swept across the registry, `auto` is meaningless in EVERY
+            # one of the CSS contexts a length reaches here — shadow
+            # offsets, blurs, spreads, font sizes, border widths,
+            # tracking, padding, and the two max-widths, which take
+            # `none` and not `auto`. So it is not a narrower type that
+            # was missing, it is one value that never belonged.
+            if value == 'auto':
+                raise PropertyError(
+                    f'{key}: `auto` is not a length here. No property in '
+                    f'this registry reaches a CSS context that accepts '
+                    f'it, and it used to be emitted verbatim into one '
+                    f'that does not — silently deleting the shadow, rule '
+                    f'or size it was written on. Write `0` for none.')
             raise PropertyError(f'{key}: {value!r} is not a length '
                                 f'(units: {", ".join(LENGTH_UNITS)})')
         return value

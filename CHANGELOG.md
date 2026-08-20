@@ -250,6 +250,21 @@ the render guard uses. Seven of them are one decision reaching six
 variables that take the text face by reference — the reference working,
 declared rather than absorbed.
 
+`auto` is no longer a length. It validated, resolved and emitted:
+written on a shadow axis, `card.elevation.dx: auto` produced `box-shadow:
+auto 1px 8px 0 …`, which no browser parses, so the card lost its shadow
+with no build error, no `audit` warning and nothing in `theme show` — a
+value surviving every check the tool makes and dying in the renderer,
+which is the failure typing exists to prevent.
+
+The fix is smaller than expected because the sweep said so. All 212
+length properties reach a CSS context that refuses `auto` — shadow
+offsets, blurs and spreads, font sizes, border and ring widths, tracking,
+padding, and the two max-widths, whose keyword is `none`. Nothing
+defaulted to it, no built-in theme resolved to it. There was no narrower
+type missing; there was one value that never belonged. It is refused by
+name, with the reason, because someone who wrote it wrote it on purpose.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot

@@ -14064,6 +14064,46 @@ class TypedSurfaceCannotLeaveItsDeclaration(unittest.TestCase):
     def setUpClass(cls):
         cls.lwp = load_lightwebpres_module()
 
+    def test_auto_is_refused_on_every_length_because_it_fits_none_of_them(self):
+        """B31. `auto` validated, resolved and emitted, and no browser
+        parses what came out.
+
+        `card.elevation.dx: auto` produced `box-shadow: auto 1px 8px 0
+        #0000000F`, an unparseable declaration, so the card lost its
+        shadow entirely — no build error, no `audit` warning, nothing in
+        `theme show`. A value that survives every check the tool makes
+        and dies in the renderer is the failure mode typing exists to
+        prevent, on the one axis where nothing was checking.
+
+        The entry expected a narrower type for the axes where `auto` is
+        meaningless. Swept, the registry says there are no others: all
+        212 length properties reach a CSS context that refuses it —
+        shadow offsets, blurs and spreads, font sizes, border and ring
+        widths, tracking, padding, and the two max-widths, whose keyword
+        is `none`. Nothing defaulted to it and no built-in theme resolved
+        to it. So it is not a type that was missing, it is one value that
+        never belonged.
+
+        Asserted over the WHOLE registry rather than on a sample: the
+        entry's own history is that the hole was found on one axis and
+        was open on sixty-five."""
+        lengths = [k for k, p in self.lwp.PROPERTY_REGISTRY.items()
+                   if p.type.name == 'length']
+        self.assertGreater(len(lengths), 100, 'the sweep found no lengths')
+        for key in lengths:
+            with self.assertRaises(self.lwp.PropertyError, msg=key):
+                self.lwp.resolve_theme_properties({key: 'auto'})
+        # And the message says why, because someone wrote it on purpose.
+        with self.assertRaises(self.lwp.PropertyError) as caught:
+            self.lwp.resolve_theme_properties({'card.elevation.dx': 'auto'})
+        self.assertIn('`auto` is not a length here', str(caught.exception))
+        self.assertIn('Write `0` for none', str(caught.exception))
+        # What a length legitimately is still passes, on the same axes.
+        self.lwp.resolve_theme_properties({
+            'card.elevation.dx': '0', 'title1.shadow.blur': '0.2em',
+            'page.content-max': 'clamp(20rem, 60vw, 50ch)',
+            'kicker.tracking': '2.5px'})
+
     def test_a_font_stack_cannot_carry_anything_but_family_names(self):
         # Checking only the LAST component let a payload ending on a generic
         # through: `</style><script>x</script><style>y, sans-serif`.
