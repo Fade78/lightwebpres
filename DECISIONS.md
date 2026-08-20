@@ -79,12 +79,27 @@ how the numbers above happened.
 someone ran something and wrote down what came back. Where an entry claims
 a figure, the figure is in it.
 
+**The deliberation stays, behind a dated label.** A settled entry keeps
+the reading it was written with — the four cases, the three options, the
+measurement that killed a hypothesis — under a line saying whose day it
+is and that its present tense is past. Deleting it was considered and is
+the wrong trade: what makes this register worth keeping is not the
+verdicts, which are also in the code, but why the verdict is that one.
+An option ruled out and not written down comes back as a proposal in six
+months.
+
+That works only while the label is honest. A settled entry must not carry
+a live question inside it: B2 held one for months — a marker syntax
+nobody had decided — inside an entry marked settled, where any count by
+state would have read it as decided. It is B35 now. **What is still open
+gets its own entry and its own state**, however small.
+
 ## Index
 
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 4 · **à faire** 5 · **en cours** 0 · **terminé** 25 · **abandonné** 1 · **sans objet** 3
+**à étudier** 5 · **à faire** 5 · **en cours** 0 · **terminé** 25 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -92,6 +107,7 @@ a figure, the figure is in it.
 - **B10** — Gamut mapping for lightness-shifted inks
 - **B11** — Dichromat separability is not verified
 - **B30** — Nested emphasis, and a net for whatever the checks do not name
+- **B35** — Reaching a verdict class without writing HTML
 
 ### à faire
 
@@ -193,7 +209,7 @@ stating so nobody has to rediscover them:
 **Type:** implementation bug (the expected behaviour was already
 specified).
 **Reported against:** v0.11.0, in a long-form article (`_article.md`).
-**Status:** **fixed**. The inline pattern was given the optional title
+The inline pattern was given the optional title
 group it was missing. A decision was made along the way: the title is
 not thrown away but becomes a `title` attribute (a tooltip), never a
 `<figcaption>` — and it goes through neither inline rendering nor
@@ -201,7 +217,8 @@ typography, which have no business inside an attribute value. Covered by
 a test that exercises all four cases A/B/C/D **together**, since it was
 testing them separately that let the hole through. Spec §6.1 updated.
 
-The original analysis is kept below: it documents the cause.
+*Analysis of the report below. It is the reading of that day, kept
+because it documents the cause; read its present tense as past.*
 
 ### The four cases
 
@@ -265,8 +282,7 @@ being tested separately.
 
 **État :** terminé · **Version :** v0.12.0
 
-**Status:** the question "gap or choice?" got an answer, and it was
-neither. The default stylesheet **already** shipped `.yes` / `.no` /
+The question "gap or choice?" got an answer, and it was neither. The default stylesheet **already** shipped `.yes` / `.no` /
 `.partial` / `.col-signal` / `.col-snap` to everyone — undocumented, and
 with no way whatsoever to produce them from the Markdown. `lightwebpres`
 was therefore shipping styling hooks its own format could not reach: an
@@ -288,15 +304,14 @@ touch the input contract):
 - Locked down by a test (the three declarations must differ and must come
   from the palette).
 
-**Still open, post-1.0**: option 2, an in-cell marker syntax (`| +yes |`)
-to reach those classes without HTML. That is an addition to the input
-contract, so a minor version, never a fix. The §9 rewrite changed the
-styling side, not this: the `.yes`/`.no`/`.partial` hooks are kept as a
-documented contract, and each verdict is now painted by its own typed
-properties (`verdict.yes.fg`, `verdict.yes.mark`, ...), so a marker syntax
-would bind to components that already exist — the parsing question is all
-that remains. If it is adopted, handle the column case in the same pass.
-The analysis of the three options is kept below.
+The one option this entry did not close — an in-cell marker syntax, so
+the classes can be reached without writing HTML — is **B35**. It was
+living here, in an entry marked settled, which is a good way for a live
+question to become invisible.
+
+*Framing of 2026-08-04 below. It is the reading of that day, kept because
+it documents the need and the three options; read its present tense as
+past.*
 
 ### The need
 
@@ -598,7 +613,8 @@ could never win over the theme — which is the whole point of an instance
 tag. Consequence to know: everything inside the block aligns, table cells
 included.
 
-Original framing follows.
+*Framing of the day the entry was written, below. Read its present tense
+as past.*
 
 
 Owner's request, 2026-08-04, deliberately deferred to a later version:
@@ -678,7 +694,8 @@ The one hard floor in the project is elsewhere and has nothing to do with
 this entry: navigation furniture clears 3:1 because an invisible progress
 dot is a broken control, not a bold palette (§9.5.6). B6 closed it.
 
-Original framing follows.
+*Framing of the day the entry was written, below. Read its present tense
+as past.*
 
 The engine gave themes fonts, shadows and per-component axes; only
 `terminal` uses them (fixed pitch plus phosphor halo, the owner's
@@ -795,7 +812,8 @@ of 8 down to 3 each; portrait unchanged to the pixel.
 recorded as **untested**: headless Chromium has no browser chrome, so
 `svh`, `lvh` and `vh` are all equal in the harness.
 
-Original framing follows.
+*Framing of the day the entry was written, below. Read its present tense
+as past.*
 
 
 The only CSS variable the composed sheet still declares outside the
@@ -832,7 +850,8 @@ re-introduce the very "the constant is not what ships" property this entry
 existed to kill, so they were kept. Revisit only if page weight becomes a
 real constraint.
 
-The original analysis follows.
+*Audit finding of 2026-08-04 below. It is the reading of that day, kept
+because it documents the cause; read its present tense as past.*
 
 Audit finding (2026-08-04): about two thirds of the old sheet's 577 lines
 are dead at runtime — 142 lines of comments, the 23-declaration :root, and
@@ -881,7 +900,8 @@ control states — which WCAG 1.4.3 exempts. The blind spot is real; what it
 currently holds is not a defect. Worth stating inside the guard so a
 future fade on live text cannot arrive believing itself covered.
 
-The original reading is kept below.
+*Reading of the day the entry was written, below. Read its present tense
+as past.*
 
 
 Found by B14 while freezing the skeleton, pre-existing and untouched
@@ -925,7 +945,8 @@ The entry asked for "one comparison and a named error" and worried that
 it would turn an accepted configuration into a fatal one. It did, with
 the single-article case preserved — which was the whole concern.
 
-The original reading is kept below.
+*Reading of the day the entry was written, below. Read its present tense
+as past.*
 
 
 Found while building the guide with the tool (`tools/build_guide.py`): an
@@ -967,7 +988,8 @@ The entry predicted its own closing: it said the exact-set pin in
 force the exemption out with it. That is what happened, and the set is now
 empty — which is that idiom's strongest state, not an absence of coverage.
 
-The original reading is kept below.
+*Reading of the day the entry was written, below. Read its present tense
+as past.*
 
 
 Found while measuring the notes work, and it is **not** a note defect:
@@ -1068,7 +1090,7 @@ interdit `.write_text()` et `.mkdir()`, ainsi que les copies `shutil`, hors
 des helpers `_write_file`, `_mkdir`, `_copy` et `_copytree`. Il couvre donc
 l'intention de l'entrée ; aucun second test AST n'est nécessaire.
 
-**Status:** résolu ; vérifié le 2026-08-15.
+Vérifié le 2026-08-15.
 
 ## C2 — `series article add/remove/set`
 
@@ -1077,8 +1099,6 @@ l'intention de l'entrée ; aucun second test AST n'est nécessaire.
 Hors périmètre de la refonte CLI v0.24 (`delete-before-1.0/newargs/PLAN-CLI.md` §7).
 Nécessite son propre cahier des charges ; ce n'est pas une dette mais une
 décision de périmètre. Non implémenté et volontairement absent.
-
-**Status:** exclu.
 
 ---
 
@@ -1099,8 +1119,8 @@ bloquer. Le comportement est couvert par les tests black-box, le test
 navigateur (`tests/slide_tags_e2e.cjs`, menu, filtrage, persistance,
 rechargement) et la documentation permanente.
 
-**Status:** implémenté et vérifié ; les 13 tests e2e navigateur ont été
-exécutés le 2026-08-15 avec Node + Playwright.
+Les 13 tests e2e navigateur ont été exécutés le 2026-08-15 avec Node +
+Playwright.
 
 ---
 
@@ -1154,9 +1174,8 @@ Ce qui reste volontairement ouvert :
   a été corrigé pour résoudre les valeurs fluides `max()`/`clamp()` au
   lieu de comparer la chaîne brute).
 
-**Status:** décisions actées ; dettes restantes listées ci-dessus. Le statut
-« e2e navigateur en attente de l'outillage » de l'ancienne section C3 est
-historique et ne s'applique plus.
+Le statut « e2e navigateur en attente de l'outillage » que portait
+l'ancienne section C3 est historique et ne s'applique plus.
 
 ## B19 — `audit --strict` is blind to every warning the build emits
 
@@ -1887,3 +1906,37 @@ is not a well-formed reference. It earned its shape immediately — it
 found two surfaces the hand-written list had missed, the `series-nav`
 cards and the article page footer. Three mutations, three killed. No
 artefact of this repository moved, as predicted.
+
+## B35 — Reaching a verdict class without writing HTML
+
+**État :** à étudier · **Voir :** B2
+
+Split out of B2 on 2026-08-20, because it was the one question that entry
+left open and it was sitting inside an entry marked settled. An index
+built from states would have counted it as decided; it is not.
+
+B2 settled the styling side and the documentation: `.yes` / `.no` /
+`.partial` / `.col-signal` / `.col-snap` are a documented contract, each
+verdict is painted by its own typed properties (`verdict.yes.fg`,
+`verdict.yes.mark`, …), and inline HTML is the written route to them. So
+a comparison table is expressible today. What it costs is thirty class
+attributes written by hand, in a format whose whole argument is that an
+author writes prose.
+
+**What is not decided** is whether the format grows a way to say it — an
+in-cell marker such as `| +yes |`, `| -no |`, `| ~partial |`. B2 ruled
+out the other candidate for good reasons that still hold: deriving the
+class from the cell's text would depend on the language, in a format that
+ships `fr` and `en` packs, and would retroactively recolour tables
+already published, since a cell reading "no" would turn red on the next
+build.
+
+**What is left to decide is parsing, not painting.** The components a
+marker would bind to already exist, so nothing structural is missing. The
+open questions are the marker's shape, how a cell that legitimately
+starts with `+` or `~` escapes it, and whether the column case
+(`col-signal`) is done in the same pass rather than revisited later —
+which is what B2 asked for and the reason to keep them together.
+
+It is an addition to the input contract: a MINOR version, never a fix
+(§13.9). Nothing about it is urgent — the need is covered, verbosely.

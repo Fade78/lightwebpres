@@ -108,6 +108,22 @@ suite if the two disagree. Proved by mutation three ways: a state changed
 without regenerating, a seventh state invented, an entry left without a
 field line.
 
+Sorting the entries by state found a question that had been invisible for
+months. B2 was marked settled and carried, near its end, one option it had
+not closed — a marker syntax for reaching a verdict class without writing
+HTML. Any count by state would have read it as decided. It is B35 now,
+`à étudier`, with what B2 ruled out and why. The rule that follows is in
+the register's header: what is still open gets its own entry and its own
+state, however small.
+
+The deliberation in settled entries was not deleted, which was the other
+half of this pass and turned out to be the wrong trade. What makes the
+register worth keeping is not the verdicts — those are in the code — but
+why the verdict is that one, and an option ruled out and not written down
+comes back as a proposal in six months. It stays, under one dated label
+instead of the three phrasings it had grown, saying whose day it is and
+that its present tense reads as past.
+
 `tests/run_tests.py` fetches tags before running. The guard that compares
 `VERSION` to the newest tag reads local refs on purpose — a network call
 inside a unit test fails where there is no network — and the blind spot
