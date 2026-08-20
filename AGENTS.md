@@ -91,7 +91,8 @@ reproductible à l'octet, à refaire à la main quand la galerie change.
 - `delete-before-1.0/` — miroir de la racine. Ce qui y entre reste
   consultable mais quitte l'arborescence active : mémoire de travail,
   relevés dont le raisonnement est versé ailleurs, et documents de
-  conception absorbés (sous `docs/`). git en conserve l'historique ; la
+  conception absorbés (sous `delete-before-1.0/docs/`, à ne pas confondre
+  avec le `docs/` de la racine). git en conserve l'historique ; la
   suppression effective se fera avant la 1.0, ce que son nom dit.
 
   **Avant d'y envoyer un document, vérifier ce qu'il porte encore.** Un

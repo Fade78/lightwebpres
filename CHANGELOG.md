@@ -56,7 +56,7 @@ it sat one hundredth of a point from failing the suite over a decision the
 Catppuccin authors made about their own palette. It is scoped to what the
 project draws.
 
-Two backlog entries existed only because of a bar that never existed and
+Two register entries existed only because of a bar that never existed and
 are closed. What survives from them is real and is not about levels: seven
 of the nine borrowed palettes are colour schemes drawn for a dark ground
 and were shown on a light one, which is a fidelity defect, and four have
@@ -75,10 +75,10 @@ been declaring `docs/` to be the audits alone the whole time. The deck the
 guide is built from moves to `tools/`, beside the script that reads it,
 because it is a build input and corrects like code. The two committed
 build outputs, which sat in different rooms, are now peers in
-`generated/`: the theme gallery, its contact sheet, and the guide built
-with the tool it describes. The directory's name is the instruction —
-nothing in it is edited by hand — and the root sheds 18 MB of generated
-matter it was carrying unmarked.
+`generated/` — the theme gallery and the guide built with the tool it
+describes — along with the gallery's contact sheet. The directory's name
+is the instruction, nothing in it is edited by hand, and the root sheds
+18.3 MB of generated matter it was carrying unmarked.
 
 Nothing normative moved. `specifications.md`, `GUIDE.md`, `GLOSSARY.md`
 and the rest keep their addresses, which are quoted from a sibling
@@ -88,10 +88,12 @@ project, from `--help`, and from links already given out.
 wrong in a way that showed: a backlog is work waiting to be done, so an
 entry that turned out to need no work had nowhere to go and stayed OPEN.
 Most of what is in there is not waiting for anything — it is a decision,
-with the measurement that made it. Thirty-eight entries carried about a
-dozen status vocabularies in two languages (`DONE`, `FIXED`, `SETTLED`,
-`CLOSED`, `NOTED`, `OPEN`, `EXCLU`, `HALF FIXED`, `IMPLEMENTÉ ET TESTÉ EN
-NAVIGATEUR`), and between them they said nothing you could sort by. Each
+with the measurement that made it. Thirty-eight entries carried twelve
+status verbs in two languages, spelled twenty different ways — `DONE`,
+`FIXED`, `SETTLED`, `CLOSED`, `DECIDED`, `NOTED`, `OPEN`, `EXCLU`, `HALF
+FIXED`, `IMPLEMENTÉ ET TESTÉ EN NAVIGATEUR`, `WHAT IS LEFT IS
+TYPOGRAPHY`, and one that was just a version number — and between them
+they said nothing you could sort by. Each
 entry now declares one of six — à étudier, à faire, en cours, terminé,
 abandonné, sans objet — on a field line under its title, which is the one
 place its state lives. `sans objet` exists for three entries that neither
@@ -115,6 +117,15 @@ HTML. Any count by state would have read it as decided. It is B35 now,
 `à étudier`, with what B2 ruled out and why. The rule that follows is in
 the register's header: what is still open gets its own entry and its own
 state, however small.
+
+Re-reading all of it afterwards found one entry closed on evidence that
+was not in it. B20 recorded a decision and a design note addressed to a
+future lot; the lot landed and nothing came back to say so, so `terminé`
+was assigned in this same pass from the work having been done rather than
+from anything the entry said — the register's own decay, caught on the
+register's own reorganisation. It now carries the measurement: 32 components with a
+halo and all four axes each, 128 in all, against the three components and
+nine axes it counted.
 
 The deliberation in settled entries was not deleted, which was the other
 half of this pass and turned out to be the wrong trade. What makes the

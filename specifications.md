@@ -98,19 +98,20 @@ contrat, et se répartissent dans les familles suivantes :
   lit plutôt qu'auprès des documents. `web/vendor/` porte aussi les
   notices de ce qui y est vendorisé (§13.8) : elles appartiennent au
   tiers, pas au projet, et se remplacent avec lui.
-- **sortie de build committée** — `generated/`. Un artefact que le dépôt
-  garde parce qu'on le consulte sans le construire — la galerie des
-  thèmes, le guide bâti avec l'outil qu'il décrit — mais qu'aucune main
-  ne modifie : la correction se fait à la source, puis on régénère. Les
-  deux artefacts HTML ont chacun leur garde, qui compare octet pour octet
-  la copie committée à une construction neuve — parce que la seule chose
-  qui distingue ce répertoire d'un répertoire ordinaire est une
-  discipline, et qu'une discipline sans instrument se perd. La
-  planche-contact PNG n'en a pas : c'est une capture d'écran, elle exige
-  un navigateur et son rendu n'est pas reproductible à l'octet. Elle se
-  refait à la main quand la galerie change, et c'est le point faible
-  connu de ce répertoire. Le nom du répertoire dit au lecteur ce que la
-  prose seule ne lui disait pas.
+
+**`generated/` n'est pas une famille de documents**, et figure ici parce
+que c'est le seul répertoire du dépôt dont le contenu n'est écrit par
+personne : de la sortie de build committée — la galerie des thèmes, sa
+planche-contact, le guide bâti avec l'outil qu'il décrit. Le dépôt les
+garde parce qu'on les consulte sans les construire, mais aucune main ne
+les modifie : la correction se fait à la source, puis on régénère. Les
+deux artefacts HTML ont chacun leur garde, qui compare octet pour octet
+la copie committée à une construction neuve — parce que la seule chose
+qui distingue ce répertoire d'un répertoire ordinaire est une discipline,
+et qu'une discipline sans instrument se perd. La planche-contact PNG n'en
+a pas : c'est une capture d'écran, elle exige un navigateur et son rendu
+n'est pas reproductible à l'octet. Elle se refait à la main quand la
+galerie change, et c'est le point faible connu de ce répertoire.
 
 `delete-before-1.0/` est un miroir de la racine : ce qui y entre reste
 consultable mais quitte l'arborescence active, git en conserve

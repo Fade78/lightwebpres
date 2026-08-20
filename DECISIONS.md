@@ -1237,7 +1237,22 @@ across both streams. Filed as **B26** rather than folded in.
 
 ## B20 — Only three components can carry a halo, and the worst-served one is a slide heading
 
-**État :** terminé · **Depuis :** 2026-08-18
+**État :** terminé · **Depuis :** 2026-08-18 · **Voir :** B12
+
+**Delivered, measured 2026-08-20 on the registry: 32 components carry a
+halo, each with all four axes** — `fg`, `blur`, `dx`, `dy`, 128 axes in
+all, against the three components and nine axes the entry below counted.
+`title2`, the slide heading this entry names as the worst-served element
+in its own table, is among them, as are the kickers, the sources and the
+fact-box body it lists as having no axis at all.
+
+That paragraph is written on 2026-08-20 and it is a repair, not a
+record of the day. The entry stated a decision and then a design note
+addressed to a future lot, the lot landed, and nothing came back to say
+so — which is the decay this register describes in its own header. It
+survived the pass that sorted every entry into a state, too: `terminé`
+was assigned from the work having been done, not from anything the entry
+said. A state is a measurement, so here is the measurement.
 
 From `delete-before-1.0/docs/THEMES-A-ECRIRE-2026-08-17.md`, absorbed here for the same
 reason as B19: the document is delivered, this decision is not.
