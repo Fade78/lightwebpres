@@ -108,7 +108,39 @@ def _run_parallel(suite, workers):
     return 1 if failed else 0
 
 
+def _fetch_tags():
+    """Bring the remote's tags in, best effort, before anything runs.
+
+    One test compares VERSION against the newest tag reachable from HEAD
+    (`test_the_number_the_tool_says_is_the_number_it_was_released_as`). It
+    reads LOCAL refs on purpose — a network call inside a unit test fails
+    where there is no network — and its docstring records the blind spot
+    that follows: a clone that has not fetched cannot see a tag just
+    pushed, and the guard stays silent for exactly as long as that lasts.
+
+    Measured twice, a day apart, in this repository: v0.42.1 was cut and
+    the tree kept announcing 0.42.1 through six further commits with a
+    green suite, and v0.43.1 was cut and three further commits went out
+    the same way. Both times the clone had never fetched the tag. Telling
+    people to remember `git fetch --tags` did not work, which is the usual
+    fate of that instruction.
+
+    So the RUNNER fetches and the test still reads local refs. The trade
+    the test makes is kept — it passes offline, in a container, on a
+    checkout with no remote — and the case it cannot see is closed one
+    level up, where a network call is allowed to fail quietly. Five
+    seconds, no output, and any failure is ignored: not fetching is
+    exactly the state we were already in.
+    """
+    try:
+        subprocess.run(['git', '-C', str(ROOT), 'fetch', '--tags', '--quiet'],
+                       capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 if __name__ == '__main__':
+    _fetch_tags()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workers', type=int, default=None,
                         help='run test classes in N isolated workers '
