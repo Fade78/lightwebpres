@@ -1447,9 +1447,21 @@ gives 8.02:1.
 Not fixed here. Changing a registry default repaints the 34 themes that do
 not override it, which is a catalogue decision and wants its own lot.
 
-Note that §9.5.2 states a carve-out for `mark` as a rule colour, so this
-may be judged acceptable — but then the 23 overrides are the anomaly, and
-one of the two readings is wrong.
+**Resolved by the position, 2026-08-20, and the answer is the second
+reading.** The entry itself named the fork — either the default is
+acceptable, or the 23 overrides are the anomaly, and one of the two
+readings is wrong. It is the second. `table.col-snap.rule-fg` edges a
+column that already carries its own tinted ground; nothing moves the
+reader with it, so it is not navigation and the 3:1 floor is not about
+it. There is no carve-out to invoke, because there is no criterion to be
+carved out of: a floor on rules-in-general never existed in the program,
+and §9.5.2 no longer pretends otherwise.
+
+So the default `mark` is fine and stays. What wants a second look is the
+**23 hand-pinned overrides**, added to clear a guard that does not apply
+to them — the kind of thing that spreads through a catalogue once one
+entry does it. Re-reading them is theme work, small, and it is what is
+left of this entry.
 
 
 ## B28 — A list item was one line, and its continuation left the list — FIXED in v0.37.0

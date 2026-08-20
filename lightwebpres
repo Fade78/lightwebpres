@@ -13545,21 +13545,24 @@ def navigation_contrast_sites():
     so this cannot quietly become one. Saying "three pieces" here made a
     written exemption read as a hole.
 
-    The other three non-text sites are out of this floor on written
-    grounds, not by oversight:
+    Three other non-text sites are outside this floor, and the reason is
+    the same one for all three: they are not navigation. Nothing moves
+    the reader with them, so `color.nav` does not paint them and the
+    derivation above does not reach them — no exemption is needed and
+    none is written.
 
-      - `table.col-snap.rule-fg` takes `mark`, and §9.5.2 states the
-        carve-out in its own words — mark is built to serve as a ground
-        before it serves as a rule, and the "rules >= 3" criterion is
-        explicitly not held for it. The column also carries its own
-        tinted ground, which is what identifies it.
-      - `link.decoration-color` takes `ink`, "which can never fail"
-        (§9.5.3) — a body link inherits the ink around it.
+      - `table.col-snap.rule-fg` takes `mark`. It edges a column that
+        already carries its own tinted ground, and that ground is what
+        identifies the column.
+      - `link.decoration-color` takes `ink`: a body link inherits the ink
+        around it (§9.5.3).
       - `fact.strong.decoration-color` takes the emphasis colour itself,
-        on a run that already carries weight and usually a ground (§9.5.5).
+        on a run that already carries weight and usually a ground
+        (§9.5.5).
 
-    Judging those three here would warn on the shipped default sheet,
-    which is the noise B5 exists to prevent."""
+    They are measured like everything else and reported like everything
+    else; what they are not is controls, and this floor is about
+    controls."""
     return [site for site in CONTRAST_SITES
             if site.kind != 'text'
             and PROPERTY_REGISTRY[site.fg].default == 'nav']
