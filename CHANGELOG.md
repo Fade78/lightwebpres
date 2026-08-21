@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.43.5
+## v0.43.5
 
 A right-click on a selection belongs to the reader.
 
