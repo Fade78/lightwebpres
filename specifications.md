@@ -1941,26 +1941,25 @@ présentateur. Le vocabulaire de ces touches vit dans le pack de langue
 
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
 slide précédent (deux boutons distincts, sans visée). Le clic gauche
-est **instantané** — il n'a jamais de latence artificielle : le
-double-clic, qui servait à entrer en plein écran, est détecté par
-l'évènement natif `dblclick` du navigateur, pas par un minuteur qui
-retardait chaque clic. Le clic milieu ne fait qu'en **sortir** — il
-n'appelle jamais `requestFullscreen`, sur aucun navigateur, et c'est une
-décision du code, pas une limitation de moteur (Firefox le bloquerait de
-toute façon depuis un clic non-gauche). Pour y entrer : double-clic,
-bouton ⛶, ou F.
+est **instantané** — il n'a jamais de latence artificielle. Le pas
+d'une fiche à l'autre est un **glissé de 200 ms** (animation propre au
+deck, jamais le `scroll-behavior` du navigateur, dont la durée varie
+avec la distance) — **sauf qu'un clic pendant le glissé saute
+directement à sa cible** : un clic dans le même sens pendant le
+glissé arrive sur la fiche après celle du glissé (deux pages en deux
+clics), un clic dans l'autre sens revient instantanément sur la fiche
+que le lecteur vient de quitter. C'est le même modèle en mode
+présentation et en lecture — il n'y a pas de geste « double-clic » :
+il y a un clic hors défilement et un clic pendant le défilement.
 
-**Le double-clic s'ancre sur la fiche où il commence.** Le premier clic
-de la paire avance d'une fiche (instantané, rien ne le retient), le
-second est absorbé — il n'avance pas — et l'évènement `dblclick` ramène
-le deck à la fiche du départ avant d'entrer en plein écran : le geste
-« présenter cette fiche » ne déplace pas le lecteur. Le double tap
-tactile, lui, n'est pas un plein écran : c'est l'interrupteur du chrome
-(voir plus bas), et les deux clics synthétisés qu'il produit ne
-déclenchent jamais le `dblclick`.
+Le **bouton du milieu** bascule le plein écran, entrée **et** sortie —
+il n'appelle jamais `requestFullscreen` différemment de ⛶ ou F, et la
+molette, elle, ne fait que défiler. Pour entrer en plein écran :
+bouton du milieu, bouton ⛶, ou F.
 
-En plein écran, les clics gauche et droit sont
-instantanés (rien à détecter, l'évènement `dblclick` n'y est pas lié).
+En plein écran, les clics gauche et droit obéissent au même modèle
+(glissé de 200 ms, saut au clic pendant le glissé) — rien à détecter,
+l'évènement natif `dblclick` du navigateur n'est pas utilisé.
 Le menu contextuel natif est supprimé sur le contenu pour que le clic
 droit soit un geste propre —
 **sauf quand du texte est surligné** : le clic droit sur une sélection
@@ -2016,9 +2015,10 @@ haché n'accumule jamais vers les 250.
 
 **Relâcher le bouton après avoir surligné du texte ne fait pas avancer.**
 Un glissé qui n'a rien sélectionné non plus : c'était un glissé, pas un
-clic. Le double-clic est délibérément exempté de ces deux gardes — il
-sélectionne le mot sous le pointeur, et le retenir rendrait le plein
-écran inatteignable à la souris.
+clic. Le second appui d'une paire rapide est délibérément exempté de
+ces deux gardes — le navigateur sélectionne le mot sous le pointeur au
+second appui, et le retenir rendrait le clic pendant le glissé
+inatteignable à la souris.
 
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.

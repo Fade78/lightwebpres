@@ -35,16 +35,26 @@ link to the originals. They are at
 
 ## Unreleased — 0.43.7
 
-The click is instant, and a selection is only ever dismissed.
+The click is instant, the glide is 200 ms, and a selection is only
+ever dismissed.
 
 The left click used to wait 250 ms so the deck could guess at a
 double-click — every click felt laggy, and the latency existed to
-serve the fullscreen gesture. The browser's own `dblclick` event now
-does the detection, so the click advances immediately, and the
-double-click keeps its contract: anchored on the card where the pair
-started. The first click of the pair advances (nothing holds it back),
-the second is absorbed, and the deck steps back to the starting card
-before entering fullscreen — presenting does not move the reader.
+serve the fullscreen gesture. There is no double-click gesture: a
+click lands immediately on the next card and the deck glides to it
+over 200 ms, in every mode (reading or fullscreen, the deck moves the
+same way). A click that arrives while the deck is still gliding does
+not wait — it jumps straight to its target: two clicks in quick
+succession land two pages on, a right-click during the glide returns
+instantly to the card you left. The glide is the deck's own animation
+(requestAnimationFrame, eased), never the browser's `scroll-behavior`,
+whose duration varies with the distance and could not be promised.
+
+The middle button toggles fullscreen, in and out — the wheel itself
+keeps scrolling, and ⛶ / F keep working. The right button is the
+exact mirror of the left, everywhere: it goes back on the index cards
+and the series-nav links too (the browser's context menu is gone from
+the deck; a selection still owns it).
 
 And a click on an existing selection dismisses it, and only that. The
 browser clears the selection on mousedown, before our click event

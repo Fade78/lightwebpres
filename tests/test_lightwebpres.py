@@ -16788,11 +16788,13 @@ class RegressionFixes(unittest.TestCase):
         and a moved call still fails.
 
         The timer the handler used to clear is gone: the left click
-        became instant in 0.43.7 (no more 250 ms double-click guess,
-        the browser's own `dblclick` event does that), so the contextmenu
+        became instant in 0.43.7 (no 250 ms guess; the glide is a
+        200 ms animation of the deck's own, and a click during the
+        glide jumps straight to its target), so the contextmenu
         handler has nothing left to cancel. What it must still do is
-        step back a card — the guard now pins that, and the absence of
-        any `clearTimeout` is asserted as part of it: a timer that comes
+        step back a card — the mirror of the left button, glide
+        included: the guard pins that, and the absence of any
+        `clearTimeout` is asserted as part of it: a timer that comes
         back must come back with its own guard, not inside this one."""
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
@@ -16801,7 +16803,7 @@ class RegressionFixes(unittest.TestCase):
             end = html.find('\n  });', i)
             self.assertNotEqual(end, -1, 'the contextmenu handler has no end')
             handler = html[i:end]
-            self.assertIn('goTo(currentVisible() - 1)', handler)
+            self.assertIn('goTo(base - 1, isScrolling)', handler)
             self.assertNotIn('clearTimeout', handler)
 
     # --- B9: audit must not false-positive a retired name as a prefix ---

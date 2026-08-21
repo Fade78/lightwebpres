@@ -51,8 +51,8 @@ lay the pieces out however it likes without passing a single flag.
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
 Home, F for fullscreen, B/W/T for pause screens), mouse (click to
-advance, right-click to go back, double-click for fullscreen, middle-click
-to exit), and touch (swipe) all work out of the box. The navigation
+advance, right-click to go back, middle button to toggle fullscreen),
+and touch (swipe) all work out of the box. The navigation
 buttons fade after 3 seconds of idleness (1 second in fullscreen) — the
 speaker sees only slides. The cursor hides on that same clock, and
 neither comes back until the mouse has moved continuously for 250 ms — a
@@ -711,12 +711,12 @@ longer blanks a page — each sheet sizes to its own content.
 
 ### Mouse
 
-| Gesto | Action |
+| Gesture | Action |
 |---|---|
-| Single click on content | Next slide |
-| Right-click on content | Previous slide |
-| Double-click on content | Enter fullscreen |
-| Middle-click anywhere | Exit fullscreen (if in fullscreen) |
+| Single click on content | Next slide (200ms glide) |
+| Right-click on content | Previous slide (200ms glide) |
+| Click during the glide | Jump straight to that click's target |
+| Middle button anywhere | Toggle fullscreen (in and out) |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
 Clicks on links, images, buttons, and the share popover are not
@@ -724,19 +724,14 @@ intercepted — they keep working. The right-click to go back is the
 remote-mouse use case: the speaker with a wireless mouse in hand
 left-clicks to advance, right-clicks to go back — two distinct buttons,
 no aiming. The native context menu is suppressed on slide content so
-right-click is a clean back gesture. Double-click enters fullscreen
-(the 250ms delay on the first click is the cost of detecting it);
-middle-click exits fullscreen (entering via middle-click is not
-possible on Firefox, which blocks requestFullscreen from non-left
-clicks — use double-click, the ⛶ button, or F instead). In fullscreen,
-left and right clicks are instant (no double-click to detect anymore).
-Esc exits fullscreen. The cursor hides after 1 second of idleness in
-fullscreen.
-
-A left-click that lands while the deck is still scrolling from a previous
-click cancels the pending double-click timer and advances immediately —
-the speaker who clicks again to skip the wait is taken straight to the
-next slide without the 250 ms hold.
+right-click is a clean back gesture. A click lands instantly on the
+next card and glides to it over 200 ms; a click that arrives while the
+deck is still gliding does not wait — it jumps straight to its target,
+so two clicks in quick succession land two pages on, and a right-click
+during the glide returns you to the card you left. The middle button
+toggles fullscreen, in and out (the wheel itself keeps scrolling; the
+⛶ button and F do the same). Esc exits fullscreen. The cursor hides
+after 1 second of idleness in fullscreen.
 
 ### Touch (phone, tablet)
 

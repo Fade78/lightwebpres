@@ -636,10 +636,11 @@ async function main() {
          + ' -> ' + afterDeselect);
   }
 
-  // 5f4. And a plain click still advances instantly — no 250ms timer
-  // stands between the reader and the next card anymore. The old delay
-  // existed to detect the double-click; the browser's own dblclick
-  // event does that now, so the click has nothing to wait for.
+  // 5f4. And a plain click still takes effect at once — the deck marks
+  // the next card immediately and glides to it over 200ms. The old
+  // 250ms timer (which delayed every click to guess at a double-click)
+  // is gone; there is no double-click gesture anymore, only a click
+  // while the deck is gliding, which jumps straight to its target.
   const instantBefore = await currentSlide(page);
   await page.mouse.click(640, 400);
   await page.waitForTimeout(120); // well inside the old 250ms window
@@ -647,6 +648,45 @@ async function main() {
   if (instantAfter === instantBefore) {
     fail('a plain click no longer advances instantly: stayed on '
          + instantBefore);
+  }
+
+  // 5f5. A click that lands WHILE the deck glides jumps straight to
+  // its target: a click in the same direction during the glide lands
+  // one more page on, a right-click during the glide returns instantly
+  // to the card the reader left. There is no double-click gesture —
+  // only clicks that land while the deck moves.
+  //
+  // The deck is walked back to the first card first: the fixture shows
+  // three cards (the fourth is behind the tag filter), so the pair of
+  // clicks needs headroom in the direction it tests.
+  while ((await currentSlide(page)) > 0) {
+    await page.mouse.click(640, 400, { button: 'right' });
+    await page.waitForTimeout(400);
+  }
+  const glideStart = await currentSlide(page);
+  await page.mouse.dblclick(640, 400);
+  await page.waitForTimeout(400); // jump is instant; let dots settle
+  const twoPages = await currentSlide(page);
+  if (twoPages !== glideStart + 2) {
+    fail('a click during the glide did not land one more page on: '
+         + glideStart + ' -> ' + twoPages);
+  }
+  // Same test in the other direction, from the first card again: the
+  // forward glide must be back-stopped by the right-click while it
+  // runs, landing on the card the reader never left. (The dblclick
+  // above left the deck at 2, so it is walked back first.)
+  while ((await currentSlide(page)) > 0) {
+    await page.mouse.click(640, 400, { button: 'right' });
+    await page.waitForTimeout(400);
+  }
+  await page.mouse.click(640, 400); // one forward glide (0 -> 1)
+  await page.waitForTimeout(40); // mid-glide
+  await page.mouse.click(640, 400, { button: 'right' }); // back during glide
+  await page.waitForTimeout(400);
+  const backDuringGlide = await currentSlide(page);
+  if (backDuringGlide !== 0) {
+    fail('right-click during the glide did not return to the card left: '
+         + 'expected 0, got ' + backDuringGlide);
   }
 
   // 5g. Revealed chrome still fades on its own afterwards, so the switch
