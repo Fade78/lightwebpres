@@ -1908,8 +1908,11 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 Chaque page d'article construite est aussi un deck de présentation
 pilotable au clavier, à la souris ou au tactile — pensé pour l'orateur
 qui se déplace avec une souris sans fil comme télécommande. La page
-d'index a une navigation simplifiée (scroll + flèches + Home) sans le
-pack présentateur complet.
+d'index a une navigation simplifiée sans le pack présentateur complet :
+les flèches y parcourent les **cartes d'articles** une à une (le focus
+fait défiler la page avec lui, comme sur les cartes de la fiche
+`series-nav`, §9.3.5), le bouton ⛶ seul entre en plein écran, et
+Home revient en haut.
 
 **Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
 slide précédent, Home = retour à l'index, F = plein écran, B = écran

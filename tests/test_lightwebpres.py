@@ -10145,6 +10145,17 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 b'<span id="s4"></span>',
             }
             arrived = set()   # lines the NEW page has and the old one did not
+            # The index-card focus ring became a registry property at the
+            # same time the index gained card-by-card arrow navigation:
+            # two --var: lines and the two declarations that read them,
+            # all new to the page and all on the theme this guard builds.
+            arrived |= {
+                b'--card-ring: #8F0049FF;',
+                b'--card-ring-width: 3px;',
+                b'outline-color: var(--card-ring);',
+                b'outline-width: var(--card-ring-width);',
+                b'.article-card:focus-visible { outline-style: solid; outline-offset: 2px; }',
+            }
             # Arrivals and departures that belong to ONE page. The tables
             # above are global, and a global declaration cannot say "the
             # index gained a button the article pages always had" --

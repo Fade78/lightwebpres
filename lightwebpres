@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.43.3"
+VERSION = "0.43.4"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -3235,6 +3235,10 @@ THEME_COMPONENTS = [
         ThemeProp('card.rule-width',    PROP_LENGTH, '2px',       css='border-width'),
         ThemeProp('card.rule-fg-hover', PROP_COLOR,  'mark',      css='border-color',
                   selector='.article-card:hover'),
+        ThemeProp('card.ring',          PROP_COLOR,  'nav',       css='outline-color',
+                  selector='.article-card:focus-visible'),
+        ThemeProp('card.ring-width',    PROP_LENGTH, '3px',       css='outline-width',
+                  selector='.article-card:focus-visible'),
     ]),
     ThemeComponent('card.label', '.article-number', [
         ThemeProp('card.label.fg',        PROP_COLOR,  'ink-quiet', css='color'),
@@ -4869,6 +4873,8 @@ CONTRAST_SITES = [
                  [_G_PAGE, _G_NAV_BTN, _G_NAV_BTN_SOFT], kind='non-text'),
     ContrastSite('focus ring on a series-nav card', 'series-nav.link.ring',
                  [_G_PAGE, _G_NAV_LINK], kind='non-text'),
+    ContrastSite('focus ring on an index card', 'card.ring',
+                 [_G_PAGE, _G_INDEX_CARD], kind='non-text'),
     # Which slide you are on: against the page, and against the dots that
     # are not current, since telling the two apart IS the information.
     ContrastSite('current slide dot', 'nav-dot.bg-active',
@@ -4983,6 +4989,14 @@ CONTRAST_UNMEASURED = {
     'series-nav.current.rule-fg': 'the card is identified by its title, which is measured',
     'card.rule-fg': 'the card is identified by its title, which is measured',
     'share.rule-fg': 'the button is identified by its glyph, which is measured',
+
+    # Focus rings. Only the keyboard reaches them, and they are the one
+    # thing that says where the keyboard is, so they ARE measured — the
+    # property registry refuses a theme whose focus ring vanishes into
+    # its ground (SC 1.4.11, non-text).
+    'nav-btn.ring': 'the focus ring of a navigation button, against the page',
+    'series-nav.link.ring': 'the focus ring of a series-nav card, against the page',
+    'card.ring': 'the focus ring of an index card, against the page',
 
     # Pointer-only states. Hover is feedback, never the only carrier of
     # anything: the focus ring is what a keyboard gets, and it IS measured.
@@ -5870,6 +5884,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .article-card:hover {
   transform: translateY(-2px);
 }
+.article-card:focus-visible { outline-style: solid; outline-offset: 2px; }
 .article-number { margin-bottom: 6px; }
 .article-title { margin-bottom: 6px; }
 .article-desc { margin-bottom: 8px; }
@@ -7726,16 +7741,49 @@ TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // The index's real keyboard journey is card by card, exactly as on an
+  // article's series-nav slide: the arrows FOCUS the cards one by one,
+  // and the browser's own scroll-into-view moves the page along with
+  // the focus. Scroll-by-viewport was what the arrows did, and it
+  // skipped the cards entirely — a reader steering an index with the
+  // keyboard never saw what they were pointing at.
+  //
+  // The card list is built once at load (it cannot change under the
+  // page). focus() scrolls the card into view on its own, which is the
+  // same scroll the old arrows did, only aimed at something.
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.article-card'));
+  var focusedCard = -1;
+
+  function stepCards(direction) {
+    if (!cards.length) return;
+    var next = focusedCard + direction;
+    if (next < 0 || next >= cards.length) return;
+    if (focusedCard >= 0) cards[focusedCard].blur();
+    focusedCard = next;
+    cards[focusedCard].focus();
+  }
+  function clearCardFocus() {
+    if (focusedCard >= 0) { cards[focusedCard].blur(); focusedCard = -1; }
+  }
+
   function updateNavUI() {
     var atTop = window.scrollY <= 4;
     var atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 4);
+    // The up/down buttons follow the same card journey as the arrows:
+    // they step the cards too, so a presenter clicking the on-screen
+    // buttons gets the same sequence a keyboard user does. Clicking
+    // still falls back to plain scrolling when there are no cards.
     if (btnUp) btnUp.classList.toggle('disabled', atTop);
     if (btnDown) btnDown.classList.toggle('disabled', atBottom);
   }
 
-  if (btnUp) btnUp.addEventListener('click', function () { scrollByViewport(-1); });
-  if (btnDown) btnDown.addEventListener('click', function () { scrollByViewport(1); });
-  if (btnHome) btnHome.addEventListener('click', function () { scrollToTop(); });
+  if (btnUp) btnUp.addEventListener('click', function () {
+    if (cards.length) stepCards(-1); else scrollByViewport(-1);
+  });
+  if (btnDown) btnDown.addEventListener('click', function () {
+    if (cards.length) stepCards(1); else scrollByViewport(1);
+  });
+  if (btnHome) btnHome.addEventListener('click', function () { clearCardFocus(); scrollToTop(); });
 
   // Enter/Space activate the role=button divs like native buttons.
   Array.prototype.forEach.call(document.querySelectorAll('.nav-btn'), function (btn) {
@@ -7754,11 +7802,11 @@ TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
   document.addEventListener('keydown', function (e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-      e.preventDefault(); scrollByViewport(1);
+      e.preventDefault(); stepCards(1);
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault(); scrollByViewport(-1);
+      e.preventDefault(); stepCards(-1);
     } else if (e.key === 'Home') {
-      e.preventDefault(); scrollToTop();
+      e.preventDefault(); clearCardFocus(); scrollToTop();
     } else if (e.key === 'f' || e.key === 'F') {
       // The index is a page of the same site, and someone who learned F
       // on an article page presses it here. It did nothing, for no

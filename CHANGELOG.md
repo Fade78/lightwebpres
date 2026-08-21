@@ -33,7 +33,24 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.43.3
+## Unreleased — 0.43.4
+
+The index's arrows walk the cards, and the focus ring is a theme axis.
+
+The index page's keyboard journey was scroll-by-viewport, so a reader
+steering it with the arrows never saw what they were pointing at — the
+page scrolled, the cards were skipped. The arrows (and the up/down
+buttons, which follow the same journey) now step the cards one by one,
+exactly as on an article's series-nav slide: the focus scrolls the page
+along with it, and Enter opens the focused article. Home clears the
+focus and returns to the top.
+
+The focus ring the step uses is a registry axis like the series-nav
+one: `card.ring` and `card.ring-width`, measured against the card and
+the page (SC 1.4.11), declared on every theme, and painted on the index
+cards where the keyboard is pointing.
+
+## v0.43.3
 
 A consistency pass: the documents now say what the tool does.
 

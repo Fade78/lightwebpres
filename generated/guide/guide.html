@@ -396,6 +396,8 @@
   --card-rule-fg: #00000029;
   --card-rule-width: 2px;
   --card-rule-fg-hover: #FFFC00FF;
+  --card-ring: #3F4A5AFF;
+  --card-ring-width: 3px;
   --card-elevation-fg: #0000000F;
   --card-elevation-blur: 8px;
   --card-elevation-dx: 0;
@@ -871,6 +873,10 @@ button.share-action:hover:not(:disabled) {
 .article-card:hover {
   box-shadow: var(--card-elevation-hover-dx) var(--card-elevation-hover-dy) var(--card-elevation-hover-blur) var(--card-elevation-hover-spread) var(--card-elevation-hover-fg);
   border-color: var(--card-rule-fg-hover);
+}
+.article-card:focus-visible {
+  outline-color: var(--card-ring);
+  outline-width: var(--card-ring-width);
 }
 .article-number {
   color: var(--card-label-fg);
@@ -1735,6 +1741,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .article-card:hover {
   transform: translateY(-2px);
 }
+.article-card:focus-visible { outline-style: solid; outline-offset: 2px; }
 .article-number { margin-bottom: 6px; }
 .article-title { margin-bottom: 6px; }
 .article-desc { margin-bottom: 8px; }
