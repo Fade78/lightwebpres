@@ -16785,14 +16785,24 @@ class RegressionFixes(unittest.TestCase):
         `clearTimeout` out of the window and failed a guard about
         behaviour that had not changed. The window now ends where the
         handler does — at the `});` that closes it — so a comment can grow
-        and a moved call still fails."""
+        and a moved call still fails.
+
+        The timer the handler used to clear is gone: the left click
+        became instant in 0.43.7 (no more 250 ms double-click guess,
+        the browser's own `dblclick` event does that), so the contextmenu
+        handler has nothing left to cancel. What it must still do is
+        step back a card — the guard now pins that, and the absence of
+        any `clearTimeout` is asserted as part of it: a timer that comes
+        back must come back with its own guard, not inside this one."""
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
             i = html.find("'contextmenu'")
             self.assertNotEqual(i, -1)
             end = html.find('\n  });', i)
             self.assertNotEqual(end, -1, 'the contextmenu handler has no end')
-            self.assertIn('clearTimeout', html[i:end])
+            handler = html[i:end]
+            self.assertIn('goTo(currentVisible() - 1)', handler)
+            self.assertNotIn('clearTimeout', handler)
 
     # --- B9: audit must not false-positive a retired name as a prefix ---
     def test_b9_audit_no_false_retired_prefix(self):

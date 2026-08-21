@@ -92,7 +92,7 @@ async function main() {
     // The centre of the cover, far from the popover (bottom-right) and
     // from the nav buttons.
     await page.mouse.click(640, 400);
-    await page.waitForTimeout(500); // past CLICK_DELAY, so a stray advance would have fired
+    await page.waitForTimeout(500); // a stray advance would have landed by now
     const popoverClosedByGroundClick = await page.evaluate(() => !document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverClosedByGroundClick) fail('a ground click did not close the share popover');
     const slideAfterGroundClick = await onFirstSlide();

@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.43.6"
+VERSION = "0.43.7"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -7448,15 +7448,13 @@ document.addEventListener('DOMContentLoaded', function() {
   function isInteractive(e) {
     return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .nav-buttons');
   }
-  var clickTimer = null;
-  var CLICK_DELAY = 250;
   // A double tap is detected from the touch events themselves (see the
   // touch section below), never from the clicks a browser synthesises
-  // afterwards. Measured, and it is the reason this variable exists: a
+  // afterwards. Measured, and it is the reason this exists: a
   // mobile engine can hold a synthesised click back by around 300ms
   // while it waits to see whether a second tap is coming, so two taps
-  // 60ms apart arrive here as clicks 300ms apart — outside CLICK_DELAY,
-  // read as two singles, and the gesture is never seen at all.
+  // 60ms apart arrive here as clicks 300ms apart, read as two singles,
+  // and the gesture is never seen at all.
   //
   // Having decided on the touch side, this suppresses the clicks still
   // in flight so the gesture does not also advance the deck twice.
@@ -7472,9 +7470,28 @@ document.addEventListener('DOMContentLoaded', function() {
   // enough to wobble is still a click.
   var pressX = 0;
   var pressY = 0;
+  // The selection that EXISTS at press time. The browser clears the
+  // selection on mousedown — before our click event arrives — so "is
+  // there a selection now" can never say "there was one a moment ago".
+  // A click on an existing selection is the reader dismissing it: it
+  // must not also advance the deck. Read at mousedown, and only for the
+  // left button: a right-click on a selection is the context menu's
+  // business, already handled separately.
+  var hadSelectionAtPress = false;
+  // Where the deck was when the first click of a possible double-click
+  // pressed down. The first click advances instantly (detail 1); the
+  // second click of the pair is absorbed (detail 2); then the platform
+  // fires dblclick, which steps back to this index before entering
+  // fullscreen — so the gesture that presents does not also move the
+  // reader two cards. Recorded only on the first press of a pair
+  // (detail 1): the second press must not overwrite it with the
+  // already-advanced position.
+  var pressStartIndex = -1;
   document.addEventListener('mousedown', function (e) {
     pressX = e.clientX;
     pressY = e.clientY;
+    hadSelectionAtPress = e.button === 0 && String(window.getSelection()).length > 0;
+    if (e.button === 0 && e.detail === 1) pressStartIndex = current;
   });
   function endedADrag(e) {
     if (String(window.getSelection())) return true;
@@ -7500,6 +7517,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Only the left button (0) drives navigation from here on.
     if (e.button !== 0) return;
+    // A click that pressed down on an existing selection is the reader
+    // dismissing it — the browser has already cleared it, and the click
+    // must not also advance the deck. The reader asked to remove the
+    // highlight, not to move on.
+    if (hadSelectionAtPress) return;
+    // The second click of a double-click pair is absorbed: the first
+    // one already advanced (instantly), and the pair is the fullscreen
+    // gesture, anchored on the card where it started — see the dblclick
+    // handler below. Letting it advance too would land the reader two
+    // cards past the one they were presenting.
+    if (e.detail >= 2) return;
     if (isFullscreen()) {
       // Instant in fullscreen — no double-click to detect. Use
       // currentVisible() because `current` may be stale during a
@@ -7509,31 +7537,54 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     // If a click arrives while scrolling (from a previous click's
-    // goTo), cancel the pending double-click timer and navigate
-    // immediately — the speaker clicked again to skip the wait.
+    // goTo), navigate immediately — the speaker clicked again to skip
+    // the wait.
     if (isScrolling) {
       if (endedADrag(e)) return;
-      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
       goTo(currentVisible() + 1);
       return;
     }
-    if (clickTimer) {
-      // Second click within the window: double-click = enter fullscreen.
-      // Deliberately NOT guarded: a double-click selects the word under
-      // the pointer, so by the time this fires there is always a
-      // selection, and guarding here would make the gesture unreachable
-      // with the mouse.
-      clearTimeout(clickTimer);
-      clickTimer = null;
-      toggleFullscreen();
-    } else if (!endedADrag(e)) {
-      clickTimer = setTimeout(function () {
-        clickTimer = null;
-        // Click always changes slide (never scrolls within the
-        // current one), so the speaker lands on the next card cleanly.
-        goTo(currentVisible() + 1);
-      }, CLICK_DELAY);
+    if (!endedADrag(e)) {
+      // Click always changes slide (never scrolls within the current
+      // one), so the speaker lands on the next card cleanly. Instant:
+      // a 250ms double-click-detection delay made every click feel
+      // laggy, and the browser's own dblclick event detects the
+      // double-click natively (see below).
+      goTo(currentVisible() + 1);
     }
+  });
+  // The double-click that used to be guessed by a timer is now the
+  // browser's own event: two clicks inside the platform's own window
+  // fire dblclick, exactly the gesture that "enter fullscreen" meant.
+  // The click handler above has already advanced once per click (the
+  // first click moved a card; the second one moved another, then this
+  // fires) — so entering fullscreen on dblclick lands two cards past
+  // the starting one. That was true under the timer too (both clicks
+  // advanced), and it is what a speaker double-clicking to present
+  // expects: the gesture means "go on, and present".
+  //
+  // Not guarded on the selection: a double-click selects the word under
+  // the pointer, and guarding here would make the gesture unreachable
+  // with the mouse (the same exemption `endedADrag` used to carry).
+  // Guarded on the POINTER though, like the context menu: a touch double
+  // tap is the chrome switch (see the touch section below), and the two
+  // synthesised clicks it produces fire dblclick too — which must not
+  // also ask for fullscreen, a second change the reader did not ask for.
+  document.addEventListener('dblclick', function (e) {
+    if (!hasFinePointer) return;
+    if (isInteractive(e)) return;
+    if (e.button !== 0) return;
+    if (isFullscreen()) return;
+    // Anchor the gesture on the card where the pair started. The first
+    // click of the pair advanced instantly (that is the price of having
+    // no latency), and the pair itself means "present this card", so
+    // the deck steps back to where the reader began before entering
+    // fullscreen. Without it, the gesture that presents would also have
+    // moved the reader two cards on.
+    if (pressStartIndex >= 0 && pressStartIndex !== current) {
+      goTo(pressStartIndex);
+    }
+    toggleFullscreen();
   });
   document.addEventListener('contextmenu', function (e) {
     // Right-click = go back, but only on slide content — and only where
@@ -7557,8 +7608,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // right-click keeps its deck meaning: go back one card.
     if (String(window.getSelection())) return;
     e.preventDefault();
-    clearTimeout(clickTimer);
-    clickTimer = null;
     goTo(currentVisible() - 1);
   });
   // Middle-click exits fullscreen. Firefox fires auxclick (not click)
@@ -7574,10 +7623,10 @@ document.addEventListener('DOMContentLoaded', function() {
   var touchStartX = null, touchStartY = null, touchStartT = 0;
   var lastTapT = 0;
   // Two taps close together, each of them short and still. The window is
-  // wider than the mouse's CLICK_DELAY on purpose: a finger is slower
-  // and less accurate than a pointer, and the cost of missing the
-  // gesture — chrome the reader cannot put away — is worse than the cost
-  // of catching one tap too many.
+  // wider than the mouse's own double-click window on purpose: a finger
+  // is slower and less accurate than a pointer, and the cost of missing
+  // the gesture — chrome the reader cannot put away — is worse than the
+  // cost of catching one tap too many.
   var DOUBLE_TAP_MS = 350;
   var TAP_SLOP_PX = 20;
   document.addEventListener('touchstart', function (e) {
@@ -7616,11 +7665,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var now = Date.now();
     if (lastTapT && now - lastTapT < DOUBLE_TAP_MS) {
       lastTapT = 0;
-      // The first tap's advance is still pending on a timer, and the
-      // synthesised clicks for both taps may not even have arrived yet.
-      // Cancel the one and suppress the others, or the gesture that put
-      // the chrome away would also have moved the reader two cards on.
-      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+      // The first tap has already advanced the deck, and the
+      // synthesised clicks for both taps may still be in flight.
+      // Suppress the ones that remain, or the gesture that put the
+      // chrome away would also have moved the reader two cards on.
       swallowClicksUntil = now + 450;
       var goingIdle = !navIsIdle();
       setNavIdle(goingIdle);

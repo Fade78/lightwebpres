@@ -1940,19 +1940,36 @@ présentateur. Le vocabulaire de ces touches vit dans le pack de langue
 (`help_*`, `presenter_*`, `tags_*`, §7.3).
 
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
-slide précédent (deux boutons distincts, sans visée). En mode normal,
-le clic gauche a une latence de 250 ms pour détecter le double-clic
-qui entre en plein écran ; le clic milieu ne fait qu'en **sortir** — il
+slide précédent (deux boutons distincts, sans visée). Le clic gauche
+est **instantané** — il n'a jamais de latence artificielle : le
+double-clic, qui servait à entrer en plein écran, est détecté par
+l'évènement natif `dblclick` du navigateur, pas par un minuteur qui
+retardait chaque clic. Le clic milieu ne fait qu'en **sortir** — il
 n'appelle jamais `requestFullscreen`, sur aucun navigateur, et c'est une
 décision du code, pas une limitation de moteur (Firefox le bloquerait de
 toute façon depuis un clic non-gauche). Pour y entrer : double-clic,
-bouton ⛶, ou F. En plein écran, les clics gauche et droit sont
-instantanés (plus de double-clic à détecter). Le menu contextuel natif est
-supprimé sur le contenu pour que le clic droit soit un geste propre —
+bouton ⛶, ou F.
+
+**Le double-clic s'ancre sur la fiche où il commence.** Le premier clic
+de la paire avance d'une fiche (instantané, rien ne le retient), le
+second est absorbé — il n'avance pas — et l'évènement `dblclick` ramène
+le deck à la fiche du départ avant d'entrer en plein écran : le geste
+« présenter cette fiche » ne déplace pas le lecteur. Le double tap
+tactile, lui, n'est pas un plein écran : c'est l'interrupteur du chrome
+(voir plus bas), et les deux clics synthétisés qu'il produit ne
+déclenchent jamais le `dblclick`.
+
+En plein écran, les clics gauche et droit sont
+instantanés (rien à détecter, l'évènement `dblclick` n'y est pas lié).
+Le menu contextuel natif est supprimé sur le contenu pour que le clic
+droit soit un geste propre —
 **sauf quand du texte est surligné** : le clic droit sur une sélection
 appartient au lecteur (copier, chercher), il ouvre le menu du navigateur
-et ne fait pas reculer la fiche, comme le clic gauche ne fait pas avancer
-au relâchement d'un glissé.
+et ne fait pas reculer la fiche. **Un clic gauche sur une sélection
+l'annule et n'avance pas** : la sélection est lue au moment de
+l'enfoncement (le navigateur l'efface avant le `click`), et un clic qui
+a enfoncé sur une sélection existante est un geste de désélection, pas
+un coup.
 Les clics sur les liens, images et boutons ne sont pas interceptés.
 Un clic dans le coin bas-droite (la zone des boutons) qui ne vise pas
 un bouton bascule leur visibilité. Esc quitte le plein écran.
@@ -1999,8 +2016,8 @@ haché n'accumule jamais vers les 250.
 
 **Relâcher le bouton après avoir surligné du texte ne fait pas avancer.**
 Un glissé qui n'a rien sélectionné non plus : c'était un glissé, pas un
-clic. Le double-clic est délibérément exempté de cette garde — il
-sélectionne le mot sous le pointeur, donc la garder là rendrait le plein
+clic. Le double-clic est délibérément exempté de ces deux gardes — il
+sélectionne le mot sous le pointeur, et le retenir rendrait le plein
 écran inatteignable à la souris.
 
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil

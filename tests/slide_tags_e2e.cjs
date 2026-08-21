@@ -70,7 +70,7 @@ async function main() {
     const beforeGround = await activeSlide();
     await page.mouse.click(640, 300);
     await page.waitForFunction(() => !document.getElementById('tagMenu').classList.contains('open'));
-    await page.waitForTimeout(500); // past CLICK_DELAY, so a stray advance would have fired
+    await page.waitForTimeout(500); // a stray advance would have landed by now
     const afterGround = await activeSlide();
     if (afterGround !== beforeGround) {
       throw new Error('a ground click that closed the tag menu advanced the deck: '

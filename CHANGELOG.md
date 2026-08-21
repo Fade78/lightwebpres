@@ -33,6 +33,26 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.43.7
+
+The click is instant, and a selection is only ever dismissed.
+
+The left click used to wait 250 ms so the deck could guess at a
+double-click — every click felt laggy, and the latency existed to
+serve the fullscreen gesture. The browser's own `dblclick` event now
+does the detection, so the click advances immediately, and the
+double-click keeps its contract: anchored on the card where the pair
+started. The first click of the pair advances (nothing holds it back),
+the second is absorbed, and the deck steps back to the starting card
+before entering fullscreen — presenting does not move the reader.
+
+And a click on an existing selection dismisses it, and only that. The
+browser clears the selection on mousedown, before our click event
+arrives, so the deck now reads the selection at press time: a click
+that pressed down on a highlight is the reader removing it, not a
+step forward. Right-click on a selection already belonged to the
+reader; the left button now honours the same dismissal.
+
 ## v0.43.6
 
 One step, everywhere: the arrows, the buttons and the clicks.

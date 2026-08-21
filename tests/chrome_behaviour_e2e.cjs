@@ -72,8 +72,8 @@ async function main() {
   await page.waitForTimeout(300);
   const before = await currentSlide(page);
   await dragAcross(page, '.slide-cover .summary');
-  // Well past CLICK_DELAY (250ms), so a pending single-click timer would
-  // have fired by now if one had been armed.
+  // The click is instant now (no 250ms single-click timer), so this wait
+  // only lets a stray immediate advance land if one were armed.
   await page.waitForTimeout(600);
   const selected = await page.evaluate(() => String(window.getSelection()).length);
   const after = await currentSlide(page);
@@ -446,7 +446,7 @@ async function main() {
 
   const tapAt = async (x, y) => { await phone.touchscreen.tap(x, y); };
   const doubleTap = async () => {
-    // Inside CLICK_DELAY (250ms), which is what makes it one gesture
+    // Inside DOUBLE_TAP_MS (350ms), which is what makes it one gesture
     // rather than two taps that each advance the deck.
     await tapAt(195, 400);
     await phone.waitForTimeout(60);
@@ -607,6 +607,47 @@ async function main() {
          + ' -> ' + selectionKeptPlace);
   }
   await page.evaluate(() => window.getSelection().removeAllRanges());
+
+  // 5f3. A left-click on a SELECTION dismisses it, and only that. The
+  // browser clears the selection on mousedown — before our click event
+  // arrives — so the click must be judged at press time, or every
+  // deselect reads as an advance.
+  const beforeDeselect = await currentSlide(page);
+  await page.evaluate(() => {
+    const slide = document.querySelectorAll('section.slide')[1];
+    const target = slide.querySelector('h2, p') || slide;
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  const hadSel = await page.evaluate(() => String(window.getSelection()).length);
+  if (!hadSel) fail('nothing was selected for the deselect click to dismiss');
+  await page.mouse.click(640, 300);
+  await page.waitForTimeout(400);
+  const deselected = await page.evaluate(() => String(window.getSelection()).length);
+  const afterDeselect = await currentSlide(page);
+  if (deselected !== 0) {
+    fail('a click did not dismiss the selection: ' + deselected);
+  }
+  if (afterDeselect !== beforeDeselect) {
+    fail('deselecting advanced the deck: ' + beforeDeselect
+         + ' -> ' + afterDeselect);
+  }
+
+  // 5f4. And a plain click still advances instantly — no 250ms timer
+  // stands between the reader and the next card anymore. The old delay
+  // existed to detect the double-click; the browser's own dblclick
+  // event does that now, so the click has nothing to wait for.
+  const instantBefore = await currentSlide(page);
+  await page.mouse.click(640, 400);
+  await page.waitForTimeout(120); // well inside the old 250ms window
+  const instantAfter = await currentSlide(page);
+  if (instantAfter === instantBefore) {
+    fail('a plain click no longer advances instantly: stayed on '
+         + instantBefore);
+  }
 
   // 5g. Revealed chrome still fades on its own afterwards, so the switch
   // has not replaced the countdown with a latch.
