@@ -1458,16 +1458,18 @@ class CheckCoversIndexAndReadme(unittest.TestCase):
 
 class ShareSlideScopeByType(unittest.TestCase):
     """§9.3.4: the share matrix's slide scope is disabled by slide TYPE
-    (cover, series-nav), not by position — slide order is free (§4.4)."""
+    (series-nav), not by position — slide order is free (§4.4). A cover
+    is shareable, including in first position: only the address bar
+    hides its fragment (§8.4), never the share matrix."""
 
-    def test_nav_js_tests_cover_class_not_first_position(self):
+    def test_nav_js_tests_series_nav_class_not_cover_or_position(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            self.assertIn("classList.contains('slide-cover')", html)
-            self.assertNotIn("s.id === 's1'", html)
+            self.assertIn("classList.contains('slide-series-nav')", html)
+            self.assertNotIn("classList.contains('slide-cover')", html)
 
 
 class CoverIgnoredFieldsWarn(unittest.TestCase):

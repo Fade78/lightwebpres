@@ -259,6 +259,30 @@ async function main() {
     fail('scrolling pushed history entries instead of replacing: '
          + atRest.entries + ' -> ' + scrolled.entries);
   }
+  // And back at the top, the address bar names the PAGE again, not the
+  // first card (§8.4): whoever reaches the top of the page is looking at
+  // the page, and the URL without a fragment is the one worth copying by
+  // hand. The reader leaves the same way they arrived.
+  await scrollPage.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await scrollPage.waitForTimeout(800);
+  const home = await scrollPage.evaluate(() => ({
+    hash: location.hash,
+    active: Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'))
+      .findIndex((d) => d.classList.contains('active')),
+    entries: history.length,
+  }));
+  if (home.active !== 0) {
+    fail('scrolling back to the top did not settle on the first card: '
+         + JSON.stringify(home));
+  }
+  if (home.hash !== '') {
+    fail('the address bar kept a fragment at the top of the page: '
+         + JSON.stringify(home));
+  }
+  if (home.entries !== atRest.entries) {
+    fail('returning to the top pushed a history entry instead of replacing: '
+         + atRest.entries + ' -> ' + home.entries);
+  }
   await scrollPage.close();
 
   // --- 4c. A link to a card lands, and the address bar says that card ---

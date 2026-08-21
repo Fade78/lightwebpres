@@ -300,6 +300,29 @@ inside a unit test fails where there is no network — and the blind spot
 that follows had bitten twice in two days, for six commits and then three.
 The runner may make the call the test may not.
 
+The address bar stops naming the first card. Whoever reaches the top of
+the page is looking at the page: the URL loses its fragment when the
+reader arrives at the first card, by scrolling or by jumping, and keeps
+the article's own address — the one worth copying by hand, from the
+browser's own URL field. Every other card is unchanged: the bar still
+names it, whatever way the reader arrived. §8.4 said the address bar
+names the current card, without exceptions; it now says the first card is
+the exception, by position and not by type, because a cover sitting mid-
+deck is still a card worth a fragment, and a standard card in first
+position is not.
+
+The share matrix follows, at the one place it could not. §9.3.4 said a
+card's scope is disabled on the cover — "elle se confond avec l'article
+lui-même" — which the first-position case had already half-contradicted
+("une fiche standard en première position est partageable"): the rule was
+about the card's TYPE and the position was doing the real work. A cover
+is now shareable like any other card, first position included: the
+address bar may hide its fragment, the share matrix does not. The
+exclusion that remains is the series-nav slide's, which was always the
+real one — its id is not a reading position. The e2e guard that made the
+cover the counter-example asserts the opposite now: a cover's copied
+link carries the cover's own `#id`.
+
 ## v0.43.1 — 2026-08-20
 
 A contrast level is a note about a theme, not a bar it has to clear

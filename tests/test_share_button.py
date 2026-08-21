@@ -50,11 +50,12 @@ class _QuietHandler(SimpleHTTPRequestHandler):
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class ShareButton(unittest.TestCase):
     """A built article with three slides (cover + one standard slide +
-    series-nav), so the "fiche" scope can be exercised disabled (on the
-    cover), enabled (standard slide, with a real #s2 clipboard check),
-    and disabled again (series-nav — §9.3.4 says the scope follows the
-    slide TYPE, and this slide type was previously absent from the
-    fixture entirely)."""
+    series-nav), so the "fiche" scope can be exercised enabled on the
+    cover (shareable like any card — only the address bar hides its
+    fragment, §8.4), enabled on a standard slide (with a real #c2
+    clipboard check), and disabled on the series-nav (— §9.3.4 says the
+    scope follows the slide TYPE, and this slide type was previously
+    absent from the fixture entirely)."""
 
     @classmethod
     def setUpClass(cls):

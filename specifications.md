@@ -2049,6 +2049,15 @@ page fraîchement ouverte ne porte aucun fragment tant que le lecteur n'a
 pas bougé, de sorte que l'adresse partagée reste celle de l'article
 entier.
 
+**La première fiche est l'exception, par position et non par type** :
+qui atteint le haut de la page regarde la page, pas l'une de ses fiches —
+la barre d'adresse montre alors l'URL de l'article lui-même (sans
+fragment), qui est aussi celle qu'on copie à la main. Le fragment est
+retiré au retour en première position. Toute autre fiche garde son
+`#slug` dans la barre d'adresse. Ce retrait est cosmétique — le partage
+reste une affaire de la matrice du §9.3.4, qui construit ses propres URLs
+et peut toujours nommer une fiche en première position.
+
 **`--inline-images`** (v0.25.1) : chaque image référencée dans le
 Markdown **d'une fiche** est embarquée comme un data URI base64, et le
 répertoire `img/` n'est pas copié. L'HTML grossit d'environ un tiers par
@@ -2505,15 +2514,15 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
 | **Afficher le QR code**| idem  | idem    | idem  |
 
 - « Fiche » désigne la slide actuellement affichée (même détection que les
-  nav-dots, §9.3.3). Elle n'a de sens que pour une slide standard ou
-  `full-article` — pas pour la slide `cover` (qui se confond avec
-  l'article lui-même) ni pour la slide `series-nav` (dont l'ancrage
-  n'identifie pas un point de lecture précis). Sur ces deux cas, la colonne « Fiche » est grisée et
+  nav-dots, §9.3.3). Elle n'a de sens que pour une slide standard, `cover`
+  ou `full-article` — pas pour la slide `series-nav` (dont l'ancrage
+  n'identifie pas un point de lecture précis). Sur ce seul cas, la colonne « Fiche » est grisée et
   désactivée, pas masquée : la matrice garde sa forme, seule l'action est
   indisponible. La décision se fait par **type** de slide (classe
-  `slide-cover`), jamais par position — l'ordre des fiches étant libre
-  (§4.4), une cover en plein milieu est désactivée et une fiche standard
-  en première position est partageable.
+  `slide-series-nav`), jamais par position — l'ordre des fiches étant libre
+  (§4.4). Une `cover` est partageable, y compris en première position :
+  la barre d'adresse peut cacher son fragment (§8.4) sans que la matrice
+  cesse de nommer la fiche.
 - « Copier le lien » utilise le presse-papiers (`navigator.clipboard`),
   avec repli sur `prompt()` si l'API est indisponible (ou si l'écriture
   échoue). Après une copie réussie, le bouton affiche « ✓ » et son

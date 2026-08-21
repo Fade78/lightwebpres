@@ -47,22 +47,37 @@ async function main() {
     await page.keyboard.press('Escape');
 
     // 1. Opening the popover on the cover slide (current === 0): the
-    // "Fiche" column has no meaningful target (no per-slide anchor other
-    // than the article itself) and must be disabled.
+    // "Fiche" column must be ENABLED — a cover is a card with an id of
+    // its own, shareable like any other (§9.3.4). The address bar hides
+    // its fragment at the top of the page (§8.4), the share matrix does
+    // not.
     await page.click('#navShare');
     const popoverOpenOnCover = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverOpenOnCover) fail('popover did not open on share button click');
 
-    const ficheDisabledOnCover = await page.evaluate(() =>
-      Array.prototype.every.call(document.querySelectorAll('[data-scope="fiche"]'), (b) => b.disabled));
-    if (!ficheDisabledOnCover) fail('fiche column must be disabled while on the cover slide');
+    const ficheEnabledOnCover = await page.evaluate(() =>
+      Array.prototype.every.call(document.querySelectorAll('[data-scope="fiche"]'), (b) => !b.disabled));
+    if (!ficheEnabledOnCover) fail('fiche column must be enabled on the cover slide');
+
+    // And the cover's own id is what the copied link carries.
+    const coverId = await page.evaluate(() => {
+      const here = document.querySelector('section.slide');
+      return here ? here.id : null;
+    });
+    if (!coverId) fail('the cover slide has no id to share');
+    await page.click('[data-action="copy"][data-scope="fiche"]');
+    const clipboardCover = await page.evaluate(() => navigator.clipboard.readText());
+    if (clipboardCover !== expectedArticleUrl + '#' + coverId) {
+      fail('cover copy-link mismatch: got ' + clipboardCover + ' expected '
+           + expectedArticleUrl + '#' + coverId);
+    }
 
     // Escape closes the popover.
     await page.keyboard.press('Escape');
     const popoverClosedByEscape = await page.evaluate(() => !document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverClosedByEscape) fail('Escape must close the share popover');
 
-    // 2. Move to the next slide, then the fiche column must be enabled.
+    // 2. Move to the next slide, then the fiche column stays enabled.
     await page.click('#navNext');
     await page.waitForTimeout(800); // matches nav.js's own scroll-settle timeout
     await page.click('#navShare');

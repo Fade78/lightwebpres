@@ -3422,8 +3422,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // there by jumping or by scrolling. It used to say it only after a
   // jump, so a reader who scrolled to a card and pressed F5 was
   // teleported back to whichever card they had last jumped to — a page
-  // that lies about where you are, and lies worst at the moment you ask
+  // that lies about where you are, and the worst at the moment you ask
   // it to remember.
+  //
+  // The FIRST card is the exception, by position, not by type: whoever
+  // reaches the top of the page is looking at the page, not at one of
+  // its cards — the address bar shows the article's own URL (no
+  // fragment), which is also the URL worth copying by hand. Every other
+  // card keeps its `#id`. Sharing is unaffected: the share matrix builds
+  // its own URLs, including for a card in first position.
   //
   // replaceState, never pushState: the fragment is a position, not a
   // visit. Pushing would put one history entry under every card the
@@ -3433,6 +3440,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
+    if (idx === 0) {
+      // Top of the page: the article's own URL, no fragment. Only when
+      // one is actually present — the freshly opened page already has
+      // none, and rewriting it would be noise (and a history entry).
+      if (!window.location.hash) return;
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      return;
+    }
     if (window.location.hash.slice(1) === slide.id) return;
     window.history.replaceState(null, '', '#' + slide.id);
   }
@@ -3702,11 +3717,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- Share button: popover with a copy-link / QR-code matrix, scoped to
   // the series index, this article, or the current slide. §9.3.4.
-  // The slide scope is decided by TYPE, not position: disabled on cover
-  // slides (they identify the article itself, wherever they sit — slide
-  // order is free, §4.4) and on the series-nav slide (its id is not
-  // sN); enabled on standard and full-article slides, including one in
-  // first position.
+  // The slide scope is decided by TYPE, not position: disabled on the
+  // series-nav slide (its id is not sN); enabled on standard, cover and
+  // full-article slides — a cover in first position is a legitimate card
+  // to share, and the address bar may hide its fragment while the share
+  // matrix does not (§8.4).
   function currentSlideId() {
     var s = slides[current];
     if (!s || !s.id) return null;
@@ -3714,11 +3729,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // card worth linking to": it excluded the cover by class and the
     // series-nav only because that one's id happened to end in `-series`.
     // An id derived from what the author wrote says nothing about type,
-    // so the two exclusions now say themselves — and had this kept the
+    // so the exclusions now say themselves — and had this kept the
     // regex, the share button would simply have gone dead on every card,
     // silently, which is the failure this comment exists to prevent
     // someone re-introducing.
-    if (s.classList.contains('slide-cover')) return null;
     if (s.classList.contains('slide-series-nav')) return null;
     return s.id;
   }
