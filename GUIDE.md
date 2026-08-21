@@ -611,7 +611,7 @@ fresh checkout has nothing stale to catch, and a job that fails on its
 first run teaches the reader to delete the line rather than to trust it.
 
 For a pipeline where content arrives from upstream, three more things
-matter. `--only page` rebuilds a single article rather than the series,
+matter. `--only file` rebuilds a single article rather than the series,
 with `--nav-cache` holding the fingerprint that tells it whether the
 navigation still needs regenerating. `--build-stamp` marks every
 generated page with the version and time it came from, which is what you

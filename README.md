@@ -117,7 +117,7 @@ handout at Ctrl/Cmd+P.
   install: one file, the Python standard library only, no wheel, no
   lockfile, no network at build time, so any image with `python3` runs
   it. Every path is an environment variable (`LWP_SERIES_DIR`,
-  `LWP_OUTPUT_DIR`, …), and `--only page` rebuilds a single article. The
+  `LWP_OUTPUT_DIR`, …), and `--only file` rebuilds a single article. The
   Markdown can come from anywhere — a CMS export, a database, a
   generator, an agent upstream — but see the trust boundary below: raw
   HTML in such markdown passes through, so untrusted sources must be
@@ -550,7 +550,7 @@ facets, and the contrast level it actually reaches:
 
 ```bash
 ./lightwebpres theme show evergreen        # the theme as shipped
-./lightwebpres theme show my-series        # the effective theme of a series
+./lightwebpres series theme my-series      # the effective theme of a series
 ./lightwebpres theme show evergreen --format json
 ```
 

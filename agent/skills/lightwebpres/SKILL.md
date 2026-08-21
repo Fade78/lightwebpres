@@ -197,7 +197,8 @@ and emitted as `<meta>` tags:
 **Slide-number field** (opt-in, off by default):
 
 - `slide_page_numbers: true | false` — shows the engraved top-right
-  `<span class="slide-num">NN / NN</span>` on every slide. Resolves down
+  `<span class="slide-num">NN / NN</span>` on every slide except the
+  `series-nav` one (which is generated furniture, not a card). Resolves down
   the same cascade shape as the other article fields: the article's
   front-matter wins over the `--slides-page-numbers on|off` CLI flag, which
   wins over `series_meta.slide_page_numbers` in `series.json`, which wins
@@ -270,9 +271,9 @@ slide tags and missing mapped packs; it does not block the build.
 | `series-nav` | `slug`, `tags`, `comment` — navigation generated from `series.json` | 0 or 1 per article |
 | `full-article` | `slug`, `article: filename.md` (required), `tags`, `comment` | Any number — each carries its own file. Under `notes_placement: local` each one numbers its notes from 1, as a card does. |
 
-`slug`, `kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
+`kicker`, `tags`, `summary`, `fact-label`, `fact-variant`, `source`,
 `highlight`/`highlight-caption`, `comment`, and `note` are all optional — omit
-the line if you don't need it. An empty value
+the line if you don't need it. (`slug` is NOT optional — see below.) An empty value
 behaves like omitting it everywhere **except on a cover slide**, where
 the parser tests whether a field was *set*, not whether it has content:
 a bare `fact-label:` on a cover raises a warning that omitting the line
@@ -542,7 +543,7 @@ article — they are author decisions that survive every theme change.
 
 | Tag | Effect |
 |---|---|
-| `{color:#E8A33D}…{/color}` | colour literal (3/4/6/8-digit hex, normalized to ARGB) |
+| `{color:#E8A33D}…{/color}` | colour literal (3/4/6/8-digit hex, normalized to RGBA — alpha last, `#RRGGBBAA`) |
 | `{color:mark}…{/color}` | a shared colour by name (`page`, `ink`, `ink-quiet`, `mark`, `call`, `affirm`, `nav`) — any name `N` for which `color.N` is in the registry |
 | `{font:mono}…{/font}` | a shared stack by name (`text`, `display`, `ui`, `mono`), or a literal stack ending on a CSS generic |
 | `{sc}…{/sc}` | small caps |
@@ -625,9 +626,10 @@ full-article file: `<div class="refs">…</div>`.
 A field value may contain inline HTML, and `page_title` is the usual
 reason: `page_title: The apple pie<br>What pastry changes` gives the
 index card a two-line title. Where that value is used as *text* rather
-than markup — the `<title>` element, the `<meta name="description">`,
-the index card's own `title` attribute — tags are stripped and replaced
-by a space, so the same value reads correctly in both places. Nothing
+than markup — the `<title>` element, the `<meta name="description">` —
+tags are stripped and replaced by a space, so the same value reads
+correctly in both places. (The index card's own title is a `<div>`, a
+visible rendering: it keeps the HTML, as body content does.) Nothing
 else is stripped: an unclosed tag in a field value ends up in the page.
 
 **Trust boundary.** Raw HTML — a `<script>` included — passes through to
@@ -774,7 +776,7 @@ as finished — don't guess at whether it would build.
   it to render — `&` is escaped, so the reader sees the source. Write the
   character.
 - A Markdown link to anything that isn't `http(s)` — it stays literal.
-- Two `full-article` or two `series-nav` slides in one file.
+- Two `series-nav` slides in one file (the second one fails the build).
 - `page_source`/`page_dest` values with a path (`articles/x.md` instead of `x.md`)
   or anything that isn't a plain filename.
 - Opening a ` ``` ` code fence without a matching closing ` ``` ` —

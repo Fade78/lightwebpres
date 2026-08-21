@@ -907,7 +907,7 @@ champ est défini comme une surcharge assumée.
 | `<!-- lwp:slide:cover -->`      | cover       | Slide de couverture (fond sombre)     | 0 à N (libre)       | libre    |
 | `<!-- lwp:slide -->`             | standard    | Fiche standard (défaut)                | 0 à N (libre)       | libre    |
 | `<!-- lwp:slide:series-nav -->` | series-nav  | Navigation de série (calculée)        | 0 ou 1              | libre    |
-| `<!-- lwp:slide:full-article -->`| full-article | Article complet (include `.md`)     | 0 ou 1              | libre    |
+| `<!-- lwp:slide:full-article -->`| full-article | Article complet (include `.md`)     | 0 à N (libre)       | libre    |
 
 `cover` est un **style de mise en page**, pas un marqueur structurel unique :
 un article long peut tout à fait avoir plusieurs fiches `cover` pour marquer
