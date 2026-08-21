@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.43.6
+## v0.43.6
 
 One step, everywhere: the arrows, the buttons and the clicks.
 
