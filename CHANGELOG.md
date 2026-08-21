@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## v0.43.2 — 2026-08-21
+## v0.43.2
 
 A click on the ground closes the open window, and only that.
 

@@ -141,9 +141,9 @@ reproductible à l'octet, à refaire à la main quand la galerie change.
   si le numéro annoncé n'a pas de section, donc les deux ne peuvent pas
   diverger en silence. La section se remplit au fil du travail, pas le
   jour de la release : c'est ce texte-là, tel quel, qui est collé dans le
-  formulaire GitHub, et le titre devient `## vX.Y.Z — AAAA-MM-JJ` quand le
-  propriétaire a tagué. Un texte, un endroit — un second récit du même
-  changement s'écarte du premier en quelques mois.
+  formulaire GitHub, et le titre devient `## vX.Y.Z` quand le propriétaire
+  a tagué — sans date, la date vit sur le tag. Un texte, un endroit — un
+  second récit du même changement s'écarte du premier en quelques mois.
 - **Le propriétaire seul tague et publie.** L'agent ne crée ni tag ni
   release ; le proxy git refuse d'ailleurs les nouveaux `refs/tags/`. Ce
   que l'agent fournit, c'est le texte, dans un bloc copiable.

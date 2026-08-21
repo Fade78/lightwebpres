@@ -2130,10 +2130,13 @@ class CliVersionAndShortcuts(unittest.TestCase):
         at bump time — a rule that only holds if forgetting is caught.
 
         Matched on the heading, not on prose, and both spellings count: a
-        version that is tagged is `## v0.43.1 — <date>`, one that is not
-        yet is `## Unreleased — 0.43.2`. Which of the two is correct is
-        the tag guard's business, not this one's; here the question is
-        only whether the number appears at all.
+        version that is tagged is `## v0.43.1` (no date — the date lives
+        on the git tag), one that is not yet is `## Unreleased — 0.43.2`.
+        Which of the two is correct is the tag guard's business, not this
+        one's; here the question is only whether the number appears at
+        all. Earlier entries (v0.43.1 and before) carry a date in their
+        heading; they were written before the rule changed and are not
+        rewritten.
 
         Deliberately not checking the entry's length or shape. A guard
         that demanded three paragraphs would be satisfied by three
