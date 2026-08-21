@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.43.4
+## v0.43.4
 
 The index's arrows walk the cards, and the focus ring is a theme axis.
 
