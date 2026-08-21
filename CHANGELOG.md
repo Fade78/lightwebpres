@@ -33,6 +33,38 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.43.3
+
+A consistency pass: the documents now say what the tool does.
+
+Three surfaces were reviewed against the executable, and eight findings
+came back, all in the prose, none in the code.
+
+README taught a command that fails: `theme show my-series` is refused
+by name (a directory is `series theme`, and the same table two pages up
+already said so) — the example now uses the form that works. Two
+documents called the `--only` flag by a placeholder the help never
+uses; both now say `file` like the help and the spec do.
+
+specifications.md §4.4 still listed `full-article` as "0 ou 1" while
+its own next paragraph says it is free and §22.8 proves it; the table
+now agrees with the prose.
+
+The skill's field table called every slide field optional and then, two
+paragraphs down, REQUIRED `slug` on every card — the word "optional"
+now carries the exception instead of the reader discovering it. Its
+"common mistakes" list still said two `full-article` slides fail the
+build, which the body of the skill itself refutes; only `series-nav`
+stays. A colour literal is normalized to RGBA with alpha last
+(`#RRGGBBAA`), not ARGB, and the index card's title is a `<div>`, not
+a `title` attribute — the list of tag-stripping sinks lost the
+attribute and gained the reason. And the slide number is engraved on
+every slide but the `series-nav`, which is generated furniture, not a
+card; measured, not assumed.
+
+The guide's generated HTML is rebuilt from the corrected source, and
+the full battery stays green.
+
 ## v0.43.2
 
 A click on the ground closes the open window, and only that.
