@@ -69,7 +69,8 @@ class, 57 themes, 155 s of wall to itself — is now three shards of
 nineteen themes that run in parallel, which brings the wall to 149 s
 with the last class at 60 s. The counter class that used to sit idle
 under the monolith now absorbs the whole unit battery on the other
-workers while the shards finish.
+workers while the shards finish. On the six-core machine the battery
+runs at 121 s, the shards at 60 s each being the floor that decides it.
 
 The runner takes every CPU by default instead of leaving two for the
 desktop, and pays for that politeness differently: it nices itself one
