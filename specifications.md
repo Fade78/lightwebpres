@@ -1840,8 +1840,8 @@ Générée depuis `series.json`. La page d'index contient :
 5. Un pied de page (`<footer class="page-footer">` : signature et licence
    de la série), émis dès que `series_meta.author` ou `series_meta.license`
    est non vide, absent quand les deux le sont
-6. Les boutons de navigation (`<div class="nav-buttons">` : remonter, haut
-   de page, descendre)
+6. Les boutons de navigation (`<div class="nav-buttons">` : un coup =
+   une carte, comme les flèches du clavier — §8.4)
 7. Le JavaScript de navigation
 
 Chaque carte d'article :
@@ -1905,14 +1905,23 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 
 ### 8.4 Pack présentateur (v0.26.0)
 
-Chaque page d'article construite est aussi un deck de présentation
-pilotable au clavier, à la souris ou au tactile — pensé pour l'orateur
-qui se déplace avec une souris sans fil comme télécommande. La page
-d'index a une navigation simplifiée sans le pack présentateur complet :
-les flèches y parcourent les **cartes d'articles** une à une (le focus
-fait défiler la page avec lui, comme sur les cartes de la fiche
-`series-nav`, §9.3.5), le bouton ⛶ seul entre en plein écran, et
-Home revient en haut.
+**Le coup, partout, est le même.** Les flèches, les boutons ↑/↓ et les
+clics gauche/droit déplacent d'un « coup » : une fiche complète sur une
+page d'article (avec le voyage par incréments dans une fiche plus haute
+que l'écran et le pas par carte sur la fiche `series-nav`, §9.3.5), et
+une carte sur la page d'index — le focus fait défiler la page avec lui.
+Les boutons sont les jumeaux à l'écran des flèches : un clic, un coup.
+La page d'index n'a pas le pack présentateur complet : le bouton ⛶ seul
+entre en plein écran, Home revient en haut et efface le focus des
+cartes.
+
+**La sélection change le clic.** Un clic gauche tenu et relâché après
+un glissé est une **sélection**, pas un coup — il n'avance pas (§
+« Relâcher le bouton... » ci-dessous), et le clic suivant sur une
+sélection **l'annule** (comportement natif du navigateur, le deck n'y
+touche pas). Un clic droit sur une sélection ouvre le menu du navigateur
+(copier, chercher) au lieu de reculer d'une fiche : la sélection
+appartient au lecteur.
 
 **Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
 slide précédent, Home = retour à l'index, F = plein écran, B = écran
@@ -2560,11 +2569,13 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
   d'image, cohérent avec la contrainte d'autonomie du §13.4 (aucune
   dépendance réseau au runtime).
 
-#### 9.3.5 Parcours clavier (flèches Haut/Bas)
+#### 9.3.5 Parcours (flèches et boutons Haut/Bas)
 
 Un appui sur une flèche avance ou recule dans un parcours naturel à
 trois niveaux, chacun ne s'activant qu'une fois le niveau précédent
-épuisé — jamais tous en même temps :
+épuisé — jamais tous en même temps. Les boutons ↑/↓ de l'écran suivent
+le même parcours (§8.4), et la page d'index a son propre parcours à
+un seul niveau (cartes d'articles, §8.4) :
 
 1. **Fiche par fiche** (comportement de base, déjà existant) —
    `goTo(current ± 1)`, avec un défilement `smooth`.

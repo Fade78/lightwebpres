@@ -33,6 +33,28 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.43.6
+
+One step, everywhere: the arrows, the buttons and the clicks.
+
+The "step" is one thing on every page now. Arrows, on-screen ↑/↓
+buttons, and the left/right clicks all move one step: a whole slide on
+an article page (with the incremental scroll inside a slide taller than
+the screen and the card-by-card pass on the series-nav slide, §9.3.5),
+and one card on the index — where the buttons are the arrows' on-screen
+twins, so a click is a card, and the disabled state follows the
+journey, not the page. Home clears the card focus and returns to the
+top. §8.1, §8.4 and §9.3.5 say so; §8.1's "remonter / haut de page /
+descendre" is gone, because the buttons never scrolled the page.
+
+And a selection changes the click, both buttons. A left-click held
+into a drag is a selection, not a step — it never advances, and the
+click that follows on a selection cancels it (the browser's own
+behaviour, which the deck does not touch). A right-click on a
+selection opens the browser's menu (copy, search) instead of stepping
+back a slide. §8.4 says it in one place now, instead of three
+paragraphs that each rediscovered half of it.
+
 ## v0.43.5
 
 A right-click on a selection belongs to the reader.

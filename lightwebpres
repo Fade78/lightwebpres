@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.43.5"
+VERSION = "0.43.6"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -7768,28 +7768,27 @@ TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
     if (focusedCard >= 0) cards[focusedCard].blur();
     focusedCard = next;
     cards[focusedCard].focus();
+    updateNavUI();
   }
   function clearCardFocus() {
     if (focusedCard >= 0) { cards[focusedCard].blur(); focusedCard = -1; }
+    updateNavUI();
   }
 
   function updateNavUI() {
     var atTop = window.scrollY <= 4;
     var atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 4);
-    // The up/down buttons follow the same card journey as the arrows:
-    // they step the cards too, so a presenter clicking the on-screen
-    // buttons gets the same sequence a keyboard user does. Clicking
-    // still falls back to plain scrolling when there are no cards.
-    if (btnUp) btnUp.classList.toggle('disabled', atTop);
-    if (btnDown) btnDown.classList.toggle('disabled', atBottom);
+    // The buttons are the on-screen twins of the arrows: one click is
+    // one step of the same card-by-card journey the keyboard takes
+    // (§8.4 — "un coup, c'est une carte"). The disabled state follows
+    // the journey too: first card / last card.
+    if (btnUp) btnUp.classList.toggle('disabled', focusedCard <= 0);
+    if (btnDown) btnDown.classList.toggle('disabled',
+                                          focusedCard >= cards.length - 1);
   }
 
-  if (btnUp) btnUp.addEventListener('click', function () {
-    if (cards.length) stepCards(-1); else scrollByViewport(-1);
-  });
-  if (btnDown) btnDown.addEventListener('click', function () {
-    if (cards.length) stepCards(1); else scrollByViewport(1);
-  });
+  if (btnUp) btnUp.addEventListener('click', function () { stepCards(-1); });
+  if (btnDown) btnDown.addEventListener('click', function () { stepCards(1); });
   if (btnHome) btnHome.addEventListener('click', function () { clearCardFocus(); scrollToTop(); });
 
   // Enter/Space activate the role=button divs like native buttons.
