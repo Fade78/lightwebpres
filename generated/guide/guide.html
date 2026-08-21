@@ -4095,6 +4095,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!hasFinePointer) return;
     if (isInteractive(e)) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) return;
+    // A selection is the reader's own text, and right-clicking it asks
+    // for the browser's own menu — copy, copy link, search. Reported
+    // from the field: right-clicking a highlighted passage went back a
+    // card instead, which is the same theft the left-button guard
+    // (`endedADrag`) prevents on the way in. Without a selection,
+    // right-click keeps its deck meaning: go back one card.
+    if (String(window.getSelection())) return;
     e.preventDefault();
     clearTimeout(clickTimer);
     clickTimer = null;

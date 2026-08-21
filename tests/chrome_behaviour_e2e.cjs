@@ -575,6 +575,39 @@ async function main() {
          + ' -> ' + deskAfter);
   }
 
+  // 5f2. Right-click on a SELECTION belongs to the reader. A highlighted
+  // passage is the reader's own text, and the right button on it asks
+  // for the browser's menu — copy, copy link, search. Reported from the
+  // field: it went back a card instead, the same theft the left-button
+  // drag guard prevents on the way in. With no selection, right-click
+  // keeps its deck meaning — asserted above, and still true.
+  await page.evaluate(() => {
+    const slide = document.querySelectorAll('section.slide')[1];
+    const target = slide.querySelector('h2, p') || slide;
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  const selectionPrevented = await page.evaluate(() => {
+    const slide = document.querySelectorAll('section.slide')[1];
+    const target = slide.querySelector('h2, p') || slide;
+    const evt = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    target.dispatchEvent(evt);
+    return evt.defaultPrevented;
+  });
+  if (selectionPrevented) {
+    fail('right-click on a selection was swallowed, so the browser copy '
+         + 'menu never appeared');
+  }
+  const selectionKeptPlace = await currentSlide(page);
+  if (selectionKeptPlace !== deskAfter) {
+    fail('right-click on a selection moved the deck: ' + deskAfter
+         + ' -> ' + selectionKeptPlace);
+  }
+  await page.evaluate(() => window.getSelection().removeAllRanges());
+
   // 5g. Revealed chrome still fades on its own afterwards, so the switch
   // has not replaced the countdown with a latch.
   await doubleTap();

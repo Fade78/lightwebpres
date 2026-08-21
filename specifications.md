@@ -1939,7 +1939,11 @@ décision du code, pas une limitation de moteur (Firefox le bloquerait de
 toute façon depuis un clic non-gauche). Pour y entrer : double-clic,
 bouton ⛶, ou F. En plein écran, les clics gauche et droit sont
 instantanés (plus de double-clic à détecter). Le menu contextuel natif est
-supprimé sur le contenu pour que le clic droit soit un geste propre.
+supprimé sur le contenu pour que le clic droit soit un geste propre —
+**sauf quand du texte est surligné** : le clic droit sur une sélection
+appartient au lecteur (copier, chercher), il ouvre le menu du navigateur
+et ne fait pas reculer la fiche, comme le clic gauche ne fait pas avancer
+au relâchement d'un glissé.
 Les clics sur les liens, images et boutons ne sont pas interceptés.
 Un clic dans le coin bas-droite (la zone des boutons) qui ne vise pas
 un bouton bascule leur visibilité. Esc quitte le plein écran.

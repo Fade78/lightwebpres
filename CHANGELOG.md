@@ -33,6 +33,20 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.43.5
+
+A right-click on a selection belongs to the reader.
+
+The right button on slide content means "previous slide", and the
+native context menu is suppressed to keep that gesture clean. But a
+right-click on a HIGHLIGHTED passage asks for the browser's own menu —
+copy, copy link, search — and the deck answered with a card backwards,
+the same theft the left-button drag guard prevents on the way in. With
+a selection present, right-click now opens the browser menu and leaves
+the deck where it is; without one, it still goes back a card. Guarded
+by the selection, not by the pointer: the long-press on a touch screen
+already belongs to the reader (§8.4).
+
 ## v0.43.4
 
 The index's arrows walk the cards, and the focus ring is a theme axis.
