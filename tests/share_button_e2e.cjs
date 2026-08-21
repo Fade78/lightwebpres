@@ -77,6 +77,42 @@ async function main() {
     const popoverClosedByEscape = await page.evaluate(() => !document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverClosedByEscape) fail('Escape must close the share popover');
 
+    // 1b. A click on the GROUND while the popover is open closes it and
+    // does NOT advance the deck: closing the window you opened is not a
+    // navigation. The click that would have moved the reader a card on
+    // their way out is the same one they used to ask for nothing.
+    const onFirstSlide = () => page.evaluate(() => {
+      const dots = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'));
+      return dots.findIndex((d) => d.classList.contains('active'));
+    });
+    await page.click('#navShare');
+    const popoverOpenBeforeGroundClick = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
+    if (!popoverOpenBeforeGroundClick) fail('popover did not open before the ground click');
+    const slideBeforeGroundClick = await onFirstSlide();
+    // The centre of the cover, far from the popover (bottom-right) and
+    // from the nav buttons.
+    await page.mouse.click(640, 400);
+    await page.waitForTimeout(500); // past CLICK_DELAY, so a stray advance would have fired
+    const popoverClosedByGroundClick = await page.evaluate(() => !document.getElementById('sharePopover').classList.contains('open'));
+    if (!popoverClosedByGroundClick) fail('a ground click did not close the share popover');
+    const slideAfterGroundClick = await onFirstSlide();
+    if (slideAfterGroundClick !== slideBeforeGroundClick) {
+      fail('a ground click that closes the popover advanced the deck: slide '
+           + slideBeforeGroundClick + ' -> ' + slideAfterGroundClick);
+    }
+    // And the click is spent: a second ground click, popover now closed,
+    // must navigate as usual — without this, the guard above passes on a
+    // page where clicking does nothing at all.
+    await page.mouse.click(640, 400);
+    await page.waitForTimeout(500);
+    const slideAfterSecondGroundClick = await onFirstSlide();
+    if (slideAfterSecondGroundClick === slideBeforeGroundClick) {
+      fail('a ground click with no popover open no longer advances the deck');
+    }
+    // Back to the cover for the steps that follow.
+    await page.click('.nav-dots a:first-of-type');
+    await page.waitForTimeout(800);
+
     // 2. Move to the next slide, then the fiche column stays enabled.
     await page.click('#navNext');
     await page.waitForTimeout(800); // matches nav.js's own scroll-settle timeout

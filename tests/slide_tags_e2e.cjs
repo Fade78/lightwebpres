@@ -60,11 +60,44 @@ async function main() {
       throw new Error('unexpected tag menu: ' + options.join('|'));
     }
 
+    // A click on the GROUND while the menu is open closes it and does
+    // NOT advance the deck (§4.3.1): closing the dialog you opened is
+    // not a navigation.
+    const activeSlide = () => page.evaluate(() => {
+      const dots = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'));
+      return dots.findIndex((d) => d.classList.contains('active'));
+    });
+    const beforeGround = await activeSlide();
+    await page.mouse.click(640, 300);
+    await page.waitForFunction(() => !document.getElementById('tagMenu').classList.contains('open'));
+    await page.waitForTimeout(500); // past CLICK_DELAY, so a stray advance would have fired
+    const afterGround = await activeSlide();
+    if (afterGround !== beforeGround) {
+      throw new Error('a ground click that closed the tag menu advanced the deck: '
+        + beforeGround + ' -> ' + afterGround);
+    }
+    // And the click is spent: with the menu closed the same ground click
+    // navigates as usual.
+    await page.mouse.click(640, 300);
+    await page.waitForTimeout(500);
+    const afterSecondGround = await activeSlide();
+    if (afterSecondGround === afterGround) {
+      throw new Error('a ground click with no menu open no longer advances the deck');
+    }
+    // Back to the first card before the filter steps below.
+    await page.click('.nav-dots a:first-of-type');
+    await page.waitForTimeout(800);
+
+    await page.keyboard.press('l');
+    await page.waitForFunction(() => document.getElementById('tagMenu').classList.contains('open'));
     await page.click('#tagMenuList .tag-option[data-tag="en"]');
     await expectVisibleTags(page, ['default', 'en', 'default']);
     const selected = await page.evaluate(() => localStorage.getItem('lwp-active-tag'));
     if (selected !== 'en') throw new Error('tag was not persisted: ' + selected);
 
+    // Reopening the menu must not clear the selection: the "en" card
+    // stays visible after a reload below, and the menu must still offer
+    // the same three tags.
     await page.reload();
     await page.waitForSelector('section.slide[data-tags]');
     await expectVisibleTags(page, ['default', 'en', 'default']);

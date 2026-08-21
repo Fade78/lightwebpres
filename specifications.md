@@ -878,6 +878,15 @@ qui le portent et les fiches `default`. La sélection est conservée dans
 `localStorage['lwp-active-tag']`. Le compteur, les numéros, la navigation, les
 ancres et le panneau présentateur travaillent sur le sous-ensemble visible.
 
+Le menu se ferme par **Échap**, par la touche **L**, par la sélection d'un
+tag, et par un clic **ailleurs que dessus**. Fermer par un clic extérieur
+est le seul de ces quatre cas qui ne se voit pas dans le HTML : ce clic
+doit seulement fermer, il ne doit **pas** faire avancer la fiche — le
+lecteur qui referme la fenêtre qu'il a ouverte n'a demandé aucune
+navigation (§9.3.4 applique la même règle au popover de partage). Le
+bouton `L` et le bouton de partage ne se superposent jamais : ouvrir
+l'un ferme l'autre.
+
 **Champ dupliqué : le dernier gagne.** Si la même clé apparaît deux fois
 dans l'en-tête d'une fiche (ou d'un bloc meta), la dernière occurrence
 l'emporte, sans erreur ni avertissement. C'est une **sémantique de
@@ -2531,7 +2540,13 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
 - Fermetures : la touche **Échap** ferme la pop-up de partage et la
   modale QR ; un clic **hors** de la pop-up la ferme (un clic à
   l'intérieur ne la ferme pas) ; la modale QR se ferme par un clic sur
-  son fond ou sur sa croix.
+  son fond ou sur sa croix. Un clic hors de la pop-up **ne fait pas
+  avancer la fiche** : fermer la fenêtre que l'on a ouverte n'est pas
+  une navigation, et le même clic ferait changer la fiche sous les yeux
+  du lecteur au moment où il ne demande rien. Le popover et le menu de
+  tags (§4.3.1) ne se superposent jamais : ouvrir l'un ferme l'autre.
+  Aucune des deux fenêtres ne se ferme par un clic qui l'atteint — leur
+  contenu (copier, QR, choisir un tag) garde la priorité.
 - « Afficher le QR code » ouvre une fenêtre modale avec le QR code en SVG
   vectoriel, généré **entièrement côté client** par un encodeur JS
   embarqué dans `nav.js` — pas d'appel à un service tiers de génération

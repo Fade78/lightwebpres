@@ -209,16 +209,48 @@ def _all_theme_slugs():
 THEMES = _all_theme_slugs()
 
 
-@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s'
-                     % NPM_ROOT_OR_REASON)
-class EveryLineOnAPageCanBeRead(unittest.TestCase):
+# The sweep used to be ONE class over every theme: one setUpClass, 57
+# themes, each theme a `theme set` + `build` + two browser probes in
+# sequence — 155 s of wall-clock measured on this machine, during which
+# the other workers sat idle. Nothing about it had to be sequential:
+# each theme's pipeline is independent (its own build, its own probes),
+# and the results land in dicts keyed by theme.
+#
+# So the sweep is now SHARDED BY THEME, three classes, each owning about
+# a third of the catalogue, each with its own setUpClass — and the test
+# runner's pool hands the three classes to three different workers.
+# The assertions are unchanged and still run over every theme; only the
+# theme each instance measures differs. THEMES is kept whole: the
+# catalogue is a property of the program, and the shards are a property
+# of the machine running the tests.
+#
+# The shard is by ROUND-ROBIN over the sorted slugs, not by contiguous
+# slices: the AA-reporting themes are a minority scattered through the
+# alphabetical order, and contiguous slices could hand one class all of
+# them (the AA contract test below would have nothing to check) or none
+# (nothing to test its verdict against). Round-robin spreads them.
+def _theme_shards(n):
+    return [[t for i, t in enumerate(THEMES) if i % n == k] for k in range(n)]
 
+
+class _ContrastSweep:
+    """The probe suite, theme-agnostic. A concrete class below names its
+    own theme shard and inherits the tests — which read `cls.themes`,
+    never the whole catalogue. Not a TestCase itself, so the runner
+    never discovers it empty."""
     measured = {}
     stamp = {}
     levels = {}
+    themes = ()
 
     @classmethod
     def setUpClass(cls):
+        assert cls.themes, cls.__name__ + ': no themes in this shard'
+        # Fresh dicts per CLASS, not inherited ones: the mixin's empty
+        # dicts are shared, and filling them with [] would make every
+        # shard's measurements leak into the other two.
+        cls.measured = {}
+        cls.stamp = {}
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name) / 'series'
         (root / 'articles').mkdir(parents=True)
@@ -234,7 +266,7 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
             encoding='utf-8')
         (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
         (root / 'articles' / 'a_article.md').write_text(_LONG, encoding='utf-8')
-        for theme in THEMES:
+        for theme in cls.themes:
             settheme = subprocess.run(
                 ['python3', str(LWP), 'series', 'theme', 'set', str(root),
                  '--theme', theme],
@@ -291,7 +323,7 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
         offered ten elements and every theme passed it."""
         self.assertGreaterEqual(len(THEMES), 30,
                                 'the theme catalogue was not read')
-        self.assertEqual(sorted(self.measured), sorted(THEMES))
+        self.assertEqual(sorted(self.measured), sorted(self.themes))
         for theme, m in self.measured.items():
             self.assertGreater(
                 m['measured'], 25,
@@ -398,6 +430,10 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
         the design does not allow, because it is the report itself
         lying."""
         promised = {t for t, level in self.levels.items() if level != 'fail'}
+        # The shard's share of the AA-reporting themes — the catalogue
+        # itself is divided across the three sweep classes, and a theme
+        # outside this shard has no measurement here to be held to.
+        promised &= set(self.themes)
         self.assertGreater(len(promised), 5,
                            'no theme claims AA -- the report was not read')
         failures = []
@@ -493,3 +529,28 @@ class EveryLineOnAPageCanBeRead(unittest.TestCase):
                 'the instrument did not see a careless author variant on '
                 f'{sorted(set(promised) - set(caught))} -- which is the one '
                 f'thing the registry report cannot see either')
+
+
+# The three shards of the theme sweep. Same tests, third of the
+# catalogue each; the runner's pool runs them on three workers. The
+# shard classes are deliberately trivial — the split is load, not
+# semantics — so their names say only where each one starts.
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s'
+                     % NPM_ROOT_OR_REASON)
+class EveryLineOnAPageCanBeReadA(_ContrastSweep, unittest.TestCase):
+    """Themes 0, 3, 6, ... of the sorted catalogue."""
+    themes = _theme_shards(3)[0]
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s'
+                     % NPM_ROOT_OR_REASON)
+class EveryLineOnAPageCanBeReadB(_ContrastSweep, unittest.TestCase):
+    """Themes 1, 4, 7, ... of the sorted catalogue."""
+    themes = _theme_shards(3)[1]
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s'
+                     % NPM_ROOT_OR_REASON)
+class EveryLineOnAPageCanBeReadC(_ContrastSweep, unittest.TestCase):
+    """Themes 2, 5, 8, ... of the sorted catalogue."""
+    themes = _theme_shards(3)[2]

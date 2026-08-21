@@ -12,7 +12,7 @@ là-bas, ce que l'outil **accepte**.
 
 ### Tests (obligatoire avant et après chaque changement)
 ```bash
-python3 tests/run_tests.py                              # obligatoire : parallèle, CPUs disponibles - 2
+python3 tests/run_tests.py                              # obligatoire : parallèle, tous les vCPU (niced +5)
 python3 tests/run_tests.py --workers 4                  # override explicite
 python3 -m unittest tests.test_lightwebpres              # diagnostic séquentiel : fichier principal seul
 python3 -m unittest tests.test_lightwebpres -v          # diagnostic verbeux séquentiel

@@ -35,6 +35,47 @@ link to the originals. They are at
 
 ## Unreleased — 0.43.2
 
+A click on the ground closes the open window, and only that.
+
+Opening the share popover or the tag menu was a detour that cost the
+reader their place: the first click outside it closed the window — and
+the same click, on the way out, advanced the deck. The click that
+closed the window was the same one that moved the card under the
+reader's nose, the moment they asked for nothing. Closing what you
+opened is not a navigation, so the click is spent on the close. A
+second click, window now closed, navigates as usual. §9.3.4's closing
+rule now says so, and §4.3.1 gains the same rule for the tag menu,
+which had no outside-click close at all: it now closes on Escape, on L,
+on a tag pick, and on a click elsewhere.
+
+The two windows never stack: opening one closes the other, whichever
+button opened it.
+
+The test runner learns how long its own tests take, and uses every
+core. The battery used to be cut into four fixed batches, so the wall
+was as long as the slowest batch and the machine's CPU meter showed the
+shape of that: a burst while the fast batches ran, then one worker
+draining the long classes alone. Classes are now handed out one by one
+to whichever worker finishes first, ordered by the wall-clock each class
+measured the previous run — a per-user cache, not a committed list, so
+a test that slows down or a new class that is slow are re-learned on
+the next run instead of rotting in a table. The run's own log carries
+the time of every class and a closing list of the ones that own the
+wall, so the battery is its own benchmark.
+
+The wall, measured on this machine: 181 s with fixed batches, 161 s
+with the pool and the measured order, and the contrast sweep — one
+class, 57 themes, 155 s of wall to itself — is now three shards of
+nineteen themes that run in parallel, which brings the wall to 149 s
+with the last class at 60 s. The counter class that used to sit idle
+under the monolith now absorbs the whole unit battery on the other
+workers while the shards finish.
+
+The runner takes every CPU by default instead of leaving two for the
+desktop, and pays for that politeness differently: it nices itself one
+step below normal (+5) so the machine stays responsive, with
+`--no-nice` to opt out where priority is not wanted.
+
 Documentation and test-suite work; the engine's behaviour is unchanged.
 
 A theme's contrast level stops being written as a standard anywhere in the

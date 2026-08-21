@@ -3237,7 +3237,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function toggleTagMenu() {
     if (!tagMenu || tagList().length < 2) return;
-    tagMenu.classList.toggle('open');
+    if (tagMenu.classList.contains('open')) {
+      closeTagMenu();
+      return;
+    }
+    // The share popover and the tag menu never stack: opening one closes
+    // the other. closeSharePopover() has no focus side-effect to undo.
+    closeSharePopover();
+    tagMenu.classList.add('open');
     updateTagMenu();
     // Move the focus IN. The menu carries role="dialog" and its options
     // are real buttons, but nothing ever focused them, and the global
@@ -3246,13 +3253,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // cancels the focus move. Measured: five Tab presses left
     // document.activeElement on BODY, so the whole slide-variant feature
     // was mouse-only and the dialog role was never announced.
-    if (tagMenu.classList.contains('open')) {
-      var options = tagOptions();
-      var active = options.filter(function (b) {
-        return b.classList.contains('active');
-      })[0];
-      if (active || options.length) (active || options[0]).focus();
-    }
+    var options = tagOptions();
+    var active = options.filter(function (b) {
+      return b.classList.contains('active');
+    })[0];
+    if (active || options.length) (active || options[0]).focus();
   }
 
   function rebuildDots() {
@@ -3795,10 +3800,12 @@ document.addEventListener('DOMContentLoaded', function() {
     shareBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       updateShareFicheState();
+      // The share popover and the tag menu never stack: opening one
+      // closes the other (toggleTagMenu does the same in return).
+      closeTagMenu();
       sharePopover.classList.toggle('open');
     });
     sharePopover.addEventListener('click', function (e) { e.stopPropagation(); });
-    document.addEventListener('click', function () { closeSharePopover(); });
 
     Array.prototype.slice.call(sharePopover.querySelectorAll('.share-action')).forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -4018,6 +4025,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // swallowClicksUntil.
     if (Date.now() < swallowClicksUntil) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
+    // A popover or dialog is open and the reader clicks outside it:
+    // closing it is the whole of the click. Advancing the deck here
+    // would move the reader the moment they asked for nothing — and on
+    // the way out, the same click that closed the window would change
+    // the card under the reader's nose. (A click INSIDE the window never
+    // reaches this handler: isInteractive above has already returned.)
+    if ((sharePopover && sharePopover.classList.contains('open'))
+        || (tagMenu && tagMenu.classList.contains('open'))) {
+      closeSharePopover();
+      closeTagMenu();
+      return;
+    }
     // Only the left button (0) drives navigation from here on.
     if (e.button !== 0) return;
     if (isFullscreen()) {
