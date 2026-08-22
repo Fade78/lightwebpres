@@ -7611,15 +7611,24 @@ document.addEventListener('DOMContentLoaded', function() {
   // not carry one — a toggle fired there could exit fullscreen (which
   // needs no gesture) but its entry was refused by the browser,
   // silently. `mousedown` is a gesture; the button's own `click` and
-  // `auxclick` are left alone afterwards (they only ever see
-  // `e.button !== 0` in the click handler, and the auxclick handler is
-  // simply not bound). The preventDefault also stops the middle button's
-  // native auto-scroll.
+  // `auxclick` are left alone afterwards. The preventDefault also stops
+  // the middle button's native auto-scroll.
+  //
+  // The auxclick below makes the toggle complete: the middle button on
+  // a LINK would otherwise open it (new tab, or navigate) when the
+  // button is released — the fullscreen entered on mousedown would be
+  // lost a moment later. The middle button is the fullscreen toggle
+  // everywhere, cards and links included, so the link's own activation
+  // is swallowed.
   document.addEventListener('mousedown', function (e) {
     if (e.button !== 1) return;
-    if (isInteractive(e)) return;
     e.preventDefault();
     toggleFullscreen();
+  });
+  document.addEventListener('auxclick', function (e) {
+    if (e.button !== 1) return;
+    e.preventDefault();
+    e.stopPropagation();
   });
 
   // --- Touch swipe and double tap (mobile / tablet) ---
@@ -7797,13 +7806,18 @@ TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
   // as the article pages (§8.4). The toggle lives on `mousedown`, not
   // on `auxclick`: entering fullscreen needs a real user-activation
   // gesture, and the auxiliary events do not carry one. It works
-  // EVERYWHERE on the page, cards included (the middle button never
-  // follows a link, so nothing to preserve); the preventDefault stops
-  // the native auto-scroll.
+  // EVERYWHERE on the page, cards included; the auxclick below
+  // swallows the middle button's native "open link" so the fullscreen
+  // entered on mousedown is not lost to a new tab a moment later.
   document.addEventListener('mousedown', function (e) {
     if (e.button !== 1) return;
     e.preventDefault();
     toggleFullscreen();
+  });
+  document.addEventListener('auxclick', function (e) {
+    if (e.button !== 1) return;
+    e.preventDefault();
+    e.stopPropagation();
   });
 
   function scrollByViewport(direction) {

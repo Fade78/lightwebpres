@@ -1888,13 +1888,18 @@ var btnUp   = document.getElementById('navUp');
   // as the article pages (§8.4). The toggle lives on `mousedown`, not
   // on `auxclick`: entering fullscreen needs a real user-activation
   // gesture, and the auxiliary events do not carry one. It works
-  // EVERYWHERE on the page, cards included (the middle button never
-  // follows a link, so nothing to preserve); the preventDefault stops
-  // the native auto-scroll.
+  // EVERYWHERE on the page, cards included; the auxclick below
+  // swallows the middle button's native "open link" so the fullscreen
+  // entered on mousedown is not lost to a new tab a moment later.
   document.addEventListener('mousedown', function (e) {
     if (e.button !== 1) return;
     e.preventDefault();
     toggleFullscreen();
+  });
+  document.addEventListener('auxclick', function (e) {
+    if (e.button !== 1) return;
+    e.preventDefault();
+    e.stopPropagation();
   });
 
   function scrollByViewport(direction) {
