@@ -33,6 +33,12 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.45.3
+
+The gallery's labels, colour swatches and theme descriptions now remain a
+reading size beside the measured previews, including on the wide desktop
+layout. The previews themselves keep their measured rendering size.
+
 ## v0.45.2
 
 The gallery keeps its four real theme surfaces at their measured rendering
