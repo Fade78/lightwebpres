@@ -7797,6 +7797,51 @@ class DarkBackgroundThemes(unittest.TestCase):
         self.assertEqual(bare['fact.strong.fg'], bare['color.ink'])
 
 
+class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
+    SURFACES = (
+        'page.bg', 'cover.bg.from', 'cover.bg.to',
+        'fact.bg', 'code.bg', 'note.page.bg', 'article.bg',
+        'table.head.bg', 'table.col-signal.bg', 'table.col-snap.bg',
+        'series-nav.current.bg', 'series-nav.link.bg',
+        'nav-btn.bg', 'nav-btn.bg-soft', 'share.bg', 'share.bg-hover',
+        'card.bg', 'version-tag.bg',
+    )
+
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    def _resolved(self, slug):
+        return self.lwp.resolve_theme_properties(
+            self.lwp.theme_property_layer(slug))
+
+    def test_the_print_family_has_the_three_original_themes_and_print_boss(self):
+        self.assertEqual(
+            [slug for slug, theme in self.lwp.THEMES.items()
+             if theme.get('family') == 'print'],
+            ['print-ink', 'print-grey', 'print-color', 'print-boss'])
+
+    def test_every_print_surface_is_opaque_white(self):
+        for slug, theme in self.lwp.THEMES.items():
+            if theme.get('family') != 'print':
+                continue
+            resolved = self._resolved(slug)
+            for prop in self.SURFACES:
+                self.assertEqual(resolved[prop], '#FFFFFFFF', f'{slug}: {prop}')
+            self.assertEqual(resolved['cover.fg'], resolved['color.ink'], slug)
+            self.assertEqual(resolved['cover.summary.fg'], resolved['color.ink'], slug)
+            self.assertEqual(resolved['cover.kicker.fg'], resolved['color.ink'], slug)
+
+    def test_print_ink_is_bold_without_a_highlight_and_print_boss_is_regular_on_yellow(self):
+        ink = self._resolved('print-ink')
+        self.assertEqual(ink['fact.strong.weight'], 'bold')
+        self.assertEqual(ink['fact.strong.bg'], '#00000000')
+
+        boss = self._resolved('print-boss')
+        self.assertEqual(boss['fact.strong.weight'], 'normal')
+        self.assertEqual(boss['fact.strong.bg'], '#FFF200FF')
+        self.assertEqual(self.lwp.THEMES['print-boss']['fact_highlight'], 'marker')
+
+
 class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
     """The dark-furniture omission, caught by measurement instead of by
     membership. It has now happened twice — the notes plate and its two

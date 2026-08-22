@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.1"
+VERSION = "0.45.2"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -2063,11 +2063,11 @@ THEMES = {
         'marker': '#FFE9A8', 'ink': '#000000', 'ink-muted': '#4B4B4B',
         'page': '#FFFFFF', 'accent': '#B71D1C', 'positive': '#1B5E20',
         'nav': '#000000',
-        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
         'note': "Ink on white, the highest contrast the family holds: pure "
-                "black text, a single deep red held in reserve, a pale "
-                "yellow highlighter for the bold runs. What a printer "
-                "consumes without asking: no hue needs to be paid for twice.",
+                "black text, a single deep red held in reserve. Emphasis is "
+                "bold alone, with no coloured wash — what a printer consumes "
+                "without asking: no hue needs to be paid for twice.",
         'note_good': True,
     },
     'print-grey': {
@@ -2095,6 +2095,18 @@ THEMES = {
                 "green for what is good, a pale yellow for the highlight. "
                 "Three inks, and none of them a screen colour — each one "
                 "was chosen to survive printing.",
+        'note_good': True,
+    },
+    'print-boss': {
+        'family': 'print', 'label': 'Print Boss', 'source': 'lightwebpres',
+        'marker': '#FFF200', 'ink': '#1A1A1A', 'ink-muted': '#5A5A5A',
+        'page': '#FFFFFF', 'accent': '#0B5394', 'positive': '#1B5E20',
+        'nav': '#0B5394',
+        'fact_weight': 'normal', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "White paper, ordinary-weight text and a yellow highlighter: "
+                "the fact box reads like a newspaper someone has marked by "
+                "hand. The blue and green inks keep the rest of the page "
+                "structured without turning it into a screen.",
         'note_good': True,
     },
 }
@@ -2282,7 +2294,7 @@ def fact_treatment_label(theme):
         faces.append('bold')
     if style == 'italic':
         faces.append('italic')
-    face = ' '.join(faces) if faces else 'no change of weight'
+    face = ' '.join(faces) if faces else 'normal weight'
     face = face[0].upper() + face[1:]
 
     # Names the settings.conf property, the one an author can type — never a
@@ -3831,6 +3843,24 @@ THEME_TYPOGRAPHY = {
     },
 }
 
+# Print is a physical medium: every content and panel surface is opaque white.
+# The cover needs its own text colours too, because the ordinary cover is an
+# inverted card with a dark ground and pale title/summary.
+_PRINT_WHITE_SURFACES = {
+    'page.bg': '#FFFFFF',
+    'cover.bg.from': '#FFFFFF', 'cover.bg.to': '#FFFFFF',
+    'cover.fg': 'ink', 'cover.summary.fg': 'ink',
+    'cover.kicker.fg': 'ink', 'cover.num.fg': 'ink-quiet',
+    'fact.bg': '#FFFFFF', 'code.bg': '#FFFFFF',
+    'note.page.bg': '#FFFFFF', 'article.bg': '#FFFFFF',
+    'table.head.bg': '#FFFFFF', 'table.col-signal.bg': '#FFFFFF',
+    'table.col-snap.bg': '#FFFFFF',
+    'series-nav.current.bg': '#FFFFFF', 'series-nav.link.bg': '#FFFFFF',
+    'nav-btn.bg': '#FFFFFF', 'nav-btn.bg-soft': '#FFFFFF',
+    'share.bg': '#FFFFFF', 'share.bg-hover': '#FFFFFF',
+    'card.bg': '#FFFFFF', 'version-tag.bg': '#FFFFFF',
+}
+
 THEME_PROPERTY_OVERRIDES = {
     # --- the rule down the side of a snapshot column ----------------------
     # `table.col-snap.rule-fg` defaults to `mark`, and on most palettes
@@ -4108,16 +4138,25 @@ THEME_PROPERTY_OVERRIDES = {
     # does. The shadows of the light family are shadows of screens, not
     # of paper: each print theme pins them off.
     'print-ink': {
+        **_PRINT_WHITE_SURFACES,
         'table.col-snap.rule-fg': 'call',
         'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
         'highlight.shadow.fg': 'transparent',
     },
     'print-grey': {
+        **_PRINT_WHITE_SURFACES,
         'table.col-snap.rule-fg': 'ink',
         'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
         'highlight.shadow.fg': 'transparent',
     },
     'print-color': {
+        **_PRINT_WHITE_SURFACES,
+        'table.col-snap.rule-fg': 'call',
+        'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
+        'highlight.shadow.fg': 'transparent',
+    },
+    'print-boss': {
+        **_PRINT_WHITE_SURFACES,
         'table.col-snap.rule-fg': 'call',
         'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
         'highlight.shadow.fg': 'transparent',
@@ -8687,6 +8726,32 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
   }
   footer code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  /* The previews keep their measured rendering size. Once the page has room
+     for the four-panel layout, give the labels around them a reading size
+     that does not compete with the previews by becoming microscopic. */
+  @media (min-width: 901px) {
+    .masthead-commands h2 { font-size: 12px; }
+    .masthead-commands dt { font-size: 13px; }
+    .masthead-commands dd { font-size: 13.5px; }
+    .eyebrow { font-size: 12.5px; }
+    .dek { font-size: 17px; }
+    .dek--note { font-size: 16px; }
+    .facet-label { font-size: 12px; }
+    .facet { font-size: 14px; }
+    .facet-count { font-size: 13px; }
+    .theme-head h2 { font-size: 21px; }
+    .theme-slug { font-size: 12px; }
+    .theme-source { font-size: 12px; }
+    .panel figcaption { font-size: 10.5px; }
+    .fact-treatment { font-size: 13px; }
+    .fact-treatment > span { font-size: 10px; }
+    .swatch-role { font-size: 11.5px; }
+    .swatch-hex, .swatch-var { font-size: 11px; }
+    .theme-note { font-size: 13px; }
+    .install-hint { font-size: 12px; }
+    footer { font-size: 13.5px; }
   }
 
   @media (max-width: 480px) {

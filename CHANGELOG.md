@@ -33,6 +33,22 @@ link to the originals. They are at
 
 ---
 
+## v0.45.2
+
+The gallery keeps its four real theme surfaces at their measured rendering
+size, while its labels, swatches and notes now use a larger desktop reading
+scale. The generated gallery, guide and contact sheet are regenerated from
+their sources.
+
+The source documentation and embedded help use the current seven-role
+catalogue vocabulary, describe the fullscreen gesture precisely, and keep
+the language corrections in one place.
+
+The print catalogue now keeps its content and panel surfaces opaque white,
+including the cover. `print-ink` uses bold without a coloured wash, while the
+new `print-boss` theme uses ordinary-weight text under a yellow highlighter,
+like a newspaper marked by hand.
+
 ## v0.45.1
 
 The print family: three themes drawn for ink and paper, and nothing else.

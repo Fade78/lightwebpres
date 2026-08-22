@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 33 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 34 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -149,6 +149,7 @@ gets its own entry and its own state**, however small.
 - **B38** — The two pages share one skeleton and one script
 - **B39** — The sources directory is called `sources/`, not `articles/`
 - **B40** — The print family: three themes drawn for ink and paper
+- **B41** — Print Boss adds a hand-marked newspaper to the print family
 
 ### abandonné
 
@@ -2267,3 +2268,18 @@ the structure, a green for what is good, a pale yellow highlighter,
 each chosen to survive printing. All three pin their shadows off
 (the light family's shadows are shadows of screens, not of paper) and
 pass the catalogue's own AA floor on bold fact text, measured.
+
+## B41 — Print Boss adds a hand-marked newspaper to the print family
+
+**État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.2
+
+The print family keeps its content and panel surfaces opaque `#FFFFFF`,
+including the cover, so no print theme spends ink filling a page. The cover's
+title, summary, kicker and number are restated in the theme's ink colours;
+the ordinary inverted cover defaults would otherwise put pale text on white.
+
+`print-ink` is the printer's economy: its fact-box emphasis is bold and has
+no coloured ground. `print-boss` is the deliberate exception: ordinary-weight
+text sits on a yellow `fact.strong.bg`, giving the fact box the look of a
+newspaper someone marked with a highlighter by hand. The existing `print-grey`
+and `print-color` treatments stay unchanged.
