@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.45.3
+## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a
 reading size beside the measured previews, including on the wide desktop
