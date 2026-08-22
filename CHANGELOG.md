@@ -59,11 +59,17 @@ click within the window enters (the left click carries the gesture the
 browser requires), and middle button then a RIGHT click goes Home.
 While fullscreen, the middle button exits cleanly and arms nothing —
 the click that follows has its ordinary meaning. The wheel itself
-keeps scrolling; ⛶ / F stay direct entries. The right button is the
+keeps scrolling; ⛶ / F stay direct entries. And a two-click jump
+leaves no ghost behind: the pair's second click is also the platform's
+double-click, which selects the word under the pointer on the card the
+deck has just left — a selection the reader never saw, which would
+steal the next right-click (copy menu instead of going back). The deck
+wipes it with its own motion, at the jump and again on dblclick.
+
+The right button is the
 exact mirror of the left, everywhere: it goes back on the index cards
 and the series-nav links too (the browser's context menu is gone from
-the deck; a selection still owns it). The two-click word selection
-stays with the browser, exempted from the drag guards on purpose.
+the deck; a selection still owns it).
 
 And a click on an existing selection dismisses it, and only that. The
 browser clears the selection on mousedown, before our click event

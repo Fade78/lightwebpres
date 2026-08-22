@@ -1882,6 +1882,9 @@ var btnUp   = document.getElementById('navUp');
       (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
     }
   }
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
   if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
 
   // The middle BUTTON is the fullscreen gatekeeper, the same two-step
@@ -1917,7 +1920,14 @@ var btnUp   = document.getElementById('navUp');
     }
   }, true);
   document.addEventListener('click', function (e) {
-    if (fsEntryPending) { fsEntryPending = false; return; }
+    // The second half of the two-step consumed this click: cancel the
+    // link navigation that would otherwise follow (the click default),
+    // so the entry does not also open the card under the pointer.
+    if (fsEntryPending) {
+      fsEntryPending = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }, true);
   document.addEventListener('auxclick', function (e) {
     if (e.button !== 1) return;

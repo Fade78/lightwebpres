@@ -2023,7 +2023,14 @@ Un glissé qui n'a rien sélectionné non plus : c'était un glissé, pas un
 clic. Le second appui d'une paire rapide est délibérément exempté de
 ces deux gardes — le navigateur sélectionne le mot sous le pointeur au
 second appui, et le retenir rendrait le clic pendant le glissé
-inatteignable à la souris.
+inatteignable à la souris. **Cette sélection est un fantôme, et elle
+est effacée avec le mouvement du deck** : le second clic de la paire
+est aussi le double-clic natif du navigateur, qui sélectionne le mot
+sous le pointeur — sur la fiche que le deck vient de quitter. Le
+lecteur ne l'a jamais vue (la page a bougé dessous), et elle volerait
+le clic droit suivant (menu Copier au lieu de reculer). Le deck purge
+la sélection au moment où il saute, et de nouveau à l'évènement
+`dblclick` lui-même, qui peut la reposer selon le navigateur.
 
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.

@@ -761,16 +761,21 @@ async function main() {
   await page.goBack();
   await page.waitForTimeout(400);
 
-  // 5i. The two-click selection still belongs to the browser. The
-  // deck must not swallow the platform's own double-click word
-  // selection — the second click of a pair is exempted from the drag
-  // guards precisely so the browser keeps doing what it does.
+  // 5i. The two-click word selection is a ghost and is cleared. The
+  // pair's second click is the platform's own double-click, which
+  // selects the word under the pointer — on the card the deck has
+  // just left. That selection was never seen by the reader (the page
+  // moved away underneath it) and it would steal the next right-click
+  // (copy menu instead of stepping back), so the deck wipes it with
+  // its own motion. The pair still lands two pages on — the jump is
+  // the point — but no stale highlight survives it.
   await page.mouse.dblclick(300, 300);
   await page.waitForTimeout(200);
-  const wordSel = await page.evaluate(() => String(window.getSelection()).length);
-  if (wordSel === 0) {
-    fail('a double-click no longer selects the word under the pointer: '
-         + 'the deck swallowed the browser gesture');
+  const ghostSel = await page.evaluate(() => String(window.getSelection()).length);
+  if (ghostSel !== 0) {
+    fail('a two-click jump left a ghost selection behind: ' + ghostSel
+         + ' characters — the next right-click would open the copy '
+         + 'menu instead of going back');
   }
 
   await browser.close();

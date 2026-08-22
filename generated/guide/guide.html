@@ -4118,6 +4118,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // observer owns it), so the step is anchored on `currentVisible`.
     var base = isScrolling ? current : currentVisible();
     goTo(base + 1, isScrolling);
+    // The second click of a quick pair is also the platform's own
+    // double-click, which selects the word under the pointer — on the
+    // card the deck has just left. That selection is a ghost: the
+    // reader never saw it (the page moved away underneath it), and it
+    // steals the next right-click, which opens the copy menu instead
+    // of stepping back. The deck's own motion invalidates the
+    // platform's gesture, so the ghost is cleared with it.
+    if (e.detail >= 2) window.getSelection().removeAllRanges();
+  });
+  // And the dblclick event itself can re-pose the selection after our
+  // click handler wiped it (the browsers differ on when the selection
+  // lands), so it is wiped again, out of reach of the copy menu.
+  document.addEventListener('dblclick', function (e) {
+    if (isInteractive(e)) return;
+    window.getSelection().removeAllRanges();
   });
   document.addEventListener('contextmenu', function (e) {
     // Right-click = go back, the exact mirror of the left button — it
@@ -4197,7 +4212,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, true);
   document.addEventListener('click', function (e) {
-    if (fsEntryPending) { fsEntryPending = false; return; }
+    // The second half of the two-step consumed this click: cancel the
+    // link navigation that would otherwise follow (the click default),
+    // so the entry does not also open the card under the pointer.
+    if (fsEntryPending) {
+      fsEntryPending = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }, true);
 
   // --- Touch swipe and double tap (mobile / tablet) ---
