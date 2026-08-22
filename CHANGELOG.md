@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.43.7
+## v0.44.0
 
 The click is instant, the glide is 200 ms, and a selection is only
 ever dismissed.
