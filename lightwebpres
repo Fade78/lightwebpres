@@ -6584,12 +6584,19 @@ document.addEventListener('DOMContentLoaded', function() {
   // felt as a controlled pace while a key is held.
   var stepCooldownActive = false;
   var STEP_COOLDOWN_MS = 150;
-  // Index into the CURRENT slide's keyboard-reachable links (series-nav
-  // cards + the "back to index" link, in document order) — -1 means none
-  // focused yet. Reset on every slide change (goTo). Only ever non-empty
-  // on the series-nav slide; every other slide behaves exactly as if
-  // this never existed.
+  // Index into the keyboard-reachable cards, in document order — -1 means
+  // none focused yet. On an article it indexes into the CURRENT slide's
+  // links (series-nav cards + the "back to index" link); it is reset on
+  // every slide change (goTo) and only ever non-empty on the
+  // series-nav slide. On the index there are no slides, and the page's
+  // own article cards ARE the journey: the same variable, the same
+  // focus, the list below.
+  //
+  // The index's card list is built once at load (it cannot change under
+  // the page). focus() scrolls a card into view on its own, which is
+  // the same scroll the old arrows did, only aimed at something.
   var focusedCard = -1;
+  var indexCards = slides.length ? [] : Array.prototype.slice.call(document.querySelectorAll('.article-card'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var btnHome    = document.getElementById('navHome');
@@ -6761,6 +6768,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyHash() {
+    // The index has no fiche and no fragment: nothing to follow.
+    if (!slides.length) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
@@ -6842,6 +6851,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updateCounter() {
     if (!slideCounter) return;
+    // On the index there are no slides to count: the counter exists in
+    // the skeleton (one page for both kinds) but is hidden — an empty
+    // pill with a border would sit in the corner saying nothing.
+    if (!slides.length) { slideCounter.hidden = true; return; }
+    slideCounter.hidden = false;
     slideCounter.textContent = jumpBuffer
       ? '→ ' + jumpBuffer
       : ((current + 1) + ' / ' + slides.length);
@@ -6849,6 +6863,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updatePresenter() {
     if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
+    if (!slides.length) {
+      // The presenter panel exists on the index too (one skeleton), but
+      // it is a deck's furniture: without slides there is nothing to
+      // present, so the panel says nothing.
+      return;
+    }
     var cur = slides[current];
     var noteEl = cur ? cur.querySelector('.speaker-note') : null;
     if (presenterNotes) {
@@ -6875,6 +6895,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // vertical midpoint — the real "what the user is looking at",
     // independent of the `current` variable which may be stale during
     // a smooth scroll.
+    //
+    // On the index there are no slides: the focus is the position, so
+    // "what the user is looking at" is the focused card, or 0 when
+    // nothing is focused (the page's own top).
+    if (!slides.length) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
     var mid = window.innerHeight / 2;
     var best = current;
     slides.forEach(function(s, i) {
@@ -6903,6 +6928,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // reader scrolled past and turn the Back button — the one way out of a
   // deck — into a slow rewind of the whole article.
   function recordSlideInUrl(idx) {
+    // The index has no fiche: no fragment, and nothing to record.
+    if (!slides.length) return;
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
@@ -6950,6 +6977,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function goTo(idx, instant) {
     if (!slides.length) {
+      // On the index there is no slide to go to — the URL keeps no
+      // fragment, the focus is the position (stepIndexCards), and the
+      // disabled state of the nav buttons is the on-screen map of it.
+      clearIndexFocus();
       current = 0;
       updateUI();
       return;
@@ -6981,6 +7012,23 @@ document.addEventListener('DOMContentLoaded', function() {
     return Array.prototype.slice.call(slides[idx].querySelectorAll('.series-list a.series-link'));
   }
 
+  // The index page's own cards — the whole journey, where on an article
+  // the same journey belongs to the series-nav slide.
+  function indexCardList() {
+    return indexCards;
+  }
+  function indexCardFocused() {
+    return focusedCard;
+  }
+  function focusIndexCard(i) {
+    if (focusedCard >= 0) indexCards[focusedCard].blur();
+    focusedCard = i;
+    indexCards[focusedCard].focus();
+  }
+  function clearIndexFocus() {
+    if (focusedCard >= 0) { indexCards[focusedCard].blur(); focusedCard = -1; }
+  }
+
   // .slide only sets min-height: 100vh (specifications.md §9), so a
   // slide's real height only exceeds the viewport when its own content
   // demands it — a long full-article slide being the common case, but
@@ -6998,6 +7046,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function scrollWithinSlide(direction) {
     window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
   }
+  // The top of the page — the index's Home, and the beginning of the
+  // card journey.
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   // The natural keyboard journey (in this order, each one only kicking in
   // once the previous is exhausted): slide to slide, then — on the
@@ -7008,7 +7061,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // scroll it down in increments before moving on. Enter needs no extra
   // handling: once a card has real focus, the browser's own default
   // "Enter activates the focused link" already does the jump.
+  //
+  // On the index the cards ARE the page: the journey is card to card
+  // through the whole list, and the end of the list is the end of the
+  // journey. The same focus ring, the same Enter-to-follow, and the
+  // nav buttons are disabled at the ends just as on an article.
   function stepForward() {
+    if (!slides.length) { stepIndexCards(1); return; }
     var cards = slideCards(current);
     if (cards.length && focusedCard < cards.length - 1) {
       focusedCard++;
@@ -7025,6 +7084,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function stepBackward() {
+    if (!slides.length) { stepIndexCards(-1); return; }
     var cards = slideCards(current);
     if (focusedCard > 0) {
       focusedCard--;
@@ -7043,19 +7103,59 @@ document.addEventListener('DOMContentLoaded', function() {
     goTo(current - 1);
   }
 
+  // One card step on the index: focus moves card by card, and the
+  // disabled state of the nav buttons follows the journey, as it does
+  // for the arrows on an article (§8.4 — "un coup, c'est une carte").
+  function stepIndexCards(direction) {
+    var cards = indexCardList();
+    if (!cards.length) return;
+    var next = focusedCard + direction;
+    if (next < 0 || next >= cards.length) return;
+    focusIndexCard(next);
+    updateUI();
+  }
+
   function updateUI() {
     if (btnPrev) btnPrev.classList.toggle('disabled', !slides.length || current === 0);
     if (btnNext) btnNext.classList.toggle('disabled', !slides.length || current === slides.length - 1);
-    dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
+    if (!slides.length) {
+      // The index: the cards are the journey, and the nav buttons are
+      // its on-screen twins — first card / last card, exactly as on the
+      // series-nav slide of an article.
+      var cards = indexCardList();
+      if (btnPrev) btnPrev.classList.toggle('disabled', focusedCard <= 0);
+      if (btnNext) btnNext.classList.toggle('disabled',
+                                            focusedCard >= cards.length - 1);
+    } else {
+      dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
+    }
     updateShareFicheState();
     updateCounter();
     updatePresenter();
   }
 
-  btnPrev.addEventListener('click', function(){ goTo(current - 1); });
-  btnNext.addEventListener('click', function(){ goTo(current + 1); });
+  if (btnPrev) btnPrev.addEventListener('click', function() {
+    // On the index the buttons are the on-screen twins of the arrows:
+    // one click, one card of the same journey.
+    if (!slides.length) { stepIndexCards(-1); } else { goTo(current - 1); }
+  });
+  if (btnNext) btnNext.addEventListener('click', function() {
+    if (!slides.length) { stepIndexCards(1); } else { goTo(current + 1); }
+  });
   if (btnHome) {
-    btnHome.addEventListener('click', function(){ window.location.href = 'index.html'; });
+    // Home is the way out of an article deck — back to the index. On
+    // the index itself there is no way out and no fiche to leave: the
+    // key and the button mean the top of the page, where the journey
+    // starts, the same meaning the old index script gave it.
+    btnHome.addEventListener('click', function() {
+      if (slides.length) {
+        window.location.href = 'index.html';
+      } else {
+        clearIndexFocus();
+        scrollToTop();
+        updateUI();
+      }
+    });
   }
 
   // Keyboard operability for the round nav buttons (they are role=button
@@ -7129,7 +7229,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Number jump: type digits, Enter jumps to that slide (1-based).
     // Escape cancels the pending buffer. The buffer auto-expires.
-    if (e.key >= '0' && e.key <= '9') {
+    // On the index there is nothing to jump to — no slides, no fiche —
+    // so the keys keep their ordinary meaning there.
+    if (slides.length && e.key >= '0' && e.key <= '9') {
       jumpBuffer = (jumpBuffer + e.key).slice(-3);
       updateCounter();
       if (jumpTimer) clearTimeout(jumpTimer);
@@ -7169,7 +7271,18 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
       e.preventDefault(); runStepped(stepBackward);
     } else if (e.key === 'Home') {
-      e.preventDefault(); window.location.href = 'index.html';
+      e.preventDefault();
+      // The same fork as the home button: on an article, Home is the way
+      // out of the deck, back to the index; on the index itself it means
+      // the top of the page — where the journey starts — not a
+      // navigation to itself.
+      if (slides.length) {
+        window.location.href = 'index.html';
+      } else {
+        clearIndexFocus();
+        scrollToTop();
+        updateUI();
+      }
     } else if (e.key === 'f' || e.key === 'F') {
       e.preventDefault(); toggleFullscreen();
     } else if (e.key === 'b' || e.key === 'B') {
@@ -7188,6 +7301,10 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function detectCurrent() {
+    // On the index there are no slides, and the focus is the source of
+    // truth for the position — the scroll observer has nothing to
+    // detect, so it does nothing.
+    if (!slides.length) return;
     if (isScrolling) return;
     var winH = window.innerHeight;
     var mid  = winH / 2;
@@ -7228,6 +7345,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // to share, and the address bar may hide its fragment while the share
   // matrix does not (§8.4).
   function currentSlideId() {
+    // No slides, no fiche: on the index the share matrix's fiche scope
+    // is disabled (updateShareFicheState), and the series scope already
+    // names the index itself.
+    if (!slides.length) return null;
     var s = slides[current];
     if (!s || !s.id) return null;
     // Type, not shape. This used to test /^s\d+$/, which stood in for "a
@@ -7572,6 +7693,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // starting one. At rest, `current` may be stale (the scroll
     // observer owns it), so the step is anchored on `currentVisible`.
     var base = isScrolling ? current : currentVisible();
+    if (!slides.length) {
+      // The index: the same click is the same step, card by card —
+      // left advances one card's focus, and clicking a card itself is
+      // the card's own link, which `isInteractive` has already let
+      // through (the native default follows it). There is no fiche to
+      // navigate to: the step is a focus move, never a goTo.
+      stepIndexCards(1);
+      return;
+    }
     goTo(base + 1, isScrolling);
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
@@ -7621,6 +7751,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // back-click returns to the card the reader left. At rest it is
     // anchored on `currentVisible` (the scroll observer owns it).
     var base = isScrolling ? current : currentVisible();
+    if (!slides.length) {
+      // The mirror of the left button on the index: right-click steps
+      // the focus back one card.
+      stepIndexCards(-1);
+      return;
+    }
     goTo(base - 1, isScrolling);
   });
   // The middle BUTTON is the fullscreen gatekeeper: it can only EXIT
@@ -7829,162 +7965,25 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 '''
 
-# --- Template: index.js ---
-TEMPLATE_INDEX_JS = r'''var btnUp   = document.getElementById('navUp');
-  var btnHome = document.getElementById('navHome');
-  var btnDown = document.getElementById('navDown');
-  var btnFullscreen = document.getElementById('navFullscreen');
-
-  // The same gesture as on an article page, and the same three lines: the
-  // index is a page of the same site, so a reader who learned F there
-  // presses it here.
-  function toggleFullscreen() {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    } else {
-      var el = document.documentElement;
-      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
-    }
-  }
-  function isFullscreen() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement);
-  }
-  if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
-
-  // The middle BUTTON is the fullscreen gatekeeper, the same two-step
-  // as the article pages (B37): it exits on its own, and the entry is
-  // middle press then a LEFT click within the window — the left click
-  // carries the gesture the browsers require for requestFullscreen.
-  // A RIGHT click within the same window goes Home. The middle press
-  // on a card also swallows the link (auxclick below), so the
-  // fullscreen is not lost to a new tab a moment later.
-  var fsIntentUntil = 0;
-  var fsEntryPending = false;
-  var FS_INTENT_MS = 900;
-  document.addEventListener('mousedown', function (e) {
-    if (e.button === 1) {
-      e.preventDefault();
-      if (isFullscreen()) {
-        toggleFullscreen();
-      } else {
-        fsIntentUntil = Date.now() + FS_INTENT_MS;
-      }
-      return;
-    }
-    if (Date.now() >= fsIntentUntil) return;
-    if (e.button === 0) {
-      e.preventDefault();
-      fsIntentUntil = 0;
-      fsEntryPending = true;
-      if (!isFullscreen()) toggleFullscreen();
-    } else if (e.button === 2) {
-      e.preventDefault();
-      fsIntentUntil = 0;
-      window.location.href = 'index.html';
-    }
-  }, true);
-  document.addEventListener('click', function (e) {
-    // The second half of the two-step consumed this click: cancel the
-    // link navigation that would otherwise follow (the click default),
-    // so the entry does not also open the card under the pointer.
-    if (fsEntryPending) {
-      fsEntryPending = false;
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, true);
-  document.addEventListener('auxclick', function (e) {
-    if (e.button !== 1) return;
-    e.preventDefault();
-    e.stopPropagation();
-  });
-
-  function scrollByViewport(direction) {
-    window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
-  }
-  function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  // The index's real keyboard journey is card by card, exactly as on an
-  // article's series-nav slide: the arrows FOCUS the cards one by one,
-  // and the browser's own scroll-into-view moves the page along with
-  // the focus. Scroll-by-viewport was what the arrows did, and it
-  // skipped the cards entirely — a reader steering an index with the
-  // keyboard never saw what they were pointing at.
-  //
-  // The card list is built once at load (it cannot change under the
-  // page). focus() scrolls the card into view on its own, which is the
-  // same scroll the old arrows did, only aimed at something.
-  var cards = Array.prototype.slice.call(document.querySelectorAll('.article-card'));
-  var focusedCard = -1;
-
-  function stepCards(direction) {
-    if (!cards.length) return;
-    var next = focusedCard + direction;
-    if (next < 0 || next >= cards.length) return;
-    if (focusedCard >= 0) cards[focusedCard].blur();
-    focusedCard = next;
-    cards[focusedCard].focus();
-    updateNavUI();
-  }
-  function clearCardFocus() {
-    if (focusedCard >= 0) { cards[focusedCard].blur(); focusedCard = -1; }
-    updateNavUI();
-  }
-
-  function updateNavUI() {
-    var atTop = window.scrollY <= 4;
-    var atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 4);
-    // The buttons are the on-screen twins of the arrows: one click is
-    // one step of the same card-by-card journey the keyboard takes
-    // (§8.4 — "un coup, c'est une carte"). The disabled state follows
-    // the journey too: first card / last card.
-    if (btnUp) btnUp.classList.toggle('disabled', focusedCard <= 0);
-    if (btnDown) btnDown.classList.toggle('disabled',
-                                          focusedCard >= cards.length - 1);
-  }
-
-  if (btnUp) btnUp.addEventListener('click', function () { stepCards(-1); });
-  if (btnDown) btnDown.addEventListener('click', function () { stepCards(1); });
-  if (btnHome) btnHome.addEventListener('click', function () { clearCardFocus(); scrollToTop(); });
-
-  // Enter/Space activate the role=button divs like native buttons.
-  Array.prototype.forEach.call(document.querySelectorAll('.nav-btn'), function (btn) {
-    btn.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-        e.preventDefault();
-        btn.click();
-      }
-    });
-  });
-
-  window.addEventListener('scroll', updateNavUI);
-  window.addEventListener('resize', updateNavUI);
-  updateNavUI();
-
-  document.addEventListener('keydown', function (e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-      e.preventDefault(); stepCards(1);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault(); stepCards(-1);
-    } else if (e.key === 'Home') {
-      e.preventDefault(); clearCardFocus(); scrollToTop();
-    } else if (e.key === 'f' || e.key === 'F') {
-      // The index is a page of the same site, and someone who learned F
-      // on an article page presses it here. It did nothing, for no
-      // reason anyone had stated: the index simply never bound it.
-      // Reported from the field. The deck-only keys (N, H, B/W/T, L)
-      // stay out — there is no presenter panel, no help card and no tag
-      // menu on an index, so binding them would promise furniture that
-      // does not exist.
-      e.preventDefault(); toggleFullscreen();
-    }
-  });
-'''
-
 # --- Template: page.html ---
+#
+# ONE skeleton serves both kinds of page: an article page and the series
+# index are the same page with different content (§9.3.6). `{{body_class}}`
+# says which one this build produced (`index-page` for the index, empty
+# for an article) and `{{content}}` carries the page-specific body: the
+# slides for an article, the header + intro + cards for the index.
+# The same furniture (nav buttons, dots, share, help, presenter, tags)
+# ships on every page, so a gesture a reader learns anywhere works
+# everywhere.
+#
+# The index page's measure and its breakpoint live in the composed sheet,
+# on `.index-page`, beside the `.slide` rules they have to agree with
+# (§9.3.1). An inline style on <body> is a literal the theme engine
+# cannot reach and a rule no media query can override, which is how this
+# page once came to adapt to a screen differently from every other page of
+# the same series. Written in the sheet rather than in the template
+# because anything inside the string is published to every reader of
+# every series.
 TEMPLATE_PAGE = '''<!DOCTYPE html>
 <html lang="{{lang}}">
 <head>
@@ -7995,7 +7994,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 {{css}}
 </style>
 </head>
-<body>
+<body class="{{body_class}}">
 
 {{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
@@ -8060,58 +8059,11 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   </div>
 </div>
 
-{{slides}}
+{{content}}
 {{page_footer}}
 <script defer>
 {{js_nav}}
 </script>
-</body>
-</html>'''
-
-# --- Template: index.html ---
-# The measure and the breakpoint both live in the composed sheet, on
-# `.index-page`, beside the `.slide` rules they have to agree with
-# (§9.3.1). An inline style on <body> is a literal the theme engine
-# cannot reach and a rule no media query can override, which is how this
-# page came to adapt to a screen differently from every other page of the
-# same series. Written here rather than in the template because anything
-# inside the string is published to every reader of every series.
-TEMPLATE_INDEX = '''<!DOCTYPE html>
-<html lang="{{lang}}">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{title}}</title>
-<style>
-{{css}}
-</style>
-</head>
-<body class="index-page">
-
-{{build_stamp}}
-<div class="header">
-  <h1>{{series_title}}</h1>
-  <p class="subtitle">{{series_subtitle}}</p>
-  <span class="version-tag">{{series_version}}</span>
-</div>
-
-<div class="intro">
-  <p>{{series_intro}}</p>
-</div>
-
-{{cards}}
-{{index_footer}}
-<div class="nav-buttons">
-  <div class="nav-btn" id="navUp" role="button" tabindex="0" title="{{str_index_nav_up}}" aria-label="{{str_index_nav_up}}">{{icon_prev}}</div>
-  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_index_nav_home}}" aria-label="{{str_index_nav_home}}">{{icon_home}}</div>
-  <div class="nav-btn" id="navDown" role="button" tabindex="0" title="{{str_index_nav_down}}" aria-label="{{str_index_nav_down}}">{{icon_next}}</div>
-  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
-</div>
-
-<script>
-{{js_index}}
-</script>
-
 {{index_extra}}
 </body>
 </html>'''
@@ -8178,11 +8130,9 @@ def nav_icon(name):
 for _name in NAV_ICON_PATHS:
     TEMPLATE_PAGE = TEMPLATE_PAGE.replace('{{icon_' + _name + '}}',
                                           nav_icon(_name))
-    TEMPLATE_INDEX = TEMPLATE_INDEX.replace('{{icon_' + _name + '}}',
-                                            nav_icon(_name))
 
 _left = [n for n in ('{{icon_', )
-         if n in TEMPLATE_PAGE or n in TEMPLATE_INDEX]
+         if n in TEMPLATE_PAGE]
 if _left:  # pragma: no cover - a typo would ship a literal placeholder
     raise PropertyError('a nav icon placeholder went unfilled')
 
@@ -11150,8 +11100,33 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
 # INDEX PAGE
 # ============================================================================
 
+def _page_footer(author, license_text, date=None):
+    """One footer helper for every page: `<footer class="page-footer">`
+    with an optional byline (author, date) and a license line.
+
+    `author`, `license_text` and `date` arrive escaped and
+    typography-processed — the callers pass fully-typed raw HTML, like
+    every visible rendering (§6.2). A part is omitted when empty: no empty
+    byline line, no empty license line, and no footer at all when nothing
+    is left.
+    """
+    byline = ' — '.join(part for part in (author, date) if part)
+    parts = []
+    if byline:
+        parts.append(f'  <div class="footer-byline">{byline}</div>')
+    if license_text:
+        parts.append(f'  <div class="footer-license">{license_text}</div>')
+    if not parts:
+        return ''
+    return '<footer class="page-footer">\n' + '\n'.join(parts) + '\n</footer>'
+
+
 def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='', build_stamp=''):
-    """Generates the index page."""
+    """Generates the index page.
+
+    The index is a page of the same site as the articles: it shares
+    TEMPLATE_PAGE, and its own body (header, intro, cards, footer) goes
+    into {{content}} exactly where an article's slides go."""
     meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
 
@@ -11162,7 +11137,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     version = meta.get('version', '')
     intro = apply_typo(typo_engine, escape_amps(meta.get('intro', '')))
 
-    # <title> is RCDATA: unlike {{series_title}} (rendered inside the page
+    # <title> is RCDATA: unlike the series title (rendered inside the page
     # body, where raw HTML is allowed by design, same as a slide's own
     # slide_title — spec §4.3), a value here containing a literal
     # </title> would close the element early and let anything after it
@@ -11191,39 +11166,51 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         cards.append(card)
 
     # Index footer — the series-wide author/license (series_meta only:
-    # per-article values belong on the articles' own pages). Raw HTML
-    # passthrough like every visible rendering (§6.2).
-    index_footer = ''
+    # per-article values belong on the articles' own pages). The index
+    # has no per-page date, so the byline is author alone — the same
+    # helper as the articles' own footers.
     footer_author = apply_typo(typo_engine, escape_amps(meta.get('author', '')))
     footer_license = apply_typo(typo_engine, escape_amps(meta.get('license', '')))
-    footer_parts = []
-    if footer_author:
-        footer_parts.append(f'  <div class="footer-byline">{footer_author}</div>')
-    if footer_license:
-        footer_parts.append(f'  <div class="footer-license">{footer_license}</div>')
-    if footer_parts:
-        index_footer = '<footer class="page-footer">\n' + '\n'.join(footer_parts) + '\n</footer>'
+    index_footer = _page_footer(footer_author, footer_license)
 
     # Interface strings on the SKELETON first (template + the user's
     # index_extra fragment, which is a template file, not content), then
     # every data placeholder in a SINGLE pass (fill_placeholders), so a
-    # literal {{str_KEY}} / {{css}} / {{cards}} inside series_meta or card
-    # text stays literal instead of being re-substituted into the
+    # literal {{str_KEY}} / {{css}} / {{content}} inside series_meta or
+    # card text stays literal instead of being re-substituted into the
     # tag-stripped <title> or a card (§18.4).
-    html = apply_strings(TEMPLATE_INDEX, strings, html_context=True)
+    html = apply_strings(TEMPLATE_PAGE, strings, html_context=True)
     index_extra = apply_strings(index_extra, strings, html_context=True)
-    # No visible empty pill when series_meta has no version: drop the
-    # whole span (the index markup is fixed, §18.2, so this line-level
-    # removal can't break a user template).
-    if not version:
-        html = html.replace('\n  <span class="version-tag">{{series_version}}</span>', '')
+    # No visible empty pill when series_meta has no version: the span is
+    # emitted here rather than in the template, so nothing has to be
+    # deleted and the template stays the same for every series.
+    header_parts = ['<div class="header">',
+                    f'  <h1>{title}</h1>',
+                    f'  <p class="subtitle">{subtitle}</p>']
+    if version:
+        header_parts.append(f'  <span class="version-tag">{version}</span>')
+    header_parts.append('</div>')
+
+    # The index's own body — everything an article's {{content}} would be:
+    # header, intro, cards. The series footer goes in {{page_footer}},
+    # the placeholder the article pages fill with their own footer.
+    content = '\n'.join([
+        '\n'.join(header_parts),
+        '',
+        '<div class="intro">',
+        f'  <p>{intro}</p>',
+        '</div>',
+        '',
+        '\n'.join(cards),
+    ])
+
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'css': css,
-        'series_title': title, 'series_subtitle': subtitle,
-        'series_version': version, 'series_intro': intro,
-        'cards': '\n'.join(cards), 'index_footer': index_footer,
-        'js_index': apply_strings(TEMPLATE_INDEX_JS, strings),
-        'index_extra': index_extra, 'build_stamp': build_stamp,
+        'body_class': 'index-page',
+        'meta_head': '', 'draft_banner': '',
+        'content': content, 'page_footer': index_footer,
+        'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
+        'build_stamp': build_stamp, 'index_extra': index_extra,
     })
 
     validate_html(html, 'index.html')
@@ -11727,14 +11714,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         license_text = apply_typo(article_typo_engine,
                                   escape_amps(own_entry.get('license', '')),
                                   disabled_rules)
-        byline = ' — '.join(part for part in (author, date) if part)
-        parts = []
-        if byline:
-            parts.append(f'  <div class="footer-byline">{byline}</div>')
-        if license_text:
-            parts.append(f'  <div class="footer-license">{license_text}</div>')
-        if parts:
-            page_footer = '<footer class="page-footer">\n' + '\n'.join(parts) + '\n</footer>'
+        page_footer = _page_footer(author, license_text, date)
 
     # Draft banner — only ever reachable under --include-drafts (drafts
     # are filtered out of the build entirely otherwise). Inline-styled
@@ -11792,9 +11772,10 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     html = apply_strings(TEMPLATE_PAGE, strings, html_context=True)
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
-        'css': css, 'slides': slides_html, 'page_footer': page_footer,
+        'css': css, 'body_class': '',
+        'content': slides_html, 'page_footer': page_footer,
         'js_nav': nav_js, 'build_stamp': stamp_in_body,
-        'draft_banner': draft_banner,
+        'draft_banner': draft_banner, 'index_extra': '',
     })
 
     validate_html(html, current_file)

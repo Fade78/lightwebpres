@@ -208,6 +208,104 @@ async function main() {
     fail('the index has no fullscreen button');
   }
 
+  // --- 4a. The index is a page of cards, and the chrome drives them ---
+  // The unified skeleton gave the index the article's whole nav engine:
+  // the share popover works there (with the fiche scope disabled — the
+  // index has no fiche, §9.3.4), the arrows walk the cards by focus, the
+  // right button steps back, and Home means the top of the page.
+  const cardCount = await indexPage.locator('.article-card').count();
+  if (cardCount < 2) {
+    fail('the fixture index carries fewer than two cards, so the focus '
+         + 'journey has nowhere to go: ' + cardCount);
+  }
+  // 4a1. The share button opens the popover on the index.
+  await indexPage.click('#navShare');
+  const indexPopoverOpen = await indexPage.evaluate(
+    () => document.getElementById('sharePopover').classList.contains('open'));
+  if (!indexPopoverOpen) {
+    fail('the share popover does not open on the index');
+  }
+  // 4a2. The fiche scope is disabled there — no slides, no fiche (§9.3.4).
+  const ficheDisabled = await indexPage.evaluate(
+    () => Array.prototype.every.call(
+      document.querySelectorAll('[data-scope="fiche"]'), (b) => b.disabled));
+  if (!ficheDisabled) {
+    fail('the fiche scope must be disabled on the index');
+  }
+  // 4a3. And the series scope of that same open popover names the page
+  // the reader is on: the copied link is the index's own URL. The
+  // clipboard write is stubbed, like the fullscreen calls above — the
+  // URL is what is under test, not the clipboard plumbing.
+  await indexPage.evaluate(() => {
+    window.__copied = null;
+    navigator.clipboard.writeText = function (text) {
+      window.__copied = text;
+      return Promise.resolve();
+    };
+  });
+  await indexPage.click('[data-action="copy"][data-scope="series"]');
+  const indexCopied = await indexPage.evaluate(() => window.__copied);
+  if (indexCopied !== indexUrl) {
+    fail('the series link copied on the index is not the index URL: '
+         + indexCopied + ' expected ' + indexUrl);
+  }
+  await indexPage.keyboard.press('Escape');
+
+  const indexFocus = () => indexPage.evaluate(() => {
+    const a = document.activeElement;
+    return a && a.classList && a.classList.contains('article-card')
+      ? Array.prototype.indexOf.call(document.querySelectorAll('.article-card'), a)
+      : -1;
+  });
+  // 4a4. An arrow walks the cards: focus moves one card at a time.
+  await indexPage.keyboard.press('ArrowDown');
+  await indexPage.waitForTimeout(200);
+  const firstFocus = await indexFocus();
+  if (firstFocus !== 0) {
+    fail('the first arrow on the index did not focus the first card: '
+         + firstFocus);
+  }
+  await indexPage.keyboard.press('ArrowDown');
+  await indexPage.waitForTimeout(200);
+  const secondFocus = await indexFocus();
+  if (secondFocus !== 1) {
+    fail('the second arrow on the index did not focus the second card: '
+         + secondFocus);
+  }
+  // 5a. Home brings the journey back to the top: focus cleared and the
+  // page at its head. Scroll away first so the move is observable.
+  await indexPage.evaluate(() => window.scrollTo({ top: 99999, behavior: 'instant' }));
+  await indexPage.waitForTimeout(300);
+  await indexPage.keyboard.press('Home');
+  await indexPage.waitForTimeout(600);
+  const homeState = await indexPage.evaluate(() => ({
+    y: window.pageYOffset || document.documentElement.scrollTop,
+    focused: document.activeElement && document.activeElement.classList
+      && document.activeElement.classList.contains('article-card'),
+  }));
+  if (homeState.y > 5) {
+    fail('Home did not return to the top of the index: y=' + homeState.y);
+  }
+  if (homeState.focused) {
+    fail('Home left a card focused on the index');
+  }
+  // 5d) A right-click on the ground steps the focus back one card, the
+  // mirror of the left button. Focus a card first, then right-click.
+  // (The two presses are spaced past STEP_COOLDOWN_MS, or the deck's
+  // own throttle swallows the second one and the journey never starts.)
+  await indexPage.keyboard.press('ArrowDown');
+  await indexPage.waitForTimeout(200);
+  await indexPage.keyboard.press('ArrowDown');
+  await indexPage.waitForTimeout(200);
+  const beforeBack = await indexFocus();
+  await indexPage.mouse.click(640, 400, { button: 'right' });
+  await indexPage.waitForTimeout(300);
+  const afterBack = await indexFocus();
+  if (beforeBack !== 1 || afterBack !== 0) {
+    fail('right-click on the index did not step the focus back one card: '
+         + beforeBack + ' -> ' + afterBack);
+  }
+
   // --- 4b. Scrolling moves the address bar with the reader ------------
   // Reported from the field: the fragment was written only by goTo, so a
   // reader who SCROLLED to a card kept whatever `#id` their last jump had

@@ -1841,7 +1841,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 </style>
 </head>
-<body>
+<body class="">
 
 
 <nav class="nav-dots"></nav>
@@ -3129,12 +3129,19 @@ document.addEventListener('DOMContentLoaded', function() {
   // felt as a controlled pace while a key is held.
   var stepCooldownActive = false;
   var STEP_COOLDOWN_MS = 150;
-  // Index into the CURRENT slide's keyboard-reachable links (series-nav
-  // cards + the "back to index" link, in document order) — -1 means none
-  // focused yet. Reset on every slide change (goTo). Only ever non-empty
-  // on the series-nav slide; every other slide behaves exactly as if
-  // this never existed.
+  // Index into the keyboard-reachable cards, in document order — -1 means
+  // none focused yet. On an article it indexes into the CURRENT slide's
+  // links (series-nav cards + the "back to index" link); it is reset on
+  // every slide change (goTo) and only ever non-empty on the
+  // series-nav slide. On the index there are no slides, and the page's
+  // own article cards ARE the journey: the same variable, the same
+  // focus, the list below.
+  //
+  // The index's card list is built once at load (it cannot change under
+  // the page). focus() scrolls a card into view on its own, which is
+  // the same scroll the old arrows did, only aimed at something.
   var focusedCard = -1;
+  var indexCards = slides.length ? [] : Array.prototype.slice.call(document.querySelectorAll('.article-card'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var btnHome    = document.getElementById('navHome');
@@ -3306,6 +3313,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function applyHash() {
+    // The index has no fiche and no fragment: nothing to follow.
+    if (!slides.length) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
@@ -3387,6 +3396,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updateCounter() {
     if (!slideCounter) return;
+    // On the index there are no slides to count: the counter exists in
+    // the skeleton (one page for both kinds) but is hidden — an empty
+    // pill with a border would sit in the corner saying nothing.
+    if (!slides.length) { slideCounter.hidden = true; return; }
+    slideCounter.hidden = false;
     slideCounter.textContent = jumpBuffer
       ? '→ ' + jumpBuffer
       : ((current + 1) + ' / ' + slides.length);
@@ -3394,6 +3408,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updatePresenter() {
     if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
+    if (!slides.length) {
+      // The presenter panel exists on the index too (one skeleton), but
+      // it is a deck's furniture: without slides there is nothing to
+      // present, so the panel says nothing.
+      return;
+    }
     var cur = slides[current];
     var noteEl = cur ? cur.querySelector('.speaker-note') : null;
     if (presenterNotes) {
@@ -3420,6 +3440,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // vertical midpoint — the real "what the user is looking at",
     // independent of the `current` variable which may be stale during
     // a smooth scroll.
+    //
+    // On the index there are no slides: the focus is the position, so
+    // "what the user is looking at" is the focused card, or 0 when
+    // nothing is focused (the page's own top).
+    if (!slides.length) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
     var mid = window.innerHeight / 2;
     var best = current;
     slides.forEach(function(s, i) {
@@ -3448,6 +3473,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // reader scrolled past and turn the Back button — the one way out of a
   // deck — into a slow rewind of the whole article.
   function recordSlideInUrl(idx) {
+    // The index has no fiche: no fragment, and nothing to record.
+    if (!slides.length) return;
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
@@ -3495,6 +3522,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function goTo(idx, instant) {
     if (!slides.length) {
+      // On the index there is no slide to go to — the URL keeps no
+      // fragment, the focus is the position (stepIndexCards), and the
+      // disabled state of the nav buttons is the on-screen map of it.
+      clearIndexFocus();
       current = 0;
       updateUI();
       return;
@@ -3526,6 +3557,23 @@ document.addEventListener('DOMContentLoaded', function() {
     return Array.prototype.slice.call(slides[idx].querySelectorAll('.series-list a.series-link'));
   }
 
+  // The index page's own cards — the whole journey, where on an article
+  // the same journey belongs to the series-nav slide.
+  function indexCardList() {
+    return indexCards;
+  }
+  function indexCardFocused() {
+    return focusedCard;
+  }
+  function focusIndexCard(i) {
+    if (focusedCard >= 0) indexCards[focusedCard].blur();
+    focusedCard = i;
+    indexCards[focusedCard].focus();
+  }
+  function clearIndexFocus() {
+    if (focusedCard >= 0) { indexCards[focusedCard].blur(); focusedCard = -1; }
+  }
+
   // .slide only sets min-height: 100vh (specifications.md §9), so a
   // slide's real height only exceeds the viewport when its own content
   // demands it — a long full-article slide being the common case, but
@@ -3543,6 +3591,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function scrollWithinSlide(direction) {
     window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
   }
+  // The top of the page — the index's Home, and the beginning of the
+  // card journey.
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   // The natural keyboard journey (in this order, each one only kicking in
   // once the previous is exhausted): slide to slide, then — on the
@@ -3553,7 +3606,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // scroll it down in increments before moving on. Enter needs no extra
   // handling: once a card has real focus, the browser's own default
   // "Enter activates the focused link" already does the jump.
+  //
+  // On the index the cards ARE the page: the journey is card to card
+  // through the whole list, and the end of the list is the end of the
+  // journey. The same focus ring, the same Enter-to-follow, and the
+  // nav buttons are disabled at the ends just as on an article.
   function stepForward() {
+    if (!slides.length) { stepIndexCards(1); return; }
     var cards = slideCards(current);
     if (cards.length && focusedCard < cards.length - 1) {
       focusedCard++;
@@ -3570,6 +3629,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function stepBackward() {
+    if (!slides.length) { stepIndexCards(-1); return; }
     var cards = slideCards(current);
     if (focusedCard > 0) {
       focusedCard--;
@@ -3588,19 +3648,59 @@ document.addEventListener('DOMContentLoaded', function() {
     goTo(current - 1);
   }
 
+  // One card step on the index: focus moves card by card, and the
+  // disabled state of the nav buttons follows the journey, as it does
+  // for the arrows on an article (§8.4 — "un coup, c'est une carte").
+  function stepIndexCards(direction) {
+    var cards = indexCardList();
+    if (!cards.length) return;
+    var next = focusedCard + direction;
+    if (next < 0 || next >= cards.length) return;
+    focusIndexCard(next);
+    updateUI();
+  }
+
   function updateUI() {
     if (btnPrev) btnPrev.classList.toggle('disabled', !slides.length || current === 0);
     if (btnNext) btnNext.classList.toggle('disabled', !slides.length || current === slides.length - 1);
-    dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
+    if (!slides.length) {
+      // The index: the cards are the journey, and the nav buttons are
+      // its on-screen twins — first card / last card, exactly as on the
+      // series-nav slide of an article.
+      var cards = indexCardList();
+      if (btnPrev) btnPrev.classList.toggle('disabled', focusedCard <= 0);
+      if (btnNext) btnNext.classList.toggle('disabled',
+                                            focusedCard >= cards.length - 1);
+    } else {
+      dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
+    }
     updateShareFicheState();
     updateCounter();
     updatePresenter();
   }
 
-  btnPrev.addEventListener('click', function(){ goTo(current - 1); });
-  btnNext.addEventListener('click', function(){ goTo(current + 1); });
+  if (btnPrev) btnPrev.addEventListener('click', function() {
+    // On the index the buttons are the on-screen twins of the arrows:
+    // one click, one card of the same journey.
+    if (!slides.length) { stepIndexCards(-1); } else { goTo(current - 1); }
+  });
+  if (btnNext) btnNext.addEventListener('click', function() {
+    if (!slides.length) { stepIndexCards(1); } else { goTo(current + 1); }
+  });
   if (btnHome) {
-    btnHome.addEventListener('click', function(){ window.location.href = 'index.html'; });
+    // Home is the way out of an article deck — back to the index. On
+    // the index itself there is no way out and no fiche to leave: the
+    // key and the button mean the top of the page, where the journey
+    // starts, the same meaning the old index script gave it.
+    btnHome.addEventListener('click', function() {
+      if (slides.length) {
+        window.location.href = 'index.html';
+      } else {
+        clearIndexFocus();
+        scrollToTop();
+        updateUI();
+      }
+    });
   }
 
   // Keyboard operability for the round nav buttons (they are role=button
@@ -3674,7 +3774,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Number jump: type digits, Enter jumps to that slide (1-based).
     // Escape cancels the pending buffer. The buffer auto-expires.
-    if (e.key >= '0' && e.key <= '9') {
+    // On the index there is nothing to jump to — no slides, no fiche —
+    // so the keys keep their ordinary meaning there.
+    if (slides.length && e.key >= '0' && e.key <= '9') {
       jumpBuffer = (jumpBuffer + e.key).slice(-3);
       updateCounter();
       if (jumpTimer) clearTimeout(jumpTimer);
@@ -3714,7 +3816,18 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
       e.preventDefault(); runStepped(stepBackward);
     } else if (e.key === 'Home') {
-      e.preventDefault(); window.location.href = 'index.html';
+      e.preventDefault();
+      // The same fork as the home button: on an article, Home is the way
+      // out of the deck, back to the index; on the index itself it means
+      // the top of the page — where the journey starts — not a
+      // navigation to itself.
+      if (slides.length) {
+        window.location.href = 'index.html';
+      } else {
+        clearIndexFocus();
+        scrollToTop();
+        updateUI();
+      }
     } else if (e.key === 'f' || e.key === 'F') {
       e.preventDefault(); toggleFullscreen();
     } else if (e.key === 'b' || e.key === 'B') {
@@ -3733,6 +3846,10 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function detectCurrent() {
+    // On the index there are no slides, and the focus is the source of
+    // truth for the position — the scroll observer has nothing to
+    // detect, so it does nothing.
+    if (!slides.length) return;
     if (isScrolling) return;
     var winH = window.innerHeight;
     var mid  = winH / 2;
@@ -3773,6 +3890,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // to share, and the address bar may hide its fragment while the share
   // matrix does not (§8.4).
   function currentSlideId() {
+    // No slides, no fiche: on the index the share matrix's fiche scope
+    // is disabled (updateShareFicheState), and the series scope already
+    // names the index itself.
+    if (!slides.length) return null;
     var s = slides[current];
     if (!s || !s.id) return null;
     // Type, not shape. This used to test /^s\d+$/, which stood in for "a
@@ -4117,6 +4238,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // starting one. At rest, `current` may be stale (the scroll
     // observer owns it), so the step is anchored on `currentVisible`.
     var base = isScrolling ? current : currentVisible();
+    if (!slides.length) {
+      // The index: the same click is the same step, card by card —
+      // left advances one card's focus, and clicking a card itself is
+      // the card's own link, which `isInteractive` has already let
+      // through (the native default follows it). There is no fiche to
+      // navigate to: the step is a focus move, never a goTo.
+      stepIndexCards(1);
+      return;
+    }
     goTo(base + 1, isScrolling);
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
@@ -4166,6 +4296,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // back-click returns to the card the reader left. At rest it is
     // anchored on `currentVisible` (the scroll observer owns it).
     var base = isScrolling ? current : currentVisible();
+    if (!slides.length) {
+      // The mirror of the left button on the index: right-click steps
+      // the focus back one card.
+      stepIndexCards(-1);
+      return;
+    }
     goTo(base - 1, isScrolling);
   });
   // The middle BUTTON is the fullscreen gatekeeper: it can only EXIT
@@ -4374,5 +4510,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
+
 </body>
 </html>

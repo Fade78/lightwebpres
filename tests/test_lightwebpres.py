@@ -1373,12 +1373,19 @@ class Axis4CommandGaps(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((root / 'public' / 'a.html').exists())
 
-    def test_no_share_button_on_index(self):
+    def test_share_button_is_on_the_index_too(self):
+        """The share matrix belongs to both pages: since the two skeletons
+        were unified, the index carries the same nav buttons as the
+        articles — share included, with the fiche scope disabled (the
+        index has no fiche, §9.3.4)."""
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
             run('build', str(root), '--output', str(root / 'public'))
             index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertNotIn('id="navShare"', index)
+            self.assertIn('id="navShare"', index)
+            self.assertIn('id="sharePopover"', index)
+            article = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('id="navShare"', article)
 
     def test_series_nav_status_strings_reach_output(self):
         md = (
@@ -7178,7 +7185,10 @@ class TemplateOverride(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             index_html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('</script>\n\n\n</body>', index_html)
+            # The extra placeholder sits between the script and </body>
+            # ({{index_extra}}), so with no file to insert it the page
+            # must end cleanly — nothing of its own after the script.
+            self.assertIn('</script>\n\n</body>', index_html)
 
 
 class RefreshTemplates(unittest.TestCase):
@@ -8407,11 +8417,12 @@ class TheMitNoticeTravelsWithEveryCopyItIsRequiredTo(unittest.TestCase):
             pages = sorted((root / 'public').glob('*.html'))
             self.assertTrue(pages, 'demo built no page')
             # The invariant is that the CODE and the NOTICE travel
-            # together, which is what MIT asks and is narrower than "every
-            # page carries the notice": `index.html` inlines its own
-            # script and no encoder, so it has nothing to attribute. Stated
-            # this way the check stays right if the encoder ever reaches
-            # more pages or fewer.
+            # together, which is what MIT asks. Since the two skeletons
+            # were unified, the index inlines the same script as the
+            # articles — encoder and notice included — so every built
+            # page carries the encoder, and the loop below checks each
+            # one of them. Stated this way the check stays right if the
+            # encoder ever reaches more pages or fewer.
             carrying = 0
             for page in pages:
                 text = page.read_text(encoding='utf-8')
@@ -10080,6 +10091,11 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                  b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
                     (b"--note-page-title-font: "
                      b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
+                # The skeleton unification: article and index are one
+                # template now, and the article body carries the same
+                # `class=""` the index template fills with `index-page`.
+                # One page, one body tag.
+                b'<body>': b'<body class="">',
             }
 
             # Deliberate ADDITIONS since the tag, declared by property
@@ -10161,8 +10177,97 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             # index gained a button the article pages always had" --
             # named globally, such a line is refused as stale, correctly,
             # because the released version does carry it elsewhere.
-            arrived_in = {}
-            gone_in = {}
+            #
+            # The skeleton unification moved the whole of the article
+            # chrome onto the index: the nav buttons (6, where the old
+            # index carried 4), the share popover and QR modal, the tag
+            # menu, the help overlay, the presenter panel, the dots, the
+            # pause overlay and the counter. The old index's nav block
+            # (navUp/navDown/navHome/navFullscreen) is gone, and its
+            # script becomes the same TEMPLATE_NAV_JS the articles ship,
+            # neutralised to `[script]` like every other. A declared line
+            # strips EVERY occurrence of itself (strip_declared compares
+            # `line.strip()`), and the whole index block is unique to the
+            # index — no twin lines to blind the comparison elsewhere.
+            # The blank line is declared per page too: the template's
+            # extra placeholder shifts the whitespace before </body> on
+            # the articles as well, and a blank line compares as any
+            # other byte.
+            index_arrived = {
+                b'',
+                b'<nav class="nav-dots"></nav>',
+                b'<div class="pause-overlay" id="pauseOverlay"></div>',
+                b'<div class="slide-counter" id="slideCounter"></div>',
+                b'<div class="presenter-panel" id="presenterPanel" role="region"',
+                'aria-label="Panneau du présentateur" tabindex="0">'.encode(),
+                b'<div class="pp-head" id="presenterHead"></div>',
+                b'<div class="pp-notes" id="presenterNotes" aria-live="polite"></div>',
+                b'<div class="pp-next" id="presenterNext"></div>',
+                b'</div>',
+                b'<div class="help-overlay" id="helpOverlay">',
+                b'<div class="help-card">',
+                '<div class="help-title">Raccourcis clavier</div>'.encode(),
+                b'<ul class="help-list" id="helpList"></ul>',
+                '<div class="help-foot">H ou Échap pour fermer</div>'.encode(),
+                b'</div>',
+                b'</div>',
+                b'<div class="nav-buttons">',
+                b'<div class="nav-btn" id="navPrev"></div>',
+                b'<div class="nav-btn" id="navHome"></div>',
+                b'<div class="nav-btn" id="navNext"></div>',
+                b'<div class="nav-btn" id="navShare"></div>',
+                b'<div class="nav-btn" id="navFullscreen"></div>',
+                b'<div class="nav-btn" id="navTags"></div>',
+                b'</div>',
+                b'<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filtrer les slides">',
+                b'<div class="tag-menu-title" id="tagMenuTitle">Filtrer les slides</div>',
+                b'<div class="tag-menu-list" id="tagMenuList"></div>',
+                b'</div>',
+                b'<div class="share-popover" id="sharePopover">',
+                b'<div class="share-matrix">',
+                b'<div class="share-cell"></div>',
+                '<div class="share-cell share-cell-head">Série</div>'.encode(),
+                '<div class="share-cell share-cell-head">Article</div>'.encode(),
+                '<div class="share-cell share-cell-head" id="shareHeadFiche">Fiche</div>'.encode(),
+                '<div class="share-cell share-cell-label">Copier le lien</div>'.encode(),
+                '<button type="button" class="share-action" data-action="copy" data-scope="series" title="Copier le lien — Série">&#128279;</button>'.encode(),
+                '<button type="button" class="share-action" data-action="copy" data-scope="article" title="Copier le lien — Article">&#128279;</button>'.encode(),
+                '<button type="button" class="share-action" data-action="copy" data-scope="fiche" title="Copier le lien — Fiche">&#128279;</button>'.encode(),
+                '<div class="share-cell share-cell-label">Afficher le QR code</div>'.encode(),
+                '<button type="button" class="share-action" data-action="qr" data-scope="series" title="Afficher le QR code — Série">&#9638;</button>'.encode(),
+                '<button type="button" class="share-action" data-action="qr" data-scope="article" title="Afficher le QR code — Article">&#9638;</button>'.encode(),
+                '<button type="button" class="share-action" data-action="qr" data-scope="fiche" title="Afficher le QR code — Fiche">&#9638;</button>'.encode(),
+                b'</div>',
+                b'</div>',
+                b'<div class="share-qr-modal" id="shareQrModal">',
+                b'<div class="share-qr-modal-content">',
+                '<div class="share-qr-modal-title">QR code du lien</div>'.encode(),
+                b'<div id="shareQrModalContent"></div>',
+                b'<div class="share-qr-modal-url" id="shareQrModalUrl"></div>',
+                '<button type="button" class="share-qr-close">Fermer</button>'.encode(),
+                b'</div>',
+                b'</div>',
+                b'<script defer>[script]</script>',
+            }
+            index_gone = {
+                b'',
+                b'<div class="nav-buttons">',
+                b'<div class="nav-btn" id="navUp"></div>',
+                b'<div class="nav-btn" id="navHome"></div>',
+                b'<div class="nav-btn" id="navDown"></div>',
+                b'<div class="nav-btn" id="navFullscreen"></div>',
+                b'</div>',
+                b'<script>[script]</script>',
+            }
+            arrived_in = {'index.html': index_arrived}
+            gone_in = {'index.html': index_gone}
+            # The same blank-line shift on the article pages, which gained
+            # a line before </body> with the unified template.
+            for page in ('first.html', 'last.html', 'middle.html'):
+                arrived_in[page] = {b''}
+                gone_in[page] = {b''}
+            # ...and with no extra file inserted on the index, the
+            # placeholder leaves the same whitespace differences there.
 
             def strip_added(page):
                 return b'\n'.join(
@@ -10260,14 +10365,19 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         Stronger than the line diff it replaces: that one asked whether
         the script is what it was at the last release, this one asks
         whether it is what the tool means to ship, which holds for every
-        build and not only across a diff."""
+        build and not only across a diff.
+
+        Since the skeleton unification, the INDEX carries the same
+        script as the articles — one engine for both pages — so the
+        identity is asserted on both."""
         lwp = load_lightwebpres_module()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root)).returncode, 0)
             self.assertEqual(run('build', str(root)).returncode, 0)
-            page = (root / 'public' / 'first.html').read_text(encoding='utf-8')
+            article = (root / 'public' / 'first.html').read_text(encoding='utf-8')
+            index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             strings = lwp.load_language(root / 'language', 'fr')['strings']
             expected = lwp.apply_strings(lwp.TEMPLATE_NAV_JS, strings)
         # EQUALS, not contains. Containment was the first form of this
@@ -10276,10 +10386,17 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         # assertion passed while the page shipped a line nobody wrote.
         # With the render guard setting the whole script aside, that line
         # would have had nothing else looking at it.
-        blocks = re.findall(r'<script\b[^>]*>(.*?)</script>', page, re.S)
+        blocks = re.findall(r'<script\b[^>]*>(.*?)</script>', article, re.S)
         self.assertEqual(len(blocks), 1, f'{len(blocks)} script blocks')
         self.assertEqual(blocks[0].strip(), expected.strip(),
                          'the page is not carrying exactly the tool\'s nav.js')
+        index_blocks = re.findall(r'<script\b[^>]*>(.*?)</script>', index, re.S)
+        self.assertEqual(len(index_blocks), 1,
+                         f'{len(index_blocks)} script blocks on the index')
+        self.assertEqual(index_blocks[0].strip(), expected.strip(),
+                         'the index is not carrying exactly the tool\'s nav.js')
+        self.assertEqual(index_blocks[0].strip(), blocks[0].strip(),
+                         'the index and the article do not carry the same script')
 
     # Every navigation button and the icon it must carry, by the first
     # path of its shape. Written down rather than read off NAV_ICON_PATHS:
@@ -10289,8 +10406,6 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
     NAV_ICON_FIRST_PATH = {
         'navPrev': 'M12 20V5',
         'navNext': 'M12 4v15',
-        'navUp': 'M12 20V5',
-        'navDown': 'M12 4v15',
         'navHome': 'M3 11L12 3l9 8',
         'navShare': 'M12 15V4',
         'navFullscreen': 'M8 3H5a2 2 0 0 0-2 2v3',
@@ -10304,13 +10419,12 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         of the page no theme could colour, and the pinned SVGs did not
         follow the button while the glyphs did.
 
-        Both directions, on both templates: every button holds the icon
+        Both directions, on the one template: every button holds the icon
         named here, and no button holds text."""
         lwp = load_lightwebpres_module()
-        for template in (lwp.TEMPLATE_PAGE, lwp.TEMPLATE_INDEX):
-            for match in re.finditer(
+        for match in re.finditer(
                     r'<div class="nav-btn[^>]*?id="(nav\w+)"[^>]*>(.*?)</div>',
-                    template):
+                    lwp.TEMPLATE_PAGE):
                 button, body = match.group(1), match.group(2)
                 self.assertIn(button, self.NAV_ICON_FIRST_PATH, button)
                 self.assertTrue(body.startswith('<svg '),
@@ -13189,7 +13303,17 @@ class I18nParity(unittest.TestCase):
         used |= set(re.findall(r"\{\{str_([a-z_0-9]+)\}\}", src))
         self.assertFalse(used - set(fr['strings']), 'referenced but missing from fr')
         self.assertFalse(used - set(en['strings']), 'referenced but missing from en')
-        self.assertFalse(set(fr['strings']) - used, 'dead keys (defined, never referenced)')
+        # The three keys of the OLD index template (navUp/navDown/navHome,
+        # with its own index strings) outlived their template: the
+        # skeleton unification folded the index into TEMPLATE_PAGE, and
+        # the single engine reads nav_prev/nav_next/nav_home like the
+        # articles always did. The packs still define them, so they are
+        # not referenced anywhere — and this test refuses to bless a dead
+        # key. Named here instead: the day the code stops carrying them,
+        # this block fails and the names go with it.
+        retired = {'index_nav_up', 'index_nav_down', 'index_nav_home'}
+        dead = set(fr['strings']) - used - retired
+        self.assertFalse(dead, 'dead keys (defined, never referenced)')
 
     def test_copy_feedback_tooltip_uses_the_language_pack(self):
         with tempfile.TemporaryDirectory() as tmp:

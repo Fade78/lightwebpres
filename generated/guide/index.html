@@ -1843,6 +1843,68 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 <body class="index-page">
 
 
+<nav class="nav-dots"></nav>
+
+<div class="pause-overlay" id="pauseOverlay"></div>
+
+<div class="slide-counter" id="slideCounter"></div>
+<div class="presenter-panel" id="presenterPanel" role="region"
+     aria-label="Presenter panel" tabindex="0">
+  <div class="pp-head" id="presenterHead"></div>
+  <div class="pp-notes" id="presenterNotes" aria-live="polite"></div>
+  <div class="pp-next" id="presenterNext"></div>
+</div>
+
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-card">
+    <div class="help-title">Keyboard shortcuts</div>
+    <ul class="help-list" id="helpList"></ul>
+    <div class="help-foot">H or Esc to close</div>
+  </div>
+</div>
+
+<div class="nav-buttons">
+  <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" aria-label="Previous slide"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
+  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Back to index (Home key)" aria-label="Back to index (Home key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11L12 3l9 8"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>
+  <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" aria-label="Next slide"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
+  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="Share" aria-label="Share this page"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
+  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" aria-label="Fullscreen (F key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
+  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="Filter by tag (L key)" aria-label="Filter by tag (L key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/><path d="M7.5 7.5h.01"/></svg></div>
+</div>
+
+<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filter slides">
+  <div class="tag-menu-title" id="tagMenuTitle">Filter slides</div>
+  <div class="tag-menu-list" id="tagMenuList"></div>
+</div>
+
+<div class="share-popover" id="sharePopover">
+  <div class="share-matrix">
+    <div class="share-cell"></div>
+    <div class="share-cell share-cell-head">Series</div>
+    <div class="share-cell share-cell-head">Article</div>
+    <div class="share-cell share-cell-head" id="shareHeadFiche">Slide</div>
+
+    <div class="share-cell share-cell-label">Copy link</div>
+    <button type="button" class="share-action" data-action="copy" data-scope="series" title="Copy link — Series">&#128279;</button>
+    <button type="button" class="share-action" data-action="copy" data-scope="article" title="Copy link — Article">&#128279;</button>
+    <button type="button" class="share-action" data-action="copy" data-scope="fiche" title="Copy link — Slide">&#128279;</button>
+
+    <div class="share-cell share-cell-label">Show QR code</div>
+    <button type="button" class="share-action" data-action="qr" data-scope="series" title="Show QR code — Series">&#9638;</button>
+    <button type="button" class="share-action" data-action="qr" data-scope="article" title="Show QR code — Article">&#9638;</button>
+    <button type="button" class="share-action" data-action="qr" data-scope="fiche" title="Show QR code — Slide">&#9638;</button>
+  </div>
+</div>
+
+<div class="share-qr-modal" id="shareQrModal">
+  <div class="share-qr-modal-content">
+    <div class="share-qr-modal-title">QR code for this link</div>
+    <div id="shareQrModalContent"></div>
+    <div class="share-qr-modal-url" id="shareQrModalUrl"></div>
+    <button type="button" class="share-qr-close">Close</button>
+  </div>
+</div>
+
 <div class="header">
   <h1>LightWebPres</h1>
   <p class="subtitle">The guide, built with the tool it describes</p>
@@ -1858,22 +1920,1495 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="article-cta">→ Read the article</div>
 </a>
 
-<div class="nav-buttons">
-  <div class="nav-btn" id="navUp" role="button" tabindex="0" title="Scroll up" aria-label="Scroll up"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
-  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Top of page (Home key)" aria-label="Top of page (Home key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11L12 3l9 8"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>
-  <div class="nav-btn" id="navDown" role="button" tabindex="0" title="Scroll down" aria-label="Scroll down"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
-  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" aria-label="Fullscreen (F key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
-</div>
+<script defer>
+/*!
+ * The QR encoder below (qrEncode, and the QR* helpers it closes over) is
+ * derived from QR Code Generator for JavaScript.
+ *
+ * Copyright (c) 2009 Kazuhiko Arase -- http://www.d-project.com/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+ *
+ * This notice must travel with the code it covers. It lives inside the
+ * template rather than beside it, so that it reaches every series scaffolded
+ * by `lightwebpres init` and every page written by a build without anyone
+ * having to remember to copy it. Everything after the encoder is part of
+ * lightwebpres itself.
+ */
+var qrEncode = (function () {
+var QRMode = { MODE_8BIT_BYTE: 4 };
+var QRErrorCorrectLevel = { L: 1, M: 0, Q: 3, H: 2 };
+var QRMaskPattern = { PATTERN000: 0, PATTERN001: 1, PATTERN010: 2, PATTERN011: 3,
+  PATTERN100: 4, PATTERN101: 5, PATTERN110: 6, PATTERN111: 7 };
 
-<script>
-var btnUp   = document.getElementById('navUp');
-  var btnHome = document.getElementById('navHome');
-  var btnDown = document.getElementById('navDown');
-  var btnFullscreen = document.getElementById('navFullscreen');
+var QRUtil = {
+  PATTERN_POSITION_TABLE: [
+    [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42],
+    [6, 26, 46], [6, 28, 50], [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66],
+    [6, 26, 48, 70], [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86],
+    [6, 34, 62, 90], [6, 28, 50, 72, 94], [6, 26, 50, 74, 98], [6, 30, 54, 78, 102],
+    [6, 28, 54, 80, 106], [6, 32, 58, 84, 110], [6, 30, 58, 86, 114], [6, 34, 62, 90, 118],
+    [6, 26, 50, 74, 98, 122], [6, 30, 54, 78, 102, 126], [6, 26, 52, 78, 104, 130],
+    [6, 30, 56, 82, 108, 134], [6, 34, 60, 86, 112, 138], [6, 30, 58, 86, 114, 142],
+    [6, 34, 62, 90, 118, 146], [6, 30, 54, 78, 102, 126, 150], [6, 24, 50, 76, 102, 128, 154],
+    [6, 28, 54, 80, 106, 132, 158], [6, 32, 58, 84, 110, 136, 162], [6, 26, 54, 82, 110, 138, 166],
+    [6, 30, 58, 86, 114, 142, 170]
+  ],
+  G15: (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0),
+  G18: (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0),
+  G15_MASK: (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1),
+  getBCHDigit: function (data) {
+    var digit = 0;
+    while (data !== 0) { digit++; data >>>= 1; }
+    return digit;
+  },
+  getBCHTypeInfo: function (data) {
+    var d = data << 10;
+    while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+      d ^= (QRUtil.G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15)));
+    }
+    return ((data << 10) | d) ^ QRUtil.G15_MASK;
+  },
+  getBCHTypeNumber: function (data) {
+    var d = data << 12;
+    while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+      d ^= (QRUtil.G18 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18)));
+    }
+    return (data << 12) | d;
+  },
+  getPatternPosition: function (typeNumber) {
+    return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+  },
+  getMask: function (maskPattern, i, j) {
+    switch (maskPattern) {
+      case QRMaskPattern.PATTERN000: return (i + j) % 2 === 0;
+      case QRMaskPattern.PATTERN001: return i % 2 === 0;
+      case QRMaskPattern.PATTERN010: return j % 3 === 0;
+      case QRMaskPattern.PATTERN011: return (i + j) % 3 === 0;
+      case QRMaskPattern.PATTERN100: return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0;
+      case QRMaskPattern.PATTERN101: return (i * j) % 2 + (i * j) % 3 === 0;
+      case QRMaskPattern.PATTERN110: return ((i * j) % 2 + (i * j) % 3) % 2 === 0;
+      case QRMaskPattern.PATTERN111: return ((i * j) % 3 + (i + j) % 2) % 2 === 0;
+      default: throw new Error('bad maskPattern:' + maskPattern);
+    }
+  },
+  getErrorCorrectPolynomial: function (errorCorrectLength) {
+    var a = new QRPolynomial([1], 0);
+    for (var i = 0; i < errorCorrectLength; i++) {
+      a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0));
+    }
+    return a;
+  },
+  getLengthInBits: function (mode, type) {
+    if (type >= 1 && type < 10) {
+      switch (mode) {
+        case QRMode.MODE_8BIT_BYTE: return 8;
+        default: throw new Error('mode:' + mode);
+      }
+    } else if (type < 27) {
+      switch (mode) {
+        case QRMode.MODE_8BIT_BYTE: return 16;
+        default: throw new Error('mode:' + mode);
+      }
+    } else if (type < 41) {
+      switch (mode) {
+        case QRMode.MODE_8BIT_BYTE: return 16;
+        default: throw new Error('mode:' + mode);
+      }
+    } else {
+      throw new Error('type:' + type);
+    }
+  },
+  getLostPoint: function (qrCode) {
+    var moduleCount = qrCode.getModuleCount();
+    var lostPoint = 0;
+    for (var row = 0; row < moduleCount; row++) {
+      for (var col = 0; col < moduleCount; col++) {
+        var sameCount = 0;
+        var dark = qrCode.isDark(row, col);
+        for (var r = -1; r <= 1; r++) {
+          if (row + r < 0 || moduleCount <= row + r) continue;
+          for (var c = -1; c <= 1; c++) {
+            if (col + c < 0 || moduleCount <= col + c) continue;
+            if (r === 0 && c === 0) continue;
+            if (dark === qrCode.isDark(row + r, col + c)) sameCount++;
+          }
+        }
+        if (sameCount > 5) lostPoint += (3 + sameCount - 5);
+      }
+    }
+    for (var row2 = 0; row2 < moduleCount - 1; row2++) {
+      for (var col2 = 0; col2 < moduleCount - 1; col2++) {
+        var count = 0;
+        if (qrCode.isDark(row2, col2)) count++;
+        if (qrCode.isDark(row2 + 1, col2)) count++;
+        if (qrCode.isDark(row2, col2 + 1)) count++;
+        if (qrCode.isDark(row2 + 1, col2 + 1)) count++;
+        if (count === 0 || count === 4) lostPoint += 3;
+      }
+    }
+    for (var row3 = 0; row3 < moduleCount; row3++) {
+      for (var col3 = 0; col3 < moduleCount - 6; col3++) {
+        if (qrCode.isDark(row3, col3) && !qrCode.isDark(row3, col3 + 1) &&
+            qrCode.isDark(row3, col3 + 2) && qrCode.isDark(row3, col3 + 3) &&
+            qrCode.isDark(row3, col3 + 4) && !qrCode.isDark(row3, col3 + 5) &&
+            qrCode.isDark(row3, col3 + 6)) {
+          lostPoint += 40;
+        }
+      }
+    }
+    for (var col4 = 0; col4 < moduleCount; col4++) {
+      for (var row4 = 0; row4 < moduleCount - 6; row4++) {
+        if (qrCode.isDark(row4, col4) && !qrCode.isDark(row4 + 1, col4) &&
+            qrCode.isDark(row4 + 2, col4) && qrCode.isDark(row4 + 3, col4) &&
+            qrCode.isDark(row4 + 4, col4) && !qrCode.isDark(row4 + 5, col4) &&
+            qrCode.isDark(row4 + 6, col4)) {
+          lostPoint += 40;
+        }
+      }
+    }
+    var darkCount = 0;
+    for (var col5 = 0; col5 < moduleCount; col5++) {
+      for (var row5 = 0; row5 < moduleCount; row5++) {
+        if (qrCode.isDark(row5, col5)) darkCount++;
+      }
+    }
+    var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+    lostPoint += ratio * 10;
+    return lostPoint;
+  }
+};
 
-  // The same gesture as on an article page, and the same three lines: the
-  // index is a page of the same site, so a reader who learned F there
-  // presses it here.
+var QRMath = {
+  glog: function (n) {
+    if (n < 1) throw new Error('glog(' + n + ')');
+    return QRMath.LOG_TABLE[n];
+  },
+  gexp: function (n) {
+    while (n < 0) n += 255;
+    while (n >= 256) n -= 255;
+    return QRMath.EXP_TABLE[n];
+  },
+  EXP_TABLE: new Array(256),
+  LOG_TABLE: new Array(256)
+};
+for (var qi = 0; qi < 8; qi++) QRMath.EXP_TABLE[qi] = 1 << qi;
+for (var qi2 = 8; qi2 < 256; qi2++) {
+  QRMath.EXP_TABLE[qi2] = QRMath.EXP_TABLE[qi2 - 4] ^ QRMath.EXP_TABLE[qi2 - 5] ^
+    QRMath.EXP_TABLE[qi2 - 6] ^ QRMath.EXP_TABLE[qi2 - 8];
+}
+for (var qi3 = 0; qi3 < 255; qi3++) QRMath.LOG_TABLE[QRMath.EXP_TABLE[qi3]] = qi3;
+
+function QRPolynomial(num, shift) {
+  if (num.length === undefined) throw new Error(num.length + '/' + shift);
+  var offset = 0;
+  while (offset < num.length && num[offset] === 0) offset++;
+  this.num = new Array(num.length - offset + shift);
+  for (var i = 0; i < num.length - offset; i++) this.num[i] = num[i + offset];
+}
+QRPolynomial.prototype = {
+  get: function (index) { return this.num[index]; },
+  getLength: function () { return this.num.length; },
+  multiply: function (e) {
+    var num = new Array(this.getLength() + e.getLength() - 1);
+    for (var i = 0; i < this.getLength(); i++) {
+      for (var j = 0; j < e.getLength(); j++) {
+        num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i)) + QRMath.glog(e.get(j)));
+      }
+    }
+    return new QRPolynomial(num, 0);
+  },
+  mod: function (e) {
+    if (this.getLength() - e.getLength() < 0) return this;
+    var ratio = QRMath.glog(this.get(0)) - QRMath.glog(e.get(0));
+    var num = new Array(this.getLength());
+    for (var i = 0; i < this.getLength(); i++) num[i] = this.get(i);
+    for (var j = 0; j < e.getLength(); j++) {
+      num[j] ^= QRMath.gexp(QRMath.glog(e.get(j)) + ratio);
+    }
+    return new QRPolynomial(num, 0).mod(e);
+  }
+};
+
+var QRRSBlock = {
+  RS_BLOCK_TABLE: [
+    [1, 26, 19], [1, 26, 16], [1, 26, 13], [1, 26, 9],
+    [1, 44, 34], [1, 44, 28], [1, 44, 22], [1, 44, 16],
+    [1, 70, 55], [1, 70, 44], [2, 35, 17], [2, 35, 13],
+    [1, 100, 80], [2, 50, 32], [2, 50, 24], [4, 25, 9],
+    [1, 134, 108], [2, 67, 43], [2, 33, 15, 2, 34, 16], [2, 33, 11, 2, 34, 12],
+    [2, 86, 68], [4, 43, 27], [4, 43, 19], [4, 43, 15],
+    [2, 98, 78], [4, 49, 31], [2, 32, 14, 4, 33, 15], [4, 39, 13, 1, 40, 14],
+    [2, 121, 97], [2, 60, 38, 2, 61, 39], [4, 40, 18, 2, 41, 19], [4, 40, 14, 2, 41, 15],
+    [2, 146, 116], [3, 58, 36, 2, 59, 37], [4, 36, 16, 4, 37, 17], [4, 36, 12, 4, 37, 13],
+    [2, 86, 68, 2, 87, 69], [4, 69, 43, 1, 70, 44], [6, 43, 19, 2, 44, 20], [6, 43, 15, 2, 44, 16],
+    [4, 101, 81], [1, 80, 50, 4, 81, 51], [4, 50, 22, 4, 51, 23], [3, 36, 12, 8, 37, 13],
+    [2, 116, 92, 2, 117, 93], [6, 58, 36, 2, 59, 37], [4, 46, 20, 6, 47, 21], [7, 42, 14, 4, 43, 15],
+    [4, 133, 107], [8, 59, 37, 1, 60, 38], [8, 44, 20, 4, 45, 21], [12, 33, 11, 4, 34, 12],
+    [3, 145, 115, 1, 146, 116], [4, 64, 40, 5, 65, 41], [11, 36, 16, 5, 37, 17], [11, 36, 12, 5, 37, 13],
+    [5, 109, 87, 1, 110, 88], [5, 65, 41, 5, 66, 42], [5, 54, 24, 7, 55, 25], [11, 36, 12, 7, 37, 13],
+    [5, 122, 98, 1, 123, 99], [7, 73, 45, 3, 74, 46], [15, 43, 19, 2, 44, 20], [3, 45, 15, 13, 46, 16],
+    [1, 135, 107, 5, 136, 108], [10, 74, 46, 1, 75, 47], [1, 50, 22, 15, 51, 23], [2, 42, 14, 17, 43, 15],
+    [5, 150, 120, 1, 151, 121], [9, 69, 43, 4, 70, 44], [17, 50, 22, 1, 51, 23], [2, 42, 14, 19, 43, 15],
+    [3, 141, 113, 4, 142, 114], [3, 70, 44, 11, 71, 45], [17, 47, 21, 4, 48, 22], [9, 39, 13, 16, 40, 14],
+    [3, 135, 107, 5, 136, 108], [3, 67, 41, 13, 68, 42], [15, 54, 24, 5, 55, 25], [15, 43, 15, 10, 44, 16],
+    [4, 144, 116, 4, 145, 117], [17, 68, 42], [17, 50, 22, 6, 51, 23], [19, 46, 16, 6, 47, 17],
+    [2, 139, 111, 7, 140, 112], [17, 74, 46], [7, 54, 24, 16, 55, 25], [34, 37, 13],
+    [4, 151, 121, 5, 152, 122], [4, 75, 47, 14, 76, 48], [11, 54, 24, 14, 55, 25], [16, 45, 15, 14, 46, 16],
+    [6, 147, 117, 4, 148, 118], [6, 73, 45, 14, 74, 46], [11, 54, 24, 16, 55, 25], [30, 46, 16, 2, 47, 17],
+    [8, 132, 106, 4, 133, 107], [8, 75, 47, 13, 76, 48], [7, 54, 24, 22, 55, 25], [22, 45, 15, 13, 46, 16],
+    [10, 142, 114, 2, 143, 115], [19, 74, 46, 4, 75, 47], [28, 50, 22, 6, 51, 23], [33, 46, 16, 4, 47, 17],
+    [8, 152, 122, 4, 153, 123], [22, 73, 45, 3, 74, 46], [8, 53, 23, 26, 54, 24], [12, 45, 15, 28, 46, 16],
+    [3, 147, 117, 10, 148, 118], [3, 73, 45, 23, 74, 46], [4, 54, 24, 31, 55, 25], [11, 45, 15, 31, 46, 16],
+    [7, 146, 116, 7, 147, 117], [21, 73, 45, 7, 74, 46], [1, 53, 23, 37, 54, 24], [19, 45, 15, 26, 46, 16],
+    [5, 145, 115, 10, 146, 116], [19, 75, 47, 10, 76, 48], [15, 54, 24, 25, 55, 25], [23, 45, 15, 25, 46, 16],
+    [13, 145, 115, 3, 146, 116], [2, 74, 46, 29, 75, 47], [42, 54, 24, 1, 55, 25], [23, 45, 15, 28, 46, 16],
+    [17, 145, 115], [10, 74, 46, 23, 75, 47], [10, 54, 24, 35, 55, 25], [19, 45, 15, 35, 46, 16],
+    [17, 145, 115, 1, 146, 116], [14, 74, 46, 21, 75, 47], [29, 54, 24, 19, 55, 25], [11, 45, 15, 46, 46, 16],
+    [13, 145, 115, 6, 146, 116], [14, 74, 46, 23, 75, 47], [44, 54, 24, 7, 55, 25], [59, 46, 16, 1, 47, 17],
+    [12, 151, 121, 7, 152, 122], [12, 75, 47, 26, 76, 48], [39, 54, 24, 14, 55, 25], [22, 45, 15, 41, 46, 16],
+    [6, 151, 121, 14, 152, 122], [6, 75, 47, 34, 76, 48], [46, 54, 24, 10, 55, 25], [2, 45, 15, 64, 46, 16],
+    [17, 152, 122, 4, 153, 123], [29, 74, 46, 14, 75, 47], [49, 54, 24, 10, 55, 25], [24, 45, 15, 46, 46, 16],
+    [4, 152, 122, 18, 153, 123], [13, 74, 46, 32, 75, 47], [48, 54, 24, 14, 55, 25], [42, 45, 15, 32, 46, 16],
+    [20, 147, 117, 4, 148, 118], [40, 75, 47, 7, 76, 48], [43, 54, 24, 22, 55, 25], [10, 45, 15, 67, 46, 16],
+    [19, 148, 118, 6, 149, 119], [18, 75, 47, 31, 76, 48], [34, 54, 24, 34, 55, 25], [20, 45, 15, 61, 46, 16]
+  ],
+  getRSBlocks: function (typeNumber, errorCorrectLevel) {
+    var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectLevel);
+    if (rsBlock === undefined) throw new Error('bad rs block @ typeNumber:' + typeNumber + '/errorCorrectLevel:' + errorCorrectLevel);
+    var length = rsBlock.length / 3;
+    var list = [];
+    for (var i = 0; i < length; i++) {
+      var count = rsBlock[i * 3 + 0];
+      var totalCount = rsBlock[i * 3 + 1];
+      var dataCount = rsBlock[i * 3 + 2];
+      for (var j = 0; j < count; j++) list.push(new QRRSBlockItem(totalCount, dataCount));
+    }
+    return list;
+  },
+  getRsBlockTable: function (typeNumber, errorCorrectLevel) {
+    switch (errorCorrectLevel) {
+      case QRErrorCorrectLevel.L: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectLevel.M: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectLevel.Q: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectLevel.H: return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default: return undefined;
+    }
+  }
+};
+function QRRSBlockItem(totalCount, dataCount) {
+  this.totalCount = totalCount;
+  this.dataCount = dataCount;
+}
+
+function QRBitBuffer() {
+  this.buffer = [];
+  this.length = 0;
+}
+QRBitBuffer.prototype = {
+  get: function (index) {
+    var bufIndex = Math.floor(index / 8);
+    return ((this.buffer[bufIndex] >>> (7 - index % 8)) & 1) === 1;
+  },
+  put: function (num, length) {
+    for (var i = 0; i < length; i++) this.putBit(((num >>> (length - i - 1)) & 1) === 1);
+  },
+  getLengthInBits: function () { return this.length; },
+  putBit: function (bit) {
+    var bufIndex = Math.floor(this.length / 8);
+    if (this.buffer.length <= bufIndex) this.buffer.push(0);
+    if (bit) this.buffer[bufIndex] |= (0x80 >>> (this.length % 8));
+    this.length++;
+  }
+};
+
+function QR8bitByte(data) {
+  this.mode = QRMode.MODE_8BIT_BYTE;
+  this.data = data;
+  this.bytes = QR8bitByte.toUTF8Bytes(data);
+}
+QR8bitByte.toUTF8Bytes = function (s) {
+  var bytes = [];
+  for (var i = 0; i < s.length; i++) {
+    var code = s.codePointAt(i);
+    if (code > 0xFFFF) i++;
+    if (code < 0x80) {
+      bytes.push(code);
+    } else if (code < 0x800) {
+      bytes.push(0xC0 | (code >> 6), 0x80 | (code & 0x3F));
+    } else if (code < 0x10000) {
+      bytes.push(0xE0 | (code >> 12), 0x80 | ((code >> 6) & 0x3F), 0x80 | (code & 0x3F));
+    } else {
+      bytes.push(0xF0 | (code >> 18), 0x80 | ((code >> 12) & 0x3F),
+        0x80 | ((code >> 6) & 0x3F), 0x80 | (code & 0x3F));
+    }
+  }
+  return bytes;
+};
+QR8bitByte.prototype = {
+  getLength: function () { return this.bytes.length; },
+  write: function (buffer) {
+    for (var i = 0; i < this.bytes.length; i++) buffer.put(this.bytes[i], 8);
+  }
+};
+
+function QRCodeModel(typeNumber, errorCorrectLevel) {
+  this.typeNumber = typeNumber;
+  this.errorCorrectLevel = errorCorrectLevel;
+  this.modules = null;
+  this.moduleCount = 0;
+  this.dataList = [];
+}
+QRCodeModel.prototype = {
+  addData: function (data) { this.dataList.push(new QR8bitByte(data)); },
+  isDark: function (row, col) {
+    if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) {
+      throw new Error(row + ',' + col);
+    }
+    return this.modules[row][col];
+  },
+  getModuleCount: function () { return this.moduleCount; },
+  make: function () { this.makeImpl(false, this.getBestMaskPattern()); },
+  makeImpl: function (test, maskPattern) {
+    this.moduleCount = this.typeNumber * 4 + 17;
+    this.modules = new Array(this.moduleCount);
+    for (var row = 0; row < this.moduleCount; row++) {
+      this.modules[row] = new Array(this.moduleCount);
+      for (var col = 0; col < this.moduleCount; col++) this.modules[row][col] = null;
+    }
+    this.setupPositionProbePattern(0, 0);
+    this.setupPositionProbePattern(this.moduleCount - 7, 0);
+    this.setupPositionProbePattern(0, this.moduleCount - 7);
+    this.setupPositionAdjustPattern();
+    this.setupTimingPattern();
+    this.setupTypeInfo(test, maskPattern);
+    if (this.typeNumber >= 7) this.setupTypeNumber(test);
+    var dataArray = QRCodeModel.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+    this.mapData(dataArray, maskPattern);
+  },
+  setupPositionProbePattern: function (row, col) {
+    for (var r = -1; r <= 7; r++) {
+      if (row + r <= -1 || this.moduleCount <= row + r) continue;
+      for (var c = -1; c <= 7; c++) {
+        if (col + c <= -1 || this.moduleCount <= col + c) continue;
+        if ((r >= 0 && r <= 6 && (c === 0 || c === 6)) ||
+            (c >= 0 && c <= 6 && (r === 0 || r === 6)) ||
+            (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
+          this.modules[row + r][col + c] = true;
+        } else {
+          this.modules[row + r][col + c] = false;
+        }
+      }
+    }
+  },
+  getBestMaskPattern: function () {
+    var minLostPoint = 0;
+    var pattern = 0;
+    for (var i = 0; i < 8; i++) {
+      this.makeImpl(true, i);
+      var lostPoint = QRUtil.getLostPoint(this);
+      if (i === 0 || minLostPoint > lostPoint) { minLostPoint = lostPoint; pattern = i; }
+    }
+    return pattern;
+  },
+  setupTimingPattern: function () {
+    for (var r = 8; r < this.moduleCount - 8; r++) {
+      if (this.modules[r][6] !== null) continue;
+      this.modules[r][6] = (r % 2 === 0);
+    }
+    for (var c = 8; c < this.moduleCount - 8; c++) {
+      if (this.modules[6][c] !== null) continue;
+      this.modules[6][c] = (c % 2 === 0);
+    }
+  },
+  setupPositionAdjustPattern: function () {
+    var pos = QRUtil.getPatternPosition(this.typeNumber);
+    for (var i = 0; i < pos.length; i++) {
+      for (var j = 0; j < pos.length; j++) {
+        var row = pos[i], col = pos[j];
+        if (this.modules[row][col] !== null) continue;
+        for (var r = -2; r <= 2; r++) {
+          for (var c = -2; c <= 2; c++) {
+            if (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0)) {
+              this.modules[row + r][col + c] = true;
+            } else {
+              this.modules[row + r][col + c] = false;
+            }
+          }
+        }
+      }
+    }
+  },
+  setupTypeNumber: function (test) {
+    var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+    for (var i = 0; i < 18; i++) {
+      var mod = (!test && ((bits >> i) & 1) === 1);
+      this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod;
+    }
+    for (var i2 = 0; i2 < 18; i2++) {
+      var mod2 = (!test && ((bits >> i2) & 1) === 1);
+      this.modules[i2 % 3 + this.moduleCount - 8 - 3][Math.floor(i2 / 3)] = mod2;
+    }
+  },
+  setupTypeInfo: function (test, maskPattern) {
+    var data = (this.errorCorrectLevel << 3) | maskPattern;
+    var bits = QRUtil.getBCHTypeInfo(data);
+    for (var i = 0; i < 15; i++) {
+      var mod = (!test && ((bits >> i) & 1) === 1);
+      if (i < 6) { this.modules[i][8] = mod; }
+      else if (i < 8) { this.modules[i + 1][8] = mod; }
+      else { this.modules[this.moduleCount - 15 + i][8] = mod; }
+    }
+    for (var i2 = 0; i2 < 15; i2++) {
+      var mod2 = (!test && ((bits >> i2) & 1) === 1);
+      if (i2 < 8) { this.modules[8][this.moduleCount - i2 - 1] = mod2; }
+      else if (i2 < 9) { this.modules[8][15 - i2 - 1 + 1] = mod2; }
+      else { this.modules[8][15 - i2 - 1] = mod2; }
+    }
+    this.modules[this.moduleCount - 8][8] = !test;
+  },
+  mapData: function (data, maskPattern) {
+    var inc = -1;
+    var row = this.moduleCount - 1;
+    var bitIndex = 7;
+    var byteIndex = 0;
+    for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+      if (col === 6) col--;
+      while (true) {
+        for (var c = 0; c < 2; c++) {
+          if (this.modules[row][col - c] === null) {
+            var dark = false;
+            if (byteIndex < data.length) dark = (((data[byteIndex] >>> bitIndex) & 1) === 1);
+            var mask = QRUtil.getMask(maskPattern, row, col - c);
+            if (mask) dark = !dark;
+            this.modules[row][col - c] = dark;
+            bitIndex--;
+            if (bitIndex === -1) { byteIndex++; bitIndex = 7; }
+          }
+        }
+        row += inc;
+        if (row < 0 || this.moduleCount <= row) { row -= inc; inc = -inc; break; }
+      }
+    }
+  }
+};
+QRCodeModel.PAD0 = 0xEC;
+QRCodeModel.PAD1 = 0x11;
+QRCodeModel.createData = function (typeNumber, errorCorrectLevel, dataList) {
+  var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+  var buffer = new QRBitBuffer();
+  for (var i = 0; i < dataList.length; i++) {
+    var data = dataList[i];
+    buffer.put(data.mode, 4);
+    buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber));
+    data.write(buffer);
+  }
+  var totalDataCount = 0;
+  for (var j = 0; j < rsBlocks.length; j++) totalDataCount += rsBlocks[j].dataCount;
+  if (buffer.getLengthInBits() > totalDataCount * 8) {
+    throw new Error('code length overflow. (' + buffer.getLengthInBits() + '>' + totalDataCount * 8 + ')');
+  }
+  if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) buffer.put(0, 4);
+  while (buffer.getLengthInBits() % 8 !== 0) buffer.putBit(false);
+  while (true) {
+    if (buffer.getLengthInBits() >= totalDataCount * 8) break;
+    buffer.put(QRCodeModel.PAD0, 8);
+    if (buffer.getLengthInBits() >= totalDataCount * 8) break;
+    buffer.put(QRCodeModel.PAD1, 8);
+  }
+  return QRCodeModel.createBytes(buffer, rsBlocks);
+};
+QRCodeModel.createBytes = function (buffer, rsBlocks) {
+  var offset = 0;
+  var maxDcCount = 0, maxEcCount = 0;
+  var dcdata = new Array(rsBlocks.length);
+  var ecdata = new Array(rsBlocks.length);
+  for (var r = 0; r < rsBlocks.length; r++) {
+    var dcCount = rsBlocks[r].dataCount;
+    var ecCount = rsBlocks[r].totalCount - dcCount;
+    maxDcCount = Math.max(maxDcCount, dcCount);
+    maxEcCount = Math.max(maxEcCount, ecCount);
+    dcdata[r] = new Array(dcCount);
+    for (var i = 0; i < dcdata[r].length; i++) dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+    offset += dcCount;
+    var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+    var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+    var modPoly = rawPoly.mod(rsPoly);
+    ecdata[r] = new Array(rsPoly.getLength() - 1);
+    for (var i2 = 0; i2 < ecdata[r].length; i2++) {
+      var modIndex = i2 + modPoly.getLength() - ecdata[r].length;
+      ecdata[r][i2] = (modIndex >= 0) ? modPoly.get(modIndex) : 0;
+    }
+  }
+  var totalCodeCount = 0;
+  for (var i3 = 0; i3 < rsBlocks.length; i3++) totalCodeCount += rsBlocks[i3].totalCount;
+  var data = new Array(totalCodeCount);
+  var index = 0;
+  for (var i4 = 0; i4 < maxDcCount; i4++) {
+    for (var r2 = 0; r2 < rsBlocks.length; r2++) {
+      if (i4 < dcdata[r2].length) data[index++] = dcdata[r2][i4];
+    }
+  }
+  for (var i5 = 0; i5 < maxEcCount; i5++) {
+    for (var r3 = 0; r3 < rsBlocks.length; r3++) {
+      if (i5 < ecdata[r3].length) data[index++] = ecdata[r3][i5];
+    }
+  }
+  return data;
+};
+
+function qrEncode(text, errorCorrectLevel) {
+  var ecLevel = errorCorrectLevel === undefined ? QRErrorCorrectLevel.M : errorCorrectLevel;
+  for (var typeNumber = 1; typeNumber <= 40; typeNumber++) {
+    try {
+      var qr = new QRCodeModel(typeNumber, ecLevel);
+      qr.addData(text);
+      qr.make();
+      var n = qr.getModuleCount();
+      var matrix = new Array(n);
+      for (var row = 0; row < n; row++) {
+        matrix[row] = new Array(n);
+        for (var col = 0; col < n; col++) matrix[row][col] = qr.isDark(row, col);
+      }
+      return matrix;
+    } catch (e) {
+      if (typeNumber === 40) throw e;
+      continue;
+    }
+  }
+}
+  return qrEncode;
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+(function(){
+  var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var slides   = allSlides.slice();
+  var current  = 0;
+  var selectedTag = 'default';
+  var isScrolling = false;
+  // Separate from isScrolling (which only guards goTo()'s own scroll
+  // animation, and only against re-targeting the SAME slide): holding
+  // an arrow key down fires native auto-repeat keydown events much
+  // faster than isScrolling's lock ever blocks — every repeat calls
+  // stepForward()/stepBackward() again with `current` already updated
+  // from the previous call, so it just keeps advancing (card to card,
+  // then straight past the whole series-nav slide) far faster than a
+  // human can perceive any of the individual steps. This cooldown
+  // throttles processing to one step per STEP_COOLDOWN_MS regardless of
+  // how fast the events actually arrive — invisible to a single
+  // deliberate press (which never repeats within the window), only
+  // felt as a controlled pace while a key is held.
+  var stepCooldownActive = false;
+  var STEP_COOLDOWN_MS = 150;
+  // Index into the keyboard-reachable cards, in document order — -1 means
+  // none focused yet. On an article it indexes into the CURRENT slide's
+  // links (series-nav cards + the "back to index" link); it is reset on
+  // every slide change (goTo) and only ever non-empty on the
+  // series-nav slide. On the index there are no slides, and the page's
+  // own article cards ARE the journey: the same variable, the same
+  // focus, the list below.
+  //
+  // The index's card list is built once at load (it cannot change under
+  // the page). focus() scrolls a card into view on its own, which is
+  // the same scroll the old arrows did, only aimed at something.
+  var focusedCard = -1;
+  var indexCards = slides.length ? [] : Array.prototype.slice.call(document.querySelectorAll('.article-card'));
+  var btnPrev    = document.getElementById('navPrev');
+  var btnNext    = document.getElementById('navNext');
+  var btnHome    = document.getElementById('navHome');
+  var navDots    = document.querySelector('.nav-dots');
+  var btnTags    = document.getElementById('navTags');
+  var tagMenu    = document.getElementById('tagMenu');
+  var tagMenuList = document.getElementById('tagMenuList');
+  var tagMenuTitle = document.getElementById('tagMenuTitle');
+  var tagStorageKey = 'lwp-active-tag';
+  var dots = [];
+
+  function slideTags(slide) {
+    var raw = slide ? slide.getAttribute('data-tags') : '';
+    var tags = raw ? raw.toLowerCase().split(/\s+/) : [];
+    return tags.length ? tags : ['default'];
+  }
+
+  function tagList() {
+    var seen = {};
+    var tags = [];
+    allSlides.forEach(function (slide) {
+      slideTags(slide).forEach(function (tag) {
+        if (!seen[tag]) { seen[tag] = true; tags.push(tag); }
+      });
+    });
+    if (!seen.default) tags.unshift('default');
+    return tags;
+  }
+
+  function slideMatchesTag(slide, tag) {
+    var tags = slideTags(slide);
+    if (tag === 'default') return tags.indexOf('default') !== -1;
+    return tags.indexOf('default') !== -1 || tags.indexOf(tag) !== -1;
+  }
+
+  function readStoredTag() {
+    try {
+      var stored = window.localStorage.getItem(tagStorageKey);
+      if (stored && tagList().indexOf(stored.toLowerCase()) !== -1) {
+        return stored.toLowerCase();
+      }
+    } catch (e) {}
+    return 'default';
+  }
+
+  function writeStoredTag(tag) {
+    try { window.localStorage.setItem(tagStorageKey, tag); } catch (e) {}
+  }
+
+  function renderTagMenu() {
+    if (!tagMenuList) return;
+    var tags = tagList();
+    if (tags.length < 2) {
+      if (btnTags) {
+        btnTags.hidden = true;
+        btnTags.setAttribute('aria-hidden', 'true');
+      }
+      closeTagMenu();
+      return;
+    }
+    if (btnTags) {
+      btnTags.hidden = false;
+      btnTags.removeAttribute('aria-hidden');
+    }
+    tagMenuList.innerHTML = '';
+    tags.forEach(function (tag) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tag-option';
+      button.setAttribute('data-tag', tag);
+      button.textContent = tag;
+      button.addEventListener('click', function () {
+        selectTag(tag, true);
+        closeTagMenu();
+      });
+      tagMenuList.appendChild(button);
+    });
+    if (tagMenuTitle) tagMenuTitle.textContent = 'Filter slides';
+  }
+
+  function updateTagMenu() {
+    if (!tagMenuList) return;
+    Array.prototype.forEach.call(tagMenuList.querySelectorAll('.tag-option'), function (button) {
+      var active = button.getAttribute('data-tag') === selectedTag;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (btnTags) btnTags.setAttribute('aria-expanded', tagMenu && tagMenu.classList.contains('open') ? 'true' : 'false');
+  }
+
+  function tagOptions() {
+    return tagMenu
+      ? Array.prototype.slice.call(tagMenu.querySelectorAll('.tag-option'))
+      : [];
+  }
+
+  function closeTagMenu() {
+    var wasOpen = tagMenu && tagMenu.classList.contains('open');
+    if (tagMenu) tagMenu.classList.remove('open');
+    updateTagMenu();
+    // Give the focus back to what opened the menu. Leaving it on a button
+    // that has just been hidden strands a keyboard user at the top of the
+    // document with no idea where they are.
+    if (wasOpen && btnTags) btnTags.focus();
+  }
+
+  function toggleTagMenu() {
+    if (!tagMenu || tagList().length < 2) return;
+    if (tagMenu.classList.contains('open')) {
+      closeTagMenu();
+      return;
+    }
+    // The share popover and the tag menu never stack: opening one closes
+    // the other. closeSharePopover() has no focus side-effect to undo.
+    closeSharePopover();
+    tagMenu.classList.add('open');
+    updateTagMenu();
+    // Move the focus IN. The menu carries role="dialog" and its options
+    // are real buttons, but nothing ever focused them, and the global
+    // keydown handler preventDefault()s every key whose target is not
+    // already inside .tag-menu -- including Tab, and a prevented Tab
+    // cancels the focus move. Measured: five Tab presses left
+    // document.activeElement on BODY, so the whole slide-variant feature
+    // was mouse-only and the dialog role was never announced.
+    var options = tagOptions();
+    var active = options.filter(function (b) {
+      return b.classList.contains('active');
+    })[0];
+    if (active || options.length) (active || options[0]).focus();
+  }
+
+  function rebuildDots() {
+    if (!navDots) { dots = []; return; }
+    navDots.innerHTML = '';
+    slides.forEach(function (slide, i) {
+      var a = document.createElement('a');
+      a.href = '#' + (slide.id || ('s' + (i + 1)));
+      var kickerEl = slide.querySelector('.slide-kicker');
+      var headEl = slide.querySelector('h2, h1');
+      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : ('Slide ' + (i + 1)));
+      a.addEventListener('click', function(e){ e.preventDefault(); goTo(i); });
+      navDots.appendChild(a);
+    });
+    dots = Array.prototype.slice.call(navDots.querySelectorAll('a'));
+  }
+
+  function applyTagFilter(scrollToCurrent) {
+    var available = tagList();
+    if (available.indexOf(selectedTag) === -1) selectedTag = 'default';
+    var previous = slides[current];
+    slides = allSlides.filter(function (slide) { return slideMatchesTag(slide, selectedTag); });
+    allSlides.forEach(function (slide) {
+      var visible = slides.indexOf(slide) !== -1;
+      slide.hidden = !visible;
+      slide.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    });
+    var next = previous ? slides.indexOf(previous) : -1;
+    current = next >= 0 ? next : 0;
+    rebuildDots();
+    updateTagMenu();
+    updateUI();
+    if (scrollToCurrent && slides.length) goTo(current);
+  }
+
+  function selectTag(tag, scrollToCurrent) {
+    selectedTag = String(tag || 'default').toLowerCase();
+    writeStoredTag(selectedTag);
+    applyTagFilter(scrollToCurrent);
+  }
+
+  function applyHash() {
+    // The index has no fiche and no fragment: nothing to follow.
+    if (!slides.length) return;
+    var id = window.location.hash ? window.location.hash.slice(1) : '';
+    if (!id) return;
+    var target = allSlides.find(function (slide) { return slide.id === id; });
+    if (!target) {
+      // Not a card's own id, so look for an element carrying it and
+      // take the card AROUND it. That is what a note anchor is:
+      // `#note-<slug>-1` names a line inside a card, and a reader who
+      // follows a footnote link has to arrive at the card that holds it.
+      // This used to serve the `sN` alias as well, back when a card's id
+      // was its rank; the alias is gone and the notes are why the branch
+      // stays.
+      var anchor = document.getElementById(id);
+      target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
+    }
+    if (!target) return;
+    if (!slideMatchesTag(target, selectedTag)) {
+      var candidate = slideTags(target).find(function (tag) {
+        return tag !== 'default' && tagList().indexOf(tag) !== -1;
+      });
+      if (candidate) selectTag(candidate, false);
+    }
+    var index = slides.indexOf(target);
+    if (index >= 0) goTo(index);
+  }
+
+  selectedTag = readStoredTag();
+
+  // --- Speaker counter (X / N) + number-jump + presenter notes panel (key N) ---
+  var slideCounter    = document.getElementById('slideCounter');
+  var presenterPanel  = document.getElementById('presenterPanel');
+  var presenterHead   = document.getElementById('presenterHead');
+  var presenterNotes  = document.getElementById('presenterNotes');
+  var presenterNext   = document.getElementById('presenterNext');
+  var helpOverlay     = document.getElementById('helpOverlay');
+  var helpList        = document.getElementById('helpList');
+  var jumpBuffer = '';
+  var jumpTimer = null;
+
+  // Help overlay (key H): every keyboard shortcut and gesture, built once.
+  var helpEntries = [
+    ['&darr; / PageDown / &rarr;', "Next slide"],
+    ['&uarr; / PageUp / &larr; / Backspace', "Previous slide"],
+    ['Home', "Back to the series index"],
+    ['F', "Fullscreen (Esc to exit)"],
+    ['B / W / T', "Pause screen: black (B), white (W), theme (T)"],
+    ['N', "Speaker panel: notes + next slide"],
+    ['L', "Filter by tag and remember the selection"],
+    ['0&ndash;9 + Entr&eacute;e', "Jump to slide N (then Enter)"],
+    ['H', "H or Esc to close"],
+    ['Souris / Molette', "Click: next · right-click: back · click while gliding: jump · middle button: fullscreen · wheel: scroll"]
+  ];
+  if (helpList) {
+    helpEntries.forEach(function (e) {
+      var li = document.createElement('li');
+      var k = document.createElement('span');
+      k.className = 'help-keys';
+      k.innerHTML = e[0];
+      var d = document.createElement('span');
+      d.className = 'help-desc';
+      d.textContent = e[1];
+      li.appendChild(k);
+      li.appendChild(d);
+      helpList.appendChild(li);
+    });
+  }
+  function toggleHelp() {
+    if (!helpOverlay) return;
+    helpOverlay.classList.toggle('open');
+  }
+
+  function slideTitle(i) {
+    var s = slides[i];
+    if (!s) return '';
+    var t = s.querySelector('.slide-kicker');
+    if (t) return t.textContent;
+    var h = s.querySelector('h2, h1');
+    return h ? h.textContent : ('Slide ' + (i + 1));
+  }
+
+  function updateCounter() {
+    if (!slideCounter) return;
+    // On the index there are no slides to count: the counter exists in
+    // the skeleton (one page for both kinds) but is hidden — an empty
+    // pill with a border would sit in the corner saying nothing.
+    if (!slides.length) { slideCounter.hidden = true; return; }
+    slideCounter.hidden = false;
+    slideCounter.textContent = jumpBuffer
+      ? '→ ' + jumpBuffer
+      : ((current + 1) + ' / ' + slides.length);
+  }
+
+  function updatePresenter() {
+    if (!presenterPanel || !presenterPanel.classList.contains('open')) return;
+    if (!slides.length) {
+      // The presenter panel exists on the index too (one skeleton), but
+      // it is a deck's furniture: without slides there is nothing to
+      // present, so the panel says nothing.
+      return;
+    }
+    var cur = slides[current];
+    var noteEl = cur ? cur.querySelector('.speaker-note') : null;
+    if (presenterNotes) {
+      presenterNotes.textContent = noteEl ? noteEl.textContent.trim() : '—';
+    }
+    if (presenterHead) {
+      presenterHead.textContent = slideTitle(current) + '  (' + (current + 1) + '/' + slides.length + ')';
+    }
+    if (presenterNext) {
+      presenterNext.textContent = (current + 1 < slides.length)
+        ? 'Next: ' + slideTitle(current + 1)
+        : '—';
+    }
+  }
+
+  function togglePresenter() {
+    if (!presenterPanel) return;
+    presenterPanel.classList.toggle('open');
+    updatePresenter();
+  }
+
+  function currentVisible() {
+    // Returns the index of the slide that contains the viewport's
+    // vertical midpoint — the real "what the user is looking at",
+    // independent of the `current` variable which may be stale during
+    // a smooth scroll.
+    //
+    // On the index there are no slides: the focus is the position, so
+    // "what the user is looking at" is the focused card, or 0 when
+    // nothing is focused (the page's own top).
+    if (!slides.length) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
+    var mid = window.innerHeight / 2;
+    var best = current;
+    slides.forEach(function(s, i) {
+      var rect = s.getBoundingClientRect();
+      if (rect.top <= mid && rect.bottom >= mid) best = i;
+    });
+    return best;
+  }
+
+  // The address bar says which card the reader is on, whether they got
+  // there by jumping or by scrolling. It used to say it only after a
+  // jump, so a reader who scrolled to a card and pressed F5 was
+  // teleported back to whichever card they had last jumped to — a page
+  // that lies about where you are, and the worst at the moment you ask
+  // it to remember.
+  //
+  // The FIRST card is the exception, by position, not by type: whoever
+  // reaches the top of the page is looking at the page, not at one of
+  // its cards — the address bar shows the article's own URL (no
+  // fragment), which is also the URL worth copying by hand. Every other
+  // card keeps its `#id`. Sharing is unaffected: the share matrix builds
+  // its own URLs, including for a card in first position.
+  //
+  // replaceState, never pushState: the fragment is a position, not a
+  // visit. Pushing would put one history entry under every card the
+  // reader scrolled past and turn the Back button — the one way out of a
+  // deck — into a slow rewind of the whole article.
+  function recordSlideInUrl(idx) {
+    // The index has no fiche: no fragment, and nothing to record.
+    if (!slides.length) return;
+    var slide = slides[idx];
+    if (!slide || !slide.id) return;
+    if (!window.history || !window.history.replaceState) return;
+    if (idx === 0) {
+      // Top of the page: the article's own URL, no fragment. Only when
+      // one is actually present — the freshly opened page already has
+      // none, and rewriting it would be noise (and a history entry).
+      if (!window.location.hash) return;
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      return;
+    }
+    if (window.location.hash.slice(1) === slide.id) return;
+    window.history.replaceState(null, '', '#' + slide.id);
+  }
+
+  // The step from one card to the next is a 200ms glide, in every mode
+  // — presentation or reading, the deck moves the same way. A click
+  // that lands while the deck is still gliding does not wait for the
+  // animation: it jumps straight to its target, instantly (§8.4).
+  // The 200ms are our own (requestAnimationFrame, an easing on the
+  // remaining distance), not the browser's smooth scroll, whose
+  // duration varies with the distance and cannot be promised.
+  var STEP_MS = 200;
+  var scrollRAF = null;
+  function animateScrollTo(targetY) {
+    var startY = window.pageYOffset || document.documentElement.scrollTop;
+    var startT = null;
+    if (scrollRAF) cancelAnimationFrame(scrollRAF);
+    function frame(ts) {
+      if (startT === null) startT = ts;
+      var t = Math.min(1, (ts - startT) / STEP_MS);
+      // easeOutCubic: fast at first, so the reader lands quickly and
+      // the tail settles — the motion a presenter expects.
+      var e = 1 - Math.pow(1 - t, 3);
+      window.scrollTo(0, startY + (targetY - startY) * e);
+      if (t < 1) scrollRAF = requestAnimationFrame(frame);
+      else scrollRAF = null;
+    }
+    scrollRAF = requestAnimationFrame(frame);
+  }
+  function jumpScrollTo(targetY) {
+    if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+    window.scrollTo(0, targetY);
+  }
+
+  function goTo(idx, instant) {
+    if (!slides.length) {
+      // On the index there is no slide to go to — the URL keeps no
+      // fragment, the focus is the position (stepIndexCards), and the
+      // disabled state of the nav buttons is the on-screen map of it.
+      clearIndexFocus();
+      current = 0;
+      updateUI();
+      return;
+    }
+    idx = Math.max(0, Math.min(slides.length - 1, idx));
+    if (idx === current && isScrolling) return;
+    current = idx;
+    focusedCard = -1;
+    recordSlideInUrl(idx);
+    var targetY = slides[idx].getBoundingClientRect().top
+                  + (window.pageYOffset || document.documentElement.scrollTop);
+    if (instant) {
+      jumpScrollTo(targetY);
+      isScrolling = false;
+    } else {
+      isScrolling = true;
+      animateScrollTo(targetY);
+      // The safety net: a frame dropped by the compositor must not leave
+      // the deck locked forever.
+      setTimeout(function(){ isScrolling = false; }, STEP_MS + 60);
+    }
+    updateUI();
+  }
+
+  // The series-nav slide's cards, in document order (includes the "back
+  // to index" link, itself an .series-link — it's a legitimate stop in
+  // the same keyboard journey). Empty on every other slide.
+  function slideCards(idx) {
+    return Array.prototype.slice.call(slides[idx].querySelectorAll('.series-list a.series-link'));
+  }
+
+  // The index page's own cards — the whole journey, where on an article
+  // the same journey belongs to the series-nav slide.
+  function indexCardList() {
+    return indexCards;
+  }
+  function indexCardFocused() {
+    return focusedCard;
+  }
+  function focusIndexCard(i) {
+    if (focusedCard >= 0) indexCards[focusedCard].blur();
+    focusedCard = i;
+    indexCards[focusedCard].focus();
+  }
+  function clearIndexFocus() {
+    if (focusedCard >= 0) { indexCards[focusedCard].blur(); focusedCard = -1; }
+  }
+
+  // .slide only sets min-height: 100vh (specifications.md §9), so a
+  // slide's real height only exceeds the viewport when its own content
+  // demands it — a long full-article slide being the common case, but
+  // this only ever looks at actual layout, never a slide type or
+  // position, so it works for whichever slide ends up being the tall one.
+  function overflowsViewport(slide) {
+    return slide.getBoundingClientRect().height > window.innerHeight + 1;
+  }
+  function atSlideTop(slide) {
+    return slide.getBoundingClientRect().top >= -1;
+  }
+  function atSlideBottom(slide) {
+    return slide.getBoundingClientRect().bottom <= window.innerHeight + 1;
+  }
+  function scrollWithinSlide(direction) {
+    window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
+  }
+  // The top of the page — the index's Home, and the beginning of the
+  // card journey.
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // The natural keyboard journey (in this order, each one only kicking in
+  // once the previous is exhausted): slide to slide, then — on the
+  // series-nav slide specifically — card to card (focus() already
+  // scrolls a card into view on its own, which doubles as "scroll a
+  // series-nav slide taller than the viewport"), then, for any other
+  // slide taller than the viewport (typically the closing full-article),
+  // scroll it down in increments before moving on. Enter needs no extra
+  // handling: once a card has real focus, the browser's own default
+  // "Enter activates the focused link" already does the jump.
+  //
+  // On the index the cards ARE the page: the journey is card to card
+  // through the whole list, and the end of the list is the end of the
+  // journey. The same focus ring, the same Enter-to-follow, and the
+  // nav buttons are disabled at the ends just as on an article.
+  function stepForward() {
+    if (!slides.length) { stepIndexCards(1); return; }
+    var cards = slideCards(current);
+    if (cards.length && focusedCard < cards.length - 1) {
+      focusedCard++;
+      cards[focusedCard].focus();
+      return;
+    }
+    if (focusedCard >= 0 && cards.length) { cards[focusedCard].blur(); }
+    var slide = slides[current];
+    if (overflowsViewport(slide) && !atSlideBottom(slide)) {
+      scrollWithinSlide(1);
+      return;
+    }
+    goTo(current + 1);
+  }
+
+  function stepBackward() {
+    if (!slides.length) { stepIndexCards(-1); return; }
+    var cards = slideCards(current);
+    if (focusedCard > 0) {
+      focusedCard--;
+      cards[focusedCard].focus();
+      return;
+    }
+    if (focusedCard === 0) {
+      focusedCard = -1;
+      cards[0].blur();
+    }
+    var slide = slides[current];
+    if (overflowsViewport(slide) && !atSlideTop(slide)) {
+      scrollWithinSlide(-1);
+      return;
+    }
+    goTo(current - 1);
+  }
+
+  // One card step on the index: focus moves card by card, and the
+  // disabled state of the nav buttons follows the journey, as it does
+  // for the arrows on an article (§8.4 — "un coup, c'est une carte").
+  function stepIndexCards(direction) {
+    var cards = indexCardList();
+    if (!cards.length) return;
+    var next = focusedCard + direction;
+    if (next < 0 || next >= cards.length) return;
+    focusIndexCard(next);
+    updateUI();
+  }
+
+  function updateUI() {
+    if (btnPrev) btnPrev.classList.toggle('disabled', !slides.length || current === 0);
+    if (btnNext) btnNext.classList.toggle('disabled', !slides.length || current === slides.length - 1);
+    if (!slides.length) {
+      // The index: the cards are the journey, and the nav buttons are
+      // its on-screen twins — first card / last card, exactly as on the
+      // series-nav slide of an article.
+      var cards = indexCardList();
+      if (btnPrev) btnPrev.classList.toggle('disabled', focusedCard <= 0);
+      if (btnNext) btnNext.classList.toggle('disabled',
+                                            focusedCard >= cards.length - 1);
+    } else {
+      dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
+    }
+    updateShareFicheState();
+    updateCounter();
+    updatePresenter();
+  }
+
+  if (btnPrev) btnPrev.addEventListener('click', function() {
+    // On the index the buttons are the on-screen twins of the arrows:
+    // one click, one card of the same journey.
+    if (!slides.length) { stepIndexCards(-1); } else { goTo(current - 1); }
+  });
+  if (btnNext) btnNext.addEventListener('click', function() {
+    if (!slides.length) { stepIndexCards(1); } else { goTo(current + 1); }
+  });
+  if (btnHome) {
+    // Home is the way out of an article deck — back to the index. On
+    // the index itself there is no way out and no fiche to leave: the
+    // key and the button mean the top of the page, where the journey
+    // starts, the same meaning the old index script gave it.
+    btnHome.addEventListener('click', function() {
+      if (slides.length) {
+        window.location.href = 'index.html';
+      } else {
+        clearIndexFocus();
+        scrollToTop();
+        updateUI();
+      }
+    });
+  }
+
+  // Keyboard operability for the round nav buttons (they are role=button
+  // divs, tabindex=0): Enter/Space activate them like a native <button>,
+  // so the share popover (which has no other keyboard entry point) and
+  // the prev/next/home controls are reachable without a mouse.
+  Array.prototype.forEach.call(document.querySelectorAll('.nav-btn'), function (btn) {
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        btn.click();
+      }
+    });
+  });
+
+  function runStepped(fn) {
+    if (stepCooldownActive) return;
+    stepCooldownActive = true;
+    fn();
+    setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
+  }
+
+   document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    // While the help overlay is open, only H/Esc close it; everything else
+    // is swallowed so a stray arrow does not navigate behind the panel.
+    if (helpOverlay && helpOverlay.classList.contains('open')) {
+      if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        toggleHelp();
+      } else {
+        e.preventDefault();
+      }
+      return;
+    }
+    if (tagMenu && tagMenu.classList.contains('open')) {
+      if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        closeTagMenu();
+      } else if (e.key === 'Tab') {
+        // Wrap inside the dialog. Without this, Tab from the last option
+        // walks out of an open modal into the page behind it, which is
+        // the one place a focus ring must not go.
+        var options = tagOptions();
+        if (options.length) {
+          e.preventDefault();
+          var at = options.indexOf(document.activeElement);
+          var step = e.shiftKey ? -1 : 1;
+          var next = (at < 0 ? 0 : at + step + options.length) % options.length;
+          options[next].focus();
+        }
+      } else if (e.target && e.target.closest && e.target.closest('.tag-menu')) {
+        return;
+      } else {
+        e.preventDefault();
+      }
+      return;
+    }
+    // If a pause screen is up, any navigation key dismisses it.
+    if (pauseOverlay && pauseOverlay.classList.contains('open')) {
+      if (e.key === 'b' || e.key === 'B' || e.key === 'w' || e.key === 'W'
+          || e.key === 't' || e.key === 'T') {
+        // Same key toggles off; others also dismiss.
+        togglePause(e.key);
+        e.preventDefault();
+      } else {
+        closePause();
+        e.preventDefault();
+      }
+      return;
+    }
+    // Number jump: type digits, Enter jumps to that slide (1-based).
+    // Escape cancels the pending buffer. The buffer auto-expires.
+    // On the index there is nothing to jump to — no slides, no fiche —
+    // so the keys keep their ordinary meaning there.
+    if (slides.length && e.key >= '0' && e.key <= '9') {
+      jumpBuffer = (jumpBuffer + e.key).slice(-3);
+      updateCounter();
+      if (jumpTimer) clearTimeout(jumpTimer);
+      jumpTimer = setTimeout(function(){ jumpBuffer = ''; updateCounter(); }, 2500);
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Enter' && jumpBuffer) {
+      var jumpN = parseInt(jumpBuffer, 10);
+      jumpBuffer = '';
+      if (jumpTimer) clearTimeout(jumpTimer);
+      if (jumpN >= 1 && jumpN <= slides.length) goTo(jumpN - 1);
+      updateCounter();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape' && jumpBuffer) {
+      jumpBuffer = '';
+      if (jumpTimer) clearTimeout(jumpTimer);
+      updateCounter();
+      e.preventDefault();
+      return;
+    }
+    // The presenter panel was the one overlay Escape did not reach: help,
+    // the variant dialog, the share popover and the QR modal all close on
+    // it, and a speaker who hit Escape on the panel got nothing. It is not
+    // modal -- the point is to navigate while it is open -- so this closes
+    // it and swallows nothing else.
+    if (e.key === 'Escape' && presenterPanel
+        && presenterPanel.classList.contains('open')) {
+      e.preventDefault();
+      togglePresenter();
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
+      e.preventDefault(); runStepped(stepForward);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft' || e.key === 'Backspace') {
+      e.preventDefault(); runStepped(stepBackward);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      // The same fork as the home button: on an article, Home is the way
+      // out of the deck, back to the index; on the index itself it means
+      // the top of the page — where the journey starts — not a
+      // navigation to itself.
+      if (slides.length) {
+        window.location.href = 'index.html';
+      } else {
+        clearIndexFocus();
+        scrollToTop();
+        updateUI();
+      }
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault(); toggleFullscreen();
+    } else if (e.key === 'b' || e.key === 'B') {
+      e.preventDefault(); togglePause('b');
+    } else if (e.key === 'w' || e.key === 'W') {
+      e.preventDefault(); togglePause('w');
+    } else if (e.key === 't' || e.key === 'T') {
+      e.preventDefault(); togglePause('t');
+    } else if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault(); togglePresenter();
+    } else if (e.key === 'l' || e.key === 'L') {
+      e.preventDefault(); toggleTagMenu();
+    } else if (e.key === 'h' || e.key === 'H') {
+      e.preventDefault(); toggleHelp();
+    }
+  });
+
+  function detectCurrent() {
+    // On the index there are no slides, and the focus is the source of
+    // truth for the position — the scroll observer has nothing to
+    // detect, so it does nothing.
+    if (!slides.length) return;
+    if (isScrolling) return;
+    var winH = window.innerHeight;
+    var mid  = winH / 2;
+    var best = current;
+    // Which slide's own [top, bottom] span contains the viewport's
+    // vertical midpoint — not "nearest center", which breaks as soon as
+    // one slide is much taller than the rest (a long full-article, the
+    // very case arrow-key scrolling now has to handle): its center can
+    // sit far below the visible viewport even while its top edge is what
+    // the user is actually looking at, so distance-to-center would keep
+    // picking a short neighboring slide instead.
+    slides.forEach(function(s, i) {
+      var rect = s.getBoundingClientRect();
+      if (rect.top <= mid && rect.bottom >= mid) best = i;
+    });
+    if (best !== current) {
+      current = best;
+      focusedCard = -1;
+      // The other half of recordSlideInUrl's job, and the half that was
+      // missing. This runs 80ms after the last scroll event, so it fires
+      // on a settled position rather than on every frame of a scroll.
+      recordSlideInUrl(best);
+      updateUI();
+    }
+  }
+
+  var scrollTimer = null;
+  window.addEventListener('scroll', function() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(detectCurrent, 80);
+  }, { passive: true });
+
+  // --- Share button: popover with a copy-link / QR-code matrix, scoped to
+  // the series index, this article, or the current slide. §9.3.4.
+  // The slide scope is decided by TYPE, not position: disabled on the
+  // series-nav slide (its id is not sN); enabled on standard, cover and
+  // full-article slides — a cover in first position is a legitimate card
+  // to share, and the address bar may hide its fragment while the share
+  // matrix does not (§8.4).
+  function currentSlideId() {
+    // No slides, no fiche: on the index the share matrix's fiche scope
+    // is disabled (updateShareFicheState), and the series scope already
+    // names the index itself.
+    if (!slides.length) return null;
+    var s = slides[current];
+    if (!s || !s.id) return null;
+    // Type, not shape. This used to test /^s\d+$/, which stood in for "a
+    // card worth linking to": it excluded the cover by class and the
+    // series-nav only because that one's id happened to end in `-series`.
+    // An id derived from what the author wrote says nothing about type,
+    // so the exclusions now say themselves — and had this kept the
+    // regex, the share button would simply have gone dead on every card,
+    // silently, which is the failure this comment exists to prevent
+    // someone re-introducing.
+    if (s.classList.contains('slide-series-nav')) return null;
+    return s.id;
+  }
+
+  function shareUrl(scope) {
+    if (scope === 'series') {
+      return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html';
+    }
+    if (scope === 'article') {
+      return location.origin + location.pathname;
+    }
+    if (scope === 'fiche') {
+      var id = currentSlideId();
+      return id ? (location.origin + location.pathname + '#' + id) : null;
+    }
+    return null;
+  }
+
+  var shareBtn        = document.getElementById('navShare');
+  var sharePopover     = document.getElementById('sharePopover');
+  var shareHeadFiche   = document.getElementById('shareHeadFiche');
+  var qrModal          = document.getElementById('shareQrModal');
+  var qrModalContent   = document.getElementById('shareQrModalContent');
+  var qrModalUrl       = document.getElementById('shareQrModalUrl');
+  var shareFicheBtns   = sharePopover
+    ? Array.prototype.slice.call(sharePopover.querySelectorAll('[data-scope="fiche"]'))
+    : [];
+
+  function updateShareFicheState() {
+    var enabled = !!currentSlideId();
+    shareFicheBtns.forEach(function (b) { b.disabled = !enabled; });
+    if (shareHeadFiche) shareHeadFiche.classList.toggle('share-cell-head-disabled', !enabled);
+  }
+
+  function closeSharePopover() {
+    if (sharePopover) sharePopover.classList.remove('open');
+  }
+
+  function closeQrModal() {
+    if (qrModal) qrModal.classList.remove('open');
+  }
+
+  function qrToSvg(text) {
+    var matrix = qrEncode(text);
+    var n = matrix.length;
+    var border = 4;
+    var size = n + border * 2;
+    var rects = '';
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        if (matrix[r][c]) rects += '<rect x="' + (c + border) + '" y="' + (r + border) + '" width="1" height="1"/>';
+      }
+    }
+    return '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">'
+      + '<rect width="' + size + '" height="' + size + '" fill="#fff"/>'
+      + '<g fill="#1a1a2e">' + rects + '</g></svg>';
+  }
+
+  if (shareBtn && sharePopover) {
+    shareBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      updateShareFicheState();
+      // The share popover and the tag menu never stack: opening one
+      // closes the other (toggleTagMenu does the same in return).
+      closeTagMenu();
+      sharePopover.classList.toggle('open');
+    });
+    sharePopover.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    Array.prototype.slice.call(sharePopover.querySelectorAll('.share-action')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var scope = btn.getAttribute('data-scope');
+        var action = btn.getAttribute('data-action');
+        var url = shareUrl(scope);
+        if (!url) return;
+        if (action === 'copy') {
+          var original = btn.textContent;
+          var originalTitle = btn.title;
+          var done = function () {
+            btn.textContent = '✓';
+            btn.title = 'Link copied!';
+            setTimeout(function () { btn.textContent = original; btn.title = originalTitle; }, 1600);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(done, function () { window.prompt('Copy this link:', url); });
+          } else {
+            window.prompt('Copy this link:', url);
+          }
+        } else if (action === 'qr' && qrModal && qrModalContent) {
+          qrModalContent.innerHTML = qrToSvg(url);
+          if (qrModalUrl) qrModalUrl.textContent = url;
+          closeSharePopover();
+          qrModal.classList.add('open');
+        }
+      });
+    });
+  }
+
+  if (qrModal) {
+    qrModal.addEventListener('click', function (e) {
+      if (e.target === qrModal || e.target.classList.contains('share-qr-close')) closeQrModal();
+    });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeSharePopover(); closeQrModal(); }
+  });
+
+  // --- Presenter pack (v0.26.0) ---
+  // Click / click while gliding / swipe / fullscreen / pause screens, so the
+  // speaker can drive the deck with a mouse alone, a keyboard alone, or
+  // a touch device.
+
+  var pauseOverlay = document.getElementById('pauseOverlay');
+
   function toggleFullscreen() {
     if (document.fullscreenElement || document.webkitFullscreenElement) {
       (document.exitFullscreen || document.webkitExitFullscreen).call(document);
@@ -1882,18 +3417,292 @@ var btnUp   = document.getElementById('navUp');
       (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
     }
   }
+
+  // The cursor is hidden by the same clock as the navigation chrome,
+  // below: three seconds of stillness, one in fullscreen. It used to
+  // hide in fullscreen alone, which left the page in a state nobody
+  // asked for — the buttons faded on their own and a cursor stayed
+  // sitting in the middle of the text. Two things that answer to
+  // stillness should answer to it together.
+  // Require 250ms of continuous movement before the cursor reappears, so
+  // a single jitter or a brush past the sensor does not flash it back on
+  // the wall.
+  //
+  // The reveal happens ON a move event that proves the burst has already
+  // lasted 250ms, which is the only thing that cannot be faked by a
+  // twitch. The previous version armed a timer instead, and the timer
+  // fired whether or not the movement continued: two events 16ms apart —
+  // a knock against the desk — revealed the cursor 250ms later, with
+  // nothing moving. Reported from the field as the protection not
+  // working, and it was not: it delayed the reveal rather than
+  // conditioning it. (Its first move also cancelled the timer it had just
+  // armed, since the gap since the previous burst is always over 100ms,
+  // so the burst effectively began on the second event.)
+  //
+  // A gap longer than 100ms ends a burst and starts a new one, so a
+  // stop-and-start never accumulates towards the 250.
+  //
+  // The BUTTONS come back on the same condition, and that is the whole
+  // of this function's job. They used to come back on the first move,
+  // which made the two halves of one gesture answer to two clocks: the
+  // cursor held for a quarter of a second while the chrome was already
+  // back on the wall, so the protection was half a protection. One
+  // reveal, one rule.
+  var fsMoveStart = 0;
+  var fsLastMove = 0;
+  function revealChrome() {
+    var now = Date.now();
+    if (now - fsLastMove > 100) fsMoveStart = now;
+    fsLastMove = now;
+    if (now - fsMoveStart >= 250) {
+      document.body.style.cursor = '';
+      setNavIdle(false);
+    }
+  }
+  // Wake lock: prevents the screen from dimming/sleeping while the
+  // speaker presents. Released when fullscreen exits.
+  var wakeLock = null;
+  function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wakeLock = lock;
+      }).catch(function () {});
+    }
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release().catch(function(){}); wakeLock = null; }
+  }
+
+  document.addEventListener('fullscreenchange', function () {
+    setNavIdle(false);
+    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) {
+      window.getSelection().removeAllRanges();
+      document.body.classList.add('fs-noselect');
+      requestWakeLock();
+    } else {
+      document.body.classList.remove('fs-noselect');
+      releaseWakeLock();
+    }
+  });
+  document.addEventListener('webkitfullscreenchange', function () {
+    setNavIdle(false);
+    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) {
+      window.getSelection().removeAllRanges();
+      document.body.classList.add('fs-noselect');
+      requestWakeLock();
+    } else {
+      document.body.classList.remove('fs-noselect');
+      releaseWakeLock();
+    }
+  });
+
+  var btnFullscreen = document.getElementById('navFullscreen');
+  if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+  }
+
+  function closePause() {
+    if (pauseOverlay) pauseOverlay.classList.remove('open');
+  }
+
+  function togglePause(kind) {
+    if (!pauseOverlay) return;
+    kind = (kind || '').toLowerCase();
+    // Toggle: if already open with the same kind, close; else switch.
+    // Uses a data attribute (not background comparison) because the
+    // browser normalises style.background (e.g. #F5F4EFFF → rgb(...)),
+    // which would break the equality check.
+    if (pauseOverlay.classList.contains('open')
+        && pauseOverlay.dataset.pauseKind === kind) {
+      closePause();
+    } else {
+      var bg = 'black';
+      if (kind === 'w') bg = 'white';
+      else if (kind === 't') bg = getComputedStyle(document.body)
+        .getPropertyValue('--page-bg').trim() || 'black';
+      pauseOverlay.style.background = bg;
+      pauseOverlay.dataset.pauseKind = kind;
+      pauseOverlay.classList.add('open');
+    }
+  }
+
+  // --- Click to advance, right-click to go back, middle button for fullscreen ---
+  // The remote-mouse use case. Left-click advances (200ms glide; a
+  // click while gliding jumps straight to its target, §8.4), right-click
+  // goes back the same way, the middle BUTTON toggles fullscreen
+  // (the middle WHEEL scrolls). Esc exits
+  // fullscreen (native browser). Buttons, links, images, and the pause
+  // overlay intercept clicks so they keep working.
   function isFullscreen() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement);
   }
-  if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
-
-  // The middle BUTTON is the fullscreen gatekeeper, the same two-step
-  // as the article pages (B37): it exits on its own, and the entry is
-  // middle press then a LEFT click within the window — the left click
-  // carries the gesture the browsers require for requestFullscreen.
-  // A RIGHT click within the same window goes Home. The middle press
-  // on a card also swallows the link (auxclick below), so the
-  // fullscreen is not lost to a new tab a moment later.
+  function isInteractive(e) {
+    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .nav-buttons');
+  }
+  // A double tap is detected from the touch events themselves (see the
+  // touch section below), never from the clicks a browser synthesises
+  // afterwards. Measured, and it is the reason this exists: a
+  // mobile engine can hold a synthesised click back by around 300ms
+  // while it waits to see whether a second tap is coming, so two taps
+  // 60ms apart arrive here as clicks 300ms apart, read as two singles,
+  // and the gesture is never seen at all.
+  //
+  // Having decided on the touch side, this suppresses the clicks still
+  // in flight so the gesture does not also advance the deck twice.
+  var swallowClicksUntil = 0;
+  // Releasing the button after highlighting a quotation is not a click to
+  // advance, and treating it as one costs the reader both the selection
+  // and their place. A drag that selected nothing is not one either — it
+  // was still a drag, not a click.
+  //
+  // Two signals rather than one: the selection is the exact statement of
+  // "I was highlighting", and the distance covers a drag over an area
+  // with no text to take. Four pixels of slack, because a click held long
+  // enough to wobble is still a click.
+  var pressX = 0;
+  var pressY = 0;
+  // The selection that EXISTS at press time. The browser clears the
+  // selection on mousedown — before our click event arrives — so "is
+  // there a selection now" can never say "there was one a moment ago".
+  // A click on an existing selection is the reader dismissing it: it
+  // must not also advance the deck. Read at mousedown, and only for the
+  // left button: a right-click on a selection is the context menu's
+  // business, already handled separately.
+  var hadSelectionAtPress = false;
+  document.addEventListener('mousedown', function (e) {
+    pressX = e.clientX;
+    pressY = e.clientY;
+    hadSelectionAtPress = e.button === 0 && String(window.getSelection()).length > 0;
+  });
+  function endedADrag(e) {
+    if (String(window.getSelection())) return true;
+    return Math.abs(e.clientX - pressX) > 4 || Math.abs(e.clientY - pressY) > 4;
+  }
+  document.addEventListener('click', function (e) {
+    if (isInteractive(e)) return;
+    // A click the touch side has already answered for. See
+    // swallowClicksUntil.
+    if (Date.now() < swallowClicksUntil) return;
+    if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
+    // A popover or dialog is open and the reader clicks outside it:
+    // closing it is the whole of the click. Advancing the deck here
+    // would move the reader the moment they asked for nothing — and on
+    // the way out, the same click that closed the window would change
+    // the card under the reader's nose. (A click INSIDE the window never
+    // reaches this handler: isInteractive above has already returned.)
+    if ((sharePopover && sharePopover.classList.contains('open'))
+        || (tagMenu && tagMenu.classList.contains('open'))) {
+      closeSharePopover();
+      closeTagMenu();
+      return;
+    }
+    // Only the left button (0) drives navigation from here on.
+    if (e.button !== 0) return;
+    // A click that pressed down on an existing selection is the reader
+    // dismissing it — the browser has already cleared it, and the click
+    // must not also advance the deck. The reader asked to remove the
+    // highlight, not to move on. The second press of a pair is exempt:
+    // the pair itself selects the word under the pointer, so the
+    // selection at press time is the gesture's own, not a dismissal.
+    if (e.detail < 2 && hadSelectionAtPress) return;
+    // The drag guards say "a click that ends a drag is not a step".
+    // A click that lands DURING a glide is exempt: the pair (press of
+    // the first click, then press of this one) has already selected the
+    // word under the pointer by the time this event fires, and blocking
+    // on it would make the mid-glide jump unreachable with the mouse.
+    if (e.detail < 2 && endedADrag(e)) return;
+    // One step, and the glide that carries it: the click glides to the
+    // next card over 200ms. A click that lands while the deck is still
+    // gliding does not wait — it jumps straight to ITS target (§8.4):
+    // in the same direction that is the card past the glide's target
+    // (two pages in two clicks), in the other it returns to the card
+    // the reader left. The click always changes slide (never scrolls
+    // within the current one), so the speaker lands on the next card
+    // cleanly.
+    //
+    // While the deck is gliding, `current` already names the glide's
+    // target (goTo sets it before the animation starts), so the next
+    // step is `current + 1` and the jump lands two pages past the
+    // starting one. At rest, `current` may be stale (the scroll
+    // observer owns it), so the step is anchored on `currentVisible`.
+    var base = isScrolling ? current : currentVisible();
+    if (!slides.length) {
+      // The index: the same click is the same step, card by card —
+      // left advances one card's focus, and clicking a card itself is
+      // the card's own link, which `isInteractive` has already let
+      // through (the native default follows it). There is no fiche to
+      // navigate to: the step is a focus move, never a goTo.
+      stepIndexCards(1);
+      return;
+    }
+    goTo(base + 1, isScrolling);
+    // The second click of a quick pair is also the platform's own
+    // double-click, which selects the word under the pointer — on the
+    // card the deck has just left. That selection is a ghost: the
+    // reader never saw it (the page moved away underneath it), and it
+    // steals the next right-click, which opens the copy menu instead
+    // of stepping back. The deck's own motion invalidates the
+    // platform's gesture, so the ghost is cleared with it.
+    if (e.detail >= 2) window.getSelection().removeAllRanges();
+  });
+  // And the dblclick event itself can re-pose the selection after our
+  // click handler wiped it (the browsers differ on when the selection
+  // lands), so it is wiped again, out of reach of the copy menu.
+  document.addEventListener('dblclick', function (e) {
+    if (isInteractive(e)) return;
+    window.getSelection().removeAllRanges();
+  });
+  document.addEventListener('contextmenu', function (e) {
+    // Right-click = go back, the exact mirror of the left button — it
+    // works everywhere the left one does, including on the index cards
+    // and the series-nav links: on a mouse, the right button is the
+    // deck's "back", not the browser's menu. On a touch screen this
+    // event IS the long press, which is how a reader selects a word and
+    // opens the copy callout. Reported: a long press threw the reader
+    // back a card and left them unable to select anything at all,
+    // because `preventDefault()` below takes the native gesture with it.
+    //
+    // Guarded on the pointer rather than on the event, because the event
+    // is the same one: a mouse has a second button and a finger does not,
+    // and that is the whole of the distinction.
+    if (!hasFinePointer) return;
+    if (pauseOverlay && pauseOverlay.contains(e.target)) return;
+    // A selection is the reader's own text, and right-clicking it asks
+    // for the browser's own menu — copy, copy link, search. Reported
+    // from the field: right-clicking a highlighted passage went back a
+    // card instead, which is the same theft the left-button guard
+    // (`endedADrag`) prevents on the way in. Without a selection,
+    // right-click keeps its deck meaning: go back one card.
+    if (String(window.getSelection())) return;
+    // A right-click inside the intent window was already consumed by
+    // the middle-then-right gesture (Home) — the menu must not also
+    // appear.
+    if (Date.now() < fsIntentUntil) return;
+    e.preventDefault();
+    // The mirror of the left button, including the glide logic: while
+    // the deck is gliding, `current` names the glide's target, so the
+    // back-click returns to the card the reader left. At rest it is
+    // anchored on `currentVisible` (the scroll observer owns it).
+    var base = isScrolling ? current : currentVisible();
+    if (!slides.length) {
+      // The mirror of the left button on the index: right-click steps
+      // the focus back one card.
+      stepIndexCards(-1);
+      return;
+    }
+    goTo(base - 1, isScrolling);
+  });
+  // The middle BUTTON is the fullscreen gatekeeper: it can only EXIT
+  // on its own, because entering needs a LEFT mouse gesture — the
+  // browsers refuse `requestFullscreen()` from any non-left event
+  // (B37). The entry is the two-step: middle button (arms the intent),
+  // then a LEFT click within the window (carries the gesture the
+  // browser requires, and the entry happens). A RIGHT click within the
+  // same window goes Home instead. A middle press while fullscreen
+  // simply exits. The WHEEL itself keeps scrolling; the ⛶ button and
+  // F keep working as direct entries.
   var fsIntentUntil = 0;
   var fsEntryPending = false;
   var FS_INTENT_MS = 900;
@@ -1909,11 +3718,20 @@ var btnUp   = document.getElementById('navUp');
     }
     if (Date.now() >= fsIntentUntil) return;
     if (e.button === 0) {
+      // The second half of the gesture: a left click inside the
+      // intent window carries the entry. preventDefault keeps the
+      // click from also doing whatever the left button normally does
+      // on this target (advance the deck, follow a card link).
       e.preventDefault();
       fsIntentUntil = 0;
       fsEntryPending = true;
       if (!isFullscreen()) toggleFullscreen();
     } else if (e.button === 2) {
+      // The same intent, the other way: middle then RIGHT goes Home.
+      // Right-click normally steps back; inside the intent window it
+      // is a deliberate second half, so it is swallowed here — and the
+      // contextmenu handler below never sees it (its own guard checks
+      // the intent window too).
       e.preventDefault();
       fsIntentUntil = 0;
       window.location.href = 'index.html';
@@ -1929,98 +3747,159 @@ var btnUp   = document.getElementById('navUp');
       e.stopPropagation();
     }
   }, true);
-  document.addEventListener('auxclick', function (e) {
-    if (e.button !== 1) return;
-    e.preventDefault();
-    e.stopPropagation();
-  });
 
-  function scrollByViewport(direction) {
-    window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
+  // --- Touch swipe and double tap (mobile / tablet) ---
+  var touchStartX = null, touchStartY = null, touchStartT = 0;
+  var lastTapT = 0;
+  // Two taps close together, each of them short and still. The window is
+  // wider than the platform's own two-click window (the one that fires
+  // dblclick) on purpose: a finger
+  // is slower and less accurate than a pointer, and the cost of missing
+  // the gesture — chrome the reader cannot put away — is worse than the
+  // cost of catching one tap too many.
+  var DOUBLE_TAP_MS = 350;
+  var TAP_SLOP_PX = 20;
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartT = Date.now();
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (touchStartX === null) return;
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    var dy = e.changedTouches[0].clientY - touchStartY;
+    var dt = Date.now() - touchStartT;
+    touchStartX = null;
+    // Horizontal swipe dominates: 50px threshold, < 500ms, horizontal >
+    // vertical. Left = next, right = previous (convention: swipe the way
+    // the next slide comes FROM).
+    if (dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) runStepped(stepForward); else runStepped(stepBackward);
+      lastTapT = 0;
+      return;
+    }
+    // A double tap is the reader's switch for the navigation chrome:
+    // it puts it away when they have seen enough and brings it back when
+    // they want it, which on a touch screen nothing else can do — there
+    // is no pointer whose movement could be read as "I am still here".
+    //
+    // Fullscreen keeps the button in that chrome rather than this
+    // gesture. One gesture that means two things depending on a state
+    // the reader cannot see coming is not a gesture, it is a lottery.
+    if (isInteractive(e)) { lastTapT = 0; return; }
+    if (dt >= 500 || Math.abs(dx) > TAP_SLOP_PX || Math.abs(dy) > TAP_SLOP_PX) {
+      lastTapT = 0;
+      return;
+    }
+    var now = Date.now();
+    if (lastTapT && now - lastTapT < DOUBLE_TAP_MS) {
+      lastTapT = 0;
+      // The first tap has already advanced the deck, and the
+      // synthesised clicks for both taps may still be in flight.
+      // Suppress the ones that remain, or the gesture that put the
+      // chrome away would also have moved the reader two cards on.
+      swallowClicksUntil = now + 450;
+      var goingIdle = !navIsIdle();
+      setNavIdle(goingIdle);
+      if (!goingIdle) scheduleHide();
+      return;
+    }
+    lastTapT = now;
+  }, { passive: true });
+
+  // --- Toggle nav chrome (buttons + dots) by clicking bottom-right ---
+  // A click in the nav-buttons area that does NOT hit a button toggles
+  // the visibility of both the pagination dots and the nav buttons.
+  // This lets the speaker hide all distracting chrome on a large screen.
+  var navButtons = document.querySelector('.nav-buttons');
+  function setNavIdle(isIdle) {
+    if (navButtons) navButtons.classList.toggle('idle', isIdle);
+    if (navDots) navDots.classList.toggle('idle', isIdle);
+    if (slideCounter) slideCounter.classList.toggle('idle', isIdle);
+    // The scroll bar belongs to the scrolling element, not to any of the
+    // three above, so it takes a class of its own on the root. It is
+    // navigation all the same: it says where you are and it invites a
+    // drag, which is exactly what should not appear on a wall behind a
+    // speaker who has stopped touching the mouse.
+    document.documentElement.classList.toggle('nav-idle', isIdle);
   }
-  function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // The root class is the one flag all four pieces share, so it is the
+  // one thing to ask. Reading `.idle` off any single element would be
+  // right until someone hides a piece that no longer exists on the page.
+  function navIsIdle() {
+    return document.documentElement.classList.contains('nav-idle');
   }
-
-  // The index's real keyboard journey is card by card, exactly as on an
-  // article's series-nav slide: the arrows FOCUS the cards one by one,
-  // and the browser's own scroll-into-view moves the page along with
-  // the focus. Scroll-by-viewport was what the arrows did, and it
-  // skipped the cards entirely — a reader steering an index with the
-  // keyboard never saw what they were pointing at.
-  //
-  // The card list is built once at load (it cannot change under the
-  // page). focus() scrolls the card into view on its own, which is the
-  // same scroll the old arrows did, only aimed at something.
-  var cards = Array.prototype.slice.call(document.querySelectorAll('.article-card'));
-  var focusedCard = -1;
-
-  function stepCards(direction) {
-    if (!cards.length) return;
-    var next = focusedCard + direction;
-    if (next < 0 || next >= cards.length) return;
-    if (focusedCard >= 0) cards[focusedCard].blur();
-    focusedCard = next;
-    cards[focusedCard].focus();
-    updateNavUI();
-  }
-  function clearCardFocus() {
-    if (focusedCard >= 0) { cards[focusedCard].blur(); focusedCard = -1; }
-    updateNavUI();
-  }
-
-  function updateNavUI() {
-    var atTop = window.scrollY <= 4;
-    var atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 4);
-    // The buttons are the on-screen twins of the arrows: one click is
-    // one step of the same card-by-card journey the keyboard takes
-    // (§8.4 — "un coup, c'est une carte"). The disabled state follows
-    // the journey too: first card / last card.
-    if (btnUp) btnUp.classList.toggle('disabled', focusedCard <= 0);
-    if (btnDown) btnDown.classList.toggle('disabled',
-                                          focusedCard >= cards.length - 1);
-  }
-
-  if (btnUp) btnUp.addEventListener('click', function () { stepCards(-1); });
-  if (btnDown) btnDown.addEventListener('click', function () { stepCards(1); });
-  if (btnHome) btnHome.addEventListener('click', function () { clearCardFocus(); scrollToTop(); });
-
-  // Enter/Space activate the role=button divs like native buttons.
-  Array.prototype.forEach.call(document.querySelectorAll('.nav-btn'), function (btn) {
-    btn.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-        e.preventDefault();
-        btn.click();
+  if (navButtons) {
+    navButtons.addEventListener('click', function (e) {
+      if (e.target === navButtons) {
+        setNavIdle(!navButtons.classList.contains('idle'));
       }
     });
-  });
+  }
 
-  window.addEventListener('scroll', updateNavUI);
-  window.addEventListener('resize', updateNavUI);
-  updateNavUI();
-
-  document.addEventListener('keydown', function (e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-      e.preventDefault(); stepCards(1);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault(); stepCards(-1);
-    } else if (e.key === 'Home') {
-      e.preventDefault(); clearCardFocus(); scrollToTop();
-    } else if (e.key === 'f' || e.key === 'F') {
-      // The index is a page of the same site, and someone who learned F
-      // on an article page presses it here. It did nothing, for no
-      // reason anyone had stated: the index simply never bound it.
-      // Reported from the field. The deck-only keys (N, H, B/W/T, L)
-      // stay out — there is no presenter panel, no help card and no tag
-      // menu on an index, so binding them would promise furniture that
-      // does not exist.
-      e.preventDefault(); toggleFullscreen();
+  // --- Auto-hide nav chrome after 3s of idleness (1s in fullscreen) ---
+  // The speaker does not want chrome on the wall while talking; the
+  // reader on a phone does not want it sitting on their text. One delay,
+  // two ways back, because the two devices do not offer the same signal:
+  // continuous mouse movement where there is a pointer, a deliberate
+  // double tap where there is none.
+  //
+  // Touch used to be exempt outright, and the reason recorded was that
+  // there is no cursor to wake the chrome. That was a fact about the
+  // mechanism, not about the reader, and it left the phone as the one
+  // device where the buttons could never be put away.
+  var idleTimer = null;
+  var hasFinePointer = !!(window.matchMedia
+                          && window.matchMedia('(pointer: fine)').matches);
+  function getIdleDelay() {
+    return isFullscreen() ? 1000 : 3000;
+  }
+  function scheduleHide() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      setNavIdle(true);
+      // Only where there is one to hide. Setting it on a touch device is
+      // harmless but says something false about what just happened.
+      if (hasFinePointer) document.body.style.cursor = 'none';
+    }, getIdleDelay());
+  }
+  if (hasFinePointer) {
+    document.addEventListener('mousemove', function () {
+      // Nothing is revealed here. revealChrome() decides, on the one
+      // condition that governs both: movement that has already lasted
+      // 250ms. What this handler always does is restart the countdown,
+      // so a mouse that is moving is never a mouse that has gone idle.
+      revealChrome();
+      scheduleHide();
+    });
+  } else {
+    // Nothing here reveals anything: that is the point of asking for a
+    // double tap. What a touch does do is restart the countdown WHILE
+    // the chrome is still up, so it never fades out from under a finger
+    // that is in the middle of using it. Once it is down, touching and
+    // scrolling leave it down.
+    function keepAwakeOnTouch() {
+      if (!navIsIdle()) scheduleHide();
     }
-  });
+    document.addEventListener('touchstart', keepAwakeOnTouch, { passive: true });
+    window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
+  }
+  // Reschedule on fullscreen change to use the correct delay
+  document.addEventListener('fullscreenchange', scheduleHide);
+  document.addEventListener('webkitfullscreenchange', scheduleHide);
+  scheduleHide();
+
+  if (btnTags) btnTags.addEventListener('click', toggleTagMenu);
+  renderTagMenu();
+  applyTagFilter(false);
+  window.addEventListener('hashchange', applyHash);
+  applyHash();
+  updateUI();
+})();
+});
 
 </script>
-
 
 </body>
 </html>

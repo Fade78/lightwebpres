@@ -706,7 +706,8 @@ Toute valeur hors `on`/`off`/`true`/`false`/`yes`/`no`/`1`/`0` est une
 erreur de build **fatale** nommant l'origine — même vocabulaire aux trois
 origines, `resolve_slide_page_numbers` n'en connaît qu'un. Le compteur dynamique
 bas-gauche (`.slide-counter`, « X / N ») est **indépendant** et toujours
-affiché, même quand les numéros gravés sont désactivés. La résolution est
+affiché, même quand les numéros gravés sont désactivés — sauf sur
+l'index, qui n'a pas de fiches à compter (§8.4). La résolution est
 faite une fois par article (`resolve_slide_page_numbers`) et transmise à
 chaque renderer (§12.3).
 
@@ -1830,7 +1831,14 @@ pas seulement l'absence de règle qui la supprimerait :
 
 ### 8.1 Page d'index
 
-Générée depuis `series.json`. La page d'index contient :
+Générée depuis `series.json`. L'index est une **page comme les autres** :
+il est construit par le même squelette (`TEMPLATE_PAGE`, §18.1) et le même
+JavaScript de navigation (`TEMPLATE_NAV_JS`, §9.3.3) que les pages
+d'article — seul son contenu diffère : là où un article met ses fiches
+dans `{{content}}`, l'index y met son en-tête, son intro et ses cartes
+d'articles. Le `<body>` porte `class="index-page"` (la règle de mise en
+page correspondante vit dans la feuille composée, §9.7). La page
+d'index contient :
 
 1. Le `<head>` avec `<meta>`, `<title>`, le CSS inline
 2. Un en-tête (titre de la série, sous-titre)
@@ -1840,9 +1848,10 @@ Générée depuis `series.json`. La page d'index contient :
 5. Un pied de page (`<footer class="page-footer">` : signature et licence
    de la série), émis dès que `series_meta.author` ou `series_meta.license`
    est non vide, absent quand les deux le sont
-6. Les boutons de navigation (`<div class="nav-buttons">` : un coup =
-   une carte, comme les flèches du clavier — §8.4)
-7. Le JavaScript de navigation
+6. Les boutons de navigation (`<div class="nav-buttons">` : les mêmes
+   que sur les articles — prev, home, next, partage, plein écran, tags —
+   et comme les flèches du clavier, un clic y déplace d'une carte, §8.4)
+7. Le JavaScript de navigation, le même que partout
 
 Chaque carte d'article :
 
@@ -1905,15 +1914,19 @@ répertoire de série est imbriqué). Contient, dans l'ordre :
 
 ### 8.4 Pack présentateur (v0.26.0)
 
-**Le coup, partout, est le même.** Les flèches, les boutons ↑/↓ et les
-clics gauche/droit déplacent d'un « coup » : une fiche complète sur une
+**Le coup, partout, est le même.** Les flèches, les boutons prev/next et
+les clics gauche/droit déplacent d'un « coup » : une fiche complète sur une
 page d'article (avec le voyage par incréments dans une fiche plus haute
 que l'écran et le pas par carte sur la fiche `series-nav`, §9.3.5), et
 une carte sur la page d'index — le focus fait défiler la page avec lui.
 Les boutons sont les jumeaux à l'écran des flèches : un clic, un coup.
-La page d'index n'a pas le pack présentateur complet : le bouton ⛶ seul
-entre en plein écran, Home revient en haut et efface le focus des
-cartes.
+La page d'index a le même pack présentateur que les articles — mêmes
+touches, mêmes gestes souris, même partage (§9.3.4), même aide — la
+seule différence est le contenu : sans fiches, le pas y est une carte
+(le focus fait défiler la page avec lui), le compteur X/N est masqué,
+le saut par numéro (0-9 + Entrée) est inerte, Home revient en haut de
+page (où commence le parcours) au lieu de retourner à l'index, et la
+portée « Fiche » du partage est désactivée (§9.3.4).
 
 **La sélection change le clic.** Un clic gauche tenu et relâché après
 un glissé est une **sélection**, pas un coup — il n'avance pas (§
@@ -1924,7 +1937,8 @@ touche pas). Un clic droit sur une sélection ouvre le menu du navigateur
 appartient au lecteur.
 
 **Clavier** : ↓/PageDown/→ = slide suivant, ↑/PageUp/←/Backspace =
-slide précédent, Home = retour à l'index, F = plein écran, B = écran
+slide précédent, Home = retour à l'index (sur l'index lui-même : haut de
+page, où commence le parcours des cartes), F = plein écran, B = écran
 noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 écrans de pause (B/W/T) cachent la fiche pour ramener l'attention sur
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
@@ -1937,10 +1951,13 @@ le menu de filtre par tag (§4.3.1), et **une suite de chiffres suivie
 d'Entrée** saute à la planche de ce numéro — tampon de trois chiffres,
 expiré après 2,5 s, annulé par Échap. Échap ferme aussi le panneau
 présentateur. Le vocabulaire de ces touches vit dans le pack de langue
-(`help_*`, `presenter_*`, `tags_*`, §7.3).
+(`help_*`, `presenter_*`, `tags_*`, §7.3). Sur l'index, sans fiches, le
+saut par numéro n'a rien à viser : les chiffres y gardent leur sens
+ordinaire.
 
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
-slide précédent (deux boutons distincts, sans visée). Le clic gauche
+slide précédent (deux boutons distincts, sans visée) — sur l'index, un
+pas de plus ou de moins dans le parcours des cartes. Le clic gauche
 est **instantané** — il n'a jamais de latence artificielle. Le pas
 d'une fiche à l'autre est un **glissé de 200 ms** (animation propre au
 deck, jamais le `scroll-behavior` du navigateur, dont la durée varie
@@ -2042,7 +2059,8 @@ navigateur synthétise ensuite : un moteur mobile peut retenir un clic
 synthétisé d'environ 300 ms le temps de voir si un second tap arrive,
 donc deux taps de 60 ms d'écart y parviennent trop espacés pour être lus
 comme un geste. Les clics encore en vol sont ensuite ignorés, sans quoi
-le geste avancerait aussi de deux fiches. Le plein écran reste le bouton
+le geste avancerait aussi de deux fiches — de deux cartes sur l'index,
+où le même clic avance d'une carte. Le plein écran reste le bouton
 ⛶ de cette barre — un même geste qui voudrait dire deux choses selon un
 état que le lecteur ne voit pas venir n'en est pas un.
 
@@ -2066,8 +2084,8 @@ pointeur, si : une souris a un second bouton, un doigt n'en a pas. La
 liaison est donc conservée sur pointeur fin et ignorée sur pointeur
 grossier.
 
-**Boutons** : ↑/🏠/↓/partage/⛶ (plein écran)/L (filtre de tags, masqué
-quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
+**Boutons** : prev/home/next/partage/⛶ (plein écran)/L (filtre de tags,
+masqué quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
 d'inactivité hors plein écran, **1 s en plein écran** — c'est-à-dire
 dans le mode où l'orateur se trouve, où le chrome doit s'effacer plus vite.
 Le délai est le même partout ; c'est le chemin de retour qui diffère selon
@@ -2536,7 +2554,9 @@ Le JavaScript de navigation gère :
 - Le bouton de partage et sa matrice (§9.3.4)
 - Le parcours clavier complet (flèches Haut/Bas) : fiche par fiche, puis
   carte par carte sur la fiche series-nav, puis défilement par
-  incréments sur une fiche plus grande que l'écran (§9.3.5)
+  incréments sur une fiche plus grande que l'écran (§9.3.5) — et, sur
+  l'index, carte par carte à travers toute la liste (même JS, même
+  parcours)
 - **Tout le pack présentateur** (§8.4), arrivé après cette liste et qui en
   double le volume : plein écran, écrans de pause B/W/T, panneau
   présentateur et notes, overlay d'aide, saut par numéro de fiche, menu
@@ -2556,11 +2576,12 @@ remplacer qu'une partie du comportement de navigation.
 #### 9.3.4 Bouton de partage
 
 Un bouton unique (icône) dans le cluster `.nav-buttons`, à côté de
-prev/home/next — **page d'article uniquement**, absent de l'index (« Série »
-y suffit à elle seule, et il n'y a ni article ni fiche courants à partager
-depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
-6 boutons : 2 actions (copier le lien / afficher le QR code) × 3 portées
-(série, article, fiche) :
+prev/home/next — présent sur **toutes** les pages, y compris l'index. Il
+ouvre une pop-up flottante contenant une matrice de 6 boutons : 2 actions
+(copier le lien / afficher le QR code) × 3 portées (série, article,
+fiche) : sur l'index, la portée « Série » pointe vers `index.html`, la
+portée « Article » vers la page courante (l'index lui-même), et la
+portée « Fiche » est désactivée (pas de fiche courante) :
 
 |                        | Série | Article | Fiche |
 |------------------------|-------|---------|-------|
@@ -2570,7 +2591,8 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
 - « Fiche » désigne la slide actuellement affichée (même détection que les
   nav-dots, §9.3.3). Elle n'a de sens que pour une slide standard, `cover`
   ou `full-article` — pas pour la slide `series-nav` (dont l'ancrage
-  n'identifie pas un point de lecture précis). Sur ce seul cas, la colonne « Fiche » est grisée et
+  n'identifie pas un point de lecture précis), et pas davantage sur
+  l'index, qui n'a pas de fiches du tout. Sur ces deux cas, la colonne « Fiche » est grisée et
   désactivée, pas masquée : la matrice garde sa forme, seule l'action est
   indisponible. La décision se fait par **type** de slide (classe
   `slide-series-nav`), jamais par position — l'ordre des fiches étant libre
@@ -2602,8 +2624,8 @@ depuis cette page). Il ouvre une pop-up flottante contenant une matrice de
 
 Un appui sur une flèche avance ou recule dans un parcours naturel à
 trois niveaux, chacun ne s'activant qu'une fois le niveau précédent
-épuisé — jamais tous en même temps. Les boutons ↑/↓ de l'écran suivent
-le même parcours (§8.4), et la page d'index a son propre parcours à
+épuisé — jamais tous en même temps. Les boutons prev/next de l'écran
+suivent le même parcours (§8.4), et la page d'index a son propre parcours à
 un seul niveau (cartes d'articles, §8.4) :
 
 1. **Fiche par fiche** (comportement de base, déjà existant) —
@@ -2676,12 +2698,13 @@ focalisée, et non-régression du cooldown sous rafale de pressions.
 La structure de la page d'index reste fixe, mais un site migré ou une
 fonctionnalité maison (bouton, modale, script tiers...) peut avoir besoin
 d'un point d'ancrage que `settings.conf`/`custom.css`/`nav.js` ne
-couvrent pas (`nav.js` ne s'applique qu'aux pages d'article, pas à
-l'index). Si `templates/index_extra.html` existe, son contenu est inséré
-tel quel (HTML, CSS inline, `<script>`... — aucune transformation) juste
-avant `</body>` de la page d'index générée. Absent par défaut : `init`
-ne crée pas ce fichier, contrairement à `settings.conf`/`custom.css`/
-`nav.js`.
+couvrent pas. Le JavaScript de navigation (`nav.js`) est commun à toutes
+les pages — articles et index —, et `index_extra` reste le point
+d'ancrage spécifique à l'index : si `templates/index_extra.html` existe,
+son contenu est inséré tel quel (HTML, CSS inline, `<script>`... — aucune
+transformation) juste avant `</body>` de la page d'index générée, et de
+l'index seulement. Absent par défaut : `init` ne crée pas ce fichier,
+contrairement à `settings.conf`/`custom.css`/`nav.js`.
 
 ### 9.4 Les commandes
 
@@ -5543,8 +5566,9 @@ build(répertoire):
      css = compose_stylesheet(défauts ← thème(settings.theme) ← settings)  # §9.3 — en mémoire, jamais sur disque
            + read_file(répertoire/templates/custom.css)  # ajouté en dernier (§9.3.2)
   5. js = read_file(répertoire/templates/nav.js) OR built-in default
-  # La structure de page (page_template) et d'index (index_template) est
-  # fixe, intégrée à l'exécutable — pas lue depuis templates/ (§9)
+  # La structure de page est fixe, intégrée à l'exécutable — pas lue depuis
+  # templates/ (§9). Articles et index partagent le même squelette et le
+  # même JS (§18.1, §18.2).
 
   6. FOR each article IN series:
      a. source = read_file(répertoire/articles/{article.page_source})
@@ -5579,11 +5603,11 @@ build(répertoire):
           "title": title,
           "css": css,  # recomposée pour cette page si le bloc meta porte des propriétés style.* (§9.6.1)
           "js_nav": js,
-          "slides": "\n".join(html_slides)
+          "content": "\n".join(html_slides)
         })  # fill_page_template uses the fixed, built-in page structure (§18.1)
      i. write_file(répertoire/public/{article.page_dest}, html)
 
-  7. index_html = generate_index(series, css, js)  # fixed, built-in index structure (§18.2)
+  7. index_html = build_index(series, css, js)  # le même squelette que les articles (§18.1), contenu d'index (§18.2)
   8. write_file(répertoire/public/index.html, index_html)
 
   9. generate_readme(series, répertoire/README.md)
@@ -6063,9 +6087,9 @@ quoi l'agent s'appuie pour ne pas inventer.
 - **Rechargement automatique du navigateur** : `watch` sonde les sources,
   reconstruit et peut servir le résultat avec `--serve`, mais n'injecte pas de
   mécanisme de rechargement dans le navigateur
-- **Présentation orale** : couverte par le deck d'article (§8.4), avec
-  navigation, notes présentateur et plein écran ; l'index n'a pas ce pack
-  complet
+- **Présentation orale** : couverte par le deck (§8.4), avec
+  navigation, notes présentateur et plein écran — le même pack sur
+  toutes les pages, articles et index
 - **Langues multiples dans une même page** : une langue d'interface par build
   ; les règles typographiques peuvent toutefois varier par slide via
   `lang_tags` (§7.5)
@@ -6199,7 +6223,8 @@ la section, jamais en la croyant sur parole.
 - **`.md`** : inclus, converti en HTML, typographié ✓
 - **`.html`** : structure de page fixe (§9), pas un template lu depuis un
   fichier — les trois fichiers lus depuis `templates/` sont
-  `settings.conf`, `custom.css` et `nav.js` (§12.1 étape 4, §9.3.1)
+  `settings.conf`, `custom.css` et `nav.js` (§12.1 étape 4, §9.3.1). Le
+  squelette est unique, partagé par les articles et l'index (§18.1)
 - **`.css`** : `templates/custom.css` ajouté après la feuille composée
   (§9.3.2), le tout inliné dans `<style>` ✓
 - **`.js`** : inclus dans `<script>` ✓
@@ -6207,7 +6232,7 @@ la section, jamais en la croyant sur parole.
 
 ### 17.4 Toutes les pages calculées sont couvertes
 
-- **Index** : généré depuis `series.json` + template ✓
+- **Index** : généré depuis `series.json`, par le même squelette que les articles ✓
 - **Navigation de série** : générée depuis `series.json` ✓
 - **README** : généré depuis `series.json` ✓
 
@@ -6234,8 +6259,8 @@ la section, jamais en la croyant sur parole.
 
 - **Rechargement automatique du navigateur** : `watch` reconstruit et peut
   servir localement, mais ne recharge pas automatiquement la page ✓
-- **Présentation orale** : deck d'article avec mode présentateur et plein
-  écran ; pas de pack présentateur complet sur l'index ✓
+- **Présentation orale** : deck avec mode présentateur et plein
+  écran, sur toutes les pages — articles et index ✓
 - **Langues multiples dans une même page** : une langue d'interface par build,
   avec sélection typographique par slide via `lang_tags` ✓
 - **Images inline par défaut** : chemin relatif par défaut ; `--inline-images`
@@ -6286,7 +6311,7 @@ littéral dans l'exécutable.
 {{css}}
 </style>
 </head>
-<body>
+<body class="{{body_class}}">
 
 {{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
@@ -6310,7 +6335,7 @@ littéral dans l'exécutable.
 <!-- .pause-overlay, #slideCounter, #presenterPanel, .help-overlay,
      .tag-menu : élidés, §8.4 -->
 
-{{slides}}
+{{content}}
 {{page_footer}}
 <script defer>
 {{js_nav}}
@@ -6327,7 +6352,8 @@ Placeholders :
 | `{{lang}}` | `LWP_LANG` ou `--lang` | Langue de la page (ex. `fr`) |
 | `{{title}}` | `page_title` résolu (§20.3.1, sans balises HTML) | Titre de la page |
 | `{{css}}` | Feuille composée en mémoire (§9.3) + `templates/custom.css` | Le CSS inline |
-| `{{slides}}` | Généré par le build | Toutes les `<section class="slide">` |
+| `{{content}}` | Généré par le build | Sur un article : toutes les `<section class="slide">`. Sur l'index, le contenu est l'en-tête, l'intro et les cartes d'articles (§18.2) |
+| `{{body_class}}` | `index-page` pour l'index, vide pour les articles | Classe du `<body>` |
 | `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, bouton de partage, encodeur QR) |
 | `{{str_KEY}}` | `language/{lang}.json` → `strings` | Chaîne d'interface (voir §7.3), remplacée dans `page.html` **et** dans `js_nav` une fois celui-ci chargé |
 | `{{meta_head}}` | `author`/`page_desc` résolus (§20.3.1) | Balises `<meta name="author">` et `<meta name="description">` (débalisées, échappées) — vides toutes deux = rien d'émis |
@@ -6339,12 +6365,12 @@ Il n'y a pas de fichier `share.js` séparé : le bouton de partage, sa matrice
 et l'encodeur QR font partie de `nav.js`, leurs propres textes sont des
 placeholders `{{str_*}}` comme le reste.
 
-**Accessibilité des boutons ronds.** Les boutons de navigation (page
-d'article : précédent, accueil, suivant, partage, plein écran, tags ;
-index : remonter, haut de page, descendre) sont des
+**Accessibilité des boutons ronds.** Les boutons de navigation (les six
+mêmes sur toutes les pages : précédent, accueil, suivant, partage, plein
+écran, tags) sont des
 `<div class="nav-btn">` porteurs de `role="button"`,
 `tabindex="0"`, d'un `aria-label` (en plus du `title`), et d'un style
-`:focus-visible`. `nav.js` (et le JS de l'index) leur ajoute une
+`:focus-visible`. `nav.js` leur ajoute une
 activation clavier Entrée/Espace équivalente au clic — sans quoi le
 bouton de partage, qui n'a pas d'autre point d'entrée clavier, serait
 inatteignable au clavier. Le parcours de lecture lui-même reste piloté
@@ -6352,17 +6378,12 @@ par les flèches au niveau document (§9.3.5).
 
 ### 18.2 Template `index.html`
 
+Il n'y a **plus** de template d'index séparé : les articles et l'index
+sont construits par le même squelette (`TEMPLATE_PAGE`, §18.1). La
+différence est dans ce que reçoit `{{content}}` et `{{page_footer}}`, et
+dans la classe du `<body>` :
+
 ```html
-<!DOCTYPE html>
-<html lang="{{lang}}">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{title}}</title>
-<style>
-{{css}}
-</style>
-</head>
 <body class="index-page">
 
 {{build_stamp}}
@@ -6378,20 +6399,15 @@ par les flèches au niveau document (§9.3.5).
 
 {{cards}}
 {{index_footer}}
-<div class="nav-buttons">
-  ...
-</div>
-
-<script>
-{{js_index}}
-</script>
-
 {{index_extra}}
 </body>
-</html>
 ```
 
-Placeholders supplémentaires :
+Le reste du squelette (nav-dots, boutons, matrice de partage, pack
+présentateur, `<script>` avec `{{js_nav}}`) est celui de la page
+d'article — c'est le point du refactor : l'index est une page normale
+dont le contenu diffère, pas une structure à part. Placeholders
+spécifiques à l'index :
 
 | Placeholder | Source | Description |
 |-------------|--------|-------------|
@@ -6399,10 +6415,13 @@ Placeholders supplémentaires :
 | `{{series_intro}}` | `series_meta.intro` (seule source) | Paragraphe d'intro de l'index |
 | `{{cards}}` | Généré depuis `series.json` | Les cartes d'articles |
 | `{{index_footer}}` | `series_meta.author`/`series_meta.license` (§20.3.1) | Pied de page éditorial de la série — tout absent = rien d'émis |
-| `{{js_index}}` | Généré, intégré à l'exécutable | Le JS spécifique à l'index (scroll) — pas overridable (§9). Pas de bouton de partage sur l'index (§9.3.4) |
-| `{{index_extra}}` | `templates/index_extra.html` s'il existe | Fragment HTML libre inséré tel quel en fin de `<body>` |
-| `{{build_stamp}}` | `--build-stamp`/`--build-stamp-minimal` (§11.3.2) | Marqueur de fraîcheur du build, vide par défaut |
-| `{{str_KEY}}` | `language/{lang}.json` → `strings` | Infobulles `index_nav_up`/`index_nav_home`/`index_nav_down`, voir §7.3 |
+| `{{body_class}}` | `index-page` pour l'index, vide pour les articles | Classe du `<body>` — déjà décrit au §18.1 |
+| `{{index_extra}}` | `templates/index_extra.html` s'il existe | Fragment HTML libre inséré tel quel juste avant `</body>` — l'index seulement (§9.3.6) |
+
+Le `{{js_nav}}` est le même que sur les pages d'article : la
+navigation (boutons, flèches, clics, partage, aide) y est
+identique, le pas y est une carte, la portée « Fiche » du partage y est
+désactivée (§9.3.4).
 
 ### 18.3 Fragments de la slide series-nav
 

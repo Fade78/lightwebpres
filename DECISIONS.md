@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 30 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 31 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -146,6 +146,7 @@ gets its own entry and its own state**, however small.
 - **B32** — A fix to `nav.js` or a language pack never reaches a series that already exists
 - **B34** — A structural field converts an HTML entity; the body does not
 - **B37** — `requestFullscreen()` is refused from any non-left mouse event
+- **B38** — The two pages share one skeleton and one script
 
 ### abandonné
 
@@ -2168,3 +2169,47 @@ Firefox console error to rediscover it.
 
 **What the middle button is now:** exit-only. Entry is left-hand only:
 the double-click, the ⛶ button, or F. The wheel itself keeps scrolling.
+
+## B38 — The two pages share one skeleton and one script
+
+**État :** terminé · **Depuis :** 2026-08-22 · **Version :** 0.43.7
+
+**The index was a special case, and special cases drift.** It had its
+own script (its own arrow buttons, its own scroll handling), a reduced
+button set (no share, no fullscreen next to nothing), and no share
+matrix at all. Every behaviour the articles carried — keyboard, mouse,
+share, help — had to be reasoned about twice, once per page, and the
+two answers were allowed to differ. That is how the index ended up
+with a different click model from the articles, and it was reported
+from the field: a reader who moved from an article to the index lost
+every behaviour they had just learned, and the reduced buttons forced
+them to change the way they drove the deck at the moment they were
+looking for an article.
+
+**The audit said the behaviours had to be the same everywhere.** The
+middle-button fullscreen entry and exit, the 200 ms glide, the
+right-click mirror, the double tap — all of it is muscle memory the
+reader builds on an article and expects on the index. B37's rule
+(requestFullscreen refused from any non-left event) made the click
+model more precious, not less: the more the deck's gestures do, the
+more it costs when they stop at the index's edge.
+
+**The decision: one `TEMPLATE_PAGE`, one `TEMPLATE_NAV_JS`.** The index
+is an ordinary page whose content differs (header, intro, article
+cards where an article puts its slides; the body carries
+`class="index-page"`). The step on the index is a card — the focus
+walks the list, exactly as it walks the series-nav slide of an
+article. Share is present with the fiche scope disabled (no current
+slide). The ↑/↓ pair is gone; prev/next drive both pages. `index_extra`
+is preserved, still spliced before `</body>` on the index only. The
+render of existing pages does not change structurally — it is the
+behaviour of the index that aligns with the articles.
+
+**What is verified.** The page built by `build_index` uses the same
+skeleton as the articles (the same `TEMPLATE_PAGE`, the same
+`TEMPLATE_NAV_JS`), the fiche scope of the share matrix is disabled
+where there are no slides, and the arrows, buttons and clicks all step
+one card. The removed constants and keys are gone from the source; the
+`index_nav_up`/`index_nav_down` language keys are left in the packs,
+unused, for the owner to decide whether they stay (removing them from
+the packs is a separate decision, recorded here by this sentence).

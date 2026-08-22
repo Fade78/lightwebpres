@@ -78,6 +78,28 @@ that pressed down on a highlight is the reader removing it, not a
 step forward. Right-click on a selection already belonged to the
 reader; the left button now honours the same dismissal.
 
+The index is now a page like any other. The two pages were built by
+two skeletons and carried two scripts — the index had its own
+navigation, a reduced button set and no share button, so a reader who
+moved from an article to the index lost every behaviour they had just
+learned. That was an internal split, and the refactor is an internal
+one too: the article and the index now share a single page skeleton
+and a single `nav.js`, and the index is an ordinary page whose content
+happens to be a header, an intro and the article cards instead of
+slides (the body carries `class="index-page"`). Because it is the same
+script, the index inherits every behaviour the articles have: the same
+six buttons (the ↑/↓ pair is gone, replaced by prev/next that move
+card by card through the list, exactly as the arrows do), the same
+keyboard, the same mouse gestures, the same help overlay, the same
+tag menu, the same share popover and QR code — the fiche scope is
+disabled there, since there is no current slide, and the slide counter
+is hidden, the 0–9 jump has nothing to aim at, and Home means the top
+of the page instead of the way back to the index. The QR encoder now
+rides on every page. `index_extra` survives untouched: it is still
+spliced just before `</body>` on the index only. No existing page
+changes structure; what changes is that the index behaves like the
+rest of the site.
+
 ## v0.43.6
 
 One step, everywhere: the arrows, the buttons and the clicks.
