@@ -13303,16 +13303,7 @@ class I18nParity(unittest.TestCase):
         used |= set(re.findall(r"\{\{str_([a-z_0-9]+)\}\}", src))
         self.assertFalse(used - set(fr['strings']), 'referenced but missing from fr')
         self.assertFalse(used - set(en['strings']), 'referenced but missing from en')
-        # The three keys of the OLD index template (navUp/navDown/navHome,
-        # with its own index strings) outlived their template: the
-        # skeleton unification folded the index into TEMPLATE_PAGE, and
-        # the single engine reads nav_prev/nav_next/nav_home like the
-        # articles always did. The packs still define them, so they are
-        # not referenced anywhere — and this test refuses to bless a dead
-        # key. Named here instead: the day the code stops carrying them,
-        # this block fails and the names go with it.
-        retired = {'index_nav_up', 'index_nav_down', 'index_nav_home'}
-        dead = set(fr['strings']) - used - retired
+        dead = set(fr['strings']) - used
         self.assertFalse(dead, 'dead keys (defined, never referenced)')
 
     def test_copy_feedback_tooltip_uses_the_language_pack(self):

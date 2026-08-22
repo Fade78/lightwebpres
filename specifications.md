@@ -1678,9 +1678,6 @@ d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
 | `nav_home`                  | Infobulle du bouton retour à l'index (page article) |
 | `nav_next`                  | Infobulle du bouton « planche suivante »            |
 | `nav_dot_fallback`          | Préfixe du point de navigation sans titre (« Fiche 3 ») |
-| `index_nav_up`               | Infobulle « remonter » (page d'index)               |
-| `index_nav_home`             | Infobulle « haut de page » (page d'index)           |
-| `index_nav_down`             | Infobulle « descendre » (page d'index)              |
 | `series_nav_title`           | Titre de la fiche `series-nav` (« Cette série »)     |
 | `series_read`                | Texte du lien vers un article (nav de série + carte d'index) |
 | `series_current_status`      | Statut de l'article courant dans la nav de série     |
