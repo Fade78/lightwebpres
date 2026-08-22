@@ -51,8 +51,9 @@ lay the pieces out however it likes without passing a single flag.
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
 Home, F for fullscreen, B/W/T for pause screens), mouse (click to
-advance, right-click to go back, middle button to toggle fullscreen),
-and touch (swipe) all work out of the box. The navigation
+advance, right-click to go back, middle button for fullscreen), and
+touch (swipe) all work out of the box — the index included, whose step
+is one article card at a time. The navigation
 buttons fade after 3 seconds of idleness (1 second in fullscreen) — the
 speaker sees only slides. The cursor hides on that same clock, and
 neither comes back until the mouse has moved continuously for 250 ms — a
@@ -205,7 +206,10 @@ inside a raw HTML block (where it ships as literal text).
 **What a card's link is.** Every card has its own address —
 `article.html#barrage-de-vajont` — and the share button in the corner
 copies it, or shows it as a QR code you can point a phone at or print.
-That address is the `slug:` line you write on the card, and nothing
+The share button is on the index too, where the fiche scope is simply
+missing: there is no slide to share, and the series scope already names
+the page you are on. That address is the `slug:` line you write on the
+card, and nothing
 else: it is not the card's position and not its title, so you can
 reorder the deck, insert a card, rewrite a heading, or drop a card with
 `tags: excluded`, and the links you have already given out still land
@@ -643,22 +647,23 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 ## 9. Presenting
 
 Every page the build writes is a self-contained deck — keyboard, mouse,
-and touch all work. The controls below let the speaker drive the deck
-without looking at the screen.
+and touch all work, the index included: it is a page like any other, and
+its step is one article card at a time. The controls below let the
+speaker drive the deck without looking at the screen.
 
 ### Keyboard
 
 | Key | Action |
 |---|---|
-| ↓ / PageDown / → | Next slide |
-| ↑ / PageUp / ← / Backspace | Previous slide |
-| Home | Back to the index |
+| ↓ / PageDown / → | Next slide — on the index, next article card |
+| ↑ / PageUp / ← / Backspace | Previous slide — on the index, previous article card |
+| Home | On an article: back to the index. On the index: top of the page |
 | F | Fullscreen (Esc to exit) |
 | B | Black pause screen (press again to dismiss) |
 | W | White pause screen (press again to dismiss) |
 | T | Theme-background pause screen (press again to dismiss) |
-| N | Toggle the speaker panel: the current slide's notes and the next slide's title |
-| 0–9 then Enter | Jump straight to slide N (1-based) — for decks of ten slides and up |
+| N | Toggle the speaker panel: the current slide's notes and the next slide's title (no panel content on the index, which has no slides) |
+| 0–9 then Enter | Jump straight to slide N (1-based) — for decks of ten slides and up; inert on the index, which has no slides |
 | L | Open the variant menu when the article carries at least two tags across its slides |
 | H | Open the help overlay, which lists every key on this table |
 | Esc | Leave fullscreen; also closes the speaker panel |
@@ -673,8 +678,9 @@ dark screen rather than flashing white.
 A small `X / N` counter sits in the bottom-left corner and fades out with
 the other chrome when the mouse is idle. Type a slide number and press
 **Enter** to jump there — handy once a deck passes ten slides and the
-arrow-key walk becomes a slog. That live counter is **always** shown and
-is independent of the engraved top-right `NN / NN` slide number, which is
+arrow-key walk becomes a slog. That live counter is **always** shown —
+except on the index, where there is nothing to count — and is
+independent of the engraved top-right `NN / NN` slide number, which is
 opt-in (off by default) and turned on only by `--slides-page-numbers on`,
 the article front-matter `slide_page_numbers`, or `series_meta.slide_page_numbers`
 (see specifications.md §3.3.5). Press **N** to open the speaker panel: it
@@ -716,7 +722,7 @@ longer blanks a page — each sheet sizes to its own content.
 | Single click on content | Next slide (200ms glide) |
 | Right-click on content | Previous slide (200ms glide) |
 | Click during the glide | Jump straight to that click's target |
-| Middle button anywhere | Toggle fullscreen (in and out) |
+| Middle button anywhere | Exit fullscreen on its own; to enter, press the middle button, then click left inside the window |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
 
 Clicks on links, images, buttons, and the share popover are not
@@ -729,17 +735,24 @@ next card and glides to it over 200 ms; a click that arrives while the
 deck is still gliding does not wait — it jumps straight to its target,
 so two clicks in quick succession land two pages on, and a right-click
 during the glide returns you to the card you left. The middle button
-toggles fullscreen, in and out (the wheel itself keeps scrolling; the
-⛶ button and F do the same). Esc exits fullscreen. The cursor hides
-after 1 second of idleness in fullscreen.
+only leaves fullscreen by itself: browsers refuse `requestFullscreen()`
+from any non-left event, so entering is a two-step gesture — middle
+button to arm the intent, then a left click inside the window (a right
+click in the same window goes to the index instead). The wheel itself
+keeps scrolling; the ⛶ button and F stay direct entries. Esc exits
+fullscreen. The cursor hides after 1 second of idleness in fullscreen.
+A left click on an existing selection just dismisses the highlight —
+no step — and a right-click on a selection opens the browser's own
+menu, the deck stepping aside. Two clicks in quick succession are two
+steps: the deck never treats a double click as anything else.
 
 ### Touch (phone, tablet)
 
 | Gesture | Action |
 |---|---|
-| Swipe left | Next slide |
-| Swipe right | Previous slide |
-| Tap on content | Next slide |
+| Swipe left | Next slide — on the index, next article card |
+| Swipe right | Previous slide — on the index, previous article card |
+| Tap on content | Next slide — on the index, next article card |
 | Double tap | Show or hide the navigation buttons |
 | Press and hold | Select text and open the copy menu — the deck does not take it |
 
@@ -747,7 +760,9 @@ after 1 second of idleness in fullscreen.
 
 The round buttons in the bottom-right corner — previous, home, next,
 share, fullscreen, and a sixth for the variant menu that appears only
-when the article carries at least two tags. After 3 seconds of mouse
+when the article carries at least two tags. The same six sit on the
+index, where previous and next step one article card at a time and home
+means the top of the page. After 3 seconds of mouse
 idleness they fade out, and the cursor goes with them: the speaker does
 not want chrome on the wall. In fullscreen both go after 1 second. Move
 the mouse to bring the buttons back; the cursor waits for 250ms of
@@ -759,9 +774,11 @@ On a phone or a tablet they fade on the same 3 seconds and come back on a
 enough. A touch or a scroll restarts the countdown while they are still
 up, so they never vanish under your finger; once they are gone they no
 longer answer a touch at all, so the corner of your own text is safe to
-touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a
-gesture that meant two things depending on a state you cannot see coming
-would not be one.
+touch. Fullscreen is the ⛶ button in that bar rather than the middle
+button: the middle button alone only exits fullscreen — entering is
+the two-step, middle button then a left click — and a gesture that
+meant two things depending on a state you cannot see coming would not
+be one.
 
 The double tap is also how a phone selects a word, and the deck does not
 try to take it: selection, long press and the copy menu are the browser's,

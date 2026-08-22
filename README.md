@@ -24,8 +24,10 @@ one `.html` file, opens straight from disk or any static host.
 **Every page is a presentation deck.** Open it in a browser and you have
 a full-screen presenter experience: keyboard (↑/↓, Home, F for
 fullscreen, B/W/T for pause screens), mouse (click to advance,
-right-click to go back, middle button to toggle fullscreen), and touch
-(swipe) all work out of the box. A click while the deck is gliding to
+right-click to go back, middle button to leave fullscreen), and touch
+(swipe) all work out of the box. Entering fullscreen with the mouse is
+a two-step gesture — middle button, then a left click (F or the ⛶
+button enters directly). A click while the deck is gliding to
 the next card jumps straight to its target — two clicks in quick
 succession land two pages on, a right-click during the glide returns to
 the card you left. Navigation buttons fade
@@ -75,22 +77,28 @@ handout at Ctrl/Cmd+P.
   together at runtime.
 - **Share in one click, at whatever scope you need.** Copyable link or QR
   code, for the whole series, the current article, or the exact slide
-  being read — generated entirely client-side. A slide's address is the
+  being read — generated entirely client-side. The share button sits on
+  every page, the index included: there "series" points to `index.html`,
+  "article" to the page itself, and the slide scope is disabled (the
+  index has no slides). A slide's address is the
   `slug:` its author declared, never where it sits and never its title,
   so reordering the deck, rewriting a heading or dropping a slide does
   not repoint the links you have already given out — including the
   printed ones.
 - **Built-in presentation mode.** Every generated page is a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
-  screens), mouse (click advance, right-click back, middle
-  button toggles fullscreen), touch (swipe, double tap). Navigation
+  screens), mouse (click advance, right-click back, middle button
+  leaves fullscreen; entering is a two-step gesture — middle button,
+  then a left click), touch (swipe, double tap). Navigation
   chrome fades after 3s idle (1s in fullscreen) on every device; with a
   pointer the cursor hides on the same clock and both return after 250ms
   of continuous movement, and on a touch screen a double tap is the
   switch, both ways. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the
-  screen never dims mid-talk.
+  screen never dims mid-talk. The index page is a deck like any other —
+  same chrome, same controls — where a step is an article card (the
+  focus walks the cards and scrolls the page along), instead of a slide.
 - **Speaker aids for long decks.** A `X / N` counter, a type-a-number
   jump (Enter to land on slide N), and a speaker panel (**N**) that shows
   the current slide's `note:` field (a speaker note withheld from the
@@ -239,12 +247,15 @@ build.
 That builds into a scrollable page: a cover slide inverted against the
 page, a fact-card slide
 with a highlighted figure, and a full long-form article appended at the
-end — plus keyboard/scroll navigation, a "copy link to this slide" button,
-and (if there's more than one article) a cross-article navigation block,
+end — plus keyboard/scroll navigation, a share button ("copy link to
+this slide", with a QR code; it sits on every page, index included,
+where the slide scope is disabled), and (if there's more than one
+article) a cross-article navigation block,
 all generated automatically.
 
 Each page is also a presentation deck: click to advance, right-click to
-go back, middle button toggles fullscreen, swipe on touch,
+go back, middle button to leave fullscreen (entering is a two-step
+gesture — middle button, then a left click), swipe on touch,
 B/W/T for pause screens (black, white, or the theme's background — the
 speaker's remote-mouse use case). See the GUIDE's "Presenting" section
 for the full control list.

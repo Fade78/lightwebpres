@@ -2030,7 +2030,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from somewhere else entirely — a CMS export, a database, a generator, an agent upstream — and LightWebPres is what turns it into publishable pages.</li>
   </ul>
   <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_ARTICLES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
-  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, middle button to toggle fullscreen), and touch (swipe) all work out of the box. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
+  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, middle button for fullscreen), and touch (swipe) all work out of the box — the index included, whose step is one article card at a time. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Set up &amp; your first build</h2>
   <pre><code class="language-bash">
@@ -2147,7 +2147,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
     <li><strong>A fact box appears only with <code>fact-label:</code>.</strong> Free text without it renders as plain paragraphs — which is often what you want.</li>
   </ul>
   <p><strong>Notes.</strong> <code>[^label]</code> calls a note, <code>[^label]: text</code> on its own line is its body. The label is a key, and a valid one is never displayed — the reader sees a position — so you never renumber when you insert one. Valid means word characters only: letters, digits and <code>_</code>, accents and non-Latin scripts included, but no <code>-</code>, no space, no punctuation. A label outside that is neither a note nor an error: the call ships as literal text, the body renders as an ordinary paragraph, and the label is the one thing on the page the reader was never meant to see. By default a body lands at the foot of the unit that called it (the card, or the end of the long-form article) and numbering restarts in each card, because a card is shareable on its own and a reader may arrive at it having read nothing else. <code>notes_placement: page</code> in the meta block instead collects every body into one notes section at the end of the page; <code>notes_tooltip: on</code> additionally puts the text on the call. <code>audit</code> names a label outside the pattern, a call with no body, a body nothing calls, and a body written inside a raw HTML block (where it ships as literal text).</p>
-  <p><strong>What a card's link is.</strong> Every card has its own address — <code>article.html#barrage-de-vajont</code> — and the share button in the corner copies it, or shows it as a QR code you can point a phone at or print. That address is the <code>slug:</code> line you write on the card, and nothing else: it is not the card's position and not its title, so you can reorder the deck, insert a card, rewrite a heading, or drop a card with <code>tags: excluded</code>, and the links you have already given out still land where they did.</p>
+  <p><strong>What a card's link is.</strong> Every card has its own address — <code>article.html#barrage-de-vajont</code> — and the share button in the corner copies it, or shows it as a QR code you can point a phone at or print. The share button is on the index too, where the fiche scope is simply missing: there is no slide to share, and the series scope already names the page you are on. That address is the <code>slug:</code> line you write on the card, and nothing else: it is not the card's position and not its title, so you can reorder the deck, insert a card, rewrite a heading, or drop a card with <code>tags: excluded</code>, and the links you have already given out still land where they did.</p>
   <p><code>slug:</code> is required. A card without one stops the build, which names the command that fixes it in one pass: <code>lightwebpres series slug set</code> writes a slug into every card that has none. It is the only command that edits your articles — a build never rewrites its own inputs — and what it writes is a random eight-character name, because a name derived from the title would look as though it still followed the title. Rename it to something readable before you publish: <code>slug: barrage-de-vajont</code> is worth more than <code>slug: 3f7c1a9e</code>, and the value is the identity from then on.</p>
   <p>Two cards on one slug is a build error, not a <code>-2</code> appended in silence. <code>slug_prefix:</code> in the meta block (or in <code>series_meta</code>) puts a namespace in front of every address on the page, which is what a series whose pages reuse card names (<code>intro</code>, <code>sources</code>) needs.</p>
   <p><code>lightwebpres series slug</code> lists every card of the series and the name it is published under, without building anything.</p>
@@ -2321,7 +2321,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
   </code></pre>
   <h2>9. Presenting</h2>
-  <p>Every page the build writes is a self-contained deck — keyboard, mouse, and touch all work. The controls below let the speaker drive the deck without looking at the screen.</p>
+  <p>Every page the build writes is a self-contained deck — keyboard, mouse, and touch all work, the index included: it is a page like any other, and its step is one article card at a time. The controls below let the speaker drive the deck without looking at the screen.</p>
   <h3>Keyboard</h3>
   <table class="comparison-table">
     <thead>
@@ -2333,15 +2333,15 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
     <tbody>
       <tr>
         <td>↓ / PageDown / →</td>
-        <td>Next slide</td>
+        <td>Next slide — on the index, next article card</td>
       </tr>
       <tr>
         <td>↑ / PageUp / ← / Backspace</td>
-        <td>Previous slide</td>
+        <td>Previous slide — on the index, previous article card</td>
       </tr>
       <tr>
         <td>Home</td>
-        <td>Back to the index</td>
+        <td>On an article: back to the index. On the index: top of the page</td>
       </tr>
       <tr>
         <td>F</td>
@@ -2361,11 +2361,11 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
       </tr>
       <tr>
         <td>N</td>
-        <td>Toggle the speaker panel: the current slide's notes and the next slide's title</td>
+        <td>Toggle the speaker panel: the current slide's notes and the next slide's title (no panel content on the index, which has no slides)</td>
       </tr>
       <tr>
         <td>0–9 then Enter</td>
-        <td>Jump straight to slide N (1-based) — for decks of ten slides and up</td>
+        <td>Jump straight to slide N (1-based) — for decks of ten slides and up; inert on the index, which has no slides</td>
       </tr>
       <tr>
         <td>L</td>
@@ -2383,7 +2383,7 @@ python3 -m http.server 8000 --directory /path/to/lightwebpres
   </table>
   <p>The B/W/T pause screens hide the slide so the audience's eye comes back to the speaker — the same feature PowerPoint and Keynote call "blank". T uses the theme's own background colour, so a dark theme pauses on a dark screen rather than flashing white.</p>
   <h3>Speaker panel and slide counter</h3>
-  <p>A small <code>X / N</code> counter sits in the bottom-left corner and fades out with the other chrome when the mouse is idle. Type a slide number and press <strong>Enter</strong> to jump there — handy once a deck passes ten slides and the arrow-key walk becomes a slog. That live counter is <strong>always</strong> shown and is independent of the engraved top-right <code>NN / NN</code> slide number, which is opt-in (off by default) and turned on only by <code>--slides-page-numbers on</code>, the article front-matter <code>slide_page_numbers</code>, or <code>series_meta.slide_page_numbers</code> (see specifications.md §3.3.5). Press <strong>N</strong> to open the speaker panel: it shows the current slide's <code>note:</code> field (the speaker note you wrote for that slide — see below) and the title of the next slide, so you can read ahead without the audience seeing it. The panel rides along as you navigate; press <strong>N</strong> again to close it.</p>
+  <p>A small <code>X / N</code> counter sits in the bottom-left corner and fades out with the other chrome when the mouse is idle. Type a slide number and press <strong>Enter</strong> to jump there — handy once a deck passes ten slides and the arrow-key walk becomes a slog. That live counter is <strong>always</strong> shown — except on the index, where there is nothing to count — and is independent of the engraved top-right <code>NN / NN</code> slide number, which is opt-in (off by default) and turned on only by <code>--slides-page-numbers on</code>, the article front-matter <code>slide_page_numbers</code>, or <code>series_meta.slide_page_numbers</code> (see specifications.md §3.3.5). Press <strong>N</strong> to open the speaker panel: it shows the current slide's <code>note:</code> field (the speaker note you wrote for that slide — see below) and the title of the next slide, so you can read ahead without the audience seeing it. The panel rides along as you navigate; press <strong>N</strong> again to close it.</p>
   <p>A speaker note is a <code>note:</code> field on the slide — distinct from a <code>[^n]</code> footnote, which is a <em>source</em> note printed for the reader:</p>
   <pre><code class="language-markdown">
 &lt;!-- lwp:slide --&gt;
@@ -2419,7 +2419,7 @@ note: Mention the 2020 study — the audience asked for it last time.
       </tr>
       <tr>
         <td>Middle button anywhere</td>
-        <td>Toggle fullscreen (in and out)</td>
+        <td>Exit fullscreen on its own; to enter, press the middle button, then click left inside the window</td>
       </tr>
       <tr>
         <td>Click in the bottom-right corner</td>
@@ -2427,7 +2427,7 @@ note: Mention the 2020 study — the audience asked for it last time.
       </tr>
     </tbody>
   </table>
-  <p>Clicks on links, images, buttons, and the share popover are not intercepted — they keep working. The right-click to go back is the remote-mouse use case: the speaker with a wireless mouse in hand left-clicks to advance, right-clicks to go back — two distinct buttons, no aiming. The native context menu is suppressed on slide content so right-click is a clean back gesture. A click lands instantly on the next card and glides to it over 200 ms; a click that arrives while the deck is still gliding does not wait — it jumps straight to its target, so two clicks in quick succession land two pages on, and a right-click during the glide returns you to the card you left. The middle button toggles fullscreen, in and out (the wheel itself keeps scrolling; the ⛶ button and F do the same). Esc exits fullscreen. The cursor hides after 1 second of idleness in fullscreen.</p>
+  <p>Clicks on links, images, buttons, and the share popover are not intercepted — they keep working. The right-click to go back is the remote-mouse use case: the speaker with a wireless mouse in hand left-clicks to advance, right-clicks to go back — two distinct buttons, no aiming. The native context menu is suppressed on slide content so right-click is a clean back gesture. A click lands instantly on the next card and glides to it over 200 ms; a click that arrives while the deck is still gliding does not wait — it jumps straight to its target, so two clicks in quick succession land two pages on, and a right-click during the glide returns you to the card you left. The middle button only leaves fullscreen by itself: browsers refuse <code>requestFullscreen()</code> from any non-left event, so entering is a two-step gesture — middle button to arm the intent, then a left click inside the window (a right click in the same window goes to the index instead). The wheel itself keeps scrolling; the ⛶ button and F stay direct entries. Esc exits fullscreen. The cursor hides after 1 second of idleness in fullscreen. A left click on an existing selection just dismisses the highlight — no step — and a right-click on a selection opens the browser's own menu, the deck stepping aside. Two clicks in quick succession are two steps: the deck never treats a double click as anything else.</p>
   <h3>Touch (phone, tablet)</h3>
   <table class="comparison-table">
     <thead>
@@ -2439,15 +2439,15 @@ note: Mention the 2020 study — the audience asked for it last time.
     <tbody>
       <tr>
         <td>Swipe left</td>
-        <td>Next slide</td>
+        <td>Next slide — on the index, next article card</td>
       </tr>
       <tr>
         <td>Swipe right</td>
-        <td>Previous slide</td>
+        <td>Previous slide — on the index, previous article card</td>
       </tr>
       <tr>
         <td>Tap on content</td>
-        <td>Next slide</td>
+        <td>Next slide — on the index, next article card</td>
       </tr>
       <tr>
         <td>Double tap</td>
@@ -2460,8 +2460,8 @@ note: Mention the 2020 study — the audience asked for it last time.
     </tbody>
   </table>
   <h3>Navigation buttons</h3>
-  <p>The round buttons in the bottom-right corner — previous, home, next, share, fullscreen, and a sixth for the variant menu that appears only when the article carries at least two tags. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
-  <p>On a phone or a tablet they fade on the same 3 seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the gesture: a gesture that meant two things depending on a state you cannot see coming would not be one.</p>
+  <p>The round buttons in the bottom-right corner — previous, home, next, share, fullscreen, and a sixth for the variant menu that appears only when the article carries at least two tags. The same six sit on the index, where previous and next step one article card at a time and home means the top of the page. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
+  <p>On a phone or a tablet they fade on the same 3 seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the middle button: the middle button alone only exits fullscreen — entering is the two-step, middle button then a left click — and a gesture that meant two things depending on a state you cannot see coming would not be one.</p>
   <p>The double tap is also how a phone selects a word, and the deck does not try to take it: selection, long press and the copy menu are the browser's, untouched. Which of the two wins a given double tap is the browser's call, and if it takes one, press and hold or use the ⛶ button — nothing the deck does will have got in your way. With a mouse, clicking the corner (not a button) toggles them on or off for good.</p>
   <h2>10. Shell completion (tab in the terminal)</h2>
   <p><code>lightwebpres completion --shell bash</code> (or <code>zsh</code>) prints a script that makes your shell complete commands, subcommands, and options when you press Tab. Install it by adding this line to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
