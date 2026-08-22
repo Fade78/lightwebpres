@@ -44,7 +44,7 @@ from then on. So: put every field before any body text, one per line,
 and never expect a field to wrap.
 
 **And a field is a value, not Markdown.** `summary: un **gras**` publishes
-the five characters. What misleads is that a field passes **raw HTML**
+the literal markup. What misleads is that a field passes **raw HTML**
 through untouched (`page_title: A<br>B`), so markup appearing to "work"
 there says nothing about Markdown. `audit` names a field carrying a
 `**bold**` pair, an `*italic*` pair, a backtick pair or a `[text](url)`
@@ -448,7 +448,7 @@ Works in a slide's free text and in the full-article file. **The label is
 a key, not content** — what the reader sees is a position, so you never
 have to renumber anything when you insert a note.
 
-**A label is word characters only.** Letters, digits and `_`, accents and
+**A label contains only word characters.** Letters, digits and `_`, accents and
 non-Latin scripts included — and nothing else: no `-`, no space, no
 punctuation. `[^kwh]`, `[^1]`, `[^a]`, `[^clé]` are labels. `[^a-b]`,
 `[^note 2]`, `[^réf.]` are not, and they are not errors either: the
@@ -551,8 +551,9 @@ article — they are author decisions that survive every theme change.
 | `{u}…{/u}` | underline |
 | `{mono}…{/mono}` | monospace (the `font.mono` stack) |
 
-**Alignment is the one block tag**, because `text-align` is a block
-property: on the inline `<span>` every other tag produces it does nothing.
+**Alignment is the one block tag**, because `text-align` is a block-level
+property: applying it to the inline `<span>` produced by every other tag has
+no effect.
 Opener and closer each go alone on their own line, and they wrap whole
 paragraphs:
 

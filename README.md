@@ -18,8 +18,9 @@ any static host.
 
 No `pip install`, no build step beyond the tool itself, no JavaScript
 framework in the output. Python 3.8+ (standard library only); on
-Windows, run `python lightwebpres <command>`. Every generated page is inline CSS + inline JS,
-one `.html` file, opens straight from disk or any static host.
+Windows, run `python lightwebpres <command>`. Every generated page is a
+single `.html` file with inline CSS and JS; it opens straight from disk or any
+static host.
 
 **Every page is a presentation deck.** Open it in a browser and you have
 a full-screen presenter experience: keyboard (↑/↓, Home, F for
@@ -39,7 +40,7 @@ them — it is navigation too, and it fades rather than being removed, so
 the page never reflows. The mouse becomes a
 remote: left-click advances, right-click goes back, two distinct buttons,
 no aiming. Fullscreen also neutralizes OS power-saving so the screen never
-dims mid-talk. A `X / N` counter and a direct number-jump (type the slide
+dims mid-talk. An `X / N` counter and a direct number-jump (type the slide
 number, press Enter) keep you oriented in long decks; **N** opens a speaker
 panel with the current slide's notes and the next slide's title, so you can
 read ahead unseen. And every page prints one slide per sheet — a clean PDF
@@ -133,9 +134,6 @@ handout at Ctrl/Cmd+P.
   generator, an agent upstream — but see the trust boundary below: raw
   HTML in such markdown passes through, so untrusted sources must be
   sanitized before the build.
-  Markdown can come from a CMS export, a database, a generator or an
-  agent upstream; this is the step that turns it into publishable
-  pages.
 
 ## Quickstart
 
@@ -681,7 +679,7 @@ It also needs its own `vendor/`/`app.py`/`git_sync.py`, plus a copy of
 `lightwebpres` itself — never duplicated by default, since it stays the
 single source of truth — found in one of two conventional spots relative
 to the page, tried in that order: **`./lightwebpres`** (dropped alongside
-`web/`'s own contents — the layout for a real site that serves `web/` as
+the contents of `web/` — the layout for a real site that serves `web/` as
 its own URL root, no extra path segment needed) or **`../lightwebpres`**
 (the repo's own layout, one level up, for a deployment that's just a
 straight copy of the repo). Local testing from the repo: `python3 -m
@@ -727,7 +725,7 @@ switching between them is instant — no separate page, no reload.
 python3 tests/run_tests.py
 ```
 
-a black-box test suite exercising the CLI as a subprocess, plus real headless-
+The black-box test suite exercises the CLI as a subprocess, plus real headless-
 Chromium end-to-end tests (via Playwright, skipped cleanly if unavailable)
 for both tabs of the browser-based tool.
 

@@ -278,7 +278,7 @@ class _ContrastSweep:
                 # like everything else. It paints text and had no property
                 # in the registry, which is the exact blind spot this
                 # instrument exists for: it hard-coded a grey at 0.75
-                # opacity and cleared 4.5:1 on none of the 57 themes,
+                # opacity and cleared 4.5:1 on none of the themes,
                 # bottoming out at 1.27:1 on pop-red, and was reported as
                 # invisible by someone who used it.
                 ['python3', str(LWP), 'build', str(root), '--output', str(out),

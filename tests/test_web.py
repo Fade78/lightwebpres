@@ -222,10 +222,10 @@ class FileProtocolGuard(unittest.TestCase):
 class MissingSiblingExecutableGuard(unittest.TestCase):
     """§23.4/§23.8: the page looks for the lightwebpres executable in two
     conventional spots relative to itself, in order: ./lightwebpres
-    (alongside web/'s own contents, so a site can serve web/ itself as its
+     (alongside the contents of web/, so a site can serve web/ itself as its
     URL root with no extra path segment) and ../lightwebpres (the repo's
     own layout, for a deployment that's just a duplicate of the repo
-    as-is). If neither exists — a real mistake, e.g. copying web/'s files
+     as-is). If neither exists — a real mistake, e.g. copying the contents of web/
     into a flat target folder without the executable at all — both fetches
     404. The page must explain the real cause instead of showing a bare
     "Failed to fetch ../lightwebpres: 404"."""
@@ -234,7 +234,7 @@ class MissingSiblingExecutableGuard(unittest.TestCase):
     def setUpClass(cls):
         # Serve ONLY web/ as the HTTP root, so neither ./lightwebpres nor
         # ../lightwebpres is reachable within the served tree —
-        # reproducing exactly what happens when web/'s contents are
+        # reproducing exactly what happens when the contents of web/ are
         # deployed without the executable anywhere nearby.
         web_dir = str(REPO_ROOT / 'web')
         cls.httpd = HTTPServer(('127.0.0.1', 0), lambda *a: _QuietHandler(*a, directory=web_dir))
@@ -261,7 +261,7 @@ class MissingSiblingExecutableGuard(unittest.TestCase):
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright unavailable: %s' % NPM_ROOT_OR_REASON)
 class FlatDeploymentFindsCurrentDirExecutable(unittest.TestCase):
-    """§23.8: when lightwebpres is copied alongside web/'s own contents
+    """§23.8: when lightwebpres is copied alongside the contents of web/
     (the "flat" layout, so a site can serve web/ itself as its own URL
     root — no unrelated parent directory needed just to hold the
     executable) — with NO copy one level up either — the page must still
@@ -314,8 +314,8 @@ class ThemesGalleryFacets(unittest.TestCase):
     its `hidden` property, which relies on the browser default
     [hidden] { display: none } — and a class rule carrying a `display` of
     its own outranks that UA default. When that happened the counter read
-    "14 palettes sur 33" and the dead-end facets greyed out correctly,
-    while all 33 cards were still on screen. Asserting on the attribute,
+    "14 palettes" and the dead-end facets greyed out correctly, while all
+    cards were still on screen. Asserting on the attribute,
     or on the counter, would have passed."""
 
     def test_facets_actually_hide_and_restore_the_previews(self):

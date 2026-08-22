@@ -156,7 +156,7 @@ défend —, ou ajouter des points d'accroche au registre. La seconde
 option est une modification du **moteur**, pas un réglage de thème.
 
 **Effet de bord constaté** : `page.shadow` étant héritée, elle atteint
-aussi la chrome — pastilles de navigation, compteur, panneau
+aussi l'interface — pastilles de navigation, compteur, panneau
 présentateur portent l'ombre du thème (2,1 px à 16 %). Discret, et
 défendable pour un thème atmosphérique, mais c'est un choix et non un
 accident à découvrir plus tard.

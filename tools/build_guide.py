@@ -39,7 +39,7 @@ SERIES = {
         'page_source': 'guide.md',
         'page_dest': 'guide.html',
         'nav_title': 'Guide',
-        'nav_desc': 'Install, anatomy of a page, series, look, shipping',
+        'nav_desc': 'Setup, anatomy of a page, series, look, shipping',
     }],
 }
 

@@ -2389,7 +2389,7 @@ historique `monospace, monospace` devient inutile.
   `terminal` du catalogue a eu besoin de `page.font → font.text →
   font.mono` : un thème ordinaire saturait la limite et ne laissait à
   une série aucune indirection propre. `terminal` est désormais `code`
-  en chiffre fixe — le slug est resté pour le registre terminal.
+  en chasse fixe — le slug est resté pour le registre terminal.
 - **Les cycles sont détectés et nommés** : `kicker.fg: reference cycle
   kicker.fg -> summary.fg -> kicker.fg`, jamais une boucle infinie ni un
   plantage obscur.
@@ -3003,7 +3003,7 @@ en douce derrière le dos du thème, la couche le **dit** :
   (`font.text`/`font.display`/`font.ui: mono` — trois lignes, c'est ce
   que le nom du thème promet) et pose un halo phosphore sur ses titres
   et son chiffre-clé (`title1.shadow.*`, `highlight.shadow.*`, §9.7) ;
-  `code`, la même palette sans la chiffre fixe, porte seulement le halo ;
+  `code`, la même palette sans la chasse fixe, porte seulement le halo ;
   `dracula` et `tokyo-night` passent leur seul **appareil** en chasse
   fixe (`font.ui`), le corps restant sur la serif de lecture ; `monokai`
   y passe tout, et sort son rose du texte (`verdict.partial.fg`,
@@ -4121,7 +4121,7 @@ et sa priorité.
 fiche** — troisième itération, sur un rapport d'usage : « le stamp est
 invisible ». Il l'était. La `<div>` peignait un gris littéral `#6B6B7D` à
 `opacity: 0.75`, une couleur choisie contre aucun fond en particulier :
-mesurée contre les 57 thèmes intégrés, cette paire n'atteint 4,5:1 sur
+mesurée contre les thèmes intégrés, cette paire n'atteint 4,5:1 sur
 aucun et 3:1 sur cinq, au plus bas 1,27:1 sur `pop-red`.
 
 Une couleur fixe ne peut pas marcher, et une opacité fixe non plus :

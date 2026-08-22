@@ -126,7 +126,7 @@ reproductible à l'octet, à refaire à la main quand la galerie change.
   (`load_lightwebpres_module()`, puis `self.lwp.…`) pour mesurer ce qu'une
   sortie ne montre pas : le registre de propriétés, les palettes résolues,
   les ratios de contraste, l'AST de l'exécutable. Une garde qui mesure
-  57 thèmes ne peut pas le faire en construisant 57 sites.
+  le catalogue ne peut pas le faire en construisant un site par thème.
 
   Cette convention disait « pas d'import direct des fonctions internes » ;
   c'était faux et cela aurait empêché d'écrire la moitié des gardes de ce

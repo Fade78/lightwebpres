@@ -51,7 +51,7 @@ lay the pieces out however it likes without passing a single flag.
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
 Home, F for fullscreen, B/W/T for pause screens), mouse (click to
-advance, right-click to go back, middle button for fullscreen), and
+advance, right-click to go back, middle button to enter or leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
 is one article card at a time. The navigation
 buttons fade after 3 seconds of idleness (1 second in fullscreen) — the
@@ -309,8 +309,8 @@ navigation and index order. The full fallback chain per field is in
 
 ## 5. Adjusting the look
 
-Four gestures, from the smallest to the largest. Pick the smallest one
-that does the job.
+Four value overrides, from the smallest to the largest, followed by CSS
+rules. Pick the smallest one that does the job.
 
 ### Pick a theme (the whole series)
 
@@ -758,8 +758,8 @@ steps: the deck never treats a double click as anything else.
 
 ### Navigation buttons
 
-The round buttons in the bottom-right corner — previous, home, next,
-share, fullscreen, and a sixth for the variant menu that appears only
+The round buttons in the bottom-right corner are previous, home, next,
+share, fullscreen, and a sixth button for the variant menu, which appears only
 when the article carries at least two tags. The same six sit on the
 index, where previous and next step one article card at a time and home
 means the top of the page. After 3 seconds of mouse
@@ -769,7 +769,7 @@ the mouse to bring the buttons back; the cursor waits for 250ms of
 continuous movement, so a knock against the desk does not put it on the
 wall.
 
-On a phone or a tablet they fade on the same 3 seconds and come back on a
+On a phone or a tablet they fade after the same three seconds and come back on a
 **double tap**, which also puts them away again at once if you have seen
 enough. A touch or a scroll restarts the countdown while they are still
 up, so they never vanish under your finger; once they are gone they no

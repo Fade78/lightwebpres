@@ -48,7 +48,7 @@ report (below).
 `comment` is recognized at every level below — a `series.json` entry, the
 `series_meta` object, an article's meta block, and the header of a slide
 of **any** type (cover, standard, series-nav, full-article) — but never
-read by any renderer: parsed, then discarded. For leaving an editorial note in the source (a reviewer flag,
+read by any renderer: parsed, then discarded. Use it to leave an editorial note in the source (a reviewer flag,
 a TODO) without it ever reaching the built output, not even in the page's
 raw HTML source (unlike an HTML comment, which LWP passes through
 verbatim — §6.2 — and would still ship, just invisible on screen). Free

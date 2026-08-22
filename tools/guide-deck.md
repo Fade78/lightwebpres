@@ -2,7 +2,7 @@
 page_title: LightWebPres — the guide
 page_desc: The guide to LightWebPres, built with LightWebPres.
 nav_title: Guide
-nav_desc: Install, anatomy of a page, series, look, shipping
+nav_desc: Setup, anatomy of a page, series, look, shipping
 ---
 
 <!-- lwp:slide:cover -->
@@ -28,7 +28,7 @@ A second skill, `sourced-presentation`, ships alongside as a courtesy for anyone
 
 <!-- lwp:slide -->
 slug: trois-commandes
-kicker: Install
+kicker: Setup
 ## Three commands to a built site
 
 fact-label: The whole loop
@@ -84,7 +84,7 @@ build's `--lang` remains the fallback.
 <!-- lwp:slide -->
 slug: gestes
 kicker: Look
-## Four gestures, smallest first
+## Four value overrides, then CSS rules
 
 fact-label: Pick the smallest one that does the job
 

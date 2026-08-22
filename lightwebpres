@@ -1088,7 +1088,7 @@ copy; output produced by a copy from which it has been removed is governed
 by the GNU General Public License without this exception.
 '''
 
-# The six palette variables, in the order a reader meets them on the page:
+# The seven palette variables, in the order a reader meets them on the page:
 # the ground, then the two inks, then the furniture (§9.1).
 #
 # These are ROLE names. They were colour names until v0.12.0 — --yellow,
@@ -1241,8 +1241,10 @@ LANG_FR = r'''{
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
     "help_speaker": "Panneau présentateur : notes + slide suivante",
+    "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
+    "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
-    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : plein écran · molette : défiler",
+    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
     "help_close": "H ou Échap pour fermer"
   }
 }'''
@@ -1342,13 +1344,15 @@ LANG_EN = r'''{
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_pause": "Pause screen: black (B), white (W), theme (T)",
     "help_speaker": "Speaker panel: notes + next slide",
+    "help_jump_keys": "0&ndash;9 + Enter",
+    "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
-    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: fullscreen · wheel: scroll",
+    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
     "help_close": "H or Esc to close"
   }
 }'''
 
-# Candidate color themes for the default template's six palette
+# Candidate color themes for the default template's seven palette
 # properties (PALETTE_ROLES, §9.1), plus how each
 # theme renders **bold** text inside a fact-box (§9.1's --fact-strong-*
 # properties), on four independent axes:
@@ -2051,8 +2055,8 @@ THEMES = {
         'note_good': True,
     },
     # --- Family `print`: drawn for ink and paper, not for a screen. The
-    # ground is pure white, every colour must survive a printer, and a
-    # veils either stand on white or hold their ink — the family exists
+    # ground is pure white, every colour must survive printing, and veils
+    # either stand on white or hold their ink — the family exists
     # so `theme list --family print` narrows on exactly these.
     'print-ink': {
         'family': 'print', 'label': 'Print Ink', 'source': 'lightwebpres',
@@ -2090,7 +2094,7 @@ THEMES = {
         'note': "A few inks on white paper: a blue for the structure, a "
                 "green for what is good, a pale yellow for the highlight. "
                 "Three inks, and none of them a screen colour — each one "
-                "was chosen to survive a printer.",
+                "was chosen to survive printing.",
         'note_good': True,
     },
 }
@@ -2157,7 +2161,7 @@ def neutral_chroma_threshold(lightness):
 # them, and adjusting a colour moves the facet with it. Family cannot
 # work that way — "this is the register of work" and "this is a fire seen
 # at three moments" are editorial statements about intent, and no amount of
-# CIELAB recovers them from six hex values.
+# CIELAB recovers them from seven hex values.
 #
 # So it is declared, and therefore fenced: the vocabulary below is closed,
 # every theme must name one of these, and an unknown name is a build error
@@ -2174,7 +2178,7 @@ THEME_FAMILIES = {
     'pop': 'The colour is the ground, not a detail.',
     'ported': 'A palette from elsewhere, kept as its authors drew it.',
     'print': 'Drawn for ink and paper: a white ground, and colours that '
-             'survive a printer.',
+             'survive printing.',
 }
 
 # Every value each facet can take, in the order a listing should show
@@ -2222,7 +2226,7 @@ def theme_facets(theme):
     `themes` command (§11.9) both present them — one function, so a
     browser picker and a terminal picker can never disagree.
 
-    The keys are FACET_VALUES', and deliberately not spelled out in this
+    The keys are FACET_VALUES, and deliberately not spelled out in this
     docstring: the sentence that named them said "three" for the fortnight
     between family arriving and this one being read again."""
     return {
@@ -2952,9 +2956,9 @@ THEME_COMPONENTS = [
         # than a measurement that happened to come out that way: a note
         # recedes by SIZE, never by contrast. `ink-quiet` was drawn for
         # secondary text at 15-22px; at 14px on a departed ground it stops
-        # working on 13 of 33 themes (solarized at 2.48:1). `ink` clears
-        # AA on all 33, worst case 6.23. Themes that can afford a quieter
-        # tone state one; the default cannot assume they can.
+        # working on some themes (solarized at 2.48:1). `ink` clears
+        # AA across the built-in catalogue, worst case 6.23. Themes that can
+        # afford a quieter tone state one; the default cannot assume they can.
         ThemeProp('note.fg',      PROP_COLOR,  'ink',  css='color'),
         # The notes SECTION only. There the note is not an aside taking
         # room from something else -- it IS the content of its section,
@@ -3123,7 +3127,7 @@ THEME_COMPONENTS = [
         # written twice and kept in step by hand.
         #
         # It also closes a defect that predates the notes work and was
-        # never measured: `ink-quiet` here was BELOW AA on 12 of 33 themes
+        # never measured: `ink-quiet` here was BELOW AA on some themes
         # (solarized at 2.61:1), for the same reason it was on notes --
         # that grey was drawn for secondary text at 15-22px, not for
         # apparatus at 12.
@@ -5465,7 +5469,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 /* No opacity on the current card. Dimming it to signal "you are here"
    dimmed its three lines of text with it: 1.62:1 on the worst theme, and
-   below AA on all 33. Its sunken ground, its border and the status glyph
+   below AA on the affected themes. Its sunken ground, its border and the status glyph
    carry the same signal without touching a contrast ratio. */
 .series-current { border-style: solid; }
 .series-link {
@@ -5705,7 +5709,7 @@ body.fs-noselect {
      gradient show
      through, and on a light theme `page.fg` and `cover.bg.from` are both
      `color.ink`: the counter's ink WAS its ground. Measured at exactly
-     1.00:1 on 15 of the 34 themes, with the 1px border in currentColor
+     1.00:1 on 15 themes in the then catalogue, with the 1px border in currentColor
      vanishing along with it. Invisible to `theme show`'s contrast report
      by construction, because this element has no registry property for
      that report to read. */
@@ -6882,9 +6886,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ['B / W / T', "{{str_help_pause}}"],
     ['N', "{{str_help_speaker}}"],
     ['L', "{{str_help_tags}}"],
-    ['0&ndash;9 + Entr&eacute;e', "{{str_help_jump}}"],
+    ['{{str_help_jump_keys}}', "{{str_help_jump}}"],
     ['H', "{{str_help_close}}"],
-    ['Souris / Molette', "{{str_help_mouse}}"]
+    ['{{str_help_mouse_keys}}', "{{str_help_mouse}}"]
   ];
   if (helpList) {
     helpEntries.forEach(function (e) {
@@ -7658,10 +7662,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- Click to advance, right-click to go back, middle button for fullscreen ---
+  // --- Click to advance, right-click to go back, middle-button fullscreen gesture ---
   // The remote-mouse use case. Left-click advances (200ms glide; a
   // click while gliding jumps straight to its target, §8.4), right-click
-  // goes back the same way, the middle BUTTON toggles fullscreen
+  // goes back the same way, the middle button arms fullscreen entry when the
+  // page is not fullscreen and exits fullscreen when it is
   // (the middle WHEEL scrolls). Esc exits
   // fullscreen (native browser). Buttons, links, images, and the pause
   // overlay intercept clicks so they keep working.
@@ -7824,15 +7829,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     goTo(base - 1, isScrolling);
   });
-  // The middle BUTTON is the fullscreen gatekeeper: it can only EXIT
-  // on its own, because entering needs a LEFT mouse gesture — the
-  // browsers refuse `requestFullscreen()` from any non-left event
-  // (B37). The entry is the two-step: middle button (arms the intent),
-  // then a LEFT click within the window (carries the gesture the
-  // browser requires, and the entry happens). A RIGHT click within the
-  // same window goes Home instead. A middle press while fullscreen
-  // simply exits. The WHEEL itself keeps scrolling; the ⛶ button and
-  // F keep working as direct entries.
+  // The middle button is the fullscreen gatekeeper. Browsers refuse
+  // requestFullscreen() from a non-left event (B37), so entry is a
+  // two-step gesture: middle button (arms the intent), then a LEFT click
+  // within the window (carries the gesture the browser requires). A RIGHT
+  // click within the same window goes Home instead. A middle press while
+  // fullscreen simply exits. The WHEEL itself keeps scrolling; the ⛶ button
+  // and F keep working as direct entries.
   var fsIntentUntil = 0;
   var fsEntryPending = false;
   var FS_INTENT_MS = 900;
@@ -8484,8 +8487,8 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
      its `hidden` property, which relies on the browser default
      [hidden] { display: none }. That default is a type selector in the
      UA sheet, so the class rule just above wins on specificity and the
-     row stays on screen: the counter said "14 palettes sur 33" while
-     all 33 were still displayed. Any future display: on .theme-row
+     row stays on screen: the counter said "14 palettes" while all cards
+     were still displayed. Any future display: on .theme-row
      needs this override kept alongside it. */
   .theme-row[hidden] { display: none; }
 
@@ -8722,7 +8725,7 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
       between the levels are faithful; absolute size is not.
     </p>
     <p class="dek dek--note">
-      <strong>The six palette variables name a role, not a colour.</strong>
+      <strong>The seven palette variables name a role, not a colour.</strong>
       They were <code>--yellow</code>, <code>--dark</code>, <code>--grey</code>,
       <code>--light</code> and <code>--green</code> until v0.12.0, after the
       values they happened to hold in the very first theme. Those names lied
@@ -12520,7 +12523,7 @@ def build_stamp_html(version, minimal=False):
 
     `color: inherit` and no opacity, which is what makes it READABLE. It
     used to paint a literal `#6B6B7D` at 0.75 opacity — a grey chosen
-    against no particular ground. Measured against all 57 built-in
+    against no particular ground. Measured against the built-in
     themes, that pair cleared 4.5:1 on none of them and 3:1 on five,
     bottoming out at 1.27:1 on pop-red; it was reported, accurately, as
     invisible. Inheriting the body's ink instead gives the stamp exactly
@@ -13960,8 +13963,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
 #
 # B5 and B18 decided that a theme is NOT required to reach AA, and a
 # substantial part of the delivered catalogue is deliberately under AA on
-# its secondary text. Warning on "below AA" would therefore harass 57
-# shipped themes and contradict a written decision. So each threshold here
+# its secondary text. Warning on "below AA" would therefore harass shipped
+# themes and contradict a written decision. So each threshold here
 # is set BELOW everything the catalogue measures, and the measurement is
 # recorded next to it: a threshold that makes a delivered theme warn is a
 # wrong threshold, because it turns the report into noise and B5 into a
@@ -13973,7 +13976,7 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
 #   navigation 3:1, and it is not a new number. It is WCAG 1.4.11, it is
 #              the one hard floor §9.5.6 allows, and it is already a test
 #              on the delivered themes — never on what an author writes.
-#              Measured over the 57 themes AND the default sheet, the
+#              Measured over the built-in themes AND the default sheet, the
 #              closest is pop-lime's current-slide dot at 3.1712:1.
 #   text       1.5:1. Measured 2026-08-18 over the delivered catalogue,
 #              the worst text pair was nord's "yes" verdict at 1.7866:1 —
@@ -13985,7 +13988,7 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
 #              CONTRAST_SITES, and the sweep test recomputes it anyway.
 #   size       12px, the design floor the registry already states and a
 #              test already pins on the defaults. Measured 2026-08-18 over
-#              the 57 themes AND the default sheet, the catalogue's
+#              the built-in themes AND the default sheet, the catalogue's
 #              smallest floor is exactly 12.00px — nord's `kicker.size`,
 #              `max(12px, 1.5vmin)` — so the threshold sits ON it and
 #              nothing delivered trips it. 1,856 of the 2,030 size readings
@@ -14086,7 +14089,7 @@ def _absolute_size_px(value):
     """A resolved font size in px, or None when it is relative to inherited.
 
     `em` is skipped rather than guessed at, and that is a correctness
-    requirement, not caution: `footnote-call.size` is `0.72em` on all 57
+    requirement, not caution: `footnote-call.size` is `0.72em` on all built-in
     themes, and resolving it against an assumed 16px root reads 11.52px —
     a guard that did so would open by warning on the entire catalogue for
     a size that renders perfectly. What the parent is, is a fact about the

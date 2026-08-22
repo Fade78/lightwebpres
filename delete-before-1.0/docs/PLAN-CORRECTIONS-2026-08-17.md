@@ -223,7 +223,7 @@ sur une feuille à lui. Mesuré : 6 slides → 7 pages, 4 → 5, sur quatre page
 de deux corpus.
 
 Mutation vers `.slide:last-of-type` : 6 → 6, 4 → 4. Aucun contenu coupé ni
-tronqué par ailleurs ; toute la chrome est correctement masquée à
+tronqué par ailleurs ; toute l'interface est correctement masquée à
 l'impression.
 
 **Correctif** : `.slide:last-child` → `.slide:last-of-type`.
@@ -349,7 +349,7 @@ défaut deux mois après sa correction.
 | 5.5 | Panneau présentateur : aucun `role`, aucun `aria-live`, **Échap ne le ferme pas** (seul overlay dans ce cas), contenu non atteignable au Tab, et **15,2 px sur un vidéoprojecteur 4K** |
 | 5.6 | `.slide-num` positionné contre la fiche et non contre la colonne : écart +29 px à 768, +121 px à 1920, **+275 px à 3840** ; le signe s'inverse sur téléphone. Sa taille, elle, monte correctement |
 | 5.7 | Longueurs encore figées « contre le glyphe » : soulignement des liens (1 px / 3 px sous un texte à 40,5 px), six propriétés `*.tracking` en px (0,167 em → 0,062 em), paddings de `code`, `.fact-box`, `.series-item`, cellules de tableau, `pre`, `blockquote` |
-| 5.8 | `nav-btn.size` monte de 20 à 54 px mais le bouton reste 44×44 : **le glyphe déborde de son cercle de 16 px** à 4K. `.nav-btn-home` figé à 17 px, 3,2× plus petit que ses voisins. Toute la chrome (compteur, menu, panneau, aide) est figée |
+| 5.8 | `nav-btn.size` monte de 20 à 54 px mais le bouton reste 44×44 : **le glyphe déborde de son cercle de 16 px** à 4K. `.nav-btn-home` figé à 17 px, 3,2× plus petit que ses voisins. Toute l'interface (compteur, menu, panneau, aide) est figée |
 | 5.9 | Les variantes de fiche **ne peignent rien** par conception ; rien ne garantit qu'une variante définie par l'auteur passe AA |
 
 **5.5 à 5.8 faits.** Tout reproduit avant correction, tout mesuré après.

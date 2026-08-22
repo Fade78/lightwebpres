@@ -1257,7 +1257,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 /* No opacity on the current card. Dimming it to signal "you are here"
    dimmed its three lines of text with it: 1.62:1 on the worst theme, and
-   below AA on all 33. Its sunken ground, its border and the status glyph
+   below AA on the affected themes. Its sunken ground, its border and the status glyph
    carry the same signal without touching a contrast ratio. */
 .series-current { border-style: solid; }
 .series-link {
@@ -1497,7 +1497,7 @@ body.fs-noselect {
      gradient show
      through, and on a light theme `page.fg` and `cover.bg.from` are both
      `color.ink`: the counter's ink WAS its ground. Measured at exactly
-     1.00:1 on 15 of the 34 themes, with the 1px border in currentColor
+     1.00:1 on 15 themes in the then catalogue, with the 1px border in currentColor
      vanishing along with it. Invisible to `theme show`'s contrast report
      by construction, because this element has no registry property for
      that report to read. */
@@ -1923,7 +1923,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </section>
 
 <section class="slide" id="trois-commandes" data-tags="default">
-  <span class="slide-kicker">Install</span>
+  <span class="slide-kicker">Setup</span>
   <h2>Three commands to a built site</h2>
   <div class="fact-box">
     <div class="fact-label">The whole loop</div>
@@ -1962,7 +1962,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 <section class="slide" id="gestes" data-tags="default">
   <span class="slide-kicker">Look</span>
-  <h2>Four gestures, smallest first</h2>
+  <h2>Four value overrides, then CSS rules</h2>
   <div class="fact-box">
     <div class="fact-label">Pick the smallest one that does the job</div>
     <div class="fact-content">  <p>A <strong>theme</strong> repaints the series from one word. An <strong>instance tag</strong> changes one phrase. A <code>style.</code> line in a page's meta block changes that page. <code>settings.conf</code> changes the series, and <code>custom.css</code> adds rules rather than values.</p>
@@ -2007,7 +2007,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="series-list">
     <div class="series-item series-current">
       <div class="series-title">Guide</div>
-      <div class="series-desc">Install, anatomy of a page, series, look, shipping</div>
+      <div class="series-desc">Setup, anatomy of a page, series, look, shipping</div>
       <div class="series-status">&#9656; Currently reading</div>
     </div>
     <a href="index.html" class="series-item series-link" style="text-align: center; margin-top: 24px;">
@@ -2030,7 +2030,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from somewhere else entirely — a CMS export, a database, a generator, an agent upstream — and LightWebPres is what turns it into publishable pages.</li>
   </ul>
   <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_SOURCES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
-  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, middle button for fullscreen), and touch (swipe) all work out of the box — the index included, whose step is one article card at a time. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
+  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens), mouse (click to advance, right-click to go back, middle button to enter or leave fullscreen), and touch (swipe) all work out of the box — the index included, whose step is one article card at a time. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Set up &amp; your first build</h2>
   <pre><code class="language-bash">
@@ -2189,7 +2189,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
   </code></pre>
   <p><code>page_source</code> — a bare filename, no path — is the only field ever required here. Each article is self-described: <code>page_dest</code> (the output HTML name), <code>page_title</code>/<code>page_desc</code>, <code>card_title</code>/<code>card_desc</code>/ <code>card_label</code>, <code>nav_title</code>/<code>nav_desc</code>, and the editorial fields (<code>author</code>/<code>license</code>/<code>date</code>, defaulting series-wide from <code>series_meta</code>) all resolve from the article's own meta block and cover slide, and any of them can be overridden per entry here when you want <code>series.json</code> to have the final say. <code>status</code> says what each article is worth to the series: <code>active</code> (the default), <code>draft</code> — still an article of the series, kept out of the output until <code>--include-drafts</code> previews it with a banner — or <code>ignored</code>, which takes it out of the chain entirely without deleting the entry and everything you configured on it. The array order is the navigation and index order. The full fallback chain per field is in <code>GLOSSARY.md</code>.</p>
   <h2>5. Adjusting the look</h2>
-  <p>Four gestures, from the smallest to the largest. Pick the smallest one that does the job.</p>
+  <p>Four value overrides, from the smallest to the largest, followed by CSS rules. Pick the smallest one that does the job.</p>
   <h3>Pick a theme (the whole series)</h3>
   <p>Dozens of colour themes are preconfigured — too many to pick from a list, so you find one by facet: which family it belongs to, whether its background is light or dark, and what hue that background carries.</p>
   <pre><code class="language-bash">
@@ -2460,8 +2460,8 @@ note: Mention the 2020 study — the audience asked for it last time.
     </tbody>
   </table>
   <h3>Navigation buttons</h3>
-  <p>The round buttons in the bottom-right corner — previous, home, next, share, fullscreen, and a sixth for the variant menu that appears only when the article carries at least two tags. The same six sit on the index, where previous and next step one article card at a time and home means the top of the page. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
-  <p>On a phone or a tablet they fade on the same 3 seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the middle button: the middle button alone only exits fullscreen — entering is the two-step, middle button then a left click — and a gesture that meant two things depending on a state you cannot see coming would not be one.</p>
+  <p>The round buttons in the bottom-right corner are previous, home, next, share, fullscreen, and a sixth button for the variant menu, which appears only when the article carries at least two tags. The same six sit on the index, where previous and next step one article card at a time and home means the top of the page. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
+  <p>On a phone or a tablet they fade after the same three seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the middle button: the middle button alone only exits fullscreen — entering is the two-step, middle button then a left click — and a gesture that meant two things depending on a state you cannot see coming would not be one.</p>
   <p>The double tap is also how a phone selects a word, and the deck does not try to take it: selection, long press and the copy menu are the browser's, untouched. Which of the two wins a given double tap is the browser's call, and if it takes one, press and hold or use the ⛶ button — nothing the deck does will have got in your way. With a mouse, clicking the corner (not a button) toggles them on or off for good.</p>
   <h2>10. Shell completion (tab in the terminal)</h2>
   <p><code>lightwebpres completion --shell bash</code> (or <code>zsh</code>) prints a script that makes your shell complete commands, subcommands, and options when you press Tab. Install it by adding this line to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
@@ -3362,9 +3362,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ['B / W / T', "Pause screen: black (B), white (W), theme (T)"],
     ['N', "Speaker panel: notes + next slide"],
     ['L', "Filter by tag and remember the selection"],
-    ['0&ndash;9 + Entr&eacute;e', "Jump to slide N (then Enter)"],
+    ['0&ndash;9 + Enter', "Jump to slide N (then Enter)"],
     ['H', "H or Esc to close"],
-    ['Souris / Molette', "Click: next · right-click: back · click while gliding: jump · middle button: fullscreen · wheel: scroll"]
+    ['Mouse / Wheel', "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll"]
   ];
   if (helpList) {
     helpEntries.forEach(function (e) {
@@ -4138,10 +4138,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- Click to advance, right-click to go back, middle button for fullscreen ---
+  // --- Click to advance, right-click to go back, middle-button fullscreen gesture ---
   // The remote-mouse use case. Left-click advances (200ms glide; a
   // click while gliding jumps straight to its target, §8.4), right-click
-  // goes back the same way, the middle BUTTON toggles fullscreen
+  // goes back the same way, the middle button arms fullscreen entry when the
+  // page is not fullscreen and exits fullscreen when it is
   // (the middle WHEEL scrolls). Esc exits
   // fullscreen (native browser). Buttons, links, images, and the pause
   // overlay intercept clicks so they keep working.
@@ -4304,15 +4305,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     goTo(base - 1, isScrolling);
   });
-  // The middle BUTTON is the fullscreen gatekeeper: it can only EXIT
-  // on its own, because entering needs a LEFT mouse gesture — the
-  // browsers refuse `requestFullscreen()` from any non-left event
-  // (B37). The entry is the two-step: middle button (arms the intent),
-  // then a LEFT click within the window (carries the gesture the
-  // browser requires, and the entry happens). A RIGHT click within the
-  // same window goes Home instead. A middle press while fullscreen
-  // simply exits. The WHEEL itself keeps scrolling; the ⛶ button and
-  // F keep working as direct entries.
+  // The middle button is the fullscreen gatekeeper. Browsers refuse
+  // requestFullscreen() from a non-left event (B37), so entry is a
+  // two-step gesture: middle button (arms the intent), then a LEFT click
+  // within the window (carries the gesture the browser requires). A RIGHT
+  // click within the same window goes Home instead. A middle press while
+  // fullscreen simply exits. The WHEEL itself keeps scrolling; the ⛶ button
+  // and F keep working as direct entries.
   var fsIntentUntil = 0;
   var fsEntryPending = false;
   var FS_INTENT_MS = 900;

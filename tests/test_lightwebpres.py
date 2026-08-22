@@ -6209,7 +6209,7 @@ class AuditJudgesTheResolvedSheet(unittest.TestCase):
     The thresholds are derived from the delivered catalogue, not chosen,
     and that is what these tests are really pinning. B5 and B18 decided a
     theme is NOT required to reach AA, so warning on "below AA" would
-    harass 57 shipped themes and contradict a written decision. A
+    harass shipped themes and contradict a written decision. A
     threshold that makes any delivered theme warn is a wrong threshold."""
 
     def _series(self, tmp, theme=None):
@@ -6295,7 +6295,7 @@ class AuditJudgesTheResolvedSheet(unittest.TestCase):
             self.assertEqual(run('audit', root, '--strict').returncode, 1)
 
     def test_a_relative_size_is_not_judged_against_pixels(self):
-        """`footnote-call.size` is `0.72em` on all 57 themes. Resolving em
+        """`footnote-call.size` is `0.72em` on all built-in themes. Resolving em
         against an assumed 16px root reads 11.52px, so a naive pixel floor
         warns on the entire catalogue for a size that renders fine. The
         sweep above would catch it; this says why, so the next person to
@@ -7967,7 +7967,7 @@ class ThemeFacets(unittest.TestCase):
         Polarity and hue are read off the palette, so a theme cannot lie
         about them and a colour change moves the facet with it.
         "This is the register of work" is an editorial statement no amount
-        of CIELAB recovers from six hex values — so it is declared, and
+        of CIELAB recovers from seven hex values — so it is declared, and
         therefore fenced: the vocabulary is closed and every theme must
         name one of its members.
 
@@ -10493,14 +10493,15 @@ class PaletteRoleNames(unittest.TestCase):
                 self.assertIn(role, self.lwp.PALETTE_ROLES, slug)
 
     def test_the_composed_stylesheet_declares_every_role_and_no_old_name(self):
-        """The sheet a page gets declares the six --color-* roles and not
+        """The sheet a page gets declares the seven --color-* roles and not
         one of the retired names. Substring traps abound here: --page: is
         a suffix of --color-page:, so absence is asserted on the start of
         a declaration line (regex anchored MULTILINE), and consumption on
         the exact var(--old) form."""
         css = self.lwp.compose_stylesheet(self.lwp.resolve_theme_properties({}))
         for new in ('--color-page', '--color-ink', '--color-ink-quiet',
-                    '--color-mark', '--color-call', '--color-affirm'):
+                    '--color-mark', '--color-call', '--color-affirm',
+                    '--color-nav'):
             self.assertIn(f'{new}: ', css, new)
         for old in ('--page', '--ink', '--ink-muted', '--marker', '--accent',
                     '--positive', '--rule', '--rule-strong', '--surface',

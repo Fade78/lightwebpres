@@ -1256,7 +1256,7 @@ sup { vertical-align: super; line-height: 0; }
 }
 /* No opacity on the current card. Dimming it to signal "you are here"
    dimmed its three lines of text with it: 1.62:1 on the worst theme, and
-   below AA on all 33. Its sunken ground, its border and the status glyph
+   below AA on the affected themes. Its sunken ground, its border and the status glyph
    carry the same signal without touching a contrast ratio. */
 .series-current { border-style: solid; }
 .series-link {
@@ -1496,7 +1496,7 @@ body.fs-noselect {
      gradient show
      through, and on a light theme `page.fg` and `cover.bg.from` are both
      `color.ink`: the counter's ink WAS its ground. Measured at exactly
-     1.00:1 on 15 of the 34 themes, with the 1px border in currentColor
+     1.00:1 on 15 themes in the then catalogue, with the 1px border in currentColor
      vanishing along with it. Invisible to `theme show`'s contrast report
      by construction, because this element has no registry property for
      that report to read. */
@@ -2752,9 +2752,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ['B / W / T', "Pause screen: black (B), white (W), theme (T)"],
     ['N', "Speaker panel: notes + next slide"],
     ['L', "Filter by tag and remember the selection"],
-    ['0&ndash;9 + Entr&eacute;e', "Jump to slide N (then Enter)"],
+    ['0&ndash;9 + Enter', "Jump to slide N (then Enter)"],
     ['H', "H or Esc to close"],
-    ['Souris / Molette', "Click: next · right-click: back · click while gliding: jump · middle button: fullscreen · wheel: scroll"]
+    ['Mouse / Wheel', "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll"]
   ];
   if (helpList) {
     helpEntries.forEach(function (e) {
@@ -3528,10 +3528,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- Click to advance, right-click to go back, middle button for fullscreen ---
+  // --- Click to advance, right-click to go back, middle-button fullscreen gesture ---
   // The remote-mouse use case. Left-click advances (200ms glide; a
   // click while gliding jumps straight to its target, §8.4), right-click
-  // goes back the same way, the middle BUTTON toggles fullscreen
+  // goes back the same way, the middle button arms fullscreen entry when the
+  // page is not fullscreen and exits fullscreen when it is
   // (the middle WHEEL scrolls). Esc exits
   // fullscreen (native browser). Buttons, links, images, and the pause
   // overlay intercept clicks so they keep working.
@@ -3694,15 +3695,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     goTo(base - 1, isScrolling);
   });
-  // The middle BUTTON is the fullscreen gatekeeper: it can only EXIT
-  // on its own, because entering needs a LEFT mouse gesture — the
-  // browsers refuse `requestFullscreen()` from any non-left event
-  // (B37). The entry is the two-step: middle button (arms the intent),
-  // then a LEFT click within the window (carries the gesture the
-  // browser requires, and the entry happens). A RIGHT click within the
-  // same window goes Home instead. A middle press while fullscreen
-  // simply exits. The WHEEL itself keeps scrolling; the ⛶ button and
-  // F keep working as direct entries.
+  // The middle button is the fullscreen gatekeeper. Browsers refuse
+  // requestFullscreen() from a non-left event (B37), so entry is a
+  // two-step gesture: middle button (arms the intent), then a LEFT click
+  // within the window (carries the gesture the browser requires). A RIGHT
+  // click within the same window goes Home instead. A middle press while
+  // fullscreen simply exits. The WHEEL itself keeps scrolling; the ⛶ button
+  // and F keep working as direct entries.
   var fsIntentUntil = 0;
   var fsEntryPending = false;
   var FS_INTENT_MS = 900;

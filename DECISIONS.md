@@ -2169,8 +2169,10 @@ double-click's entry role entirely — which closed the only mouse entry
 left. This entry records the rule so the next redesign does not need a
 Firefox console error to rediscover it.
 
-**What the middle button is now:** exit-only. Entry is left-hand only:
-the double-click, the ⛶ button, or F. The wheel itself keeps scrolling.
+**What the middle button is now:** it arms the two-step entry gesture when the
+page is not fullscreen and exits fullscreen when it is. Entry is completed with
+a left click; the ⛶ button and F remain direct entries. The wheel itself keeps
+scrolling.
 
 ## B38 — The two pages share one skeleton and one script
 
@@ -2252,7 +2254,7 @@ never confused with « le fichier source » (`page_source`).
 exact` forces the paint onto paper, and every contrast measurement is
 computed against declared colours — so "print friendly" cannot be a
 transparency mechanism, it has to be a palette drawn for the printer:
-pure white ground, inks that survive one. That makes it a usage, not an
+pure white ground, inks that survive printing. That makes it a usage, not an
 ambiance, and usages are what families are for: the closed facet
 vocabulary gains `print`, and `theme list --family print` narrows on
 exactly the members.
@@ -2260,8 +2262,8 @@ exactly the members.
 **Three themes, one per doctrine.** `print-ink` — pure black on white,
 one deep red held in reserve, the highest contrast the family holds.
 `print-grey` — no hue at all; weight, opacity and shape carry the
-signal, the same doctrine monochrome found. `print-color` — a blue for
+signal, the same doctrine as Monochrome. `print-color` — a blue for
 the structure, a green for what is good, a pale yellow highlighter,
-each chosen to survive a printer. All three pin their shadows off
+each chosen to survive printing. All three pin their shadows off
 (the light family's shadows are shadows of screens, not of paper) and
 pass the catalogue's own AA floor on bold fact text, measured.
