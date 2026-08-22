@@ -44,7 +44,7 @@ and gets out of the way. **There is nothing to
 install**: one file, nothing beyond the Python standard library,
 no wheel, no lockfile, no network at build time — any image with
 `python3` in it can run it. And **every path is an environment
-variable** (`LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, `LWP_OUTPUT_DIR`,
+variable** (`LWP_SERIES_DIR`, `LWP_SOURCES_DIR`, `LWP_OUTPUT_DIR`,
 `LWP_TEMPLATES_DIR`, `LWP_LANGUAGE_DIR`, `LWP_LANG`), so a pipeline can
 lay the pieces out however it likes without passing a single flag.
 
@@ -77,7 +77,7 @@ Section 8 has the shape of a pipeline that uses all of it.
 xdg-open my-series/public/index.html         # `open` on macOS
 ```
 
-`init` scaffolds a working project — `articles/` (empty, for your `.md`
+`init` scaffolds a working project — `sources/` (empty, for your `.md`
 files), `templates/` (your customization surface: `settings.conf` and
 `custom.css`, see section 5), an empty `language/`, an empty `public/`
 for the build to write into, a starter `series.json`, and a copy of the

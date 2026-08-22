@@ -373,7 +373,8 @@ Structure créée par `init` :
 ```
 ma-serie/                          # Le répertoire de la série (l'unité de travail)
 ├── series.json                    # La liste des articles + métadonnées de la série
-├── articles/                      # Les fichiers .md des articles (un par page)
+├── sources/                       # Les fichiers .md des pages (un par page,
+│                                  # plus les `*_article.md` de fond)
 │   ├── avant_propos.md
 │   ├── snapchat.md
 │   ├── snapchat_article.md       # L'article de fond inclus par snapchat.md
@@ -394,7 +395,7 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   ├── index.html
 │   ├── avant_propos.html
 │   ├── snapchat.html
-│   ├── img/                       # Images copiées depuis articles/
+│   ├── img/                       # Images copiées depuis sources/
 │   │   └── ...
 │   └── .lwp-manifest.json         # Ce que ce build a écrit — base de clean (§11.13)
 ├── README.md                      # Généré par build depuis series.json (§8.3)
@@ -414,7 +415,7 @@ série.
 | Variable              | Défaut                    | Description                          |
 |-----------------------|---------------------------|--------------------------------------|
 | `LWP_SERIES_DIR`      | `.` (le répertoire courant) | Le répertoire de la série           |
-| `LWP_ARTICLES_DIR`    | `$LWP_SERIES_DIR/articles`  | Les fichiers `.md` des articles     |
+| `LWP_SOURCES_DIR`     | `$LWP_SERIES_DIR/sources` | Les fichiers `.md` des articles     |
 | `LWP_TEMPLATES_DIR`   | `$LWP_SERIES_DIR/templates` | Les templates HTML/CSS/JS           |
 | `LWP_LANGUAGE_DIR`    | `$LWP_SERIES_DIR/language`  | Règles typographiques + chaînes d'interface (.json) |
 | `LWP_OUTPUT_DIR`      | `$LWP_SERIES_DIR/public`    | Le répertoire de sortie du build    |
@@ -995,7 +996,7 @@ Dans une fiche `full-article` :
 article: snapchat_article.md
 ```
 
-Le fichier `snapchat_article.md` est lu depuis `LWP_ARTICLES_DIR`, converti en
+Le fichier `snapchat_article.md` est lu depuis `LWP_SOURCES_DIR`, converti en
 HTML (voir section 6), et inséré dans la slide.
 
 ### 5.2 Inclusion indirecte (référence par nom)
@@ -1139,7 +1140,7 @@ d'un paragraphe survivait tel quel dans la page (et la typographie
 prenait ensuite le `!` de `![alt]` pour une ponctuation haute et
 glissait une insécable devant). Dans les
 deux cas la `src` peut être un chemin relatif — contrairement aux liens,
-restreints à http(s) — car les images vivent dans `articles/img/`,
+restreints à http(s) — car les images vivent dans `sources/img/`,
 copié vers `public/img/` au build (§11.3). Une ligne-image n'est jamais
 fusionnée dans le paragraphe qui la précède : c'est un démarreur de
 bloc, comme un titre ou une liste.
@@ -3835,7 +3836,7 @@ lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci
 Crée la structure de travail dans `[répertoire]` :
 
 1. Crée le répertoire s'il n'existe pas
-2. Crée les sous-répertoires : `articles/`, `templates/`, `language/`,
+2. Crée les sous-répertoires : `sources/`, `templates/`, `language/`,
    `public/`
 3. Écrit la surface de personnalisation (§9.3, §9.4.1) :
    - `templates/settings.conf` — le scaffold complet : toutes les
@@ -3891,7 +3892,7 @@ reste reconnue). Si non, erreur fatale invitant à lancer `init`
 d'abord.
 
 Refuse de s'exécuter si l'un des 7 fichiers de démo (6 `.md` +
-`img/demo-figure.svg`) existe déjà dans `articles/`, **ou si
+`img/demo-figure.svg`) existe déjà dans `sources/`, **ou si
 `series.json` liste déjà au moins un article** (erreur fatale dans les
 deux cas) — jamais d'écrasement silencieux d'un travail en cours :
 `demo` réécrit `series.json` entièrement, ce qui n'est inoffensif que
@@ -3900,15 +3901,15 @@ sur le boilerplate d'un `init` frais (liste d'articles vide).
 Crée trois articles d'exemple, un pour chaque position de la navigation de
 série :
 
-1. Crée `articles/first.md` + `articles/first_article.md` (position
+1. Crée `sources/first.md` + `sources/first_article.md` (position
    « first » ; démontre chaque champ d'affichage explicitement, plus
    `date:` et `comment:` ; l'article long contient une image légendée
    `![alt](img/demo-figure.svg "…")` (§6.1) dont le SVG est écrit dans
-   `articles/img/demo-figure.svg`)
-2. Crée `articles/middle.md` + `articles/middle_article.md` (position
+   `sources/img/demo-figure.svg`)
+2. Crée `sources/middle.md` + `sources/middle_article.md` (position
    « middle » ; démontre `highlight`/`highlight-caption`, et la surcharge
    d'un `card_label` depuis `series.json`)
-3. Crée `articles/last.md` + `articles/last_article.md` (position
+3. Crée `sources/last.md` + `sources/last_article.md` (position
    « last » ; bloc meta vide — démontre la cascade complète §20.3.1)
 4. Met à jour `series.json` avec ces trois articles (`series_meta`
    inclus, avec `author`/`license` de démonstration)
@@ -3937,7 +3938,7 @@ Construit le site :
    publication (style inline, comme le stamp, pour ne dépendre d'aucune
    règle de la feuille composée ni d'un `custom.css` de série).
 2. Pour chaque article dans `series.json` :
-   a. Lit le fichier `.md` source depuis `articles/`
+   a. Lit le fichier `.md` source depuis `sources/`
    b. Parse le Markdown étendu (découpe les slides, extrait les métadonnées)
    c. Pour chaque slide :
       - Si `cover` : génère la slide de couverture
@@ -3955,9 +3956,9 @@ Construit le site :
    f. Écrit le fichier HTML dans `public/`
 3. Génère la page d'index (`public/index.html`)
 4. Génère le `README.md` à la racine du répertoire de série (§8.3)
-5. Copie les images de `articles/img/` vers `public/img/` : fusionne avec
+5. Copie les images de `sources/img/` vers `public/img/` : fusionne avec
    l'existant, ne supprime **jamais** un fichier présent dans `public/img/`
-   même s'il n'existe plus dans `articles/img/` — comme pour les pages HTML
+   même s'il n'existe plus dans `sources/img/` — comme pour les pages HTML
    d'articles retirés de `series.json` (qui restent elles aussi dans
    `public/` sans être nettoyées), `build` est additif/à jour, jamais un
    miroir exact qui purge ce qui n'est plus source. Un `--output` mal typé
@@ -4003,7 +4004,7 @@ une empreinte est calculée pour chaque article — un hash SHA-256 des 6
 champs ci-dessus concaténés, jamais leur contenu en clair (fichier de
 cache petit et de taille constante, indépendant de la longueur des
 résumés) — et écrite dans `.lwp-cache/nav.json` (racine du répertoire de
-série, à côté de `articles/`/`templates/`/`public/`, jamais dans l'un de
+série, à côté de `sources/`/`templates/`/`public/`, jamais dans l'un de
 ces deux derniers pour les garder tels quels — un artefact de build de
 plus, comme `public/`, mais pas mélangé avec lui). `--nav-cache chemin`
 change cet emplacement. `page_dest` n'entre pas dans ce hash : il sert de
@@ -4244,7 +4245,7 @@ octets pour 3). Un gzip de servage récupère ce surcoût sur le wire
 (l'alphabet de 64 caractères compresse bien). En ouverture locale
 (`file://`), le coût plein est payé sur disque.
 
-Désactivé par défaut : le build standard copie `articles/img/` vers
+Désactivé par défaut : le build standard copie `sources/img/` vers
 `public/img/` et référence les images par chemin relatif.
 
 ### 11.4 `verify`
@@ -4385,7 +4386,7 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     rapporte que ce que la feuille de série ne dit pas déjà. Et si la
     feuille ne résout pas du tout, cette passe se **tait** : l'erreur fatale
     nomme déjà la ligne à corriger, et rien ne doit lui disputer la place
-12. Avertit sur chaque **lien symbolique** de `articles/img/` qui sort du
+12. Avertit sur chaque **lien symbolique** de `sources/img/` qui sort du
     répertoire d'images : il ne serait pas publié (§13.7). C'est un contrôle
     des *sources* commises, pas de la copie — la règle est celle que
     `copy_images` applique, partagée et non réécrite
@@ -5423,7 +5424,7 @@ lightwebpres clean [répertoire] [--output <dir>] [--force]
 Purge les fichiers orphelins de la sortie — ceux qu'un build précédent
 a produits mais que le build courant ne produit plus (un article retiré
 de `series.json`, un `page_dest` renommé, une image supprimée de
-`articles/img/`).
+`sources/img/`).
 
 Le manifeste écrit par `build` (`.lwp-manifest.json` dans le répertoire de
 sortie) porte deux listes : `files`, ce que ce build a produit, et
@@ -5435,7 +5436,7 @@ jamais candidat — `CNAME`, `.nojekyll`, `robots.txt`, `404.html`, le
 déploiement restent en place.
 
 `files` se construit à partir des **sources** : les pages déclarées par
-`series.json` et les images présentes dans `articles/img/` au moment du
+`series.json` et les images présentes dans `sources/img/` au moment du
 build. Il ne se déduit jamais d'un balayage du répertoire de sortie, qui
 répond « ce qui s'y trouve » là où la question est « ce que ce build a
 fabriqué » — les deux diffèrent exactement du fichier que l'auteur vient
@@ -5443,7 +5444,7 @@ de supprimer.
 
 `--output` désigne le répertoire de sortie, comme pour `build` ; à défaut,
 `LWP_OUTPUT_DIR`, puis `public/`. La commande refuse un répertoire qui
-contient `series.json`, `articles/` ou `templates/` : c'est un répertoire
+contient `series.json`, `sources/` ou `templates/` : c'est un répertoire
 de série, pas une sortie de build.
 
 Dry-run par défaut : la commande liste les orphelins sans les supprimer.
@@ -5568,7 +5569,7 @@ build(répertoire):
   # même JS (§18.1, §18.2).
 
   6. FOR each article IN series:
-     a. source = read_file(répertoire/articles/{article.page_source})
+     a. source = read_file(répertoire/sources/{article.page_source})
      b. meta, slides = parse_markdown(source)
      c. html_slides = []
      d. slide_num = 0
@@ -5585,7 +5586,7 @@ build(répertoire):
         ELIF slide.type == "series-nav":
           html = render_series_nav(series, article, slide_num, total_slides, language.strings)
         ELIF slide.type == "full-article":
-          article_md = read_file(répertoire/articles/{slide.article})
+          article_md = read_file(répertoire/sources/{slide.article})
           article_html = convert_markdown(article_md)
           article_html = apply_typography(article_html, language.rules)
           html = render_full_article(article_html, slide_num, total_slides, language.strings, show_slide_num)
@@ -5608,7 +5609,7 @@ build(répertoire):
   8. write_file(répertoire/public/index.html, index_html)
 
   9. generate_readme(series, répertoire/README.md)
-  10. copy_images(répertoire/articles/img/, répertoire/public/img/)  # merge, never wipe
+  10. copy_images(répertoire/sources/img/, répertoire/public/img/)  # merge, never wipe
   11. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
       write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
       # Les deux sont écrits à chaque build, pas seulement avec `--only`.
@@ -5853,11 +5854,11 @@ régression :
 
 - **Contenance du système de fichiers.** Toute valeur qui devient un
   chemin réel — `page_source`, `page_dest`, le champ `article:` d'une
-  fiche full-article, et le contenu de `articles/img/` — est confinée à
+  fiche full-article, et le contenu de `sources/img/` — est confinée à
   son répertoire. Le contrôle de forme du nom (nom nu, ni `/` ni `..` ni
   `.` ni octet NUL) est doublé d'un contrôle **realpath** : un nom nu qui
-  est en réalité un lien symbolique pointant hors de `articles/`
-  (respectivement `articles/img/`) est **refusé**, jamais suivi — sinon
+  est en réalité un lien symbolique pointant hors de `sources/`
+  (respectivement `sources/img/`) est **refusé**, jamais suivi — sinon
   un lien commité dans un dépôt exfiltrerait un fichier de l'hôte dans le
   site publié. Un lien symbolique interne (cible restant dans le
   répertoire) reste autorisé.
@@ -5973,8 +5974,8 @@ aux pommes — pour qu'on puisse suivre les deux ensemble.
 ./lightwebpres build ma-serie
 
 # 3. Écrire. Une fiche par bloc, un `---` entre deux (§4).
-#    ma-serie/articles/tarte.md          les fiches
-#    ma-serie/articles/tarte_article.md  le texte long qu'elles incluent (§5)
+#    ma-serie/sources/tarte.md          les fiches
+#    ma-serie/sources/tarte_article.md  le texte long qu'elles incluent (§5)
 #    ma-serie/series.json                l'ordre et les titres (§20)
 
 # 4. Nommer les fiches. Chaque fiche déclare son `slug:` et rien ne le
@@ -6003,7 +6004,7 @@ open ma-serie/public/index.html
 ./lightwebpres status ma-serie
 
 # 2. Modifier.
-#    Éditer ma-serie/articles/tarte.md
+#    Éditer ma-serie/sources/tarte.md
 
 # 3. Construire, puis relire les remarques.
 ./lightwebpres build ma-serie
@@ -6070,7 +6071,7 @@ quoi l'agent s'appuie pour ne pas inventer.
 # 1. L'agent lit agent/skills/lightwebpres/SKILL.md : le format, écrit
 #    pour lui. Ce document-ci est la référence de comportement ; le skill
 #    est ce qu'il faut avoir en tête pour écrire un fichier valide.
-# 2. Il lit et modifie ma-serie/articles/tarte.md
+# 2. Il lit et modifie ma-serie/sources/tarte.md
 # 3. ./lightwebpres build ma-serie      les erreurs sont fatales et nommées
 # 4. ./lightwebpres audit ma-serie      ce qui mérite un second regard
 # 5. Il rend compte de ce que audit a dit plutôt que de conclure que
@@ -6168,7 +6169,7 @@ Demandées le 2026-07-31 :
     IMPLÉMENTÉ (voir §6.1) : seule sur sa ligne, l'image devient un bloc
     `<figure>` ; au milieu d'un paragraphe, un `<img>` inline. La `src`
     peut être un chemin relatif (contrairement aux liens, restreints à
-    http(s)) — c'est le cas d'usage `articles/img/` → `public/img/`.
+    http(s)) — c'est le cas d'usage `sources/img/` → `public/img/`.
 21. **Légendes pour les images** — IMPLÉMENTÉ (voir §6.1) : le titre
     Markdown standard `![alt](src "Légende")` devient un `<figcaption>`
     affiché petit, centré et gris (propriétés `caption.*`, encre
@@ -6247,7 +6248,7 @@ la section, jamais en la croyant sur parole.
   des tables d'options ; ils ne sont pas recopiés ici. Cette ligne en a
   recopié quatre autrefois, et n'a pas suivi quand ils ont cessé d'être
   des commandes (§11.16) : une liste recopiée est une liste qui dérive
-- **Variables d'environnement** : `LWP_SERIES_DIR`, `LWP_ARTICLES_DIR`, etc. ✓
+- **Variables d'environnement** : `LWP_SERIES_DIR`, `LWP_SOURCES_DIR`, etc. ✓
 - **Override** : `settings.conf`/`custom.css`/`nav.js` et le fichier de
   langue sont éditables (§9, §7) ; la structure HTML des pages ne l'est
   pas ✓ (délibérément, §9)
@@ -6868,7 +6869,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 
 | Champ | Type | Obligatoire dans `series.json` | Utilisé par | Description |
 |-------|------|-------------|------------|-------------|
-| `page_source` | string | oui | build | Nom du fichier `.md` source dans `articles/` |
+| `page_source` | string | oui | build | Nom du fichier `.md` source dans `sources/` |
 | `page_dest` | string | non | build, index, nav | Nom du fichier HTML de sortie ; déduit de `page_source` si absent (§20.3.1) |
 | `page_title` | string | non | balise `<title>` de la page de l'article | Titre de la page HTML de l'article ; surcharge celui du bloc meta (§20.3.1) |
 | `page_desc` | string | non | `<meta name="description">` de la page | Description de la page (SEO/aperçu de partage) ; surcharge celle du bloc meta (§20.3.1) — jamais affichée dans l'interface visible |
@@ -6910,7 +6911,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
   `/etc/passwd` ou `../../.ssh/id_rsa` serait jointe telle quelle au
   répertoire attendu (`Path(dir) / valeur` ignore silencieusement `dir`
   quand `valeur` est un chemin absolu) et permettrait une lecture ou une
-  écriture de fichier arbitraire hors de `articles/`/`public/`.
+  écriture de fichier arbitraire hors de `sources/`/`public/`.
 - `page_source` doit se terminer par `.md` (insensible à la casse) et
   `page_dest` (une fois résolu, qu'il soit explicite ou déduit) par `.html`
   ou `.htm` (insensible à la casse) — erreur fatale sinon, avec le même
@@ -6924,7 +6925,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
   usage sans apport de sécurité, le risque visé (extension de sortie
   incohérente) étant identique pour toute extension qui n'est ni l'une ni
   l'autre.
-- `page_source` doit pointer vers un fichier qui existe dans `articles/` —
+- `page_source` doit pointer vers un fichier qui existe dans `sources/` —
   sinon **erreur fatale**, pour `build` comme pour `verify`, vérifiée en
   amont avant toute écriture (aucune sortie partielle). Un article
   volontairement absent du build a ses mécanismes dédiés : `status: draft`
@@ -7122,15 +7123,15 @@ versionné** (voir `.gitignore`) : c'est du vrai contenu éditorial personnel,
 pas une fixture de test destinée au dépôt public. `private/` ne contient pas
 directement les fichiers de la série : il héberge un répertoire de série à
 part entière, au sens de §2.2 (`serie/`, avec ses propres `series.json`,
-`articles/`, `public/`) — ce qui laisse la place, si besoin, à d'autres
+`sources/`, `public/`) — ce qui laisse la place, si besoin, à d'autres
 contenus privés sans les mélanger à la racine.
 
 - `private/series/series.json` — une entrée (YouTube) avec `series_meta`
-- `private/series/articles/youtube.md` — l'article au format Markdown
+- `private/series/sources/youtube.md` — l'article au format Markdown
   étendu (plusieurs fiches, navigation, article complet). Le compte n'est
   pas écrit : le fichier vit hors du dépôt, aucun script ne peut le
   vérifier, et un nombre invérifiable est un nombre qui dérive.
-- `private/series/articles/youtube_article.md` — l'article de fond inclus
+- `private/series/sources/youtube_article.md` — l'article de fond inclus
 
 Ce contenu sert de **vérité terrain informelle** pour valider le moteur de
 build en local. Le build doit produire un HTML équivalent au `youtube.html`

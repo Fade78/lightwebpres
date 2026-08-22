@@ -69,7 +69,7 @@ class ChromeBehaviour(unittest.TestCase):
         # slide to advance TO — a one-slide deck cannot show the
         # difference between "did not advance" and "had nowhere to go".
         root = parent / 'series'
-        (root / 'articles').mkdir(parents=True)
+        (root / 'sources').mkdir(parents=True)
         (root / 'series.json').write_text(json.dumps({
             'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
@@ -80,7 +80,7 @@ class ChromeBehaviour(unittest.TestCase):
         }), encoding='utf-8')
         # A cover with a summary long enough to drag across, then two more
         # slides to advance into.
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Chrome test\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c1\nkicker: C\n# Chrome test\n'
@@ -101,7 +101,7 @@ class ChromeBehaviour(unittest.TestCase):
             '## Fourth slide\nsummary: Behind a tag filter.\n',
             encoding='utf-8',
         )
-        (root / 'articles' / 'b.md').write_text(
+        (root / 'sources' / 'b.md').write_text(
             '<!-- lwp:meta -->\npage_dest: b.html\npage_title: Article B\n'
             'nav_title: B\nnav_desc: B\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c5\nkicker: C\n# Article B\n'

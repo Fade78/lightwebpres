@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.44.0"
+VERSION = "0.45.0"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -4482,7 +4482,7 @@ def series_style_context(templates_dir):
     """(layers, custom_css_text) for one series: the resolved-once part of
     composition, so a page carrying its own style.* properties can be
     recomposed without re-reading anything."""
-    # Realpath containment, the same guard articles/img/ and the `article:`
+    # Realpath containment, the same guard sources/img/ and the `article:`
     # field already carry. Both files are read and shipped -- custom.css
     # verbatim into every page's <style> -- so a symlink here turns a build
     # into a read primitive on anything the build user can open: a CI env
@@ -9456,7 +9456,7 @@ def escape_amps(text):
     return ''.join(parts)
 
 
-def md_inline(text, absorb_punct=False, inline_images=False, articles_dir=None):
+def md_inline(text, absorb_punct=False, inline_images=False, sources_dir=None):
     """Converts inline Markdown formatting to HTML."""
     # This function owns two control characters as internal placeholders
     # (U+0000 for code spans below, U+0002 for note calls). Neither is
@@ -9489,7 +9489,7 @@ def md_inline(text, absorb_punct=False, inline_images=False, articles_dir=None):
     text = escape_amps(text)
     # Inline images: `![alt](src)` anywhere in a line. Unlike links —
     # restricted to http(s) — the src may be a relative path (images
-    # live in articles/img/, copied to public/img/ at build). The tag
+    # live in sources/img/, copied to public/img/ at build). The tag
     # goes straight into a placeholder so the bold/italic/link rules
     # below can never rewrite its inside. Standalone image lines never
     # reach this point: convert_markdown() turns them into <figure>
@@ -9501,8 +9501,8 @@ def md_inline(text, absorb_punct=False, inline_images=False, articles_dir=None):
         # page is fully self-contained. If the file cannot be read, the
         # original src stays — a broken link is better than a silent
         # missing image (nothing inlined as nothing would hide the error).
-        if inline_images and articles_dir is not None:
-            encoded = _encode_inline_image(src, articles_dir)
+        if inline_images and sources_dir is not None:
+            encoded = _encode_inline_image(src, sources_dir)
             if encoded is not None:
                 src = encoded
         # The optional Markdown title becomes a title="" attribute (a
@@ -9718,7 +9718,7 @@ _CODE_FENCE_RE = re.compile(r'^```(\S*)$')
 # A standalone image line (§6.1): the whole line is `![alt](src)`, with
 # an optional quoted caption after the path. Unlike links — restricted
 # to http(s) — the src may be a relative path: images live in
-# articles/img/ and are copied to public/img/ at build time.
+# sources/img/ and are copied to public/img/ at build time.
 _FIGURE_LINE_RE = re.compile(r'^!\[([^\]]*)\]\(\s*([^)\s"]+)(?:\s+"([^"]*)")?\s*\)$')
 
 # The same line wrapped in an ordinary Markdown link: the figure becomes
@@ -9826,7 +9826,7 @@ def _is_paragraph_continuation(line, lines, idx, n):
 
 def convert_markdown(md_text, typo_engine=None, disabled=None,
                      notes=None, strings=None, absorb_punct=False,
-                     inline_images=False, articles_dir=None):
+                     inline_images=False, sources_dir=None):
     """Converts the Markdown body to HTML.
 
     `notes` is the NoteScope this text's notes belong to. A deferred scope
@@ -9835,14 +9835,14 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
     page. With no scope at all, the text is its own locality — which is
     what an ad-hoc conversion wants.
 
-    `absorb_punct` passes through to md_inline(inline_images=inline_images, articles_dir=articles_dir): when True, the simple
+    `absorb_punct` passes through to md_inline(inline_images=inline_images, sources_dir=sources_dir): when True, the simple
     punctuation that follows a **bold** run is absorbed into the mark so
     it is highlighted too (fact.strong.absorb-punct). Set only by the
     fact-box path.
 
     `inline_images` passes through to md_inline(): when True, image src
     paths are replaced with base64 data URIs (--inline-images). The
-    `articles_dir` is needed to resolve the `img/...` path."""
+    `sources_dir` is needed to resolve the `img/...` path."""
     lines = md_text.split('\n')
     out = []
     in_list = None
@@ -9920,28 +9920,28 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             continue
 
         if line.startswith('# ') and not line.startswith('## '):
-            out.append(f'  <h1>{md_inline(strip_ws(line[2:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h1>')
+            out.append(f'  <h1>{md_inline(strip_ws(line[2:]), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</h1>')
             i += 1
             continue
         if line.startswith('## ') and not line.startswith('### '):
             close_list()
-            out.append(f'  <h2>{md_inline(strip_ws(line[3:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h2>')
+            out.append(f'  <h2>{md_inline(strip_ws(line[3:]), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</h2>')
             i += 1
             continue
         if line.startswith('### ') and not line.startswith('#### '):
             close_list()
-            out.append(f'  <h3>{md_inline(strip_ws(line[4:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</h3>')
+            out.append(f'  <h3>{md_inline(strip_ws(line[4:]), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</h3>')
             i += 1
             continue
         if line.startswith('#### '):
             close_list()
-            out.append(f'  <p class="h4">{md_inline(strip_ws(line[5:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p>')
+            out.append(f'  <p class="h4">{md_inline(strip_ws(line[5:]), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</p>')
             i += 1
             continue
         if line.startswith('##### ') or line.startswith('###### '):
             close_list()
             level = 5 if line.startswith('##### ') else 6
-            out.append(f'  <p>{md_inline(strip_ws(line[level:]), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p>')
+            out.append(f'  <p>{md_inline(strip_ws(line[level:]), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</p>')
             i += 1
             continue
 
@@ -9956,8 +9956,8 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             src = html_escape(m_fig.group(2), quote=True)
             caption = m_fig.group(3)
             # --inline-images: same as mid-paragraph images above.
-            if inline_images and articles_dir is not None:
-                encoded = _encode_inline_image(src, articles_dir)
+            if inline_images and sources_dir is not None:
+                encoded = _encode_inline_image(src, sources_dir)
                 if encoded is not None:
                     src = encoded
             img = f'<img src="{src}" alt="{alt}">'
@@ -9971,7 +9971,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 href = html_escape(m_fig.group(4), quote=True)
                 img = f'<a href="{href}" target="_blank" rel="noopener">{img}</a>'
             if caption:
-                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</figcaption></figure>')
+                out.append(f'  <figure class="figure">{img}<figcaption class="figure-caption">{md_inline(caption, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</figcaption></figure>')
             else:
                 out.append(f'  <figure class="figure">{img}</figure>')
             i += 1
@@ -10001,7 +10001,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             while i < n and rstrip_ws(lines[i]).startswith('>'):
                 quote_lines.append(strip_ws(rstrip_ws(lines[i])[1:]))
                 i += 1
-            out.append(f'  <blockquote><p>{md_inline(" ".join(quote_lines), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p></blockquote>')
+            out.append(f'  <blockquote><p>{md_inline(" ".join(quote_lines), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</p></blockquote>')
             continue
 
         # Table
@@ -10012,7 +10012,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             out.append('    <thead>')
             out.append('      <tr>')
             for cell in header_cells:
-                out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</th>')
+                out.append(f'        <th>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</th>')
             out.append('      </tr>')
             out.append('    </thead>')
             out.append('    <tbody>')
@@ -10021,7 +10021,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                 row_cells = parse_table_row(lines[i])
                 out.append('      <tr>')
                 for cell in row_cells:
-                    out.append(f'        <td>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</td>')
+                    out.append(f'        <td>{md_inline(cell, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</td>')
                 out.append('      </tr>')
                 i += 1
             out.append('    </tbody>')
@@ -10064,7 +10064,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
                                                        lines, i, n):
                 item_lines.append(rstrip_ws(lines[i]).strip())
                 i += 1
-            out.append(f'    <li>{md_inline(" ".join(item_lines), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</li>')
+            out.append(f'    <li>{md_inline(" ".join(item_lines), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</li>')
             continue
 
         # A note body, wherever the author chose to write it.
@@ -10076,7 +10076,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             # written; it renders where its placement says (ARCHI-NOTES §2),
             # which is at the foot of this locality or in the page's notes
             # section. The scope is what carries it there.
-            scope.define(label, md_inline(txt, absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir))
+            scope.define(label, md_inline(txt, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir))
             i += 1
             continue
 
@@ -10089,7 +10089,7 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
         while i < n and _is_paragraph_continuation(rstrip_ws(lines[i]), lines, i, n):
             para_lines.append(rstrip_ws(lines[i]))
             i += 1
-        out.append(f'  <p>{md_inline(" ".join(para_lines), absorb_punct=absorb_punct, inline_images=inline_images, articles_dir=articles_dir)}</p>')
+        out.append(f'  <p>{md_inline(" ".join(para_lines), absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir)}</p>')
 
     close_list()
     # An unclosed BLOCK tag is not the same defect as an unclosed inline one.
@@ -10867,7 +10867,7 @@ def resolve_slide_page_numbers(meta, series_meta, source_name, args):
 
 def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                   disabled=None, notes=None, absorb_punct=False,
-                  inline_images=False, articles_dir=None, show_slide_num=False,
+                  inline_images=False, sources_dir=None, show_slide_num=False,
                   slide_id=None):
     """Generates the HTML for a slide.
 
@@ -10987,7 +10987,7 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                                             disabled, slide_notes, strings,
                                             absorb_punct=absorb_punct,
                                             inline_images=inline_images,
-                                            articles_dir=articles_dir)
+                                            sources_dir=sources_dir)
             if slide.fact_label:
                 label = apply_typo(typo_engine, escape_amps(slide.fact_label), disabled)
                 fact_classes = 'fact-box'
@@ -11475,7 +11475,7 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, articles_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -11558,7 +11558,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                 strings, disabled_rules, slide_notes,
                                 absorb_punct=absorb_punct,
                                 inline_images=inline_images,
-                                articles_dir=articles_dir,
+                                sources_dir=sources_dir,
                                 show_slide_num=show_slide_num,
                                 slide_id=identities[i - 1])
             slide_htmls.append(html)
@@ -11597,12 +11597,12 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
         if slide.slide_type == 'full-article' and slide.article_file:
             # Realpath containment on top of the name-shape guard: the
             # name check already ran at parse time, but a bare name that
-            # is a symlink pointing outside articles/ passes it and would
+            # is a symlink pointing outside sources/ passes it and would
             # otherwise be read and embedded verbatim into the page.
-            article_path = _resolve_contained(articles_dir, slide.article_file)
+            article_path = _resolve_contained(sources_dir, slide.article_file)
             if article_path is None:
                 log('error', f'{source_path.name}: article file "{slide.article_file}" '
-                      f'resolves outside articles/ (symlink or traversal).')
+                      f'resolves outside sources/ (symlink or traversal).')
                 sys.exit(1)
             if not article_path.exists():
                 log('error', f'{source_path.name}: article file not found: '
@@ -11631,7 +11631,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                    tooltip=notes_tooltip))
                 slide_typo_engine = typo_engine_for_slide(
                     slide, article_typo_engine, article_lang_tag_engines)
-                # inline_images/articles_dir travel here too. Omitting them
+                # inline_images/sources_dir travel here too. Omitting them
                 # was not a missing feature but a broken promise: the images
                 # of a `full-article` include kept a relative src while
                 # `public/img/` was deliberately not copied, so the one
@@ -11641,7 +11641,7 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
                                                 disabled_rules, article_notes,
                                                 strings,
                                                 inline_images=inline_images,
-                                                articles_dir=articles_dir)
+                                                sources_dir=sources_dir)
             except PropertyError as exc:
                 log('error', f'{slide.article_file}: {exc}')
                 sys.exit(1)
@@ -11778,11 +11778,11 @@ def build_article(source_path, articles_dir, series_data, current_file, css, nav
     return html
 
 
-def _encode_inline_image(src, articles_dir):
+def _encode_inline_image(src, sources_dir):
     """Encodes an image file as a base64 data URI for --inline-images.
 
     `src` is the path as written in the Markdown (`img/foo.png`), resolved
-    against `articles_dir` (where the img/ directory lives). Returns the
+    against `sources_dir` (where the img/ directory lives). Returns the
     data URI string, or None if the file cannot be read — in which case
     the caller leaves the original `src` in place so the broken link is
     visible (a missing image inlined as nothing would hide the error).
@@ -11799,7 +11799,7 @@ def _encode_inline_image(src, articles_dir):
     threat. Refused and warned rather than fatal, to match that guard: a
     series that builds with a warning must not become unbuildable because
     of the flag that packages it."""
-    contained = _resolve_contained(articles_dir, src)
+    contained = _resolve_contained(sources_dir, src)
     if contained is None:
         # Same shape as copy_images' sibling warning. The level is 'warn',
         # and the spelling is the whole of it: an unknown level is DROPPED
@@ -11831,14 +11831,14 @@ def symlink_escapes(entry, root):
     return target == root or root not in target.parents
 
 
-def audit_image_symlinks(articles_dir):
+def audit_image_symlinks(sources_dir):
     """Warns about image symlinks that escape img/, without copying anything.
 
     `copy_images` raises this warning too, but only while writing, so
     `audit` never saw it: the finding is about the SOURCES an author
     committed, not about the act of copying, and it belongs where an
     author asks what is wrong with their series."""
-    img_src = articles_dir / 'img'
+    img_src = sources_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
         return 0
     root = img_src.resolve()
@@ -11851,7 +11851,7 @@ def audit_image_symlinks(articles_dir):
     return found
 
 
-def copy_images(articles_dir, output_dir):
+def copy_images(sources_dir, output_dir):
     """Copies the img/ directory if it exists.
 
     Merges into an existing img_dst (dirs_exist_ok) instead of wiping it
@@ -11871,7 +11871,7 @@ def copy_images(articles_dir, output_dir):
     so an image deleted from the source stayed declared by every later
     build, never reached the orphan list, and stayed published forever —
     including a photograph withdrawn on purpose."""
-    img_src = articles_dir / 'img'
+    img_src = sources_dir / 'img'
     img_dst = output_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
         return []
@@ -11991,7 +11991,7 @@ def validate_series(articles):
     KeyError instead of a clear message, or (page_source being joined
     into a real filesystem path with no other containment check) a
     malicious or LLM-mangled entry reads an arbitrary file outside
-    articles/ (Path(dir) / value silently ignores `dir` when `value` is
+    sources/ (Path(dir) / value silently ignores `dir` when `value` is
     an absolute path).
 
     `page_dest` is NOT required here (§20.3.1) — it resolves later, once
@@ -12150,7 +12150,7 @@ def _read_article_source(path):
         return None
 
 
-def resolve_article_fields(articles, articles_dir, series_meta=None):
+def resolve_article_fields(articles, sources_dir, series_meta=None):
     """Resolves `page_dest` and the display/editorial fields for every
     entry, per §20.3.1. Mutates each entry in place so downstream
     renderers (build_article, build_series_nav, build_index,
@@ -12213,7 +12213,7 @@ def resolve_article_fields(articles, articles_dir, series_meta=None):
     series_meta = series_meta or {}
     resolution = []
     for entry in articles:
-        text = _read_article_source(articles_dir / entry['page_source'])
+        text = _read_article_source(sources_dir / entry['page_source'])
         meta, slides = {}, []
         if text is not None:
             meta, slides, _, _ = parse_markdown_extended(text)
@@ -12386,7 +12386,7 @@ def resolve_paths(series_dir, args):
     """Resolves paths from environment variables and arguments."""
     sd = Path(series_dir).resolve()
 
-    articles_dir = Path(os.environ.get('LWP_ARTICLES_DIR', sd / 'articles'))
+    sources_dir = Path(os.environ.get('LWP_SOURCES_DIR', sd / 'sources'))
     templates_dir = Path(os.environ.get('LWP_TEMPLATES_DIR', sd / 'templates'))
     lang_dir = Path(os.environ.get('LWP_LANGUAGE_DIR', sd / 'language'))
     output_dir = Path(args.get('--output', os.environ.get('LWP_OUTPUT_DIR', sd / 'public')))
@@ -12397,7 +12397,7 @@ def resolve_paths(series_dir, args):
         sys.exit(1)
     language_file = args.get('--language-file')
 
-    return sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file
+    return sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file
 
 
 # Matches build_stamp_html()'s own output exactly (a single, entirely
@@ -12518,7 +12518,7 @@ def load_build_context(series_dir, args):
     guarantee that a source's existing spacing (including any
     non-breaking space already in it) reaches the output completely
     unchanged, not just that the new rules stay quiet."""
-    sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+    sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
 
     language_pack = load_language(lang_dir, lang, language_file)
     typo_engine = None if args.get('--no-typography') else TypoEngine(language_pack)
@@ -12594,7 +12594,7 @@ def load_build_context(series_dir, args):
         series_meta, lang_dir, lang, typo_engine)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
-    resolve_article_fields(articles, articles_dir, series_meta)
+    resolve_article_fields(articles, sources_dir, series_meta)
 
     # Two filters, and they are not the same rule (§20.6).
     #
@@ -12640,19 +12640,19 @@ def load_build_context(series_dir, args):
     # here, before anything is written, also means no partial output.
     # _resolve_contained, not a bare join: the name-shape check at parse time
     # rejects `..` and separators, but a plain name that IS a symlink out of
-    # articles/ passes it and gets read and published. §22.9 already promises
-    # this pairing for articles/; page_source was the one field without it.
+    # sources/ passes it and gets read and published. §22.9 already promises
+    # this pairing for sources/; page_source was the one field without it.
     missing = [e['page_source'] for e in articles
-               if _resolve_contained(articles_dir, e['page_source']) is None
-               or not (articles_dir / e['page_source']).exists()]
+               if _resolve_contained(sources_dir, e['page_source']) is None
+               or not (sources_dir / e['page_source']).exists()]
     if missing:
         for name in missing:
-            log('error', f'Source not found: {articles_dir / name} '
+            log('error', f'Source not found: {sources_dir / name} '
                   f'(listed in series.json).')
         sys.exit(1)
 
     return SimpleNamespace(
-        sd=sd, articles_dir=articles_dir, templates_dir=templates_dir,
+        sd=sd, sources_dir=sources_dir, templates_dir=templates_dir,
         lang_dir=lang_dir, output_dir=output_dir, lang=lang,
         language_file=language_file, typo_engine=typo_engine,
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
@@ -12744,7 +12744,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         log('error', f'--only {only_file!r} matches no article (by file or source).')
         sys.exit(1)
 
-    source_path = ctx.articles_dir / entry['page_source']
+    source_path = ctx.sources_dir / entry['page_source']
     if not source_path.exists():
         log('error', f'Source not found: {source_path}')
         sys.exit(1)
@@ -12753,7 +12753,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     progress(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
+    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -12781,7 +12781,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     # img/ directory is not copied to the output.
     images = []
     if not ctx.args.get('--inline-images'):
-        images = copy_images(ctx.articles_dir, ctx.output_dir)
+        images = copy_images(ctx.sources_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
     _write_manifest(ctx.output_dir, ctx.articles,
@@ -13040,7 +13040,7 @@ def cmd_clean(series_dir, args):
     # clean aimed there by --output or LWP_OUTPUT_DIR would be operating on
     # a directory full of sources. `init` refuses a non-empty directory
     # without --force; the command that DELETES had no equivalent check.
-    for marker in ('series.json', 'articles', 'templates'):
+    for marker in ('series.json', 'sources', 'templates'):
         if (output_dir / marker).exists():
             log('error', f'{output_dir} holds `{marker}`, so it is a series '
                 f'directory and not a build output. Refusing to clean it: '
@@ -13163,9 +13163,9 @@ def cmd_watch(series_dir, args):
 
     # Gather the sources to poll.
     sources = []
-    articles_dir = sd / 'articles'
-    if articles_dir.is_dir():
-        sources.extend(p for p in articles_dir.rglob('*.md') if p.is_file())
+    sources_dir = sd / 'sources'
+    if sources_dir.is_dir():
+        sources.extend(p for p in sources_dir.rglob('*.md') if p.is_file())
     series_json = sd / 'series.json'
     if series_json.exists():
         sources.append(series_json)
@@ -13236,7 +13236,7 @@ def cmd_build(series_dir, args):
         log('info', f'--only requested but not safe ({reason}) — doing a full build instead.')
 
     progress(f'Build: {ctx.sd}')
-    progress(f'  Articles: {ctx.articles_dir}')
+    progress(f'  Articles: {ctx.sources_dir}')
     progress(f'  Output: {ctx.output_dir}')
     progress(f'  Lang: {ctx.lang}')
 
@@ -13263,10 +13263,10 @@ def cmd_build(series_dir, args):
     for entry in articles_to_build:
         source_file = entry['page_source']
         output_file = entry['page_dest']
-        source_path = ctx.articles_dir / source_file
+        source_path = ctx.sources_dir / source_file
 
         progress(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.articles_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
+        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -13294,7 +13294,7 @@ def cmd_build(series_dir, args):
     # base64 data URIs, so the img/ directory is not copied to the output).
     images = []
     if not args.get('--inline-images'):
-        images = copy_images(ctx.articles_dir, ctx.output_dir)
+        images = copy_images(ctx.sources_dir, ctx.output_dir)
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
 
@@ -13356,8 +13356,8 @@ def cmd_check(series_dir, args):
             diff_count += 1
 
     for entry in ctx.articles:
-        source_path = ctx.articles_dir / entry['page_source']
-        generated = build_article(source_path, ctx.articles_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines)
+        source_path = ctx.sources_dir / entry['page_source']
+        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -13579,7 +13579,7 @@ def unrendered_field_markup(slides):
     return found
 
 
-def audit_notes(entry, meta, series_meta, slides, articles_dir):
+def audit_notes(entry, meta, series_meta, slides, sources_dir):
     """The three ways a note can be broken without the build noticing
     (ARCHI-NOTES §4). None of them is fatal: the input contract does not
     break over an editorial slip, and this is the command that exists for
@@ -13604,7 +13604,7 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir):
                 localities.append(('the page', scope, slide.fact_content))
         for slide in slides:
             if slide.slide_type == 'full-article' and slide.article_file:
-                path = _resolve_contained(articles_dir, slide.article_file)
+                path = _resolve_contained(sources_dir, slide.article_file)
                 if path is not None and path.exists():
                     text = audit_read(path)
                     if text is not None:
@@ -13615,7 +13615,7 @@ def audit_notes(entry, meta, series_meta, slides, articles_dir):
                 localities.append((f'slide {i}', NoteScope(f's{i}'), slide.fact_content))
         for slide in slides:
             if slide.slide_type == 'full-article' and slide.article_file:
-                path = _resolve_contained(articles_dir, slide.article_file)
+                path = _resolve_contained(sources_dir, slide.article_file)
                 if path is not None and path.exists():
                     text = audit_read(path)
                     if text is not None:
@@ -13839,7 +13839,7 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
         for entry in ctx.articles:
             try:
                 build_article(
-                    ctx.articles_dir / entry['page_source'], ctx.articles_dir,
+                    ctx.sources_dir / entry['page_source'], ctx.sources_dir,
                     ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js,
                     ctx.typo_engine, ctx.strings, ctx.lang,
                     style_context=ctx.style_context,
@@ -14139,7 +14139,7 @@ def judge_resolved_theme(resolved):
             sorted(worst.items(), key=lambda item: item[1][0])]
 
 
-def audit_resolved_theme(templates_dir, articles, articles_dir):
+def audit_resolved_theme(templates_dir, articles, sources_dir):
     """Judges the sheet the series actually composes, series then article.
 
     The other checks in `audit` read the source; this one reads the RESULT
@@ -14184,7 +14184,7 @@ def audit_resolved_theme(templates_dir, articles, articles_dir):
 
     already = {key for key, _ in series_findings}
     for entry in articles:
-        source_path = articles_dir / entry['page_source']
+        source_path = sources_dir / entry['page_source']
         if not source_path.exists():
             continue
         try:
@@ -14220,7 +14220,7 @@ def cmd_audit(series_dir, args):
     responsibility.
     """
     _AUDIT_UNREADABLE.clear()
-    sd, articles_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+    sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
@@ -14236,7 +14236,7 @@ def cmd_audit(series_dir, args):
     # audit is an authoring tool, and work in progress is exactly what it
     # should look at.
     validate_series(articles)
-    resolve_article_fields(articles, articles_dir, series_meta)
+    resolve_article_fields(articles, sources_dir, series_meta)
 
     warnings = 0
     # Set when this pass has already named, article by article, something
@@ -14259,7 +14259,7 @@ def cmd_audit(series_dir, args):
                   f"listed, never counted.")
 
     for entry in articles:
-        source_path = articles_dir / entry['page_source']
+        source_path = sources_dir / entry['page_source']
         if not source_path.exists():
             log('error', f'{entry["page_dest"]}: page_source not found ({source_path})')
             # Counted, or the summary contradicts the line above it -- the
@@ -14290,7 +14290,7 @@ def cmd_audit(series_dir, args):
         # tag family is worse than no census.
         census_text = md_text
         for name in re.findall(r'^\s*article:\s*(\S+)\s*$', md_text, re.M):
-            extra = _resolve_contained(articles_dir, name)
+            extra = _resolve_contained(sources_dir, name)
             if extra is not None and extra.exists():
                 census_text += '\n' + (audit_read(extra) or '')
         instance_tags = re.findall(
@@ -14324,7 +14324,7 @@ def cmd_audit(series_dir, args):
                   f'text below it (§6.1).')
 
         warnings += audit_notes(entry, meta, series_meta, slides,
-                                articles_dir)
+                                sources_dir)
 
         # §20.3.1: page_desc resolves to '' only when no description
         # exists at ANY level (series.json, meta block, cover summary) —
@@ -14338,7 +14338,7 @@ def cmd_audit(series_dir, args):
             warnings += 1
 
     warnings += audit_presentation(templates_dir)
-    warnings += audit_resolved_theme(templates_dir, articles, articles_dir)
+    warnings += audit_resolved_theme(templates_dir, articles, sources_dir)
 
     # What only a render can say (BACKLOG B19/B24).
     #
@@ -14359,7 +14359,7 @@ def cmd_audit(series_dir, args):
     # trade the owner made explicitly: a build is fast on a human scale, a
     # missed audit is not cheap.
     if not args.get('--templates'):
-        warnings += audit_image_symlinks(articles_dir)
+        warnings += audit_image_symlinks(sources_dir)
         warnings += audit_by_rendering(series_dir, args, named_the_cause)
 
     if warnings == 0:
@@ -14536,7 +14536,7 @@ def cmd_install(target_dir, args):
         sys.exit(1)
 
     # Create the directories
-    _mkdir(td / 'articles', parents=True, exist_ok=True)
+    _mkdir(td / 'sources', parents=True, exist_ok=True)
     _mkdir(td / 'templates', exist_ok=True)
     _mkdir(td / 'language', exist_ok=True)
     _mkdir(td / 'public', exist_ok=True)
@@ -14611,7 +14611,7 @@ def cmd_install(target_dir, args):
     progress(f'Installed: {td}')
     if theme_key:
         progress(f'  theme: {THEMES[theme_key]["label"]}')
-    progress(f'  articles/   — your .md files')
+    progress(f'  sources/   — your .md files')
     progress(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
     progress(f'              {CUSTOM_CSS_FILENAME} (your own rules)')
     progress(f'  language/   — empty: the typography rules and interface '
@@ -14626,7 +14626,7 @@ def cmd_install(target_dir, args):
         progress('No .gitlab-ci.yml (opt-in only — pass --gitlab-ci to install one).')
     progress()
     progress('Next steps:')
-    progress(f'  1. Create articles in {td}/articles/')
+    progress(f'  1. Create articles in {td}/sources/')
     progress(f'  2. Add entries to {td}/series.json')
     progress(f'  3. Run: lightwebpres build {td}')
     progress()
@@ -15298,7 +15298,7 @@ def cmd_series_slug(series_dir, args):
     if fmt not in ('text', 'json'):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
-    sd, articles_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
+    sd, sources_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     articles = (series_data.get('articles', series_data)
                 if isinstance(series_data, dict) else series_data)
@@ -15308,7 +15308,7 @@ def cmd_series_slug(series_dir, args):
               'target': {'kind': 'series', 'directory': str(sd)},
               'articles': []}
     for entry in articles:
-        source = articles_dir / entry['page_source']
+        source = sources_dir / entry['page_source']
         try:
             text = read_text_file(source)
         except OSError:
@@ -15360,7 +15360,7 @@ def cmd_assign_slug(series_dir, args):
     Never touches a card that already has one — including a `slug:` line
     the author left empty, which is a decision in progress, not an
     absence. `--dry-run` says what it would write and writes nothing."""
-    sd, articles_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
+    sd, sources_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     articles = (series_data.get('articles', series_data)
                 if isinstance(series_data, dict) else series_data)
@@ -15368,7 +15368,7 @@ def cmd_assign_slug(series_dir, args):
     dry_run = bool(args.get('--dry-run'))
     written = 0
     for entry in articles:
-        source = articles_dir / entry['page_source']
+        source = sources_dir / entry['page_source']
         try:
             text = read_text_file(source)
         except OSError as exc:
@@ -15651,7 +15651,7 @@ def cmd_series_info(series_dir, args):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
 
-    sd, articles_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
+    sd, sources_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     articles = (series_data.get('articles', series_data)
@@ -15660,7 +15660,7 @@ def cmd_series_info(series_dir, args):
     # Drafts are NOT filtered out: an article kept out of the build is
     # still in the series, and a consumer must be able to show it as such
     # rather than have it vanish (§11.11).
-    resolution = resolve_article_fields(articles, articles_dir, series_meta)
+    resolution = resolve_article_fields(articles, sources_dir, series_meta)
 
     try:
         theme = series_theme(templates_dir)
@@ -15675,7 +15675,7 @@ def cmd_series_info(series_dir, args):
     # and this command is not a second `check`.
     for article in report['articles']:
         if not article['source_read']:
-            log('warn', f'{articles_dir / article["page_source"]} could not be '
+            log('warn', f'{sources_dir / article["page_source"]} could not be '
                   f'read (absent, unreadable, or not UTF-8): its fields fall '
                   f'back to series.json and the defaults.')
 
@@ -15941,7 +15941,7 @@ def resolve_article_field(name, entry, note):
     return {'value': entry[name], 'source': note['origins'][name], 'chain': chain}
 
 
-def survey_slide_field(name, articles, articles_dir, only):
+def survey_slide_field(name, articles, sources_dir, only):
     """Where a slide-level field is actually set, across the series.
 
     A slide field has no cascade: it is written on a slide or it is not.
@@ -15955,7 +15955,7 @@ def survey_slide_field(name, articles, articles_dir, only):
         source = entry['page_source']
         if only and source != only:
             continue
-        text = _read_article_source(articles_dir / source)
+        text = _read_article_source(sources_dir / source)
         if text is None:
             unread.append(source)
             continue
@@ -16041,7 +16041,7 @@ def cmd_resolve(series_dir, name, args):
               f'field, one with a hyphen a slide field (§20.0).')
         sys.exit(1)
 
-    sd, articles_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
+    sd, sources_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     articles = (series_data.get('articles', series_data)
@@ -16060,7 +16060,7 @@ def cmd_resolve(series_dir, name, args):
 
     article_meta, unread = None, []
     if only is not None:
-        text = _read_article_source(articles_dir / only)
+        text = _read_article_source(sources_dir / only)
         if text is None:
             unread.append(only)
         else:
@@ -16088,7 +16088,7 @@ def cmd_resolve(series_dir, name, args):
                       f'hyphenated, §20.0); no slide field has that name. The '
                       f'ones that resolve are: {", ".join(known)}.')
                 sys.exit(1)
-            resolution, unread = survey_slide_field(name, articles, articles_dir, only)
+            resolution, unread = survey_slide_field(name, articles, sources_dir, only)
         elif name in _NOTES_FIELD_DEFAULTS:
             resolution = resolve_notes_field(name, series_meta, article_meta)
         elif name == 'slide_page_numbers':
@@ -16110,7 +16110,7 @@ def cmd_resolve(series_dir, name, args):
                 for entry in articles:
                     log('error', f'  {entry["page_source"]}')
                 sys.exit(1)
-            notes = resolve_article_fields(articles, articles_dir, series_meta)
+            notes = resolve_article_fields(articles, sources_dir, series_meta)
             index = next(i for i, e in enumerate(articles)
                          if e['page_source'] == only)
             resolution = resolve_article_field(name, articles[index], notes[index])
@@ -16133,7 +16133,7 @@ def cmd_resolve(series_dir, name, args):
     # stderr, so `--format json` stays one JSON document on stdout, and
     # exit 0, for the reason §11.11 gives: this is not a second `check`.
     for source in unread:
-        log('warn', f'{articles_dir / source} could not be read (absent, '
+        log('warn', f'{sources_dir / source} could not be read (absent, '
               f'unreadable, or not UTF-8): the levels it would have carried '
               f'are missing from the answer.')
 
@@ -16385,13 +16385,13 @@ def cmd_demo(target_dir, args):
         log('error', f'{td} has not been init\'d. Run first: lightwebpres init {td}')
         sys.exit(1)
 
-    articles_dir = td / 'articles'
+    sources_dir = td / 'sources'
 
     demo_filenames = ['first.md', 'first_article.md', 'middle.md', 'middle_article.md',
                        'last.md', 'last_article.md', 'img/demo-figure.svg']
-    existing = [f for f in demo_filenames if (articles_dir / f).exists()]
+    existing = [f for f in demo_filenames if (sources_dir / f).exists()]
     if existing:
-        log('error', f'{td}/articles already has demo file(s): {", ".join(existing)}. '
+        log('error', f'{td}/sources already has demo file(s): {", ".join(existing)}. '
               f'Remove them first, or run demo in an empty series.')
         sys.exit(1)
 
@@ -16601,14 +16601,14 @@ This is the full article for the third demo article [^1].
 '''
 
     # Write the files
-    _write_file(articles_dir / 'first.md', demo1)
-    _mkdir(articles_dir / 'img', exist_ok=True)
-    _write_file(articles_dir / 'img' / 'demo-figure.svg', demo_figure_svg)
-    _write_file(articles_dir / 'first_article.md', demo1_article)
-    _write_file(articles_dir / 'middle.md', demo2)
-    _write_file(articles_dir / 'middle_article.md', demo2_article)
-    _write_file(articles_dir / 'last.md', demo3)
-    _write_file(articles_dir / 'last_article.md', demo3_article)
+    _write_file(sources_dir / 'first.md', demo1)
+    _mkdir(sources_dir / 'img', exist_ok=True)
+    _write_file(sources_dir / 'img' / 'demo-figure.svg', demo_figure_svg)
+    _write_file(sources_dir / 'first_article.md', demo1_article)
+    _write_file(sources_dir / 'middle.md', demo2)
+    _write_file(sources_dir / 'middle_article.md', demo2_article)
+    _write_file(sources_dir / 'last.md', demo3)
+    _write_file(sources_dir / 'last_article.md', demo3_article)
 
     # Update series.json — series_meta carries author/license so the demo
     # exercises the series-wide editorial defaults and their footers.
@@ -16631,7 +16631,7 @@ This is the full article for the third demo article [^1].
 
     progress(f'Demo created: {td}')
     progress('  3 articles (first, middle, last) with full articles')
-    progress('  1 demo image with a caption (articles/img/demo-figure.svg)')
+    progress('  1 demo image with a caption (sources/img/demo-figure.svg)')
 
     # Run the build
     progress()
@@ -16972,7 +16972,7 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
   the composed stylesheet so your rules win ties.
 
 ENVIRONMENT VARIABLES
-  LWP_ARTICLES_DIR    Articles directory (default: $LWP_SERIES_DIR/articles)
+  LWP_SOURCES_DIR    Articles directory (default: $LWP_SERIES_DIR/sources)
   LWP_TEMPLATES_DIR   Templates directory (default: $LWP_SERIES_DIR/templates)
   LWP_OUTPUT_DIR      Output directory (default: $LWP_SERIES_DIR/public)
   LWP_LANG            Language (default: fr)
@@ -16983,8 +16983,8 @@ ENVIRONMENT VARIABLES
 SERIES DIRECTORY
   Written by `init`:
   series.json          List of articles + series metadata
-  articles/            One .md file per article (+ *_article.md for the full
-                        article); put images in articles/img/ and the build
+  sources/            One .md file per article (+ *_article.md for the full
+                        article); put images in sources/img/ and the build
                         copies them to public/img/
   templates/            settings.conf (your pinned values) and custom.css
                         (your rules) — those two are yours, and nothing but

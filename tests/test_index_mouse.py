@@ -71,7 +71,7 @@ class IndexMouse(unittest.TestCase):
         served.mkdir()
 
         series = root / 'series'
-        (series / 'articles').mkdir(parents=True)
+        (series / 'sources').mkdir(parents=True)
         (series / 'series.json').write_text(json.dumps({
             'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
@@ -83,7 +83,7 @@ class IndexMouse(unittest.TestCase):
             ],
         }), encoding='utf-8')
         for letter in ('a', 'b', 'c'):
-            (series / 'articles' / ('%s.md' % letter)).write_text(
+            (series / 'sources' / ('%s.md' % letter)).write_text(
                 '<!-- lwp:meta -->\npage_dest: %s.html\npage_title: Article %s\n'
                 'nav_title: %s\nnav_desc: %s\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: c%s\nkicker: C\n# Article %s\n'

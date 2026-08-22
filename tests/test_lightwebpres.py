@@ -62,8 +62,8 @@ def contrast_ratio(hex_a, hex_b):
 def scaffold(tmp, article_md, series_extra=None, source_name='a.md', file_name='a.html'):
     """Creates a minimal single-article series and returns its path."""
     root = Path(tmp)
-    (root / 'articles').mkdir(parents=True, exist_ok=True)
-    (root / 'articles' / source_name).write_text(article_md, encoding='utf-8')
+    (root / 'sources').mkdir(parents=True, exist_ok=True)
+    (root / 'sources' / source_name).write_text(article_md, encoding='utf-8')
     entry = {'page_dest': file_name, 'page_source': source_name, 'nav_title': 'A', 'nav_desc': 'A'}
     if series_extra:
         entry.update(series_extra)
@@ -341,8 +341,8 @@ class FatalErrorCases(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art1.md').write_text('CONTENT ONE\n', encoding='utf-8')
-            (root / 'articles' / 'art2.md').write_text('CONTENT TWO\n', encoding='utf-8')
+            (root / 'sources' / 'art1.md').write_text('CONTENT ONE\n', encoding='utf-8')
+            (root / 'sources' / 'art2.md').write_text('CONTENT TWO\n', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -366,9 +366,9 @@ class FatalErrorCases(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art1.md').write_text(
+            (root / 'sources' / 'art1.md').write_text(
                 'One[^a].\n\n[^a]: First body.\n', encoding='utf-8')
-            (root / 'articles' / 'art2.md').write_text(
+            (root / 'sources' / 'art2.md').write_text(
                 'Two[^b].\n\n[^b]: Second body.\n', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -389,7 +389,7 @@ class FatalErrorCases(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art1.md').write_text(
+            (root / 'sources' / 'art1.md').write_text(
                 'One[^a].\n\n[^a]: First body.\n', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -447,13 +447,13 @@ class FatalErrorCases(unittest.TestCase):
     def test_series_json_rejects_duplicate_file_field(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             md = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k24\nkicker: T\n# Title\n'
             )
-            (root / 'articles' / 'a1.md').write_text(md, encoding='utf-8')
-            (root / 'articles' / 'a2.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a1.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a2.md').write_text(md, encoding='utf-8')
             series = {'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a1.md', 'nav_title': 'A1', 'nav_desc': 'A1'},
                 {'page_dest': 'a.html', 'page_source': 'a2.md', 'nav_title': 'A2', 'nav_desc': 'A2'},
@@ -721,8 +721,8 @@ class AuditCommand(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir(parents=True)
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources').mkdir(parents=True)
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(
                 json.dumps({'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
             result = run('audit', str(root))
@@ -818,8 +818,8 @@ class JsonTypeConfusion(unittest.TestCase):
 
     def _build_series(self, tmp, series_obj):
         root = Path(tmp)
-        (root / 'articles').mkdir()
-        (root / 'articles' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
+        (root / 'sources').mkdir()
+        (root / 'sources' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
         (root / 'series.json').write_text(json.dumps(series_obj), encoding='utf-8')
         return run('build', str(root), '--output', str(root / 'public'))
 
@@ -858,7 +858,7 @@ class JsonTypeConfusion(unittest.TestCase):
     def test_deeply_nested_json_is_clean_error_not_recursionerror(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             (root / 'series.json').write_text('[' * 100000 + ']' * 100000, encoding='utf-8')
             r = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(r.returncode, 0)
@@ -1051,9 +1051,9 @@ class CheckIncludeDrafts(unittest.TestCase):
 
     def _series_with_draft(self, tmp):
         root = Path(tmp)
-        (root / 'articles').mkdir()
-        (root / 'articles' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
-        (root / 'articles' / 'b.md').write_text(
+        (root / 'sources').mkdir()
+        (root / 'sources' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
+        (root / 'sources' / 'b.md').write_text(
             _MINIMAL_MD.replace('a.html', 'b.html'), encoding='utf-8')
         (root / 'series.json').write_text(json.dumps({'articles': [
             {'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
@@ -1176,7 +1176,7 @@ class Axis4MarkdownGaps(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art.md').write_text(body, encoding='utf-8')
+            (root / 'sources' / 'art.md').write_text(body, encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             assert result.returncode == 0, result.stderr
             return (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -1274,8 +1274,8 @@ class Axis4CommandGaps(unittest.TestCase):
             run('init', str(root), '--lang', 'en')
             result = run('demo', str(root), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue((root / 'articles' / 'img' / 'demo-figure.svg').exists())
-            first = (root / 'articles' / 'first.md').read_text(encoding='utf-8')
+            self.assertTrue((root / 'sources' / 'img' / 'demo-figure.svg').exists())
+            first = (root / 'sources' / 'first.md').read_text(encoding='utf-8')
             self.assertIn('date:', first)
             self.assertIn('comment:', first)
             self.assertIn('Demo site generated in public/', result.stdout)
@@ -1285,7 +1285,7 @@ class Axis4CommandGaps(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
             run('build', str(root), '--output', str(root / 'public'))
-            (root / 'articles' / 'a.md').write_text(
+            (root / 'sources' / 'a.md').write_text(
                 md.replace('Original.', 'Changed.'), encoding='utf-8')
             result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 1)
@@ -1302,8 +1302,8 @@ class Axis4CommandGaps(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
-            (root / 'articles' / 'b.md').write_text(md_no_cover, encoding='utf-8')
+            (root / 'sources').mkdir()
+            (root / 'sources' / 'b.md').write_text(md_no_cover, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_source': 'b.md'},
             ]}), encoding='utf-8')
@@ -1356,7 +1356,7 @@ class Axis4CommandGaps(unittest.TestCase):
     def test_empty_string_page_source_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_source': ''},
             ]}), encoding='utf-8')
@@ -1570,7 +1570,7 @@ class SlideTypesAreARegistry(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'a_article.md').write_text(
+            (root / 'sources' / 'a_article.md').write_text(
                 '## Long form\n\nA paragraph.\n', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -1626,13 +1626,13 @@ class AnAutolinkIsRefusedByName(unittest.TestCase):
 
     def _build(self, tmp, body):
         root = Path(tmp) / 'series'
-        (root / 'articles').mkdir(parents=True)
+        (root / 'sources').mkdir(parents=True)
         (root / 'series.json').write_text(json.dumps(
             {'series_meta': {'title': 'T'},
              'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
                            'nav_title': 'A', 'nav_desc': 'A'}]}),
             encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k57\nkicker: K\n# T\nsummary: S\n\n'
@@ -1737,7 +1737,7 @@ class OneRuleForTheAmpersand(unittest.TestCase):
 
     def _series(self, tmp):
         root = Path(tmp) / 'series'
-        (root / 'articles').mkdir(parents=True)
+        (root / 'sources').mkdir(parents=True)
         meta = {'title': f'T {self.PAYLOAD}', 'subtitle': f'S {self.PAYLOAD}',
                 'intro': f'I {self.PAYLOAD}', 'author': f'A {self.PAYLOAD}',
                 'license': f'L {self.PAYLOAD}', 'version': 'v1'}
@@ -1753,7 +1753,7 @@ class OneRuleForTheAmpersand(unittest.TestCase):
             encoding='utf-8')
         # Every slide field that renders, on the types that render it.
         for name in ('a.md', 'b.md'):
-            (root / 'articles' / name).write_text(
+            (root / 'sources' / name).write_text(
                 f'<!-- lwp:meta -->\n'
                 f'page_dest: {name[0]}.html\n'
                 f'page_title: PT {self.PAYLOAD}\n'
@@ -1824,13 +1824,13 @@ class OneRuleForTheAmpersand(unittest.TestCase):
         `&amp;amp;`, which is a dead link."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            (root / 'articles').mkdir(parents=True)
+            (root / 'sources').mkdir(parents=True)
             (root / 'series.json').write_text(json.dumps(
                 {'series_meta': {'title': 'T'},
                  'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
                                'nav_title': 'A', 'nav_desc': 'A'}]}),
                 encoding='utf-8')
-            (root / 'articles' / 'a.md').write_text(
+            (root / 'sources' / 'a.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
                 'nav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k62\nkicker: K\n# T\nsummary: S\n\n'
@@ -1880,7 +1880,7 @@ class SeriesNavFullArticleStrictContent(unittest.TestCase):
         )
         root = scaffold(tmp, md)
         for name, content in (extra_files or {}).items():
-            (root / 'articles' / name).write_text(content, encoding='utf-8')
+            (root / 'sources' / name).write_text(content, encoding='utf-8')
         return root, run('build', str(root), '--output', str(root / 'public'))
 
     def test_stray_text_in_series_nav_is_fatal(self):
@@ -1927,7 +1927,7 @@ class LanguageRuleFlags(unittest.TestCase):
             '<!-- lwp:slide:full-article -->\nslug: k70\narticle: art.md\n'
         )
         root = scaffold(tmp, md)
-        (root / 'articles' / 'art.md').write_text('# T\n\n' + body, encoding='utf-8')
+        (root / 'sources' / 'art.md').write_text('# T\n\n' + body, encoding='utf-8')
         lang_file = root / 'custom.json'
         lang_file.write_text(json.dumps({'rules': rules}), encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'),
@@ -3106,10 +3106,10 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 '\n---\n\n<!-- lwp:slide:series-nav -->\nslug: k75\n')
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             for dest, src, title in (('a.html', 'a.md', 'A'),
                                      ('b.html', 'b.md', 'B')):
-                (root / 'articles' / src).write_text(
+                (root / 'sources' / src).write_text(
                     meta.format(dest=dest, t=title), encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
@@ -3182,9 +3182,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
-            (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
-            (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+            (root / 'sources').mkdir()
+            (root / 'sources' / 'a.md').write_text(md_a, encoding='utf-8')
+            (root / 'sources' / 'b.md').write_text(md_b, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
                  'nav_title': 'A', 'nav_desc': 'A'},
@@ -3264,9 +3264,9 @@ class CliVersionAndShortcuts(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            # Create a minimal 1x1 PNG in articles/img/.
-            (root / 'articles' / 'img').mkdir()
-            (root / 'articles' / 'img' / 'red.png').write_bytes(
+            # Create a minimal 1x1 PNG in sources/img/.
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'red.png').write_bytes(
                 b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
                 b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
                 b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
@@ -3288,7 +3288,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         and for an image written in a slide it delivered. For an image
         inside a file pulled in by a `full-article` slide it did not:
         `build_article` called `convert_markdown` without `inline_images=`
-        or `articles_dir=` while every other call site passed both.
+        or `sources_dir=` while every other call site passed both.
 
         Measured on the shipped demo, built clean: 0 `data:image` URIs, 1
         relative `src="img/…"`, and no `public/img/` — a broken page, exit
@@ -3310,10 +3310,10 @@ class CliVersionAndShortcuts(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(str(Path(tmp) / 'series'), md)
-            (root / 'articles' / 'img').mkdir()
-            (root / 'articles' / 'img' / 'fig.png').write_bytes(png)
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'fig.png').write_bytes(png)
             # The image lives ONLY in the included file, never in a slide.
-            (root / 'articles' / 'long.md').write_text(
+            (root / 'sources' / 'long.md').write_text(
                 'Body paragraph.\n\n![figure](img/fig.png)\n\nAfter.\n',
                 encoding='utf-8')
 
@@ -3346,8 +3346,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(str(Path(tmp) / 'series'), md)
-            (root / 'articles' / 'img').mkdir()
-            (root / 'articles' / 'img' / 'raw.png').write_bytes(b'\x89PNG\r\n\x1a\n')
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'raw.png').write_bytes(b'\x89PNG\r\n\x1a\n')
 
             hard = run('build', str(root), '--output', str(root / 'public'),
                        '--inline-images')
@@ -3390,14 +3390,14 @@ class CliVersionAndShortcuts(unittest.TestCase):
             secret.mkdir()
             (secret / 'id_rsa').write_bytes(b'ROOT-SECRET-PRIVATE-KEY-MATERIAL')
             root = scaffold(str(Path(tmp) / 'series'), md)
-            (root / 'articles' / 'img').mkdir()
-            (root / 'articles' / 'img' / 'red.png').write_bytes(
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'red.png').write_bytes(
                 b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
                 b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
                 b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
                 b'\x8d\xa5K>\x00\x00\x00\x00IEND\xaeB`\x82')
             try:
-                (root / 'articles' / 'img' / 'leak.png').symlink_to(
+                (root / 'sources' / 'img' / 'leak.png').symlink_to(
                     secret / 'id_rsa')
             except (OSError, NotImplementedError):
                 self.skipTest('symlinks unavailable on this filesystem')
@@ -3422,7 +3422,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
                 html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
                 for m in re.finditer(r'data:[^;]+;base64,([A-Za-z0-9+/=]+)', html):
                     self.assertNotIn(b'SECRET', base64.b64decode(m.group(1)),
-                                     'a file outside articles/ was published')
+                                     'a file outside sources/ was published')
 
     def test_inline_images_still_inlines_the_legitimate_image(self):
         """The other half of the guard above, on its own fixture: barring
@@ -3438,8 +3438,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(str(Path(tmp) / 'series'), md)
-            (root / 'articles' / 'img').mkdir()
-            (root / 'articles' / 'img' / 'red.png').write_bytes(
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'red.png').write_bytes(
                 b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
                 b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
                 b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
@@ -3463,8 +3463,8 @@ class CliVersionAndShortcuts(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'img').mkdir()
-            (root / 'articles' / 'img' / 'red.png').write_bytes(
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'red.png').write_bytes(
                 b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
                 b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
                 b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'
@@ -3603,7 +3603,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0, result.stdout)
             self.assertIn('series.json', result.stderr)
             self.assertTrue((root / 'series.json').exists())
-            self.assertTrue((root / 'articles' / 'a.md').exists())
+            self.assertTrue((root / 'sources' / 'a.md').exists())
 
     def test_clean_without_manifest_is_error(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -3652,17 +3652,17 @@ class CliVersionAndShortcuts(unittest.TestCase):
         lived. Measured, then fixed."""
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
-            (root / 'articles' / 'img').mkdir()
+            (root / 'sources' / 'img').mkdir()
             png = base64.b64decode(
                 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8'
                 'z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
-            (root / 'articles' / 'img' / 'doomed.png').write_bytes(png)
-            (root / 'articles' / 'img' / 'kept.png').write_bytes(png)
+            (root / 'sources' / 'img' / 'doomed.png').write_bytes(png)
+            (root / 'sources' / 'img' / 'kept.png').write_bytes(png)
             pub = root / 'public'
             run('build', str(root), '--output', str(pub))
             self.assertTrue((pub / 'img' / 'doomed.png').exists())
 
-            (root / 'articles' / 'img' / 'doomed.png').unlink()
+            (root / 'sources' / 'img' / 'doomed.png').unlink()
             run('build', str(root), '--output', str(pub))
             manifest = json.loads(
                 (pub / '.lwp-manifest.json').read_text(encoding='utf-8'))
@@ -3728,7 +3728,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
 
                 # Edit a source and wait for the loop to notice.
                 marker = 'REBUILT-BY-WATCH-MARKER'
-                article = root / 'articles' / 'a.md'
+                article = root / 'sources' / 'a.md'
                 article.write_text(
                     article.read_text(encoding='utf-8').replace(
                         '# Title', '# ' + marker), encoding='utf-8')
@@ -4464,7 +4464,7 @@ class DemoRefusesRealSeriesJson(unittest.TestCase):
             root = Path(tmp) / 's'
             result = run('init', str(root), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
-            (root / 'articles' / 'mine.md').write_text(_MINIMAL_MD, encoding='utf-8')
+            (root / 'sources' / 'mine.md').write_text(_MINIMAL_MD, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'mine.md'}]}), encoding='utf-8')
             result = run('demo', str(root), '--lang', 'en')
@@ -4538,7 +4538,7 @@ class ImageFiguresAndCaptions(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art.md').write_text(article_body or '', encoding='utf-8')
+            (root / 'sources' / 'art.md').write_text(article_body or '', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             return (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -4723,7 +4723,7 @@ class MarkdownConversion(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art.md').write_text(article_body, encoding='utf-8')
+            (root / 'sources' / 'art.md').write_text(article_body, encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             return (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -4916,7 +4916,7 @@ class MarkdownConversion(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art.md').write_text('```\nnever closed\n', encoding='utf-8')
+            (root / 'sources' / 'art.md').write_text('```\nnever closed\n', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('not well-formed', result.stderr)
@@ -4957,7 +4957,7 @@ class MultiArticleSeries(unittest.TestCase):
 
     def _build_series(self, tmp):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md_a = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Article A\nnav_title: Article A\n'
             'nav_desc: Desc A\n---\n\n'
@@ -4970,8 +4970,8 @@ class MultiArticleSeries(unittest.TestCase):
             '<!-- lwp:slide:cover -->\nslug: k103\nkicker: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\nslug: k104\n'
         )
-        (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
-        (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md_a, encoding='utf-8')
+        (root / 'sources' / 'b.md').write_text(md_b, encoding='utf-8')
         series = {
             'series_meta': {
                 'title': 'The series title',
@@ -5048,11 +5048,11 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
     def series(self, tmp, entries):
         """entries: list of (page_source, page_dest[, extra dict])."""
         root = Path(tmp)
-        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        (root / 'sources').mkdir(parents=True, exist_ok=True)
         articles = []
         for source, dest, *rest in entries:
             title = source[:-3].upper()
-            (root / 'articles' / source).write_text(
+            (root / 'sources' / source).write_text(
                 self.ARTICLE.format(title=title), encoding='utf-8')
             entry = {'page_source': source, 'page_dest': dest,
                      'nav_title': title, 'nav_desc': f'Desc {title}'}
@@ -5209,7 +5209,7 @@ class SeriesNavTypography(unittest.TestCase):
 
     def _build_series(self, tmp, article_a_extra_meta=''):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md_a = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Article A\nnav_title: Article A\n'
             f'nav_desc: Desc A\n{article_a_extra_meta}---\n\n'
@@ -5222,8 +5222,8 @@ class SeriesNavTypography(unittest.TestCase):
             '<!-- lwp:slide:cover -->\nslug: k108\nkicker: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\nslug: k109\n'
         )
-        (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
-        (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md_a, encoding='utf-8')
+        (root / 'sources' / 'b.md').write_text(md_b, encoding='utf-8')
         # The nbsp is typed with a plain space here on purpose — series.json
         # values go through the exact same build_series_nav() typography
         # path as the meta-block ones, so a plain " ?"/" !"/" :" here must
@@ -5273,7 +5273,7 @@ class IncrementalBuildOnly(unittest.TestCase):
 
     def _build_series(self, tmp):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md_a = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Article A\nnav_title: Article A\n'
             'nav_desc: Desc A\n---\n\n'
@@ -5286,8 +5286,8 @@ class IncrementalBuildOnly(unittest.TestCase):
             '<!-- lwp:slide:cover -->\nslug: k112\nkicker: T\n# Article B\nsummary: Summary B.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\nslug: k113\n'
         )
-        (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
-        (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md_a, encoding='utf-8')
+        (root / 'sources' / 'b.md').write_text(md_b, encoding='utf-8')
         series = {
             'series_meta': {'title': 'The series', 'subtitle': '', 'intro': ''},
             'articles': [
@@ -5327,7 +5327,7 @@ class IncrementalBuildOnly(unittest.TestCase):
                 '<!-- lwp:slide -->\nslug: k115\nkicker: New\n## A brand-new slide\nsummary: New body content.\n\n'
                 '---\n\n<!-- lwp:slide:series-nav -->\nslug: k116\n'
             )
-            (root / 'articles' / 'a.md').write_text(md_a2, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md_a2, encoding='utf-8')
 
             result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -5350,7 +5350,7 @@ class IncrementalBuildOnly(unittest.TestCase):
                 '<!-- lwp:slide:cover -->\nslug: k117\nkicker: T\n# Article A\nsummary: Summary A.\n\n---\n\n'
                 '<!-- lwp:slide:series-nav -->\nslug: k118\n'
             )
-            (root / 'articles' / 'a.md').write_text(md_a2, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md_a2, encoding='utf-8')
             series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             series['articles'][0]['nav_title'] = 'Article A Renamed'
             (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
@@ -5372,7 +5372,7 @@ class IncrementalBuildOnly(unittest.TestCase):
                 'nav_desc: Desc C\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k119\nkicker: T\n# Article C\nsummary: Summary C.\n\n---\n\n'
             )
-            (root / 'articles' / 'c.md').write_text(md_c, encoding='utf-8')
+            (root / 'sources' / 'c.md').write_text(md_c, encoding='utf-8')
             series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             series['articles'].append({'page_dest': 'c.html', 'page_source': 'c.md',
                                         'nav_title': 'Article C', 'nav_desc': 'Desc C'})
@@ -5445,7 +5445,7 @@ class InstallContent(unittest.TestCase):
             result = run('init', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'series.json').exists())
-            self.assertTrue((root / 'articles').is_dir())
+            self.assertTrue((root / 'sources').is_dir())
             # The author surface, and ONLY the author surface: values and
             # rules. No style.css — the stylesheet is composed at build
             # time and owns no file. No nav.js and no language pack
@@ -5477,7 +5477,7 @@ class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
     def _series(self, tmp):
         root = Path(tmp) / 'series'
         self.assertEqual(run('init', str(root)).returncode, 0)
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: A\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k120\nkicker: T\n# A\nsummary: S.\n',
@@ -5662,7 +5662,7 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
             for name, take_copies in (('bare', False), ('copied', True)):
                 root = Path(tmp) / name
                 self.assertEqual(run('init', str(root)).returncode, 0)
-                (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+                (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
                 (root / 'series.json').write_text(json.dumps({'articles': [
                     {'page_dest': 'a.html', 'page_source': 'a.md',
                      'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
@@ -5914,7 +5914,7 @@ class CheckDrift(unittest.TestCase):
             root = scaffold(tmp, md)
             run('build', str(root), '--output', str(root / 'public'))
             changed_md = md.replace('Original summary.', 'Changed summary.')
-            (root / 'articles' / 'a.md').write_text(changed_md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(changed_md, encoding='utf-8')
             result = run('verify', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('[DRIFT]', result.stdout)
@@ -6036,7 +6036,7 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
     def test_fields_parsed_on_a_cover_reach_audit(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            first = Path(root) / 'articles' / 'first.md'
+            first = Path(root) / 'sources' / 'first.md'
             first.write_text(
                 first.read_text(encoding='utf-8').replace(
                     '<!-- lwp:slide:cover -->',
@@ -6054,7 +6054,7 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
         a security rule written twice is one that will diverge."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            img = Path(root) / 'articles' / 'img'
+            img = Path(root) / 'sources' / 'img'
             img.mkdir(exist_ok=True)
             try:
                 (img / 'leak.png').symlink_to('/etc/hostname')
@@ -6116,7 +6116,7 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
         that produces no page at all."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            first = Path(root) / 'articles' / 'first.md'
+            first = Path(root) / 'sources' / 'first.md'
             first.write_text(
                 first.read_text(encoding='utf-8')
                 + '\n\n---\n\n<!-- lwp:slide -->\nslug: k124\n## T\n\n<div>never closed\n',
@@ -6163,7 +6163,7 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
         was asked not to look at articles."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            first = Path(root) / 'articles' / 'first.md'
+            first = Path(root) / 'sources' / 'first.md'
             first.write_text(
                 first.read_text(encoding='utf-8').replace(
                     '<!-- lwp:slide:cover -->',
@@ -6370,7 +6370,7 @@ class AuditNamesAFootnoteLabelTheEngineWillNotRead(unittest.TestCase):
     def test_a_label_outside_the_pattern_is_named(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            article = Path(root) / 'articles' / 'first_article.md'
+            article = Path(root) / 'sources' / 'first_article.md'
             article.write_text(
                 article.read_text(encoding='utf-8').replace('[^1]', '[^a-b]'),
                 encoding='utf-8')
@@ -6395,7 +6395,7 @@ class AuditNamesAFootnoteLabelTheEngineWillNotRead(unittest.TestCase):
         claims before its note rule ever sees it."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            article = Path(root) / 'articles' / 'first_article.md'
+            article = Path(root) / 'sources' / 'first_article.md'
             article.write_text(
                 article.read_text(encoding='utf-8') + '\n\n'
                 'A class `[^a-z]+` in code, and `[^\\]]` too.\n\n'
@@ -6509,7 +6509,7 @@ class NbspPreservedFromSource(unittest.TestCase):
         root = scaffold(tmp, article_md, series_extra={'card_label': self._wrap('Carte')})
         if extra_articles:
             for name, content in extra_articles.items():
-                (root / 'articles' / name).write_text(content, encoding='utf-8')
+                (root / 'sources' / name).write_text(content, encoding='utf-8')
         if series_meta or second_entry:
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             if series_meta:
@@ -6600,8 +6600,8 @@ class NbspPreservedFromSource(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir(parents=True, exist_ok=True)
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources').mkdir(parents=True, exist_ok=True)
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -6774,7 +6774,7 @@ class TypographyDisableSwitches(unittest.TestCase):
             for rule in data['rules']:
                 rule.pop('category', None)
             pack.write_text(json.dumps(data, indent=2), encoding='utf-8')
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
                  'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
@@ -6798,7 +6798,7 @@ class TypographyDisableSwitches(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             self.assertEqual(run('init', str(root)).returncode, 0)
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
                  'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
@@ -6830,7 +6830,7 @@ class TypographyDisableSwitches(unittest.TestCase):
             pack.write_text(json.dumps(data, indent=2), encoding='utf-8')
             entries = []
             for name in ('a', 'b', 'c'):
-                (root / 'articles' / f'{name}.md').write_text(
+                (root / 'sources' / f'{name}.md').write_text(
                     meta.format(d=name), encoding='utf-8')
                 entries.append({'page_dest': f'{name}.html',
                                 'page_source': f'{name}.md',
@@ -6845,7 +6845,7 @@ class TypographyDisableSwitches(unittest.TestCase):
 
     def _two_article_series(self, tmp, meta_extra_b=''):
         root = Path(tmp)
-        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        (root / 'sources').mkdir(parents=True, exist_ok=True)
         summary = 'Environ ≈ 5 $ pour 170 000 000 vues, × 4 la dose, 170 millions de gens, 20 dollars.'
         md_a = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
@@ -6856,8 +6856,8 @@ class TypographyDisableSwitches(unittest.TestCase):
             f'{meta_extra_b}---\n\n'
             f'<!-- lwp:slide:cover -->\nslug: k143\nkicker: T\n# Titre B\nsummary: {summary}\n'
         )
-        (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
-        (root / 'articles' / 'b.md').write_text(md_b, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md_a, encoding='utf-8')
+        (root / 'sources' / 'b.md').write_text(md_b, encoding='utf-8')
         entries = [
             {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
             {'page_dest': 'b.html', 'page_source': 'b.md', 'nav_title': 'B', 'nav_desc': 'B'},
@@ -6886,7 +6886,7 @@ class TypographyDisableSwitches(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp) / 'series'
                 self.assertEqual(run('init', str(root)).returncode, 0)
-                (root / 'articles' / 't.md').write_text(
+                (root / 'sources' / 't.md').write_text(
                     '<!-- lwp:meta -->\npage_dest: t.html\npage_title: T\n'
                     'nav_title: T\nnav_desc: T\ntypo_units: off\n---\n\n'
                     '<!-- lwp:slide:cover -->\nslug: k144\nkicker: T\n# T\n'
@@ -6962,13 +6962,13 @@ class TypographyDisableSwitches(unittest.TestCase):
         separate, easy-to-forget code path."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir(parents=True, exist_ok=True)
+            (root / 'sources').mkdir(parents=True, exist_ok=True)
             md = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Titre à 50 % fini\nnav_title: A\n'
                 'nav_desc: A\ntypo: off\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k145\nkicker: T\n# Titre\nsummary: Résumé.\n'
             )
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -6984,12 +6984,12 @@ class TypographyDisableSwitches(unittest.TestCase):
         and article cards are not a separate, easy-to-forget code path."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir(parents=True, exist_ok=True)
+            (root / 'sources').mkdir(parents=True, exist_ok=True)
             md = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k146\nkicker: T\n# Titre\nsummary: Résumé.\n'
             )
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
             series = {
                 'series_meta': {'title': 'Titre à 50 % fini', 'subtitle': '', 'intro': ''},
@@ -7078,7 +7078,7 @@ class TemplateOverride(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
             self.assertEqual(run('init', str(root)).returncode, 0)
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
                  'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
@@ -7451,7 +7451,7 @@ class BuildStamp(unittest.TestCase):
         md_a = self._md()
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md_a)
-            (root / 'articles' / 'b.md').write_text(
+            (root / 'sources' / 'b.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: b.html\npage_title: B\nnav_title: B\nnav_desc: B\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k154\nkicker: T\n# B\nsummary: Summary.\n',
                 encoding='utf-8',
@@ -8966,7 +8966,7 @@ class ACardIsCalledWhatItsAuthorDeclared(unittest.TestCase):
 
     def _series(self, tmp, body, prefix=None):
         root = Path(tmp) / 'series'
-        (root / 'articles').mkdir(parents=True)
+        (root / 'sources').mkdir(parents=True)
         meta = {'title': 'T'}
         if prefix:
             meta['slug_prefix'] = prefix
@@ -8975,7 +8975,7 @@ class ACardIsCalledWhatItsAuthorDeclared(unittest.TestCase):
              'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
                            'nav_title': 'A', 'nav_desc': 'A'}]}),
             encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
             'nav_title: A\nnav_desc: A\n---\n\n' + body, encoding='utf-8')
         return root
@@ -9012,7 +9012,7 @@ class ACardIsCalledWhatItsAuthorDeclared(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp, self.COVER)
             self.assertEqual(self._build(root, tmp).returncode, 0)
-            source = root / 'articles' / 'a.md'
+            source = root / 'sources' / 'a.md'
             source.write_text(source.read_text(encoding='utf-8')
                               .replace('# Titre', '# Un tout autre titre'),
                               encoding='utf-8')
@@ -9107,7 +9107,7 @@ class SlugSetWritesIntoTheAuthorsFiles(unittest.TestCase):
     def _stripped(self, root):
         """The demo with every `slug:` line taken back out — the state of
         an article somebody wrote by hand."""
-        for source in (root / 'articles').glob('*.md'):
+        for source in (root / 'sources').glob('*.md'):
             text = source.read_text(encoding='utf-8')
             source.write_text('\n'.join(
                 l for l in text.split('\n') if not l.startswith('slug:')),
@@ -9129,7 +9129,7 @@ class SlugSetWritesIntoTheAuthorsFiles(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._stripped(self._demo(tmp))
             before = {p: p.read_text(encoding='utf-8')
-                      for p in (root / 'articles').glob('*.md')}
+                      for p in (root / 'sources').glob('*.md')}
             result = run('series', 'slug', 'set', str(root), '--dry-run')
             self.assertEqual(result.returncode, 0)
             self.assertIn('would write', result.stderr)
@@ -9141,7 +9141,7 @@ class SlugSetWritesIntoTheAuthorsFiles(unittest.TestCase):
         progress rather than an absence."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._demo(tmp)
-            first = root / 'articles' / 'first.md'
+            first = root / 'sources' / 'first.md'
             before = first.read_text(encoding='utf-8')
             self.assertEqual(run('series', 'slug', 'set', str(root)).returncode, 0)
             self.assertEqual(first.read_text(encoding='utf-8'), before)
@@ -9154,14 +9154,14 @@ class SlugSetWritesIntoTheAuthorsFiles(unittest.TestCase):
             # a long-form piece pulled in by `article:` holds no cards, so
             # it has no slug to carry and must not have gained one.
             for name in ('first.md', 'middle.md', 'last.md'):
-                source = root / 'articles' / name
+                source = root / 'sources' / name
                 slugs = re.findall(r'^slug: (.+)$',
                                    source.read_text(encoding='utf-8'), re.M)
                 self.assertTrue(slugs, source)
                 self.assertEqual(len(slugs), len(set(slugs)), source)
             for name in ('first_article.md', 'middle_article.md',
                          'last_article.md'):
-                text = (root / 'articles' / name).read_text(encoding='utf-8')
+                text = (root / 'sources' / name).read_text(encoding='utf-8')
                 self.assertNotIn('slug: ', text,
                                  f'{name} is prose, not a page of cards')
 
@@ -9171,9 +9171,9 @@ class SlugSetWritesIntoTheAuthorsFiles(unittest.TestCase):
         must be the added lines."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._stripped(self._demo(tmp))
-            before = (root / 'articles' / 'first.md').read_text(encoding='utf-8')
+            before = (root / 'sources' / 'first.md').read_text(encoding='utf-8')
             self.assertEqual(run('series', 'slug', 'set', str(root)).returncode, 0)
-            after = (root / 'articles' / 'first.md').read_text(encoding='utf-8')
+            after = (root / 'sources' / 'first.md').read_text(encoding='utf-8')
             self.assertEqual(
                 [l for l in after.split('\n') if not l.startswith('slug: ')],
                 before.split('\n'))
@@ -11141,12 +11141,12 @@ class SeriesJsonRequiredFields(unittest.TestCase):
 
     def _series_missing_field(self, tmp, field):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k163\nkicker: T\n# Title\n'
         )
-        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
         del entry[field]
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
@@ -11172,7 +11172,7 @@ class SeriesJsonRequiredFields(unittest.TestCase):
         # never built (dead links shipped with exit code 0).
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             series = {'articles': [
                 {'page_dest': 'a.html', 'page_source': 'missing.md', 'nav_title': 'A', 'nav_desc': 'A'},
             ]}
@@ -11213,8 +11213,8 @@ class SeriesJsonExtensionValidation(unittest.TestCase):
 
     def _series_with(self, tmp, file_value, source_value):
         root = Path(tmp)
-        (root / 'articles').mkdir()
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources').mkdir()
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k165\nkicker: T\n# Title\n',
             encoding='utf-8',
@@ -11263,8 +11263,8 @@ class SeriesJsonExtensionValidation(unittest.TestCase):
         # *validation* being case-insensitive from that unrelated concern.
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
-            (root / 'articles' / 'a.MD').write_text(
+            (root / 'sources').mkdir()
+            (root / 'sources' / 'a.MD').write_text(
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k166\nkicker: T\n# Title\n',
                 encoding='utf-8',
@@ -11303,12 +11303,12 @@ class DisplayFieldOverrides(unittest.TestCase):
 
     def _build(self, tmp, meta_extra, series_entry_extra, cover_extra=''):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md = (
             '<!-- lwp:meta -->\n' + meta_extra + '\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k167\nkicker: T\n# Cover H1\n' + cover_extra + '\n'
         )
-        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(series_entry_extra)
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
@@ -11465,13 +11465,13 @@ class DisplayFieldOverrides(unittest.TestCase):
         # Unlike _build() above, this article includes a series-nav slide
         # so the "Cette série" block actually renders on its own page.
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md = (
             '<!-- lwp:meta -->\n' + meta_extra + '\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k168\nkicker: T\n# Cover H1\n' + cover_extra + '\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\nslug: k169\n'
         )
-        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(series_entry_extra)
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
@@ -11563,8 +11563,8 @@ class ImageCopySafety(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'img').mkdir()
-            (root / 'articles' / 'img' / 'photo.jpg').write_bytes(b'fake-photo')
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'photo.jpg').write_bytes(b'fake-photo')
             output_dir = root / 'public'
             (output_dir / 'img').mkdir(parents=True)
             (output_dir / 'img' / 'unrelated.png').write_bytes(b'pre-existing')
@@ -11741,7 +11741,7 @@ class CheckSummaryLine(unittest.TestCase):
             self.assertIn('3 file(s) OK, 0 file(s) different.', clean.stdout)
 
             changed_md = md.replace('Original.', 'Changed.')
-            (root / 'articles' / 'a.md').write_text(changed_md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(changed_md, encoding='utf-8')
             drifted = run('verify', str(root), '--output', str(root / 'public'))
             # The cover summary cascades to the index card's card_desc
             # (§20.3.1), so the page AND the index drift — exactly the
@@ -11771,12 +11771,12 @@ class ReadmeGeneration(unittest.TestCase):
     def test_readme_contains_title_and_numbered_article_list(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             md_a = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: A\nnav_title: Article A\n'
                 'nav_desc: Desc A\n---\n\n<!-- lwp:slide:cover -->\nslug: k176\nkicker: T\n# A\n'
             )
-            (root / 'articles' / 'a.md').write_text(md_a, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md_a, encoding='utf-8')
             series = {
                 'series_meta': {'title': 'My Series', 'subtitle': 'A subtitle'},
                 'articles': [
@@ -11797,16 +11797,16 @@ class PathTraversalSafety(unittest.TestCase):
     """Security: series.json (LLM/CI-editable, spec §13.5) and article:
     are joined into real filesystem paths with Path(dir) / value — an
     absolute path or ../ value must be rejected, not silently resolved
-    outside articles/public (Path(dir) / '/etc/passwd' == '/etc/passwd')."""
+    outside sources/public (Path(dir) / '/etc/passwd' == '/etc/passwd')."""
 
     def _series_with_file_value(self, tmp, field, value):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k177\nkicker: T\n# Title\n'
         )
-        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
         entry[field] = value
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
@@ -11866,12 +11866,12 @@ class SymlinkContainment(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             secret = self._secret(tmp)
             root = Path(tmp) / 'proj'
-            (root / 'articles').mkdir(parents=True)
-            (root / 'articles' / 'a.md').write_text(
+            (root / 'sources').mkdir(parents=True)
+            (root / 'sources' / 'a.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
                 'nav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:full-article -->\nslug: k180\narticle: leak.md\n', encoding='utf-8')
-            (root / 'articles' / 'leak.md').symlink_to(secret)
+            (root / 'sources' / 'leak.md').symlink_to(secret)
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -11885,12 +11885,12 @@ class SymlinkContainment(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             secret = self._secret(tmp)
             root = Path(tmp) / 'proj'
-            (root / 'articles' / 'img').mkdir(parents=True)
-            (root / 'articles' / 'a.md').write_text(
+            (root / 'sources' / 'img').mkdir(parents=True)
+            (root / 'sources' / 'a.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
                 'nav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k181\nkicker: T\n# Title\n', encoding='utf-8')
-            (root / 'articles' / 'img' / 'leak.png').symlink_to(secret)
+            (root / 'sources' / 'img' / 'leak.png').symlink_to(secret)
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -11904,11 +11904,11 @@ class SymlinkContainment(unittest.TestCase):
         # A symlink pointing WITHIN img/ is harmless and must still copy.
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'proj'
-            (root / 'articles' / 'img').mkdir(parents=True)
-            (root / 'articles' / 'img' / 'real.png').write_text('PNGDATA', encoding='utf-8')
-            (root / 'articles' / 'img' / 'alias.png').symlink_to(
-                root / 'articles' / 'img' / 'real.png')
-            (root / 'articles' / 'a.md').write_text(
+            (root / 'sources' / 'img').mkdir(parents=True)
+            (root / 'sources' / 'img' / 'real.png').write_text('PNGDATA', encoding='utf-8')
+            (root / 'sources' / 'img' / 'alias.png').symlink_to(
+                root / 'sources' / 'img' / 'real.png')
+            (root / 'sources' / 'a.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
                 'nav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k182\nkicker: T\n# Title\n', encoding='utf-8')
@@ -11934,7 +11934,7 @@ class LinkHrefEscaping(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
-            (root / 'articles' / 'art.md').write_text(body, encoding='utf-8')
+            (root / 'sources' / 'art.md').write_text(body, encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             assert result.returncode == 0, result.stderr
             return (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -11989,12 +11989,12 @@ class IndexTitleXssProtection(unittest.TestCase):
 
     def _build_with_nav_title(self, tmp, malicious_title):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k184\nkicker: T\n# A\n'
         )
-        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         series = {
             'series_meta': {'title': malicious_title},
             'articles': [{'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}],
@@ -12029,12 +12029,12 @@ class HrefAttributeEscaping(unittest.TestCase):
     def test_quote_in_file_value_does_not_break_out_of_href(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             md = (
                 '<!-- lwp:meta -->\npage_dest: a".html\npage_title: A\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k185\nkicker: T\n# A\n'
             )
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             series = {'articles': [
                 {'page_dest': 'a".html', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'},
             ]}
@@ -12053,7 +12053,7 @@ class MalformedInputHandling(unittest.TestCase):
     def test_invalid_json_series_file_is_a_clean_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             (root / 'series.json').write_text('{not valid json', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
@@ -12063,7 +12063,7 @@ class MalformedInputHandling(unittest.TestCase):
     def test_articles_not_a_list_is_a_clean_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             (root / 'series.json').write_text(json.dumps({'articles': 'oops'}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
@@ -12257,14 +12257,14 @@ class ArticlesArrayOrder(unittest.TestCase):
 
     def _series(self, tmp, order):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         entries = []
         for name in order:
             md = (
                 f'<!-- lwp:meta -->\npage_dest: {name}.html\npage_title: {name}\nnav_title: {name}\n'
                 f'nav_desc: D\n---\n\n<!-- lwp:slide:cover -->\nslug: k196\nkicker: T\n# {name}\n'
             )
-            (root / 'articles' / f'{name}.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / f'{name}.md').write_text(md, encoding='utf-8')
             entries.append({'page_dest': f'{name}.html', 'page_source': f'{name}.md',
                              'nav_title': name, 'nav_desc': 'D'})
         (root / 'series.json').write_text(json.dumps({'articles': entries}), encoding='utf-8')
@@ -12480,12 +12480,12 @@ class SeriesJsonEmptyStringRejected(unittest.TestCase):
     def test_empty_string_file_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             md = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k207\nkicker: T\n# Title\n'
             )
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': '', 'page_source': 'a.md', 'nav_title': 'A', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -12494,13 +12494,13 @@ class SeriesJsonEmptyStringRejected(unittest.TestCase):
     def test_empty_string_nav_title_falls_back_to_meta(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             md = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: Meta title\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k208\nkicker: T\n# Title\n\n---\n\n'
                 '<!-- lwp:slide:series-nav -->\nslug: k209\n'
             )
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': '', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -12513,13 +12513,13 @@ class SeriesJsonEmptyStringRejected(unittest.TestCase):
     def test_empty_string_nav_title_falls_back_through_card_title_when_meta_also_absent(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             md = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_desc: A\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k210\nkicker: T\n# Title\n\n---\n\n'
                 '<!-- lwp:slide:series-nav -->\nslug: k211\n'
             )
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             entry = {'page_dest': 'a.html', 'page_source': 'a.md', 'nav_title': '', 'nav_desc': 'A'}
             (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -12614,8 +12614,8 @@ class CommentField(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
-            (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources').mkdir()
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({
                 'articles': [{'page_source': 'a.md', 'comment': 'SERIES-JSON-SECRET'}],
             }), encoding='utf-8')
@@ -12806,12 +12806,12 @@ class EditorialFields(unittest.TestCase):
 
     def _build(self, tmp, meta_extra='', entry_extra=None, series_meta=None):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         md = (
             f'<!-- lwp:meta -->\npage_title: Test\n{meta_extra}---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k225\nkicker: T\n# Title\nsummary: Summary.\n'
         )
-        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(entry_extra or {})
         data = {'articles': [entry]}
@@ -12876,13 +12876,13 @@ class PageDescMetaDescription(unittest.TestCase):
 
     def _build(self, tmp, meta_extra='', entry_extra=None, summary='Cover summary.'):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         summary_line = f'summary: {summary}\n' if summary else ''
         md = (
             f'<!-- lwp:meta -->\npage_title: Test\n{meta_extra}---\n\n'
             f'<!-- lwp:slide:cover -->\nslug: k226\nkicker: T\n# Title\n{summary_line}'
         )
-        (root / 'articles' / 'a.md').write_text(md, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
         entry = {'page_source': 'a.md'}
         entry.update(entry_extra or {})
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
@@ -12930,12 +12930,12 @@ class ArticleStatus(unittest.TestCase):
 
     def _series(self, tmp, b_meta_extra='', b_entry_extra=None):
         root = Path(tmp)
-        (root / 'articles').mkdir()
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources').mkdir()
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Live article\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k227\nkicker: T\n# Live\nsummary: Live summary.\n\n---\n\n'
             '<!-- lwp:slide:series-nav -->\nslug: k228\n', encoding='utf-8')
-        (root / 'articles' / 'b.md').write_text(
+        (root / 'sources' / 'b.md').write_text(
             f'<!-- lwp:meta -->\npage_title: Draft article\n{b_meta_extra}---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k229\nkicker: T\n# Draft\nsummary: Draft summary.\n', encoding='utf-8')
         entry_b = {'page_source': 'b.md'}
@@ -13088,8 +13088,8 @@ class LegacyFieldMigrationErrors(unittest.TestCase):
 
     def _series_with_keys(self, tmp, entry):
         root = Path(tmp)
-        (root / 'articles').mkdir()
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources').mkdir()
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: T\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k230\nkicker: T\n# T\nsummary: S.\n', encoding='utf-8')
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
@@ -13117,7 +13117,7 @@ class DegenerateInputRobustness(unittest.TestCase):
 
     def _series(self, tmp):
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         (root / 'series.json').write_text(
             json.dumps({'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
         return root
@@ -13128,7 +13128,7 @@ class DegenerateInputRobustness(unittest.TestCase):
     def test_bom_in_series_json_is_accepted(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            (root / 'articles' / 'a.md').write_text(self.MD, encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(self.MD, encoding='utf-8')
             raw = (root / 'series.json').read_bytes()
             (root / 'series.json').write_bytes(b'\xef\xbb\xbf' + raw)
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -13137,10 +13137,10 @@ class DegenerateInputRobustness(unittest.TestCase):
     def test_bom_in_full_article_does_not_leak_or_break_heading(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            (root / 'articles' / 'a.md').write_text(
+            (root / 'sources' / 'a.md').write_text(
                 self.MD + '\n---\n\n<!-- lwp:slide:full-article -->\nslug: k232\narticle: a_article.md\n',
                 encoding='utf-8')
-            (root / 'articles' / 'a_article.md').write_bytes(
+            (root / 'sources' / 'a_article.md').write_bytes(
                 b'\xef\xbb\xbf# Full article heading\n\nBody.\n')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -13156,7 +13156,7 @@ class DegenerateInputRobustness(unittest.TestCase):
         ).replace('\n', '\r\n')
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            (root / 'articles' / 'a.md').write_bytes(crlf_md.encode('utf-8'))
+            (root / 'sources' / 'a.md').write_bytes(crlf_md.encode('utf-8'))
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -13167,7 +13167,7 @@ class DegenerateInputRobustness(unittest.TestCase):
     def test_invalid_utf8_article_gets_clean_error_not_traceback(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            (root / 'articles' / 'a.md').write_bytes(
+            (root / 'sources' / 'a.md').write_bytes(
                 b'<!-- lwp:meta -->\npage_title: T\n---\n\n'
                 b'<!-- lwp:slide:cover -->\nslug: k235\nkicker: T\n# Broken \xff\xfe\nsummary: S.\n')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -13178,7 +13178,7 @@ class DegenerateInputRobustness(unittest.TestCase):
     def test_empty_article_file_gets_clean_meta_block_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            (root / 'articles' / 'a.md').write_text('', encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text('', encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('must start with a <!-- lwp:meta --> block', result.stderr)
@@ -13187,7 +13187,7 @@ class DegenerateInputRobustness(unittest.TestCase):
     def test_empty_articles_array_builds_an_empty_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             (root / 'series.json').write_text(json.dumps({'articles': []}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -13207,9 +13207,9 @@ class BuildDeterminism(unittest.TestCase):
     def test_two_builds_are_byte_identical_across_all_outputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             for name in ('a', 'b'):
-                (root / 'articles' / f'{name}.md').write_text(
+                (root / 'sources' / f'{name}.md').write_text(
                     f'<!-- lwp:meta -->\npage_title: Article {name}\ndate: 2026\n---\n\n'
                     f'<!-- lwp:slide:cover -->\nslug: k236\nkicker: T\n# Article {name}\nsummary: Résumé : test.\n\n---\n\n'
                     f'<!-- lwp:slide -->\nslug: k237\nkicker: F\n## Fiche\nsummary: S.\nfact-label: Fait\n\nCorps **gras**.\n\n---\n\n'
@@ -13265,9 +13265,9 @@ class Portability(unittest.TestCase):
     def test_case_insensitive_page_dest_collision_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
+            (root / 'sources').mkdir()
             for name in ('a.md', 'b.md'):
-                (root / 'articles' / name).write_text(
+                (root / 'sources' / name).write_text(
                     '<!-- lwp:meta -->\npage_title: T\n---\n\n'
                     '<!-- lwp:slide:cover -->\nslug: k240\nkicker: T\n# T\nsummary: S.\n', encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
@@ -13330,8 +13330,8 @@ class NativeUtf8EndToEnd(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'articles').mkdir()
-            (root / 'articles' / 'café-日本.md').write_text(md, encoding='utf-8')
+            (root / 'sources').mkdir()
+            (root / 'sources' / 'café-日本.md').write_text(md, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'café-日本.md'}]}, ensure_ascii=False), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
@@ -14382,7 +14382,7 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
             run('init', tmp, '--force')
             root = scaffold(tmp, '<!-- lwp:meta -->\npage_title: A\n---\n\n'
                                  '# Cover\n\nsummary: s\n')
-            (root / 'articles' / 'leak.md').symlink_to(outside / 'secret.md')
+            (root / 'sources' / 'leak.md').symlink_to(outside / 'secret.md')
             data = json.loads((root / 'series.json').read_text())
             data['articles'].append({'page_dest': 'leak.html',
                                      'page_source': 'leak.md',
@@ -15120,7 +15120,7 @@ class InstanceTags(unittest.TestCase):
                              'slug: r226\n# Cover\n\nsummary: s\n\n---\n\n'
                              '<!-- lwp:slide:full-article -->\nslug: k248\n'
                              'article: a_article.md\n')
-        (root / 'articles' / 'a_article.md').write_text(
+        (root / 'sources' / 'a_article.md').write_text(
             article_body, encoding='utf-8')
         return root
 
@@ -15290,7 +15290,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
         root = scaffold(tmp, self.DECK.format(extra=extra))
-        (root / 'articles' / 'art.md').write_text(
+        (root / 'sources' / 'art.md').write_text(
             self.ARTICLE if article is None else article, encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -15383,7 +15383,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
         root = scaffold(tmp, deck)
-        (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+        (root / 'sources' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
         self.assertEqual(result.returncode, 0, result.stderr)
         html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
@@ -15405,7 +15405,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
             tmp = tempfile.mkdtemp()
             self.addCleanup(shutil.rmtree, tmp, True)
             root = scaffold(tmp, self.DECK.format(extra=meta_line))
-            (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+            (root / 'sources' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
             data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
             data = {'series_meta': {'notes_placement': 'page'},
                     'articles': data['articles']}
@@ -15422,7 +15422,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
         root = scaffold(tmp, self.DECK.format(extra='notes_placement: sidebar\n'))
-        (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+        (root / 'sources' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
         self.assertEqual(result.returncode, 1)
         self.assertIn('a.md', result.stderr)
@@ -15443,7 +15443,7 @@ class ANoteIsReachableOrItIsNotANote(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, True)
         root = scaffold(tmp, deck)
-        (root / 'articles' / 'art.md').write_text(
+        (root / 'sources' / 'art.md').write_text(
             'Text \x02kwh\x02 and \x001\x00 more.\n', encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -15691,7 +15691,7 @@ class AuditNamesTheThreeWaysANoteBreaks(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp, True)
         run('init', tmp, '--force')
         root = scaffold(tmp, self.DECK.format(extra=extra))
-        (root / 'articles' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
+        (root / 'sources' / 'art.md').write_text(self.ARTICLE, encoding='utf-8')
         result = run('audit', str(root))
         self.assertEqual(result.returncode, 0, result.stderr)
         # Warnings are diagnostics and go to stderr (§2.4.1). stdout
@@ -15893,9 +15893,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         """A series directory: `entries` go into series.json verbatim,
         `sources` maps a filename to its .md text."""
         root = Path(tmp)
-        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        (root / 'sources').mkdir(parents=True, exist_ok=True)
         for name, text in sources.items():
-            (root / 'articles' / name).write_text(text, encoding='utf-8')
+            (root / 'sources' / name).write_text(text, encoding='utf-8')
         data = {'articles': entries}
         if series_meta is not None:
             data['series_meta'] = series_meta
@@ -16217,7 +16217,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                    {'page_source': 'binary.md'}]
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp, entries, sources)
-            (root / 'articles' / 'binary.md').write_bytes(
+            (root / 'sources' / 'binary.md').write_bytes(
                 b'<!-- lwp:meta -->\npage_title: T \xff\xfe\n---\n')
             result = run('status', str(root), '--format', 'json')
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -16346,9 +16346,9 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
 
     def _series(self, tmp, entries, sources, series_meta=None, settings=None):
         root = Path(tmp)
-        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        (root / 'sources').mkdir(parents=True, exist_ok=True)
         for name, text in sources.items():
-            (root / 'articles' / name).write_text(text, encoding='utf-8')
+            (root / 'sources' / name).write_text(text, encoding='utf-8')
         data = {'articles': entries}
         if series_meta is not None:
             data['series_meta'] = series_meta
@@ -16679,7 +16679,7 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
     def test_an_unreadable_article_warns_and_still_answers(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._one_article(tmp)
-            (root / 'articles' / 'intro.md').unlink()
+            (root / 'sources' / 'intro.md').unlink()
             result = run('resolve', str(root), 'page_title',
                          '--article', 'intro.md', '--format', 'json')
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -16734,11 +16734,11 @@ class RegressionFixes(unittest.TestCase):
 
     def _series(self, tmp, articles, md_for):
         root = Path(tmp)
-        (root / 'articles').mkdir(parents=True, exist_ok=True)
+        (root / 'sources').mkdir(parents=True, exist_ok=True)
         series = []
         for name, md in md_for.items():
             dest = name.replace('.md', '.html')
-            (root / 'articles' / name).write_text(md, encoding='utf-8')
+            (root / 'sources' / name).write_text(md, encoding='utf-8')
             series.append({'page_dest': dest, 'page_source': name,
                            'nav_title': name[0].upper(), 'nav_desc': name[0]})
         (root / 'series.json').write_text(
@@ -16985,7 +16985,7 @@ class RegressionFixes(unittest.TestCase):
                 'a.md': ('<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
                          'nav_title: A\nnav_desc: A\n---\n\nslug: r211\n# A\n'),
             })
-            img = root / 'articles' / 'img'
+            img = root / 'sources' / 'img'
             img.mkdir()
             # Self-referential: img/loop -> img/  (would recurse forever).
             (img / 'loop').symlink_to(img)
@@ -17052,7 +17052,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
             source = self._mark_draft(root)
-            article = Path(root) / 'articles' / source
+            article = Path(root) / 'sources' / source
             article.write_text(
                 article.read_text(encoding='utf-8').replace(
                     '<!-- lwp:slide:cover -->',
@@ -17074,7 +17074,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
         has nothing to produce from it, and wrong for a report."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            (Path(root) / 'articles' / 'first_article.md').write_bytes(
+            (Path(root) / 'sources' / 'first_article.md').write_bytes(
                 b'<!-- lwp:meta -->\npage_title: X\n---\n\n'
                 b'<!-- lwp:slide:cover -->\nslug: k268\n# T\nsummary: \xff not utf-8\n')
             plain = run('audit', root)
@@ -17123,7 +17123,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
         not audit's to silence."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
-            (Path(root) / 'articles' / 'first_article.md').write_bytes(
+            (Path(root) / 'sources' / 'first_article.md').write_bytes(
                 b'<!-- lwp:meta -->\npage_title: X\n---\n\n'
                 b'<!-- lwp:slide:cover -->\nslug: k269\n# T\nsummary: \xff not utf-8\n')
             stderr = run('audit', root).stderr
@@ -17144,7 +17144,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
                        if isinstance(data, dict) else data)
             entries[1]['status'] = 'ignored'
             path.write_text(json.dumps(data, indent=2), encoding='utf-8')
-            (Path(root) / 'articles' / entries[1]['page_source']).unlink()
+            (Path(root) / 'sources' / entries[1]['page_source']).unlink()
             plain = run('audit', root)
             self.assertIn('page_source not found', plain.stderr)
             self.assertNotIn('No warnings', plain.stdout,
@@ -17222,8 +17222,8 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = str(Path(tmp) / 's')
             self.assertEqual(run('init', root).returncode, 0)
-            (Path(root) / 'articles').mkdir(exist_ok=True)
-            (Path(root) / 'articles' / 'index.md').write_text(
+            (Path(root) / 'sources').mkdir(exist_ok=True)
+            (Path(root) / 'sources' / 'index.md').write_text(
                 '<!-- lwp:meta -->\npage_title: Solo\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: k270\n# Solo\nsummary: One.\n',
                 encoding='utf-8')
@@ -17250,7 +17250,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
             source = self._mark_draft(root)
-            article = Path(root) / 'articles' / source
+            article = Path(root) / 'sources' / source
             article.write_text(
                 article.read_text(encoding='utf-8') + '\n<div>\n',
                 encoding='utf-8')
@@ -17296,7 +17296,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
             data = json.loads(path.read_text(encoding='utf-8'))
             entries = (data.get('articles', data)
                        if isinstance(data, dict) else data)
-            (Path(root) / 'articles' / entries[1]['page_source']).unlink()
+            (Path(root) / 'sources' / entries[1]['page_source']).unlink()
             plain = run('audit', root)
             counted = re.search(r'(\d+) warning\(s\)', plain.stdout)
             self.assertIsNotNone(counted, plain.stdout)
@@ -17509,7 +17509,7 @@ class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):
         root = str(Path(tmp) / 's')
         self.assertEqual(run('init', root).returncode, 0)
         self.assertEqual(run('demo', root).returncode, 0)
-        (Path(root) / 'articles' / 't.md').write_text(body, encoding='utf-8')
+        (Path(root) / 'sources' / 't.md').write_text(body, encoding='utf-8')
         path = Path(root) / 'series.json'
         data = json.loads(path.read_text(encoding='utf-8'))
         entries = data.get('articles', data) if isinstance(data, dict) else data

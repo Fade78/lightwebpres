@@ -72,7 +72,7 @@ class _QuietHandler(SimpleHTTPRequestHandler):
 
 def _make_archive_zip():
     """A GitLab-shaped archive.zip: everything wrapped in one top-level
-    folder, as the real endpoint produces. Includes articles/old.md, an
+    folder, as the real endpoint produces. Includes sources/old.md, an
     already-remote file the "never deletes" test removes locally before
     pushing (spec §23.12)."""
     buf = io.BytesIO()
@@ -81,8 +81,8 @@ def _make_archive_zip():
         zf.writestr(prefix + 'series.json', json.dumps({
             'articles': [{'page_source': 'a.md'}],
         }))
-        zf.writestr(prefix + 'articles/a.md', ARTICLE_MD)
-        zf.writestr(prefix + 'articles/old.md', '# An old, unrelated file\n')
+        zf.writestr(prefix + 'sources/a.md', ARTICLE_MD)
+        zf.writestr(prefix + 'sources/old.md', '# An old, unrelated file\n')
     return buf.getvalue()
 
 
@@ -94,8 +94,8 @@ class _MockGitLabHandler(BaseHTTPRequestHandler):
     received_commits = []
     remote_tree = [
         {'path': 'series.json', 'type': 'blob'},
-        {'path': 'articles/a.md', 'type': 'blob'},
-        {'path': 'articles/old.md', 'type': 'blob'},
+        {'path': 'sources/a.md', 'type': 'blob'},
+        {'path': 'sources/old.md', 'type': 'blob'},
     ]
 
     def log_message(self, fmt, *args):
@@ -218,9 +218,9 @@ class GitSync(unittest.TestCase):
         self.assertEqual(commit['branch'], BRANCH)
 
         actions_by_path = {a['file_path']: a for a in commit['actions']}
-        # series.json and articles/a.md already exist remotely -> update.
+        # series.json and sources/a.md already exist remotely -> update.
         self.assertEqual(actions_by_path['series.json']['action'], 'update')
-        self.assertEqual(actions_by_path['articles/a.md']['action'], 'update')
+        self.assertEqual(actions_by_path['sources/a.md']['action'], 'update')
         # public/*.html did not exist remotely -> create.
         self.assertEqual(actions_by_path['public/a.html']['action'], 'create')
         self.assertEqual(actions_by_path['public/index.html']['action'], 'create')
@@ -234,14 +234,14 @@ class GitSync(unittest.TestCase):
 
     def test_push_never_deletes_a_file_removed_locally(self):
         """Spec §23.12: a file removed locally after pull (here,
-        articles/old.md, which still exists in the mock's remote_tree)
+        sources/old.md, which still exists in the mock's remote_tree)
         must never turn into a 'delete' action — push() only ever
         create/updates the files it finds locally."""
         page_base = 'http://127.0.0.1:%d' % self.page_port
         gitlab_base = 'http://127.0.0.1:%d' % self.gitlab_port
 
         result = subprocess.run(
-            ['node', str(E2E_SCRIPT), page_base, gitlab_base, PROJECT_ID, BRANCH, TOKEN, 'articles/old.md'],
+            ['node', str(E2E_SCRIPT), page_base, gitlab_base, PROJECT_ID, BRANCH, TOKEN, 'sources/old.md'],
             capture_output=True, text=True,
             env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=120,
@@ -256,7 +256,7 @@ class GitSync(unittest.TestCase):
             'push() must never emit a delete action',
         )
         self.assertNotIn(
-            'articles/old.md', [a['file_path'] for a in all_actions],
+            'sources/old.md', [a['file_path'] for a in all_actions],
             'a file removed locally must simply be absent from the push, not deleted remotely',
         )
 

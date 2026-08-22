@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 31 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 32 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -147,6 +147,7 @@ gets its own entry and its own state**, however small.
 - **B34** — A structural field converts an HTML entity; the body does not
 - **B37** — `requestFullscreen()` is refused from any non-left mouse event
 - **B38** — The two pages share one skeleton and one script
+- **B39** — The sources directory is called `sources/`, not `articles/`
 
 ### abandonné
 
@@ -2213,3 +2214,31 @@ one card. The removed constants and keys are gone from the source; the
 `index_nav_up`/`index_nav_down` language keys are left in the packs,
 unused, for the owner to decide whether they stay (removing them from
 the packs is a separate decision, recorded here by this sentence).
+
+## B39 — The sources directory is called `sources/`, not `articles/`
+
+**État :** terminé · **Depuis :** 2026-08-22 · **Version :** 0.45.0
+
+**The on-disk directory that holds the `.md` files is now `sources/`.**
+It was `articles/` since the first release, created by `init`, read by
+`build`, named in `LWP_ARTICLES_DIR`. Renamed in lockstep:
+`LWP_ARTICLES_DIR` → `LWP_SOURCES_DIR`, the internal `articles_dir` →
+`sources_dir`. A MAJOR break: an existing series renames its directory
+by hand; nothing else moves, because the build never reads that name
+from the series — it is fixed in the executable and the environment
+variable.
+
+**What does NOT change, on purpose.** The `articles` JSON field in
+`series.json` keeps its name: it is the list of PAGES (each entry is
+`page_source`/`page_dest`/`page_title`… — the `page_*` family, frozen
+by §20.1), an output-side list, not the sources. `page_source` keeps
+its name, and the `source:` citation field keeps its name (the GLOSSARY
+already distinguishes it from `page_source`). The `*_article.md` files
+keep their name — they are the long-form pieces a `full-article` slide
+includes, and they live inside `sources/` like the page files.
+
+**Why not a smaller word.** `sources/` is the material the build reads
+(one `.md` per page, plus the `*_article.md` long-forms, plus
+`img/`). The docs now write « le répertoire `sources/` » with the name
+in code, never « le répertoire source » alone, so the directory is
+never confused with « le fichier source » (`page_source`).

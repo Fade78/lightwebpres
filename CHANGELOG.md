@@ -33,6 +33,17 @@ link to the originals. They are at
 
 ---
 
+## v0.45.0
+
+The sources directory is now called `sources/` (it was `articles/` since
+the first release). This is a MAJOR break for existing series: the
+`lightwebpres init` scaffold creates `sources/`, and an existing series
+must rename its directory by hand — the environment variable that points
+at it was renamed in lockstep, `LWP_ARTICLES_DIR` → `LWP_SOURCES_DIR`.
+What does not change is the `articles` JSON field in `series.json`: the
+list of pages keeps its name, as do `page_source` and the `source:`
+citation field — only the on-disk directory was renamed.
+
 ## v0.44.0
 
 The click is instant, the glide is 200 ms, and a selection is only

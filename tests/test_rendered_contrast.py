@@ -253,7 +253,7 @@ class _ContrastSweep:
         cls.stamp = {}
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name) / 'series'
-        (root / 'articles').mkdir(parents=True)
+        (root / 'sources').mkdir(parents=True)
         (root / 'templates').mkdir()
         (root / 'templates' / 'custom.css').write_text(
             _CUSTOM_CSS, encoding='utf-8')
@@ -264,8 +264,8 @@ class _ContrastSweep:
             'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
                           'nav_title': 'A', 'nav_desc': 'A'}]}),
             encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
-        (root / 'articles' / 'a_article.md').write_text(_LONG, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
+        (root / 'sources' / 'a_article.md').write_text(_LONG, encoding='utf-8')
         for theme in cls.themes:
             settheme = subprocess.run(
                 ['python3', str(LWP), 'series', 'theme', 'set', str(root),
@@ -492,15 +492,15 @@ class _ContrastSweep:
                           if level != 'fail')[:3]
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'series'
-            (root / 'articles').mkdir(parents=True)
+            (root / 'sources').mkdir(parents=True)
             (root / 'templates').mkdir()
             (root / 'templates' / 'custom.css').write_text(
                 _CARELESS_CSS, encoding='utf-8')
             (root / 'series.json').write_text(json.dumps({'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
                  'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
-            (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
-            (root / 'articles' / 'a_article.md').write_text(
+            (root / 'sources' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
+            (root / 'sources' / 'a_article.md').write_text(
                 _LONG, encoding='utf-8')
             caught = []
             for theme in promised:

@@ -383,7 +383,7 @@ in a Markdown link, `[![alt](src "Caption")](https://…)`, and the picture
 becomes clickable while the caption stays outside the link — so the link's
 accessible name is the alt text alone, not alt plus caption;
 mid-paragraph it's a plain inline `<img>`, no caption; the path is
-relative — images live in `articles/img/`, copied to `public/img/` at
+relative — images live in `sources/img/`, copied to `public/img/` at
 build), inline code
 (`` `code` ``), fenced code blocks (` ```lang ` ... ` ``` `, the
 language optional and purely informational — no syntax highlighting),
@@ -705,12 +705,12 @@ here are fatal, and they are the ones worth checking before you call a
 file done:
 
 - `page_source` must end in `.md`, and the file it names must exist in
-  `articles/`.
+  `sources/`.
 - an explicit `page_dest` must end in `.html` or `.htm`, and must be a
   bare filename.
 - two entries must not resolve to the same `page_dest` (case-insensitive).
 - a `full-article` slide's `article:` target must be a bare filename too,
-  must resolve inside `articles/`, and must exist. A symlink pointing out
+  must resolve inside `sources/`, and must exist. A symlink pointing out
   of that directory is refused.
 
 Any non-string value for one of these fields is fatal as well.
@@ -777,7 +777,7 @@ as finished — don't guess at whether it would build.
   character.
 - A Markdown link to anything that isn't `http(s)` — it stays literal.
 - Two `series-nav` slides in one file (the second one fails the build).
-- `page_source`/`page_dest` values with a path (`articles/x.md` instead of `x.md`)
+- `page_source`/`page_dest` values with a path (`sources/x.md` instead of `x.md`)
   or anything that isn't a plain filename.
 - Opening a ` ``` ` code fence without a matching closing ` ``` ` —
   every line after it, including the rest of the file, is swallowed as

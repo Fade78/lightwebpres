@@ -64,11 +64,11 @@ def build(output, theme=None, lang='en'):
             cmd += ['--theme', theme]
         subprocess.run(cmd, check=True, capture_output=True)
 
-        articles = series / 'articles'
-        shutil.copy(deck, articles / 'guide.md')
+        sources = series / 'sources'
+        shutil.copy(deck, sources / 'guide.md')
         # The long-form piece IS the guide, verbatim. No second copy lives
         # anywhere: it is assembled here and thrown away with the tempdir.
-        shutil.copy(guide, articles / 'guide_article.md')
+        shutil.copy(guide, sources / 'guide_article.md')
         (series / 'series.json').write_text(
             json.dumps(SERIES, indent=2, ensure_ascii=False), encoding='utf-8')
 

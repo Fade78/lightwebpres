@@ -59,11 +59,11 @@ def _make_test_zip(zip_path):
     """A minimal but complete series: one article, one full-article body."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         (root / 'series.json').write_text(json.dumps({
             'articles': [{'page_source': 'a.md'}],
         }), encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Web test\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c1\nkicker: T\n# Web build test\n'
@@ -71,7 +71,7 @@ def _make_test_zip(zip_path):
             '<!-- lwp:slide:full-article -->\nslug: c2\narticle: a_article.md\n',
             encoding='utf-8',
         )
-        (root / 'articles' / 'a_article.md').write_text(
+        (root / 'sources' / 'a_article.md').write_text(
             '# Full article\n\nBuilt via Pyodide, in-browser.\n',
             encoding='utf-8',
         )
@@ -138,11 +138,11 @@ class SlideTagsRuntime(unittest.TestCase):
     def setUpClass(cls):
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         (root / 'series.json').write_text(json.dumps({
             'articles': [{'page_source': 'a.md'}],
         }), encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Slide tags\n'
             'nav_title: Tags\nnav_desc: Runtime tags\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c3\nkicker: Shared\n# Shared\n'

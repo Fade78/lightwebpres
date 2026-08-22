@@ -145,7 +145,7 @@ handout at Ctrl/Cmd+P.
 open my-series/public/index.html
 ```
 
-Then write your own `.md` files in `my-series/articles/`, add a `{"page_source":
+Then write your own `.md` files in `my-series/sources/`, add a `{"page_source":
 "apple-pie.md"}` entry per article to `my-series/series.json` (that's the
 only field it needs — see below), and run `build` again.
 
@@ -190,7 +190,7 @@ most common mistake in a homemade pie.
 article: apple-pie_article.md
 ```
 
-The last slide points at a **second** file, `articles/apple-pie_article.md`,
+The last slide points at a **second** file, `sources/apple-pie_article.md`,
 holding the long-form text — `build` fails if it isn't there. Drop the
 `full-article` slide if you don't want one.
 
@@ -317,9 +317,9 @@ the series or within one article.
 
 | Command | What it does |
 |---|---|
-| `init [dir]` | Scaffolds a series directory (`articles/`, `templates/` with your `settings.conf` and `custom.css`, an empty `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script, the language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
+| `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, an empty `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script, the language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
-| `build [dir]` | Builds `public/` from `series.json` + `articles/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
+| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — variant tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, a differing language pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |

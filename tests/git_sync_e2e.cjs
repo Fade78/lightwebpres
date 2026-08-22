@@ -10,7 +10,7 @@
 // argv: <pageBaseUrl> <gitlabBaseUrl> <projectId> <branch> <token> [deleteFileBeforePush]
 //
 // The optional 6th argument names a file (relative to the series dir, e.g.
-// "articles/old.md") to delete from the local working directory after
+// "sources/old.md") to delete from the local working directory after
 // Build and before Push, so the test can verify push() never turns that
 // into a "delete" action against a file that still exists remotely
 // (spec §23.12 — push only ever creates/updates, never deletes).

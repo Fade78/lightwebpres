@@ -106,7 +106,7 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
     def setUpClass(cls):
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name) / 'series'
-        (root / 'articles').mkdir(parents=True)
+        (root / 'sources').mkdir(parents=True)
         # `series theme set` writes templates/settings.conf and needs the
         # directory to exist.
         (root / 'templates').mkdir()
@@ -121,7 +121,7 @@ class ADeckIsUsableWithoutAMouse(unittest.TestCase):
             'articles': [
                 {'page_dest': 'a.html', 'page_source': 'a.md',
                  'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
         for theme in THEMES:
             out = Path(cls.tmpdir.name) / ('public-' + theme)
             # The theme is APPLIED to the series and then built, because

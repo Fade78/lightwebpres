@@ -86,7 +86,7 @@ class KeyboardNav(unittest.TestCase):
         # full-article slide + a trailing standard slide only reachable
         # once the overflowing slide has been scrolled through. ---------
         tall_root = parent / 'tall_series'
-        (tall_root / 'articles').mkdir(parents=True)
+        (tall_root / 'sources').mkdir(parents=True)
         (tall_root / 'series.json').write_text(json.dumps({
             'articles': [{'page_dest': 'tall.html', 'page_source': 'tall.md', 'nav_title': 'Tall', 'nav_desc': 'Tall'}],
         }), encoding='utf-8')
@@ -98,8 +98,8 @@ class KeyboardNav(unittest.TestCase):
             'whole slide genuinely overflows a normal browser window.' % (i, i)
             for i in range(1, 41)
         )
-        (tall_root / 'articles' / 'tall_article.md').write_text(long_body, encoding='utf-8')
-        (tall_root / 'articles' / 'tall.md').write_text(
+        (tall_root / 'sources' / 'tall_article.md').write_text(long_body, encoding='utf-8')
+        (tall_root / 'sources' / 'tall.md').write_text(
             '<!-- lwp:meta -->\npage_dest: tall.html\npage_title: Tall test\n'
             'nav_title: Tall\nnav_desc: Tall\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c1\nkicker: T\n# Tall test\n'
@@ -115,7 +115,7 @@ class KeyboardNav(unittest.TestCase):
         # minimal sibling articles the series-nav slide links to, so its
         # cards are exactly [b.html, c.html, index.html]. ----------------
         nav_root = parent / 'nav_series'
-        (nav_root / 'articles').mkdir(parents=True)
+        (nav_root / 'sources').mkdir(parents=True)
         (nav_root / 'series.json').write_text(json.dumps({
             'articles': [
                 {'page_dest': 'nav.html', 'page_source': 'nav.md', 'nav_title': 'Nav', 'nav_desc': 'Nav'},
@@ -123,7 +123,7 @@ class KeyboardNav(unittest.TestCase):
                 {'page_dest': 'c.html', 'page_source': 'c.md', 'nav_title': 'C', 'nav_desc': 'C'},
             ],
         }), encoding='utf-8')
-        (nav_root / 'articles' / 'nav.md').write_text(
+        (nav_root / 'sources' / 'nav.md').write_text(
             '<!-- lwp:meta -->\npage_dest: nav.html\npage_title: Nav test\n'
             'nav_title: Nav\nnav_desc: Nav\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c4\nkicker: T\n# Nav test\n'
@@ -134,7 +134,7 @@ class KeyboardNav(unittest.TestCase):
             encoding='utf-8',
         )
         for letter in ('b', 'c'):
-            (nav_root / 'articles' / ('%s.md' % letter)).write_text(
+            (nav_root / 'sources' / ('%s.md' % letter)).write_text(
                 '<!-- lwp:meta -->\npage_dest: %s.html\npage_title: Article %s\n'
                 'nav_title: %s\nnav_desc: %s\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: c7\nkicker: T\n# Article %s\n'
@@ -155,7 +155,7 @@ class KeyboardNav(unittest.TestCase):
         # somewhere genuinely different from "the cooldown only let it
         # get partway", so the regression is actually observable. ------
         held_root = parent / 'held_series'
-        (held_root / 'articles').mkdir(parents=True)
+        (held_root / 'sources').mkdir(parents=True)
         (held_root / 'series.json').write_text(json.dumps({
             'articles': [
                 {'page_dest': 'held.html', 'page_source': 'held.md', 'nav_title': 'Held', 'nav_desc': 'Held'},
@@ -163,7 +163,7 @@ class KeyboardNav(unittest.TestCase):
                 {'page_dest': 'hc.html', 'page_source': 'hc.md', 'nav_title': 'HC', 'nav_desc': 'HC'},
             ],
         }), encoding='utf-8')
-        (held_root / 'articles' / 'held.md').write_text(
+        (held_root / 'sources' / 'held.md').write_text(
             '<!-- lwp:meta -->\npage_dest: held.html\npage_title: Held test\n'
             'nav_title: Held\nnav_desc: Held\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c8\nkicker: T\n# Held test\n'
@@ -176,7 +176,7 @@ class KeyboardNav(unittest.TestCase):
             encoding='utf-8',
         )
         for letter in ('hb', 'hc'):
-            (held_root / 'articles' / ('%s.md' % letter)).write_text(
+            (held_root / 'sources' / ('%s.md' % letter)).write_text(
                 '<!-- lwp:meta -->\npage_dest: %s.html\npage_title: Article %s\n'
                 'nav_title: %s\nnav_desc: %s\n---\n\n'
                 '<!-- lwp:slide:cover -->\nslug: c12\nkicker: T\n# Article %s\n'

@@ -172,13 +172,13 @@ class EveryRenderedSizeMovesWithTheScreen(unittest.TestCase):
     def setUpClass(cls):
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name) / 'series'
-        (root / 'articles' / 'img').mkdir(parents=True)
+        (root / 'sources' / 'img').mkdir(parents=True)
         (root / 'series.json').write_text(json.dumps({'articles': [
             {'page_dest': 'a.html', 'page_source': 'a.md',
              'nav_title': 'A', 'nav_desc': 'A'}]}), encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
-        (root / 'articles' / 'a_article.md').write_text(_LONG, encoding='utf-8')
-        (root / 'articles' / 'img' / 'probe.png').write_bytes(
+        (root / 'sources' / 'a.md').write_text(_ARTICLE, encoding='utf-8')
+        (root / 'sources' / 'a_article.md').write_text(_LONG, encoding='utf-8')
+        (root / 'sources' / 'img' / 'probe.png').write_bytes(
             b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
             b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
             b'\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x00\x03\x00\x01'

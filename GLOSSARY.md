@@ -76,7 +76,7 @@ taking priority when both are set (§20.3.1).
 
 | Field | Where it can be set | Default | Description |
 |---|---|---|---|
-| `page_source` | `series.json` only | None — required (§20.3) | Filename of the article's `.md` source, in `articles/`. (Named `source` until v0.7.0 — the old key gets an explicit migration error) |
+| `page_source` | `series.json` only | None — required (§20.3) | Filename of the article's `.md` source, in `sources/`. (Named `source` until v0.7.0 — the old key gets an explicit migration error) |
 | `page_dest` | `series.json`, meta block | `series.json` > meta `page_dest:` > `page_source` (`.md` → `.html`) (§20.3.1) | Output HTML filename. (Named `file` until v0.7.0) |
 | `page_title` | `series.json`, meta block | `series.json` > meta `page_title:` > the cover slide's own `slide_title` > the resolved `page_dest` (§20.3.1) | The article's own page `<title>` tag |
 | `page_desc` | `series.json`, meta block | `series.json` > meta `page_desc:` > the cover slide's own `summary` > tag omitted (§20.3.1) | The page's `<meta name="description">` (SEO/share preview). Deliberately NOT chained with `card_desc` — invisible metadata never leaks onto visible index cards |

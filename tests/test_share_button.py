@@ -61,11 +61,11 @@ class ShareButton(unittest.TestCase):
     def setUpClass(cls):
         cls.tmpdir = tempfile.TemporaryDirectory()
         root = Path(cls.tmpdir.name)
-        (root / 'articles').mkdir()
+        (root / 'sources').mkdir()
         (root / 'series.json').write_text(json.dumps({
             'articles': [{'page_source': 'a.md'}],
         }), encoding='utf-8')
-        (root / 'articles' / 'a.md').write_text(
+        (root / 'sources' / 'a.md').write_text(
             '<!-- lwp:meta -->\npage_title: Share button test\n'
             'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: c1\nkicker: T\n# Share button test\n'
