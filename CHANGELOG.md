@@ -33,6 +33,28 @@ link to the originals. They are at
 
 ---
 
+## v0.45.1
+
+The print family: three themes drawn for ink and paper, and nothing else.
+
+A theme's ground is painted, never transparent — `print-color-adjust:
+exact` forces the paint onto paper, and the contrast measurements are
+computed against declared colours, so "print friendly" could not mean
+"transparent background". It means a palette drawn for the printer:
+pure white `#FFFFFF` ground, ink colours that survive a printer, no
+veils that need a screen. That is a usage, not an ambiance, so it is
+a new family rather than a handful of members spread across the
+existing ones — the closed facet vocabulary gains `print`, and
+`theme list --family print` narrows on exactly the three.
+
+`print-ink`: pure black on white, a single deep red held in reserve.
+`print-grey`: no hue at all — weight, opacity and shape carry the
+signal, the same doctrine as monochrome. `print-color`: a blue for the
+structure, a green for what is good, a pale yellow highlighter, each
+one chosen to survive a printer. All three pin their shadows off (the
+light family's shadows are shadows of screens, not of paper) and pass
+the catalogue's own AA floor on bold fact text.
+
 ## v0.45.0
 
 The sources directory is now called `sources/` (it was `articles/` since

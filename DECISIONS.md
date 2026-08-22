@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 32 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 33 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -148,6 +148,7 @@ gets its own entry and its own state**, however small.
 - **B37** — `requestFullscreen()` is refused from any non-left mouse event
 - **B38** — The two pages share one skeleton and one script
 - **B39** — The sources directory is called `sources/`, not `articles/`
+- **B40** — The print family: three themes drawn for ink and paper
 
 ### abandonné
 
@@ -2242,3 +2243,25 @@ includes, and they live inside `sources/` like the page files.
 `img/`). The docs now write « le répertoire `sources/` » with the name
 in code, never « le répertoire source » alone, so the directory is
 never confused with « le fichier source » (`page_source`).
+
+## B40 — The print family: three themes drawn for ink and paper
+
+**État :** terminé · **Depuis :** 2026-08-22 · **Version :** 0.45.1
+
+**A theme's ground is painted, never transparent.** `print-color-adjust:
+exact` forces the paint onto paper, and every contrast measurement is
+computed against declared colours — so "print friendly" cannot be a
+transparency mechanism, it has to be a palette drawn for the printer:
+pure white ground, inks that survive one. That makes it a usage, not an
+ambiance, and usages are what families are for: the closed facet
+vocabulary gains `print`, and `theme list --family print` narrows on
+exactly the members.
+
+**Three themes, one per doctrine.** `print-ink` — pure black on white,
+one deep red held in reserve, the highest contrast the family holds.
+`print-grey` — no hue at all; weight, opacity and shape carry the
+signal, the same doctrine monochrome found. `print-color` — a blue for
+the structure, a green for what is good, a pale yellow highlighter,
+each chosen to survive a printer. All three pin their shadows off
+(the light family's shadows are shadows of screens, not of paper) and
+pass the catalogue's own AA floor on bold fact text, measured.

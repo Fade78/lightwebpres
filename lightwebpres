@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.0"
+VERSION = "0.45.1"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -2050,6 +2050,49 @@ THEMES = {
                 "family's one sober member.",
         'note_good': True,
     },
+    # --- Family `print`: drawn for ink and paper, not for a screen. The
+    # ground is pure white, every colour must survive a printer, and a
+    # veils either stand on white or hold their ink — the family exists
+    # so `theme list --family print` narrows on exactly these.
+    'print-ink': {
+        'family': 'print', 'label': 'Print Ink', 'source': 'lightwebpres',
+        'marker': '#FFE9A8', 'ink': '#000000', 'ink-muted': '#4B4B4B',
+        'page': '#FFFFFF', 'accent': '#B71D1C', 'positive': '#1B5E20',
+        'nav': '#000000',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "Ink on white, the highest contrast the family holds: pure "
+                "black text, a single deep red held in reserve, a pale "
+                "yellow highlighter for the bold runs. What a printer "
+                "consumes without asking: no hue needs to be paid for twice.",
+        'note_good': True,
+    },
+    'print-grey': {
+        'family': 'print', 'label': 'Print Grey', 'source': 'lightwebpres',
+        'marker': '#D8D8D8', 'ink': '#1A1A1A', 'ink-muted': '#606060',
+        'page': '#FFFFFF', 'accent': '#2B2B2B', 'positive': '#1A1A1A',
+        'nav': '#2B2B2B',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
+        # A grey band on white has only lightness, and the text already
+        # spent it — the same doctrine as Monochrome: underline, never wash.
+        'fact_decoration': 'underline',
+        'note': "A fine in greys: everything rests on weight, opacity and "
+                "shape, never on hue — the printers' ink that needs no "
+                "colour cartridge. Fact-box bold is underlined, not washed: "
+                "on white paper a grey band has no colour to lean on.",
+        'note_good': True,
+    },
+    'print-color': {
+        'family': 'print', 'label': 'Print Color', 'source': 'lightwebpres',
+        'marker': '#FFE9A8', 'ink': '#1A1A1A', 'ink-muted': '#5A5A5A',
+        'page': '#FFFFFF', 'accent': '#0B5394', 'positive': '#1B5E20',
+        'nav': '#0B5394',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': 'marker',
+        'note': "A few inks on white paper: a blue for the structure, a "
+                "green for what is good, a pale yellow for the highlight. "
+                "Three inks, and none of them a screen colour — each one "
+                "was chosen to survive a printer.",
+        'note_good': True,
+    },
 }
 
 
@@ -2130,6 +2173,8 @@ THEME_FAMILIES = {
     'heat': 'Warmth with no visible source.',
     'pop': 'The colour is the ground, not a detail.',
     'ported': 'A palette from elsewhere, kept as its authors drew it.',
+    'print': 'Drawn for ink and paper: a white ground, and colours that '
+             'survive a printer.',
 }
 
 # Every value each facet can take, in the order a listing should show
@@ -4052,6 +4097,27 @@ THEME_PROPERTY_OVERRIDES = {
         'highlight.shadow.fg': '#1F29334D',
         'highlight.shadow.blur': '0.13em', 'highlight.shadow.dy': '0.05em',
     },
+    # --- Family `print`: on a white ground the pale highlighter cannot
+    # edge the snapshot column either — it would vanish into the sheet.
+    # The accent holds the depth where the palette owns one; print-grey
+    # has none by doctrine, so the rule takes the ink, as monochrome's
+    # does. The shadows of the light family are shadows of screens, not
+    # of paper: each print theme pins them off.
+    'print-ink': {
+        'table.col-snap.rule-fg': 'call',
+        'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
+        'highlight.shadow.fg': 'transparent',
+    },
+    'print-grey': {
+        'table.col-snap.rule-fg': 'ink',
+        'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
+        'highlight.shadow.fg': 'transparent',
+    },
+    'print-color': {
+        'table.col-snap.rule-fg': 'call',
+        'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
+        'highlight.shadow.fg': 'transparent',
+    },
 }
 
 
@@ -4132,6 +4198,11 @@ THEME_NOTE_PROPS = {
     'abyss': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#D6F4FF5C', 'note.page.bg': '#D6F4FF11', 'note.page.rule-fg': '#D6F4FF5C'},
     'pink-dream': {'note.fg': 'ink-quiet', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#FFD9EC62', 'note.page.bg': '#FFD9EC14', 'note.page.rule-fg': '#FFD9EC62'},
     'cloudy': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1F293382', 'note.page.bg': '#1F293315', 'note.page.rule-fg': '#1F293382'},
+    # Family `print`: veils made of the ink, the same precedent newsprint
+    # set — on paper the rule and the wash must hold their own ink.
+    'print-ink': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#0000007D', 'note.page.bg': '#00000012', 'note.page.rule-fg': '#00000082'},
+    'print-grey': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1A1A1A7D', 'note.page.bg': '#1A1A1A12', 'note.page.rule-fg': '#1A1A1A82'},
+    'print-color': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1A1A1A7D', 'note.page.bg': '#1A1A1A12', 'note.page.rule-fg': '#1A1A1A82'},
 }
 
 

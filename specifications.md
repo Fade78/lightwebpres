@@ -3123,7 +3123,7 @@ filtres, et la commande `theme list` (§11.9) en options :
 | Facette | Valeurs | Origine |
 |---|---|---|
 | polarity | `light`, `dark` | dérivée de `dark_background` (§9.5.1) |
-| family | `desk`, `light`, `terrain`, `heat`, `pop`, `ported` | **déclarée** dans l'entrée, contre un vocabulaire clos ; une valeur inconnue est refusée par son nom, et une entrée qui n'en déclare aucune vaut `null` plutôt qu'un défaut silencieux |
+| family | `desk`, `light`, `terrain`, `heat`, `pop`, `ported`, `print` | **déclarée** dans l'entrée, contre un vocabulaire clos ; une valeur inconnue est refusée par son nom, et une entrée qui n'en déclare aucune vaut `null` plutôt qu'un défaut silencieux |
 | hue | `neutral`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta` | **calculée** à partir du fond |
 
 Les noms de facettes et leurs valeurs sont en anglais, comme tout
