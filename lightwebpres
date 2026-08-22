@@ -7605,11 +7605,17 @@ document.addEventListener('DOMContentLoaded', function() {
     goTo(base - 1, isScrolling);
   });
   // The middle BUTTON toggles fullscreen — in and out. (The middle
-  // WHEEL is untouched: it scrolls.) Firefox fires auxclick (not click)
-  // for the middle button, and requestFullscreen needs no user gesture
-  // from the page's point of view — the browser enforces the gesture
-  // itself.
-  document.addEventListener('auxclick', function (e) {
+  // WHEEL is untouched: it scrolls.) The toggle lives on `mousedown`,
+  // not on `auxclick`: entering fullscreen needs a real user-activation
+  // gesture, and the auxiliary events (`auxclick`, `contextmenu`) do
+  // not carry one — a toggle fired there could exit fullscreen (which
+  // needs no gesture) but its entry was refused by the browser,
+  // silently. `mousedown` is a gesture; the button's own `click` and
+  // `auxclick` are left alone afterwards (they only ever see
+  // `e.button !== 0` in the click handler, and the auxclick handler is
+  // simply not bound). The preventDefault also stops the middle button's
+  // native auto-scroll.
+  document.addEventListener('mousedown', function (e) {
     if (e.button !== 1) return;
     if (isInteractive(e)) return;
     e.preventDefault();

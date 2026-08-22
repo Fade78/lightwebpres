@@ -51,7 +51,13 @@ instantly to the card you left. The glide is the deck's own animation
 whose duration varies with the distance and could not be promised.
 
 The middle button toggles fullscreen, in and out — the wheel itself
-keeps scrolling, and ⛶ / F keep working. The right button is the
+keeps scrolling, and ⛶ / F keep working. The entry once failed
+silently: the toggle lived on `auxclick`, which is not a
+user-activation gesture, so the browser refused the `requestFullscreen`
+that needs one — the exit worked (it needs none) and the entry never
+did. The toggle now lives on `mousedown`, which IS a gesture, and the
+two-click word selection stays with the browser, exempted from the
+drag guards on purpose. The right button is the
 exact mirror of the left, everywhere: it goes back on the index cards
 and the series-nav links too (the browser's context menu is gone from
 the deck; a selection still owns it).

@@ -702,6 +702,54 @@ async function main() {
          + JSON.stringify(state));
   }
 
+  // 5h. The middle BUTTON toggles fullscreen, in AND out. The entry
+  // used to be silent: the toggle lived on `auxclick`, which is not a
+  // user-activation gesture, so the browser refused the request
+  // fullscreen that needs one — the exit worked (it needs none), and
+  // the entry never did. The toggle now lives on `mousedown`, which
+  // IS a gesture. Stubbed, like the F test above, so the calls are
+  // observable without a real fullscreen grant.
+  await page.evaluate(() => {
+    window.__fs = 0;
+    window.__inFs = false;
+    Object.defineProperty(document, 'fullscreenElement', {
+      get: () => window.__inFs ? document.documentElement : null,
+    });
+    document.documentElement.requestFullscreen = function () {
+      window.__fs++; window.__inFs = true; return Promise.resolve();
+    };
+    document.exitFullscreen = function () {
+      window.__exit++; window.__inFs = false; return Promise.resolve();
+    };
+    window.__exit = 0;
+  });
+  await page.mouse.click(640, 400, { button: 'middle' });
+  await page.waitForTimeout(200);
+  const midIn = await page.evaluate(() => window.__fs);
+  if (midIn !== 1) {
+    fail('the middle button did not ENTER fullscreen: fs asked '
+         + midIn + ' times');
+  }
+  await page.mouse.click(640, 400, { button: 'middle' });
+  await page.waitForTimeout(200);
+  const midOut = await page.evaluate(() => window.__exit);
+  if (midOut !== 1) {
+    fail('the middle button did not EXIT fullscreen: exit asked '
+         + midOut + ' times');
+  }
+
+  // 5i. The two-click selection still belongs to the browser. The
+  // deck must not swallow the platform's own double-click word
+  // selection — the second click of a pair is exempted from the drag
+  // guards precisely so the browser keeps doing what it does.
+  await page.mouse.dblclick(300, 300);
+  await page.waitForTimeout(200);
+  const wordSel = await page.evaluate(() => String(window.getSelection()).length);
+  if (wordSel === 0) {
+    fail('a double-click no longer selects the word under the pointer: '
+         + 'the deck swallowed the browser gesture');
+  }
+
   await browser.close();
   if (errors.length) {
     fail('console errors: ' + errors.join(' | '));
