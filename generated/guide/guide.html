@@ -4141,6 +4141,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // (`endedADrag`) prevents on the way in. Without a selection,
     // right-click keeps its deck meaning: go back one card.
     if (String(window.getSelection())) return;
+    // A right-click inside the intent window was already consumed by
+    // the middle-then-right gesture (Home) — the menu must not also
+    // appear.
+    if (Date.now() < fsIntentUntil) return;
     e.preventDefault();
     // The mirror of the left button, including the glide logic: while
     // the deck is gliding, `current` names the glide's target, so the
@@ -4149,32 +4153,52 @@ document.addEventListener('DOMContentLoaded', function() {
     var base = isScrolling ? current : currentVisible();
     goTo(base - 1, isScrolling);
   });
-  // The middle BUTTON toggles fullscreen — in and out. (The middle
-  // WHEEL is untouched: it scrolls.) The toggle lives on `mousedown`,
-  // not on `auxclick`: entering fullscreen needs a real user-activation
-  // gesture, and the auxiliary events (`auxclick`, `contextmenu`) do
-  // not carry one — a toggle fired there could exit fullscreen (which
-  // needs no gesture) but its entry was refused by the browser,
-  // silently. `mousedown` is a gesture; the button's own `click` and
-  // `auxclick` are left alone afterwards. The preventDefault also stops
-  // the middle button's native auto-scroll.
-  //
-  // The auxclick below makes the toggle complete: the middle button on
-  // a LINK would otherwise open it (new tab, or navigate) when the
-  // button is released — the fullscreen entered on mousedown would be
-  // lost a moment later. The middle button is the fullscreen toggle
-  // everywhere, cards and links included, so the link's own activation
-  // is swallowed.
+  // The middle BUTTON is the fullscreen gatekeeper: it can only EXIT
+  // on its own, because entering needs a LEFT mouse gesture — the
+  // browsers refuse `requestFullscreen()` from any non-left event
+  // (B37). The entry is the two-step: middle button (arms the intent),
+  // then a LEFT click within the window (carries the gesture the
+  // browser requires, and the entry happens). A RIGHT click within the
+  // same window goes Home instead. A middle press while fullscreen
+  // simply exits. The WHEEL itself keeps scrolling; the ⛶ button and
+  // F keep working as direct entries.
+  var fsIntentUntil = 0;
+  var fsEntryPending = false;
+  var FS_INTENT_MS = 900;
   document.addEventListener('mousedown', function (e) {
-    if (e.button !== 1) return;
-    e.preventDefault();
-    toggleFullscreen();
-  });
-  document.addEventListener('auxclick', function (e) {
-    if (e.button !== 1) return;
-    e.preventDefault();
-    e.stopPropagation();
-  });
+    if (e.button === 1) {
+      e.preventDefault();
+      if (isFullscreen()) {
+        toggleFullscreen();
+      } else {
+        fsIntentUntil = Date.now() + FS_INTENT_MS;
+      }
+      return;
+    }
+    if (Date.now() >= fsIntentUntil) return;
+    if (e.button === 0) {
+      // The second half of the gesture: a left click inside the
+      // intent window carries the entry. preventDefault keeps the
+      // click from also doing whatever the left button normally does
+      // on this target (advance the deck, follow a card link).
+      e.preventDefault();
+      fsIntentUntil = 0;
+      fsEntryPending = true;
+      if (!isFullscreen()) toggleFullscreen();
+    } else if (e.button === 2) {
+      // The same intent, the other way: middle then RIGHT goes Home.
+      // Right-click normally steps back; inside the intent window it
+      // is a deliberate second half, so it is swallowed here — and the
+      // contextmenu handler below never sees it (its own guard checks
+      // the intent window too).
+      e.preventDefault();
+      fsIntentUntil = 0;
+      window.location.href = 'index.html';
+    }
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (fsEntryPending) { fsEntryPending = false; return; }
+  }, true);
 
   // --- Touch swipe and double tap (mobile / tablet) ---
   var touchStartX = null, touchStartY = null, touchStartT = 0;

@@ -50,17 +50,20 @@ instantly to the card you left. The glide is the deck's own animation
 (requestAnimationFrame, eased), never the browser's `scroll-behavior`,
 whose duration varies with the distance and could not be promised.
 
-The middle button toggles fullscreen, in and out — the wheel itself
-keeps scrolling, and ⛶ / F keep working. The entry once failed
-silently: the toggle lived on `auxclick`, which is not a
-user-activation gesture, so the browser refused the `requestFullscreen`
-that needs one — the exit worked (it needs none) and the entry never
-did. The toggle now lives on `mousedown`, which IS a gesture, and the
-two-click word selection stays with the browser, exempted from the
-drag guards on purpose. The right button is the
+The middle button is the fullscreen gatekeeper, and the entry is a
+two-step gesture. The button alone EXITS fullscreen — entering needs a
+LEFT mouse gesture, and the browsers refuse `requestFullscreen()` from
+any non-left event (Firefox names the rule in its console; B37), which
+is why the button alone can never enter. So: middle button then a LEFT
+click within the window enters (the left click carries the gesture the
+browser requires), and middle button then a RIGHT click goes Home.
+While fullscreen, the middle button exits cleanly and arms nothing —
+the click that follows has its ordinary meaning. The wheel itself
+keeps scrolling; ⛶ / F stay direct entries. The right button is the
 exact mirror of the left, everywhere: it goes back on the index cards
 and the series-nav links too (the browser's context menu is gone from
-the deck; a selection still owns it).
+the deck; a selection still owns it). The two-click word selection
+stays with the browser, exempted from the drag guards on purpose.
 
 And a click on an existing selection dismisses it, and only that. The
 browser clears the selection on mousedown, before our click event

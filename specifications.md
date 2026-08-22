@@ -1952,10 +1952,15 @@ que le lecteur vient de quitter. C'est le même modèle en mode
 présentation et en lecture — il n'y a pas de geste « double-clic » :
 il y a un clic hors défilement et un clic pendant le défilement.
 
-Le **bouton du milieu** bascule le plein écran, entrée **et** sortie —
-il n'appelle jamais `requestFullscreen` différemment de ⛶ ou F, et la
-molette, elle, ne fait que défiler. Pour entrer en plein écran :
-bouton du milieu, bouton ⛶, ou F.
+Le **bouton du milieu** est le gardien du plein écran : il **sort**
+du plein écran tout seul, et **entre** par un geste en deux temps —
+bouton du milieu puis **clic gauche** dans la fenêtre (le clic gauche
+porte le geste que les navigateurs exigent pour `requestFullscreen`,
+refusé depuis tout évènement souris non-gauche — B37). Le même
+deux-temps avec un **clic droit** va à l'**index** (Home). En plein
+écran, le bouton du milieu sort sans armer de geste : le clic qui
+suit a son sens ordinaire. La molette, elle, ne fait que défiler ;
+le bouton ⛶ et F restent des entrées directes.
 
 En plein écran, les clics gauche et droit obéissent au même modèle
 (glissé de 200 ms, saut au clic pendant le glissé) — rien à détecter,

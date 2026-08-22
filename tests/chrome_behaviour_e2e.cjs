@@ -702,12 +702,12 @@ async function main() {
          + JSON.stringify(state));
   }
 
-  // 5h. The middle BUTTON toggles fullscreen, in AND out. The entry
-  // used to be silent: the toggle lived on `auxclick`, which is not a
-  // user-activation gesture, so the browser refused the request
-  // fullscreen that needs one — the exit worked (it needs none), and
-  // the entry never did. The toggle now lives on `mousedown`, which
-  // IS a gesture. Stubbed, like the F test above, so the calls are
+  // 5h. The middle BUTTON is the fullscreen gatekeeper (B37): the
+  // browsers refuse requestFullscreen from any non-left mouse event,
+  // so the button alone can only EXIT. The entry is a two-step — a
+  // middle press then a LEFT click within the window (the left click
+  // carries the gesture the browser requires) — and middle then RIGHT
+  // goes Home. Stubbed, like the F test above, so the calls are
   // observable without a real fullscreen grant.
   await page.evaluate(() => {
     window.__fs = 0;
@@ -723,20 +723,43 @@ async function main() {
     };
     window.__exit = 0;
   });
+  // Middle alone arms nothing and enters nothing.
   await page.mouse.click(640, 400, { button: 'middle' });
   await page.waitForTimeout(200);
+  const midAlone = await page.evaluate(() => window.__fs);
+  if (midAlone !== 0) {
+    fail('the middle button alone must not ENTER fullscreen: fs asked '
+         + midAlone + ' times');
+  }
+  // Middle then LEFT: the entry happens on the left click.
+  await page.mouse.click(640, 400, { button: 'middle' });
+  await page.waitForTimeout(50);
+  await page.mouse.click(640, 400);
+  await page.waitForTimeout(300);
   const midIn = await page.evaluate(() => window.__fs);
   if (midIn !== 1) {
-    fail('the middle button did not ENTER fullscreen: fs asked '
+    fail('middle-then-left did not ENTER fullscreen: fs asked '
          + midIn + ' times');
   }
+  // Middle while fullscreen: exits, and arms nothing.
   await page.mouse.click(640, 400, { button: 'middle' });
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
   const midOut = await page.evaluate(() => window.__exit);
   if (midOut !== 1) {
     fail('the middle button did not EXIT fullscreen: exit asked '
          + midOut + ' times');
   }
+  // Middle then RIGHT: Home. On the article page, Home is the index.
+  await page.mouse.click(640, 400, { button: 'middle' });
+  await page.waitForTimeout(50);
+  await page.mouse.click(640, 400, { button: 'right' });
+  await page.waitForTimeout(900);
+  const homePath = await page.evaluate(() => location.pathname);
+  if (!/index\.html$/.test(homePath)) {
+    fail('middle-then-right did not go Home: path ' + homePath);
+  }
+  await page.goBack();
+  await page.waitForTimeout(400);
 
   // 5i. The two-click selection still belongs to the browser. The
   // deck must not swallow the platform's own double-click word

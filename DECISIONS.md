@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 29 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 30 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -145,6 +145,7 @@ gets its own entry and its own state**, however small.
 - **B31** — `auto` is a length, and on a shadow axis it deletes the shadow
 - **B32** — A fix to `nav.js` or a language pack never reaches a series that already exists
 - **B34** — A structural field converts an HTML entity; the body does not
+- **B37** — `requestFullscreen()` is refused from any non-left mouse event
 
 ### abandonné
 
@@ -2139,3 +2140,31 @@ lists — carry their own halo, and at what ratio. It is the same trade as
 the rest of B9 and belongs with it in a pass, not before. `dx` needs a
 separate look: it exists so a halo can be offset sideways, no palette
 uses it, and nobody has asked whether any should.
+
+## B37 — `requestFullscreen()` is refused from any non-left mouse event
+
+**État :** terminé · **Depuis :** 2026-08-22 · **Version :** 0.43.7
+
+**The browsers rule it, and no code can change it.** Firefox refuses
+`Element.requestFullscreen()` called inside a mouse handler that was
+not triggered by the left button — the error names the rule, verbatim:
+"La demande d'accès au plein écran a été refusée, car la fonction
+Element.requestFullscreen() a été appelée à l'intérieur d'un
+gestionnaire d'évènement de souris qui n'a pas été déclenché par le
+bouton gauche de la souris." Chromium enforces the same activation
+requirement. The middle button is a real user gesture, but it is not a
+LEFT one, so its `requestFullscreen` is silently refused; `exitFullscreen`
+needs no gesture at all and always works.
+
+**It explains the double-click.** The double-click was the original
+mouse entry into fullscreen for exactly this reason: it is a left-hand
+gesture, the only family the browsers accept for entry. Moving the
+entry to the middle button (2026-08-22, while redesigning the click
+model) worked in a headless harness that does not enforce the rule and
+failed on a real Firefox, which does. The redesign then removed the
+double-click's entry role entirely — which closed the only mouse entry
+left. This entry records the rule so the next redesign does not need a
+Firefox console error to rediscover it.
+
+**What the middle button is now:** exit-only. Entry is left-hand only:
+the double-click, the ⛶ button, or F. The wheel itself keeps scrolling.

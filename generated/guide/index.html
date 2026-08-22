@@ -1884,18 +1884,41 @@ var btnUp   = document.getElementById('navUp');
   }
   if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
 
-  // The middle BUTTON toggles fullscreen — in and out, the same rule
-  // as the article pages (§8.4). The toggle lives on `mousedown`, not
-  // on `auxclick`: entering fullscreen needs a real user-activation
-  // gesture, and the auxiliary events do not carry one. It works
-  // EVERYWHERE on the page, cards included; the auxclick below
-  // swallows the middle button's native "open link" so the fullscreen
-  // entered on mousedown is not lost to a new tab a moment later.
+  // The middle BUTTON is the fullscreen gatekeeper, the same two-step
+  // as the article pages (B37): it exits on its own, and the entry is
+  // middle press then a LEFT click within the window — the left click
+  // carries the gesture the browsers require for requestFullscreen.
+  // A RIGHT click within the same window goes Home. The middle press
+  // on a card also swallows the link (auxclick below), so the
+  // fullscreen is not lost to a new tab a moment later.
+  var fsIntentUntil = 0;
+  var fsEntryPending = false;
+  var FS_INTENT_MS = 900;
   document.addEventListener('mousedown', function (e) {
-    if (e.button !== 1) return;
-    e.preventDefault();
-    toggleFullscreen();
-  });
+    if (e.button === 1) {
+      e.preventDefault();
+      if (isFullscreen()) {
+        toggleFullscreen();
+      } else {
+        fsIntentUntil = Date.now() + FS_INTENT_MS;
+      }
+      return;
+    }
+    if (Date.now() >= fsIntentUntil) return;
+    if (e.button === 0) {
+      e.preventDefault();
+      fsIntentUntil = 0;
+      fsEntryPending = true;
+      if (!isFullscreen()) toggleFullscreen();
+    } else if (e.button === 2) {
+      e.preventDefault();
+      fsIntentUntil = 0;
+      window.location.href = 'index.html';
+    }
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (fsEntryPending) { fsEntryPending = false; return; }
+  }, true);
   document.addEventListener('auxclick', function (e) {
     if (e.button !== 1) return;
     e.preventDefault();
