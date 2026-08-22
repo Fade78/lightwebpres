@@ -1884,6 +1884,19 @@ var btnUp   = document.getElementById('navUp');
   }
   if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
 
+  // The middle BUTTON toggles fullscreen — in and out, the same rule
+  // as the article pages (§8.4). The toggle lives on `mousedown`, not
+  // on `auxclick`: entering fullscreen needs a real user-activation
+  // gesture, and the auxiliary events do not carry one. It works
+  // EVERYWHERE on the page, cards included (the middle button never
+  // follows a link, so nothing to preserve); the preventDefault stops
+  // the native auto-scroll.
+  document.addEventListener('mousedown', function (e) {
+    if (e.button !== 1) return;
+    e.preventDefault();
+    toggleFullscreen();
+  });
+
   function scrollByViewport(direction) {
     window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
   }
