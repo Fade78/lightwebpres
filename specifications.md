@@ -481,9 +481,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--themes selectors|all]
-lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes selectors|all]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--themes selectors|all] [--no-essential-theme]
+lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--no-essential-theme]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes selectors|all] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json>
@@ -516,6 +516,7 @@ lightwebpres --help
 - `--no-typography` : `build`/`verify` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
 - `--themes` : `build`/`verify`/`watch` — embarque des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules; le thème effectif de `settings.conf` reste toujours le premier (§9.3.7)
+- `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
@@ -2741,6 +2742,14 @@ facette, une valeur, un slug inconnu, une liste vide ou une configuration JSON
 mal typée est une erreur nommée. La forme longue `background hue:red` doit être
 citée dans un shell.
 
+Par défaut, tout build embarque le lot `essential` — `monochrome`,
+`monochrome-night` et `print-ink` — en plus de toute sélection explicite, afin
+que la touche C soit fonctionnelle sur toute page : un lecteur dispose toujours
+d'un thème à contraste élevé, d'un thème sur fond sombre et d'un thème prêt pour
+le papier. `--no-essential-theme` supprime cet embarquement par défaut; la page
+ne porte alors un sélecteur que si `--themes` ou la clé racine `themes` de
+`series.json` en fournit une.
+
 La feuille CSS statique reste celle du thème primaire. Le sélecteur peut
 remplacer les variables de palette et de typographie des thèmes alternatifs,
 mais ne remplace jamais une propriété épinglée dans `settings.conf`, une
@@ -3974,7 +3983,7 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Construit le site :
@@ -4026,7 +4035,9 @@ chaque page le payload décrit en §9.3.7. Sans l'option, la liste racine
 `series.json.themes` est utilisée si elle existe. Sur la CLI, les sélecteurs
 sont séparés par des virgules; dans JSON, `themes` est une liste de chaînes.
 Le thème effectif de `templates/settings.conf` est ajouté en première position
-dans tous les cas. La sélection n'écrit pas dans les sources.
+dans tous les cas. La sélection n'écrit pas dans les sources. Sans option ni clé
+JSON, le build embarque néanmoins le lot `essential` par défaut (§9.3.7);
+`--no-essential-theme` le désactive.
 
 ### 11.3.1 `build --only` : reconstruction d'un seul article
 
@@ -4311,7 +4322,7 @@ Désactivé par défaut : le build standard copie `sources/img/` vers
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [répertoire] [--lang fr] [--no-typography] [--themes selectors|all]
+lightwebpres verify [répertoire] [--lang fr] [--no-typography] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Vérifie sans modifier :
@@ -4319,7 +4330,10 @@ Vérifie sans modifier :
 `--themes` doit reprendre la sélection utilisée par le build dont `public/`
 est vérifié si le build l'avait explicitement fournie. Sans l'option, la même
 clé racine `series.json.themes` est relue. Dans les deux cas, la sélection est
-transmise au rendu en mémoire et ne modifie rien sur disque.
+transmise au rendu en mémoire et ne modifie rien sur disque. `--no-essential-theme`
+suit la même règle : il doit reproduire la décision du build vérifié — un
+`verify` lancé avec une décision différente de celle du build produit des
+payloads différents et signale un `[DRIFT]` correct, pas un faux positif.
 
 1. Lance le build en mémoire (sans écrire les fichiers) ; `--no-typography`
    a le même effet que sur `build` (§11.3), sur ce build en mémoire —
@@ -5521,7 +5535,7 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [répertoire] [--serve] [--port 8000] [--open] [--themes selectors|all]
+lightwebpres watch [répertoire] [--serve] [--port 8000] [--open] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`,
@@ -5535,8 +5549,9 @@ stdlib — pas de dépendance externe.
 
 `--themes` est transmis à chaque build initial et à chaque reconstruction,
 afin que le mode watch ne fasse pas disparaître le sélecteur du résultat.
-Sans cette option, toute modification de `series.json`, y compris de sa liste
-`themes`, est relue au prochain build.
+`--no-essential-theme` est transmis de la même façon à chaque reconstruction,
+comme `--themes`. Sans cette option, toute modification de `series.json`,
+y compris de sa liste `themes`, est relue au prochain build.
 
 ### 11.15 `completion`
 

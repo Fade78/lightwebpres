@@ -1,28 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="The guide to LightWebPres, built with LightWebPres.">
-<title>LightWebPres — the guide</title>
+<meta name="author" content="The LightWebPres demo">
+<meta name="description" content="This is the first demo article. It tests the &quot;first&quot; position in navigation.">
+<title>First article</title>
 <style>
 :root {
   /* shared */
-  --color-page: #F8F8F5FF;
-  --color-ink: #1A1A2EFF;
-  --color-ink-quiet: #6B6B7DFF;
-  --color-mark: #FFFC00FF;
-  --color-call: #FF4757FF;
-  --color-affirm: #3AA55CFF;
-  --color-nav: #3F4A5AFF;
-  --font-text: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
-  --font-display: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --color-page: #FFD400FF;
+  --color-ink: #1F1A00FF;
+  --color-ink-quiet: #6B5C0AFF;
+  --color-mark: #7A6A00FF;
+  --color-call: #8F0049FF;
+  --color-affirm: #0D5C2AFF;
+  --color-nav: #8F0049FF;
+  --font-text: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --font-display: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --font-ui: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   /* page */
-  --page-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
-  --page-bg: #F8F8F5FF;
-  --page-fg: #1A1A2EFF;
+  --page-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
+  --page-bg: #FFD400FF;
+  --page-fg: #1F1A00FF;
   --page-leading: 1.6;
   --page-shadow-fg: #00000000;
   --page-shadow-blur: 0;
@@ -35,7 +36,7 @@
   --slide-rule-fg: #0000001A;
   --slide-rule-width: 1px;
   /* slide.num */
-  --slide-num-fg: #6B6B7DFF;
+  --slide-num-fg: #6B5C0AFF;
   --slide-num-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --slide-num-size: max(13px, 1.625vmin);
   --slide-num-tracking: 1px;
@@ -44,29 +45,29 @@
   --slide-num-shadow-dx: 0;
   --slide-num-shadow-dy: 0;
   /* kicker */
-  --kicker-fg: #6B6B7DFF;
+  --kicker-fg: #6B5C0AFF;
   --kicker-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --kicker-size: max(12px, 1.5vmin);
   --kicker-weight: bold;
-  --kicker-tracking: 2px;
+  --kicker-tracking: 3px;
   --kicker-transform: uppercase;
   --kicker-shadow-fg: #00000000;
   --kicker-shadow-blur: 0;
   --kicker-shadow-dx: 0;
   --kicker-shadow-dy: 0;
   /* title1 */
-  --title1-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --title1-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --title1-size: max(28px, 6.1vmin);
   --title1-weight: bold;
   --title1-leading: 1.15;
-  --title1-fg: #F8F8F5FF;
+  --title1-fg: #FFD400FF;
   --title1-shadow-fg: #00000000;
   --title1-shadow-blur: 0;
   --title1-shadow-dx: 0;
   --title1-shadow-dy: 0;
   --title1-align: left;
   /* title2 */
-  --title2-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --title2-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --title2-size: max(24px, 4.7vmin);
   --title2-weight: bold;
   --title2-leading: 1.2;
@@ -76,7 +77,7 @@
   --title2-shadow-dx: 0;
   --title2-shadow-dy: 0;
   /* summary */
-  --summary-fg: #1A1A2EFF;
+  --summary-fg: #1F1A00FF;
   --summary-size: max(16px, 2.7vmin);
   --summary-leading: 1.55;
   --summary-align: left;
@@ -86,9 +87,9 @@
   --summary-shadow-dy: 0;
   /* fact */
   --fact-bg: #FFFFFFB8;
-  --fact-rule-fg: #FFFC00FF;
+  --fact-rule-fg: #7A6A00FF;
   --fact-rule-width: 4px;
-  --fact-fg: #1A1A2EFF;
+  --fact-fg: #1F1A00FF;
   --fact-size: max(15px, 2.2vmin);
   --fact-align: left;
   --fact-elevation-fg: #0000000F;
@@ -97,7 +98,7 @@
   --fact-elevation-dy: 1px;
   --fact-elevation-spread: 0;
   /* fact-label */
-  --fact-label-fg: #6B6B7DFF;
+  --fact-label-fg: #6B5C0AFF;
   --fact-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --fact-label-size: max(12px, 1.5vmin);
   --fact-label-weight: bold;
@@ -110,18 +111,18 @@
   /* fact.strong */
   --fact-strong-weight: bold;
   --fact-strong-style: normal;
-  --fact-strong-bg: #FFFC00FF;
-  --fact-strong-fg: #1A1A2EFF;
+  --fact-strong-bg: #00000000;
+  --fact-strong-fg: #1F1A00FF;
   --fact-strong-decoration: none;
-  --fact-strong-decoration-color: #1A1A2EFF;
-  --fact-strong-pad: max(3px, 0.375vmin);
+  --fact-strong-decoration-color: #1F1A00FF;
+  --fact-strong-pad: 0;
   --fact-strong-absorb-punct: on;
   --fact-strong-shadow-fg: #00000000;
   --fact-strong-shadow-blur: 0;
   --fact-strong-shadow-dx: 0;
   --fact-strong-shadow-dy: 0;
   /* body-heading */
-  --body-heading-fg: #1A1A2EFF;
+  --body-heading-fg: #1F1A00FF;
   --body-heading-weight: bold;
   --body-heading-leading: 1.3;
   --body-heading-shadow-fg: #00000000;
@@ -129,7 +130,7 @@
   --body-heading-shadow-dx: 0;
   --body-heading-shadow-dy: 0;
   /* source */
-  --source-fg: #6B6B7DFF;
+  --source-fg: #6B5C0AFF;
   --source-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --source-size: max(12px, 1.5vmin);
   --source-shadow-fg: #00000000;
@@ -137,25 +138,25 @@
   --source-shadow-dx: 0;
   --source-shadow-dy: 0;
   /* footer */
-  --footer-fg: #6B6B7DFF;
+  --footer-fg: #6B5C0AFF;
   --footer-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --footer-size: max(12px, 1.5vmin);
   --footer-rule-fg: #0000001A;
   --footer-rule-width: 1px;
   /* cover */
-  --cover-bg-from: #1A1A2EFF;
-  --cover-bg-to: #1A1A2EFF;
+  --cover-bg-from: #1F1A00FF;
+  --cover-bg-to: #1F1A00FF;
   --cover-bg-angle: 180deg;
-  --cover-fg: #F8F8F5FF;
+  --cover-fg: #FFD400FF;
   --cover-align: left;
   /* cover.summary */
-  --cover-summary-fg: #F8F8F5C7;
+  --cover-summary-fg: #FFD400C7;
   --cover-summary-shadow-fg: #00000000;
   --cover-summary-shadow-blur: 0;
   --cover-summary-shadow-dx: 0;
   --cover-summary-shadow-dy: 0;
   /* cover.kicker */
-  --cover-kicker-fg: #FFFC00FF;
+  --cover-kicker-fg: #7A6A00FF;
   --cover-kicker-shadow-fg: #00000000;
   --cover-kicker-shadow-blur: 0;
   --cover-kicker-shadow-dx: 0;
@@ -167,7 +168,7 @@
   --cover-num-shadow-dx: 0;
   --cover-num-shadow-dy: 0;
   /* quote */
-  --quote-fg: #6B6B7DFF;
+  --quote-fg: #6B5C0AFF;
   --quote-style: italic;
   --quote-rule-fg: #00000029;
   --quote-rule-width: 3px;
@@ -179,31 +180,31 @@
   --code-rule-width: 1px;
   --code-leading: 1.55;
   /* footnote-call */
-  --footnote-call-fg: #FF4757FF;
+  --footnote-call-fg: #8F0049FF;
   --footnote-call-size: 0.72em;
-  --footnote-call-fg-marked: #1A1A2EFF;
-  --footnote-call-fg-cover: #F8F8F5FF;
+  --footnote-call-fg-marked: #1F1A00FF;
+  --footnote-call-fg-cover: #FFD400FF;
   /* note */
-  --note-fg: #1A1A2EFF;
+  --note-fg: #5D5008FF;
   --note-size: max(14px, 1.75vmin);
   --note-leading: 1.55;
   --note-weight: normal;
   --note-style: normal;
-  --note-marker-fg: #FF4757FF;
-  --note-back-fg: #1A1A2EFF;
+  --note-marker-fg: #8F0049FF;
+  --note-back-fg: #5D5008FF;
   /* note.local */
   --note-local-size: max(12px, 1.5vmin);
-  --note-local-rule-fg: #0000001A;
+  --note-local-rule-fg: #1F1A0085;
   --note-local-rule-width: 1px;
   /* note.page */
-  --note-page-bg: #FFFFFFB8;
-  --note-page-rule-fg: #0000001A;
+  --note-page-bg: #1F1A0013;
+  --note-page-rule-fg: #1F1A0089;
   --note-page-rule-width: 2px;
-  --note-page-title-fg: #1A1A2EFF;
+  --note-page-title-fg: #1F1A00FF;
   --note-page-title-size: max(28px, 3.5vmin);
-  --note-page-title-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --note-page-title-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   /* link */
-  --link-decoration-color: #1A1A2EFF;
+  --link-decoration-color: #1F1A00FF;
   /* table */
   --table-size: max(13px, 1.9vmin);
   --table-rule-fg: #0000001A;
@@ -211,8 +212,8 @@
   --table-cell-align: left;
   /* table.head */
   --table-head-bg: #0000000B;
-  --table-head-fg: #1A1A2EFF;
-  --table-head-rule-fg: #1A1A2EFF;
+  --table-head-fg: #1F1A00FF;
+  --table-head-rule-fg: #1F1A00FF;
   --table-head-rule-width: 2px;
   --table-head-weight: bold;
   --table-head-size: max(13px, 1.625vmin);
@@ -223,7 +224,7 @@
   --table-head-shadow-dx: 0;
   --table-head-shadow-dy: 0;
   /* verdict.yes */
-  --verdict-yes-fg: #3AA55CFF;
+  --verdict-yes-fg: #0D5C2AFF;
   --verdict-yes-weight: bold;
   --verdict-yes-mark: "\25CF";
   --verdict-yes-shadow-fg: #00000000;
@@ -231,7 +232,7 @@
   --verdict-yes-shadow-dx: 0;
   --verdict-yes-shadow-dy: 0;
   /* verdict.no */
-  --verdict-no-fg: #6B6B7DFF;
+  --verdict-no-fg: #6B5C0AFF;
   --verdict-no-weight: normal;
   --verdict-no-mark: "\25CB";
   --verdict-no-shadow-fg: #00000000;
@@ -239,7 +240,7 @@
   --verdict-no-shadow-dx: 0;
   --verdict-no-shadow-dy: 0;
   /* verdict.partial */
-  --verdict-partial-fg: #FF4757FF;
+  --verdict-partial-fg: #8F0049FF;
   --verdict-partial-weight: bold;
   --verdict-partial-mark: "\25D0";
   --verdict-partial-shadow-fg: #00000000;
@@ -251,10 +252,10 @@
   --table-col-signal-weight: bold;
   /* table.col-snap */
   --table-col-snap-bg: #0000000B;
-  --table-col-snap-rule-fg: #FFFC00FF;
+  --table-col-snap-rule-fg: #7A6A00FF;
   --table-col-snap-rule-width: 3px;
   /* caption */
-  --caption-fg: #6B6B7DFF;
+  --caption-fg: #6B5C0AFF;
   --caption-size: 0.85em;
   --caption-align: center;
   --caption-shadow-fg: #00000000;
@@ -269,14 +270,14 @@
   --article-rule-fg: #0000001A;
   --article-rule-width: 1px;
   /* refs */
-  --refs-fg: #1A1A2EFF;
+  --refs-fg: #5D5008FF;
   --refs-size: max(12px, 1.5vmin);
   --refs-leading: 1.5;
   --refs-weight: normal;
   --refs-style: normal;
   /* highlight */
-  --highlight-fg: #1A1A2EFF;
-  --highlight-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --highlight-fg: #1F1A00FF;
+  --highlight-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --highlight-size: max(2.1rem, 10.8vmin);
   --highlight-weight: bold;
   --highlight-leading: 1.05;
@@ -288,7 +289,7 @@
   --highlight-shadow-dy: 0;
   --highlight-align: center;
   /* highlight-caption */
-  --highlight-caption-fg: #6B6B7DFF;
+  --highlight-caption-fg: #6B5C0AFF;
   --highlight-caption-size: max(0.9rem, 1.8vmin);
   --highlight-caption-shadow-fg: #00000000;
   --highlight-caption-shadow-blur: 0;
@@ -300,9 +301,9 @@
   --series-nav-current-rule-width: 2px;
   /* series-nav.link */
   --series-nav-link-bg: #FFFFFFB8;
-  --series-nav-link-rule-fg: #3F4A5AFF;
+  --series-nav-link-rule-fg: #8F0049FF;
   --series-nav-link-rule-width: 2px;
-  --series-nav-link-ring: #3F4A5AFF;
+  --series-nav-link-ring: #8F0049FF;
   --series-nav-link-ring-width: 3px;
   --series-nav-link-elevation-fg: #00000014;
   --series-nav-link-elevation-blur: 12px;
@@ -315,7 +316,7 @@
   --series-nav-link-elevation-hover-dy: 4px;
   --series-nav-link-elevation-hover-spread: 0;
   /* series-nav.label */
-  --series-nav-label-fg: #6B6B7DFF;
+  --series-nav-label-fg: #6B5C0AFF;
   --series-nav-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --series-nav-label-size: max(12px, 1.5vmin);
   --series-nav-label-weight: bold;
@@ -333,7 +334,7 @@
   --series-nav-title-shadow-dx: 0;
   --series-nav-title-shadow-dy: 0;
   /* series-nav.desc */
-  --series-nav-desc-fg: #6B6B7DFF;
+  --series-nav-desc-fg: #6B5C0AFF;
   --series-nav-desc-size: max(14px, 1.75vmin);
   --series-nav-desc-shadow-fg: #00000000;
   --series-nav-desc-shadow-blur: 0;
@@ -342,8 +343,8 @@
   /* series-nav.status */
   --series-nav-status-size: max(13px, 1.625vmin);
   --series-nav-status-weight: bold;
-  --series-nav-status-fg-current: #6B6B7DFF;
-  --series-nav-status-fg-link: #1A1A2EFF;
+  --series-nav-status-fg-current: #6B5C0AFF;
+  --series-nav-status-fg-link: #1F1A00FF;
   --series-nav-status-shadow-fg: #00000000;
   --series-nav-status-shadow-blur: 0;
   --series-nav-status-shadow-dx: 0;
@@ -351,11 +352,11 @@
   /* nav-btn */
   --nav-btn-bg: #FFFFFFEB;
   --nav-btn-bg-soft: #FFFFFFBF;
-  --nav-btn-fg: #1A1A2EFF;
+  --nav-btn-fg: #1F1A00FF;
   --nav-btn-rule-fg: #00000029;
   --nav-btn-rule-width: 1px;
   --nav-btn-size: max(20px, 2.5vmin);
-  --nav-btn-ring: #3F4A5AFF;
+  --nav-btn-ring: #8F0049FF;
   --nav-btn-ring-width: 3px;
   --nav-btn-shadow-fg: #00000000;
   --nav-btn-shadow-blur: 0;
@@ -374,17 +375,17 @@
   /* nav-btn-home */
   /* nav-dot */
   --nav-dot-bg: #00000029;
-  --nav-dot-bg-hover: #6B6B7DFF;
-  --nav-dot-bg-active: #3F4A5AFF;
+  --nav-dot-bg-hover: #6B5C0AFF;
+  --nav-dot-bg-active: #8F0049FF;
   /* share */
-  --share-bg: #F8F8F5FF;
-  --share-fg: #1A1A2EFF;
-  --share-quiet-fg: #6B6B7DFF;
+  --share-bg: #FFD400FF;
+  --share-fg: #1F1A00FF;
+  --share-quiet-fg: #6B5C0AFF;
   --share-size: max(13px, 1.625vmin);
   --share-rule-fg: #00000029;
   --share-rule-width: 1px;
   --share-scrim: #0000008C;
-  --share-rule-fg-hover: #1A1A2EFF;
+  --share-rule-fg-hover: #1F1A00FF;
   --share-bg-hover: #FFFFFFB8;
   --share-elevation-fg: #0000002E;
   --share-elevation-blur: 32px;
@@ -395,8 +396,8 @@
   --card-bg: #FFFFFFB8;
   --card-rule-fg: #00000029;
   --card-rule-width: 2px;
-  --card-rule-fg-hover: #FFFC00FF;
-  --card-ring: #3F4A5AFF;
+  --card-rule-fg-hover: #7A6A00FF;
+  --card-ring: #8F0049FF;
   --card-ring-width: 3px;
   --card-elevation-fg: #0000000F;
   --card-elevation-blur: 8px;
@@ -409,7 +410,7 @@
   --card-elevation-hover-dy: 4px;
   --card-elevation-hover-spread: 0;
   /* card.label */
-  --card-label-fg: #6B6B7DFF;
+  --card-label-fg: #6B5C0AFF;
   --card-label-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --card-label-size: max(13px, 1.625vmin);
   --card-label-weight: bold;
@@ -427,14 +428,14 @@
   --card-title-shadow-dx: 0;
   --card-title-shadow-dy: 0;
   /* card.desc */
-  --card-desc-fg: #6B6B7DFF;
+  --card-desc-fg: #6B5C0AFF;
   --card-desc-size: max(15px, 1.875vmin);
   --card-desc-shadow-fg: #00000000;
   --card-desc-shadow-blur: 0;
   --card-desc-shadow-dx: 0;
   --card-desc-shadow-dy: 0;
   /* card.cta */
-  --card-cta-fg: #1A1A2EFF;
+  --card-cta-fg: #1F1A00FF;
   --card-cta-size: max(14px, 1.75vmin);
   --card-cta-weight: bold;
   --card-cta-shadow-fg: #00000000;
@@ -442,10 +443,10 @@
   --card-cta-shadow-dx: 0;
   --card-cta-shadow-dy: 0;
   /* header */
-  --header-rule-fg: #FFFC00FF;
+  --header-rule-fg: #7A6A00FF;
   --header-rule-width: 2px;
   /* header.title */
-  --header-title-font: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  --header-title-font: Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;
   --header-title-size: max(28px, 5.4vmin);
   --header-title-weight: bold;
   --header-title-leading: 1.2;
@@ -454,7 +455,7 @@
   --header-title-shadow-dx: 0;
   --header-title-shadow-dy: 0;
   /* header.subtitle */
-  --header-subtitle-fg: #6B6B7DFF;
+  --header-subtitle-fg: #6B5C0AFF;
   --header-subtitle-size: max(16px, 2.7vmin);
   --header-subtitle-shadow-fg: #00000000;
   --header-subtitle-shadow-blur: 0;
@@ -462,7 +463,7 @@
   --header-subtitle-shadow-dy: 0;
   /* version-tag */
   --version-tag-font: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-  --version-tag-fg: #6B6B7DFF;
+  --version-tag-fg: #6B5C0AFF;
   --version-tag-bg: #0000000B;
   --version-tag-size: max(12px, 1.5vmin);
   --version-tag-shadow-fg: #00000000;
@@ -1945,7 +1946,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 <div class="slide-counter" id="slideCounter"></div>
 <div class="presenter-panel" id="presenterPanel" role="region"
-     aria-label="Presenter panel" tabindex="0">
+     aria-label="Panneau du présentateur" tabindex="0">
   <div class="pp-head" id="presenterHead"></div>
   <div class="pp-notes" id="presenterNotes" aria-live="polite"></div>
   <div class="pp-next" id="presenterNext"></div>
@@ -1954,29 +1955,29 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 <div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true"
      aria-labelledby="helpTitle">
   <div class="help-card" tabindex="0">
-    <div class="help-title" id="helpTitle">Keyboard shortcuts</div>
+    <div class="help-title" id="helpTitle">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp">Compiled with <strong>LightWebPres</strong> v0.45.4</div>
+    <div class="help-stamp">Compilé avec <strong>LightWebPres</strong> v0.45.4</div>
   </div>
 </div>
 
 <div class="presenter-menu" id="presenterMenu" role="dialog" aria-modal="true"
      aria-labelledby="presenterMenuTitle">
   <div class="presenter-menu-card">
-    <div class="presenter-menu-title" id="presenterMenuTitle">Presenter menu (M key)</div>
+    <div class="presenter-menu-title" id="presenterMenuTitle">Menu du présentateur (touche M)</div>
     <div class="presenter-menu-actions">
-      <button type="button" class="presenter-menu-action" data-menu-action="prev">Previous slide</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="home">Back to index (Home key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="next">Next slide</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="fullscreen">Fullscreen (F key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="theme">Change theme (C key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="presenter">Presenter notes (N key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="tags">Filter by tag (L key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="share">Share</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="help">Keyboard shortcuts (H key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="pause-black">Black screen (B key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="pause-white">White screen (W key)</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="pause-theme">Theme screen (T key)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="prev">Planche précédente</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="home">Retour à l&#x27;index (touche Home)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="next">Planche suivante</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="fullscreen">Plein écran (touche F)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="theme">Changer de thème (touche C)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="presenter">Notes présentateur (touche N)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="tags">Filtrer par tag (touche L)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="share">Partager</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="help">Raccourcis clavier (touche H)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="pause-black">Écran noir (touche B)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="pause-white">Écran blanc (touche W)</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="pause-theme">Écran du thème (touche T)</button>
     </div>
   </div>
 </div>
@@ -1984,712 +1985,127 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 <div class="theme-menu" id="themeMenu" role="dialog" aria-modal="true"
      aria-labelledby="themeMenuTitle">
   <div class="theme-menu-card">
-    <div class="theme-menu-title" id="themeMenuTitle">Choose a theme</div>
-    <p class="theme-menu-help">The primary theme is selected by default.</p>
+    <div class="theme-menu-title" id="themeMenuTitle">Choisir un thème</div>
+    <p class="theme-menu-help">Le thème principal est sélectionné par défaut.</p>
     <input type="search" class="theme-filter" id="themeFilter"
-           aria-label="Search themes"
-           placeholder="Search themes" autocomplete="off">
+           aria-label="Rechercher un thème"
+           placeholder="Rechercher un thème" autocomplete="off">
     <div class="theme-options" id="themeOptions" role="listbox"
-         aria-label="Choose a theme"></div>
-    <div class="theme-menu-foot">Escape to close · Enter to apply</div>
+         aria-label="Choisir un thème"></div>
+    <div class="theme-menu-foot">Échap pour fermer · Entrée pour appliquer</div>
   </div>
 </div>
 
 <div class="nav-buttons">
-  <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" aria-label="Previous slide"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
-  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Back to index (Home key)" aria-label="Back to index (Home key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11L12 3l9 8"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>
-  <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" aria-label="Next slide"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
-  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="Share" aria-label="Share this page"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
-  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" aria-label="Fullscreen (F key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
-  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="Filter by tag (L key)" aria-label="Filter by tag (L key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/><path d="M7.5 7.5h.01"/></svg></div>
+  <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Planche précédente" aria-label="Planche précédente"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
+  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="Retour à l&#x27;index (touche Home)" aria-label="Retour à l&#x27;index (touche Home)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11L12 3l9 8"/><path d="M5.5 9.5V20h13V9.5"/></svg></div>
+  <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Planche suivante" aria-label="Planche suivante"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
+  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="Partager" aria-label="Partager cette page"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
+  <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Plein écran (touche F)" aria-label="Plein écran (touche F)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
+  <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="Filtrer par tag (touche L)" aria-label="Filtrer par tag (touche L)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/><path d="M7.5 7.5h.01"/></svg></div>
 </div>
 
-<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filter slides">
-  <div class="tag-menu-title" id="tagMenuTitle">Filter slides</div>
+<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filtrer les slides">
+  <div class="tag-menu-title" id="tagMenuTitle">Filtrer les slides</div>
   <div class="tag-menu-list" id="tagMenuList"></div>
 </div>
 
 <div class="share-popover" id="sharePopover">
   <div class="share-matrix">
     <div class="share-cell"></div>
-    <div class="share-cell share-cell-head">Series</div>
+    <div class="share-cell share-cell-head">Série</div>
     <div class="share-cell share-cell-head">Article</div>
-    <div class="share-cell share-cell-head" id="shareHeadFiche">Slide</div>
+    <div class="share-cell share-cell-head" id="shareHeadFiche">Fiche</div>
 
-    <div class="share-cell share-cell-label">Copy link</div>
-    <button type="button" class="share-action" data-action="copy" data-scope="series" title="Copy link — Series">&#128279;</button>
-    <button type="button" class="share-action" data-action="copy" data-scope="article" title="Copy link — Article">&#128279;</button>
-    <button type="button" class="share-action" data-action="copy" data-scope="fiche" title="Copy link — Slide">&#128279;</button>
+    <div class="share-cell share-cell-label">Copier le lien</div>
+    <button type="button" class="share-action" data-action="copy" data-scope="series" title="Copier le lien — Série">&#128279;</button>
+    <button type="button" class="share-action" data-action="copy" data-scope="article" title="Copier le lien — Article">&#128279;</button>
+    <button type="button" class="share-action" data-action="copy" data-scope="fiche" title="Copier le lien — Fiche">&#128279;</button>
 
-    <div class="share-cell share-cell-label">Show QR code</div>
-    <button type="button" class="share-action" data-action="qr" data-scope="series" title="Show QR code — Series">&#9638;</button>
-    <button type="button" class="share-action" data-action="qr" data-scope="article" title="Show QR code — Article">&#9638;</button>
-    <button type="button" class="share-action" data-action="qr" data-scope="fiche" title="Show QR code — Slide">&#9638;</button>
+    <div class="share-cell share-cell-label">Afficher le QR code</div>
+    <button type="button" class="share-action" data-action="qr" data-scope="series" title="Afficher le QR code — Série">&#9638;</button>
+    <button type="button" class="share-action" data-action="qr" data-scope="article" title="Afficher le QR code — Article">&#9638;</button>
+    <button type="button" class="share-action" data-action="qr" data-scope="fiche" title="Afficher le QR code — Fiche">&#9638;</button>
   </div>
 </div>
 
 <div class="share-qr-modal" id="shareQrModal">
   <div class="share-qr-modal-content">
-    <div class="share-qr-modal-title">QR code for this link</div>
+    <div class="share-qr-modal-title">QR code du lien</div>
     <div id="shareQrModalContent"></div>
     <div class="share-qr-modal-url" id="shareQrModalUrl"></div>
-    <button type="button" class="share-qr-close">Close</button>
+    <button type="button" class="share-qr-close">Fermer</button>
   </div>
 </div>
 
-<section class="slide slide-cover" id="lightwebpres" data-tags="default">
-  <span class="slide-kicker">Guide</span>
-  <h1>LightWebPres</h1>
-  <p class="summary">Markdown in, self-contained HTML out. This deck is the short version; the article below it is the guide itself, and both were built by the tool they describe.</p>
+<section class="slide slide-cover" id="ouverture" data-tags="default">
+  <span class="slide-kicker">First</span>
+  <h1>First article</h1>
+  <p class="summary">This is the first demo article. It tests the "first" position in navigation.</p>
 </section>
 
-<section class="slide" id="ce-qu-il-fait" data-tags="default">
-  <span class="slide-kicker">Scope</span>
-  <h2>What it does, and what it leaves to you</h2>
+<section class="slide" id="le-fait" data-tags="default">
+  <span class="slide-kicker">A fact</span>
+  <h2>First fact</h2>
+  <p class="summary">A short summary.</p>
   <div class="fact-box">
-    <div class="fact-label">The line</div>
-    <div class="fact-content">  <p>LightWebPres renders. It does <strong>not</strong> teach writing — it is for people who already know how, and it takes whatever you put in it.</p>
-  <p>A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for anyone who would like a method. It is an offered interface, not the core of this.</p></div>
+    <div class="fact-label">The fact</div>
+    <div class="fact-content">  <p>This is the <strong>fact-box</strong> content with some <strong>bold</strong> and <em>italic</em> text.</p></div>
   </div>
-</section>
-
-<section class="slide" id="trois-commandes" data-tags="default">
-  <span class="slide-kicker">Setup</span>
-  <h2>Three commands to a built site</h2>
-  <div class="fact-box">
-    <div class="fact-label">The whole loop</div>
-    <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. <code>build --themes</code> can optionally embed a theme picker without changing that standalone property; the same selection can live in the root <code>series.json</code> <code>themes</code> list.</p>
-  <p><code>--lang en</code> chooses the build-wide fallback. For one article to carry several languages, <code>tags:</code> selects a variant and <code>series_meta.lang_tags</code> can select a typography pack per slide.</p></div>
-  </div>
-  <p class="source">Source : Guide, section 2</p>
-</section>
-
-<section class="slide" id="anatomie" data-tags="default">
-  <span class="slide-kicker">Anatomy</span>
-  <h2>A page is slides, a slide has components</h2>
-  <div class="highlight"><span class="highlight-figure">4</span><span class="highlight-caption">slide types — cover, standard, series-nav, full-article</span></div>
-  <div class="fact-box">
-    <div class="fact-label">What is in a standard slide</div>
-    <div class="fact-content">  <p>A fact box, a key figure, a source line, a comparison table, a figure. Each is reached by a named field or by ordinary Markdown; none of them needs CSS.</p>
-  <p>The switch from fields to free text is <strong>one-way within a slide:</strong> once a line is not a <code>field:</code> line, everything after it is prose.</p>
-  <p>A note<sup class="note-call"><a id="noteref-anatomie-1" href="#note-anatomie-1" role="doc-noteref">1</a></sup> is reached the standard way, and its number is a position rather than the label you wrote. Notes are not a full-article feature: this is a standard card, and the note below is on it.</p>
-  <div class="notes-local">
-  <ol class="note-body">
-    <li id="note-anatomie-1" role="doc-footnote"><span class="note-num">1</span><code>[^label]</code> calls it, <code>[^label]: text</code> defines it. <code>notes_placement: local</code> — the default — lands the body at the foot of the unit that called it, which is why this one is here rather than at the end of the page. Set <code>notes_placement: page</code> to gather every note of an article into one section instead, and <code>notes_tooltip: on</code> to put the text in the call's tooltip as well. Both cascade: built-in default, then <code>series_meta</code>, then the article's own meta block. A label is word characters only — letters, digits, <code>_</code>, accents included, no <code>-</code>, no space, no punctuation; anything else is neither a note nor an error, and <code>audit</code> is the only thing that says so.<a class="note-back" href="#noteref-anatomie-1" role="doc-backlink" aria-label="Back to the text">↩</a></li>
-  </ol>
-  </div></div>
-  </div>
-</section>
-
-<section class="slide" id="variantes" data-tags="default">
-  <span class="slide-kicker">Variants</span>
-  <h2>Several versions, one HTML page</h2>
-  <div class="fact-box">
-    <div class="fact-label">The variant axis</div>
-    <div class="fact-content">  <p><code>tags: fr</code> and <code>tags: en</code> put adjacent language versions in one source file. A slide without tags is <code>default</code>, shared by every selection; <code>excluded</code> is removed at build time. Press <strong>L</strong> to select a tag without reloading. The choice is stored in <code>localStorage['lwp-active-tag']</code>, and counts/navigation follow the visible subset.</p>
-  <p>Declare <code>series_meta.lang_tags: {"fr": "fr", "en": "en"}</code> when typography must follow the selected language. The first mapped tag on a slide wins; the build's <code>--lang</code> remains the fallback.</p></div>
-  </div>
-</section>
-
-<section class="slide" id="gestes" data-tags="default">
-  <span class="slide-kicker">Look</span>
-  <h2>Four value overrides, then CSS rules</h2>
-  <div class="fact-box">
-    <div class="fact-label">Pick the smallest one that does the job</div>
-    <div class="fact-content">  <p>A <strong>theme</strong> repaints the series from one word. An <strong>instance tag</strong> changes one phrase. A <code>style.</code> line in a page's meta block changes that page. <code>settings.conf</code> changes the series, and <code>custom.css</code> adds rules rather than values.</p>
-  <p>The stylesheet is composed in memory at every build, so nothing the tool writes can collide with anything you wrote.</p></div>
-  </div>
-</section>
-
-<section class="slide" id="themes" data-tags="default">
-  <span class="slide-kicker">Look</span>
-  <h2>Themes, found by facet</h2>
-  <div class="highlight"><span class="highlight-figure">3</span><span class="highlight-caption">facets — family, polarity, hue — narrowing a catalogue too long to read</span></div>
-  <div class="fact-box">
-    <div class="fact-label">Why facets rather than a list</div>
-    <div class="fact-content">  <p>A list of names tells you nothing. What the theme is for, light or dark, and what hue the page carries will get you to a shortlist of three.</p>
-  <p><code>theme gallery</code> renders every one of them against real slide content.</p>
-  <p><code>build --themes print-ink,print-grey</code> embeds a searchable picker: <strong>C</strong> opens it, and <strong>M</strong> opens the global presenter menu. The same list can be written as <code>"themes": ["essential", "family:terrain", "bgh:red"]</code> at the root of <code>series.json</code>; <code>essential</code> means Monochrome, Monochrome Night and Print Ink. The effective theme from <code>templates/settings.conf</code> is always the first choice, and an explicit CLI value overrides the JSON list. Author pins remain in force while the reader switches.</p>
-  <p>Every build embeds that <code>essential</code> bundle by default — Monochrome, Monochrome Night and Print Ink — so <strong>C</strong> works on any page without the author opting in. Accessibility: Monochrome is high-contrast ink with no hue, Monochrome Night is the same on a dark ground, Print Ink is pure black on white. Print: Print Ink is drawn for paper, so a PDF handout at <code>Ctrl</code>/<code>Cmd</code>+<code>P</code> is clean without a theme choice. Sobriety: none of the three carries a hue, so the set never clashes with a series built around one. <code>--no-essential-theme</code> (build/verify/watch) opts out; the page then carries no runtime picker unless <code>--themes</code> or <code>series.json["themes"]</code> adds one.</p></div>
-  </div>
-</section>
-
-<section class="slide" id="pipeline" data-tags="default">
-  <span class="slide-kicker">Automation</span>
-  <h2>A step in a content pipeline</h2>
-  <div class="highlight"><span class="highlight-figure">0</span><span class="highlight-caption">dependencies to install — the Python standard library is all it uses</span></div>
-  <div class="fact-box">
-    <div class="fact-label">What makes it pipeline-shaped</div>
-    <div class="fact-content">  <p>Every command runs unattended and returns a meaningful exit code. <code>verify</code> fails on drift and <code>audit --strict</code> fails on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds. Every path is an environment variable, so a runner lays the pieces out as it likes.</p>
-  <p>The Markdown can come from anywhere — a CMS export, a database, a generator, an agent upstream. LightWebPres is the step that turns it into publishable pages.</p></div>
-  </div>
-</section>
-
-<section class="slide" id="verifications" data-tags="default">
-  <span class="slide-kicker">Shipping</span>
-  <h2>Two checks, two different moments</h2>
-  <div class="fact-box">
-    <div class="fact-label">A nudge and a gate</div>
-    <div class="fact-content">  <p><code>audit</code> flags what is worth a second look and <strong>normally does not fail</strong> — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. It also <strong>renders the whole series in memory,</strong> throws the HTML away, and keeps what composing it had to say — including that the series does not build at all. Nothing is left out: drafts and <code>ignored</code> articles are looked at too, because work in progress is what an authoring tool is for. Pass <code>--strict</code> when those warnings must fail CI.</p>
-  <p><code>verify</code> rebuilds in memory and diffs against <code>public/</code>, exiting non-zero on any difference. That exit code is what makes it a CI gate.</p></div>
-  </div>
+  <p class="source">Source : Demo source.</p>
 </section>
 
 <section class="slide slide-series-nav" id="la-serie" data-tags="default">
-  <h2>This series</h2>
+  <h2>Cette série</h2>
   <div class="series-list">
     <div class="series-item series-current">
-      <div class="series-title">Guide</div>
-      <div class="series-desc">Setup, anatomy of a page, series, look, shipping</div>
-      <div class="series-status">&#9656; Currently reading</div>
+      <div class="series-label">Article 1</div>
+      <div class="series-title">First article (nav)</div>
+      <div class="series-desc">The first demo article, as shown in another article's navigation</div>
+      <div class="series-status">&#9656; En cours de lecture</div>
     </div>
+    <a href="middle.html" class="series-item series-link">
+      <div class="series-label">Article 2 (overridden from series.json)</div>
+      <div class="series-title">Middle article</div>
+      <div class="series-desc">This article tests the "middle" position in navigation.</div>
+      <div class="series-status">&rarr; Lire l'article</div>
+    </a>
+    <a href="last.html" class="series-item series-link">
+      <div class="series-title">Last article</div>
+      <div class="series-desc">This article tests the "last" position in navigation.</div>
+      <div class="series-status">&rarr; Lire l'article</div>
+    </a>
     <a href="index.html" class="series-item series-link" style="text-align: center; margin-top: 24px;">
-      <div class="series-title">&larr; Back to index</div>
+      <div class="series-title">&larr; Retour à l'index</div>
     </a>
   </div>
 </section>
 
-<section class="slide full-article" id="guide-complet" data-tags="default">
-  <span class="slide-kicker">Full article</span>
-  <h1>LightWebPres — Guide</h1>
-  <p>This is the map of the tool: init it, see what a page is made of, wire a series, adjust the look, ship it. For what each command <em>exactly</em> does in every edge case, see <code>specifications.md</code>; for the precise article syntax, see <code>agent/skills/lightwebpres/SKILL.md</code>. This guide is the path through all of it in the order you'll actually need it.</p>
-  <p><strong>What this guide does not do is teach you to write.</strong> LightWebPres is for people who already know how; it renders what you give it. Nothing here says what makes a good card, how to structure an argument or when a claim needs a source. A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for people who would like a method — an offered interface, not the core of what this does. Take it or leave it: [section 11](#11-going-further).</p>
-  <h2>1. What LightWebPres is</h2>
-  <p>LightWebPres turns an extended Markdown format into self-contained, scrollable HTML articles — a cover, a handful of fact-card slides, an optional long-form piece, cross-article navigation — with no external runtime dependencies. An optional <code>--themes</code> build embeds its picker in the same self-contained page. One executable, <code>lightwebpres</code>, does the whole job: scaffold a project, generate demo content, build, verify, and keep templates current.</p>
-  <p><strong>Three ways it gets used, and the tool does not care which.</strong></p>
+<section class="slide full-article" id="article-complet" data-tags="default">
+  <span class="slide-kicker">Article complet</span>
+  <h1>First article — full article</h1>
+  <h2>Introduction</h2>
+  <p>This is the full article for the first demo article. It tests including an external Markdown file <sup class="note-call"><a id="noteref-article-1" href="#note-article-1" role="doc-noteref">1</a></sup>.</p>
+  <h2>I. A section</h2>
+  <p>A paragraph with some <strong>bold</strong> and <em>italic</em> text.</p>
   <ul>
-    <li><strong>A person at a terminal</strong>, which is how this guide is written.</li>
-    <li><strong>An agent</strong>, given the packaged skill (<code>SKILL.md</code>, in <code>agent/skills/lightwebpres/</code>) that carries the article format. Point it there and it can write the Markdown and run the build from minute one.</li>
-    <li><strong>A step in a content pipeline</strong>, where the Markdown comes from somewhere else entirely — a CMS export, a database, a generator, an agent upstream — and LightWebPres is what turns it into publishable pages.</li>
+    <li>A list item</li>
+    <li>Another item</li>
   </ul>
-  <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_SOURCES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
-  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, M for the presenter menu), mouse (click to advance, right-click to go back, middle button to enter or leave fullscreen), and touch (swipe) all work out of the box — the index included, whose step is one article card at a time. The navigation buttons fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
-  <p>Section 8 has the shape of a pipeline that uses all of it.</p>
-  <h2>2. Set up &amp; your first build</h2>
-  <pre><code class="language-bash">
-./lightwebpres init my-series
-./lightwebpres demo my-series --lang en      # French by default
-./lightwebpres build my-series --lang en
-xdg-open my-series/public/index.html         # `open` on macOS
-  </code></pre>
-  <p><code>init</code> scaffolds a working project — <code>sources/</code> (empty, for your <code>.md</code> files), <code>templates/</code> (your customization surface: <code>settings.conf</code> and <code>custom.css</code>, see section 5), an empty <code>language/</code>, an empty <code>public/</code> for the build to write into, a starter <code>series.json</code>, and a copy of the <code>lightwebpres</code> executable itself with its <code>COPYING</code> and <code>COPYING.EXCEPTION</code> beside it, so the project directory is self-sufficient and the copy travels with its licence.</p>
-  <p>What it does <em>not</em> scaffold is the tool's own files — the navigation script and the typography/interface language packs. Those live inside the executable and are read from there, so a fix in a new version reaches your series the moment you upgrade. You can still have them: <code>template show nav.js</code> prints one, <code>template write nav.js</code> installs one to modify (section 7).</p>
-  <p><strong>Language is chosen per build, not stored in the project</strong> — both packs are always inside the executable. Pass <code>--lang fr|en</code> to <code>build</code>/<code>demo</code>, or set <code>LWP_LANG</code>. French is the default, which is why the commands above say so explicitly.</p>
-  <p><code>demo</code> only works after <code>init</code> and refuses to overwrite existing work. It drops three example articles (first, middle and last position in the navigation) plus a captioned image, so you have something real to look at before writing your own.</p>
-  <p><code>build</code> reads <code>series.json</code> and every article it lists, and writes <code>public/*.html</code> plus <code>public/index.html</code>. A generated <code>README.md</code> lands beside <code>series.json</code>, at the root of the series rather than in <code>public/</code> — it describes the series to whoever opens the repository, not to whoever visits the site. Open <code>public/index.html</code> in a browser — no server needed, every page is a single self-contained file.</p>
-  <p><code>--inline-images</code> embeds images as base64 data URIs so the HTML needs no <code>img/</code> directory at all — useful for emailing a single file or hosting where only static HTML is served. The HTML grows about a third per image; a serving gzip recovers the overhead. It covers images in a card and images in a file a <code>full-article</code> card pulls in, alike.</p>
-  <p>One thing it cannot inline: an <code>&lt;img&gt;</code> you write as raw HTML rather than in Markdown. The converter passes raw HTML through untouched by design, so such an image would keep a relative path to a directory this option does not create. The build refuses rather than shipping a page with a dangling reference, and names the file and the path.</p>
-  <p><code>build</code> also accepts a handful of switches that change what it writes: <code>--no-index</code> (skip <code>index.html</code>), <code>--no-readme</code> (skip the generated <code>README.md</code>), <code>--no-nav</code> (omit the cross-article navigation block), <code>--drafts-only</code> (build only <code>status: draft</code> articles), <code>--open</code> (open the result in the browser), and <code>--slides-page-numbers on</code> to engrave the top-right <code>NN / NN</code> slide number — <strong>off by default</strong> (the article front-matter <code>slide_page_numbers</code> and <code>series_meta.slide_page_numbers</code> also turn it on; see specifications.md §3.3.5). <code>watch</code> takes the same output switches and adds <code>--serve</code> (opt-in HTTP server on <code>127.0.0.1</code>, <code>--port 8000</code>).</p>
-  <h2>3. What a page is made of</h2>
-  <p>A page is a sequence of <strong>slides</strong>, separated by <code>---</code>, preceded by one metadata block. There are four slide types, and inside a standard slide a small set of named components. This section names them and says how you reach each one; <code>agent/skills/lightwebpres/SKILL.md</code> carries the exact syntax and every edge case.</p>
-  <p><strong>The four slide types.</strong></p>
-  <table class="comparison-table">
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Carries</th>
-        <th>How many</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><code>cover</code></td>
-        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code># Title</code>, <code>summary</code>, <code>comment</code>, <code>note</code></td>
-        <td>any number, anywhere — it is a look, not a structural marker</td>
-      </tr>
-      <tr>
-        <td>standard <em>(the default)</em></td>
-        <td><code>slug</code>, <code>kicker</code>, <code>tags:</code>, <code>## Title</code>, <code>summary</code>, <code>highlight</code>, <code>highlight-caption</code>, <code>fact-label</code>, <code>fact-variant</code>, <code>source</code>, <code>comment</code>, <code>note</code>, then free Markdown</td>
-        <td>as many as you want</td>
-      </tr>
-      <tr>
-        <td><code>series-nav</code></td>
-        <td><code>slug</code>, <code>tags:</code>, <code>comment:</code> — the navigation itself is generated from <code>series.json</code></td>
-        <td>0 or 1 per article</td>
-      </tr>
-      <tr>
-        <td><code>full-article</code></td>
-        <td><code>slug</code>, <code>article: filename.md</code>, <code>tags:</code> and <code>comment:</code></td>
-        <td>any number, each with its own file</td>
-      </tr>
-    </tbody>
-  </table>
-  <p>Four, and only four. Mistype one — <code>&lt;!-- lwp:slide:covre --&gt;</code> — and the build stops and tells you which slide, what you wrote, and what the four names are. You will not find out from the page.</p>
-  <p><strong>The components inside a standard slide.</strong></p>
-  <table class="comparison-table">
-    <thead>
-      <tr>
-        <th>Component</th>
-        <th>What it is for</th>
-        <th>How you reach it</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><strong>fact box</strong></td>
-        <td>the slide's claim, set off from the page</td>
-        <td>free Markdown text after a <code>fact-label:</code> line</td>
-      </tr>
-      <tr>
-        <td><strong>key figure</strong></td>
-        <td>one number that carries the slide</td>
-        <td><code>highlight:</code> (+ optional <code>highlight-caption:</code>)</td>
-      </tr>
-      <tr>
-        <td><strong>source</strong></td>
-        <td>where the claim comes from</td>
-        <td><code>source:</code></td>
-      </tr>
-      <tr>
-        <td><strong>comparison table</strong></td>
-        <td>a grid of verdicts read at a glance</td>
-        <td>a Markdown table; cells take <code>yes</code> / <code>no</code> / <code>partial</code> classes via inline HTML</td>
-      </tr>
-      <tr>
-        <td><strong>figure</strong></td>
-        <td>a captioned image</td>
-        <td><code>![alt](img/x.png "Caption")</code> alone on its line</td>
-      </tr>
-      <tr>
-        <td><strong>headings</strong></td>
-        <td>structure within the fact-box body</td>
-        <td><code>#</code> <code>##</code> <code>###</code> <code>####</code> <code>#####</code> <code>######</code> — up to level 6; <code>#</code>–<code>###</code> are true headings, <code>####</code> renders as a bold-font paragraph (not <code>&lt;strong&gt;</code> emphasis), <code>#####</code>/<code>######</code> as plain paragraphs</td>
-      </tr>
-      <tr>
-        <td><strong>quote, code, list</strong></td>
-        <td>ordinary prose furniture</td>
-        <td>ordinary Markdown</td>
-      </tr>
-      <tr>
-        <td><strong>note</strong></td>
-        <td>a reference the reader can reach</td>
-        <td><code>[^label]</code> in the text, <code>[^label]: body</code> on its own line</td>
-      </tr>
-      <tr>
-        <td><strong>long-form article</strong></td>
-        <td>the piece the cards summarise</td>
-        <td>a <code>full-article</code> slide pointing at a second <code>.md</code> file</td>
-      </tr>
-    </tbody>
-  </table>
-  <p>Two things are worth knowing before you write, because they surprise people:</p>
-  <ul>
-    <li><strong>The switch from fields to free text is one-way, within a slide.</strong> Once a line is not a <code>field:</code> line, everything after it is prose — so a <code>highlight:</code> placed after a paragraph is published as the literal text <code>highlight: 3 000 W</code>. Fields first, prose after.</li>
-    <li>Structural fields occupy one physical line, except <code>note:</code> and <code>comment:</code>: an indented continuation line belongs to the preceding note/review field.</li>
-    <li><strong>A field is a value, not Markdown.</strong> <code>summary: un **gras**</code> publishes the asterisks. The border is not where you would guess, either: a field passes raw HTML straight through, so finding that <code>&lt;br&gt;</code> works there says nothing about <code>**</code>. <code>audit</code> names any field carrying markup it will not render — a check that exists because 32 such fields, <code>source:</code> lines among them, once accumulated unnoticed across one series.</li>
-    <li><strong>A fact box appears only with <code>fact-label:</code>.</strong> Free text without it renders as plain paragraphs — which is often what you want.</li>
-  </ul>
-  <p><strong>Notes.</strong> <code>[^label]</code> calls a note, <code>[^label]: text</code> on its own line is its body. The label is a key, and a valid one is never displayed — the reader sees a position — so you never renumber when you insert one. Valid means word characters only: letters, digits and <code>_</code>, accents and non-Latin scripts included, but no <code>-</code>, no space, no punctuation. A label outside that is neither a note nor an error: the call ships as literal text, the body renders as an ordinary paragraph, and the label is the one thing on the page the reader was never meant to see. By default a body lands at the foot of the unit that called it (the card, or the end of the long-form article) and numbering restarts in each card, because a card is shareable on its own and a reader may arrive at it having read nothing else. <code>notes_placement: page</code> in the meta block instead collects every body into one notes section at the end of the page; <code>notes_tooltip: on</code> additionally puts the text on the call. <code>audit</code> names a label outside the pattern, a call with no body, a body nothing calls, and a body written inside a raw HTML block (where it ships as literal text).</p>
-  <p><strong>What a card's link is.</strong> Every card has its own address — <code>article.html#barrage-de-vajont</code> — and the share button in the corner copies it, or shows it as a QR code you can point a phone at or print. The share button is on the index too, where the fiche scope is simply missing: there is no slide to share, and the series scope already names the page you are on. That address is the <code>slug:</code> line you write on the card, and nothing else: it is not the card's position and not its title, so you can reorder the deck, insert a card, rewrite a heading, or drop a card with <code>tags: excluded</code>, and the links you have already given out still land where they did.</p>
-  <p><code>slug:</code> is required. A card without one stops the build, which names the command that fixes it in one pass: <code>lightwebpres series slug set</code> writes a slug into every card that has none. It is the only command that edits your articles — a build never rewrites its own inputs — and what it writes is a random eight-character name, because a name derived from the title would look as though it still followed the title. Rename it to something readable before you publish: <code>slug: barrage-de-vajont</code> is worth more than <code>slug: 3f7c1a9e</code>, and the value is the identity from then on.</p>
-  <p>Two cards on one slug is a build error, not a <code>-2</code> appended in silence. <code>slug_prefix:</code> in the meta block (or in <code>series_meta</code>) puts a namespace in front of every address on the page, which is what a series whose pages reuse card names (<code>intro</code>, <code>sources</code>) needs.</p>
-  <p><code>lightwebpres series slug</code> lists every card of the series and the name it is published under, without building anything.</p>
-  <p>Register every article that should appear in navigation in <code>series.json</code> — next section.</p>
-  <h3>Variants in one article</h3>
-  <p><code>tags:</code> is a slide header field, not an instance styling tag. Its value is a space-separated list of case-insensitive variant names. Unicode letters, digits, <code>-</code>, and <code>_</code> are allowed, except that a name cannot start with <code>_</code>. The field is one physical line, like every structural field.</p>
-  <ul>
-    <li>No <code>tags:</code> (or an empty value) means <code>default</code>, the shared content.</li>
-    <li><code>tags: excluded</code> removes the slide during the build; it is never emitted.</li>
-    <li>Other tags are written to the section's <code>data-tags</code> attribute and filtered in the browser.</li>
-    <li>Press <strong>L</strong> to open the variant menu. It is hidden for a single-variant article and persists the choice in <code>localStorage['lwp-active-tag']</code>.</li>
-    <li>The selected tag shows its own slides and shared <code>default</code> slides; counts, navigation, anchors, and the presenter panel use the visible slides.</li>
-  </ul>
-  <p><code>tag:</code> is not a field, and not an alias for one. Use <code>kicker:</code> for the label above a slide title, and <code>tags:</code> for variant filtering. A <code>tag:</code> line becomes body text on a standard slide; on a cover, <code>build</code> reports the unknown field and prints the two choices.</p>
-  <p>For language-specific typography, map tags to packs in <code>series_meta</code>:</p>
-  <pre><code class="language-json">
-{
-  "series_meta": {
-    "lang_tags": {"fr": "fr", "en": "en"}
-  },
-  "articles": [{"page_source": "guide.md"}]
-}
-  </code></pre>
-  <p>The first mapped language tag on a slide selects its pack. A slide without a mapped language tag uses the build's <code>--lang</code>/<code>LWP_LANG</code> fallback. The built-in <code>fr</code> and <code>en</code> packs come from the executable; another pack name refers to <code>language/&lt;name&gt;.json</code> in your series. <code>audit</code> reports invalid tags and missing packs without blocking, while <code>build</code> rejects malformed declarations.</p>
-  <h2>4. Organizing a series</h2>
-  <p><code>series.json</code> lists the articles and holds series-wide metadata:</p>
-  <pre><code class="language-json">
-{
-  "series_meta": {
-    "title": "My article series",
-    "subtitle": "Series subtitle",
-    "intro": "Series introduction.",
-    "lang_tags": {"fr": "fr", "en": "en"}
-  },
-  "themes": ["essential", "family:terrain"],
-  "articles": [
-    {"page_source": "apple-pie.md"}
-  ]
-}
-  </code></pre>
-  <p><code>page_source</code> — a bare filename, no path — is the only field ever required here. Each article is self-described: <code>page_dest</code> (the output HTML name), <code>page_title</code>/<code>page_desc</code>, <code>card_title</code>/<code>card_desc</code>/ <code>card_label</code>, <code>nav_title</code>/<code>nav_desc</code>, and the editorial fields (<code>author</code>/<code>license</code>/<code>date</code>, defaulting series-wide from <code>series_meta</code>) all resolve from the article's own meta block and cover slide, and any of them can be overridden per entry here when you want <code>series.json</code> to have the final say. <code>status</code> says what each article is worth to the series: <code>active</code> (the default), <code>draft</code> — still an article of the series, kept out of the output until <code>--include-drafts</code> previews it with a banner — or <code>ignored</code>, which takes it out of the chain entirely without deleting the entry and everything you configured on it. The array order is the navigation and index order. The full fallback chain per field is in <code>GLOSSARY.md</code>.</p>
-  <h2>5. Adjusting the look</h2>
-  <p>Four value overrides, from the smallest to the largest, followed by CSS rules. Pick the smallest one that does the job.</p>
-  <h3>Pick a theme (the whole series)</h3>
-  <p>Dozens of colour themes are preconfigured — too many to pick from a list, so you find one by facet: which family it belongs to, whether its background is light or dark, and what hue that background carries.</p>
-  <pre><code class="language-bash">
-./lightwebpres theme list                                     # the whole catalogue, with facets
-./lightwebpres theme list --family terrain                    # one editorial family
-./lightwebpres theme list --polarity dark --hue green          # just the ones you mean
-./lightwebpres theme gallery                             # every theme, rendered
-  </code></pre>
-  <p>Apply one at init time, or change your mind later:</p>
-  <pre><code class="language-bash">
-./lightwebpres init my-series --theme evergreen
-./lightwebpres series theme set my-series --theme crimson
-  </code></pre>
-  <p>A theme is a word in a data file: <code>series theme set</code> rewrites the one <code>theme:</code> line of <code>templates/settings.conf</code> and nothing else. No CSS is touched — the stylesheet is composed in memory at every build.</p>
-  <p>The build can optionally carry several themes for the reader:</p>
-  <pre><code class="language-bash">
-./lightwebpres build my-series --themes print-ink,print-grey
-./lightwebpres build my-series --themes all
-  </code></pre>
-  <p>Or keep the selection in the root of <code>series.json</code>:</p>
-  <pre><code class="language-json">
-"themes": ["essential", "background:light", "bgh:red"]
-  </code></pre>
-  <p><code>essential</code> embeds Monochrome, Monochrome Night and Print Ink. A selector <code>X:Y</code> can use <code>background</code>/<code>bg</code>, <code>family</code>/<code>fam</code>, or <code>background hue</code>/<code>bgh</code>; each selector adds its matching themes and duplicates are removed. An explicit CLI <code>--themes</code> overrides the JSON list.</p>
-  <p>The effective theme in <code>templates/settings.conf</code> is always included first, even if it is not in the list. The setting is read at build time, so an author's edit remains the source of truth. Values pinned in <code>settings.conf</code>, <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the selection lasts for the other pages of the same deck in the current browser session.</p>
-  <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme, or of the effective theme after the series' pins. <code>audit</code> reads the same resolved sheet without being asked, and speaks only when something has stopped working — a navigation control you cannot see, text the colour of its own ground, a size under the readability floor. It warns; it never refuses, and no shipped theme trips it.</p>
-  <h3>Why essential themes ship by default</h3>
-  <p>Every build embeds the <code>essential</code> bundle on its own — Monochrome, Monochrome Night and Print Ink — so the picker is functional on any page without the author opting in. Three reasons, in order:</p>
-  <ul>
-    <li><strong>Accessibility.</strong> Monochrome is high-contrast ink with no hue; Monochrome Night is the same on a dark ground, for low-vision or light-sensitive readers; Print Ink is pure black on white, the highest contrast the page carries. A reader who cannot read the deck as drawn has an alternative that does not depend on the author having planned for them.</li>
-    <li><strong>Print.</strong> Print Ink is drawn for paper — pure white ground, black ink — so a PDF handout at <code>Ctrl</code>/<code>Cmd</code>+<code>P</code> is clean without any theme choice.</li>
-    <li><strong>Sobriety.</strong> Monochrome and Print Ink carry no hue, so the essential set never clashes with a series built around one. The author's chosen theme remains primary; the three are alternatives, never a replacement.</li>
-  </ul>
-  <p>Opt out when the page should be static or carry a custom selection:</p>
-  <pre><code class="language-bash">
-./lightwebpres build my-series --no-essential-theme
-./lightwebpres verify my-series --no-essential-theme
-./lightwebpres watch my-series --no-essential-theme
-  </code></pre>
-  <p>With the flag, the page carries no runtime picker unless <code>--themes</code> or <code>series.json["themes"]</code> adds one. Without it, the essential three ship on every build, deduplicated against the primary theme — so a series whose effective theme is already one of them does not see it twice.</p>
-  <h3>Change one phrase (an instance tag)</h3>
-  <p>Inside any free text, for the one place that needs it:</p>
-  <pre><code class="language-markdown">
-A {color:call}critical{/color} figure, set in {mono}fixed pitch{/mono}.
-  </code></pre>
-  <p><code>{color:…}</code> and <code>{font:…}</code> take either a shared name (<code>mark</code>, <code>call</code>, <code>mono</code>, …) or a literal; <code>{sc}</code>, <code>{u}</code>, <code>{strike}</code> and <code>{mono}</code> take no value. A bad value is a build error naming the file, never a silent no-op, and <code>audit</code> counts them per article so you know where to look when you change theme.</p>
-  <p><strong>Alignment is the one block-level tag</strong>, because <code>text-align</code> on an inline span does nothing. Opener and closer each go alone on their line:</p>
-  <pre><code class="language-markdown">
-{align:center}
-This paragraph is centred, and so is the next one.
-{/align}
-  </code></pre>
-  <p>Values: <code>left | center | right | justify</code>. Everything inside the block aligns, table cells included.</p>
-  <h3>Change one page (<code>style.*</code> in its meta block)</h3>
-  <p>Any property, scoped to that page only:</p>
-  <pre><code>
-&lt;!-- lwp:meta --&gt;
-page_title: The apple pie
-style.cover.bg.angle: 90deg
-style.page.content-max: 60ch
-  </code></pre>
-  <p>And <code>fact-variant: warning</code> on a standard slide gives that one fact box a named look, rather than a hand-tuned colour.</p>
-  <h3>Change the whole series (<code>templates/settings.conf</code>)</h3>
-  <p>Every visual decision is a typed property, <code>component.axis: value</code>, and <code>settings.conf</code> lists <strong>all</strong> of them, commented out, at the values of the theme you chose — the complete surface is under your eyes, no documentation needed. Uncomment a line to <strong>pin</strong> it: it survives every theme change and every executable upgrade, because <code>lightwebpres</code> never rewrites your file.</p>
-  <p>Two properties control the fact-box bold (<code>**text**</code> in a fact-box):</p>
-  <ul>
-    <li><code>fact.strong.pad</code> — the side padding of the highlight box around the bold text (default <code>max(3px, 0.375vmin)</code>, automatically 0 on themes with no highlight ground).</li>
-    <li><code>fact.strong.absorb-punct</code> — <code>on</code> (default) absorbs the punctuation that follows a bold run into the highlight (<code>**2000**,</code> → the comma is highlighted too); <code>off</code> leaves the Markdown as written.</li>
-  </ul>
-  <pre><code>
-# kicker.fg: ink-quiet      ← the scaffold, showing the theme's value
-kicker.fg: call             ← uncommented: yours, and it stays
-  </code></pre>
-  <p>A bare word like <code>call</code> is looked up among the theme's shared values (<code>color.call</code>, since <code>fg</code> is a colour axis); a literal like <code>#8A4B00</code> works anywhere a colour does. A mistyped key or value is a named build error pointing at the file and key.</p>
-  <p>Three properties people look for by name: <strong><code>page.content-max</code></strong> is the text column width, <code>84vw</code> by default — proportional to the window, with no ceiling, so a deck shown full screen uses the screen. Every type size is proportional too — the kicker, the fact label, the key figure's caption and the slide number as much as the title — which is what keeps the line length steady and the proportions between them fixed as the screen grows. Each size has a floor in pixels, and the floor is what governs a phone. <strong><code>page.block-max</code></strong> is the width of the things that are not running text — a table, a code block, a figure — sized by what they hold rather than by a count of characters; it carries a floor as well as a ceiling — <code>min(84vw, max(1100px, 102vmin))</code> — so a table grows with the text inside it and still stops before the window edge. <strong><code>page.hyphens</code></strong> (<code>manual | auto</code>) controls whether words break at end of line; it is <code>manual</code>, and nothing turns it on for you.</p>
-  <p>After a <code>series theme set</code>, <code>audit</code> will note that the scaffold's <em>comments</em> show the old theme's values; <code>template update --scaffold</code> realigns them while keeping every pinned line.</p>
-  <h3>Rules rather than values (<code>templates/custom.css</code>)</h3>
-  <p>Full CSS, no subset, appended after the composed stylesheet so your rules win ties. <code>init</code> creates it strictly empty, because "appended" means appended verbatim: anything the tool wrote in there as advice to you would be published to every reader of every page. <code>settings.conf</code> can carry five hundred comment lines precisely because it is parsed and this file is not. New selectors, media queries, <code>@font-face</code> (name the family at the head of a stack in <code>settings.conf</code>, declare the face here). The composed sheet's <code>--component-axis</code> variables are usable in it (<code>border-color: var(--color-mark)</code>), and that is the recommended way to follow the theme.</p>
-  <p>Behaviour is the third surface, and it isn't in your series by default: the navigation script lives in the executable. <code>template write nav.js</code> puts a copy under <code>templates/</code> if you want to change it, and it then overrides the navigation wholesale — there is no partial override. The page and index HTML structure is fixed, not a template.</p>
-  <h2>6. Verifying before you ship</h2>
-  <p>Two different checks, for two different moments:</p>
-  <pre><code class="language-bash">
-./lightwebpres audit my-series    # is anything wrong with this series?
-./lightwebpres verify my-series   # is public/ the one these sources make?
-  </code></pre>
-  <p><code>audit</code> renders the whole series in memory — throwing the HTML away, writing nothing — and reports three different kinds of thing. What the <strong>sources</strong> say: no cover slide, the instance tags in each article, a scaffold whose comments predate your current theme, a retired CSS variable still referenced in <code>custom.css</code>, an image symlink that would not be published. What the <strong>resolved stylesheet</strong> says once the theme, your <code>settings.conf</code> and a page's own <code>style.*</code> lines are merged — a navigation control nobody can see against its own rail, text painted the colour of the ground it sits on, a size under the readability floor. That one is worth its own sentence: those faults are correct at every layer and only exist once composed, so nothing that reads what you <em>wrote</em> can find them; a size you never touched can go invisible because a colour it inherits from did.</p>
-  <p>Nothing is filtered out of any of that. <code>audit</code> looks at every article <code>series.json</code> lists — drafts included, and <code>ignored</code> ones named on a <code>[NOTE]</code> line, since this is the only place in the tool that will ever mention them again. A build's <code>--include-drafts</code> has no counterpart here and needs none: work in progress is exactly what an authoring tool should be looking at, and a fault that only shows once a page is composed is no less real on a draft. And what only <strong>composing</strong> can say: a missing language pack, fields you wrote on a cover that a cover never renders — and, when the render cannot finish at all, the fact that no page would be produced. It still never fails on its own: exit 0 every time, even then. Pass <code>--strict</code> and every one of those becomes a non-zero exit; that is the CI gate. Because it renders, it costs about what a build costs — the deliberate trade: a build is fast on a human scale, a missed audit is not. <code>--templates</code> skips the render and the per-article checks when you only want the presentation layer; the stylesheet is still judged.</p>
-  <p><code>verify</code> asks the other question: it rebuilds every article in memory and compares it byte-for-byte against <code>public/</code>, exiting non-zero the moment anything differs — wire it in before <code>build</code> to catch a <code>public/</code> that was hand-edited or never rebuilt after a source change.</p>
-  <h3>Asking why a value is what it is</h3>
-  <p>Most of what ends up on a page was never written on that page: a title falls back through <code>series.json</code>, the meta block and the cover slide, a colour falls through <code>settings.conf</code>, the theme and the built-in defaults. When the result surprises you, ask:</p>
-  <pre><code class="language-bash">
-./lightwebpres resolve my-series page_title --article apple-pie.md
-./lightwebpres resolve my-series kicker.fg
-  </code></pre>
-  <p>Nothing tells it what kind of name you passed — the name does. A dot means a theme property, an underscore an article or series field, a hyphen a slide field.</p>
-  <p>The answer shows the level that decided <strong>and every level that didn't</strong>, strongest first:</p>
-  <pre><code>
-kicker.fg — theme property
-  value: #BF616AFF
-  from:  settings
-  via:   color.call
-
-  cascade, strongest first:
-    instance  —
-    article   —
-  &gt; settings  call
-    theme     —
-    default   ink-quiet
-  </code></pre>
-  <p>That second half is the one that solves problems. A line you wrote that changed nothing shows up here as a level holding nothing — still commented out, or beaten by a <code>series.json</code> entry you had forgotten.</p>
-  <p>A slide field has no cascade, so <code>resolve fact-label</code> answers with the list of slides that set it instead — across the series, or within one article with <code>--article</code>. Add <code>--format json</code> for a machine, and pass <code>--article</code> to a theme property to fold that page's own <code>style.*</code> lines into the chain.</p>
-  <h2>7. Keeping templates current</h2>
-  <p><code>lightwebpres</code> is a single file you copy into each project (<code>init</code> does this). Dropping in a newer copy is the whole upgrade: the stylesheet is composed in memory at every build, the navigation script and the language packs are read out of the executable, and your <code>settings.conf</code> and <code>custom.css</code> are yours — never touched. Your theme choice needs no reapplying either: it's the <code>theme:</code> line of <code>settings.conf</code>, which an upgrade cannot revert.</p>
-  <p>That leaves one thing an upgrade cannot reach: a copy of a tool-owned file sitting in your series. <code>template write</code> puts one there, and a series scaffolded before v0.40.0 was given three without being asked. Such a copy is used in preference to the executable's own, so it keeps whatever behaviour it was frozen with — and a build warns when it differs from the built-in version, at warning level, so <code>--quiet</code> doesn't silence it in a pipeline. The build can't tell <em>stale</em> from <em>customised</em>, so it says <code>differs</code> and uses your file either way.</p>
-  <pre><code class="language-bash">
-./lightwebpres template update my-series
-  </code></pre>
-  <p>That is the command that clears them. A copy identical to the built-in one is removed — it was doing nothing but freezing you. A <code>nav.js</code> that differs is saved as <code>nav.js.bak</code> and removed, so you keep your version and the build follows the tool again. A language pack that differs is left alone and reported: its <code>rules</code> replace the base set wholesale, so overwriting it would erase whatever you added — compare with <code>template show fr.json</code> and delete it when you're ready. A pack for a language the tool doesn't ship — <code>de.json</code>, say — is your work, and nothing is said about it.</p>
-  <p><code>--scaffold</code> additionally regenerates <code>settings.conf</code>'s commented block against the current theme and the current property registry, keeping every line you uncommented.</p>
-  <h2>8. Automation, CI/CD, and the browser</h2>
-  <h3>As a pipeline step</h3>
-  <p>The generated <code>.gitlab-ci.yml</code> (<code>init --gitlab-ci</code>, opt-in — a plain <code>init</code> never assumes a deployment) is one stage and one command:</p>
-  <pre><code class="language-yaml">
-stages:
-  - build
-
-build:
-  stage: build
-  image: python:3.12-slim
-  script:
-    - python3 lightwebpres build . --lang fr
-  artifacts:
-    paths:
-      - public/
-  </code></pre>
-  <p>Nothing here is GitLab-specific — that one command is the whole job on any runner.</p>
-  <p>If your <code>public/</code> is committed rather than built from scratch, put <code>verify</code> in front of <code>build</code>:</p>
-  <pre><code class="language-yaml">
-  script:
-    - python3 lightwebpres verify .    # fails if public/ is stale
-    - python3 lightwebpres build . --lang fr
-  </code></pre>
-  <p>That ordering catches a <code>public/</code> that was hand-edited or never rebuilt after a source change, <strong>before</strong> the build overwrites the evidence. It is left out of the generated file because a pipeline that builds into a fresh checkout has nothing stale to catch, and a job that fails on its first run teaches the reader to delete the line rather than to trust it.</p>
-  <p>For a pipeline where content arrives from upstream, three more things matter. <code>--only file</code> rebuilds a single article rather than the series, with <code>--nav-cache</code> holding the fingerprint that tells it whether the navigation still needs regenerating. <code>--build-stamp</code> marks every generated page with the version and time it came from, which is what you want when a page is published by a machine and questioned by a human three months later. And <code>status</code> in <code>series.json</code> decides what enters the build at all: <code>draft</code> until something upstream flips it, <code>ignored</code> for an article you want kept and not published.</p>
-  <h3>In the browser</h3>
-  <p><code>web/index.html</code>, one page with two tabs, runs the exact same engine as the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly), so the output is identical either way:</p>
-  <ul>
-    <li><strong>Upload a zip</strong> — drop a zip of your series, get back a zip of <code>public/</code>. Nothing leaves the browser tab.</li>
-    <li><strong>Sync with GitLab</strong> — pull a series straight from a GitLab repository, build it, and push the result back as a single commit.</li>
-  </ul>
-  <p>Both tabs share one Pyodide load, so switching is instant. The page must be <strong>served over http(s)</strong>, not opened as a <code>file://</code> page — browsers block Pyodide's asset loading under that origin. For local testing:</p>
-  <pre><code class="language-bash">
-python3 -m http.server 8000 --directory /path/to/lightwebpres
-# then open http://localhost:8000/web/index.html
-  </code></pre>
-  <h2>9. Presenting</h2>
-  <p>Every page the build writes is a self-contained deck — keyboard, mouse, and touch all work, the index included: it is a page like any other, and its step is one article card at a time. The controls below let the speaker drive the deck without looking at the screen.</p>
-  <h3>Keyboard</h3>
-  <table class="comparison-table">
-    <thead>
-      <tr>
-        <th>Key</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>↓ / PageDown / →</td>
-        <td>Next slide — on the index, next article card</td>
-      </tr>
-      <tr>
-        <td>↑ / PageUp / ← / Backspace</td>
-        <td>Previous slide — on the index, previous article card</td>
-      </tr>
-      <tr>
-        <td>Home</td>
-        <td>On an article: back to the index. On the index: top of the page</td>
-      </tr>
-      <tr>
-        <td>F</td>
-        <td>Fullscreen (Esc to exit)</td>
-      </tr>
-      <tr>
-        <td>B</td>
-        <td>Black pause screen (press again to dismiss)</td>
-      </tr>
-      <tr>
-        <td>W</td>
-        <td>White pause screen (press again to dismiss)</td>
-      </tr>
-      <tr>
-        <td>T</td>
-        <td>Theme-background pause screen (press again to dismiss)</td>
-      </tr>
-      <tr>
-        <td>N</td>
-        <td>Toggle the speaker panel: the current slide's notes and the next slide's title (no panel content on the index, which has no slides)</td>
-      </tr>
-      <tr>
-        <td>0–9 then Enter</td>
-        <td>Jump straight to slide N (1-based) — for decks of ten slides and up; inert on the index, which has no slides</td>
-      </tr>
-      <tr>
-        <td>L</td>
-        <td>Open the variant menu when the article carries at least two tags across its slides</td>
-      </tr>
-      <tr>
-        <td>H</td>
-        <td>Open the help overlay, which lists every key on this table</td>
-      </tr>
-      <tr>
-        <td>Esc</td>
-        <td>Leave fullscreen; also closes the speaker panel</td>
-      </tr>
-    </tbody>
-  </table>
-  <p>The B/W/T pause screens hide the slide so the audience's eye comes back to the speaker — the same feature PowerPoint and Keynote call "blank". T uses the theme's own background colour, so a dark theme pauses on a dark screen rather than flashing white.</p>
-  <h3>Speaker panel and slide counter</h3>
-  <p>A small <code>X / N</code> counter sits in the bottom-left corner and fades out with the other chrome when the mouse is idle. Type a slide number and press <strong>Enter</strong> to jump there — handy once a deck passes ten slides and the arrow-key walk becomes a slog. That live counter is <strong>always</strong> shown — except on the index, where there is nothing to count — and is independent of the engraved top-right <code>NN / NN</code> slide number, which is opt-in (off by default) and turned on only by <code>--slides-page-numbers on</code>, the article front-matter <code>slide_page_numbers</code>, or <code>series_meta.slide_page_numbers</code> (see specifications.md §3.3.5). Press <strong>N</strong> to open the speaker panel: it shows the current slide's <code>note:</code> field (the speaker note you wrote for that slide — see below) and the title of the next slide, so you can read ahead without the audience seeing it. The panel rides along as you navigate; press <strong>N</strong> again to close it.</p>
-  <p>A speaker note is a <code>note:</code> field on the slide — distinct from a <code>[^n]</code> footnote, which is a <em>source</em> note printed for the reader:</p>
-  <pre><code class="language-markdown">
-&lt;!-- lwp:slide --&gt;
-kicker: Two
-## Slide two
-note: Mention the 2020 study — the audience asked for it last time.
-  Follow up with the 2023 replication.
-  If time runs short, skip the appendix.
-  </code></pre>
-  <p>The <code>note:</code> value is parsed and withheld from the slide the reader sees; only the presenter panel surfaces it. A <code>note:</code> may run over several lines: any line that starts with whitespace continues the note, and an indented blank line marks a paragraph break. The block ends at the first non-indented, non-empty line (the next field or the slide's body), so the continuation lines are never captured as slide content.</p>
-  <h3>Printing and PDF</h3>
-  <p>Each page is print-ready. <strong>Print</strong> from the browser (Ctrl/Cmd+P) and choose "Save as PDF": every slide lands on its own sheet, the navigation chrome is stripped, and the theme colours are kept. A short slide no longer blanks a page — each sheet sizes to its own content.</p>
-  <h3>Mouse</h3>
-  <table class="comparison-table">
-    <thead>
-      <tr>
-        <th>Gesture</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Single click on content</td>
-        <td>Next slide (200ms glide)</td>
-      </tr>
-      <tr>
-        <td>Right-click on content</td>
-        <td>Previous slide (200ms glide)</td>
-      </tr>
-      <tr>
-        <td>Click during the glide</td>
-        <td>Jump straight to that click's target</td>
-      </tr>
-      <tr>
-        <td>Middle button anywhere</td>
-        <td>Exit fullscreen on its own; to enter, press the middle button, then click left inside the window</td>
-      </tr>
-      <tr>
-        <td>Click in the bottom-right corner</td>
-        <td>Toggle the navigation buttons (hide/show)</td>
-      </tr>
-    </tbody>
-  </table>
-  <p>Clicks on links, images, buttons, and the share popover are not intercepted — they keep working. The right-click to go back is the remote-mouse use case: the speaker with a wireless mouse in hand left-clicks to advance, right-clicks to go back — two distinct buttons, no aiming. The native context menu is suppressed on slide content so right-click is a clean back gesture. A click lands instantly on the next card and glides to it over 200 ms; a click that arrives while the deck is still gliding does not wait — it jumps straight to its target, so two clicks in quick succession land two pages on, and a right-click during the glide returns you to the card you left. The middle button only leaves fullscreen by itself: browsers refuse <code>requestFullscreen()</code> from any non-left event, so entering is a two-step gesture — middle button to arm the intent, then a left click inside the window (a right click in the same window goes to the index instead). The wheel itself keeps scrolling; the ⛶ button and F stay direct entries. Esc exits fullscreen. The cursor hides after 1 second of idleness in fullscreen. A left click on an existing selection just dismisses the highlight — no step — and a right-click on a selection opens the browser's own menu, the deck stepping aside. Two clicks in quick succession are two steps: the deck never treats a double click as anything else.</p>
-  <h3>Touch (phone, tablet)</h3>
-  <table class="comparison-table">
-    <thead>
-      <tr>
-        <th>Gesture</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Swipe left</td>
-        <td>Next slide — on the index, next article card</td>
-      </tr>
-      <tr>
-        <td>Swipe right</td>
-        <td>Previous slide — on the index, previous article card</td>
-      </tr>
-      <tr>
-        <td>Tap on content</td>
-        <td>Next slide — on the index, next article card</td>
-      </tr>
-      <tr>
-        <td>Double tap</td>
-        <td>Show or hide the navigation buttons</td>
-      </tr>
-      <tr>
-        <td>Press and hold</td>
-        <td>Select text and open the copy menu — the deck does not take it</td>
-      </tr>
-    </tbody>
-  </table>
-  <h3>Navigation buttons</h3>
-  <p>The round buttons in the bottom-right corner are previous, home, next, share, fullscreen, and a sixth button for the variant menu, which appears only when the article carries at least two tags. The same six sit on the index, where previous and next step one article card at a time and home means the top of the page. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
-  <p>On a phone or a tablet they fade after the same three seconds and come back on a <strong>double tap</strong>, which also puts them away again at once if you have seen enough. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the middle button: the middle button alone only exits fullscreen — entering is the two-step, middle button then a left click — and a gesture that meant two things depending on a state you cannot see coming would not be one.</p>
-  <p>The double tap is also how a phone selects a word, and the deck does not try to take it: selection, long press and the copy menu are the browser's, untouched. Which of the two wins a given double tap is the browser's call, and if it takes one, press and hold or use the ⛶ button — nothing the deck does will have got in your way. With a mouse, clicking the corner (not a button) toggles them on or off for good.</p>
-  <h2>10. Shell completion (tab in the terminal)</h2>
-  <p><code>lightwebpres completion --shell bash</code> (or <code>zsh</code>) prints a script that makes your shell complete commands, subcommands, and options when you press Tab. Install it by adding this line to your <code>~/.bashrc</code> or <code>~/.zshrc</code>:</p>
-  <pre><code class="language-bash">
-eval "$(lightwebpres completion --shell bash)"
-  </code></pre>
-  <p>Then <code>lightwebpres &lt;Tab&gt;</code> proposes <code>init</code>, <code>build</code>, <code>verify</code>, <code>audit</code>, <code>theme</code>, <code>series</code>, etc.; <code>lightwebpres series &lt;Tab&gt;</code> proposes <code>build</code>, <code>theme</code>, <code>status</code>, <code>resolve</code>...; and <code>lightwebpres build --&lt;Tab&gt;</code> proposes <code>--lang</code>, <code>--output</code>, <code>--no-typography</code>, etc.</p>
-  <p>The script is generated from the tool's own command tables, so it stays in sync with whatever commands the version you are running knows about.</p>
-  <h2>11. Going further</h2>
-  <ul>
-    <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/lightwebpres/</code>) — the precise mechanics of the article format: every slide type and field, the meta block, the field/free-text switch, typography and its opt-outs, <code>series.json</code> wiring. Read it before writing or debugging an article by hand, or point an agent at it.</li>
-    <li><strong><code>SKILL.md</code></strong> (<code>agent/skills/sourced-presentation/</code>) — a method for one kind of content, not a requirement of the format. A <strong>sourced presentation</strong> is a deck of short cards, each readable on its own, backed by a fully referenced long-form article; the skill covers that chain, from commissioning research to verifying every fact at its source. It is <strong>given, not required</strong>: a facilitation for whoever wants a method, and entirely ignorable otherwise. The format takes whatever you put in it, and the tool has no opinion about how you got there.</li>
-    <li><strong><code>specifications.md</code></strong> (in French) — the complete, authoritative reference: exact algorithms, every parser edge case, the full <code>series.json</code> and language-file schemas, the browser tool's internals.</li>
-    <li><strong><code>lightwebpres --help</code></strong> — every command, every flag, every environment variable.</li>
-  </ul>
-  <h2>12. When something doesn't work</h2>
-  <table class="comparison-table">
-    <thead>
-      <tr>
-        <th>Symptom</th>
-        <th>Cause</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><code>lightwebpres: command not found</code></td>
-        <td>it isn't on your <code>PATH</code> — run it as <code>./lightwebpres</code></td>
-      </tr>
-      <tr>
-        <td><code>Permission denied</code></td>
-        <td><code>chmod +x lightwebpres</code></td>
-      </tr>
-      <tr>
-        <td><code>… is not empty. Use an empty or new directory, or pass --force</code></td>
-        <td>installing into a directory that already has files — <code>init . --force</code> is the normal in-place case</td>
-      </tr>
-      <tr>
-        <td>the site is in French</td>
-        <td><code>--lang en</code> on <code>build</code>/<code>demo</code>; French is the default</td>
-      </tr>
-      <tr>
-        <td><code>open: command not found</code></td>
-        <td>macOS-only — use <code>xdg-open</code> on Linux</td>
-      </tr>
-      <tr>
-        <td>a <code>field:</code> line published as literal text</td>
-        <td>it came after prose in the same slide; the switch to free text is one-way (section 3)</td>
-      </tr>
-      <tr>
-        <td><code>[^1]: …</code> published as literal text</td>
-        <td>the body sits inside a raw HTML block, which is passed through verbatim — move it outside</td>
-      </tr>
-      <tr>
-        <td>a note marker that isn't a link</td>
-        <td>nothing defines that label in the same locality; <code>audit</code> names it</td>
-      </tr>
-      <tr>
-        <td>a value is not what you wrote</td>
-        <td>another level of the cascade won — <code>resolve &lt;name&gt;</code> shows which, and what every other level held (section 6)</td>
-      </tr>
-      <tr>
-        <td>a <code>settings.conf</code> line that changes nothing</td>
-        <td>it is probably still commented out; <code>resolve &lt;property&gt;</code> shows that level holding nothing</td>
-      </tr>
-    </tbody>
-  </table>
+  <h2>II. An image with a caption</h2>
+  <figure class="figure"><img src="img/demo-figure.svg" alt="A demo figure"><figcaption class="figure-caption">A captioned image — small, centered, themed (see §6.1)</figcaption></figure>
+  <h2>References</h2>
+  <div class="notes-local">
+  <ol class="note-body">
+    <li id="note-article-1" role="doc-footnote"><span class="note-num">1</span>Demo source, 2025.<a class="note-back" href="#noteref-article-1" role="doc-backlink" aria-label="Revenir au texte">↩</a></li>
+  </ol>
+  </div>
 </section>
-
-<script id="lwp-theme-data" type="application/json">{"version":1,"primary":"default","vars":["--color-page","--color-ink","--color-ink-quiet","--color-mark","--color-call","--color-affirm","--color-nav","--font-text","--font-display","--font-ui","--font-mono","--page-font","--page-bg","--page-fg","--page-leading","--page-shadow-fg","--page-shadow-blur","--page-shadow-dx","--page-shadow-dy","--page-content-max","--page-block-max","--page-hyphens","--slide-rule-fg","--slide-rule-width","--slide-num-fg","--slide-num-font","--slide-num-size","--slide-num-tracking","--slide-num-shadow-fg","--slide-num-shadow-blur","--slide-num-shadow-dx","--slide-num-shadow-dy","--kicker-fg","--kicker-font","--kicker-size","--kicker-weight","--kicker-tracking","--kicker-transform","--kicker-shadow-fg","--kicker-shadow-blur","--kicker-shadow-dx","--kicker-shadow-dy","--title1-font","--title1-size","--title1-weight","--title1-leading","--title1-fg","--title1-shadow-fg","--title1-shadow-blur","--title1-shadow-dx","--title1-shadow-dy","--title1-align","--title2-font","--title2-size","--title2-weight","--title2-leading","--title2-align","--title2-shadow-fg","--title2-shadow-blur","--title2-shadow-dx","--title2-shadow-dy","--summary-fg","--summary-size","--summary-leading","--summary-align","--summary-shadow-fg","--summary-shadow-blur","--summary-shadow-dx","--summary-shadow-dy","--fact-bg","--fact-rule-fg","--fact-rule-width","--fact-fg","--fact-size","--fact-align","--fact-elevation-fg","--fact-elevation-blur","--fact-elevation-dx","--fact-elevation-dy","--fact-elevation-spread","--fact-label-fg","--fact-label-font","--fact-label-size","--fact-label-weight","--fact-label-tracking","--fact-label-transform","--fact-label-shadow-fg","--fact-label-shadow-blur","--fact-label-shadow-dx","--fact-label-shadow-dy","--fact-strong-weight","--fact-strong-style","--fact-strong-bg","--fact-strong-fg","--fact-strong-decoration","--fact-strong-decoration-color","--fact-strong-pad","--fact-strong-absorb-punct","--fact-strong-shadow-fg","--fact-strong-shadow-blur","--fact-strong-shadow-dx","--fact-strong-shadow-dy","--body-heading-fg","--body-heading-weight","--body-heading-leading","--body-heading-shadow-fg","--body-heading-shadow-blur","--body-heading-shadow-dx","--body-heading-shadow-dy","--source-fg","--source-font","--source-size","--source-shadow-fg","--source-shadow-blur","--source-shadow-dx","--source-shadow-dy","--footer-fg","--footer-font","--footer-size","--footer-rule-fg","--footer-rule-width","--cover-bg-from","--cover-bg-to","--cover-bg-angle","--cover-fg","--cover-align","--cover-summary-fg","--cover-summary-shadow-fg","--cover-summary-shadow-blur","--cover-summary-shadow-dx","--cover-summary-shadow-dy","--cover-kicker-fg","--cover-kicker-shadow-fg","--cover-kicker-shadow-blur","--cover-kicker-shadow-dx","--cover-kicker-shadow-dy","--cover-num-fg","--cover-num-shadow-fg","--cover-num-shadow-blur","--cover-num-shadow-dx","--cover-num-shadow-dy","--quote-fg","--quote-style","--quote-rule-fg","--quote-rule-width","--code-font","--code-size","--code-bg","--code-rule-fg","--code-rule-width","--code-leading","--footnote-call-fg","--footnote-call-size","--footnote-call-fg-marked","--footnote-call-fg-cover","--note-fg","--note-size","--note-leading","--note-weight","--note-style","--note-marker-fg","--note-back-fg","--note-local-size","--note-local-rule-fg","--note-local-rule-width","--note-page-bg","--note-page-rule-fg","--note-page-rule-width","--note-page-title-fg","--note-page-title-size","--note-page-title-font","--link-decoration-color","--table-size","--table-rule-fg","--table-rule-width","--table-cell-align","--table-head-bg","--table-head-fg","--table-head-rule-fg","--table-head-rule-width","--table-head-weight","--table-head-size","--table-head-tracking","--table-head-align","--table-head-shadow-fg","--table-head-shadow-blur","--table-head-shadow-dx","--table-head-shadow-dy","--verdict-yes-fg","--verdict-yes-weight","--verdict-yes-mark","--verdict-yes-shadow-fg","--verdict-yes-shadow-blur","--verdict-yes-shadow-dx","--verdict-yes-shadow-dy","--verdict-no-fg","--verdict-no-weight","--verdict-no-mark","--verdict-no-shadow-fg","--verdict-no-shadow-blur","--verdict-no-shadow-dx","--verdict-no-shadow-dy","--verdict-partial-fg","--verdict-partial-weight","--verdict-partial-mark","--verdict-partial-shadow-fg","--verdict-partial-shadow-blur","--verdict-partial-shadow-dx","--verdict-partial-shadow-dy","--table-col-signal-bg","--table-col-signal-weight","--table-col-snap-bg","--table-col-snap-rule-fg","--table-col-snap-rule-width","--caption-fg","--caption-size","--caption-align","--caption-shadow-fg","--caption-shadow-blur","--caption-shadow-dx","--caption-shadow-dy","--article-bg","--article-size","--article-leading","--article-align","--article-rule-fg","--article-rule-width","--refs-fg","--refs-size","--refs-leading","--refs-weight","--refs-style","--highlight-fg","--highlight-font","--highlight-size","--highlight-weight","--highlight-leading","--highlight-tracking","--highlight-numeric","--highlight-shadow-fg","--highlight-shadow-blur","--highlight-shadow-dx","--highlight-shadow-dy","--highlight-align","--highlight-caption-fg","--highlight-caption-size","--highlight-caption-shadow-fg","--highlight-caption-shadow-blur","--highlight-caption-shadow-dx","--highlight-caption-shadow-dy","--series-nav-current-bg","--series-nav-current-rule-fg","--series-nav-current-rule-width","--series-nav-link-bg","--series-nav-link-rule-fg","--series-nav-link-rule-width","--series-nav-link-ring","--series-nav-link-ring-width","--series-nav-link-elevation-fg","--series-nav-link-elevation-blur","--series-nav-link-elevation-dx","--series-nav-link-elevation-dy","--series-nav-link-elevation-spread","--series-nav-link-elevation-hover-fg","--series-nav-link-elevation-hover-blur","--series-nav-link-elevation-hover-dx","--series-nav-link-elevation-hover-dy","--series-nav-link-elevation-hover-spread","--series-nav-label-fg","--series-nav-label-font","--series-nav-label-size","--series-nav-label-weight","--series-nav-label-tracking","--series-nav-label-transform","--series-nav-label-shadow-fg","--series-nav-label-shadow-blur","--series-nav-label-shadow-dx","--series-nav-label-shadow-dy","--series-nav-title-size","--series-nav-title-weight","--series-nav-title-shadow-fg","--series-nav-title-shadow-blur","--series-nav-title-shadow-dx","--series-nav-title-shadow-dy","--series-nav-desc-fg","--series-nav-desc-size","--series-nav-desc-shadow-fg","--series-nav-desc-shadow-blur","--series-nav-desc-shadow-dx","--series-nav-desc-shadow-dy","--series-nav-status-size","--series-nav-status-weight","--series-nav-status-fg-current","--series-nav-status-fg-link","--series-nav-status-shadow-fg","--series-nav-status-shadow-blur","--series-nav-status-shadow-dx","--series-nav-status-shadow-dy","--nav-btn-bg","--nav-btn-bg-soft","--nav-btn-fg","--nav-btn-rule-fg","--nav-btn-rule-width","--nav-btn-size","--nav-btn-ring","--nav-btn-ring-width","--nav-btn-shadow-fg","--nav-btn-shadow-blur","--nav-btn-shadow-dx","--nav-btn-shadow-dy","--nav-btn-elevation-fg","--nav-btn-elevation-blur","--nav-btn-elevation-dx","--nav-btn-elevation-dy","--nav-btn-elevation-spread","--nav-btn-elevation-hover-fg","--nav-btn-elevation-hover-blur","--nav-btn-elevation-hover-dx","--nav-btn-elevation-hover-dy","--nav-btn-elevation-hover-spread","--nav-dot-bg","--nav-dot-bg-hover","--nav-dot-bg-active","--share-bg","--share-fg","--share-quiet-fg","--share-size","--share-rule-fg","--share-rule-width","--share-scrim","--share-rule-fg-hover","--share-bg-hover","--share-elevation-fg","--share-elevation-blur","--share-elevation-dx","--share-elevation-dy","--share-elevation-spread","--card-bg","--card-rule-fg","--card-rule-width","--card-rule-fg-hover","--card-ring","--card-ring-width","--card-elevation-fg","--card-elevation-blur","--card-elevation-dx","--card-elevation-dy","--card-elevation-spread","--card-elevation-hover-fg","--card-elevation-hover-blur","--card-elevation-hover-dx","--card-elevation-hover-dy","--card-elevation-hover-spread","--card-label-fg","--card-label-font","--card-label-size","--card-label-weight","--card-label-tracking","--card-label-transform","--card-label-shadow-fg","--card-label-shadow-blur","--card-label-shadow-dx","--card-label-shadow-dy","--card-title-size","--card-title-weight","--card-title-shadow-fg","--card-title-shadow-blur","--card-title-shadow-dx","--card-title-shadow-dy","--card-desc-fg","--card-desc-size","--card-desc-shadow-fg","--card-desc-shadow-blur","--card-desc-shadow-dx","--card-desc-shadow-dy","--card-cta-fg","--card-cta-size","--card-cta-weight","--card-cta-shadow-fg","--card-cta-shadow-blur","--card-cta-shadow-dx","--card-cta-shadow-dy","--header-rule-fg","--header-rule-width","--header-title-font","--header-title-size","--header-title-weight","--header-title-leading","--header-title-shadow-fg","--header-title-shadow-blur","--header-title-shadow-dx","--header-title-shadow-dy","--header-subtitle-fg","--header-subtitle-size","--header-subtitle-shadow-fg","--header-subtitle-shadow-blur","--header-subtitle-shadow-dx","--header-subtitle-shadow-dy","--version-tag-font","--version-tag-fg","--version-tag-bg","--version-tag-size","--version-tag-shadow-fg","--version-tag-shadow-blur","--version-tag-shadow-dx","--version-tag-shadow-dy","--intro-size","--intro-leading","--tag-menu-elevation-fg","--tag-menu-elevation-blur","--tag-menu-elevation-dx","--tag-menu-elevation-dy","--tag-menu-elevation-spread","--slide-counter-elevation-fg","--slide-counter-elevation-blur","--slide-counter-elevation-dx","--slide-counter-elevation-dy","--slide-counter-elevation-spread","--presenter-panel-elevation-fg","--presenter-panel-elevation-blur","--presenter-panel-elevation-dx","--presenter-panel-elevation-dy","--presenter-panel-elevation-spread","--help-card-elevation-fg","--help-card-elevation-blur","--help-card-elevation-dx","--help-card-elevation-dy","--help-card-elevation-spread","--share-qr-elevation-fg","--share-qr-elevation-blur","--share-qr-elevation-dx","--share-qr-elevation-dy","--share-qr-elevation-spread"],"themes":[{"slug":"default","label":"Default","family":"default","values":[]},{"slug":"monochrome","label":"Monochrome","family":"desk","values":[[0,"#FAFAFAFF"],[1,"#111111FF"],[2,"#707070FF"],[3,"#D8D8D8FF"],[4,"#2B2B2BFF"],[5,"#000000FF"],[6,"#2B2B2BFF"],[7,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[8,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[11,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[12,"#FAFAFAFF"],[13,"#111111FF"],[24,"#707070FF"],[32,"#707070FF"],[42,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[46,"#FAFAFAFF"],[52,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[61,"#111111FF"],[70,"#D8D8D8FF"],[72,"#111111FF"],[80,"#707070FF"],[92,"#00000000"],[93,"#111111FF"],[94,"underline"],[95,"#111111FF"],[96,"0"],[102,"#111111FF"],[109,"#707070FF"],[116,"#707070FF"],[121,"#111111FF"],[122,"#111111FF"],[124,"#FAFAFAFF"],[126,"#FAFAFAC7"],[131,"#D8D8D8FF"],[141,"#707070FF"],[151,"#2B2B2BFF"],[153,"#111111FF"],[154,"#FAFAFAFF"],[155,"#656565FF"],[160,"#2B2B2BFF"],[161,"#656565FF"],[163,"#11111178"],[165,"#11111111"],[166,"#1111117B"],[168,"#111111FF"],[170,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[171,"#111111FF"],[177,"#111111FF"],[178,"#111111FF"],[188,"#000000FF"],[195,"#707070FF"],[202,"#2B2B2BFF"],[212,"#2B2B2BFF"],[214,"#707070FF"],[227,"#656565FF"],[232,"#111111FF"],[233,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[244,"#707070FF"],[254,"#2B2B2BFF"],[256,"#2B2B2BFF"],[268,"#707070FF"],[284,"#707070FF"],[292,"#707070FF"],[293,"#111111FF"],[300,"#111111FF"],[304,"#2B2B2BFF"],[321,"#707070FF"],[322,"#2B2B2BFF"],[323,"#FAFAFAFF"],[324,"#111111FF"],[325,"#707070FF"],[330,"#111111FF"],[340,"#D8D8D8FF"],[341,"#2B2B2BFF"],[353,"#707070FF"],[369,"#707070FF"],[375,"#111111FF"],[382,"#D8D8D8FF"],[384,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[392,"#707070FF"],[399,"#707070FF"]]},{"slug":"monochrome-night","label":"Monochrome Night","family":"desk","values":[[0,"#161616FF"],[1,"#F1F1F1FF"],[2,"#A0A0A0FF"],[3,"#C9C9C9FF"],[4,"#F1F1F1FF"],[5,"#D0D0D0FF"],[6,"#F1F1F1FF"],[12,"#161616FF"],[13,"#F1F1F1FF"],[22,"#FFFFFF24"],[24,"#A0A0A0FF"],[32,"#A0A0A0FF"],[46,"#F1F1F1FF"],[61,"#F1F1F1FF"],[69,"#FFFFFF0E"],[70,"#C9C9C9FF"],[72,"#F1F1F1FF"],[80,"#A0A0A0FF"],[92,"#00000000"],[93,"#F1F1F1FF"],[94,"underline"],[95,"#C9C9C9FF"],[96,"0"],[102,"#F1F1F1FF"],[109,"#A0A0A0FF"],[116,"#A0A0A0FF"],[119,"#FFFFFF24"],[121,"#00000073"],[122,"#00000073"],[124,"#F1F1F1FF"],[126,"#F1F1F1C7"],[131,"#C9C9C9FF"],[136,"#FFFFFF8F"],[141,"#A0A0A0FF"],[143,"#FFFFFF3D"],[147,"#0000004D"],[148,"#FFFFFF24"],[151,"#F1F1F1FF"],[153,"#F1F1F1FF"],[154,"#F1F1F1FF"],[155,"#F1F1F1FF"],[160,"#F1F1F1FF"],[161,"#F1F1F1FF"],[163,"#FFFFFF78"],[165,"#FFFFFF0E"],[166,"#FFFFFF7B"],[168,"#F1F1F1FF"],[171,"#F1F1F1FF"],[173,"#FFFFFF24"],[176,"#0000004D"],[177,"#F1F1F1FF"],[178,"#F1F1F1FF"],[188,"#D0D0D0FF"],[195,"#A0A0A0FF"],[202,"#F1F1F1FF"],[209,"#0000004D"],[211,"#0000004D"],[212,"#C9C9C9FF"],[214,"#A0A0A0FF"],[221,"#FFFFFF0E"],[225,"#FFFFFF24"],[227,"#F1F1F1FF"],[232,"#F1F1F1FF"],[244,"#A0A0A0FF"],[250,"#0000004D"],[251,"#FFFFFF3D"],[253,"#FFFFFF0E"],[254,"#F1F1F1FF"],[256,"#F1F1F1FF"],[268,"#A0A0A0FF"],[284,"#A0A0A0FF"],[292,"#A0A0A0FF"],[293,"#F1F1F1FF"],[298,"#FFFFFF21"],[299,"#FFFFFF17"],[300,"#F1F1F1FF"],[301,"#FFFFFF3D"],[304,"#F1F1F1FF"],[320,"#FFFFFF3D"],[321,"#A0A0A0FF"],[322,"#F1F1F1FF"],[323,"#161616FF"],[324,"#F1F1F1FF"],[325,"#A0A0A0FF"],[327,"#FFFFFF88"],[330,"#F1F1F1FF"],[331,"#FFFFFF21"],[337,"#FFFFFF0E"],[338,"#FFFFFF3D"],[340,"#C9C9C9FF"],[341,"#F1F1F1FF"],[353,"#A0A0A0FF"],[369,"#A0A0A0FF"],[375,"#F1F1F1FF"],[382,"#C9C9C9FF"],[392,"#A0A0A0FF"],[399,"#A0A0A0FF"],[400,"#0000004D"]]},{"slug":"print-ink","label":"Print Ink","family":"print","values":[[0,"#FFFFFFFF"],[1,"#000000FF"],[2,"#4B4B4BFF"],[3,"#FFE9A8FF"],[4,"#B71D1CFF"],[5,"#1B5E20FF"],[6,"#000000FF"],[12,"#FFFFFFFF"],[13,"#000000FF"],[24,"#4B4B4BFF"],[32,"#4B4B4BFF"],[46,"#000000FF"],[61,"#000000FF"],[69,"#FFFFFFFF"],[70,"#FFE9A8FF"],[72,"#000000FF"],[80,"#4B4B4BFF"],[92,"#00000000"],[93,"#000000FF"],[95,"#000000FF"],[96,"0"],[102,"#000000FF"],[109,"#4B4B4BFF"],[116,"#4B4B4BFF"],[121,"#FFFFFFFF"],[122,"#FFFFFFFF"],[124,"#000000FF"],[126,"#000000FF"],[131,"#000000FF"],[136,"#4B4B4BFF"],[141,"#4B4B4BFF"],[147,"#FFFFFFFF"],[151,"#000000FF"],[153,"#000000FF"],[154,"#000000FF"],[155,"#4B4B4BFF"],[160,"#000000FF"],[161,"#4B4B4BFF"],[163,"#0000007D"],[165,"#FFFFFFFF"],[166,"#00000082"],[168,"#000000FF"],[171,"#000000FF"],[176,"#F4F4F4FF"],[177,"#000000FF"],[178,"#000000FF"],[188,"#1B5E20FF"],[195,"#4B4B4BFF"],[202,"#B71D1CFF"],[209,"#FFFFFFFF"],[211,"#FFFFFFFF"],[212,"#B71D1CFF"],[214,"#4B4B4BFF"],[221,"#FFFFFFFF"],[227,"#4B4B4BFF"],[232,"#000000FF"],[244,"#4B4B4BFF"],[250,"#FFFFFFFF"],[253,"#FFFFFFFF"],[254,"#000000FF"],[256,"#000000FF"],[268,"#4B4B4BFF"],[284,"#4B4B4BFF"],[292,"#4B4B4BFF"],[293,"#000000FF"],[298,"#FFFFFFFF"],[299,"#FFFFFFFF"],[300,"#000000FF"],[304,"#000000FF"],[321,"#4B4B4BFF"],[322,"#000000FF"],[323,"#FFFFFFFF"],[324,"#000000FF"],[325,"#4B4B4BFF"],[330,"#000000FF"],[331,"#FFFFFFFF"],[337,"#FFFFFFFF"],[340,"#FFE9A8FF"],[341,"#000000FF"],[353,"#4B4B4BFF"],[369,"#4B4B4BFF"],[375,"#000000FF"],[382,"#FFE9A8FF"],[392,"#4B4B4BFF"],[399,"#4B4B4BFF"],[400,"#FFFFFFFF"]]}],"pinned":[]}</script>
+<footer class="page-footer">
+  <div class="footer-byline">The LightWebPres demo — January 2026</div>
+  <div class="footer-license">Demo content, no rights reserved.</div>
+</footer>
+<script id="lwp-theme-data" type="application/json">{"version":1,"primary":"pop-lemon","vars":["--color-page","--color-ink","--color-ink-quiet","--color-mark","--color-call","--color-affirm","--color-nav","--font-text","--font-display","--font-ui","--font-mono","--page-font","--page-bg","--page-fg","--page-leading","--page-shadow-fg","--page-shadow-blur","--page-shadow-dx","--page-shadow-dy","--page-content-max","--page-block-max","--page-hyphens","--slide-rule-fg","--slide-rule-width","--slide-num-fg","--slide-num-font","--slide-num-size","--slide-num-tracking","--slide-num-shadow-fg","--slide-num-shadow-blur","--slide-num-shadow-dx","--slide-num-shadow-dy","--kicker-fg","--kicker-font","--kicker-size","--kicker-weight","--kicker-tracking","--kicker-transform","--kicker-shadow-fg","--kicker-shadow-blur","--kicker-shadow-dx","--kicker-shadow-dy","--title1-font","--title1-size","--title1-weight","--title1-leading","--title1-fg","--title1-shadow-fg","--title1-shadow-blur","--title1-shadow-dx","--title1-shadow-dy","--title1-align","--title2-font","--title2-size","--title2-weight","--title2-leading","--title2-align","--title2-shadow-fg","--title2-shadow-blur","--title2-shadow-dx","--title2-shadow-dy","--summary-fg","--summary-size","--summary-leading","--summary-align","--summary-shadow-fg","--summary-shadow-blur","--summary-shadow-dx","--summary-shadow-dy","--fact-bg","--fact-rule-fg","--fact-rule-width","--fact-fg","--fact-size","--fact-align","--fact-elevation-fg","--fact-elevation-blur","--fact-elevation-dx","--fact-elevation-dy","--fact-elevation-spread","--fact-label-fg","--fact-label-font","--fact-label-size","--fact-label-weight","--fact-label-tracking","--fact-label-transform","--fact-label-shadow-fg","--fact-label-shadow-blur","--fact-label-shadow-dx","--fact-label-shadow-dy","--fact-strong-weight","--fact-strong-style","--fact-strong-bg","--fact-strong-fg","--fact-strong-decoration","--fact-strong-decoration-color","--fact-strong-pad","--fact-strong-absorb-punct","--fact-strong-shadow-fg","--fact-strong-shadow-blur","--fact-strong-shadow-dx","--fact-strong-shadow-dy","--body-heading-fg","--body-heading-weight","--body-heading-leading","--body-heading-shadow-fg","--body-heading-shadow-blur","--body-heading-shadow-dx","--body-heading-shadow-dy","--source-fg","--source-font","--source-size","--source-shadow-fg","--source-shadow-blur","--source-shadow-dx","--source-shadow-dy","--footer-fg","--footer-font","--footer-size","--footer-rule-fg","--footer-rule-width","--cover-bg-from","--cover-bg-to","--cover-bg-angle","--cover-fg","--cover-align","--cover-summary-fg","--cover-summary-shadow-fg","--cover-summary-shadow-blur","--cover-summary-shadow-dx","--cover-summary-shadow-dy","--cover-kicker-fg","--cover-kicker-shadow-fg","--cover-kicker-shadow-blur","--cover-kicker-shadow-dx","--cover-kicker-shadow-dy","--cover-num-fg","--cover-num-shadow-fg","--cover-num-shadow-blur","--cover-num-shadow-dx","--cover-num-shadow-dy","--quote-fg","--quote-style","--quote-rule-fg","--quote-rule-width","--code-font","--code-size","--code-bg","--code-rule-fg","--code-rule-width","--code-leading","--footnote-call-fg","--footnote-call-size","--footnote-call-fg-marked","--footnote-call-fg-cover","--note-fg","--note-size","--note-leading","--note-weight","--note-style","--note-marker-fg","--note-back-fg","--note-local-size","--note-local-rule-fg","--note-local-rule-width","--note-page-bg","--note-page-rule-fg","--note-page-rule-width","--note-page-title-fg","--note-page-title-size","--note-page-title-font","--link-decoration-color","--table-size","--table-rule-fg","--table-rule-width","--table-cell-align","--table-head-bg","--table-head-fg","--table-head-rule-fg","--table-head-rule-width","--table-head-weight","--table-head-size","--table-head-tracking","--table-head-align","--table-head-shadow-fg","--table-head-shadow-blur","--table-head-shadow-dx","--table-head-shadow-dy","--verdict-yes-fg","--verdict-yes-weight","--verdict-yes-mark","--verdict-yes-shadow-fg","--verdict-yes-shadow-blur","--verdict-yes-shadow-dx","--verdict-yes-shadow-dy","--verdict-no-fg","--verdict-no-weight","--verdict-no-mark","--verdict-no-shadow-fg","--verdict-no-shadow-blur","--verdict-no-shadow-dx","--verdict-no-shadow-dy","--verdict-partial-fg","--verdict-partial-weight","--verdict-partial-mark","--verdict-partial-shadow-fg","--verdict-partial-shadow-blur","--verdict-partial-shadow-dx","--verdict-partial-shadow-dy","--table-col-signal-bg","--table-col-signal-weight","--table-col-snap-bg","--table-col-snap-rule-fg","--table-col-snap-rule-width","--caption-fg","--caption-size","--caption-align","--caption-shadow-fg","--caption-shadow-blur","--caption-shadow-dx","--caption-shadow-dy","--article-bg","--article-size","--article-leading","--article-align","--article-rule-fg","--article-rule-width","--refs-fg","--refs-size","--refs-leading","--refs-weight","--refs-style","--highlight-fg","--highlight-font","--highlight-size","--highlight-weight","--highlight-leading","--highlight-tracking","--highlight-numeric","--highlight-shadow-fg","--highlight-shadow-blur","--highlight-shadow-dx","--highlight-shadow-dy","--highlight-align","--highlight-caption-fg","--highlight-caption-size","--highlight-caption-shadow-fg","--highlight-caption-shadow-blur","--highlight-caption-shadow-dx","--highlight-caption-shadow-dy","--series-nav-current-bg","--series-nav-current-rule-fg","--series-nav-current-rule-width","--series-nav-link-bg","--series-nav-link-rule-fg","--series-nav-link-rule-width","--series-nav-link-ring","--series-nav-link-ring-width","--series-nav-link-elevation-fg","--series-nav-link-elevation-blur","--series-nav-link-elevation-dx","--series-nav-link-elevation-dy","--series-nav-link-elevation-spread","--series-nav-link-elevation-hover-fg","--series-nav-link-elevation-hover-blur","--series-nav-link-elevation-hover-dx","--series-nav-link-elevation-hover-dy","--series-nav-link-elevation-hover-spread","--series-nav-label-fg","--series-nav-label-font","--series-nav-label-size","--series-nav-label-weight","--series-nav-label-tracking","--series-nav-label-transform","--series-nav-label-shadow-fg","--series-nav-label-shadow-blur","--series-nav-label-shadow-dx","--series-nav-label-shadow-dy","--series-nav-title-size","--series-nav-title-weight","--series-nav-title-shadow-fg","--series-nav-title-shadow-blur","--series-nav-title-shadow-dx","--series-nav-title-shadow-dy","--series-nav-desc-fg","--series-nav-desc-size","--series-nav-desc-shadow-fg","--series-nav-desc-shadow-blur","--series-nav-desc-shadow-dx","--series-nav-desc-shadow-dy","--series-nav-status-size","--series-nav-status-weight","--series-nav-status-fg-current","--series-nav-status-fg-link","--series-nav-status-shadow-fg","--series-nav-status-shadow-blur","--series-nav-status-shadow-dx","--series-nav-status-shadow-dy","--nav-btn-bg","--nav-btn-bg-soft","--nav-btn-fg","--nav-btn-rule-fg","--nav-btn-rule-width","--nav-btn-size","--nav-btn-ring","--nav-btn-ring-width","--nav-btn-shadow-fg","--nav-btn-shadow-blur","--nav-btn-shadow-dx","--nav-btn-shadow-dy","--nav-btn-elevation-fg","--nav-btn-elevation-blur","--nav-btn-elevation-dx","--nav-btn-elevation-dy","--nav-btn-elevation-spread","--nav-btn-elevation-hover-fg","--nav-btn-elevation-hover-blur","--nav-btn-elevation-hover-dx","--nav-btn-elevation-hover-dy","--nav-btn-elevation-hover-spread","--nav-dot-bg","--nav-dot-bg-hover","--nav-dot-bg-active","--share-bg","--share-fg","--share-quiet-fg","--share-size","--share-rule-fg","--share-rule-width","--share-scrim","--share-rule-fg-hover","--share-bg-hover","--share-elevation-fg","--share-elevation-blur","--share-elevation-dx","--share-elevation-dy","--share-elevation-spread","--card-bg","--card-rule-fg","--card-rule-width","--card-rule-fg-hover","--card-ring","--card-ring-width","--card-elevation-fg","--card-elevation-blur","--card-elevation-dx","--card-elevation-dy","--card-elevation-spread","--card-elevation-hover-fg","--card-elevation-hover-blur","--card-elevation-hover-dx","--card-elevation-hover-dy","--card-elevation-hover-spread","--card-label-fg","--card-label-font","--card-label-size","--card-label-weight","--card-label-tracking","--card-label-transform","--card-label-shadow-fg","--card-label-shadow-blur","--card-label-shadow-dx","--card-label-shadow-dy","--card-title-size","--card-title-weight","--card-title-shadow-fg","--card-title-shadow-blur","--card-title-shadow-dx","--card-title-shadow-dy","--card-desc-fg","--card-desc-size","--card-desc-shadow-fg","--card-desc-shadow-blur","--card-desc-shadow-dx","--card-desc-shadow-dy","--card-cta-fg","--card-cta-size","--card-cta-weight","--card-cta-shadow-fg","--card-cta-shadow-blur","--card-cta-shadow-dx","--card-cta-shadow-dy","--header-rule-fg","--header-rule-width","--header-title-font","--header-title-size","--header-title-weight","--header-title-leading","--header-title-shadow-fg","--header-title-shadow-blur","--header-title-shadow-dx","--header-title-shadow-dy","--header-subtitle-fg","--header-subtitle-size","--header-subtitle-shadow-fg","--header-subtitle-shadow-blur","--header-subtitle-shadow-dx","--header-subtitle-shadow-dy","--version-tag-font","--version-tag-fg","--version-tag-bg","--version-tag-size","--version-tag-shadow-fg","--version-tag-shadow-blur","--version-tag-shadow-dx","--version-tag-shadow-dy","--intro-size","--intro-leading","--tag-menu-elevation-fg","--tag-menu-elevation-blur","--tag-menu-elevation-dx","--tag-menu-elevation-dy","--tag-menu-elevation-spread","--slide-counter-elevation-fg","--slide-counter-elevation-blur","--slide-counter-elevation-dx","--slide-counter-elevation-dy","--slide-counter-elevation-spread","--presenter-panel-elevation-fg","--presenter-panel-elevation-blur","--presenter-panel-elevation-dx","--presenter-panel-elevation-dy","--presenter-panel-elevation-spread","--help-card-elevation-fg","--help-card-elevation-blur","--help-card-elevation-dx","--help-card-elevation-dy","--help-card-elevation-spread","--share-qr-elevation-fg","--share-qr-elevation-blur","--share-qr-elevation-dx","--share-qr-elevation-dy","--share-qr-elevation-spread"],"themes":[{"slug":"pop-lemon","label":"Pop Lemon","family":"pop","values":[]},{"slug":"monochrome","label":"Monochrome","family":"desk","values":[[0,"#FAFAFAFF"],[1,"#111111FF"],[2,"#707070FF"],[3,"#D8D8D8FF"],[4,"#2B2B2BFF"],[5,"#000000FF"],[6,"#2B2B2BFF"],[12,"#FAFAFAFF"],[13,"#111111FF"],[24,"#707070FF"],[32,"#707070FF"],[36,"2px"],[46,"#FAFAFAFF"],[61,"#111111FF"],[70,"#D8D8D8FF"],[72,"#111111FF"],[80,"#707070FF"],[93,"#111111FF"],[94,"underline"],[95,"#111111FF"],[102,"#111111FF"],[109,"#707070FF"],[116,"#707070FF"],[121,"#111111FF"],[122,"#111111FF"],[124,"#FAFAFAFF"],[126,"#FAFAFAC7"],[131,"#D8D8D8FF"],[141,"#707070FF"],[151,"#2B2B2BFF"],[153,"#111111FF"],[154,"#FAFAFAFF"],[155,"#656565FF"],[160,"#2B2B2BFF"],[161,"#656565FF"],[163,"#11111178"],[165,"#11111111"],[166,"#1111117B"],[168,"#111111FF"],[171,"#111111FF"],[177,"#111111FF"],[178,"#111111FF"],[188,"#000000FF"],[195,"#707070FF"],[202,"#2B2B2BFF"],[212,"#2B2B2BFF"],[214,"#707070FF"],[227,"#656565FF"],[232,"#111111FF"],[244,"#707070FF"],[254,"#2B2B2BFF"],[256,"#2B2B2BFF"],[268,"#707070FF"],[284,"#707070FF"],[292,"#707070FF"],[293,"#111111FF"],[300,"#111111FF"],[304,"#2B2B2BFF"],[321,"#707070FF"],[322,"#2B2B2BFF"],[323,"#FAFAFAFF"],[324,"#111111FF"],[325,"#707070FF"],[330,"#111111FF"],[340,"#D8D8D8FF"],[341,"#2B2B2BFF"],[353,"#707070FF"],[369,"#707070FF"],[375,"#111111FF"],[382,"#D8D8D8FF"],[392,"#707070FF"],[399,"#707070FF"]]},{"slug":"monochrome-night","label":"Monochrome Night","family":"desk","values":[[0,"#161616FF"],[1,"#F1F1F1FF"],[2,"#A0A0A0FF"],[3,"#C9C9C9FF"],[4,"#F1F1F1FF"],[5,"#D0D0D0FF"],[6,"#F1F1F1FF"],[7,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[8,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[11,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[12,"#161616FF"],[13,"#F1F1F1FF"],[22,"#FFFFFF24"],[24,"#A0A0A0FF"],[32,"#A0A0A0FF"],[36,"2px"],[42,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[46,"#F1F1F1FF"],[52,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[61,"#F1F1F1FF"],[69,"#FFFFFF0E"],[70,"#C9C9C9FF"],[72,"#F1F1F1FF"],[80,"#A0A0A0FF"],[93,"#F1F1F1FF"],[94,"underline"],[95,"#C9C9C9FF"],[102,"#F1F1F1FF"],[109,"#A0A0A0FF"],[116,"#A0A0A0FF"],[119,"#FFFFFF24"],[121,"#00000073"],[122,"#00000073"],[124,"#F1F1F1FF"],[126,"#F1F1F1C7"],[131,"#C9C9C9FF"],[136,"#FFFFFF8F"],[141,"#A0A0A0FF"],[143,"#FFFFFF3D"],[147,"#0000004D"],[148,"#FFFFFF24"],[151,"#F1F1F1FF"],[153,"#F1F1F1FF"],[154,"#F1F1F1FF"],[155,"#F1F1F1FF"],[160,"#F1F1F1FF"],[161,"#F1F1F1FF"],[163,"#FFFFFF78"],[165,"#FFFFFF0E"],[166,"#FFFFFF7B"],[168,"#F1F1F1FF"],[170,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[171,"#F1F1F1FF"],[173,"#FFFFFF24"],[176,"#0000004D"],[177,"#F1F1F1FF"],[178,"#F1F1F1FF"],[188,"#D0D0D0FF"],[195,"#A0A0A0FF"],[202,"#F1F1F1FF"],[209,"#0000004D"],[211,"#0000004D"],[212,"#C9C9C9FF"],[214,"#A0A0A0FF"],[221,"#FFFFFF0E"],[225,"#FFFFFF24"],[227,"#F1F1F1FF"],[232,"#F1F1F1FF"],[233,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[244,"#A0A0A0FF"],[250,"#0000004D"],[251,"#FFFFFF3D"],[253,"#FFFFFF0E"],[254,"#F1F1F1FF"],[256,"#F1F1F1FF"],[268,"#A0A0A0FF"],[284,"#A0A0A0FF"],[292,"#A0A0A0FF"],[293,"#F1F1F1FF"],[298,"#FFFFFF21"],[299,"#FFFFFF17"],[300,"#F1F1F1FF"],[301,"#FFFFFF3D"],[304,"#F1F1F1FF"],[320,"#FFFFFF3D"],[321,"#A0A0A0FF"],[322,"#F1F1F1FF"],[323,"#161616FF"],[324,"#F1F1F1FF"],[325,"#A0A0A0FF"],[327,"#FFFFFF88"],[330,"#F1F1F1FF"],[331,"#FFFFFF21"],[337,"#FFFFFF0E"],[338,"#FFFFFF3D"],[340,"#C9C9C9FF"],[341,"#F1F1F1FF"],[353,"#A0A0A0FF"],[369,"#A0A0A0FF"],[375,"#F1F1F1FF"],[382,"#C9C9C9FF"],[384,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[392,"#A0A0A0FF"],[399,"#A0A0A0FF"],[400,"#0000004D"]]},{"slug":"print-ink","label":"Print Ink","family":"print","values":[[0,"#FFFFFFFF"],[1,"#000000FF"],[2,"#4B4B4BFF"],[3,"#FFE9A8FF"],[4,"#B71D1CFF"],[5,"#1B5E20FF"],[6,"#000000FF"],[7,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[8,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[11,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[12,"#FFFFFFFF"],[13,"#000000FF"],[24,"#4B4B4BFF"],[32,"#4B4B4BFF"],[36,"2px"],[42,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[46,"#000000FF"],[52,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[61,"#000000FF"],[69,"#FFFFFFFF"],[70,"#FFE9A8FF"],[72,"#000000FF"],[80,"#4B4B4BFF"],[93,"#000000FF"],[95,"#000000FF"],[102,"#000000FF"],[109,"#4B4B4BFF"],[116,"#4B4B4BFF"],[121,"#FFFFFFFF"],[122,"#FFFFFFFF"],[124,"#000000FF"],[126,"#000000FF"],[131,"#000000FF"],[136,"#4B4B4BFF"],[141,"#4B4B4BFF"],[147,"#FFFFFFFF"],[151,"#000000FF"],[153,"#000000FF"],[154,"#000000FF"],[155,"#4B4B4BFF"],[160,"#000000FF"],[161,"#4B4B4BFF"],[163,"#0000007D"],[165,"#FFFFFFFF"],[166,"#00000082"],[168,"#000000FF"],[170,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[171,"#000000FF"],[176,"#F4F4F4FF"],[177,"#000000FF"],[178,"#000000FF"],[188,"#1B5E20FF"],[195,"#4B4B4BFF"],[202,"#B71D1CFF"],[209,"#FFFFFFFF"],[211,"#FFFFFFFF"],[212,"#B71D1CFF"],[214,"#4B4B4BFF"],[221,"#FFFFFFFF"],[227,"#4B4B4BFF"],[232,"#000000FF"],[233,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[244,"#4B4B4BFF"],[250,"#FFFFFFFF"],[253,"#FFFFFFFF"],[254,"#000000FF"],[256,"#000000FF"],[268,"#4B4B4BFF"],[284,"#4B4B4BFF"],[292,"#4B4B4BFF"],[293,"#000000FF"],[298,"#FFFFFFFF"],[299,"#FFFFFFFF"],[300,"#000000FF"],[304,"#000000FF"],[321,"#4B4B4BFF"],[322,"#000000FF"],[323,"#FFFFFFFF"],[324,"#000000FF"],[325,"#4B4B4BFF"],[330,"#000000FF"],[331,"#FFFFFFFF"],[337,"#FFFFFFFF"],[340,"#FFE9A8FF"],[341,"#000000FF"],[353,"#4B4B4BFF"],[369,"#4B4B4BFF"],[375,"#000000FF"],[382,"#FFE9A8FF"],[384,"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"],[392,"#4B4B4BFF"],[399,"#4B4B4BFF"],[400,"#FFFFFFFF"]]}],"pinned":[]}</script>
 <script defer>
 /*!
  * The QR encoder below (qrEncode, and the QR* helpers it closes over) is
@@ -3454,7 +2870,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       tagMenuList.appendChild(button);
     });
-    if (tagMenuTitle) tagMenuTitle.textContent = 'Filter slides';
+    if (tagMenuTitle) tagMenuTitle.textContent = 'Filtrer les slides';
   }
 
   function updateTagMenu() {
@@ -3516,7 +2932,7 @@ document.addEventListener('DOMContentLoaded', function() {
       a.href = '#' + (slide.id || ('s' + (i + 1)));
       var kickerEl = slide.querySelector('.slide-kicker');
       var headEl = slide.querySelector('h2, h1');
-      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : ('Slide ' + (i + 1)));
+      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : ('Fiche ' + (i + 1)));
       a.addEventListener('click', function(e){ e.preventDefault(); goTo(i); });
       navDots.appendChild(a);
     });
@@ -3740,19 +3156,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Help overlay (key H): every keyboard shortcut and gesture, built once.
   var helpEntries = [
-    ['&darr; / PageDown / &rarr;', "Next slide"],
-    ['&uarr; / PageUp / &larr; / Backspace', "Previous slide"],
-    ['Home', "Back to the series index"],
-    ['F', "Fullscreen (Esc to exit)"],
-    ['M', "Presenter menu"],
-    ['B / W / T', "Pause screen: black (B), white (W), theme (T)"],
-    ['N', "Speaker panel: notes + next slide"],
-    ['L', "Filter by tag and remember the selection"],
-    ['0&ndash;9 + Enter', "Jump to slide N (then Enter)"],
-    ['H', "Opens the help window"],
-    ['Mouse / Wheel', "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll"]
+    ['&darr; / PageDown / &rarr;', "Slide suivante"],
+    ['&uarr; / PageUp / &larr; / Backspace', "Slide précédente"],
+    ['Home', "Retour à l'index de la série"],
+    ['F', "Plein écran (Échap pour quitter)"],
+    ['M', "Menu du présentateur"],
+    ['B / W / T', "Écran de pause : noir (B), blanc (W), thème (T)"],
+    ['N', "Panneau présentateur : notes + slide suivante"],
+    ['L', "Filtrer par tag et mémoriser la sélection"],
+    ['0&ndash;9 + Entr&eacute;e', "Aller à la slide N (puis Entrée)"],
+    ['H', "Ouvre la fenêtre d'aide"],
+    ['Souris / Molette', "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler"]
   ];
-  helpEntries.splice(5, 0, ['C', "Change theme during the presentation (C key)"]);
+  helpEntries.splice(5, 0, ['C', "Changer de thème pendant la présentation (touche C)"]);
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');
@@ -3812,7 +3228,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var t = s.querySelector('.slide-kicker');
     if (t) return t.textContent;
     var h = s.querySelector('h2, h1');
-    return h ? h.textContent : ('Slide ' + (i + 1));
+    return h ? h.textContent : ('Fiche ' + (i + 1));
   }
 
   function updateCounter() {
@@ -3845,7 +3261,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (presenterNext) {
       presenterNext.textContent = (current + 1 < slides.length)
-        ? 'Next: ' + slideTitle(current + 1)
+        ? 'Suivant : ' + slideTitle(current + 1)
         : '—';
     }
   }
@@ -4457,13 +3873,13 @@ document.addEventListener('DOMContentLoaded', function() {
           var originalTitle = btn.title;
           var done = function () {
             btn.textContent = '✓';
-            btn.title = 'Link copied!';
+            btn.title = 'Lien copié !';
             setTimeout(function () { btn.textContent = original; btn.title = originalTitle; }, 1600);
           };
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(url).then(done, function () { window.prompt('Copy this link:', url); });
+            navigator.clipboard.writeText(url).then(done, function () { window.prompt('Copie ce lien :', url); });
           } else {
-            window.prompt('Copy this link:', url);
+            window.prompt('Copie ce lien :', url);
           }
         } else if (action === 'qr' && qrModal && qrModalContent) {
           qrModalContent.innerHTML = qrToSvg(url);

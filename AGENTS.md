@@ -85,10 +85,10 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 
 ### Artefacts régénérables — `generated/`
 Sortie de build committée. **Rien ne s'y édite à la main** : la
-correction se fait à la source, puis on régénère. Les deux artefacts HTML
-ont leur garde de fraîcheur dans la suite, qui compare octet pour octet ;
-la planche-contact PNG n'en a pas — c'est une capture d'écran, pas
-reproductible à l'octet, à refaire à la main quand la galerie change.
+correction se fait à la source, puis on régénère. Les trois artefacts
+HTML ont leur garde de fraîcheur dans la suite, qui compare octet pour
+octet ; la planche-contact PNG n'en a pas — c'est une capture d'écran,
+pas reproductible à l'octet, à refaire à la main quand la galerie change.
 - `generated/themes-gallery.html` — `lightwebpres theme gallery
   generated/themes-gallery.html` (garde :
   `test_the_committed_gallery_is_byte_identical_to_a_fresh_one`).
@@ -96,6 +96,13 @@ reproductible à l'octet, à refaire à la main quand la galerie change.
   le README (`tools/`).
 - `generated/guide/` — `python3 tools/build_guide.py` (garde :
   `test_the_committed_guide_is_the_guide_the_tool_makes`).
+- `generated/golden-demo/` — la série démo (`init --theme pop-lemon` +
+  `demo` + `build`) committée comme garde d'identité de rendu : tout
+  changement de sortie échoue
+  (`test_the_committed_golden_demo_is_what_the_tool_builds`). Un
+  changement intentionnel se régénère et se commet — le diff **est**
+  l'aveu, là où quatre tables de drift tenaient ce rôle à la main et
+  ont prouvé leur coût.
 
 ### Documents d'étape (consultables, hors arborescence active)
 - `delete-before-1.0/` — miroir de la racine. Ce qui y entre reste

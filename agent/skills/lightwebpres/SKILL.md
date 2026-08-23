@@ -739,7 +739,9 @@ field:
 Each item is a theme slug, `all`, `essential`, or a facet selector such as
 `background:light`, `fam:terrain`, or `bgh:red`. `essential` means Monochrome,
 Monochrome Night and Print Ink. Several items add their matches; an explicit
-CLI `--themes` value takes precedence over this list. Theme choice is described
+CLI `--themes` value takes precedence over this list. The `essential` bundle
+ships by default on every build — this list only adds to it — and
+`--no-essential-theme` opts out. Theme choice is described
 here only as `series.json` wiring; palette design and build procedure belong to
 the guide and specification.
 

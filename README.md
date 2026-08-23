@@ -363,6 +363,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--only file.html` | `build` | rebuilds a single article |
 | `--inline-images` | `build` | embeds images as base64 data URIs |
 | `--themes selectors\|all` | `build`, `verify`, `watch` | embeds slugs, `essential` or `X:Y` facet selectors; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
+| `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
 | `--format json` | `resolve`, `status`, `theme show`, `series theme` | machine-readable output |
 
@@ -637,6 +638,15 @@ Print Ink), or `X:Y`: `background`/`bg` selects light or dark backgrounds,
 the computed background hue. The long `background hue:red` form must be
 quoted in a shell. Several selectors add their matches; duplicates are
 removed. An explicit CLI `--themes` value overrides the JSON selection.
+
+The `essential` bundle ships by default: every build embeds Monochrome,
+Monochrome Night and Print Ink on top of any explicit selection, so **C**
+works on any page without the author opting in — a high-contrast theme, a
+dark-ground theme and a print-ready theme are always one keystroke away.
+`--no-essential-theme` (build/verify/watch) removes that default; the page
+then carries a picker only if `--themes` or the `series.json` `themes` list
+provides one. Pass `verify` the same decision the build was made with, or
+the payloads differ and drift is reported.
 
 The effective `theme:` in `templates/settings.conf` is always the first
 choice, even when it is omitted from the list. The file is read at build time,

@@ -7974,9 +7974,11 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             data = self._data(
                 (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+            # essential is always embedded unless --no-essential-theme
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
-                ['default', 'print-grey'])
+                ['default', 'monochrome', 'monochrome-night', 'print-ink',
+                 'print-grey'])
 
     def test_series_json_themes_requires_a_non_empty_list_of_strings(self):
         for invalid in ('essential', [], [''], ['essential', 4]):
@@ -8102,7 +8104,8 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(data['primary'], 'print-oldpress-red-ribbon')
             self.assertEqual(
                 [theme['slug'] for theme in data['themes']],
-                ['print-oldpress-red-ribbon', 'print-grey'])
+                ['print-oldpress-red-ribbon', 'monochrome', 'monochrome-night',
+                 'print-ink', 'print-grey'])
             verify = run('verify', str(root), '--themes', 'print-grey')
             self.assertEqual(verify.returncode, 0, verify.stderr)
 
@@ -8137,10 +8140,12 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                 '<div class="help-stamp">Compilé avec '
                 f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>')
             self.assertIn(stamp, html)
-            self.assertLess(html.index('class="help-foot"'),
-                            html.index('class="help-stamp"'))
+            self.assertNotIn('class="help-foot"', html)
+            self.assertIn('role="dialog"', html)
+            self.assertIn('aria-labelledby="helpTitle"', html)
             self.assertIn(
                 'Changer de thème pendant la présentation (touche C)', html)
+            self.assertIn("Ouvre la fenêtre d'aide", html)
             result = run('build', str(root), '--lang', 'en', '--themes', 'print-ink')
             self.assertEqual(result.returncode, 0, result.stderr)
             english = (root / 'public' / 'index.html').read_text(encoding='utf-8')
@@ -8148,8 +8153,9 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
                 f'<div class="help-stamp">Compiled with '
                 f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>',
                 english)
+            self.assertIn('Opens the help window', english)
 
-    def test_no_runtime_option_keeps_the_page_without_theme_payload(self):
+    def test_default_build_embeds_essential_and_c_is_functional(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.assertEqual(run('init', str(root)).returncode, 0)
@@ -8157,7 +8163,51 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             result = run('build', str(root))
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIsNone(self._data(html))
+            data = self._data(html)
+            self.assertIsNotNone(data, 'default build should embed essential themes')
+            self.assertEqual(
+                [theme['slug'] for theme in data['themes']],
+                ['default', 'monochrome', 'monochrome-night', 'print-ink'])
+
+    def test_help_stamp_inherits_the_audited_pair_and_clears_the_size_floor(self):
+        """The stamp's contrast is not its own: the skeleton gives it no
+        colour, so it inherits the body's ink over the body's ground —
+        the exact pair `theme show` measures and the catalogue contract
+        holds to AA on every theme. What this guard owns is that the
+        inheritance stays true (no colour declaration sneaks into the
+        stamp or its card) and that the stamp's size keeps the 12px
+        readability floor the audit enforces elsewhere: 0.75em of the
+        card's max(16px, 2vmin) resolved to 11.52px on phones once."""
+        css = self.lwp.TEMPLATE_SKELETON
+        block = re.search(r'\.help-stamp \{(.*?)\}', css, re.S)
+        self.assertIsNotNone(block, 'no .help-stamp rule in the skeleton')
+        self.assertNotIn('color', block.group(1),
+                         '.help-stamp declares a colour: the inherited, '
+                         'audited body pair would be bypassed')
+        self.assertIn('font-size: max(12px', block.group(1),
+                      '.help-stamp font-size fell under the 12px floor')
+        for selector in ('.help-overlay', '.help-card'):
+            rule = re.search(re.escape(selector) + r' \{(.*?)\}', css, re.S)
+            self.assertIsNotNone(rule, f'no {selector} rule in the skeleton')
+            for decl in rule.group(1).split(';'):
+                decl = decl.strip()
+                if decl.startswith('color:'):
+                    self.assertEqual(
+                        decl, 'color: inherit',
+                        f'{selector} declares {decl!r}: only the explicit '
+                        f'inheritance of the audited body pair is allowed '
+                        f'here, never a literal')
+
+    def test_no_essential_theme_opt_out_keeps_page_static(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            result = run('build', str(root), '--no-essential-theme')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIsNone(self._data(html),
+                              '--no-essential-theme should produce no runtime payload')
             self.assertIn(
                 'Changer de thème pendant la présentation (touche C)', html)
 
@@ -8426,12 +8476,18 @@ class ThemeFacets(unittest.TestCase):
         gallery would misrepresent exactly the themes hardest to judge.
         The furniture reaches the preview the only way it should: inside
         the preview document's own composed stylesheet; the gallery no
-        longer injects a single variable by hand."""
-        for slug, theme in self.lwp.THEMES.items():
+        longer injects a single variable by hand.
+
+        Asserted as IDENTITY with the resolved sheet, not as two hardcoded
+        veils: the print family paints `fact.bg` opaque white on purpose
+        (B40 — a ground is painted, never transparent), so the literal
+        values this test once named are a theme's decision, and what the
+        guard holds is that the preview paints what a build would paint."""
+        for slug in self.lwp.THEMES:
             doc = self.lwp.build_theme_preview_document(slug)
-            expected = ('#FFFFFF0E' if theme.get('dark_background')
-                        else '#FFFFFFB8')
-            self.assertIn(f'--fact-bg: {expected};', doc, slug)
+            resolved = self.lwp.resolve_theme_properties(
+                self.lwp.theme_property_layer(slug), {})
+            self.assertIn(f'--fact-bg: {resolved["fact.bg"]};', doc, slug)
 
 
 class GalleryPreviewIsARealCard(unittest.TestCase):
@@ -10240,491 +10296,6 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                     callers.add(node.name)
         self.assertEqual(callers, self.CONTRAST_CALLERS)
 
-    def test_a_built_page_is_render_identical_to_the_previous_version_s(self):
-        """The direct evidence, not a word list: the same series built
-        by the executable as it stood at the last tagged release (v0.42.3),
-        and by this one, compared byte for byte after CSS comments are
-        removed from ``<style>`` blocks. Comments are not rendering, while
-        every other byte remains covered. --build-stamp is off by default,
-        so there is no timestamp to excuse a difference.
-
-        Repoint this test at the newest tag whenever a release
-        intentionally changes the output, keeping it green between
-        releases — the repoint IS the acknowledgement that the drift is
-        deliberate, not a regression.
-
-        Skipped, loudly, when the previous version cannot be reached --
-        outside a git checkout there is nothing to compare against, and
-        a comparison with nothing is not a pass."""
-        previous = subprocess.run(
-            ['git', 'show', 'v0.42.3:lightwebpres'], capture_output=True,
-            cwd=str(EXECUTABLE.parent))
-        if previous.returncode != 0:
-            self.skipTest('no v0.42.3 tag to read the previous version from')
-        with tempfile.TemporaryDirectory() as tmp:
-            before_exe = Path(tmp) / 'lightwebpres-before'
-            before_exe.write_bytes(previous.stdout)
-            outputs = []
-            for name, executable in (('before', before_exe),
-                                     ('after', EXECUTABLE)):
-                root = Path(tmp) / name
-                # `init`, not the `install` this used to type: the
-                # spelling was retired, and the guard runs the CURRENT
-                # executable as well as the tagged one. Both accept
-                # `init`, which is what the canonical form is for.
-                for step in (['init', str(root), '--theme', 'pop-lemon'],
-                             ['demo', str(root)]):
-                    done = subprocess.run(
-                        [sys.executable, str(executable), *step],
-                        capture_output=True, text=True)
-                    self.assertEqual(done.returncode, 0, done.stderr)
-                pages = {}
-                for path in sorted((root / 'public').rglob('*')):
-                    if path.is_file() and not path.name.startswith('.lwp-'):
-                        pages[path.name] = path.read_bytes()
-                outputs.append(pages)
-            self.assertTrue(outputs[0], 'the previous version built nothing')
-            self.assertEqual(sorted(outputs[0]), sorted(outputs[1]),
-                             'build writes a different set of files')
-            def without_css_comments(page):
-                def strip_style_comments(match):
-                    body = re.sub(rb'/\*.*?\*/', b'', match.group(2),
-                                  flags=re.DOTALL)
-                    # And the line the comment was alone on. A comment-only
-                    # line otherwise leaves an indent behind, and that
-                    # residue is a line: the :root block writes `/* key */`
-                    # above each component's variables, so a component
-                    # entering the registry shifts every later line even
-                    # though the comparison already ignores what the
-                    # comment said. Dropping the residue happens to both
-                    # pages by the same rule, and the arrival of the
-                    # component is still declared -- by its variables, in
-                    # `added`, where a reader can see what it brought.
-                    body = b'\n'.join(line for line in body.split(b'\n')
-                                      if line.strip())
-                    return match.group(1) + body + match.group(3)
-
-                def strip_script_comments(match):
-                    # The same rule for the script, and it was missing for
-                    # no reason but the order the two blocks were written
-                    # in. A comment cannot change what a page renders, in
-                    # JavaScript exactly as in CSS, and the shipped script
-                    # carries long ones — rewriting the paragraph above a
-                    # function read here as thirty-five changed lines and
-                    # buried the four that were real.
-                    #
-                    # Whole-line comments only. A `//` mid-line can be
-                    # inside a string (`'https://…'`), and this test is
-                    # not the place to write a JavaScript lexer.
-                    body = b'\n'.join(
-                        line for line in match.group(2).split(b'\n')
-                        if line.strip() and not line.strip().startswith(b'//'))
-                    return match.group(1) + body + match.group(3)
-                page = re.sub(rb'(<style\b[^>]*>)(.*?)(</style>)',
-                              strip_style_comments, page,
-                              flags=re.IGNORECASE | re.DOTALL)
-                page = re.sub(rb'(<script\b[^>]*>)(.*?)(</script>)',
-                              strip_script_comments, page,
-                              flags=re.IGNORECASE | re.DOTALL)
-                # And then the script itself, replaced by a marker. Not a
-                # blind spot: the page's script is the tool's template
-                # verbatim, and `test_the_page_carries_exactly_the_script_
-                # the_tool_ships` compares the two directly — a stronger
-                # statement than "it is what it was last release", since
-                # it holds for every build rather than for the diff.
-                #
-                # What forced it: the declaration tables name whole lines,
-                # and a rewritten function is mostly braces. Declaring the
-                # cursor fix would have meant declaring `}` (346
-                # occurrences in the page), `});` (28) and `} else {`
-                # (13), and a declared line strips EVERY occurrence of
-                # itself — so covering four real lines would have blinded
-                # this test on three hundred. A guard you have to disable
-                # to change anything is not a guard.
-                page = re.sub(rb'(<script\b[^>]*>)(.*?)(</script>)',
-                              rb'\1[script]\3', page,
-                              flags=re.IGNORECASE | re.DOTALL)
-                # And a card's IDENTITY, replaced by its position. Same
-                # reasoning as the script above, and forced by the same
-                # arithmetic: a card's id is what its author declared in
-                # `slug:` (§12.1.1), so it moves whenever a demo article's
-                # slug is edited — the section's own id, every navigation
-                # dot's href, every note anchor and every return link, 132
-                # lines across four pages when it was first measured.
-                # Declaring 132 lines is not a declaration anyone can read,
-                # and a guard nobody reads is a guard nobody trusts.
-                #
-                # Not a blind spot, and the substitute is stronger than
-                # what it replaces: `ACardIsCalledWhatItsAuthorDeclared`
-                # asserts the rule the identity follows, on every build
-                # rather than against one tagged release, and
-                # `test_every_id_in_the_page_is_unique` catches the one
-                # thing a positional marker could hide — two cards given
-                # one name — before this normalisation ever runs.
-                #
-                # What survives here is the STRUCTURE: a dot still has to
-                # point at the card it belongs to, a note body still has to
-                # be named after its card, and any of that coming apart
-                # still shows up as a diff, because the marker is the
-                # card's position and every reference is rewritten with it.
-                #
-                # Rewritten only where the value is an ANCHOR, never as a
-                # bare string. Measured: the series-nav's identity is the
-                # word `series-nav`, and a blunt replace turned every
-                # `--series-nav-current-bg` in the stylesheet into a
-                # marker — a normalisation that quietly eats the thing it
-                # is meant to leave alone.
-                for index, value in enumerate(
-                        re.findall(rb'<section class="[^"]*" id="([^"]+)"', page)):
-                    page = re.sub(
-                        rb'(id="|href="#)((?:note-|noteref-)?)'
-                        + re.escape(value) + rb'(?=["-])',
-                        rb'\1\2[slide-%d]' % index, page)
-                # A navigation button is reduced to its identity. What it
-                # contains is an icon and what it carries is a TRANSLATED
-                # title, and comparing the two together as bytes makes a
-                # language pack's wording part of the render check while
-                # burying the icon inside a 400-character line. The icons
-                # have a table test of their own -- the same division of
-                # labour the elevation selectors needed, and for the same
-                # reason: where this guard is the wrong instrument for a
-                # statement, the answer is a test that can make it, not a
-                # declaration nobody can read.
-                return re.sub(
-                    rb'<div class="nav-btn[^>]*?id="(nav\w+)"[^>]*>.*?</div>',
-                    rb'<div class="nav-btn" id="\1"></div>', page)
-
-            # Deliberate drift since the tag, declared line for line, and
-            # empty at the start of a release cycle -- which is where it
-            # is now, freshly repointed at v0.42.3.
-            #
-            # It exists because the docstring's instruction has a gap.
-            # Repointing at the newest tag is the acknowledgement that a
-            # release changed the output on purpose, but BETWEEN releases
-            # there is no newer tag to point at, and a version number that
-            # has not been released is not one this file may invent. So a
-            # deliberate change is named here instead: everything outside
-            # these lines is still compared byte for byte, and the set of
-            # lines that actually differ has to be exactly the set declared
-            # here. A second unannounced change fails on the last assertion
-            # even once the first one is covered.
-            #
-            # Each entry is one CSS custom-property line, before and after,
-            # e.g.  b'--nav-dot-bg-active: #7A6A00FF;':
-            #       b'--nav-dot-bg-active: #8F0049FF;'
-            drift = {
-                # B9's typography pass, on the theme this guard builds
-                # with. `pop-lemon` is a poster palette and the catalogue
-                # revision put the pop family in sans: its text and
-                # display faces become the UI stack, and its kicker opens
-                # from 2px to 3px. Three lines, and they are the whole
-                # visible effect of the pass on this page — the other 96
-                # values land on the 30 other themes.
-                (b"--font-display: Charter, 'Bitstream Charter', "
-                 b"'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--font-display: Inter, Roboto, 'Helvetica Neue', "
-                     b"'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                (b"--font-text: Charter, 'Bitstream Charter', "
-                 b"'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--font-text: Inter, Roboto, 'Helvetica Neue', "
-                     b"'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                b'--kicker-tracking: 2px;': b'--kicker-tracking: 3px;',
-                # Six more variables take the text face by reference,
-                # so one decision moves seven lines. That is the point
-                # of the reference and not a defect in it.
-                (b"--page-font: "
-                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--page-font: "
-                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                (b"--title1-font: "
-                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--title1-font: "
-                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                (b"--title2-font: "
-                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--title2-font: "
-                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                (b"--highlight-font: "
-                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--highlight-font: "
-                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                (b"--header-title-font: "
-                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--header-title-font: "
-                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                (b"--note-page-title-font: "
-                 b"Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;"):
-                    (b"--note-page-title-font: "
-                     b"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif;"),
-                # The skeleton unification: article and index are one
-                # template now, and the article body carries the same
-                # `class=""` the index template fills with `index-page`.
-                # One page, one body tag.
-                b'<body>': b'<body class="">',
-            }
-
-            # Deliberate ADDITIONS since the tag, declared by property
-            # name, and likewise empty at the start of a cycle.
-            #
-            # A new registry key inserts a line rather than replacing one,
-            # which the substitution table above cannot express: the line
-            # counts stop matching, the per-line diff is skipped, and every
-            # later line reads as changed. Naming the property lets the
-            # comparison resume on everything else. A property added
-            # without being named here still fails, and a name left here
-            # after its property is gone fails too -- both directions are
-            # proved by mutation.
-            #
-            # Entries are variable-name prefixes, e.g. b'--color-nav'.
-            added = set()
-
-            # Deliberate RULE-level drift, and the third thing the two
-            # tables above cannot say. `drift` substitutes a line for a
-            # line and `added` inserts a `--var:` line; neither can express
-            # a DECLARATION that leaves one part of the sheet and reappears
-            # in another. That happens when a value stops being a literal
-            # in the skeleton and becomes a property the engine emits: the
-            # old page loses `box-shadow: 0 1px 8px rgba(0,0,0,0.06);` and
-            # the new one gains `box-shadow: 0 var(--card-elevation-dy)
-            # ...;` somewhere else entirely.
-            #
-            # The mechanical escape -- putting `box-shadow` in `added` --
-            # is refused on purpose: strip_added() runs over BOTH pages, so
-            # it would blind this test on exactly the lines the change
-            # touches. These two name the whole stripped line instead, one
-            # by one, on the side it belongs to. Everything else is still
-            # compared byte for byte, and a second, unannounced change
-            # fails on the last assertion even once the first is covered.
-            # One caution, learned by mutating this test rather than by
-            # reasoning about it: a declared line strips EVERY occurrence
-            # of itself. `box-shadow: 0 1px 8px rgba(0,0,0,0.06);` sits on
-            # both .fact-box and .article-card, so declaring it covers both
-            # and a change to only one of them fails here — correctly, but
-            # for a reason that reads as a false alarm until you count the
-            # occurrences. Declare a line that is unique, or accept that
-            # you are declaring all of its twins with it.
-            # Both tables are empty at a fresh repoint, and that is the
-            # healthy state: every drift they used to declare is inside
-            # the tag this test now reads. A line goes back in only for
-            # drift introduced AFTER v0.42.3.
-            gone = {          # lines the OLD page had and the new one does not
-                # The rank aliases. While a card's identity was DERIVED,
-                # the page carried a second, empty anchor per card whose
-                # name was its position -- `s1`, `s2`, ... plus
-                # `sN-series` for the series-nav -- so that a link written
-                # against an older release still landed. Nothing derives
-                # an identity any more: the author declares one, it does
-                # not move when the title is edited, and an alias for a
-                # name that cannot drift has nothing left to catch. The
-                # anchors the cards themselves carry are compared, under
-                # their normalised `[slide-N]` form; only these empty
-                # spans are gone.
-                b'<span id="s1"></span>',
-                b'<span id="s2"></span>',
-                b'<span id="s3"></span>',
-                b'<span id="s3-series"></span>',
-                b'<span id="s4"></span>',
-            }
-            arrived = set()   # lines the NEW page has and the old one did not
-            # The index-card focus ring became a registry property at the
-            # same time the index gained card-by-card arrow navigation:
-            # two --var: lines and the two declarations that read them,
-            # all new to the page and all on the theme this guard builds.
-            arrived |= {
-                b'--card-ring: #8F0049FF;',
-                b'--card-ring-width: 3px;',
-                b'outline-color: var(--card-ring);',
-                b'outline-width: var(--card-ring-width);',
-                b'.article-card:focus-visible { outline-style: solid; outline-offset: 2px; }',
-            }
-            # Arrivals and departures that belong to ONE page. The tables
-            # above are global, and a global declaration cannot say "the
-            # index gained a button the article pages always had" --
-            # named globally, such a line is refused as stale, correctly,
-            # because the released version does carry it elsewhere.
-            #
-            # The skeleton unification moved the whole of the article
-            # chrome onto the index: the nav buttons (6, where the old
-            # index carried 4), the share popover and QR modal, the tag
-            # menu, the help overlay, the presenter panel, the dots, the
-            # pause overlay and the counter. The old index's nav block
-            # (navUp/navDown/navHome/navFullscreen) is gone, and its
-            # script becomes the same TEMPLATE_NAV_JS the articles ship,
-            # neutralised to `[script]` like every other. A declared line
-            # strips EVERY occurrence of itself (strip_declared compares
-            # `line.strip()`), and the whole index block is unique to the
-            # index — no twin lines to blind the comparison elsewhere.
-            # The blank line is declared per page too: the template's
-            # extra placeholder shifts the whitespace before </body> on
-            # the articles as well, and a blank line compares as any
-            # other byte.
-            index_arrived = {
-                b'',
-                b'<nav class="nav-dots"></nav>',
-                b'<div class="pause-overlay" id="pauseOverlay"></div>',
-                b'<div class="slide-counter" id="slideCounter"></div>',
-                b'<div class="presenter-panel" id="presenterPanel" role="region"',
-                'aria-label="Panneau du présentateur" tabindex="0">'.encode(),
-                b'<div class="pp-head" id="presenterHead"></div>',
-                b'<div class="pp-notes" id="presenterNotes" aria-live="polite"></div>',
-                b'<div class="pp-next" id="presenterNext"></div>',
-                b'</div>',
-                b'<div class="help-overlay" id="helpOverlay">',
-                b'<div class="help-card">',
-                '<div class="help-title">Raccourcis clavier</div>'.encode(),
-                b'<ul class="help-list" id="helpList"></ul>',
-                '<div class="help-foot">H ou Échap pour fermer</div>'.encode(),
-                b'</div>',
-                b'</div>',
-                b'<div class="nav-buttons">',
-                b'<div class="nav-btn" id="navPrev"></div>',
-                b'<div class="nav-btn" id="navHome"></div>',
-                b'<div class="nav-btn" id="navNext"></div>',
-                b'<div class="nav-btn" id="navShare"></div>',
-                b'<div class="nav-btn" id="navFullscreen"></div>',
-                b'<div class="nav-btn" id="navTags"></div>',
-                b'</div>',
-                b'<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filtrer les slides">',
-                b'<div class="tag-menu-title" id="tagMenuTitle">Filtrer les slides</div>',
-                b'<div class="tag-menu-list" id="tagMenuList"></div>',
-                b'</div>',
-                b'<div class="share-popover" id="sharePopover">',
-                b'<div class="share-matrix">',
-                b'<div class="share-cell"></div>',
-                '<div class="share-cell share-cell-head">Série</div>'.encode(),
-                '<div class="share-cell share-cell-head">Article</div>'.encode(),
-                '<div class="share-cell share-cell-head" id="shareHeadFiche">Fiche</div>'.encode(),
-                '<div class="share-cell share-cell-label">Copier le lien</div>'.encode(),
-                '<button type="button" class="share-action" data-action="copy" data-scope="series" title="Copier le lien — Série">&#128279;</button>'.encode(),
-                '<button type="button" class="share-action" data-action="copy" data-scope="article" title="Copier le lien — Article">&#128279;</button>'.encode(),
-                '<button type="button" class="share-action" data-action="copy" data-scope="fiche" title="Copier le lien — Fiche">&#128279;</button>'.encode(),
-                '<div class="share-cell share-cell-label">Afficher le QR code</div>'.encode(),
-                '<button type="button" class="share-action" data-action="qr" data-scope="series" title="Afficher le QR code — Série">&#9638;</button>'.encode(),
-                '<button type="button" class="share-action" data-action="qr" data-scope="article" title="Afficher le QR code — Article">&#9638;</button>'.encode(),
-                '<button type="button" class="share-action" data-action="qr" data-scope="fiche" title="Afficher le QR code — Fiche">&#9638;</button>'.encode(),
-                b'</div>',
-                b'</div>',
-                b'<div class="share-qr-modal" id="shareQrModal">',
-                b'<div class="share-qr-modal-content">',
-                '<div class="share-qr-modal-title">QR code du lien</div>'.encode(),
-                b'<div id="shareQrModalContent"></div>',
-                b'<div class="share-qr-modal-url" id="shareQrModalUrl"></div>',
-                '<button type="button" class="share-qr-close">Fermer</button>'.encode(),
-                b'</div>',
-                b'</div>',
-                b'<script defer>[script]</script>',
-            }
-            index_gone = {
-                b'',
-                b'<div class="nav-buttons">',
-                b'<div class="nav-btn" id="navUp"></div>',
-                b'<div class="nav-btn" id="navHome"></div>',
-                b'<div class="nav-btn" id="navDown"></div>',
-                b'<div class="nav-btn" id="navFullscreen"></div>',
-                b'</div>',
-                b'<script>[script]</script>',
-            }
-            arrived_in = {'index.html': index_arrived}
-            gone_in = {'index.html': index_gone}
-            # The same blank-line shift on the article pages, which gained
-            # a line before </body> with the unified template.
-            for page in ('first.html', 'last.html', 'middle.html'):
-                arrived_in[page] = {b''}
-                gone_in[page] = {b''}
-            # ...and with no extra file inserted on the index, the
-            # placeholder leaves the same whitespace differences there.
-
-            def strip_added(page):
-                return b'\n'.join(
-                    line for line in page.split(b'\n')
-                    if not any(line.strip().startswith(name + b':')
-                               for name in added))
-
-            def strip_declared(page, declared):
-                lines = [line for line in page.split(b'\n')
-                         if line.strip() not in declared]
-                # And then any rule left with nothing in it. A declaration
-                # moving out of the skeleton and into the registry does not
-                # only change where it is written, it changes what wraps
-                # it: it leaves a rule that still has other declarations
-                # and arrives in one the engine opened for it alone. Naming
-                # the declaration in `gone` and `arrived` covers the line;
-                # the braces around the new one would otherwise read as an
-                # undeclared difference. `.foo {}` paints nothing, so
-                # dropping it costs the comparison nothing -- and a rule
-                # that lost every declaration for a reason nobody declared
-                # still fails, on those declarations.
-                out, i = [], 0
-                while i < len(lines):
-                    if (lines[i].rstrip().endswith(b'{')
-                            and i + 1 < len(lines)
-                            and lines[i + 1].strip() == b'}'):
-                        i += 2
-                        continue
-                    out.append(lines[i])
-                    i += 1
-                return b'\n'.join(out)
-
-            def normalise(page, declared):
-                page = without_css_comments(page)
-                for was, now in drift.items():
-                    page = page.replace(was, now)
-                return strip_declared(strip_added(page), declared)
-
-            seen = set()
-            for name in outputs[0]:
-                gone_here = gone | gone_in.get(name, set())
-                arrived_here = arrived | arrived_in.get(name, set())
-                before_lines = strip_declared(
-                    without_css_comments(outputs[0][name]), gone_here).split(b'\n')
-                after_lines = strip_declared(
-                    strip_added(without_css_comments(outputs[1][name])),
-                    arrived_here).split(b'\n')
-                if len(before_lines) == len(after_lines):
-                    seen.update((a.strip(), b.strip())
-                                for a, b in zip(before_lines, after_lines)
-                                if a != b)
-                self.assertEqual(normalise(outputs[0][name], gone_here),
-                                 normalise(outputs[1][name], arrived_here),
-                                 f'{name} is not the page it was')
-            for name in added:
-                self.assertTrue(
-                    any(name + b':' in page for page in outputs[1].values()),
-                    f'{name.decode()} is declared as added and is in none of '
-                    f'the built files: the declaration is stale')
-            # Both directions, so a declaration cannot outlive what it
-            # excused: a line named `gone` that the new page still carries
-            # was not removed, and one named `arrived` that it does not
-            # carry was never added.
-            # Compared against the NORMALISED pages, not the raw ones.
-            # The tables declare lines of the text this test actually
-            # compares, and once a card's identity is rewritten to its
-            # position the two are no longer the same string — a
-            # declaration naming `[slide-2]` would be refused as stale
-            # while describing a real, present line. Measured, on exactly
-            # that line.
-            after_all = b'\n'.join(without_css_comments(page)
-                                   for page in outputs[1].values())
-            before_all = b'\n'.join(without_css_comments(page)
-                                    for page in outputs[0].values())
-            for line in gone:
-                self.assertNotIn(line, after_all,
-                                 f'{line.decode()!r} is declared gone and the '
-                                 f'built page still carries it')
-                self.assertIn(line, before_all,
-                              f'{line.decode()!r} is declared gone and the '
-                              f'released version never had it')
-            for line in arrived:
-                self.assertIn(line, after_all,
-                              f'{line.decode()!r} is declared arrived and is '
-                              f'in none of the built files: it is stale')
-                self.assertNotIn(line, before_all,
-                                 f'{line.decode()!r} is declared arrived and '
-                                 f'the released version already had it')
-            self.assertEqual(seen, set(drift.items()),
-                             'the drift since v0.42.0 is not the drift this '
-                             'test declares')
-
     def test_the_page_carries_exactly_the_script_the_tool_ships(self):
         """What the render guard hands off when it sets the script aside.
         Stronger than the line diff it replaces: that one asked whether
@@ -10740,7 +10311,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             root = Path(tmp) / 'series'
             self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root)).returncode, 0)
-            self.assertEqual(run('build', str(root)).returncode, 0)
+            self.assertEqual(run('build', str(root), '--no-essential-theme').returncode, 0)
             article = (root / 'public' / 'first.html').read_text(encoding='utf-8')
             index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             strings = lwp.load_language(root / 'language', 'fr')['strings']
@@ -14416,6 +13987,58 @@ class EveryAttributeSinkEscapes(unittest.TestCase):
         self.assertNotIn('onload="alert', html)
 
 
+class TheGoldenDemoIsTheDemoTheToolMakes(unittest.TestCase):
+    """The render-identity guard, without the git dependency.
+
+    It replaced a test that extracted the executable out of a git tag and
+    compared its build to the current one through four hand-kept drift
+    tables. The mechanism failed in practice the way its own docstring
+    feared: between releases nothing forces the tables to be filled, the
+    0.45.4 work shipped without declaring a line, and the guard sat red —
+    skipped entirely on any checkout without the tag. The failure mode of
+    a golden committed to the repo is the opposite one: every change fails
+    immediately, and acknowledging an intentional change is regenerating
+    the artefact and committing it, so the diff itself is the
+    acknowledgement — reviewed, not declared in prose.
+
+    The build is deterministic (BuildDeterminism holds, --build-stamp is
+    opt-in precisely because it would break this), which is what makes a
+    byte comparison the right instrument rather than a flaky one. The
+    demo series exercises cover, fact, series-nav and full-article slides,
+    the index, the image copy and the essential runtime payload."""
+
+    def test_the_committed_golden_demo_is_what_the_tool_builds(self):
+        root = Path(__file__).resolve().parent.parent
+        committed = root / 'generated' / 'golden-demo'
+        if not committed.is_dir():
+            self.skipTest('no generated/golden-demo in this checkout')
+        with tempfile.TemporaryDirectory() as tmp:
+            series = Path(tmp) / 'series'
+            for step in (['init', str(series), '--theme', 'pop-lemon'],
+                         ['demo', str(series)],
+                         ['build', str(series)]):
+                done = run(*step)
+                self.assertEqual(done.returncode, 0, done.stderr)
+            built = series / 'public'
+            golden_files = sorted(
+                p.relative_to(committed)
+                for p in committed.rglob('*') if p.is_file())
+            built_files = sorted(
+                p.relative_to(built) for p in built.rglob('*')
+                if p.is_file() and not p.name.startswith('.lwp-'))
+            self.assertEqual(
+                built_files, golden_files,
+                'the build writes a different set of files than the golden '
+                'demo — regenerate generated/golden-demo/ if the change is '
+                'intentional')
+            for rel in golden_files:
+                self.assertEqual(
+                    (built / rel).read_bytes(), (committed / rel).read_bytes(),
+                    f'generated/golden-demo/{rel.as_posix()} is stale: '
+                    f'rebuild the demo (init --theme pop-lemon + demo + '
+                    f'build) and commit it if the change is intentional')
+
+
 class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
     """The guide describes a tool for making card decks backed by a
     long-form article, so it is one. Running the build here is what stops
@@ -15977,13 +15600,23 @@ class EveryNoteSurfaceIsMeasuredOnEveryThemeItShipsWith(unittest.TestCase):
                                  f'{slug}: the notes plate reads as a light slab')
 
     def test_the_notes_plate_is_a_ground_and_not_nothing(self):
-        # The other direction: a plate that does not depart from the page
-        # at all is not a section, it is a rule with text under it.
+        # The section boundary must be perceivable. On most themes the
+        # plate departs from the page in tone; on the print family it
+        # deliberately does not — B40/B41 paint every surface opaque white
+        # so printing spends no ink filling areas — and the boundary is
+        # carried in ink instead, by the plate's own top rule. Either
+        # signal counts; neither, and the section is a rule with text
+        # under it that nothing announces.
         for slug in self.lwp.THEMES:
             r, page, _ = self._checks(slug)
             plate = self._over(self._rgba(r['note.page.bg']), page)
-            self.assertGreater(self._ratio(plate, page), 1.10,
-                               f'{slug}: the notes plate is invisible against its page')
+            if self._ratio(plate, page) > 1.10:
+                continue
+            rule = self._over(self._rgba(r['note.page.rule-fg']), page)
+            self.assertGreater(
+                self._ratio(rule, page), 3.0,
+                f'{slug}: the notes plate neither departs from its page '
+                f'nor carries a boundary rule above 3:1')
 
     def test_the_dot_that_says_where_you_are_can_be_seen(self):
         """`nav-dot.bg-active` and `table.col-snap.rule-fg` both default to

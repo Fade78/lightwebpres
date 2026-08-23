@@ -84,56 +84,61 @@ async function main() {
   await page.keyboard.press('h');
   const help = await page.evaluate(() => ({
     open: document.getElementById('helpOverlay').classList.contains('open'),
+    role: document.getElementById('helpOverlay').getAttribute('role'),
+    labelledby: document.getElementById('helpOverlay').getAttribute('aria-labelledby'),
+    titleId: !!document.getElementById('helpTitle'),
+    cardTabindex: document.querySelector('.help-card').getAttribute('tabindex'),
     themeLine: Array.prototype.some.call(
       document.querySelectorAll('#helpList li'),
       (li) => li.textContent.indexOf('Changer de thème pendant la présentation') !== -1
     ),
+    helpOpenLine: Array.prototype.some.call(
+      document.querySelectorAll('#helpList li'),
+      (li) => li.textContent.indexOf('Ouvre la fenêtre d\'aide') !== -1
+    ),
     stamp: document.querySelector('.help-stamp')
       ? document.querySelector('.help-stamp').textContent.trim() : '',
     stampNameIsBold: !!document.querySelector('.help-stamp strong'),
+    noHelpFoot: !document.querySelector('.help-foot'),
   }));
-  if (!help.open || !help.themeLine
+  if (!help.open || help.role !== 'dialog' || !help.titleId
+      || help.labelledby !== 'helpTitle' || help.cardTabindex !== '0'
+      || !help.themeLine || !help.helpOpenLine || !help.noHelpFoot
       || !/^Compilé avec LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
       || !help.stampNameIsBold) {
-    fail('H did not expose the theme action and version stamp: ' + JSON.stringify(help));
+    fail('H did not expose a proper modal with theme action and version stamp: ' + JSON.stringify(help));
   }
-  const helpBeforeNavigation = await page.evaluate(() => ({
-    pageY: window.scrollY,
-    overlayTop: document.getElementById('helpOverlay').scrollTop,
-  }));
-  // The help itself may scroll to its final stamp, but a click or wheel must
-  // never advance the presentation behind the modal.
-  await page.mouse.click(1100, 400);
+  const helpBeforeNav = await page.evaluate(() => ({ pageY: window.scrollY }));
+  // A wheel during help must not scroll the page behind the modal.
   await page.mouse.wheel(0, 600);
   await page.waitForTimeout(300);
-  const helpAfterNavigation = await page.evaluate(() => ({
+  const helpAfterWheel = await page.evaluate(() => ({
     pageY: window.scrollY,
-    overlayTop: document.getElementById('helpOverlay').scrollTop,
     open: document.getElementById('helpOverlay').classList.contains('open'),
   }));
-  if (helpAfterNavigation.pageY !== helpBeforeNavigation.pageY
-      || !helpAfterNavigation.open) {
-    fail('help allowed navigation behind the modal: '
-      + JSON.stringify({ helpBeforeNavigation, helpAfterNavigation }));
+  if (helpAfterWheel.pageY !== helpBeforeNav.pageY || !helpAfterWheel.open) {
+    fail('help allowed wheel navigation behind the modal: '
+      + JSON.stringify({ helpBeforeNav, helpAfterWheel }));
   }
-  await page.keyboard.press('h');
-  const closedByH = await page.evaluate(() => ({
+  // Any key closes the help (not just H or Escape).
+  await page.keyboard.press('x');
+  const closedByKey = await page.evaluate(() => ({
     open: document.getElementById('helpOverlay').classList.contains('open'),
     lock: document.documentElement.classList.contains('help-open'),
     overflow: getComputedStyle(document.documentElement).overflow,
   }));
-  if (closedByH.open || closedByH.lock || closedByH.overflow === 'hidden') {
-    fail('closing help with H did not restore scrolling: ' + JSON.stringify(closedByH));
+  if (closedByKey.open || closedByKey.lock || closedByKey.overflow === 'hidden') {
+    fail('any-key close did not restore scrolling: ' + JSON.stringify(closedByKey));
   }
+  // A click also closes the help.
   await page.keyboard.press('h');
-  await page.keyboard.press('Escape');
-  const closedByEscape = await page.evaluate(() => ({
+  await page.mouse.click(640, 400);
+  await page.waitForTimeout(200);
+  const closedByClick = await page.evaluate(() => ({
     open: document.getElementById('helpOverlay').classList.contains('open'),
-    lock: document.documentElement.classList.contains('help-open'),
   }));
-  if (closedByEscape.open || closedByEscape.lock) {
-    fail('closing help with Escape did not restore its modal state: '
-      + JSON.stringify(closedByEscape));
+  if (closedByClick.open) {
+    fail('a click did not close the help overlay: ' + JSON.stringify(closedByClick));
   }
 
   await page.keyboard.press('m');

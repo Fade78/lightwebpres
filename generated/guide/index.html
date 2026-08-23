@@ -1417,10 +1417,6 @@ body.fs-noselect {
 .nav-dots a:hover { transform: scale(1.3); }
 .nav-dots a.active { transform: scale(1.3); }
 
-/* Responsive overrides. Their placement is load-bearing: they come after
-   the engine's rules, which is what lets them win at equal specificity.
-   Anything declared BELOW them still beats them, so check the source
-   order before adding a selector here. */
 /* The index column, on the measure a slide uses and read from the same
    property, so the two pages of one series cannot drift apart.
    `templates/index.html` carried `padding: 60px 8vw; max-width: 1200px`
@@ -1432,53 +1428,6 @@ body.fs-noselect {
    breakpoint below reached one page and not the other. Two ends of the
    same scale, one cause: the rule was somewhere no rule could answer. */
 .index-page { padding: 60px max(8vw, (100% - var(--page-content-max)) / 2); }
-@media (max-width: 600px) {
-  /* `max(24px, …)`, not a flat 24px. The wide rule above centres the
-     column by making the padding BE the leftover, and this override
-     replaced that with a fixed number while the 84vw cap on the children
-     stayed — so the leftover all landed on one side. Measured: at 390 the
-     text sat 24px from the left and 38.4px from the right, at 600 it was
-     24 against 72. Visible, and reported. Above 300px `max()` picks the
-     centring value; below it, the cap no longer bites and 24px is what is
-     left. */
-  .slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
-  /* The same turn for the index, in the same query: a breakpoint that
-     reaches one page of a series and not the other is the defect this
-     rule exists to close, not a detail of it. */
-  .index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
-  /* The number tracks the padding wherever the padding is restated, or it
-     goes back to being measured against a different edge than the text. */
-  .slide-num { right: 24px; }
-  .nav-dots { display: none; }
-  .nav-buttons { bottom: 16px; right: 16px; }
-}
-
-/* Print / PDF ("Print this page", specifications.md §9.4): one slide per
-   sheet, no navigation chrome, theme colors preserved. Slides are sized to
-   their own content (not 100vh) so a short slide does not blank a page. */
-@media print {
-  html, body { overflow: visible !important; height: auto !important; }
-  .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
-  .pause-overlay, .presenter-menu, .theme-menu { display: none !important; }
-  .slide {
-    page-break-after: always;
-    break-after: page;
-    min-height: 0 !important;
-    height: auto !important;
-    overflow: visible !important;
-    scroll-snap-align: none !important;
-  }
-  /* :last-of-type, not :last-child. The last slide is never the body's
-     last child -- the page footer and the inline script element follow it
-     -- so this selector matched NOTHING on any page ever built: the final
-     slide kept its forced break and the footer landed on a sheet of its
-     own. Measured on two corpora, every page: six slides printed seven
-     sheets, four printed five. A rule that selects nothing is invisible
-     in the source and obvious in the paper tray. */
-  .slide:last-of-type { page-break-after: auto; break-after: auto; }
-  @page { margin: 1.5cm; }
-}
-
 /* Speaker counter (X / N) + presenter notes panel (key N). */
 .slide-counter {
   position: fixed;
@@ -1586,16 +1535,13 @@ body.fs-noselect {
   font-weight: 700;
 }
 .help-desc { flex: 1; }
-.help-foot {
+.help-card:focus { outline: none; }
+.help-stamp {
   margin-top: 16px;
   padding-top: 12px;
   border-top-style: solid;
   border-top-width: 1px;
-  font-size: 0.85em;
-}
-.help-stamp {
-  margin-top: 12px;
-  font-size: 0.72em;
+  font-size: max(12px, 0.75em);
   text-align: center;
   letter-spacing: 0.02em;
 }
@@ -1916,6 +1862,63 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .align-right,   .align-right.align-right *     { text-align: right; }
 .align-justify, .align-justify.align-justify * { text-align: justify; }
 
+
+/* Responsive overrides. Their placement is load-bearing: they close the
+   sheet, after every base rule of the skeleton AND after the engine's
+   rules, which is what lets them win at equal specificity. They used to
+   sit mid-sheet; the presenter and theme menus appended after them
+   outlived the print block's own display declarations at equal
+   specificity, and the guard that exists for exactly this named the
+   pair. Closing the sheet with them means nothing can be declared below:
+   the next rule appended here cannot silently beat a breakpoint or the
+   print sheet. */
+@media (max-width: 600px) {
+  /* `max(24px, …)`, not a flat 24px. The wide rule above centres the
+     column by making the padding BE the leftover, and this override
+     replaced that with a fixed number while the 84vw cap on the children
+     stayed — so the leftover all landed on one side. Measured: at 390 the
+     text sat 24px from the left and 38.4px from the right, at 600 it was
+     24 against 72. Visible, and reported. Above 300px `max()` picks the
+     centring value; below it, the cap no longer bites and 24px is what is
+     left. */
+  .slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
+  /* The same turn for the index, in the same query: a breakpoint that
+     reaches one page of a series and not the other is the defect this
+     rule exists to close, not a detail of it. */
+  .index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
+  /* The number tracks the padding wherever the padding is restated, or it
+     goes back to being measured against a different edge than the text. */
+  .slide-num { right: 24px; }
+  .nav-dots { display: none; }
+  .nav-buttons { bottom: 16px; right: 16px; }
+}
+
+/* Print / PDF ("Print this page", specifications.md §9.4): one slide per
+   sheet, no navigation chrome, theme colors preserved. Slides are sized to
+   their own content (not 100vh) so a short slide does not blank a page. */
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
+  .pause-overlay, .presenter-menu, .theme-menu { display: none !important; }
+  .slide {
+    page-break-after: always;
+    break-after: page;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    scroll-snap-align: none !important;
+  }
+  /* :last-of-type, not :last-child. The last slide is never the body's
+     last child -- the page footer and the inline script element follow it
+     -- so this selector matched NOTHING on any page ever built: the final
+     slide kept its forced break and the footer landed on a sheet of its
+     own. Measured on two corpora, every page: six slides printed seven
+     sheets, four printed five. A rule that selects nothing is invisible
+     in the source and obvious in the paper tray. */
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
+  @page { margin: 1.5cm; }
+}
+
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
    a summary and a fact box, and no type scale fixes that. Reclaiming the
@@ -1947,11 +1950,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="pp-next" id="presenterNext"></div>
 </div>
 
-<div class="help-overlay" id="helpOverlay">
-  <div class="help-card">
-    <div class="help-title">Keyboard shortcuts</div>
+<div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true"
+     aria-labelledby="helpTitle">
+  <div class="help-card" tabindex="0">
+    <div class="help-title" id="helpTitle">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-foot">H or Esc to close</div>
     <div class="help-stamp">Compiled with <strong>LightWebPres</strong> v0.45.4</div>
   </div>
 </div>
@@ -2048,6 +2051,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="article-cta">→ Read the article</div>
 </a>
 
+<script id="lwp-theme-data" type="application/json">{"version":1,"primary":"default","vars":["--color-page","--color-ink","--color-ink-quiet","--color-mark","--color-call","--color-affirm","--color-nav","--font-text","--font-display","--font-ui","--font-mono","--page-font","--page-bg","--page-fg","--page-leading","--page-shadow-fg","--page-shadow-blur","--page-shadow-dx","--page-shadow-dy","--page-content-max","--page-block-max","--page-hyphens","--slide-rule-fg","--slide-rule-width","--slide-num-fg","--slide-num-font","--slide-num-size","--slide-num-tracking","--slide-num-shadow-fg","--slide-num-shadow-blur","--slide-num-shadow-dx","--slide-num-shadow-dy","--kicker-fg","--kicker-font","--kicker-size","--kicker-weight","--kicker-tracking","--kicker-transform","--kicker-shadow-fg","--kicker-shadow-blur","--kicker-shadow-dx","--kicker-shadow-dy","--title1-font","--title1-size","--title1-weight","--title1-leading","--title1-fg","--title1-shadow-fg","--title1-shadow-blur","--title1-shadow-dx","--title1-shadow-dy","--title1-align","--title2-font","--title2-size","--title2-weight","--title2-leading","--title2-align","--title2-shadow-fg","--title2-shadow-blur","--title2-shadow-dx","--title2-shadow-dy","--summary-fg","--summary-size","--summary-leading","--summary-align","--summary-shadow-fg","--summary-shadow-blur","--summary-shadow-dx","--summary-shadow-dy","--fact-bg","--fact-rule-fg","--fact-rule-width","--fact-fg","--fact-size","--fact-align","--fact-elevation-fg","--fact-elevation-blur","--fact-elevation-dx","--fact-elevation-dy","--fact-elevation-spread","--fact-label-fg","--fact-label-font","--fact-label-size","--fact-label-weight","--fact-label-tracking","--fact-label-transform","--fact-label-shadow-fg","--fact-label-shadow-blur","--fact-label-shadow-dx","--fact-label-shadow-dy","--fact-strong-weight","--fact-strong-style","--fact-strong-bg","--fact-strong-fg","--fact-strong-decoration","--fact-strong-decoration-color","--fact-strong-pad","--fact-strong-absorb-punct","--fact-strong-shadow-fg","--fact-strong-shadow-blur","--fact-strong-shadow-dx","--fact-strong-shadow-dy","--body-heading-fg","--body-heading-weight","--body-heading-leading","--body-heading-shadow-fg","--body-heading-shadow-blur","--body-heading-shadow-dx","--body-heading-shadow-dy","--source-fg","--source-font","--source-size","--source-shadow-fg","--source-shadow-blur","--source-shadow-dx","--source-shadow-dy","--footer-fg","--footer-font","--footer-size","--footer-rule-fg","--footer-rule-width","--cover-bg-from","--cover-bg-to","--cover-bg-angle","--cover-fg","--cover-align","--cover-summary-fg","--cover-summary-shadow-fg","--cover-summary-shadow-blur","--cover-summary-shadow-dx","--cover-summary-shadow-dy","--cover-kicker-fg","--cover-kicker-shadow-fg","--cover-kicker-shadow-blur","--cover-kicker-shadow-dx","--cover-kicker-shadow-dy","--cover-num-fg","--cover-num-shadow-fg","--cover-num-shadow-blur","--cover-num-shadow-dx","--cover-num-shadow-dy","--quote-fg","--quote-style","--quote-rule-fg","--quote-rule-width","--code-font","--code-size","--code-bg","--code-rule-fg","--code-rule-width","--code-leading","--footnote-call-fg","--footnote-call-size","--footnote-call-fg-marked","--footnote-call-fg-cover","--note-fg","--note-size","--note-leading","--note-weight","--note-style","--note-marker-fg","--note-back-fg","--note-local-size","--note-local-rule-fg","--note-local-rule-width","--note-page-bg","--note-page-rule-fg","--note-page-rule-width","--note-page-title-fg","--note-page-title-size","--note-page-title-font","--link-decoration-color","--table-size","--table-rule-fg","--table-rule-width","--table-cell-align","--table-head-bg","--table-head-fg","--table-head-rule-fg","--table-head-rule-width","--table-head-weight","--table-head-size","--table-head-tracking","--table-head-align","--table-head-shadow-fg","--table-head-shadow-blur","--table-head-shadow-dx","--table-head-shadow-dy","--verdict-yes-fg","--verdict-yes-weight","--verdict-yes-mark","--verdict-yes-shadow-fg","--verdict-yes-shadow-blur","--verdict-yes-shadow-dx","--verdict-yes-shadow-dy","--verdict-no-fg","--verdict-no-weight","--verdict-no-mark","--verdict-no-shadow-fg","--verdict-no-shadow-blur","--verdict-no-shadow-dx","--verdict-no-shadow-dy","--verdict-partial-fg","--verdict-partial-weight","--verdict-partial-mark","--verdict-partial-shadow-fg","--verdict-partial-shadow-blur","--verdict-partial-shadow-dx","--verdict-partial-shadow-dy","--table-col-signal-bg","--table-col-signal-weight","--table-col-snap-bg","--table-col-snap-rule-fg","--table-col-snap-rule-width","--caption-fg","--caption-size","--caption-align","--caption-shadow-fg","--caption-shadow-blur","--caption-shadow-dx","--caption-shadow-dy","--article-bg","--article-size","--article-leading","--article-align","--article-rule-fg","--article-rule-width","--refs-fg","--refs-size","--refs-leading","--refs-weight","--refs-style","--highlight-fg","--highlight-font","--highlight-size","--highlight-weight","--highlight-leading","--highlight-tracking","--highlight-numeric","--highlight-shadow-fg","--highlight-shadow-blur","--highlight-shadow-dx","--highlight-shadow-dy","--highlight-align","--highlight-caption-fg","--highlight-caption-size","--highlight-caption-shadow-fg","--highlight-caption-shadow-blur","--highlight-caption-shadow-dx","--highlight-caption-shadow-dy","--series-nav-current-bg","--series-nav-current-rule-fg","--series-nav-current-rule-width","--series-nav-link-bg","--series-nav-link-rule-fg","--series-nav-link-rule-width","--series-nav-link-ring","--series-nav-link-ring-width","--series-nav-link-elevation-fg","--series-nav-link-elevation-blur","--series-nav-link-elevation-dx","--series-nav-link-elevation-dy","--series-nav-link-elevation-spread","--series-nav-link-elevation-hover-fg","--series-nav-link-elevation-hover-blur","--series-nav-link-elevation-hover-dx","--series-nav-link-elevation-hover-dy","--series-nav-link-elevation-hover-spread","--series-nav-label-fg","--series-nav-label-font","--series-nav-label-size","--series-nav-label-weight","--series-nav-label-tracking","--series-nav-label-transform","--series-nav-label-shadow-fg","--series-nav-label-shadow-blur","--series-nav-label-shadow-dx","--series-nav-label-shadow-dy","--series-nav-title-size","--series-nav-title-weight","--series-nav-title-shadow-fg","--series-nav-title-shadow-blur","--series-nav-title-shadow-dx","--series-nav-title-shadow-dy","--series-nav-desc-fg","--series-nav-desc-size","--series-nav-desc-shadow-fg","--series-nav-desc-shadow-blur","--series-nav-desc-shadow-dx","--series-nav-desc-shadow-dy","--series-nav-status-size","--series-nav-status-weight","--series-nav-status-fg-current","--series-nav-status-fg-link","--series-nav-status-shadow-fg","--series-nav-status-shadow-blur","--series-nav-status-shadow-dx","--series-nav-status-shadow-dy","--nav-btn-bg","--nav-btn-bg-soft","--nav-btn-fg","--nav-btn-rule-fg","--nav-btn-rule-width","--nav-btn-size","--nav-btn-ring","--nav-btn-ring-width","--nav-btn-shadow-fg","--nav-btn-shadow-blur","--nav-btn-shadow-dx","--nav-btn-shadow-dy","--nav-btn-elevation-fg","--nav-btn-elevation-blur","--nav-btn-elevation-dx","--nav-btn-elevation-dy","--nav-btn-elevation-spread","--nav-btn-elevation-hover-fg","--nav-btn-elevation-hover-blur","--nav-btn-elevation-hover-dx","--nav-btn-elevation-hover-dy","--nav-btn-elevation-hover-spread","--nav-dot-bg","--nav-dot-bg-hover","--nav-dot-bg-active","--share-bg","--share-fg","--share-quiet-fg","--share-size","--share-rule-fg","--share-rule-width","--share-scrim","--share-rule-fg-hover","--share-bg-hover","--share-elevation-fg","--share-elevation-blur","--share-elevation-dx","--share-elevation-dy","--share-elevation-spread","--card-bg","--card-rule-fg","--card-rule-width","--card-rule-fg-hover","--card-ring","--card-ring-width","--card-elevation-fg","--card-elevation-blur","--card-elevation-dx","--card-elevation-dy","--card-elevation-spread","--card-elevation-hover-fg","--card-elevation-hover-blur","--card-elevation-hover-dx","--card-elevation-hover-dy","--card-elevation-hover-spread","--card-label-fg","--card-label-font","--card-label-size","--card-label-weight","--card-label-tracking","--card-label-transform","--card-label-shadow-fg","--card-label-shadow-blur","--card-label-shadow-dx","--card-label-shadow-dy","--card-title-size","--card-title-weight","--card-title-shadow-fg","--card-title-shadow-blur","--card-title-shadow-dx","--card-title-shadow-dy","--card-desc-fg","--card-desc-size","--card-desc-shadow-fg","--card-desc-shadow-blur","--card-desc-shadow-dx","--card-desc-shadow-dy","--card-cta-fg","--card-cta-size","--card-cta-weight","--card-cta-shadow-fg","--card-cta-shadow-blur","--card-cta-shadow-dx","--card-cta-shadow-dy","--header-rule-fg","--header-rule-width","--header-title-font","--header-title-size","--header-title-weight","--header-title-leading","--header-title-shadow-fg","--header-title-shadow-blur","--header-title-shadow-dx","--header-title-shadow-dy","--header-subtitle-fg","--header-subtitle-size","--header-subtitle-shadow-fg","--header-subtitle-shadow-blur","--header-subtitle-shadow-dx","--header-subtitle-shadow-dy","--version-tag-font","--version-tag-fg","--version-tag-bg","--version-tag-size","--version-tag-shadow-fg","--version-tag-shadow-blur","--version-tag-shadow-dx","--version-tag-shadow-dy","--intro-size","--intro-leading","--tag-menu-elevation-fg","--tag-menu-elevation-blur","--tag-menu-elevation-dx","--tag-menu-elevation-dy","--tag-menu-elevation-spread","--slide-counter-elevation-fg","--slide-counter-elevation-blur","--slide-counter-elevation-dx","--slide-counter-elevation-dy","--slide-counter-elevation-spread","--presenter-panel-elevation-fg","--presenter-panel-elevation-blur","--presenter-panel-elevation-dx","--presenter-panel-elevation-dy","--presenter-panel-elevation-spread","--help-card-elevation-fg","--help-card-elevation-blur","--help-card-elevation-dx","--help-card-elevation-dy","--help-card-elevation-spread","--share-qr-elevation-fg","--share-qr-elevation-blur","--share-qr-elevation-dx","--share-qr-elevation-dy","--share-qr-elevation-spread"],"themes":[{"slug":"default","label":"Default","family":"default","values":[]},{"slug":"monochrome","label":"Monochrome","family":"desk","values":[[0,"#FAFAFAFF"],[1,"#111111FF"],[2,"#707070FF"],[3,"#D8D8D8FF"],[4,"#2B2B2BFF"],[5,"#000000FF"],[6,"#2B2B2BFF"],[7,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[8,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[11,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[12,"#FAFAFAFF"],[13,"#111111FF"],[24,"#707070FF"],[32,"#707070FF"],[42,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[46,"#FAFAFAFF"],[52,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[61,"#111111FF"],[70,"#D8D8D8FF"],[72,"#111111FF"],[80,"#707070FF"],[92,"#00000000"],[93,"#111111FF"],[94,"underline"],[95,"#111111FF"],[96,"0"],[102,"#111111FF"],[109,"#707070FF"],[116,"#707070FF"],[121,"#111111FF"],[122,"#111111FF"],[124,"#FAFAFAFF"],[126,"#FAFAFAC7"],[131,"#D8D8D8FF"],[141,"#707070FF"],[151,"#2B2B2BFF"],[153,"#111111FF"],[154,"#FAFAFAFF"],[155,"#656565FF"],[160,"#2B2B2BFF"],[161,"#656565FF"],[163,"#11111178"],[165,"#11111111"],[166,"#1111117B"],[168,"#111111FF"],[170,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[171,"#111111FF"],[177,"#111111FF"],[178,"#111111FF"],[188,"#000000FF"],[195,"#707070FF"],[202,"#2B2B2BFF"],[212,"#2B2B2BFF"],[214,"#707070FF"],[227,"#656565FF"],[232,"#111111FF"],[233,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[244,"#707070FF"],[254,"#2B2B2BFF"],[256,"#2B2B2BFF"],[268,"#707070FF"],[284,"#707070FF"],[292,"#707070FF"],[293,"#111111FF"],[300,"#111111FF"],[304,"#2B2B2BFF"],[321,"#707070FF"],[322,"#2B2B2BFF"],[323,"#FAFAFAFF"],[324,"#111111FF"],[325,"#707070FF"],[330,"#111111FF"],[340,"#D8D8D8FF"],[341,"#2B2B2BFF"],[353,"#707070FF"],[369,"#707070FF"],[375,"#111111FF"],[382,"#D8D8D8FF"],[384,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[392,"#707070FF"],[399,"#707070FF"]]},{"slug":"monochrome-night","label":"Monochrome Night","family":"desk","values":[[0,"#161616FF"],[1,"#F1F1F1FF"],[2,"#A0A0A0FF"],[3,"#C9C9C9FF"],[4,"#F1F1F1FF"],[5,"#D0D0D0FF"],[6,"#F1F1F1FF"],[12,"#161616FF"],[13,"#F1F1F1FF"],[22,"#FFFFFF24"],[24,"#A0A0A0FF"],[32,"#A0A0A0FF"],[46,"#F1F1F1FF"],[61,"#F1F1F1FF"],[69,"#FFFFFF0E"],[70,"#C9C9C9FF"],[72,"#F1F1F1FF"],[80,"#A0A0A0FF"],[92,"#00000000"],[93,"#F1F1F1FF"],[94,"underline"],[95,"#C9C9C9FF"],[96,"0"],[102,"#F1F1F1FF"],[109,"#A0A0A0FF"],[116,"#A0A0A0FF"],[119,"#FFFFFF24"],[121,"#00000073"],[122,"#00000073"],[124,"#F1F1F1FF"],[126,"#F1F1F1C7"],[131,"#C9C9C9FF"],[136,"#FFFFFF8F"],[141,"#A0A0A0FF"],[143,"#FFFFFF3D"],[147,"#0000004D"],[148,"#FFFFFF24"],[151,"#F1F1F1FF"],[153,"#F1F1F1FF"],[154,"#F1F1F1FF"],[155,"#F1F1F1FF"],[160,"#F1F1F1FF"],[161,"#F1F1F1FF"],[163,"#FFFFFF78"],[165,"#FFFFFF0E"],[166,"#FFFFFF7B"],[168,"#F1F1F1FF"],[171,"#F1F1F1FF"],[173,"#FFFFFF24"],[176,"#0000004D"],[177,"#F1F1F1FF"],[178,"#F1F1F1FF"],[188,"#D0D0D0FF"],[195,"#A0A0A0FF"],[202,"#F1F1F1FF"],[209,"#0000004D"],[211,"#0000004D"],[212,"#C9C9C9FF"],[214,"#A0A0A0FF"],[221,"#FFFFFF0E"],[225,"#FFFFFF24"],[227,"#F1F1F1FF"],[232,"#F1F1F1FF"],[244,"#A0A0A0FF"],[250,"#0000004D"],[251,"#FFFFFF3D"],[253,"#FFFFFF0E"],[254,"#F1F1F1FF"],[256,"#F1F1F1FF"],[268,"#A0A0A0FF"],[284,"#A0A0A0FF"],[292,"#A0A0A0FF"],[293,"#F1F1F1FF"],[298,"#FFFFFF21"],[299,"#FFFFFF17"],[300,"#F1F1F1FF"],[301,"#FFFFFF3D"],[304,"#F1F1F1FF"],[320,"#FFFFFF3D"],[321,"#A0A0A0FF"],[322,"#F1F1F1FF"],[323,"#161616FF"],[324,"#F1F1F1FF"],[325,"#A0A0A0FF"],[327,"#FFFFFF88"],[330,"#F1F1F1FF"],[331,"#FFFFFF21"],[337,"#FFFFFF0E"],[338,"#FFFFFF3D"],[340,"#C9C9C9FF"],[341,"#F1F1F1FF"],[353,"#A0A0A0FF"],[369,"#A0A0A0FF"],[375,"#F1F1F1FF"],[382,"#C9C9C9FF"],[392,"#A0A0A0FF"],[399,"#A0A0A0FF"],[400,"#0000004D"]]},{"slug":"print-ink","label":"Print Ink","family":"print","values":[[0,"#FFFFFFFF"],[1,"#000000FF"],[2,"#4B4B4BFF"],[3,"#FFE9A8FF"],[4,"#B71D1CFF"],[5,"#1B5E20FF"],[6,"#000000FF"],[12,"#FFFFFFFF"],[13,"#000000FF"],[24,"#4B4B4BFF"],[32,"#4B4B4BFF"],[46,"#000000FF"],[61,"#000000FF"],[69,"#FFFFFFFF"],[70,"#FFE9A8FF"],[72,"#000000FF"],[80,"#4B4B4BFF"],[92,"#00000000"],[93,"#000000FF"],[95,"#000000FF"],[96,"0"],[102,"#000000FF"],[109,"#4B4B4BFF"],[116,"#4B4B4BFF"],[121,"#FFFFFFFF"],[122,"#FFFFFFFF"],[124,"#000000FF"],[126,"#000000FF"],[131,"#000000FF"],[136,"#4B4B4BFF"],[141,"#4B4B4BFF"],[147,"#FFFFFFFF"],[151,"#000000FF"],[153,"#000000FF"],[154,"#000000FF"],[155,"#4B4B4BFF"],[160,"#000000FF"],[161,"#4B4B4BFF"],[163,"#0000007D"],[165,"#FFFFFFFF"],[166,"#00000082"],[168,"#000000FF"],[171,"#000000FF"],[176,"#F4F4F4FF"],[177,"#000000FF"],[178,"#000000FF"],[188,"#1B5E20FF"],[195,"#4B4B4BFF"],[202,"#B71D1CFF"],[209,"#FFFFFFFF"],[211,"#FFFFFFFF"],[212,"#B71D1CFF"],[214,"#4B4B4BFF"],[221,"#FFFFFFFF"],[227,"#4B4B4BFF"],[232,"#000000FF"],[244,"#4B4B4BFF"],[250,"#FFFFFFFF"],[253,"#FFFFFFFF"],[254,"#000000FF"],[256,"#000000FF"],[268,"#4B4B4BFF"],[284,"#4B4B4BFF"],[292,"#4B4B4BFF"],[293,"#000000FF"],[298,"#FFFFFFFF"],[299,"#FFFFFFFF"],[300,"#000000FF"],[304,"#000000FF"],[321,"#4B4B4BFF"],[322,"#000000FF"],[323,"#FFFFFFFF"],[324,"#000000FF"],[325,"#4B4B4BFF"],[330,"#000000FF"],[331,"#FFFFFFFF"],[337,"#FFFFFFFF"],[340,"#FFE9A8FF"],[341,"#000000FF"],[353,"#4B4B4BFF"],[369,"#4B4B4BFF"],[375,"#000000FF"],[382,"#FFE9A8FF"],[392,"#4B4B4BFF"],[399,"#4B4B4BFF"],[400,"#FFFFFFFF"]]}],"pinned":[]}</script>
 <script defer>
 /*!
  * The QR encoder below (qrEncode, and the QR* helpers it closes over) is
@@ -3107,7 +3111,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['N', "Speaker panel: notes + next slide"],
     ['L', "Filter by tag and remember the selection"],
     ['0&ndash;9 + Enter', "Jump to slide N (then Enter)"],
-    ['H', "H or Esc to close"],
+    ['H', "Opens the help window"],
     ['Mouse / Wheel', "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll"]
   ];
   helpEntries.splice(5, 0, ['C', "Change theme during the presentation (C key)"]);
@@ -3132,11 +3136,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!helpOverlay) return;
     helpOverlay.classList.toggle('open', open);
     document.documentElement.classList.toggle('help-open', open);
+    // Opening the modal cancels any armed fullscreen intent: a middle
+    // click before H must not let a left/right click during help enter or
+    // navigate fullscreen (C1 from the code review).
+    if (open) fsIntentUntil = 0;
+    if (open) {
+      // Move focus into the dialog so it is keyboard-reachable (A3).
+      var card = helpOverlay.querySelector('.help-card');
+      if (card) card.focus();
+    } else {
+      // Return focus to what opened the dialog, if we remember it.
+      if (helpReturnFocus) {
+        focusIfVisible(helpReturnFocus);
+        helpReturnFocus = null;
+      }
+    }
   }
+  var helpReturnFocus = null;
   function closeHelp() {
     setHelpOpen(false);
   }
   function toggleHelp() {
+    if (!helpIsOpen()) helpReturnFocus = document.activeElement;
     setHelpOpen(!helpIsOpen());
   }
 
@@ -3536,17 +3557,13 @@ document.addEventListener('DOMContentLoaded', function() {
        return;
      }
      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    // While the help overlay is open, only H/Esc close it; everything else
-    // is swallowed so a stray arrow does not navigate behind the panel.
-    if (helpOverlay && helpOverlay.classList.contains('open')) {
-      if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
-        e.preventDefault();
-        toggleHelp();
-      } else {
-        e.preventDefault();
-      }
-      return;
-    }
+     // While the help overlay is open, any key closes it; the overlay is a
+     // reading surface, not a form, so no key has work to do inside it.
+     if (helpOverlay && helpOverlay.classList.contains('open')) {
+       e.preventDefault();
+       closeHelp();
+       return;
+     }
     if (tagMenu && tagMenu.classList.contains('open')) {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
@@ -4011,7 +4028,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return Math.abs(e.clientX - pressX) > 4 || Math.abs(e.clientY - pressY) > 4;
   }
   document.addEventListener('click', function (e) {
-    if (helpIsOpen()) return;
+    if (helpIsOpen()) { closeHelp(); return; }
     if (isInteractive(e)) return;
     // A click the touch side has already answered for. See
     // swallowClicksUntil.
@@ -4141,7 +4158,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var fsEntryPending = false;
   var FS_INTENT_MS = 900;
   document.addEventListener('mousedown', function (e) {
-    if (helpIsOpen() && e.button === 1) {
+    if (helpIsOpen()) {
       e.preventDefault();
       e.stopPropagation();
       return;
@@ -4201,6 +4218,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('touchstart', function (e) {
     if (helpIsOpen()) {
       touchStartX = null;
+      lastTapT = 0;
       return;
     }
     if (e.touches.length !== 1) return;
@@ -4211,6 +4229,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('touchend', function (e) {
     if (helpIsOpen()) {
       touchStartX = null;
+      lastTapT = 0;
       return;
     }
     if (touchStartX === null) return;

@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 39 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 40 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -155,6 +155,7 @@ gets its own entry and its own state**, however small.
 - **B44** — Runtime themes stay opt-in and preserve author pins
 - **B45** — Series JSON can choose a runtime theme catalogue
 - **B46** — Help carries permanent provenance and names the theme shortcut
+- **B47** — Essential themes ship by default
 
 ### abandonné
 
@@ -2385,3 +2386,36 @@ the capability without making the static page carry a runtime catalogue.
 
 **What is verified.** Black-box and browser tests check the permanent stamp,
 the bold product name, the version shape and the visible `C` instruction.
+
+## B47 — Essential themes ship by default
+
+**État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+Every build now embeds the essential bundle — Monochrome, Monochrome Night
+and Print Ink — as runtime alternatives, so **C** is functional on any page
+without the author opting in. The effective theme from `settings.conf`
+remains primary and first in the payload; the essential three are added
+after it, deduplicated in catalogue order, so a series whose primary is
+already one of the three does not see it twice.
+
+`--no-essential-theme` opts out for authors who want a static page or a
+custom selection via `--themes`/`series.json["themes"]`. The flag is
+accepted on `build`, `verify` and `watch`; without it, the essential set
+ships on every build, including the ones that do not pass `--themes`.
+
+**Why those three, and why by default.** Accessibility: a high-contrast
+theme (Monochrome) and a dark-ground one (Monochrome Night) are always
+within reach, on any page, regardless of what the author chose — the reader
+who cannot read the page as drawn has an alternative that does not depend
+on the author having planned for them. Print: Print Ink is drawn for paper,
+so the reader who wants a printable view of any series has one without the
+author having marked the series as printable. Sobriety: none of the three
+carries a hue, so the essential set does not clash with the editorial intent
+of a page whose palette is built around one.
+
+The help overlay was also made a real modal in the same lot: it carries
+`role="dialog"` and `aria-modal`, manages focus, and closes on any key or
+click rather than only on H and Escape. The footer is gone, the version
+stamp is always present, and the `H` line in the help list says "Opens the
+help window" / "Ouvre la fenêtre d'aide" — the overlay is a window the
+reader opens, not a state the deck enters.

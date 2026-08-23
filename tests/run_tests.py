@@ -235,6 +235,17 @@ def _run_parallel(suite, workers):
     for name, (count, _, sec, _) in slowest[:15]:
         share = 100.0 * sec / wall
         print(f'{sec:8.1f}s {share:4.1f}%  {name}')
+    # The failures, named together at the END. Each class's own FAILED
+    # line lands mid-output, in sorted order, between hundreds of OK
+    # lines — measured cost of that placement: a red suite was read as
+    # green from the tail of a truncated run and a release went out on
+    # it. The summary is one screen, last, where a human is looking.
+    if failed:
+        failing = [name for name in sorted(results)
+                   if results[name][1].returncode]
+        print(f'\nFAILED: {len(failing)} class(es) — the run did NOT pass:')
+        for name in failing:
+            print(f'  {name}')
     return 1 if failed else 0
 
 

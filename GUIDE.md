@@ -373,6 +373,36 @@ something has stopped working — a navigation control you cannot see, text the
 colour of its own ground, a size under the readability floor. It warns; it
 never refuses, and no shipped theme trips it.
 
+### Why essential themes ship by default
+
+Every build embeds the `essential` bundle on its own — Monochrome, Monochrome
+Night and Print Ink — so the picker is functional on any page without the
+author opting in. Three reasons, in order:
+
+- **Accessibility.** Monochrome is high-contrast ink with no hue; Monochrome
+  Night is the same on a dark ground, for low-vision or light-sensitive
+  readers; Print Ink is pure black on white, the highest contrast the page
+  carries. A reader who cannot read the deck as drawn has an alternative
+  that does not depend on the author having planned for them.
+- **Print.** Print Ink is drawn for paper — pure white ground, black ink —
+  so a PDF handout at `Ctrl`/`Cmd`+`P` is clean without any theme choice.
+- **Sobriety.** Monochrome and Print Ink carry no hue, so the essential set
+  never clashes with a series built around one. The author's chosen theme
+  remains primary; the three are alternatives, never a replacement.
+
+Opt out when the page should be static or carry a custom selection:
+
+```bash
+./lightwebpres build my-series --no-essential-theme
+./lightwebpres verify my-series --no-essential-theme
+./lightwebpres watch my-series --no-essential-theme
+```
+
+With the flag, the page carries no runtime picker unless `--themes` or
+`series.json["themes"]` adds one. Without it, the essential three ship on
+every build, deduplicated against the primary theme — so a series whose
+effective theme is already one of them does not see it twice.
+
 ### Change one phrase (an instance tag)
 
 Inside any free text, for the one place that needs it:

@@ -47,7 +47,7 @@ loads a restrained red second ribbon for kickers, rules and calls. Both use
 the same fixed-pitch face for body text, display text, interface text and the
 mono register, including slides and their controls.
 
-`build --themes slug,...|all` can now embed a compact, standalone runtime theme
+`build --themes selectors|all` can now embed a compact, standalone runtime theme
 selection. The effective theme from `templates/settings.conf` is always the
 first choice, and author pins in settings, page styles and declared custom CSS
 variables stay in force. On such pages, **C** opens the searchable picker and
@@ -60,10 +60,19 @@ accepted; `essential` embeds Monochrome, Monochrome Night and Print Ink, and
 the CLI value takes precedence over the JSON list. The catalogue now includes
 Monochrome Night, and the menu text keeps its viewport scale on wide screens.
 
+Every build now embeds the essential theme bundle by default — Monochrome,
+Monochrome Night and Print Ink — so the reader always has a high-contrast,
+dark-ground and print-friendly alternative. The `C` key opens the picker on
+any page. `--no-essential-theme` (build/verify/watch) opts out, and
+`--themes`/`series.json["themes"]` still add to the set.
+
 The `H` help overlay now always ends with `Compiled with LightWebPres vX.Y.Z`,
 with the product name bolded. When runtime alternatives are embedded, its
 shortcut list always names `C` as the way to change theme during the
-presentation; the picker opens when alternatives have been embedded.
+presentation; the picker opens when alternatives have been embedded. The
+overlay is now a real modal: it closes on any key or click (not just H and
+Escape), the footer is gone, and the `H` line in the help list says "Opens
+the help window" / "Ouvre la fenêtre d'aide".
 
 ## v0.45.3
 

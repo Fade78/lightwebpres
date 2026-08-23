@@ -1251,15 +1251,15 @@ LANG_FR = r'''{
     "help_home": "Retour à l'index de la série",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_menu": "Menu du présentateur",
-     "help_theme": "Changer de thème pendant la présentation (touche C)",
+    "help_theme": "Changer de thème pendant la présentation (touche C)",
     "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
     "help_speaker": "Panneau présentateur : notes + slide suivante",
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
     "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
-     "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
-     "help_close": "H ou Échap pour fermer",
-     "help_stamp": "Compilé avec"
+    "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
+    "help_open": "Ouvre la fenêtre d'aide",
+    "help_stamp": "Compilé avec"
   }
 }'''
 
@@ -1368,15 +1368,15 @@ LANG_EN = r'''{
     "help_home": "Back to the series index",
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_menu": "Presenter menu",
-     "help_theme": "Change theme during the presentation (C key)",
+    "help_theme": "Change theme during the presentation (C key)",
     "help_pause": "Pause screen: black (B), white (W), theme (T)",
     "help_speaker": "Speaker panel: notes + next slide",
     "help_jump_keys": "0&ndash;9 + Enter",
     "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
-     "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
-     "help_close": "H or Esc to close",
-     "help_stamp": "Compiled with"
+    "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
+    "help_open": "Opens the help window",
+    "help_stamp": "Compiled with"
   }
 }'''
 
@@ -4305,6 +4305,10 @@ THEME_NOTE_PROPS = {
     'blueprint': {'footnote-call.fg': 'ink', 'note.fg': '#4A6277', 'note.marker.fg': 'ink', 'note.back.fg': '#4A6277', 'note.local.rule-fg': '#0B254584', 'note.page.bg': '#0B254514', 'note.page.rule-fg': '#0B254588'},
     'blueprint-night': {'note.fg': '#889AB2', 'note.marker.fg': 'call', 'note.back.fg': '#889AB2', 'note.local.rule-fg': '#DCE6F266', 'note.page.bg': '#DCE6F21C', 'note.page.rule-fg': '#DCE6F26B'},
     'monochrome': {'note.fg': '#656565', 'note.marker.fg': 'call', 'note.back.fg': '#656565', 'note.local.rule-fg': '#11111178', 'note.page.bg': '#11111111', 'note.page.rule-fg': '#1111117B'},
+    # The night mirror of the pins above, at the same alphas: the furniture
+    # default (#FFFFFF24) measured 1.52:1 against this page, under the 3:1
+    # floor. No hue here either — lightness is still the only axis.
+    'monochrome-night': {'note.local.rule-fg': '#FFFFFF78', 'note.page.rule-fg': '#FFFFFF7B'},
     'graphite': {'note.fg': '#969696', 'note.marker.fg': 'call', 'note.back.fg': '#969696', 'note.local.rule-fg': '#EDEDED62', 'note.page.bg': '#EDEDED1C', 'note.page.rule-fg': '#EDEDED65'},
     'newsprint': {'note.local.rule-width': '2px', 'note.page.rule-width': '3px', 'note.fg': '#625F5A', 'note.marker.fg': 'call', 'note.back.fg': '#625F5A', 'note.local.rule-fg': '#1A1A187F', 'note.page.bg': '#1A1A1813', 'note.page.rule-fg': '#1A1A1882'},
     'gold-leaf': {'note.fg': '#9C917A', 'note.marker.fg': 'call', 'note.back.fg': '#9C917A', 'note.local.rule-fg': '#F3EDDF62', 'note.page.bg': '#F3EDDF1F', 'note.page.rule-fg': '#F3EDDF64'},
@@ -4364,6 +4368,14 @@ THEME_NOTE_PROPS = {
     'print-ink': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#0000007D', 'note.page.bg': '#00000012', 'note.page.rule-fg': '#00000082'},
     'print-grey': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1A1A1A7D', 'note.page.bg': '#1A1A1A12', 'note.page.rule-fg': '#1A1A1A82'},
     'print-color': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#1A1A1A7D', 'note.page.bg': '#1A1A1A12', 'note.page.rule-fg': '#1A1A1A82'},
+    # The three later print themes shipped without note-rule pins and fell
+    # back to the registry's 10% hairline, measured at 1.26:1 against the
+    # page — under the 3:1 non-text floor their siblings clear. Same inks
+    # as print-ink: the print family separates a section in ink, never in
+    # a wash.
+    'print-boss': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#0000007D', 'note.page.rule-fg': '#00000082'},
+    'print-oldpress': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#0000007D', 'note.page.rule-fg': '#00000082'},
+    'print-oldpress-red-ribbon': {'footnote-call.fg': 'ink', 'note.fg': 'ink-quiet', 'note.marker.fg': 'ink', 'note.back.fg': 'ink-quiet', 'note.local.rule-fg': '#0000007D', 'note.page.rule-fg': '#00000082'},
 }
 
 
@@ -4576,9 +4588,15 @@ def _theme_runtime_markup(runtime, style_context=None, page_props=None):
             indices[prop.key] = len(indices)
     data = dict(runtime)
     data['pinned'] = sorted(indices[key] for key in pinned if key in indices)
+    # Defense in depth: escape `<` so a `</script>` inside any JSON string
+    # value can never close the script block and run as markup. The payload
+    # currently carries only hardcoded catalogue strings, but this guard
+    # makes that invariant explicit at the emission site rather than
+    # relying on it holding forever.
+    payload = json.dumps(data, ensure_ascii=True, separators=(',', ':'))
+    payload = payload.replace('<', '\\u003c')
     return ('<script id="lwp-theme-data" type="application/json">' +
-            json.dumps(data, ensure_ascii=True, separators=(',', ':')) +
-            '</script>\n')
+            payload + '</script>\n')
 
 
 def _reference_target(prop, value):
@@ -5942,10 +5960,6 @@ body.fs-noselect {
 .nav-dots a:hover { transform: scale(1.3); }
 .nav-dots a.active { transform: scale(1.3); }
 
-/* Responsive overrides. Their placement is load-bearing: they come after
-   the engine's rules, which is what lets them win at equal specificity.
-   Anything declared BELOW them still beats them, so check the source
-   order before adding a selector here. */
 /* The index column, on the measure a slide uses and read from the same
    property, so the two pages of one series cannot drift apart.
    `templates/index.html` carried `padding: 60px 8vw; max-width: 1200px`
@@ -5957,53 +5971,6 @@ body.fs-noselect {
    breakpoint below reached one page and not the other. Two ends of the
    same scale, one cause: the rule was somewhere no rule could answer. */
 .index-page { padding: 60px max(8vw, (100% - var(--page-content-max)) / 2); }
-@media (max-width: 600px) {
-  /* `max(24px, …)`, not a flat 24px. The wide rule above centres the
-     column by making the padding BE the leftover, and this override
-     replaced that with a fixed number while the 84vw cap on the children
-     stayed — so the leftover all landed on one side. Measured: at 390 the
-     text sat 24px from the left and 38.4px from the right, at 600 it was
-     24 against 72. Visible, and reported. Above 300px `max()` picks the
-     centring value; below it, the cap no longer bites and 24px is what is
-     left. */
-  .slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
-  /* The same turn for the index, in the same query: a breakpoint that
-     reaches one page of a series and not the other is the defect this
-     rule exists to close, not a detail of it. */
-  .index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
-  /* The number tracks the padding wherever the padding is restated, or it
-     goes back to being measured against a different edge than the text. */
-  .slide-num { right: 24px; }
-  .nav-dots { display: none; }
-  .nav-buttons { bottom: 16px; right: 16px; }
-}
-
-/* Print / PDF ("Print this page", specifications.md §9.4): one slide per
-   sheet, no navigation chrome, theme colors preserved. Slides are sized to
-   their own content (not 100vh) so a short slide does not blank a page. */
-@media print {
-  html, body { overflow: visible !important; height: auto !important; }
-  .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
-  .pause-overlay, .presenter-menu, .theme-menu { display: none !important; }
-  .slide {
-    page-break-after: always;
-    break-after: page;
-    min-height: 0 !important;
-    height: auto !important;
-    overflow: visible !important;
-    scroll-snap-align: none !important;
-  }
-  /* :last-of-type, not :last-child. The last slide is never the body's
-     last child -- the page footer and the inline script element follow it
-     -- so this selector matched NOTHING on any page ever built: the final
-     slide kept its forced break and the footer landed on a sheet of its
-     own. Measured on two corpora, every page: six slides printed seven
-     sheets, four printed five. A rule that selects nothing is invisible
-     in the source and obvious in the paper tray. */
-  .slide:last-of-type { page-break-after: auto; break-after: auto; }
-  @page { margin: 1.5cm; }
-}
-
 /* Speaker counter (X / N) + presenter notes panel (key N). */
 .slide-counter {
   position: fixed;
@@ -6111,16 +6078,13 @@ body.fs-noselect {
   font-weight: 700;
 }
 .help-desc { flex: 1; }
-.help-foot {
+.help-card:focus { outline: none; }
+.help-stamp {
   margin-top: 16px;
   padding-top: 12px;
   border-top-style: solid;
   border-top-width: 1px;
-  font-size: 0.85em;
-}
-.help-stamp {
-  margin-top: 12px;
-  font-size: 0.72em;
+  font-size: max(12px, 0.75em);
   text-align: center;
   letter-spacing: 0.02em;
 }
@@ -6440,6 +6404,63 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 .align-center,  .align-center.align-center *   { text-align: center; }
 .align-right,   .align-right.align-right *     { text-align: right; }
 .align-justify, .align-justify.align-justify * { text-align: justify; }
+
+
+/* Responsive overrides. Their placement is load-bearing: they close the
+   sheet, after every base rule of the skeleton AND after the engine's
+   rules, which is what lets them win at equal specificity. They used to
+   sit mid-sheet; the presenter and theme menus appended after them
+   outlived the print block's own display declarations at equal
+   specificity, and the guard that exists for exactly this named the
+   pair. Closing the sheet with them means nothing can be declared below:
+   the next rule appended here cannot silently beat a breakpoint or the
+   print sheet. */
+@media (max-width: 600px) {
+  /* `max(24px, …)`, not a flat 24px. The wide rule above centres the
+     column by making the padding BE the leftover, and this override
+     replaced that with a fixed number while the 84vw cap on the children
+     stayed — so the leftover all landed on one side. Measured: at 390 the
+     text sat 24px from the left and 38.4px from the right, at 600 it was
+     24 against 72. Visible, and reported. Above 300px `max()` picks the
+     centring value; below it, the cap no longer bites and 24px is what is
+     left. */
+  .slide { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
+  /* The same turn for the index, in the same query: a breakpoint that
+     reaches one page of a series and not the other is the defect this
+     rule exists to close, not a detail of it. */
+  .index-page { padding: 40px max(24px, (100% - var(--page-content-max)) / 2); }
+  /* The number tracks the padding wherever the padding is restated, or it
+     goes back to being measured against a different edge than the text. */
+  .slide-num { right: 24px; }
+  .nav-dots { display: none; }
+  .nav-buttons { bottom: 16px; right: 16px; }
+}
+
+/* Print / PDF ("Print this page", specifications.md §9.4): one slide per
+   sheet, no navigation chrome, theme colors preserved. Slides are sized to
+   their own content (not 100vh) so a short slide does not blank a page. */
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
+  .pause-overlay, .presenter-menu, .theme-menu { display: none !important; }
+  .slide {
+    page-break-after: always;
+    break-after: page;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    scroll-snap-align: none !important;
+  }
+  /* :last-of-type, not :last-child. The last slide is never the body's
+     last child -- the page footer and the inline script element follow it
+     -- so this selector matched NOTHING on any page ever built: the final
+     slide kept its forced break and the footer landed on a sheet of its
+     own. Measured on two corpora, every page: six slides printed seven
+     sheets, four printed five. A rule that selects nothing is invisible
+     in the source and obvious in the paper tray. */
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
+  @page { margin: 1.5cm; }
+}
 
 /* --- Short viewports: a phone held sideways ---
    375px of height with 120px of fixed padding leaves no room for a title,
@@ -7517,7 +7538,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['N', "{{str_help_speaker}}"],
     ['L', "{{str_help_tags}}"],
     ['{{str_help_jump_keys}}', "{{str_help_jump}}"],
-    ['H', "{{str_help_close}}"],
+    ['H', "{{str_help_open}}"],
     ['{{str_help_mouse_keys}}', "{{str_help_mouse}}"]
   ];
   helpEntries.splice(5, 0, ['C', "{{str_help_theme}}"]);
@@ -7542,11 +7563,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!helpOverlay) return;
     helpOverlay.classList.toggle('open', open);
     document.documentElement.classList.toggle('help-open', open);
+    // Opening the modal cancels any armed fullscreen intent: a middle
+    // click before H must not let a left/right click during help enter or
+    // navigate fullscreen (C1 from the code review).
+    if (open) fsIntentUntil = 0;
+    if (open) {
+      // Move focus into the dialog so it is keyboard-reachable (A3).
+      var card = helpOverlay.querySelector('.help-card');
+      if (card) card.focus();
+    } else {
+      // Return focus to what opened the dialog, if we remember it.
+      if (helpReturnFocus) {
+        focusIfVisible(helpReturnFocus);
+        helpReturnFocus = null;
+      }
+    }
   }
+  var helpReturnFocus = null;
   function closeHelp() {
     setHelpOpen(false);
   }
   function toggleHelp() {
+    if (!helpIsOpen()) helpReturnFocus = document.activeElement;
     setHelpOpen(!helpIsOpen());
   }
 
@@ -7946,17 +7984,13 @@ document.addEventListener('DOMContentLoaded', function() {
        return;
      }
      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    // While the help overlay is open, only H/Esc close it; everything else
-    // is swallowed so a stray arrow does not navigate behind the panel.
-    if (helpOverlay && helpOverlay.classList.contains('open')) {
-      if (e.key === 'Escape' || e.key === 'h' || e.key === 'H') {
-        e.preventDefault();
-        toggleHelp();
-      } else {
-        e.preventDefault();
-      }
-      return;
-    }
+     // While the help overlay is open, any key closes it; the overlay is a
+     // reading surface, not a form, so no key has work to do inside it.
+     if (helpOverlay && helpOverlay.classList.contains('open')) {
+       e.preventDefault();
+       closeHelp();
+       return;
+     }
     if (tagMenu && tagMenu.classList.contains('open')) {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
@@ -8421,7 +8455,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return Math.abs(e.clientX - pressX) > 4 || Math.abs(e.clientY - pressY) > 4;
   }
   document.addEventListener('click', function (e) {
-    if (helpIsOpen()) return;
+    if (helpIsOpen()) { closeHelp(); return; }
     if (isInteractive(e)) return;
     // A click the touch side has already answered for. See
     // swallowClicksUntil.
@@ -8551,7 +8585,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var fsEntryPending = false;
   var FS_INTENT_MS = 900;
   document.addEventListener('mousedown', function (e) {
-    if (helpIsOpen() && e.button === 1) {
+    if (helpIsOpen()) {
       e.preventDefault();
       e.stopPropagation();
       return;
@@ -8611,6 +8645,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('touchstart', function (e) {
     if (helpIsOpen()) {
       touchStartX = null;
+      lastTapT = 0;
       return;
     }
     if (e.touches.length !== 1) return;
@@ -8621,6 +8656,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('touchend', function (e) {
     if (helpIsOpen()) {
       touchStartX = null;
+      lastTapT = 0;
       return;
     }
     if (touchStartX === null) return;
@@ -8801,11 +8837,11 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   <div class="pp-next" id="presenterNext"></div>
 </div>
 
-<div class="help-overlay" id="helpOverlay">
-  <div class="help-card">
-    <div class="help-title">{{str_help_title}}</div>
+<div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true"
+     aria-labelledby="helpTitle">
+  <div class="help-card" tabindex="0">
+    <div class="help-title" id="helpTitle">{{str_help_title}}</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-foot">{{str_help_close}}</div>
     <div class="help-stamp">{{str_help_stamp}} <strong>LightWebPres</strong> v{{lightwebpres_version}}</div>
   </div>
 </div>
@@ -9263,6 +9299,17 @@ TEMPLATE_THEMES_GALLERY_HEAD = r'''<!doctype html>
     font-size: 11px;
     color: var(--ui-muted);
   }
+  .theme-essential {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ui-chip-good-fg);
+    background: var(--ui-chip-good-bg);
+    padding: 2px 6px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
   /* The four panels. A FIXED track, never 1fr: the panel width IS the
      rendering width, so a track that flexed would give each row a
      different type scale and the comparison would be meaningless. The
@@ -9701,7 +9748,7 @@ TEMPLATE_THEMES_GALLERY_CARD = '''
       <header class="theme-head">
         <h2>{label}</h2>
         <code class="theme-slug">{slug}</code>
-        <p class="theme-source">{source}</p>
+        {essential_badge}<p class="theme-source">{source}</p>
       </header>
       <div class="panels">{panels}
       </div>
@@ -13429,6 +13476,18 @@ def load_build_context(series_dir, args):
         if runtime_option is None:
             runtime_option = series_json_themes
             runtime_source = 'series.json: "themes"'
+        # Every build ships the essential bundle by default so the reader
+        # always has a high-contrast, dark-ground and print-friendly
+        # alternative (§9.3.7). `--no-essential-theme` opts out; an explicit
+        # `--themes` or `series.json["themes"]` still adds to the set.
+        if not args.get('--no-essential-theme'):
+            if runtime_option is None:
+                runtime_option = ['essential']
+                runtime_source = '--themes'
+            elif isinstance(runtime_option, list):
+                runtime_option = ['essential'] + runtime_option
+            else:
+                runtime_option = 'essential,' + runtime_option
         theme_runtime = build_theme_runtime(
             runtime_option, effective_theme, runtime_source)
     except PropertyError as exc:
@@ -17237,6 +17296,7 @@ def cmd_themes_gallery(positional, args):
             source=theme['source'],
             note=note_to_html(theme['note']),
             note_good_class=' theme-note--good' if theme.get('note_good') else '',
+            essential_badge='<span class="theme-essential">essential</span>' if slug in ESSENTIAL_THEME_IDS else '',
             slug=slug,
         ))
 
@@ -17755,6 +17815,10 @@ OPTIONS
     included first, even when omitted here. Without this option, build uses
     the root series.json "themes" list when present. Built pages expose C
     for the picker and M for the global presenter menu.
+  --no-essential-theme
+    build/verify/watch: do not embed the essential bundle by default.
+    Every build otherwise ships Monochrome, Monochrome Night and Print Ink
+    as runtime alternatives so C is functional on any page.
   --polarity light|dark
     theme list: list only themes with that background polarity
   --hue name
@@ -18037,13 +18101,13 @@ _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
     'build': {'--lang', '--output', '--language-file', '--no-typography',
-              '--themes',
+              '--themes', '--no-essential-theme',
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
               '--open', '--inline-images', '--slides-page-numbers'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
-              '--themes',
+              '--themes', '--no-essential-theme',
               '--include-drafts', '--no-nav'},
     'audit': {'--lang', '--strict', '--templates'},
     'refresh-templates': {'--scaffold'},
@@ -18064,7 +18128,7 @@ _COMMAND_OPTIONS = {
     # actual output. The env var LWP_OUTPUT_DIR was the sole way in.
     'clean': {'--force', '--dry-run', '--output'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
-              '--themes',
+              '--themes', '--no-essential-theme',
               '--open', '--slides-page-numbers',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only'},
     'completion': {'--shell'},
