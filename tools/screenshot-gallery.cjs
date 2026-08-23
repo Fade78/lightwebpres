@@ -194,6 +194,7 @@ async function main() {
       const handle = await rows[index].$('iframe.preview');
       const frame = await frameFor(handle);
       await frame.waitForSelector('.slide', { state: 'attached', timeout: TIMEOUT });
+      await frame.evaluate(() => document.fonts && document.fonts.ready);
       await page.waitForTimeout(20);
       captures.push({
         ...positions[index],
