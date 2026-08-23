@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 36 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 37 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -152,6 +152,7 @@ gets its own entry and its own state**, however small.
 - **B41** — Print Boss adds a hand-marked newspaper to the print family
 - **B42** — Print Ink and Print Grey keep a low-ink table header
 - **B43** — Old Press adds a fixed-pitch print pair
+- **B44** — Runtime themes stay opt-in and preserve author pins
 
 ### abandonné
 
@@ -2311,3 +2312,32 @@ This is a typography decision as much as a palette one: `font.text`,
 fixed-pitch stack. A title, a slide number, a navigation control and a code
 sample therefore belong to the same old-press voice rather than mixing a
 typewriter body with modern interface furniture.
+
+## B44 — Runtime themes stay opt-in and preserve author pins
+
+**État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+The ordinary build remains a static themed page. A build that opts into
+`--themes` carries an inline, indexed delta payload instead of making the
+browser reconstruct the property cascade or fetching a catalogue. The
+effective `theme:` in `templates/settings.conf` is always the first entry,
+because it is the author's actual starting point even when the requested
+list omits it. The browser may replace only unpinned variables; settings,
+`style.*` and registry variables redeclared by `custom.css` remain the
+author's last word. `sessionStorage` carries the reader's choice between the
+pages of a deck without changing its sources.
+
+The picker is deliberately explicit rather than a cycling shortcut: **C**
+opens a searchable dialog, while **M** gathers fullscreen, theme, help,
+presenter, tag, share, navigation and pause actions in one keyboardable
+dialog. A build without alternatives keeps C inert and omits the theme
+action, so the default page carries no theme-switch data and its static
+palette remains the source of truth.
+
+**What is verified.** The primary-first ordering, `all`, unknown slugs,
+modified settings, pinned variables, absent-option behaviour and compact
+payload have unit coverage. The real-browser probe switches to an alternate
+theme, keeps a pinned color, carries the choice to an article page, restores
+the primary theme, and opens both dialogs. `python3 tests/run_tests.py` passes
+with 995 tests in 184 classes and 6 workers; the guide, specification index
+and decision index regenerate cleanly.

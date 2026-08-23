@@ -481,9 +481,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off]
-lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--themes slugs|all]
+lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes slugs|all]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes slugs|all]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json>
@@ -515,6 +515,7 @@ lightwebpres --help
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
+- `--themes` : `build`/`verify`/`watch` — embarque les thèmes runtime demandés, `slugs` séparés par des virgules ou `all`; le thème effectif de `settings.conf` reste toujours le premier (§9.3.7)
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
@@ -1953,6 +1954,9 @@ présentateur. Le vocabulaire de ces touches vit dans le pack de langue
 saut par numéro n'a rien à viser : les chiffres y gardent leur sens
 ordinaire.
 
+Quand le build porte un payload de thèmes (§9.3.7), **C** ouvre son
+sélecteur et **M** ouvre le menu présentateur global.
+
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
 slide précédent (deux boutons distincts, sans visée) — sur l'index, un
 pas de plus ou de moins dans le parcours des cartes. Le clic gauche
@@ -2703,6 +2707,39 @@ son contenu est inséré tel quel (HTML, CSS inline, `<script>`... — aucune
 transformation) juste avant `</body>` de la page d'index générée, et de
 l'index seulement. Absent par défaut : `init` ne crée pas ce fichier,
 contrairement à `settings.conf`/`custom.css`/`nav.js`.
+
+#### 9.3.7 Thèmes compilés à la demande
+
+Par défaut, le choix de thème est entièrement résolu dans la feuille CSS et
+aucune donnée de sélection n'est publiée dans la page. `build`, `verify` et
+`watch` acceptent toutefois `--themes <slug,...|all>` pour embarquer un
+sélecteur de thèmes dans chaque page construite. Le payload est inline, sans
+dépendance réseau : il émet l'ordre des variables une fois et, pour chaque
+thème demandé, les seules valeurs qui diffèrent du thème primaire.
+
+Le thème primaire est toujours le thème effectif lu dans
+`templates/settings.conf`, même si la liste l'omet. Une série sans ligne
+`theme:` porte l'identifiant synthétique `default`. La lecture se fait au
+build : une modification utilisateur de `settings.conf` est donc la source
+de vérité et ne doit pas être remplacée par l'option `--themes`. `all` ajoute
+tous les thèmes du catalogue ; les slugs inconnus ou les listes vides sont
+des erreurs nommées.
+
+La feuille CSS statique reste celle du thème primaire. Le sélecteur peut
+remplacer les variables de palette et de typographie des thèmes alternatifs,
+mais ne remplace jamais une propriété épinglée dans `settings.conf`, une
+propriété `style.*` de la page, ni une variable de registre redéclarée dans
+`custom.css`. Le retour au primaire retire seulement les surcharges runtime.
+Le choix est conservé dans la session du navigateur afin de suivre les
+pages du même deck ; il ne modifie aucun fichier source.
+
+Sur une page qui contient des alternatives, **C** ouvre un dialogue
+recherchable et **Échap** le ferme ; **Entrée** applique le premier résultat
+depuis le champ de recherche. **M** ouvre un dialogue global avec les actions
+de navigation, plein écran, thèmes, présentateur, tags, partage, aide et
+écrans de pause. Les deux dialogues sont parcourables au clavier et ne
+laissent pas Tab sortir vers la page sous-jacente. Sans alternative, C reste
+inerte et l'action « thèmes » est absente du menu M.
 
 ### 9.4 Les commandes
 
@@ -3921,7 +3958,7 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes slugs|all]
 ```
 
 Construit le site :
@@ -3967,6 +4004,12 @@ Construit le site :
    après suppression d'un article ; à nettoyer à la main si besoin.
 6. Écrit l'empreinte de navigation (§11.3.1) dans `.lwp-cache/nav.json`
    (ou le chemin donné par `--nav-cache`)
+
+`--themes slugs|all` est optionnel. Quand il est fourni, le build ajoute à
+chaque page le payload décrit en §9.3.7 : `slugs` est une liste séparée par
+des virgules et `all` sélectionne tout le catalogue. Le thème effectif de
+`templates/settings.conf` est ajouté en première position dans tous les cas.
+L'option n'écrit pas dans les sources.
 
 ### 11.3.1 `build --only` : reconstruction d'un seul article
 
@@ -4251,10 +4294,14 @@ Désactivé par défaut : le build standard copie `sources/img/` vers
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [répertoire] [--lang fr] [--no-typography]
+lightwebpres verify [répertoire] [--lang fr] [--no-typography] [--themes slugs|all]
 ```
 
 Vérifie sans modifier :
+
+`--themes` doit reprendre la sélection utilisée par le build dont `public/`
+est vérifié ; il est transmis au rendu en mémoire et ne modifie rien sur
+disque.
 
 1. Lance le build en mémoire (sans écrire les fichiers) ; `--no-typography`
    a le même effet que sur `build` (§11.3), sur ce build en mémoire —
@@ -5456,7 +5503,7 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [répertoire] [--serve] [--port 8000] [--open]
+lightwebpres watch [répertoire] [--serve] [--port 8000] [--open] [--themes slugs|all]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`,
@@ -5467,6 +5514,9 @@ exécuté au démarrage.
 (servant `public/`). `--open` ouvre le navigateur sur le résultat. Ctrl-C
 quitte proprement (exit 0). Le serveur utilise `http.server` de la
 stdlib — pas de dépendance externe.
+
+`--themes` est transmis à chaque build initial et à chaque reconstruction,
+afin que le mode watch ne fasse pas disparaître le sélecteur du résultat.
 
 ### 11.15 `completion`
 

@@ -18,8 +18,9 @@ interface, not the core of what this does. Take it or leave it:
 
 LightWebPres turns an extended Markdown format into self-contained,
 scrollable HTML articles — a cover, a handful of fact-card slides, an
-optional long-form piece, cross-article navigation — with zero runtime
-dependencies. One executable, `lightwebpres`, does the whole job:
+optional long-form piece, cross-article navigation — with no external runtime
+dependencies. An optional `--themes` build embeds its picker in the same
+self-contained page. One executable, `lightwebpres`, does the whole job:
 scaffold a project, generate demo content, build, verify, and keep
 templates current.
 
@@ -50,7 +51,8 @@ lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
-Home, F for fullscreen, B/W/T for pause screens), mouse (click to
+Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, M
+for the presenter menu), mouse (click to
 advance, right-click to go back, middle button to enter or leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
 is one article card at a time. The navigation
@@ -335,6 +337,21 @@ Apply one at init time, or change your mind later:
 A theme is a word in a data file: `series theme set` rewrites the one `theme:`
 line of `templates/settings.conf` and nothing else. No CSS is touched —
 the stylesheet is composed in memory at every build.
+
+The build can optionally carry several themes for the reader:
+
+```bash
+./lightwebpres build my-series --themes print-ink,print-grey
+./lightwebpres build my-series --themes all
+```
+
+The effective theme in `templates/settings.conf` is always included first,
+even if it is not in the list. The setting is read at build time, so an
+author's edit remains the source of truth. Values pinned in `settings.conf`,
+`style.*` page properties and theme variables declared in `custom.css` are
+left alone while a reader switches. **C** opens the searchable picker and
+**M** opens the global presenter menu; the selection lasts for the other
+pages of the same deck in the current browser session.
 
 These commands inspect and select existing theme values. They do not design,
 retune or repair a palette. Use `theme show` to read the measured contrast of

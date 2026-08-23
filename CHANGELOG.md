@@ -47,6 +47,13 @@ loads a restrained red second ribbon for kickers, rules and calls. Both use
 the same fixed-pitch face for body text, display text, interface text and the
 mono register, including slides and their controls.
 
+`build --themes slug,...|all` can now embed a compact, standalone runtime theme
+selection. The effective theme from `templates/settings.conf` is always the
+first choice, and author pins in settings, page styles and declared custom CSS
+variables stay in force. On such pages, **C** opens the searchable picker and
+**M** opens the presenter menu with the other deck actions; the selection
+survives navigation between pages for the browser session.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a

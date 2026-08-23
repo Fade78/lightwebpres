@@ -7872,6 +7872,91 @@ class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
         self.assertNotEqual(red['color.mark'], red['color.ink'])
 
 
+class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
+    def setUp(self):
+        self.lwp = load_lightwebpres_module()
+
+    @staticmethod
+    def _data(html):
+        match = re.search(
+            r'<script id="lwp-theme-data" type="application/json">'
+            r'(.*?)</script>', html, re.S)
+        return json.loads(match.group(1)) if match else None
+
+    def test_runtime_payload_puts_the_settings_theme_first(self):
+        data = self.lwp.build_theme_runtime(
+            'print-grey,print-oldpress', 'print-oldpress-red-ribbon')
+        self.assertEqual(data['primary'], 'print-oldpress-red-ribbon')
+        self.assertEqual(
+            [theme['slug'] for theme in data['themes']],
+            ['print-oldpress-red-ribbon', 'print-grey', 'print-oldpress'])
+        self.assertEqual(len(data['vars']), len(self.lwp.PROPERTY_REGISTRY))
+
+    def test_runtime_payload_can_include_every_theme(self):
+        data = self.lwp.build_theme_runtime('all', 'print-oldpress')
+        self.assertEqual(data['primary'], 'print-oldpress')
+        self.assertEqual(len(data['themes']), len(self.lwp.THEMES))
+        self.assertEqual(data['themes'][0]['slug'], 'print-oldpress')
+
+    def test_unknown_runtime_theme_is_a_named_property_error(self):
+        with self.assertRaises(self.lwp.PropertyError) as caught:
+            self.lwp.build_theme_runtime('not-a-theme', 'print-ink')
+        self.assertIn('--themes', str(caught.exception))
+        self.assertIn('not-a-theme', str(caught.exception))
+
+    def test_build_reads_a_modified_settings_theme_and_keeps_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(
+                run('init', str(root), '--theme', 'print-ink').returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            settings = root / 'templates' / 'settings.conf'
+            text = settings.read_text(encoding='utf-8')
+            settings.write_text(
+                text.replace('theme: print-ink',
+                             'theme: print-oldpress-red-ribbon'),
+                encoding='utf-8')
+            result = run('build', str(root), '--themes', 'print-grey')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            data = self._data(
+                (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+            self.assertEqual(data['primary'], 'print-oldpress-red-ribbon')
+            self.assertEqual(
+                [theme['slug'] for theme in data['themes']],
+                ['print-oldpress-red-ribbon', 'print-grey'])
+            verify = run('verify', str(root), '--themes', 'print-grey')
+            self.assertEqual(verify.returncode, 0, verify.stderr)
+
+    def test_settings_and_custom_css_variables_are_pinned_in_the_payload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            settings = root / 'templates' / 'settings.conf'
+            settings.write_text(
+                settings.read_text(encoding='utf-8') +
+                'color.ink: #123456\n', encoding='utf-8')
+            (root / 'templates' / 'custom.css').write_text(
+                ':root { --color-mark: #ABCDEF; }\n', encoding='utf-8')
+            result = run('build', str(root), '--themes', 'print-ink')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            data = self._data(
+                (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+            pinned = {data['vars'][index] for index in data['pinned']}
+            self.assertIn('--color-ink', pinned)
+            self.assertIn('--color-mark', pinned)
+
+    def test_no_runtime_option_keeps_the_page_without_theme_payload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIsNone(self._data(html))
+
+
 class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
     """The dark-furniture omission, caught by measurement instead of by
     membership. It has now happened twice — the notes plate and its two

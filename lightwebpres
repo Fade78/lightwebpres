@@ -31,8 +31,8 @@ rules + interface strings).
 Usage:
   lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr] [--output public/]
-  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts]
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--themes slugs|all]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes slugs|all]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres template update [directory] [--scaffold]
   lightwebpres template show <file>
@@ -47,7 +47,7 @@ Usage:
   lightwebpres series theme set [directory] --theme name
   lightwebpres theme gallery [path]
   lightwebpres clean [directory] [--output public/] [--force]
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes slugs|all]
   lightwebpres completion --shell bash|zsh
   lightwebpres --version | --help | -h
 
@@ -1234,11 +1234,24 @@ LANG_FR = r'''{
     "help_tags": "Filtrer par tag et mémoriser la sélection",
     "presenter_next": "Suivant :",
     "presenter_label": "Panneau du présentateur",
+    "menu_title": "Menu du présentateur (touche M)",
+    "menu_theme": "Changer de thème (touche C)",
+    "menu_presenter": "Notes présentateur (touche N)",
+    "menu_help": "Raccourcis clavier (touche H)",
+    "menu_pause_black": "Écran noir (touche B)",
+    "menu_pause_white": "Écran blanc (touche W)",
+    "menu_pause_theme": "Écran du thème (touche T)",
+    "theme_menu_title": "Choisir un thème",
+    "theme_menu_help": "Le thème principal est sélectionné par défaut.",
+    "theme_menu_filter": "Rechercher un thème",
+    "theme_menu_close": "Échap pour fermer · Entrée pour appliquer",
     "help_title": "Raccourcis clavier",
     "help_next": "Slide suivante",
     "help_prev": "Slide précédente",
     "help_home": "Retour à l'index de la série",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
+    "help_menu": "Menu du présentateur",
+    "help_theme": "Choisir un thème compilé",
     "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
     "help_speaker": "Panneau présentateur : notes + slide suivante",
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
@@ -1337,11 +1350,24 @@ LANG_EN = r'''{
     "help_tags": "Filter by tag and remember the selection",
     "presenter_next": "Next:",
     "presenter_label": "Presenter panel",
+    "menu_title": "Presenter menu (M key)",
+    "menu_theme": "Change theme (C key)",
+    "menu_presenter": "Presenter notes (N key)",
+    "menu_help": "Keyboard shortcuts (H key)",
+    "menu_pause_black": "Black screen (B key)",
+    "menu_pause_white": "White screen (W key)",
+    "menu_pause_theme": "Theme screen (T key)",
+    "theme_menu_title": "Choose a theme",
+    "theme_menu_help": "The primary theme is selected by default.",
+    "theme_menu_filter": "Search themes",
+    "theme_menu_close": "Escape to close · Enter to apply",
     "help_title": "Keyboard shortcuts",
     "help_next": "Next slide",
     "help_prev": "Previous slide",
     "help_home": "Back to the series index",
     "help_fullscreen": "Fullscreen (Esc to exit)",
+    "help_menu": "Presenter menu",
+    "help_theme": "Choose a compiled theme",
     "help_pause": "Pause screen: black (B), white (W), theme (T)",
     "help_speaker": "Speaker panel: notes + next slide",
     "help_jump_keys": "0&ndash;9 + Enter",
@@ -4371,6 +4397,121 @@ def theme_property_layer(theme_key):
     return layer
 
 
+_THEME_RUNTIME_DEFAULT = 'default'
+_THEME_RUNTIME_CUSTOM_VAR = re.compile(r'(?<![\w-])(--[\w-]+)\s*:')
+
+
+def _theme_runtime_resolved(theme_key):
+    """The catalogue layer a browser must apply for one runtime theme.
+
+    `default` is the empty layer: it is the sheet the engine ships before a
+    named palette is selected. Runtime values are resolved here, not in the
+    browser, so the executable remains the single implementation of the
+    typed property cascade. The page's series and article layers stay out of
+    this result and are marked separately by `_theme_runtime_markup`.
+    """
+    layers = [] if theme_key == _THEME_RUNTIME_DEFAULT else [
+        theme_property_layer(theme_key)]
+    return resolve_theme_properties(*layers)
+
+
+def _theme_runtime_ids(option, primary):
+    """Returns the ordered runtime theme ids, primary first.
+
+    `--themes` is an opt-in build feature. The effective `theme:` from the
+    user's settings file is always first, even when the comma list omits it;
+    a series without that line uses the synthetic `default` id.
+    """
+    raw = str(option).strip()
+    if not raw:
+        raise PropertyError('--themes requires one or more theme slugs, or all')
+    primary_id = primary or _THEME_RUNTIME_DEFAULT
+    requested = list(THEMES) if raw.casefold() == 'all' else [
+        part.strip() for part in raw.split(',')]
+    if not requested or any(not part for part in requested):
+        raise PropertyError('--themes contains an empty theme slug')
+    unknown = [slug for slug in requested if slug not in THEMES]
+    if unknown:
+        raise PropertyError('--themes contains unknown theme(s): ' +
+                            ', '.join(repr(slug) for slug in unknown))
+    ids = [primary_id]
+    for slug in requested:
+        if slug not in ids:
+            ids.append(slug)
+    return ids
+
+
+def build_theme_runtime(option, primary):
+    """Builds the compact, page-independent part of the theme switch data.
+
+    Variable names are emitted once and each alternative carries only the
+    indexed values that differ from the effective primary theme. The static
+    page already contains the primary theme's fully composed sheet, so the
+    browser can remove the previous inline overrides and restore that sheet
+    before applying another alternative.
+    """
+    if option is None:
+        return None
+    ids = _theme_runtime_ids(option, primary)
+    variables = [p.var for p in THEME_SHARED_PROPS]
+    keys = [p.key for p in THEME_SHARED_PROPS]
+    for component in THEME_COMPONENTS:
+        for prop in component.props:
+            variables.append(prop.var)
+            keys.append(prop.key)
+    primary_values = _theme_runtime_resolved(primary or _THEME_RUNTIME_DEFAULT)
+    primary_values = [primary_values[key] for key in keys]
+    themes = []
+    for theme_id in ids:
+        resolved = _theme_runtime_resolved(theme_id)
+        values = [resolved[key] for key in keys]
+        changes = [[i, value] for i, (old, value)
+                   in enumerate(zip(primary_values, values)) if old != value]
+        if theme_id == _THEME_RUNTIME_DEFAULT:
+            label, family = 'Default', 'default'
+        else:
+            theme = THEMES[theme_id]
+            label, family = theme['label'], theme['family']
+        themes.append({'slug': theme_id, 'label': label, 'family': family,
+                       'values': changes})
+    return {'version': 1, 'primary': ids[0], 'vars': variables,
+            'themes': themes}
+
+
+def _theme_runtime_markup(runtime, style_context=None, page_props=None):
+    """Adds page-owned variable indices to the runtime payload.
+
+    The generated sheet contains the effective primary theme plus series and
+    article pins. Runtime theme values must not replace those pins. Variables
+    declared by custom.css are treated as pins too: arbitrary CSS stays the
+    author's last word even when it uses a registry variable through a
+    custom declaration.
+    """
+    if runtime is None:
+        return ''
+    pinned = set()
+    if style_context is not None:
+        layers, custom_css = style_context
+        if layers:
+            # series_style_context appends settings.conf's properties last.
+            pinned.update(layers[-1])
+        for var in _THEME_RUNTIME_CUSTOM_VAR.findall(custom_css):
+            key = VAR_TO_KEY.get(var)
+            if key:
+                pinned.add(key)
+    if page_props:
+        pinned.update(page_props)
+    indices = {p.key: i for i, p in enumerate(THEME_SHARED_PROPS)}
+    for component in THEME_COMPONENTS:
+        for prop in component.props:
+            indices[prop.key] = len(indices)
+    data = dict(runtime)
+    data['pinned'] = sorted(indices[key] for key in pinned if key in indices)
+    return ('<script id="lwp-theme-data" type="application/json">' +
+            json.dumps(data, ensure_ascii=True, separators=(',', ':')) +
+            '</script>\n')
+
+
 def _reference_target(prop, value):
     """The property `value` points at, or None if it is a literal.
 
@@ -5773,7 +5914,7 @@ body.fs-noselect {
 @media print {
   html, body { overflow: visible !important; height: auto !important; }
   .nav-buttons, .nav-dots, .nav-btn, .tag-menu, .slide-counter,
-  .pause-overlay { display: none !important; }
+  .pause-overlay, .presenter-menu, .theme-menu { display: none !important; }
   .slide {
     page-break-after: always;
     break-after: page;
@@ -5900,6 +6041,87 @@ body.fs-noselect {
 }
 .help-desc { flex: 1; }
 .help-foot {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.85em;
+}
+
+/* Presenter action menu (key M). It is the keyboard equivalent of the
+   navigation chrome: one place for actions that otherwise live behind
+   separate keys or small buttons. */
+.presenter-menu, .theme-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: none;
+  overflow: auto;
+  padding: 48px 24px;
+  background: inherit;
+  color: inherit;
+}
+.presenter-menu.open, .theme-menu.open { display: block; }
+.presenter-menu-card, .theme-menu-card {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 28px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 12px;
+  background: inherit;
+}
+.presenter-menu-title, .theme-menu-title {
+  margin-bottom: 16px;
+  font-size: 1.2em;
+  font-weight: 700;
+}
+.presenter-menu-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.presenter-menu-action, .theme-option {
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: inherit;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.presenter-menu-action:hover, .theme-option:hover,
+.presenter-menu-action.active, .theme-option.active { font-weight: 700; }
+.presenter-menu-action:focus-visible, .theme-option:focus-visible,
+.theme-filter:focus-visible { outline-style: solid; outline-offset: 2px; }
+.theme-menu-help {
+  margin: 0 0 12px;
+  font-size: 0.85em;
+}
+.theme-filter {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 9px 11px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 8px;
+  background: inherit;
+  color: inherit;
+  font: inherit;
+}
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  max-height: 54vh;
+  overflow: auto;
+}
+.theme-option { min-height: 52px; }
+.theme-option small { display: block; margin-top: 3px; opacity: 0.75; }
+.theme-menu-foot {
   margin-top: 16px;
   padding-top: 12px;
   border-top-style: solid;
@@ -6779,6 +7001,79 @@ document.addEventListener('DOMContentLoaded', function() {
   var tagStorageKey = 'lwp-active-tag';
   var dots = [];
 
+  // Runtime themes are opt-in at build time. The page's CSS already carries
+  // the effective primary theme; this payload contains only differences from
+  // it, plus the variable order. Pinned series/article/custom variables are
+  // skipped when a choice is applied, so the presenter changes the palette
+  // without erasing the author's settings.
+  var themeData = null;
+  var themeDataNode = document.getElementById('lwp-theme-data');
+  if (themeDataNode) {
+    try { themeData = JSON.parse(themeDataNode.textContent || ''); }
+    catch (e) { themeData = null; }
+  }
+  var themeMenu = document.getElementById('themeMenu');
+  var themeOptionsBox = document.getElementById('themeOptions');
+  var themeFilter = document.getElementById('themeFilter');
+  var themeApplied = [];
+  var themeCurrent = themeData ? themeData.primary : null;
+  var themePinned = {};
+  if (themeData && themeData.pinned) {
+    themeData.pinned.forEach(function (index) { themePinned[index] = true; });
+  }
+  var themeStorageKey = themeData
+    ? 'lwp-theme:' + themeData.primary + ':'
+      + themeData.themes.map(function (theme) { return theme.slug; }).join(',')
+    : '';
+
+  function themeAlternatives() {
+    return !!(themeData && themeData.themes && themeData.themes.length > 1);
+  }
+
+  function themeBySlug(slug) {
+    if (!themeData || !themeData.themes) return null;
+    return themeData.themes.find(function (theme) { return theme.slug === slug; }) || null;
+  }
+
+  function readStoredTheme() {
+    if (!themeAlternatives()) return themeData ? themeData.primary : null;
+    try {
+      var stored = window.sessionStorage.getItem(themeStorageKey);
+      return themeBySlug(stored) ? stored : themeData.primary;
+    } catch (e) {
+      return themeData.primary;
+    }
+  }
+
+  function writeStoredTheme(slug) {
+    if (!themeStorageKey) return;
+    try {
+      if (slug === themeData.primary) window.sessionStorage.removeItem(themeStorageKey);
+      else window.sessionStorage.setItem(themeStorageKey, slug);
+    } catch (e) {}
+  }
+
+  function applyTheme(slug, persist) {
+    var theme = themeBySlug(slug);
+    if (!theme) return false;
+    themeApplied.forEach(function (index) {
+      document.documentElement.style.removeProperty(themeData.vars[index]);
+    });
+    themeApplied = [];
+    theme.values.forEach(function (pair) {
+      var index = pair[0];
+      if (themePinned[index]) return;
+      document.documentElement.style.setProperty(themeData.vars[index], pair[1]);
+      themeApplied.push(index);
+    });
+    themeCurrent = theme.slug;
+    if (persist) writeStoredTheme(theme.slug);
+    updateThemeOptions();
+    return true;
+  }
+
+  if (themeData) applyTheme(readStoredTheme(), false);
+
   function slideTags(slide) {
     var raw = slide ? slide.getAttribute('data-tags') : '';
     var tags = raw ? raw.toLowerCase().split(/\s+/) : [];
@@ -6825,6 +7120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnTags.hidden = true;
         btnTags.setAttribute('aria-hidden', 'true');
       }
+      if (menuTagsAction) menuTagsAction.hidden = true;
       closeTagMenu();
       return;
     }
@@ -6832,6 +7128,7 @@ document.addEventListener('DOMContentLoaded', function() {
       btnTags.hidden = false;
       btnTags.removeAttribute('aria-hidden');
     }
+    if (menuTagsAction) menuTagsAction.hidden = false;
     tagMenuList.innerHTML = '';
     tags.forEach(function (tag) {
       var button = document.createElement('button');
@@ -6976,8 +7273,158 @@ document.addEventListener('DOMContentLoaded', function() {
   var presenterNext   = document.getElementById('presenterNext');
   var helpOverlay     = document.getElementById('helpOverlay');
   var helpList        = document.getElementById('helpList');
+  var presenterMenu   = document.getElementById('presenterMenu');
+  var menuThemeAction = presenterMenu
+    ? presenterMenu.querySelector('[data-menu-action="theme"]') : null;
+  var menuTagsAction = presenterMenu
+    ? presenterMenu.querySelector('[data-menu-action="tags"]') : null;
+  var menuReturnFocus = null;
+  var themeReturnFocus = null;
   var jumpBuffer = '';
   var jumpTimer = null;
+
+  function themeText(theme) {
+    return theme.label || theme.slug;
+  }
+
+  function updateThemeOptions() {
+    if (!themeOptionsBox) return;
+    Array.prototype.forEach.call(themeOptionsBox.querySelectorAll('.theme-option'), function (button) {
+      var active = button.getAttribute('data-theme') === themeCurrent;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+  }
+
+  function renderThemeOptions() {
+    if (!themeOptionsBox) return;
+    themeOptionsBox.innerHTML = '';
+    if (!themeData || !themeData.themes) return;
+    var query = themeFilter ? themeFilter.value.trim().toLowerCase() : '';
+    themeData.themes.forEach(function (theme) {
+      var haystack = (theme.slug + ' ' + themeText(theme) + ' ' + (theme.family || '')).toLowerCase();
+      if (query && haystack.indexOf(query) === -1) return;
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'theme-option';
+      button.setAttribute('data-theme', theme.slug);
+      button.setAttribute('role', 'option');
+      var label = document.createElement('span');
+      label.textContent = themeText(theme);
+      button.appendChild(label);
+      if (theme.family) {
+        var family = document.createElement('small');
+        family.textContent = theme.family;
+        button.appendChild(family);
+      }
+      button.addEventListener('click', function () {
+        applyTheme(theme.slug, true);
+        closeThemeMenu();
+      });
+      themeOptionsBox.appendChild(button);
+    });
+    updateThemeOptions();
+  }
+
+  function focusablesWithin(container) {
+    if (!container) return [];
+    return Array.prototype.slice.call(container.querySelectorAll(
+      'button:not([disabled]):not([hidden]), input:not([disabled]):not([hidden]), ' +
+      '[href]:not([hidden]), [tabindex]:not([tabindex="-1"]):not([hidden])'
+    ));
+  }
+
+  function focusIfVisible(element) {
+    if (element && element.isConnected && element.getClientRects().length) {
+      element.focus();
+    }
+  }
+
+  function closeThemeMenu(restoreFocus) {
+    var wasOpen = themeMenu && themeMenu.classList.contains('open');
+    if (themeMenu) themeMenu.classList.remove('open');
+    if (wasOpen && restoreFocus !== false) focusIfVisible(themeReturnFocus);
+    themeReturnFocus = null;
+  }
+
+  function openThemeMenu(returnFocus) {
+    if (!themeAlternatives() || !themeMenu) return;
+    themeReturnFocus = returnFocus || document.activeElement;
+    if (helpOverlay) helpOverlay.classList.remove('open');
+    closePresenterMenu(false);
+    closeTagMenu();
+    closeSharePopover();
+    closeQrModal();
+    if (themeFilter) themeFilter.value = '';
+    renderThemeOptions();
+    themeMenu.classList.add('open');
+    if (themeFilter) {
+      themeFilter.focus();
+    }
+  }
+
+  function closePresenterMenu(restoreFocus) {
+    var wasOpen = presenterMenu && presenterMenu.classList.contains('open');
+    if (presenterMenu) presenterMenu.classList.remove('open');
+    if (wasOpen && restoreFocus !== false) focusIfVisible(menuReturnFocus);
+    menuReturnFocus = null;
+  }
+
+  function openPresenterMenu() {
+    if (!presenterMenu) return;
+    menuReturnFocus = document.activeElement;
+    closeThemeMenu(false);
+    if (helpOverlay) helpOverlay.classList.remove('open');
+    closeTagMenu();
+    closeSharePopover();
+    closeQrModal();
+    if (menuThemeAction) menuThemeAction.hidden = !themeAlternatives();
+    if (menuTagsAction) menuTagsAction.hidden = tagList().length < 2;
+    presenterMenu.classList.add('open');
+    var actions = focusablesWithin(presenterMenu);
+    if (actions.length) actions[0].focus();
+  }
+
+  function togglePresenterMenu() {
+    if (!presenterMenu) return;
+    if (presenterMenu.classList.contains('open')) closePresenterMenu();
+    else openPresenterMenu();
+  }
+
+  function runMenuAction(action) {
+    closePresenterMenu(false);
+    if (action === 'prev' && btnPrev) btnPrev.click();
+    else if (action === 'home' && btnHome) btnHome.click();
+    else if (action === 'next' && btnNext) btnNext.click();
+    else if (action === 'fullscreen') toggleFullscreen();
+    else if (action === 'theme') openThemeMenu();
+    else if (action === 'presenter') togglePresenter();
+    else if (action === 'tags') toggleTagMenu();
+    else if (action === 'share' && shareBtn) shareBtn.click();
+    else if (action === 'help') toggleHelp();
+    else if (action === 'pause-black') togglePause('b');
+    else if (action === 'pause-white') togglePause('w');
+    else if (action === 'pause-theme') togglePause('t');
+  }
+
+  if (presenterMenu) {
+    Array.prototype.forEach.call(
+      presenterMenu.querySelectorAll('[data-menu-action]'), function (button) {
+        button.addEventListener('click', function () {
+          runMenuAction(button.getAttribute('data-menu-action'));
+        });
+      }
+    );
+    presenterMenu.addEventListener('click', function (e) {
+      if (e.target === presenterMenu) closePresenterMenu();
+    });
+  }
+  if (themeMenu) {
+    themeMenu.addEventListener('click', function (e) {
+      if (e.target === themeMenu) closeThemeMenu();
+    });
+  }
+  if (themeFilter) themeFilter.addEventListener('input', renderThemeOptions);
 
   // Help overlay (key H): every keyboard shortcut and gesture, built once.
   var helpEntries = [
@@ -6985,6 +7432,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['&uarr; / PageUp / &larr; / Backspace', "{{str_help_prev}}"],
     ['Home', "{{str_help_home}}"],
     ['F', "{{str_help_fullscreen}}"],
+    ['M', "{{str_help_menu}}"],
     ['B / W / T', "{{str_help_pause}}"],
     ['N', "{{str_help_speaker}}"],
     ['L', "{{str_help_tags}}"],
@@ -6992,6 +7440,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['H', "{{str_help_close}}"],
     ['{{str_help_mouse_keys}}', "{{str_help_mouse}}"]
   ];
+  if (themeAlternatives()) helpEntries.splice(5, 0, ['C', "{{str_help_theme}}"]);
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');
@@ -7350,7 +7799,56 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
    document.addEventListener('keydown', function(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+     if (themeMenu && themeMenu.classList.contains('open')) {
+       if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+         e.preventDefault();
+         closeThemeMenu();
+       } else if (e.key === 'Enter' && e.target === themeFilter) {
+         var firstThemeOption = themeOptionsBox
+           ? themeOptionsBox.querySelector('.theme-option') : null;
+         if (firstThemeOption) {
+           e.preventDefault();
+           firstThemeOption.click();
+         }
+       } else if (e.key === 'Tab') {
+         var themeFocus = focusablesWithin(themeMenu);
+         if (themeFocus.length) {
+           e.preventDefault();
+           var themeAt = themeFocus.indexOf(document.activeElement);
+           var themeStep = e.shiftKey ? -1 : 1;
+           var themeNext = (themeAt < 0 ? 0 : themeAt + themeStep + themeFocus.length)
+             % themeFocus.length;
+           themeFocus[themeNext].focus();
+         }
+       } else if (e.target && e.target.closest && e.target.closest('.theme-menu')) {
+         return;
+       } else {
+         e.preventDefault();
+       }
+       return;
+     }
+     if (presenterMenu && presenterMenu.classList.contains('open')) {
+       if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
+         e.preventDefault();
+         closePresenterMenu();
+       } else if (e.key === 'Tab') {
+         var menuFocus = focusablesWithin(presenterMenu);
+         if (menuFocus.length) {
+           e.preventDefault();
+           var menuAt = menuFocus.indexOf(document.activeElement);
+           var menuStep = e.shiftKey ? -1 : 1;
+           var menuNext = (menuAt < 0 ? 0 : menuAt + menuStep + menuFocus.length)
+             % menuFocus.length;
+           menuFocus[menuNext].focus();
+         }
+       } else if (e.target && e.target.closest && e.target.closest('.presenter-menu')) {
+         return;
+       } else {
+         e.preventDefault();
+       }
+       return;
+     }
+     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     // While the help overlay is open, only H/Esc close it; everything else
     // is swallowed so a stray arrow does not navigate behind the panel.
     if (helpOverlay && helpOverlay.classList.contains('open')) {
@@ -7454,9 +7952,15 @@ document.addEventListener('DOMContentLoaded', function() {
         scrollToTop();
         updateUI();
       }
-    } else if (e.key === 'f' || e.key === 'F') {
-      e.preventDefault(); toggleFullscreen();
-    } else if (e.key === 'b' || e.key === 'B') {
+     } else if (e.key === 'f' || e.key === 'F') {
+       e.preventDefault(); toggleFullscreen();
+     } else if (e.key === 'c' || e.key === 'C') {
+       if (themeAlternatives()) {
+         e.preventDefault(); openThemeMenu();
+       }
+     } else if (e.key === 'm' || e.key === 'M') {
+       e.preventDefault(); togglePresenterMenu();
+     } else if (e.key === 'b' || e.key === 'B') {
       e.preventDefault(); togglePause('b');
     } else if (e.key === 'w' || e.key === 'W') {
       e.preventDefault(); togglePause('w');
@@ -8187,6 +8691,41 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   </div>
 </div>
 
+<div class="presenter-menu" id="presenterMenu" role="dialog" aria-modal="true"
+     aria-labelledby="presenterMenuTitle">
+  <div class="presenter-menu-card">
+    <div class="presenter-menu-title" id="presenterMenuTitle">{{str_menu_title}}</div>
+    <div class="presenter-menu-actions">
+      <button type="button" class="presenter-menu-action" data-menu-action="prev">{{str_nav_prev}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="home">{{str_nav_home}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="next">{{str_nav_next}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="fullscreen">{{str_nav_fullscreen}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="theme">{{str_menu_theme}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="presenter">{{str_menu_presenter}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="tags">{{str_tags_button}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="share">{{str_share_button}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="help">{{str_menu_help}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="pause-black">{{str_menu_pause_black}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="pause-white">{{str_menu_pause_white}}</button>
+      <button type="button" class="presenter-menu-action" data-menu-action="pause-theme">{{str_menu_pause_theme}}</button>
+    </div>
+  </div>
+</div>
+
+<div class="theme-menu" id="themeMenu" role="dialog" aria-modal="true"
+     aria-labelledby="themeMenuTitle">
+  <div class="theme-menu-card">
+    <div class="theme-menu-title" id="themeMenuTitle">{{str_theme_menu_title}}</div>
+    <p class="theme-menu-help">{{str_theme_menu_help}}</p>
+    <input type="search" class="theme-filter" id="themeFilter"
+           aria-label="{{str_theme_menu_filter}}"
+           placeholder="{{str_theme_menu_filter}}" autocomplete="off">
+    <div class="theme-options" id="themeOptions" role="listbox"
+         aria-label="{{str_theme_menu_title}}"></div>
+    <div class="theme-menu-foot">{{str_theme_menu_close}}</div>
+  </div>
+</div>
+
 <div class="nav-buttons">
   <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}">{{icon_prev}}</div>
   <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_nav_home}}" aria-label="{{str_nav_home}}">{{icon_home}}</div>
@@ -8231,7 +8770,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 
 {{content}}
 {{page_footer}}
-<script defer>
+{{theme_runtime}}<script defer>
 {{js_nav}}
 </script>
 {{index_extra}}
@@ -9420,7 +9959,10 @@ def validate_page_scripts(html):
     node = shutil.which('node')
     if not node:
         return True, 'node not available; script not validated'
-    for block in re.findall(r'<script[^>]*>(.*?)</script>', html, re.S):
+    for attrs, block in re.findall(r'<script([^>]*)>(.*?)</script>', html, re.S):
+        if re.search(r'\btype\s*=\s*["\']application/json["\']',
+                     attrs, re.I):
+            continue
         if not block.strip():
             continue
         sig = hashlib.md5(block.encode('utf-8')).hexdigest()
@@ -11317,7 +11859,8 @@ def _page_footer(author, license_text, date=None):
     return '<footer class="page-footer">\n' + '\n'.join(parts) + '\n</footer>'
 
 
-def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='', build_stamp=''):
+def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='',
+                build_stamp='', theme_runtime=None, style_context=None):
     """Generates the index page.
 
     The index is a page of the same site as the articles: it shares
@@ -11407,6 +11950,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'content': content, 'page_footer': index_footer,
         'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
         'build_stamp': build_stamp, 'index_extra': index_extra,
+        'theme_runtime': _theme_runtime_markup(theme_runtime, style_context),
     })
 
     validate_html(html, 'index.html')
@@ -11677,7 +12221,7 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -11694,6 +12238,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     except PropertyError as exc:
         log('error', f'{source_path.name}: {exc}')
         sys.exit(1)
+    theme_runtime_markup = _theme_runtime_markup(
+        theme_runtime, style_context, page_props)
 
     # absorb-punct applies only when the mark carries a ground (the bg is
     # not transparent) AND the property is on. A page can pin either, so
@@ -11972,6 +12518,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         'content': slides_html, 'page_footer': page_footer,
         'js_nav': nav_js, 'build_stamp': stamp_in_body,
         'draft_banner': draft_banner, 'index_extra': '',
+        'theme_runtime': theme_runtime_markup,
     })
 
     validate_html(html, current_file)
@@ -12732,6 +13279,17 @@ def load_build_context(series_dir, args):
     except PropertyError as exc:
         log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
+    try:
+        settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
+        effective_theme = None
+        if settings_file is not None and settings_file.exists():
+            effective_theme, _ = parse_settings_text(
+                read_text_file(settings_file))
+        theme_runtime = build_theme_runtime(
+            args.get('--themes'), effective_theme)
+    except PropertyError as exc:
+        log('error', str(exc))
+        sys.exit(1)
     nav_js_file = templates_dir / 'nav.js'
     if nav_js_file.exists():
         on_disk = read_text_file(nav_js_file)
@@ -12860,7 +13418,7 @@ def load_build_context(series_dir, args):
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
         articles=articles, claim_articles=claim_articles,
         style_context=style_context, args=args,
-        lang_tag_engines=lang_tag_engines,
+        lang_tag_engines=lang_tag_engines, theme_runtime=theme_runtime,
     )
 
 
@@ -12955,7 +13513,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     progress(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
+    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -12966,7 +13524,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
             log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
@@ -13468,7 +14026,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.sources_dir / source_file
 
         progress(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines)
+        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -13478,7 +14036,7 @@ def cmd_build(series_dir, args):
     # --no-index: skip index.html generation entirely.
     if claimant is None and not args.get('--no-index'):
         progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp)
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
             log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
@@ -13559,7 +14117,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.sources_dir / entry['page_source']
-        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines)
+        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -13572,7 +14130,7 @@ def cmd_check(series_dir, args):
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         compare('index.html',
-                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra),
+                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context),
                 ctx.output_dir / 'index.html')
     compare('README.md',
             build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
@@ -14046,7 +14604,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                     ctx.typo_engine, ctx.strings, ctx.lang,
                     style_context=ctx.style_context,
                     inline_images=ctx.args.get('--inline-images', False),
-                    args=args, lang_tag_engines=ctx.lang_tag_engines)
+                    args=args, lang_tag_engines=ctx.lang_tag_engines,
+                    theme_runtime=ctx.theme_runtime)
             except SystemExit:
                 if entry['status'] == 'draft':
                     log('warn', f'{entry["page_source"]}: this draft does '
@@ -14063,7 +14622,9 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                 extra = ctx.templates_dir / 'index_extra.html'
                 build_index(ctx.series_data, ctx.css, ctx.typo_engine,
                             ctx.strings, ctx.lang,
-                            read_text_file(extra) if extra.exists() else '')
+                            read_text_file(extra) if extra.exists() else '',
+                            theme_runtime=ctx.theme_runtime,
+                            style_context=ctx.style_context)
             except SystemExit:
                 log('warn', 'the series index does not build — the error '
                     'above is fatal, and index.html would not be produced.')
@@ -16944,9 +17505,9 @@ COMMANDS
     Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
     Creates a demo site
-  lightwebpres build [directory] [--lang fr] [--output public/]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--themes slugs|all]
     Builds the site (self-contained HTML)
-  lightwebpres verify [directory] [--lang fr] [--output public/]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--themes slugs|all]
     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr] [--strict] [--templates]
     Renders the series in memory and reports everything worth a second
@@ -16999,7 +17560,7 @@ COMMANDS
     with a note, notes section, full article (default: themes-gallery.html)
   lightwebpres clean [directory] [--force]
     Purges orphan files from public/ using the build manifest
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes slugs|all]
     Polls sources, rebuilds on change, optionally serves on 127.0.0.1
   lightwebpres --version
     Prints the version and exits
@@ -17045,6 +17606,11 @@ OPTIONS
   --theme name
     init/series theme set: apply a named palette (see THEMES below);
     unknown name is a fatal error
+  --themes slugs|all
+    build/verify/watch: include comma-separated runtime theme slugs, or
+    every built-in theme. The effective theme in templates/settings.conf
+    is always included first, even when omitted here. Built pages expose C
+    for the picker and M for the global presenter menu.
   --polarity light|dark
     theme list: list only themes with that background polarity
   --hue name
@@ -17318,20 +17884,22 @@ where this tool is published and can be downloaded.'''
 # out-of-place option is a fatal error instead of a silent no-op, and
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
-                            '--theme', '--only', '--nav-cache',
-                            '--polarity', '--hue', '--family',
-                            '--format',
-                            '--article', '--port', '--shell',
-                            '--slides-page-numbers'})
+                             '--theme', '--themes', '--only', '--nav-cache',
+                             '--polarity', '--hue', '--family',
+                             '--format',
+                             '--article', '--port', '--shell',
+                             '--slides-page-numbers'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
     'build': {'--lang', '--output', '--language-file', '--no-typography',
+              '--themes',
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
               '--open', '--inline-images', '--slides-page-numbers'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
+              '--themes',
               '--include-drafts', '--no-nav'},
     'audit': {'--lang', '--strict', '--templates'},
     'refresh-templates': {'--scaffold'},
@@ -17352,6 +17920,7 @@ _COMMAND_OPTIONS = {
     # actual output. The env var LWP_OUTPUT_DIR was the sole way in.
     'clean': {'--force', '--dry-run', '--output'},
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
+              '--themes',
               '--open', '--slides-page-numbers',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only'},
     'completion': {'--shell'},

@@ -24,7 +24,8 @@ static host.
 
 **Every page is a presentation deck.** Open it in a browser and you have
 a full-screen presenter experience: keyboard (↑/↓, Home, F for
-fullscreen, B/W/T for pause screens), mouse (click to advance,
+fullscreen, B/W/T for pause screens, C for compiled themes, M for the
+presenter menu), mouse (click to advance,
 right-click to go back, middle button to leave fullscreen), and touch
 (swipe) all work out of the box. Entering fullscreen with the mouse is
 a two-step gesture — middle button, then a left click (F or the ⛶
@@ -55,8 +56,10 @@ handout at Ctrl/Cmd+P.
   isn't French-specific, so adding a language is a matter of writing
   rules, not touching the engine.
 - **Nothing you make here can stop opening.** The output is one
-  self-contained HTML file: no runtime, no viewer, no proprietary
-  container that has to still be supported for the words to come back.
+  self-contained HTML file: no external runtime, no viewer, no proprietary
+  container that has to still be supported for the words to come back. The
+  optional `build --themes` picker is embedded in the same file and needs no
+  network or framework.
   A deck built today opens in any browser that exists now and in any
   that follows, on a machine with none of this installed — the file
   alone, without the tool that made it. The source behind it is plain
@@ -88,7 +91,8 @@ handout at Ctrl/Cmd+P.
   printed ones.
 - **Built-in presentation mode.** Every generated page is a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
-  screens), mouse (click advance, right-click back, middle button
+  screens, C compiled themes, M presenter menu), mouse (click advance,
+  right-click back, middle button
   leaves fullscreen; entering is a two-step gesture — middle button,
   then a left click), touch (swipe, double tap). Navigation
   chrome fades after 3s idle (1s in fullscreen) on every device; with a
@@ -317,8 +321,8 @@ the series or within one article.
 |---|---|
 | `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, an empty `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script, the language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
-| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory) |
-| `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate |
+| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory); `--themes slug,...|all` embeds an optional runtime theme picker |
+| `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` selection used by the build |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — variant tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, a differing language pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json` — on stdout. No series needed: the answer is inside the program |
@@ -358,6 +362,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
 | `--only file.html` | `build` | rebuilds a single article |
 | `--inline-images` | `build` | embeds images as base64 data URIs |
+| `--themes slug,...\|all` | `build`, `verify`, `watch` | embeds the selected runtime themes; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
 | `--format json` | `resolve`, `status`, `theme show`, `series theme` | machine-readable output |
 
@@ -607,6 +612,24 @@ chosen for them.
 (`Theme changed: evergreen -> crimson`), and your pinned values stay in
 place and apply on top of the new palette. No CSS is rewritten, so there
 is nothing to force and no half-recolored file to fear.
+
+The build can also carry a selection of themes for the reader to switch
+without rebuilding:
+
+```bash
+./lightwebpres build my-series --themes print-ink,print-grey
+./lightwebpres build my-series --themes all
+```
+
+The effective `theme:` in `templates/settings.conf` is always the first
+choice, even when it is omitted from the list. The file is read at build time,
+so an author's edit is respected; settings, `style.*` properties and declared
+theme variables in `custom.css` remain pinned while the reader switches. The
+payload is inline and delta-encoded, so the resulting pages remain standalone.
+On a page built with this option, **C** opens the searchable theme picker and
+**M** opens one menu for fullscreen, themes, help, speaker notes, tags,
+sharing, navigation and pause screens. The choice is kept in the browser's
+session for the other pages of the same deck.
 
 A theme provides seven shared colors and four font stacks —
 `color.page`, `color.ink`, `color.ink-quiet`, `color.mark`,
