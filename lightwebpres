@@ -31,8 +31,8 @@ rules + interface strings).
 Usage:
   lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr] [--output public/]
-  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--themes selectors|all]
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all] [--no-essential-theme]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres template update [directory] [--scaffold]
   lightwebpres template show <file>
@@ -47,7 +47,7 @@ Usage:
   lightwebpres series theme set [directory] --theme name
   lightwebpres theme gallery [path]
   lightwebpres clean [directory] [--output public/] [--force]
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all] [--no-essential-theme]
   lightwebpres completion --shell bash|zsh
   lightwebpres --version | --help | -h
 
@@ -7102,7 +7102,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var tagStorageKey = 'lwp-active-tag';
   var dots = [];
 
-  // Runtime themes are opt-in at build time. The page's CSS already carries
+  // Runtime themes are enabled by default at build time. The page's CSS already carries
   // the effective primary theme; this payload contains only differences from
   // it, plus the variable order. Pinned series/article/custom variables are
   // skipped when a choice is applied, so the presenter changes the palette
@@ -7511,7 +7511,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (presenterMenu) {
     Array.prototype.forEach.call(
       presenterMenu.querySelectorAll('[data-menu-action]'), function (button) {
-        button.addEventListener('click', function () {
+        button.addEventListener('click', function (e) {
+          // The document click handler closes an open help modal. Keep the
+          // intentional menu-to-help transition from bubbling into it.
+          e.stopPropagation();
           runMenuAction(button.getAttribute('data-menu-action'));
         });
       }
@@ -7541,7 +7544,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ['H', "{{str_help_open}}"],
     ['{{str_help_mouse_keys}}', "{{str_help_mouse}}"]
   ];
-  helpEntries.splice(5, 0, ['C', "{{str_help_theme}}"]);
+  if (themeAlternatives()) {
+    helpEntries.splice(5, 0, ['C', "{{str_help_theme}}"]);
+  }
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');
@@ -17707,9 +17712,9 @@ COMMANDS
     Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
     Creates a demo site
-  lightwebpres build [directory] [--lang fr] [--output public/] [--themes selectors|all]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--themes selectors|all] [--no-essential-theme]
     Builds the site (self-contained HTML)
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--themes selectors|all]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--themes selectors|all] [--no-essential-theme]
     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr] [--strict] [--templates]
     Renders the series in memory and reports everything worth a second
@@ -17762,7 +17767,7 @@ COMMANDS
     with a note, notes section, full article (default: themes-gallery.html)
   lightwebpres clean [directory] [--force]
     Purges orphan files from public/ using the build manifest
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all] [--no-essential-theme]
     Polls sources, rebuilds on change, optionally serves on 127.0.0.1
   lightwebpres --version
     Prints the version and exits

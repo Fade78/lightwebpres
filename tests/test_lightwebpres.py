@@ -8208,8 +8208,6 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIsNone(self._data(html),
                               '--no-essential-theme should produce no runtime payload')
-            self.assertIn(
-                'Changer de thème pendant la présentation (touche C)', html)
 
 
 class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
@@ -11563,11 +11561,22 @@ class HelpListsEveryAcceptedOption(unittest.TestCase):
         for needle in (
                 '--slides-page-numbers on|off',
                 '--templates',
+                '--no-essential-theme',
                 'build/watch/verify: do not generate the series navigation',
                 'build/watch: build only status: draft articles',
                 'restrict the audit to the presentation/template layer'):
             self.assertIn(needle, result.stdout, needle)
         self.assertIn('## Title', result.stdout)
+
+    def test_help_synopses_name_the_essential_opt_out(self):
+        commands = run('--help').stdout.split('OPTIONS', 1)[0]
+        for command in ('build', 'verify', 'watch'):
+            match = re.search(
+                rf'(?ms)^  lightwebpres {command} .*?(?=^  lightwebpres |\Z)',
+                commands)
+            self.assertIsNotNone(match, f'no {command} synopsis in --help')
+            self.assertIn('--no-essential-theme', match.group(0),
+                          f'{command} synopsis omits --no-essential-theme')
 
 
 class TypographyTagProtection(unittest.TestCase):

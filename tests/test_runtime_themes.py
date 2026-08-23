@@ -1,4 +1,4 @@
-"""End-to-end coverage for the opt-in runtime theme picker and menu."""
+"""End-to-end coverage for the runtime theme picker and menu."""
 
 import os
 import shutil
@@ -79,16 +79,46 @@ class RuntimeThemesBrowser(unittest.TestCase):
         cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
         cls.thread.start()
 
+        static_root = Path(cls.tmpdir.name) / 'static-series'
+        init = subprocess.run(
+            ['python3', str(LWP), 'init', str(static_root), '--theme', 'print-oldpress'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert init.returncode == 0, init.stdout + init.stderr
+        demo = subprocess.run(
+            ['python3', str(LWP), 'demo', str(static_root)],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert demo.returncode == 0, demo.stdout + demo.stderr
+        build = subprocess.run(
+            ['python3', str(LWP), 'build', str(static_root),
+             '--no-essential-theme'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert build.returncode == 0, build.stdout + build.stderr
+        static_output = static_root / 'public'
+        cls.static_httpd = HTTPServer(
+            ('127.0.0.1', 0),
+            lambda *args: _QuietHandler(*args, directory=str(static_output)),
+        )
+        cls.static_port = cls.static_httpd.server_address[1]
+        cls.static_thread = threading.Thread(
+            target=cls.static_httpd.serve_forever, daemon=True)
+        cls.static_thread.start()
+
     @classmethod
     def tearDownClass(cls):
         cls.httpd.shutdown()
         cls.thread.join(timeout=5)
+        cls.static_httpd.shutdown()
+        cls.static_thread.join(timeout=5)
         cls.tmpdir.cleanup()
 
     def test_picker_menu_and_session_theme_are_real_browser_behaviour(self):
         base = 'http://127.0.0.1:%d' % self.port
         result = subprocess.run(
-            ['node', str(SCRIPT), base],
+            ['node', str(SCRIPT), base,
+             'http://127.0.0.1:%d' % self.static_port],
             capture_output=True, text=True, timeout=120,
             env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
         )

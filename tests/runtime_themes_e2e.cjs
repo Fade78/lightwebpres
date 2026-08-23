@@ -1,4 +1,4 @@
-// Browser probe for the opt-in runtime theme payload, the C picker and the
+// Browser probe for the runtime theme payload, the C picker and the
 // global M menu. Invoked by tests/test_runtime_themes.py.
 
 const { chromium } = require('playwright');
@@ -9,7 +9,7 @@ function fail(message) {
 }
 
 async function main() {
-  const [base] = process.argv.slice(2);
+  const [base, staticBase] = process.argv.slice(2);
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -152,7 +152,47 @@ async function main() {
   if (!menu.open || menu.visibleActions !== 11) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
-  await page.keyboard.press('Escape');
+  await page.locator('[data-menu-action="help"]').click();
+  const helpFromMenu = await page.evaluate(() => ({
+    helpOpen: document.getElementById('helpOverlay').classList.contains('open'),
+    menuOpen: document.getElementById('presenterMenu').classList.contains('open'),
+  }));
+  if (!helpFromMenu.helpOpen || helpFromMenu.menuOpen) {
+    fail('the presenter menu Help action did not leave the help modal open: '
+      + JSON.stringify(helpFromMenu));
+  }
+  await page.keyboard.press('x');
+
+  if (staticBase) {
+    await page.goto(staticBase + '/index.html', { waitUntil: 'load' });
+    const staticPayload = await page.evaluate(() => ({
+      payload: !!document.getElementById('lwp-theme-data'),
+    }));
+    if (staticPayload.payload) {
+      fail('--no-essential-theme unexpectedly left a runtime payload: '
+        + JSON.stringify(staticPayload));
+    }
+    await page.keyboard.press('h');
+    const staticHelp = await page.evaluate(() => ({
+      open: document.getElementById('helpOverlay').classList.contains('open'),
+      themeLine: Array.prototype.some.call(
+        document.querySelectorAll('#helpList li'),
+        (li) => li.textContent.indexOf('Changer de thème pendant la présentation') !== -1
+      ),
+    }));
+    if (!staticHelp.open || staticHelp.themeLine) {
+      fail('static pages advertised a theme picker without alternatives: '
+        + JSON.stringify(staticHelp));
+    }
+    await page.keyboard.press('x');
+    await page.keyboard.press('c');
+    const staticPicker = await page.evaluate(() => ({
+      open: document.getElementById('themeMenu').classList.contains('open'),
+    }));
+    if (staticPicker.open) {
+      fail('C opened a picker on a static page: ' + JSON.stringify(staticPicker));
+    }
+  }
 
   await browser.close();
   if (errors.length) fail('page errors: ' + errors.join(' | '));

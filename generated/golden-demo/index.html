@@ -2691,7 +2691,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var tagStorageKey = 'lwp-active-tag';
   var dots = [];
 
-  // Runtime themes are opt-in at build time. The page's CSS already carries
+  // Runtime themes are enabled by default at build time. The page's CSS already carries
   // the effective primary theme; this payload contains only differences from
   // it, plus the variable order. Pinned series/article/custom variables are
   // skipped when a choice is applied, so the presenter changes the palette
@@ -3100,7 +3100,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (presenterMenu) {
     Array.prototype.forEach.call(
       presenterMenu.querySelectorAll('[data-menu-action]'), function (button) {
-        button.addEventListener('click', function () {
+        button.addEventListener('click', function (e) {
+          // The document click handler closes an open help modal. Keep the
+          // intentional menu-to-help transition from bubbling into it.
+          e.stopPropagation();
           runMenuAction(button.getAttribute('data-menu-action'));
         });
       }
@@ -3130,7 +3133,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ['H', "Ouvre la fenêtre d'aide"],
     ['Souris / Molette', "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler"]
   ];
-  helpEntries.splice(5, 0, ['C', "Changer de thème pendant la présentation (touche C)"]);
+  if (themeAlternatives()) {
+    helpEntries.splice(5, 0, ['C', "Changer de thème pendant la présentation (touche C)"]);
+  }
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');

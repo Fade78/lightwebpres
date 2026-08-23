@@ -74,6 +74,11 @@ overlay is now a real modal: it closes on any key or click (not just H and
 Escape), the footer is gone, and the `H` line in the help list says "Opens
 the help window" / "Ouvre la fenêtre d'aide".
 
+Choosing Help from the **M** presenter menu now opens that modal without the
+menu's closing click dismissing it again. Pages built with
+`--no-essential-theme` no longer advertise a `C` picker they do not carry,
+and the flag appears in the command synopsis as well as the full option list.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a
