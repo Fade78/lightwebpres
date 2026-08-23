@@ -30,12 +30,14 @@ async function main() {
       packs: data ? Object.keys(data.packs).sort() : [],
       helpTitle: document.getElementById('helpTitle').textContent,
       shareLabel: document.querySelector('[data-lwp-i18n="menu_share"]').textContent,
+      menuHelp: document.querySelector('[data-lwp-i18n="menu_help"]').textContent,
     };
   });
   if (french.htmlLang !== 'fr' || french.auto !== true
       || french.packs.join('|') !== 'en|fr'
       || french.helpTitle !== 'Raccourcis clavier'
-      || french.shareLabel !== 'Partager') {
+      || french.shareLabel !== 'Partager'
+      || french.menuHelp !== 'Aide') {
     fail('French browser locale did not select the French interface: '
       + JSON.stringify(french));
   }
@@ -53,11 +55,13 @@ async function main() {
     helpTitle: document.getElementById('helpTitle').textContent,
     shareLabel: document.querySelector('[data-lwp-i18n="menu_share"]').textContent,
     readLabel: document.querySelector('[data-lwp-i18n="series_read"]').textContent,
+    menuHelp: document.querySelector('[data-lwp-i18n="menu_help"]').textContent,
   }));
   if (english.htmlLang !== 'en'
       || english.helpTitle !== 'Keyboard shortcuts'
       || english.shareLabel !== 'Share'
-      || english.readLabel !== 'Read the article') {
+      || english.readLabel !== 'Read the article'
+      || english.menuHelp !== 'Help') {
     fail('English browser locale did not select the English interface: '
       + JSON.stringify(english));
   }
@@ -86,6 +90,19 @@ async function main() {
       || permanentMode.toast !== 'La navigation reste visible') {
     fail('mobile double tap did not announce permanent navigation: '
       + JSON.stringify(permanentMode));
+  }
+  await touchPage.keyboard.press('h');
+  const mobileHelp = await touchPage.evaluate(() => {
+    const keys = document.querySelector('.help-keys');
+    const desc = document.querySelector('.help-desc');
+    return {
+      open: document.getElementById('helpOverlay').classList.contains('open'),
+      keysWidth: keys ? keys.getBoundingClientRect().width : 0,
+      descWidth: desc ? desc.getBoundingClientRect().width : 0,
+    };
+  });
+  if (!mobileHelp.open || mobileHelp.descWidth <= mobileHelp.keysWidth) {
+    fail('mobile help columns are not balanced: ' + JSON.stringify(mobileHelp));
   }
   await touchContext.close();
   if (touchErrors.length) fail('Mobile page errors: ' + touchErrors.join(' | '));

@@ -1239,7 +1239,7 @@ LANG_FR = r'''{
     "menu_presenter": "Notes présentateur",
     "menu_tags": "Filtrer par tag",
     "menu_share": "Partager",
-    "menu_help": "Raccourcis clavier",
+    "menu_help": "Aide",
     "menu_pause_black": "Écran noir",
     "menu_pause_white": "Écran blanc",
     "menu_pause_theme": "Écran du thème",
@@ -1361,7 +1361,7 @@ LANG_EN = r'''{
     "menu_presenter": "Presenter notes",
     "menu_tags": "Filter by tag",
     "menu_share": "Share",
-    "menu_help": "Keyboard shortcuts",
+    "menu_help": "Help",
     "menu_pause_black": "Black screen",
     "menu_pause_white": "White screen",
     "menu_pause_theme": "Theme screen",
@@ -6550,6 +6550,15 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   .slide-num { right: 24px; }
   .nav-dots { display: none; }
   .nav-buttons { bottom: calc(16px + env(safe-area-inset-bottom)); right: 16px; }
+  /* The desktop key column is 220px. On a phone that leaves the help
+     description with only a narrow strip, so give the two columns a mobile
+     ratio instead of carrying the desktop fixed width into the card. */
+  .help-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 12px;
+  }
+  .help-keys, .help-desc { min-width: 0; }
 }
 
 /* Print / PDF ("Print this page", specifications.md §9.4): one slide per
