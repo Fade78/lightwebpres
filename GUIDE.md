@@ -51,8 +51,8 @@ lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
-Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, M
-for the presenter menu), mouse (click to
+Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, S
+for sharing, M for the presenter menu), mouse (click to
 advance, right-click to go back, middle button to enter or leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
  is one article card at a time. The navigation buttons form one lower-right
@@ -97,10 +97,13 @@ your series the moment you upgrade. You can still have them: `template
 show nav.js` prints one, `template write nav.js` installs one to modify
 (section 7).
 
-**Language is chosen per build, not stored in the project** — both packs
-are always inside the executable. Pass `--lang fr|en` to `build`/`demo`, or set
-`LWP_LANG`. French is the default, which is why the commands above say
-so explicitly.
+**Language has two layers.** Both packs are always inside the executable.
+Without an explicit `--lang` or `LWP_LANG`, the built page lets the browser
+choose its interface: `fr-*` locales get French and every other locale gets
+English. Pass `--lang fr|en` to `build`/`demo`, or set `LWP_LANG`, to lock the
+build-wide interface language. French is the default static fallback, which
+is why the commands above say so explicitly. The browser choice changes only
+interface strings; typography has already been applied during the build.
 
 `demo` only works after `init` and refuses to overwrite existing
 work. It drops three example articles (first, middle and last position in
@@ -273,11 +276,12 @@ For language-specific typography, map tags to packs in `series_meta`:
 }
 ```
 
-The first mapped language tag on a slide selects its pack. A slide without a
-mapped language tag uses the build's `--lang`/`LWP_LANG` fallback. The built-in
-`fr` and `en` packs come from the executable; another pack name refers to
-`language/<name>.json` in your series. `audit` reports invalid tags and missing packs without
-blocking, while `build` rejects malformed declarations.
+The first mapped language tag on a slide selects its typography pack. A slide
+without a mapped language tag uses the build's `--lang`/`LWP_LANG` fallback.
+The built-in `fr` and `en` packs come from the executable; another pack name
+refers to `language/<name>.json` in your series. The browser locale does not
+change this typography choice. `audit` reports invalid tags and missing packs
+without blocking, while `build` rejects malformed declarations.
 
 ## 4. Organizing a series
 
@@ -841,7 +845,8 @@ continuous movement, so a knock against the desk does not put it on the
 wall.
 
 On a phone or a tablet they fade after the same three seconds. A **double tap**
-switches to permanent navigation, or back to auto-hide with a fresh countdown.
+switches to permanent navigation, or back to auto-hide with a fresh countdown;
+a short localized toast names the mode just selected.
 A touch or a scroll restarts the countdown while they are still
 up, so they never vanish under your finger; once they are gone they no
 longer answer a touch at all, so the corner of your own text is safe to

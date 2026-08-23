@@ -29,7 +29,7 @@
 
 **§7. Langue (typographie et interface)**
 
-7.1 Fichier de langue · 7.2 Règles typographiques · 7.3 Chaînes d'interface (strings) · 7.4 Override et repli · 7.5 Règles insécables par défaut (`fr`) · 7.6 Préservation d'une espace insécable déjà présente dans la source
+7.1 Fichier de langue · 7.2 Règles typographiques · 7.3 Chaînes d'interface (strings) · 7.4 Override et repli · 7.5 Règles insécables par défaut (`fr`) · 7.6 Préservation d'une espace insécable déjà présente dans la source · 7.7 Choix runtime de la langue d'interface
 
 **§8. Pages calculées**
 
@@ -1820,6 +1820,27 @@ pas seulement l'absence de règle qui la supprimerait :
   un jeu de caractères de trim explicite (espace, tabulation, retours à la
   ligne) partout où une valeur d'auteur est extraite, jamais un trim par
   défaut.
+
+### 7.7 Choix runtime de la langue d'interface
+
+Un build auquel aucune langue n'a été explicitement imposée par `--lang` ou
+`LWP_LANG` embarque les chaînes d'interface françaises et anglaises. Au
+chargement de la page, la première valeur de `navigator.languages` (ou
+`navigator.language` si la liste est absente) choisit le vocabulaire : une
+locale dont le préfixe est `fr` choisit `fr`, toute autre locale choisit `en`.
+`fr-FR` et `fr_CA` sont donc françaises ; une locale non livrée ne produit pas
+de troisième état partiellement traduit.
+
+Un `--lang` ou un `LWP_LANG` explicite désactive ce choix automatique et fixe
+la langue du build, y compris pour le vocabulaire runtime. La valeur initiale
+écrite dans le HTML reste celle du build afin que la page ait un rendu
+cohérent avant l'exécution du script ; le script met ensuite à jour les
+surfaces d'interface marquées et l'attribut `lang` du document.
+
+Cette sélection ne concerne que les chaînes d'interface. Les règles de
+`rules` ont déjà transformé le contenu au build (§7.2) et ne sont jamais
+réexécutées dans le navigateur : changer de locale ne change donc ni les
+espaces insécables, ni les unités, ni la typographie d'un texte déjà généré.
 
 ---
 

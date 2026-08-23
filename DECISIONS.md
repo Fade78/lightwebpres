@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 40 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 2 · **en cours** 0 · **terminé** 41 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -113,6 +113,7 @@ gets its own entry and its own state**, however small.
 ### à faire
 
 - **B27** — The default sheet fails the navigation floor its own test enforces
+- **B48** — Séparer physiquement l’interface et la typographie
 
 ### terminé
 
@@ -156,6 +157,7 @@ gets its own entry and its own state**, however small.
 - **B45** — Series JSON can choose a runtime theme catalogue
 - **B46** — Help carries permanent provenance and names the theme shortcut
 - **B47** — Essential themes ship by default
+- **B49** — La locale du navigateur choisit seulement l’interface
 
 ### abandonné
 
@@ -2419,3 +2421,49 @@ click rather than only on H and Escape. The footer is gone, the version
 stamp is always present, and the `H` line in the help list says "Opens the
 help window" / "Ouvre la fenêtre d'aide" — the overlay is a window the
 reader opens, not a state the deck enters.
+
+## B48 — Séparer physiquement l’interface et la typographie
+
+**État :** à faire
+
+The language packs currently travel as one object: `rules` are the build-time
+typography engine and `strings` are the interface vocabulary. That is useful
+for the executable's built-in fallback and for the existing
+`language/{lang}.json` override, but it makes the two lifecycles look like one
+thing when a series wants to distribute or replace only its interface.
+
+The chosen direction is physical separation, not a second conceptual layer in
+the same JSON file: `interface/{lang}.json` for UI strings and
+`typography/{lang}.json` for rules. The built-in French and English packs stay
+available, and the loader remains the single compatibility boundary. The
+migration must cover local overrides, `--language-file`, `LWP_LANGUAGE_DIR`,
+`init`/template write, `--lang`, `series_meta.lang_tags`, runtime payloads,
+documentation and the guards that prove a split pack cannot silently change
+the typography selected for a slide.
+
+No file layout has changed in this lot. This entry is the recorded task, so a
+future implementation does not mistake the browser payload for the physical
+separation that was chosen.
+
+## B49 — La locale du navigateur choisit seulement l’interface
+
+**État :** terminé · **Depuis :** 2026-08-24
+
+When a build has not explicitly fixed its language, the first browser locale
+selects the interface at page load: a locale beginning with `fr` selects the
+French pack; every other locale selects English. This is deliberately a
+two-way rule, so `fr-FR` and `fr_CA` are French while an unsupported locale
+does not create a half-translated page. An explicit `--lang` or `LWP_LANG`
+keeps the build language and disables that automatic choice.
+
+Only interface strings cross the runtime boundary. Typography rules have
+already been applied to authored content and are not re-run when the reader's
+locale changes. The page embeds the French and English string dictionaries,
+marks translated HTML surfaces and updates visible text, labels, titles and
+the help/navigation runtime after the DOM is ready.
+
+**What is verified.** The browser probe opens the same build with `fr-FR` and
+`en-US` contexts and checks the HTML language, help title, share label and
+article CTA. Unit coverage keeps the two built-in vocabularies in parity,
+checks the runtime payload and preserves the explicit build-language path;
+`python3 tests/run_tests.py` passes with 1013 tests in 185 classes.

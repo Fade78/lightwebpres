@@ -1248,6 +1248,41 @@ class Axis4CommandGaps(unittest.TestCase):
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn('Read the article', html)
 
+    def test_implicit_build_embeds_both_runtime_interface_packs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            match = re.search(
+                r'<script id="lwp-language-data" type="application/json">'
+                r'(.*?)</script>', html, re.S)
+            self.assertIsNotNone(match)
+            data = json.loads(match.group(1))
+            self.assertEqual(data['default'], 'fr')
+            self.assertTrue(data['auto'])
+            self.assertEqual(set(data['packs']), {'fr', 'en'})
+            self.assertEqual(data['packs']['fr']['strings']['menu_share'],
+                             'Partager')
+            self.assertEqual(data['packs']['en']['strings']['menu_share'],
+                             'Share')
+
+    def test_explicit_build_language_locks_runtime_interface_choice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            result = run('build', str(root), '--lang', 'en',
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            match = re.search(
+                r'<script id="lwp-language-data" type="application/json">'
+                r'(.*?)</script>', html, re.S)
+            self.assertIsNotNone(match)
+            data = json.loads(match.group(1))
+            self.assertEqual(data['default'], 'en')
+            self.assertFalse(data['auto'])
+            self.assertEqual(html.count('<html lang="en">'), 1)
+
     def test_html_lang_attribute_follows_lang(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
@@ -1353,8 +1388,12 @@ class Axis4CommandGaps(unittest.TestCase):
             self.assertEqual(run('init', str(root)).returncode, 0)
             self.assertEqual(run('demo', str(root), '--lang', 'en').returncode, 0)
             index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('Read the article', index)
-            self.assertNotIn("Lire l'article", index)
+            self.assertIn(
+                '<span data-lwp-i18n="series_read">Read the article</span>',
+                index)
+            self.assertNotIn(
+                '<span data-lwp-i18n="series_read">Lire l\'article</span>',
+                index)
 
     def test_empty_string_page_source_is_fatal(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2507,9 +2546,13 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             # French UI strings: the CTA on the index card is in French.
-            self.assertIn('Lire l', html)
+            self.assertIn(
+                '<span data-lwp-i18n="series_read">Lire l\'article</span>',
+                html)
             # English would have said "Read" instead.
-            self.assertNotIn('Read the article', html)
+            self.assertNotIn(
+                '<span data-lwp-i18n="series_read">Read the article</span>',
+                html)
 
     def test_quiet_suppresses_info_messages(self):
         # --quiet suppresses [INFO] progress messages (DECISION §4).
@@ -8155,23 +8198,25 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             stamp = (
-                '<div class="help-stamp">Compilé avec '
+                '<div class="help-stamp"><span '
+                'data-lwp-i18n="help_stamp">Compilé avec</span> '
                 f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>')
             self.assertIn(stamp, html)
             self.assertNotIn('class="help-foot"', html)
             self.assertIn('role="dialog"', html)
             self.assertIn('aria-labelledby="helpTitle"', html)
             self.assertIn(
-                'Changer de thème pendant la présentation (touche C)', html)
-            self.assertIn("Ouvre la fenêtre d'aide", html)
+                "lwpString('help_theme')", html)
+            self.assertIn("lwpString('help_open')", html)
             result = run('build', str(root), '--lang', 'en', '--themes', 'print-ink')
             self.assertEqual(result.returncode, 0, result.stderr)
             english = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIn(
-                f'<div class="help-stamp">Compiled with '
+                f'<div class="help-stamp"><span '
+                f'data-lwp-i18n="help_stamp">Compiled with</span> '
                 f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>',
                 english)
-            self.assertIn('Opens the help window', english)
+            self.assertIn("lwpString('help_open')", english)
 
     def test_default_build_embeds_essential_and_c_is_functional(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -10338,11 +10383,17 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         # assertion passed while the page shipped a line nobody wrote.
         # With the render guard setting the whole script aside, that line
         # would have had nothing else looking at it.
-        blocks = re.findall(r'<script\b[^>]*>(.*?)</script>', article, re.S)
+        blocks = [block for attrs, block in re.findall(
+            r'<script\b([^>]*)>(.*?)</script>', article, re.S)
+            if not re.search(r'\btype\s*=\s*["\']application/json["\']',
+                             attrs, re.I)]
         self.assertEqual(len(blocks), 1, f'{len(blocks)} script blocks')
         self.assertEqual(blocks[0].strip(), expected.strip(),
                          'the page is not carrying exactly the tool\'s nav.js')
-        index_blocks = re.findall(r'<script\b[^>]*>(.*?)</script>', index, re.S)
+        index_blocks = [block for attrs, block in re.findall(
+            r'<script\b([^>]*)>(.*?)</script>', index, re.S)
+            if not re.search(r'\btype\s*=\s*["\']application/json["\']',
+                             attrs, re.I)]
         self.assertEqual(len(index_blocks), 1,
                          f'{len(index_blocks)} script blocks on the index')
         self.assertEqual(index_blocks[0].strip(), expected.strip(),
@@ -10402,9 +10453,11 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             with self.subTest(action=action):
                 self.assertIn('<svg ', body, button)
                 self.assertIn('class="presenter-menu-label"', body, button)
-                if action != 'share':
-                    self.assertRegex(attrs, r'aria-keyshortcuts="[^"]+"', button)
-                    self.assertIn('<kbd>', body, button)
+                self.assertRegex(attrs, r'aria-keyshortcuts="[^"]+"', button)
+                self.assertIn('<kbd>', body, button)
+        share = next(item for item in actions if item[1] == 'share')
+        self.assertIn('aria-keyshortcuts="S"', share[2])
+        self.assertIn('<kbd>S</kbd>', share[3])
 
     def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
         """The narrower statement the sweep cannot make: measuring a
@@ -13281,6 +13334,7 @@ class I18nParity(unittest.TestCase):
         fr, en, src = self._packs_and_source()
         used = set(re.findall(r"strings\.get\('([a-z_0-9]+)'", src))
         used |= set(re.findall(r"\{\{str_([a-z_0-9]+)\}\}", src))
+        used |= set(re.findall(r"lwpString\(['\"]([a-z_0-9]+)['\"]\)", src))
         self.assertFalse(used - set(fr['strings']), 'referenced but missing from fr')
         self.assertFalse(used - set(en['strings']), 'referenced but missing from en')
         dead = set(fr['strings']) - used
@@ -13294,7 +13348,7 @@ class I18nParity(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'), '--lang', 'en')
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            self.assertIn("btn.title = 'Link copied!'", html)
+            self.assertIn("btn.title = lwpString('copy_link_done')", html)
 
 
 class NativeUtf8EndToEnd(unittest.TestCase):

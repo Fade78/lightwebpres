@@ -53,6 +53,14 @@ async function main() {
     if (!openedByKeyboard) fail('Enter on the focused share button must open the popover');
     await page.keyboard.press('Escape');
 
+    // S is the direct keyboard entry point for the same action. It must work
+    // after the menu has closed, without requiring a pointer or focus on the
+    // menu button.
+    await page.keyboard.press('s');
+    const openedByShortcut = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
+    if (!openedByShortcut) fail('S must open the share popover');
+    await page.keyboard.press('Escape');
+
     // 1. Opening the popover on the cover slide (current === 0): the
     // "Fiche" column must be ENABLED — a cover is a card with an id of
     // its own, shareable like any other (§9.3.4). The address bar hides

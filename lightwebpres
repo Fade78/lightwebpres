@@ -1256,12 +1256,15 @@ LANG_FR = r'''{
     "help_theme": "Changer de thème pendant la présentation (touche C)",
     "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
     "help_speaker": "Panneau présentateur : notes + slide suivante",
+    "help_share": "Partager le lien courant (touche S)",
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
     "help_mouse_keys": "Souris / Molette",
     "help_jump": "Aller à la slide N (puis Entrée)",
     "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
     "help_open": "Ouvre la fenêtre d'aide",
-    "help_stamp": "Compilé avec"
+    "help_stamp": "Compilé avec",
+    "nav_mode_permanent": "Navigation permanente",
+    "nav_mode_auto": "Navigation automatique"
   }
 }'''
 
@@ -1375,12 +1378,15 @@ LANG_EN = r'''{
     "help_theme": "Change theme during the presentation (C key)",
     "help_pause": "Pause screen: black (B), white (W), theme (T)",
     "help_speaker": "Speaker panel: notes + next slide",
+    "help_share": "Share the current link (S key)",
     "help_jump_keys": "0&ndash;9 + Enter",
     "help_mouse_keys": "Mouse / Wheel",
     "help_jump": "Jump to slide N (then Enter)",
     "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
     "help_open": "Opens the help window",
-    "help_stamp": "Compiled with"
+    "help_stamp": "Compiled with",
+    "nav_mode_permanent": "Navigation always visible",
+    "nav_mode_auto": "Navigation auto-hide"
   }
 }'''
 
@@ -4618,6 +4624,42 @@ def _theme_runtime_markup(runtime, style_context=None, page_props=None):
             payload + '</script>\n')
 
 
+def _language_runtime_markup(lang_dir, default_lang, default_pack,
+                            language_file=None, auto=False):
+    """Embeds the interface strings needed by the browser.
+
+    Typography rules stay build-time data. The browser only needs the two
+    interface vocabularies, so a locale choice cannot accidentally re-run a
+    trusted regex pack against authored content. The default pack is included
+    under its requested id as well: a custom ``--lang`` such as ``de`` must
+    keep its existing static-page behaviour when browser selection is locked.
+    """
+    packs = {}
+    for code in ('fr', 'en'):
+        override = language_file if code.casefold() == str(default_lang).casefold() else None
+        pack = load_language(lang_dir, code, override)
+        packs[code] = {
+            'name': pack.get('name', code),
+            'strings': pack.get('strings', {}),
+        }
+    default_id = str(default_lang)
+    if default_id not in packs:
+        packs[default_id] = {
+            'name': default_pack.get('name', default_id),
+            'strings': default_pack.get('strings', {}),
+        }
+    data = {
+        'version': 1,
+        'default': default_id,
+        'auto': bool(auto),
+        'packs': packs,
+    }
+    payload = json.dumps(data, ensure_ascii=True, separators=(',', ':'))
+    payload = payload.replace('<', '\\u003c')
+    return ('<script id="lwp-language-data" type="application/json">' +
+            payload + '</script>\n')
+
+
 def _reference_target(prop, value):
     """The property `value` points at, or None if it is a literal.
 
@@ -5894,6 +5936,29 @@ body.fs-noselect {
 :root.nav-idle { scrollbar-color: transparent transparent; }
 .nav-buttons.idle { opacity: 0; }
 .nav-buttons.idle:hover { opacity: 1; }
+.nav-mode-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom) + 64px);
+  z-index: 260;
+  max-width: calc(100vw - 32px);
+  padding: 8px 14px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 999px;
+  background: inherit;
+  color: inherit;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: visibility 0s linear 0.18s, transform 0.18s;
+  white-space: nowrap;
+}
+.nav-mode-toast.show {
+  visibility: visible;
+  transition-delay: 0s;
+  transform: translate(-50%, 0);
+}
 /* Faded chrome must also stop answering the finger. `opacity: 0` hides a
    thing without disarming it, and with a mouse that is harmless — the
    hover rule above brings it back before any click can land. There is no
@@ -7107,7 +7172,83 @@ function qrEncode(text, errorCorrectLevel) {
   return qrEncode;
 })();
 
+// Interface strings are the one part of a language pack that can change in
+// the browser. Typography rules were already applied by the build and never
+// cross this boundary.
+var lwpLanguageData = null;
+var lwpLanguageStrings = {};
+(function () {
+  var node = document.getElementById('lwp-language-data');
+  if (!node) return;
+  try { lwpLanguageData = JSON.parse(node.textContent || ''); }
+  catch (e) { lwpLanguageData = null; }
+  if (!lwpLanguageData || !lwpLanguageData.packs) return;
+  var initial = lwpLanguageData.default || 'en';
+  var pack = lwpLanguageData.packs[initial];
+  if (pack && pack.strings) {
+    lwpLanguageStrings = pack.strings;
+  }
+})();
+function lwpString(key) {
+  return lwpLanguageStrings && typeof lwpLanguageStrings[key] === 'string'
+    ? lwpLanguageStrings[key] : '';
+}
+function lwpBrowserLanguage() {
+  var languages = [];
+  if (typeof navigator !== 'undefined') {
+    if (navigator.languages && navigator.languages.length) {
+      languages = navigator.languages;
+    } else if (navigator.language) {
+      languages = [navigator.language];
+    }
+  }
+  var first = String(languages[0] || '').toLowerCase();
+  return /^fr(?:[-_]|$)/.test(first) ? 'fr' : 'en';
+}
+function lwpSetLanguage(code) {
+  if (!lwpLanguageData || !lwpLanguageData.packs) return;
+  var pack = lwpLanguageData.packs[code];
+  if (!pack || !pack.strings) return;
+  lwpLanguageStrings = pack.strings;
+  document.documentElement.setAttribute('lang', code);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-lwp-i18n]'), function (element) {
+    var value = lwpString(element.getAttribute('data-lwp-i18n'));
+    if (value !== '') element.textContent = value;
+  });
+  [['title', 'data-lwp-i18n-title'],
+   ['aria-label', 'data-lwp-i18n-aria-label'],
+   ['placeholder', 'data-lwp-i18n-placeholder']].forEach(function (pair) {
+    Array.prototype.forEach.call(document.querySelectorAll('[' + pair[1] + ']'), function (element) {
+      var value = lwpString(element.getAttribute(pair[1]));
+      if (value !== '') element.setAttribute(pair[0], value);
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-lwp-share-title]'), function (button) {
+    var action = lwpString(button.getAttribute('data-lwp-share-title'));
+    var scope = lwpString(button.getAttribute('data-lwp-share-scope'));
+    if (action && scope) button.title = action + ' — ' + scope;
+  });
+  // Source labels are followed by authored text, so update only the leading
+  // text node and preserve the build's typographic spacing before the colon.
+  Array.prototype.forEach.call(document.querySelectorAll('.source'), function (element) {
+    var node = element.firstChild;
+    if (!node || node.nodeType !== 3) return;
+    var colon = node.nodeValue.indexOf(':');
+    if (colon < 0) return;
+    var before = node.nodeValue.slice(0, colon);
+    var whitespace = (before.match(/\s*$/) || [''])[0];
+    node.nodeValue = lwpString('source_label') + whitespace + node.nodeValue.slice(colon);
+  });
+}
+function lwpChooseInitialLanguage() {
+  if (!lwpLanguageData || !lwpLanguageData.packs) return;
+  var code = lwpLanguageData.auto ? lwpBrowserLanguage() : lwpLanguageData.default;
+  if (!lwpLanguageData.packs[code]) code = lwpLanguageData.default;
+  lwpSetLanguage(code);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  lwpChooseInitialLanguage();
 (function(){
   var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
   var slides   = allSlides.slice();
@@ -7293,7 +7434,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       tagMenuList.appendChild(button);
     });
-    if (tagMenuTitle) tagMenuTitle.textContent = '{{str_tags_menu}}';
+    if (tagMenuTitle) tagMenuTitle.textContent = lwpString('tags_menu');
   }
 
   function updateTagMenu() {
@@ -7360,7 +7501,7 @@ document.addEventListener('DOMContentLoaded', function() {
       a.href = '#' + (slide.id || ('s' + (i + 1)));
       var kickerEl = slide.querySelector('.slide-kicker');
       var headEl = slide.querySelector('h2, h1');
-      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : ('{{str_nav_dot_fallback}} ' + (i + 1)));
+      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : (lwpString('nav_dot_fallback') + ' ' + (i + 1)));
       a.addEventListener('click', function(e){ e.preventDefault(); goTo(i); });
       navDots.appendChild(a);
     });
@@ -7671,20 +7812,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Help overlay (key H): every keyboard shortcut and gesture, built once.
   var helpEntries = [
-    ['&darr; / PageDown / &rarr;', "{{str_help_next}}"],
-    ['&uarr; / PageUp / &larr; / Backspace', "{{str_help_prev}}"],
-    ['Home', "{{str_help_home}}"],
-    ['F', "{{str_help_fullscreen}}"],
-    ['M', "{{str_help_menu}}"],
-    ['B / W / T', "{{str_help_pause}}"],
-    ['N', "{{str_help_speaker}}"],
-    ['L', "{{str_help_tags}}"],
-    ['{{str_help_jump_keys}}', "{{str_help_jump}}"],
-    ['H', "{{str_help_open}}"],
-    ['{{str_help_mouse_keys}}', "{{str_help_mouse}}"]
+    ['&darr; / PageDown / &rarr;', lwpString('help_next')],
+    ['&uarr; / PageUp / &larr; / Backspace', lwpString('help_prev')],
+    ['Home', lwpString('help_home')],
+    ['F', lwpString('help_fullscreen')],
+    ['M', lwpString('help_menu')],
+    ['B / W / T', lwpString('help_pause')],
+    ['N', lwpString('help_speaker')],
+    ['L', lwpString('help_tags')],
+    ['S', lwpString('help_share')],
+    [lwpString('help_jump_keys'), lwpString('help_jump')],
+    ['H', lwpString('help_open')],
+    [lwpString('help_mouse_keys'), lwpString('help_mouse')]
   ];
   if (themeAlternatives()) {
-    helpEntries.splice(5, 0, ['C', "{{str_help_theme}}"]);
+    helpEntries.splice(5, 0, ['C', lwpString('help_theme')]);
   }
   if (helpList) {
     helpEntries.forEach(function (e) {
@@ -7745,7 +7887,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var t = s.querySelector('.slide-kicker');
     if (t) return t.textContent;
     var h = s.querySelector('h2, h1');
-    return h ? h.textContent : ('{{str_nav_dot_fallback}} ' + (i + 1));
+    return h ? h.textContent : (lwpString('nav_dot_fallback') + ' ' + (i + 1));
   }
 
   function updateCounter() {
@@ -7778,7 +7920,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (presenterNext) {
       presenterNext.textContent = (current + 1 < slides.length)
-        ? '{{str_presenter_next}} ' + slideTitle(current + 1)
+        ? lwpString('presenter_next') + ' ' + slideTitle(current + 1)
         : '—';
     }
   }
@@ -8271,6 +8413,8 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); togglePresenter();
     } else if (e.key === 'l' || e.key === 'L') {
       e.preventDefault(); toggleTagMenu();
+    } else if (e.key === 's' || e.key === 'S') {
+      e.preventDefault(); toggleSharePopover();
     } else if (e.key === 'h' || e.key === 'H') {
       e.preventDefault(); toggleHelp();
     }
@@ -8420,13 +8564,13 @@ document.addEventListener('DOMContentLoaded', function() {
           var originalTitle = btn.title;
           var done = function () {
             btn.textContent = '✓';
-            btn.title = '{{str_copy_link_done}}';
+            btn.title = lwpString('copy_link_done');
             setTimeout(function () { btn.textContent = original; btn.title = originalTitle; }, 1600);
           };
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(url).then(done, function () { window.prompt('{{str_copy_prompt}}', url); });
+            navigator.clipboard.writeText(url).then(done, function () { window.prompt(lwpString('copy_prompt'), url); });
           } else {
-            window.prompt('{{str_copy_prompt}}', url);
+            window.prompt(lwpString('copy_prompt'), url);
           }
         } else if (action === 'qr' && qrModal && qrModalContent) {
           qrModalContent.innerHTML = qrToSvg(url);
@@ -8879,6 +9023,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // the visibility of both the pagination dots and the nav buttons.
   // This lets the speaker hide all distracting chrome on a large screen.
   var navButtons = document.querySelector('.nav-buttons');
+  var navModeToast = document.getElementById('navModeToast');
+  var navModeToastTimer = null;
   function setNavIdle(isIdle) {
     if (navButtons) navButtons.classList.toggle('idle', isIdle);
     if (navDots) navDots.classList.toggle('idle', isIdle);
@@ -8929,8 +9075,23 @@ document.addEventListener('DOMContentLoaded', function() {
     setNavIdle(false);
     if (autoHide) scheduleHide();
   }
+  function showNavModeToast(autoHide) {
+    if (!navModeToast) return;
+    if (navModeToastTimer) clearTimeout(navModeToastTimer);
+    if (autoHide) {
+      navModeToast.textContent = lwpString('nav_mode_auto');
+    } else {
+      navModeToast.textContent = lwpString('nav_mode_permanent');
+    }
+    navModeToast.classList.add('show');
+    navModeToastTimer = setTimeout(function () {
+      navModeToast.classList.remove('show');
+      navModeToastTimer = null;
+    }, 1800);
+  }
   function toggleNavMode() {
     setNavMode(!navAutoHide);
+    showNavModeToast(navAutoHide);
   }
   function scheduleHide() {
     if (idleTimer) clearTimeout(idleTimer);
@@ -9018,7 +9179,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 
 <div class="slide-counter" id="slideCounter"></div>
 <div class="presenter-panel" id="presenterPanel" role="region"
-     aria-label="{{str_presenter_label}}" tabindex="0">
+     aria-label="{{str_presenter_label}}"
+     data-lwp-i18n-aria-label="presenter_label" tabindex="0">
   <div class="pp-head" id="presenterHead"></div>
   <div class="pp-notes" id="presenterNotes" aria-live="polite"></div>
   <div class="pp-next" id="presenterNext"></div>
@@ -9027,52 +9189,52 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true"
      aria-labelledby="helpTitle">
   <div class="help-card" tabindex="0">
-    <div class="help-title" id="helpTitle">{{str_help_title}}</div>
+    <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">{{str_help_title}}</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp">{{str_help_stamp}} <strong>LightWebPres</strong> v{{lightwebpres_version}}</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">{{str_help_stamp}}</span> <strong>LightWebPres</strong> v{{lightwebpres_version}}</div>
   </div>
 </div>
 
 <div class="presenter-menu" id="presenterMenu" role="dialog" aria-modal="true"
      aria-labelledby="presenterMenuTitle">
   <div class="presenter-menu-card">
-    <div class="presenter-menu-title" id="presenterMenuTitle">{{str_menu_title}}</div>
+    <div class="presenter-menu-title" id="presenterMenuTitle" data-lwp-i18n="menu_title">{{str_menu_title}}</div>
     <div class="presenter-menu-actions">
       <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">
-        {{icon_prev}}<span class="presenter-menu-label">{{str_menu_prev}}</span><kbd>↑ / ← / PgUp / ⌫</kbd>
+        {{icon_prev}}<span class="presenter-menu-label" data-lwp-i18n="menu_prev">{{str_menu_prev}}</span><kbd>Page Up</kbd>
       </button>
       <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Home">
-        {{icon_home}}<span class="presenter-menu-label">{{str_menu_home}}</span><kbd>Home</kbd>
+        {{icon_home}}<span class="presenter-menu-label" data-lwp-i18n="menu_home">{{str_menu_home}}</span><kbd>Home</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown">
-        {{icon_next}}<span class="presenter-menu-label">{{str_menu_next}}</span><kbd>↓ / → / PgDn</kbd>
+        {{icon_next}}<span class="presenter-menu-label" data-lwp-i18n="menu_next">{{str_menu_next}}</span><kbd>Page Down</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuFullscreen" data-menu-action="fullscreen" aria-keyshortcuts="F">
-        {{icon_fullscreen}}<span class="presenter-menu-label">{{str_menu_fullscreen}}</span><kbd>F</kbd>
+        {{icon_fullscreen}}<span class="presenter-menu-label" data-lwp-i18n="menu_fullscreen">{{str_menu_fullscreen}}</span><kbd>F</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuTheme" data-menu-action="theme" aria-keyshortcuts="C">
-        {{icon_theme}}<span class="presenter-menu-label">{{str_menu_theme}}</span><kbd>C</kbd>
+        {{icon_theme}}<span class="presenter-menu-label" data-lwp-i18n="menu_theme">{{str_menu_theme}}</span><kbd>C</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuPresenter" data-menu-action="presenter" aria-keyshortcuts="N">
-        {{icon_presenter}}<span class="presenter-menu-label">{{str_menu_presenter}}</span><kbd>N</kbd>
+        {{icon_presenter}}<span class="presenter-menu-label" data-lwp-i18n="menu_presenter">{{str_menu_presenter}}</span><kbd>N</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuTags" data-menu-action="tags" aria-keyshortcuts="L">
-        {{icon_tags}}<span class="presenter-menu-label">{{str_menu_tags}}</span><kbd>L</kbd>
+        {{icon_tags}}<span class="presenter-menu-label" data-lwp-i18n="menu_tags">{{str_menu_tags}}</span><kbd>L</kbd>
       </button>
-      <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share">
-        {{icon_share}}<span class="presenter-menu-label">{{str_menu_share}}</span>
+      <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share" aria-keyshortcuts="S">
+        {{icon_share}}<span class="presenter-menu-label" data-lwp-i18n="menu_share">{{str_menu_share}}</span><kbd>S</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuHelp" data-menu-action="help" aria-keyshortcuts="H">
-        {{icon_help}}<span class="presenter-menu-label">{{str_menu_help}}</span><kbd>H</kbd>
+        {{icon_help}}<span class="presenter-menu-label" data-lwp-i18n="menu_help">{{str_menu_help}}</span><kbd>H</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuPauseBlack" data-menu-action="pause-black" aria-keyshortcuts="B">
-        {{icon_pause}}<span class="presenter-menu-label">{{str_menu_pause_black}}</span><kbd>B</kbd>
+        {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_black">{{str_menu_pause_black}}</span><kbd>B</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuPauseWhite" data-menu-action="pause-white" aria-keyshortcuts="W">
-        {{icon_pause}}<span class="presenter-menu-label">{{str_menu_pause_white}}</span><kbd>W</kbd>
+        {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_white">{{str_menu_pause_white}}</span><kbd>W</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuPauseTheme" data-menu-action="pause-theme" aria-keyshortcuts="T">
-        {{icon_pause}}<span class="presenter-menu-label">{{str_menu_pause_theme}}</span><kbd>T</kbd>
+        {{icon_pause}}<span class="presenter-menu-label" data-lwp-i18n="menu_pause_theme">{{str_menu_pause_theme}}</span><kbd>T</kbd>
       </button>
     </div>
   </div>
@@ -9081,68 +9243,72 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <div class="theme-menu" id="themeMenu" role="dialog" aria-modal="true"
      aria-labelledby="themeMenuTitle">
   <div class="theme-menu-card">
-    <div class="theme-menu-title" id="themeMenuTitle">{{str_theme_menu_title}}</div>
-    <p class="theme-menu-help">{{str_theme_menu_help}}</p>
+    <div class="theme-menu-title" id="themeMenuTitle" data-lwp-i18n="theme_menu_title">{{str_theme_menu_title}}</div>
+    <p class="theme-menu-help" data-lwp-i18n="theme_menu_help">{{str_theme_menu_help}}</p>
     <input type="search" class="theme-filter" id="themeFilter"
            aria-label="{{str_theme_menu_filter}}"
-           placeholder="{{str_theme_menu_filter}}" autocomplete="off">
+           data-lwp-i18n-aria-label="theme_menu_filter"
+           placeholder="{{str_theme_menu_filter}}"
+           data-lwp-i18n-placeholder="theme_menu_filter" autocomplete="off">
     <div class="theme-options" id="themeOptions" role="listbox"
-         aria-label="{{str_theme_menu_title}}"></div>
-    <div class="theme-menu-foot">{{str_theme_menu_close}}</div>
+         aria-label="{{str_theme_menu_title}}"
+         data-lwp-i18n-aria-label="theme_menu_title"></div>
+    <div class="theme-menu-foot" data-lwp-i18n="theme_menu_close">{{str_theme_menu_close}}</div>
   </div>
 </div>
 
 <div class="nav-buttons">
   <div class="nav-row nav-row-fullscreen">
-    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}" aria-keyshortcuts="F">{{icon_fullscreen}}</div>
+    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" data-lwp-i18n-title="nav_fullscreen" aria-label="{{str_nav_fullscreen}}" data-lwp-i18n-aria-label="nav_fullscreen" aria-keyshortcuts="F">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-up">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">{{icon_prev}}</div>
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" data-lwp-i18n-title="nav_prev" aria-label="{{str_nav_prev}}" data-lwp-i18n-aria-label="nav_prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">{{icon_prev}}</div>
   </div>
   <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}" aria-keyshortcuts="ArrowDown ArrowRight PageDown">{{icon_next}}</div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" data-lwp-i18n-title="nav_next" aria-label="{{str_nav_next}}" data-lwp-i18n-aria-label="nav_next" aria-keyshortcuts="ArrowDown ArrowRight PageDown">{{icon_next}}</div>
   </div>
   <div class="nav-row nav-row-menu">
-    <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="{{str_menu_title}}" aria-label="{{str_menu_title}}">{{icon_menu}}</div>
+    <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="{{str_menu_title}}" data-lwp-i18n-title="menu_title" aria-label="{{str_menu_title}}" data-lwp-i18n-aria-label="menu_title">{{icon_menu}}</div>
   </div>
 </div>
+<div class="nav-mode-toast" id="navModeToast" role="status" aria-live="polite"></div>
 
-<div class="tag-menu" id="tagMenu" role="dialog" aria-label="{{str_tags_menu}}">
-  <div class="tag-menu-title" id="tagMenuTitle">{{str_tags_menu}}</div>
+<div class="tag-menu" id="tagMenu" role="dialog" aria-label="{{str_tags_menu}}" data-lwp-i18n-aria-label="tags_menu">
+  <div class="tag-menu-title" id="tagMenuTitle" data-lwp-i18n="tags_menu">{{str_tags_menu}}</div>
   <div class="tag-menu-list" id="tagMenuList"></div>
 </div>
 
 <div class="share-popover" id="sharePopover">
   <div class="share-matrix">
     <div class="share-cell"></div>
-    <div class="share-cell share-cell-head">{{str_share_scope_series}}</div>
-    <div class="share-cell share-cell-head">{{str_share_scope_article}}</div>
-    <div class="share-cell share-cell-head" id="shareHeadFiche">{{str_share_scope_fiche}}</div>
+    <div class="share-cell share-cell-head" data-lwp-i18n="share_scope_series">{{str_share_scope_series}}</div>
+    <div class="share-cell share-cell-head" data-lwp-i18n="share_scope_article">{{str_share_scope_article}}</div>
+    <div class="share-cell share-cell-head" id="shareHeadFiche" data-lwp-i18n="share_scope_fiche">{{str_share_scope_fiche}}</div>
 
-    <div class="share-cell share-cell-label">{{str_copy_link}}</div>
-    <button type="button" class="share-action" data-action="copy" data-scope="series" title="{{str_copy_link}} — {{str_share_scope_series}}">&#128279;</button>
-    <button type="button" class="share-action" data-action="copy" data-scope="article" title="{{str_copy_link}} — {{str_share_scope_article}}">&#128279;</button>
-    <button type="button" class="share-action" data-action="copy" data-scope="fiche" title="{{str_copy_link}} — {{str_share_scope_fiche}}">&#128279;</button>
+    <div class="share-cell share-cell-label" data-lwp-i18n="copy_link">{{str_copy_link}}</div>
+    <button type="button" class="share-action" data-action="copy" data-scope="series" title="{{str_copy_link}} — {{str_share_scope_series}}" data-lwp-share-title="copy_link" data-lwp-share-scope="share_scope_series">&#128279;</button>
+    <button type="button" class="share-action" data-action="copy" data-scope="article" title="{{str_copy_link}} — {{str_share_scope_article}}" data-lwp-share-title="copy_link" data-lwp-share-scope="share_scope_article">&#128279;</button>
+    <button type="button" class="share-action" data-action="copy" data-scope="fiche" title="{{str_copy_link}} — {{str_share_scope_fiche}}" data-lwp-share-title="copy_link" data-lwp-share-scope="share_scope_fiche">&#128279;</button>
 
-    <div class="share-cell share-cell-label">{{str_share_action_qr}}</div>
-    <button type="button" class="share-action" data-action="qr" data-scope="series" title="{{str_share_action_qr}} — {{str_share_scope_series}}">&#9638;</button>
-    <button type="button" class="share-action" data-action="qr" data-scope="article" title="{{str_share_action_qr}} — {{str_share_scope_article}}">&#9638;</button>
-    <button type="button" class="share-action" data-action="qr" data-scope="fiche" title="{{str_share_action_qr}} — {{str_share_scope_fiche}}">&#9638;</button>
+    <div class="share-cell share-cell-label" data-lwp-i18n="share_action_qr">{{str_share_action_qr}}</div>
+    <button type="button" class="share-action" data-action="qr" data-scope="series" title="{{str_share_action_qr}} — {{str_share_scope_series}}" data-lwp-share-title="share_action_qr" data-lwp-share-scope="share_scope_series">&#9638;</button>
+    <button type="button" class="share-action" data-action="qr" data-scope="article" title="{{str_share_action_qr}} — {{str_share_scope_article}}" data-lwp-share-title="share_action_qr" data-lwp-share-scope="share_scope_article">&#9638;</button>
+    <button type="button" class="share-action" data-action="qr" data-scope="fiche" title="{{str_share_action_qr}} — {{str_share_scope_fiche}}" data-lwp-share-title="share_action_qr" data-lwp-share-scope="share_scope_fiche">&#9638;</button>
   </div>
 </div>
 
 <div class="share-qr-modal" id="shareQrModal">
   <div class="share-qr-modal-content">
-    <div class="share-qr-modal-title">{{str_qr_modal_title}}</div>
+    <div class="share-qr-modal-title" data-lwp-i18n="qr_modal_title">{{str_qr_modal_title}}</div>
     <div id="shareQrModalContent"></div>
     <div class="share-qr-modal-url" id="shareQrModalUrl"></div>
-    <button type="button" class="share-qr-close">{{str_qr_modal_close}}</button>
+    <button type="button" class="share-qr-close" data-lwp-i18n="qr_modal_close">{{str_qr_modal_close}}</button>
   </div>
 </div>
 
 {{content}}
 {{page_footer}}
-{{theme_runtime}}<script defer>
+{{language_runtime}}{{theme_runtime}}<script defer>
 {{js_nav}}
 </script>
 {{index_extra}}
@@ -9229,17 +9395,17 @@ if _left:  # pragma: no cover - a typo would ship a literal placeholder
 TEMPLATE_SERIES_NAV_ITEM_LINK = '''    <a href="{file}" class="series-item series-link">
 {label_html}      <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
-      <div class="series-status">&rarr; {read}</div>
+      <div class="series-status">&rarr; <span data-lwp-i18n="series_read">{read}</span></div>
     </a>'''
 
 TEMPLATE_SERIES_NAV_ITEM_CURRENT = '''    <div class="series-item series-current">
 {label_html}      <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
-      <div class="series-status">&#9656; {status}</div>
+      <div class="series-status">&#9656; <span data-lwp-i18n="series_current_status">{status}</span></div>
     </div>'''
 
 TEMPLATE_SERIES_NAV_BACK = '''    <a href="index.html" class="series-item series-link" style="text-align: center; margin-top: 24px;">
-      <div class="series-title">&larr; {back}</div>
+      <div class="series-title">&larr; <span data-lwp-i18n="series_back_to_index">{back}</span></div>
     </a>'''
 
 # --- Template: .gitlab-ci.yml ---
@@ -10534,7 +10700,8 @@ class NoteScope:
                 ref_id = f'noteref-{self.prefix}-{num}' + (f'-{nth}' if nth > 1 else '')
                 mark = '↩' + (f'<sup>{nth}</sup>' if self.calls[label] > 1 else '')
                 backs.append(f'<a class="note-back" href="#{ref_id}" '
-                             f'role="doc-backlink" aria-label="{html_escape(back_label)}">'
+                             f'role="doc-backlink" aria-label="{html_escape(back_label)}" '
+                             f'data-lwp-i18n-aria-label="note_back">'
                              f'{mark}</a>')
             # No literal space around the body: `.note-num` and
             # `.note-back` carry their own margins in the skeleton, and a
@@ -12056,7 +12223,7 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
         # in `-series`. An id derived from what the author wrote says
         # nothing about type, so the type has to say itself.
         return (f'<section class="slide slide-series-nav" id="{ident}" '
-                f'data-tags="{data_tags}">\n  <h2>{title}</h2>\n'
+                f'data-tags="{data_tags}">\n  <h2 data-lwp-i18n="series_nav_title">{title}</h2>\n'
                 f'  <div class="series-list">\n{{SERIES_NAV_PLACEHOLDER}}\n'
                 f'  </div>\n</section>')
 
@@ -12067,7 +12234,7 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
                 f'data-tags="{data_tags}">\n'
                 + (f'  <span class="slide-num">{num_str}</span>\n'
                    if show_slide_num else '')
-                + f'  <span class="slide-kicker">{tag_text}</span>\n'
+                + f'  <span class="slide-kicker" data-lwp-i18n="full_article_kicker">{tag_text}</span>\n'
                 # Keyed by RANK, deliberately, and it is the one thing here
                 # that still is. This token never reaches a reader: it is
                 # minted and consumed inside one function, and the rank is
@@ -12251,7 +12418,8 @@ def _page_footer(author, license_text, date=None):
 
 
 def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='',
-                build_stamp='', theme_runtime=None, style_context=None):
+                build_stamp='', theme_runtime=None, style_context=None,
+                language_runtime=None):
     """Generates the index page.
 
     The index is a page of the same site as the articles: it shares
@@ -12291,7 +12459,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         card = f'''<a href="{html_escape(entry['page_dest'], quote=True)}" class="article-card">{label_html}
   <div class="article-title">{card_title}</div>
   <div class="article-desc">{card_desc}</div>
-  <div class="article-cta">→ {read}</div>
+  <div class="article-cta">→ <span data-lwp-i18n="series_read">{read}</span></div>
 </a>'''
         cards.append(card)
 
@@ -12342,6 +12510,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
         'build_stamp': build_stamp, 'index_extra': index_extra,
         'lightwebpres_version': VERSION,
+        'language_runtime': language_runtime or '',
         'theme_runtime': _theme_runtime_markup(theme_runtime, style_context),
     })
 
@@ -12613,7 +12782,7 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -12802,7 +12971,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
             heading = html_escape(strings.get('notes_section_title', 'Notes'))
             slides_html += (
                 f'\n\n<section class="slide notes-section" id="notes" '
-                f'role="doc-endnotes">\n  <h2>{heading}</h2>\n{bodies}\n</section>')
+                f'role="doc-endnotes">\n  <h2 data-lwp-i18n="notes_section_title">{heading}</h2>\n{bodies}\n</section>')
 
     # Page title — the already-resolved page_title (series.json > article
     # meta > cover slide's own slide_title > page_dest, see
@@ -12866,7 +13035,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
             'z-index:60;pointer-events:none;'
             "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
         )
-        draft_banner = f'<div class="draft-banner" style="{banner_style}">{banner_text}</div>'
+        draft_banner = f'<div class="draft-banner" style="{banner_style}" data-lwp-i18n="draft_banner">{banner_text}</div>'
 
     # The stamp goes INSIDE the first card, not beside the cards in the
     # body. It inherits its colour (build_stamp_html), and on an article
@@ -12911,6 +13080,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
          'js_nav': nav_js, 'build_stamp': stamp_in_body,
          'draft_banner': draft_banner, 'index_extra': '',
          'lightwebpres_version': VERSION,
+         'language_runtime': language_runtime or '',
          'theme_runtime': theme_runtime_markup,
     })
 
@@ -13680,6 +13850,11 @@ def load_build_context(series_dir, args):
     language_pack = load_language(lang_dir, lang, language_file)
     typo_engine = None if args.get('--no-typography') else TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
+    explicit_lang = (args.get('--lang') is not None
+                     or os.environ.get('LWP_LANG') is not None)
+    language_runtime = _language_runtime_markup(
+        lang_dir, lang, language_pack, language_file,
+        auto=not explicit_lang)
 
     try:
         style_context = series_style_context(templates_dir)
@@ -13845,6 +14020,7 @@ def load_build_context(series_dir, args):
         articles=articles, claim_articles=claim_articles,
         style_context=style_context, args=args,
         lang_tag_engines=lang_tag_engines, theme_runtime=theme_runtime,
+        language_runtime=language_runtime,
     )
 
 
@@ -13939,7 +14115,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     progress(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime)
+    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -13950,7 +14126,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context)
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
             log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
@@ -14452,7 +14628,7 @@ def cmd_build(series_dir, args):
         source_path = ctx.sources_dir / source_file
 
         progress(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime)
+        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -14462,7 +14638,7 @@ def cmd_build(series_dir, args):
     # --no-index: skip index.html generation entirely.
     if claimant is None and not args.get('--no-index'):
         progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context)
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
             log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
@@ -14543,7 +14719,7 @@ def cmd_check(series_dir, args):
 
     for entry in ctx.articles:
         source_path = ctx.sources_dir / entry['page_source']
-        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime)
+        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -14556,7 +14732,7 @@ def cmd_check(series_dir, args):
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         compare('index.html',
-                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context),
+                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime),
                 ctx.output_dir / 'index.html')
     compare('README.md',
             build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
@@ -15031,7 +15207,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                     style_context=ctx.style_context,
                     inline_images=ctx.args.get('--inline-images', False),
                     args=args, lang_tag_engines=ctx.lang_tag_engines,
-                    theme_runtime=ctx.theme_runtime)
+                    theme_runtime=ctx.theme_runtime,
+                    language_runtime=ctx.language_runtime)
             except SystemExit:
                 if entry['status'] == 'draft':
                     log('warn', f'{entry["page_source"]}: this draft does '
@@ -15050,7 +15227,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                             ctx.strings, ctx.lang,
                             read_text_file(extra) if extra.exists() else '',
                             theme_runtime=ctx.theme_runtime,
-                            style_context=ctx.style_context)
+                            style_context=ctx.style_context,
+                            language_runtime=ctx.language_runtime)
             except SystemExit:
                 log('warn', 'the series index does not build — the error '
                     'above is fatal, and index.html would not be produced.')

@@ -25,7 +25,7 @@ static host.
 **Every page is a presentation deck.** Open it in a browser and you have
 a full-screen presenter experience: keyboard (↑/↓, Home, F for
 fullscreen, B/W/T for pause screens, C for compiled themes, H for keyboard
-help, M for the presenter menu), mouse (click to advance,
+help, S for sharing, M for the presenter menu), mouse (click to advance,
 right-click to go back, middle button to leave fullscreen), and touch
 (swipe) all work out of the box. Entering fullscreen with the mouse is
 a two-step gesture — middle button, then a left click (F or the ⛶
@@ -94,14 +94,15 @@ handout at Ctrl/Cmd+P.
   printed ones.
 - **Built-in presentation mode.** Every generated page is a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
-   screens, C compiled themes, H keyboard help, M presenter menu), mouse (click advance,
+   screens, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
   right-click back, middle button
   leaves fullscreen; entering is a two-step gesture — middle button,
   then a left click), touch (swipe, double tap). Navigation
   chrome fades after 3s idle (1s in fullscreen) on every device; with a
   pointer the cursor hides on the same clock and both return after 250ms
   of continuous movement, and on a touch screen a double tap switches
-  between the default auto-hide mode and permanent navigation. The mouse becomes
+   between the default auto-hide mode and permanent navigation, with a short
+   status toast naming the selected mode. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the
   screen never dims mid-talk. The index page is a deck like any other —
@@ -468,7 +469,11 @@ long argument the reader takes in as a whole.
 Built-in French and English packs (typography rules — non-breaking
 spaces, etc. — plus every UI string: nav button tooltips, "copy link",
 series navigation labels). Both live in the executable and
-are read from there. `--lang fr|en` picks the build-wide fallback; a
+are read from there. Without an explicit `--lang` or `LWP_LANG`, the generated
+page embeds both interface vocabularies and the browser chooses French for a
+`fr-*` locale and English for every other locale. An explicit language locks
+that choice for the page. Typography rules are always applied at build time;
+changing the browser locale never re-runs them. `--lang fr|en` picks the build-wide fallback; a
 `language/{lang}.json` file in your series overrides just the keys you
 care about, falling back to the built-in pack for the rest —
 `template write fr.json` gives you the built-in one to start from. `series_meta.lang_tags`

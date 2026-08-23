@@ -12,11 +12,83 @@ async function main() {
   const [base, staticBase] = process.argv.slice(2);
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const context = await browser.newContext({
+    locale: 'fr-FR',
+    viewport: { width: 1280, height: 800 },
+  });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));
   await page.goto(base + '/index.html', { waitUntil: 'load' });
+
+  const french = await page.evaluate(() => {
+    const node = document.getElementById('lwp-language-data');
+    const data = node ? JSON.parse(node.textContent) : null;
+    return {
+      htmlLang: document.documentElement.getAttribute('lang'),
+      auto: data && data.auto,
+      packs: data ? Object.keys(data.packs).sort() : [],
+      helpTitle: document.getElementById('helpTitle').textContent,
+      shareLabel: document.querySelector('[data-lwp-i18n="menu_share"]').textContent,
+    };
+  });
+  if (french.htmlLang !== 'fr' || french.auto !== true
+      || french.packs.join('|') !== 'en|fr'
+      || french.helpTitle !== 'Raccourcis clavier'
+      || french.shareLabel !== 'Partager') {
+    fail('French browser locale did not select the French interface: '
+      + JSON.stringify(french));
+  }
+
+  const englishContext = await browser.newContext({
+    locale: 'en-US',
+    viewport: { width: 1280, height: 800 },
+  });
+  const englishPage = await englishContext.newPage();
+  const englishErrors = [];
+  englishPage.on('pageerror', (error) => englishErrors.push(String(error)));
+  await englishPage.goto(base + '/index.html', { waitUntil: 'load' });
+  const english = await englishPage.evaluate(() => ({
+    htmlLang: document.documentElement.getAttribute('lang'),
+    helpTitle: document.getElementById('helpTitle').textContent,
+    shareLabel: document.querySelector('[data-lwp-i18n="menu_share"]').textContent,
+    readLabel: document.querySelector('[data-lwp-i18n="series_read"]').textContent,
+  }));
+  if (english.htmlLang !== 'en'
+      || english.helpTitle !== 'Keyboard shortcuts'
+      || english.shareLabel !== 'Share'
+      || english.readLabel !== 'Read the article') {
+    fail('English browser locale did not select the English interface: '
+      + JSON.stringify(english));
+  }
+  await englishContext.close();
+  if (englishErrors.length) fail('English page errors: ' + englishErrors.join(' | '));
+
+  const touchContext = await browser.newContext({
+    locale: 'fr-FR',
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const touchPage = await touchContext.newPage();
+  const touchErrors = [];
+  touchPage.on('pageerror', (error) => touchErrors.push(String(error)));
+  await touchPage.goto(base + '/index.html', { waitUntil: 'load' });
+  await touchPage.touchscreen.tap(120, 360);
+  await touchPage.waitForTimeout(100);
+  await touchPage.touchscreen.tap(120, 360);
+  const permanentMode = await touchPage.evaluate(() => ({
+    permanent: document.documentElement.classList.contains('nav-permanent'),
+    toast: document.getElementById('navModeToast').textContent,
+    toastVisible: document.getElementById('navModeToast').classList.contains('show'),
+  }));
+  if (!permanentMode.permanent || !permanentMode.toastVisible
+      || permanentMode.toast !== 'Navigation permanente') {
+    fail('mobile double tap did not announce permanent navigation: '
+      + JSON.stringify(permanentMode));
+  }
+  await touchContext.close();
+  if (touchErrors.length) fail('Mobile page errors: ' + touchErrors.join(' | '));
 
   const initial = await page.evaluate(() => ({
     payload: !!document.getElementById('lwp-theme-data'),

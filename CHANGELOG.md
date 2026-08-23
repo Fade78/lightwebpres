@@ -74,6 +74,15 @@ overlay is now a real modal: it closes on any key or click (not just H and
 Escape), the footer is gone, and the `H` line in the help list says "Opens
 the help window" / "Ouvre la fenêtre d'aide".
 
+The interface now follows the browser's language when the build did not
+explicitly choose one: `fr-*` locales get French and every other locale gets
+English. The page embeds both interface vocabularies and changes only marked
+interface surfaces at runtime; typography rules remain build-time output.
+Passing `--lang` or setting `LWP_LANG` keeps the chosen interface language
+fixed. The presenter menu's navigation badges now say `Page Up` and `Page
+Down`, while the full arrow and `Backspace` shortcuts remain available to
+keyboard and assistive technology.
+
 Choosing Help from the **M** presenter menu now opens that modal without the
 menu's closing click dismissing it again. Pages built with
 `--no-essential-theme` no longer advertise a `C` picker they do not carry,
@@ -84,6 +93,11 @@ wrapping when a label becomes bold. It is fully keyboard-navigable: focus
 starts on the first action, left/right follow a row and up/down follow the
 rendered grid rows, `Tab` and `Home`/`End` move through the controls, and
 `Enter`/`Space` activate the focused action.
+
+The share action is now also available directly on **S**, and the help overlay
+names that shortcut in both languages. On touch screens, the double-tap mode
+switch now gives a localized status toast, so permanent navigation and
+auto-hide are distinguishable without guessing from opacity.
 
 The theme picker now has the same arrow, `Home` and `End` navigation, and each
 choice paints a resolved theme preview with its background gradient and
