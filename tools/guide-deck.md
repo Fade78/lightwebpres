@@ -34,7 +34,7 @@ kicker: Setup
 fact-label: The whole loop
 source: Guide, section 2
 
-`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. `build --themes` can optionally embed a theme picker without changing that standalone property.
+`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. `build --themes` can optionally embed a theme picker without changing that standalone property; the same selection can live in the root `series.json` `themes` list.
 
 `--lang en` chooses the build-wide fallback. For one article to carry several
 languages, `tags:` selects a variant and `series_meta.lang_tags` can select a
@@ -109,9 +109,12 @@ A list of names tells you nothing. What the theme is for, light or dark, and wha
 `theme gallery` renders every one of them against real slide content.
 
 `build --themes print-ink,print-grey` embeds a searchable picker: **C** opens
-it, and **M** opens the global presenter menu. The effective theme from
-`templates/settings.conf` is always the first choice, and author pins remain
-in force while the reader switches.
+it, and **M** opens the global presenter menu. The same list can be written as
+`"themes": ["essential", "family:terrain", "bgh:red"]` at the root of
+`series.json`; `essential` means Monochrome, Monochrome Night and Print Ink.
+The effective theme from `templates/settings.conf` is always the first choice,
+and an explicit CLI value overrides the JSON list. Author pins remain in force
+while the reader switches.
 
 ---
 

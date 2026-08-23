@@ -31,8 +31,8 @@ rules + interface strings).
 Usage:
   lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr] [--output public/]
-  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--themes slugs|all]
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes slugs|all]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--themes selectors|all]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres template update [directory] [--scaffold]
   lightwebpres template show <file>
@@ -47,7 +47,7 @@ Usage:
   lightwebpres series theme set [directory] --theme name
   lightwebpres theme gallery [path]
   lightwebpres clean [directory] [--output public/] [--force]
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes slugs|all]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all]
   lightwebpres completion --shell bash|zsh
   lightwebpres --version | --help | -h
 
@@ -1571,6 +1571,17 @@ THEMES = {
         'note': "No colour anywhere. A table’s verdicts then rest on weight, opacity and shape markers — and it works. Fact-box bold is underlined and not washed: with hue ruled out a grey band has only lightness to work with, and the text has already spent it. Graphite, this theme after dark, reached the same answer from the opposite direction.",
         'note_good': True,
     },
+    'monochrome-night': {
+        'family': 'desk', 'label': 'Monochrome Night', 'source': 'lightwebpres',
+        'dark_background': True,
+        'marker': '#C9C9C9', 'ink': '#F1F1F1', 'ink-muted': '#A0A0A0',
+        'page': '#161616', 'accent': '#F1F1F1', 'positive': '#D0D0D0',
+        'nav': '#F1F1F1',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
+        'fact_decoration': 'underline', 'fact_decoration_color': 'marker',
+        'note': "Monochrome after dark, with a softer graphite ground. It uses no hue: fact-box bold is underlined rather than washed, so the hierarchy stays in shape and weight without a coloured signal.",
+        'note_good': True,
+    },
     'graphite': {
         'family': 'desk', 'label': 'Graphite', 'source': 'lightwebpres',
         'dark_background': True,
@@ -2256,6 +2267,22 @@ FACET_VALUES = {
             'cyan', 'blue', 'violet', 'magenta'),
     'family': tuple(THEME_FAMILIES),
 }
+
+# Runtime theme selectors use the vocabulary readers already see in the
+# catalogue, with short aliases for the command line. A selector is an
+# addition to the requested set; several selectors therefore form a union,
+# just like several comma-separated slugs.
+_RUNTIME_THEME_FACET_ALIASES = {
+    'polarity': 'polarity',
+    'background': 'polarity',
+    'bg': 'polarity',
+    'hue': 'hue',
+    'background hue': 'hue',
+    'bgh': 'hue',
+    'family': 'family',
+    'fam': 'family',
+}
+ESSENTIAL_THEME_IDS = ('monochrome', 'monochrome-night', 'print-ink')
 
 
 def _lab(hex_colour):
@@ -4415,33 +4442,73 @@ def _theme_runtime_resolved(theme_key):
     return resolve_theme_properties(*layers)
 
 
-def _theme_runtime_ids(option, primary):
-    """Returns the ordered runtime theme ids, primary first.
+def _theme_runtime_parts(option, source):
+    """Normalizes the CLI string or the JSON list into selector tokens."""
+    if isinstance(option, str):
+        parts = option.split(',')
+    elif isinstance(option, (list, tuple)):
+        parts = []
+        for index, value in enumerate(option):
+            if not isinstance(value, str):
+                raise PropertyError(f'{source} item {index} must be a string')
+            parts.extend(value.split(','))
+    else:
+        raise PropertyError(f'{source} must be a comma-separated string or '
+                           f'a list of strings')
+    parts = [part.strip() for part in parts]
+    if not parts or any(not part for part in parts):
+        raise PropertyError(f'{source} contains an empty theme selector')
+    return parts
 
-    `--themes` is an opt-in build feature. The effective `theme:` from the
-    user's settings file is always first, even when the comma list omits it;
-    a series without that line uses the synthetic `default` id.
+
+def _theme_runtime_selector_ids(selector, source):
+    """Expands one slug, special label, or facet selector."""
+    folded = selector.casefold()
+    if folded == 'all':
+        return list(THEMES)
+    if folded == 'essential':
+        return list(ESSENTIAL_THEME_IDS)
+    if selector in THEMES:
+        return [selector]
+    if ':' not in selector:
+        raise PropertyError(f'{source} contains unknown theme selector '
+                           f'{selector!r}')
+
+    name, value = selector.split(':', 1)
+    name = name.strip().casefold()
+    value = value.strip().casefold()
+    facet = _RUNTIME_THEME_FACET_ALIASES.get(name)
+    if facet is None:
+        raise PropertyError(f'{source} contains unknown theme facet '
+                           f'{name!r} in {selector!r}')
+    if value not in FACET_VALUES[facet]:
+        valid = ', '.join(FACET_VALUES[facet])
+        raise PropertyError(f'{source} contains unknown {facet} value '
+                           f'{value!r} in {selector!r}; valid values: {valid}')
+    matches = [slug for slug, _theme, _facets in themes_matching({facet: value})]
+    if not matches:
+        raise PropertyError(f'{source} selector {selector!r} matched no themes')
+    return matches
+
+
+def _theme_runtime_ids(option, primary, source='--themes'):
+    """Returns ordered runtime theme ids, primary first.
+
+    `option` is either the CLI's comma-separated value or the root
+    `series.json["themes"]` list. The effective `theme:` from settings is
+    always first, even when every selector omits it; a series without that
+    line uses the synthetic `default` id.
     """
-    raw = str(option).strip()
-    if not raw:
-        raise PropertyError('--themes requires one or more theme slugs, or all')
     primary_id = primary or _THEME_RUNTIME_DEFAULT
-    requested = list(THEMES) if raw.casefold() == 'all' else [
-        part.strip() for part in raw.split(',')]
-    if not requested or any(not part for part in requested):
-        raise PropertyError('--themes contains an empty theme slug')
-    unknown = [slug for slug in requested if slug not in THEMES]
-    if unknown:
-        raise PropertyError('--themes contains unknown theme(s): ' +
-                            ', '.join(repr(slug) for slug in unknown))
     ids = [primary_id]
-    for slug in requested:
-        if slug not in ids:
-            ids.append(slug)
+    for selector in _theme_runtime_parts(option, source):
+        for slug in _theme_runtime_selector_ids(selector, source):
+            if slug not in ids:
+                ids.append(slug)
     return ids
 
 
-def build_theme_runtime(option, primary):
+def build_theme_runtime(option, primary, source='--themes'):
     """Builds the compact, page-independent part of the theme switch data.
 
     Variable names are emitted once and each alternative carries only the
@@ -4452,7 +4519,7 @@ def build_theme_runtime(option, primary):
     """
     if option is None:
         return None
-    ids = _theme_runtime_ids(option, primary)
+    ids = _theme_runtime_ids(option, primary, source)
     variables = [p.var for p in THEME_SHARED_PROPS]
     keys = [p.key for p in THEME_SHARED_PROPS]
     for component in THEME_COMPONENTS:
@@ -6066,6 +6133,9 @@ body.fs-noselect {
   max-width: 720px;
   margin: 0 auto;
   padding: 24px 28px;
+  /* These overlays sit outside a slide, so body ems would otherwise stay
+     flat while the page's other controls grow with the viewport. */
+  font-size: max(16px, 1.5vmin);
   border-style: solid;
   border-width: 1px;
   border-radius: 12px;
@@ -12674,6 +12744,21 @@ def load_series_data(series_dir):
     return data
 
 
+def series_themes_of(series_data):
+    """Returns the optional root runtime-theme selection from series.json."""
+    if not isinstance(series_data, dict) or 'themes' not in series_data:
+        return None
+    themes = series_data['themes']
+    if not isinstance(themes, list) or not themes:
+        raise PropertyError('series.json: "themes" must be a non-empty list '
+                            'of strings')
+    for index, value in enumerate(themes):
+        if not isinstance(value, str) or not value.strip():
+            raise PropertyError(f'series.json: "themes" item {index} must be '
+                                'a non-empty string')
+    return themes
+
+
 # Field names retired in v0.7.0 by the nomenclature freeze that 1.0 will
 # GUARANTEE -- the freeze was performed then, 1.0 is when it becomes a
 # compatibility promise (spec §13.9),
@@ -13279,14 +13364,22 @@ def load_build_context(series_dir, args):
     except PropertyError as exc:
         log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
+    series_data = load_series_data(sd)
+    series_meta = series_meta_of(series_data)
     try:
         settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
         effective_theme = None
         if settings_file is not None and settings_file.exists():
             effective_theme, _ = parse_settings_text(
                 read_text_file(settings_file))
+        series_json_themes = series_themes_of(series_data)
+        runtime_option = args.get('--themes')
+        runtime_source = '--themes'
+        if runtime_option is None:
+            runtime_option = series_json_themes
+            runtime_source = 'series.json: "themes"'
         theme_runtime = build_theme_runtime(
-            args.get('--themes'), effective_theme)
+            runtime_option, effective_theme, runtime_source)
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
@@ -13348,8 +13441,6 @@ def load_build_context(series_dir, args):
                 f'`lightwebpres template write {pack_name} . --force`.')
     nav_js = apply_strings(nav_js, strings)
 
-    series_data = load_series_data(sd)
-    series_meta = series_meta_of(series_data)
     lang_tag_engines = load_lang_tag_engines(
         series_meta, lang_dir, lang, typo_engine)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
@@ -17505,9 +17596,9 @@ COMMANDS
     Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
     Creates a demo site
-  lightwebpres build [directory] [--lang fr] [--output public/] [--themes slugs|all]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--themes selectors|all]
     Builds the site (self-contained HTML)
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--themes slugs|all]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--themes selectors|all]
     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr] [--strict] [--templates]
     Renders the series in memory and reports everything worth a second
@@ -17560,7 +17651,7 @@ COMMANDS
     with a note, notes section, full article (default: themes-gallery.html)
   lightwebpres clean [directory] [--force]
     Purges orphan files from public/ using the build manifest
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes slugs|all]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all]
     Polls sources, rebuilds on change, optionally serves on 127.0.0.1
   lightwebpres --version
     Prints the version and exits
@@ -17606,10 +17697,12 @@ OPTIONS
   --theme name
     init/series theme set: apply a named palette (see THEMES below);
     unknown name is a fatal error
-  --themes slugs|all
-    build/verify/watch: include comma-separated runtime theme slugs, or
-    every built-in theme. The effective theme in templates/settings.conf
-    is always included first, even when omitted here. Built pages expose C
+  --themes selectors|all
+    build/verify/watch: include comma-separated slugs, facet selectors
+    (background|bg, family|fam, background hue|bgh), essential, or every
+    built-in theme. The effective theme in templates/settings.conf is always
+    included first, even when omitted here. Without this option, build uses
+    the root series.json "themes" list when present. Built pages expose C
     for the picker and M for the global presenter menu.
   --polarity light|dark
     theme list: list only themes with that background polarity
@@ -17617,7 +17710,7 @@ OPTIONS
     theme list: neutral, red, orange, yellow, green, cyan, blue,
     violet, magenta — the hue of the page background
   --family name
-    theme list: desk, light, terrain, heat, pop, ported — the one facet
+    theme list: desk, light, terrain, heat, pop, ported, print — the one facet
     a theme declares rather than the palette betraying it
   --article file.md
     resolve: the article whose levels to include — required for a

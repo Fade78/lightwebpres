@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 37 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 38 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -153,6 +153,7 @@ gets its own entry and its own state**, however small.
 - **B42** — Print Ink and Print Grey keep a low-ink table header
 - **B43** — Old Press adds a fixed-pitch print pair
 - **B44** — Runtime themes stay opt-in and preserve author pins
+- **B45** — Series JSON can choose a runtime theme catalogue
 
 ### abandonné
 
@@ -2341,3 +2342,27 @@ theme, keeps a pinned color, carries the choice to an article page, restores
 the primary theme, and opens both dialogs. `python3 tests/run_tests.py` passes
 with 995 tests in 184 classes and 6 workers; the guide, specification index
 and decision index regenerate cleanly.
+
+## B45 — Series JSON can choose a runtime theme catalogue
+
+**État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+The runtime selection is also a property of a series, not only of one build
+invocation. The object form of `series.json` may carry a root `themes` list;
+it is validated whenever present, and a direct-array series remains the
+backward-compatible form without JSON theme configuration. The command-line
+`--themes` value wins over a valid JSON selection, while the effective theme
+from `settings.conf` remains first in the payload.
+
+The list accepts slugs, `all`, `essential`, and the closed `X:Y` facet
+vocabulary. The `essential` label is intentionally stable and currently
+means `monochrome`, `monochrome-night` and `print-ink`. Facet aliases are
+`background`/`bg`, `family`/`fam` and `background hue`/`bgh`; multiple
+selectors form a catalogue-order union with duplicates removed. Watch polls
+`series.json` with the other build inputs, so changing the list rebuilds the
+pages with the new payload.
+
+**What is verified.** Unit and black-box coverage measures primary ordering,
+the special labels, all facet aliases, invalid list shapes, invalid selectors,
+CLI precedence, watch reloads and verify reuse. The new Monochrome Night
+palette passes the existing rendered contrast and catalogue property checks.

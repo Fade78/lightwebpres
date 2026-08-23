@@ -321,7 +321,7 @@ the series or within one article.
 |---|---|
 | `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, an empty `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script, the language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
-| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory); `--themes slug,...|all` embeds an optional runtime theme picker |
+| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory); `--themes selectors|all` embeds an optional runtime theme picker, or uses the root `series.json` `themes` list |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` selection used by the build |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — variant tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, a differing language pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
@@ -362,7 +362,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
 | `--only file.html` | `build` | rebuilds a single article |
 | `--inline-images` | `build` | embeds images as base64 data URIs |
-| `--themes slug,...\|all` | `build`, `verify`, `watch` | embeds the selected runtime themes; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
+| `--themes selectors\|all` | `build`, `verify`, `watch` | embeds slugs, `essential` or `X:Y` facet selectors; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
 | `--format json` | `resolve`, `status`, `theme show`, `series theme` | machine-readable output |
 
@@ -540,7 +540,7 @@ the most character are the ones a threshold would flatten. The borrowed
 palettes ship as their editors drew them, for **fidelity**; some of them —
 Dracula, Tokyo Night, Monokai, Everforest — have since been returned to
 the dark grounds they were made for. A theme's family — `desk`, `light`,
-`terrain`, `heat`, `pop`, `ported` — states editorial intent, not a
+`terrain`, `heat`, `pop`, `ported`, `print` — states editorial intent, not a
 colour-correction strategy.
 
 That is far too many to pick from a list, so themes are found by facet —
@@ -620,6 +620,23 @@ without rebuilding:
 ./lightwebpres build my-series --themes print-ink,print-grey
 ./lightwebpres build my-series --themes all
 ```
+
+The same selection can live in the root of `series.json`, so the build command
+does not have to repeat it:
+
+```json
+{
+  "themes": ["essential", "family:terrain", "bgh:red"],
+  "articles": [{"page_source": "intro.md"}]
+}
+```
+
+Selectors use a slug, `all`, `essential` (Monochrome, Monochrome Night and
+Print Ink), or `X:Y`: `background`/`bg` selects light or dark backgrounds,
+`family`/`fam` selects an editorial family, and `background hue`/`bgh` selects
+the computed background hue. The long `background hue:red` form must be
+quoted in a shell. Several selectors add their matches; duplicates are
+removed. An explicit CLI `--themes` value overrides the JSON selection.
 
 The effective `theme:` in `templates/settings.conf` is always the first
 choice, even when it is omitted from the list. The file is read at build time,

@@ -481,9 +481,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--themes slugs|all]
-lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes slugs|all]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes slugs|all]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--themes selectors|all]
+lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes selectors|all]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json>
@@ -515,7 +515,7 @@ lightwebpres --help
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
-- `--themes` : `build`/`verify`/`watch` — embarque les thèmes runtime demandés, `slugs` séparés par des virgules ou `all`; le thème effectif de `settings.conf` reste toujours le premier (§9.3.7)
+- `--themes` : `build`/`verify`/`watch` — embarque des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules; le thème effectif de `settings.conf` reste toujours le premier (§9.3.7)
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
@@ -2712,18 +2712,34 @@ contrairement à `settings.conf`/`custom.css`/`nav.js`.
 
 Par défaut, le choix de thème est entièrement résolu dans la feuille CSS et
 aucune donnée de sélection n'est publiée dans la page. `build`, `verify` et
-`watch` acceptent toutefois `--themes <slug,...|all>` pour embarquer un
-sélecteur de thèmes dans chaque page construite. Le payload est inline, sans
-dépendance réseau : il émet l'ordre des variables une fois et, pour chaque
-thème demandé, les seules valeurs qui diffèrent du thème primaire.
+`watch` acceptent toutefois `--themes <selectors|all>` pour embarquer un
+sélecteur de thèmes dans chaque page construite. En l'absence de cette option,
+le build lit la clé racine facultative `themes` de `series.json`. Une option CLI
+présente prend le pas sur la liste JSON. Le payload est inline, sans dépendance
+réseau : il émet l'ordre des variables une fois et, pour chaque thème demandé,
+les seules valeurs qui diffèrent du thème primaire.
 
 Le thème primaire est toujours le thème effectif lu dans
 `templates/settings.conf`, même si la liste l'omet. Une série sans ligne
 `theme:` porte l'identifiant synthétique `default`. La lecture se fait au
 build : une modification utilisateur de `settings.conf` est donc la source
 de vérité et ne doit pas être remplacée par l'option `--themes`. `all` ajoute
-tous les thèmes du catalogue ; les slugs inconnus ou les listes vides sont
-des erreurs nommées.
+tous les thèmes du catalogue. Une sélection est une liste séparée par des
+virgules sur la CLI, ou une liste JSON de chaînes sous `themes`. Chaque élément
+peut être un slug, `all`, `essential`, ou un sélecteur `X:Y` :
+
+| Forme | Facette | Valeur exemple |
+|---|---|---|
+| `background` / `bg` | `polarity` | `light`, `dark` |
+| `family` / `fam` | `family` | `terrain`, `print` |
+| `background hue` / `bgh` | `hue` | `red`, `neutral` |
+
+`essential` ajoute, dans cet ordre, `monochrome`, `monochrome-night` et
+`print-ink`. Chaque sélecteur ajoute ses correspondances dans l'ordre du
+catalogue; les doublons sont supprimés et le primaire reste en tête. Un nom de
+facette, une valeur, un slug inconnu, une liste vide ou une configuration JSON
+mal typée est une erreur nommée. La forme longue `background hue:red` doit être
+citée dans un shell.
 
 La feuille CSS statique reste celle du thème primaire. Le sélecteur peut
 remplacer les variables de palette et de typographie des thèmes alternatifs,
@@ -3958,7 +3974,7 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes slugs|all]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all]
 ```
 
 Construit le site :
@@ -4005,11 +4021,12 @@ Construit le site :
 6. Écrit l'empreinte de navigation (§11.3.1) dans `.lwp-cache/nav.json`
    (ou le chemin donné par `--nav-cache`)
 
-`--themes slugs|all` est optionnel. Quand il est fourni, le build ajoute à
-chaque page le payload décrit en §9.3.7 : `slugs` est une liste séparée par
-des virgules et `all` sélectionne tout le catalogue. Le thème effectif de
-`templates/settings.conf` est ajouté en première position dans tous les cas.
-L'option n'écrit pas dans les sources.
+`--themes selectors|all` est optionnel. Quand il est fourni, le build ajoute à
+chaque page le payload décrit en §9.3.7. Sans l'option, la liste racine
+`series.json.themes` est utilisée si elle existe. Sur la CLI, les sélecteurs
+sont séparés par des virgules; dans JSON, `themes` est une liste de chaînes.
+Le thème effectif de `templates/settings.conf` est ajouté en première position
+dans tous les cas. La sélection n'écrit pas dans les sources.
 
 ### 11.3.1 `build --only` : reconstruction d'un seul article
 
@@ -4294,14 +4311,15 @@ Désactivé par défaut : le build standard copie `sources/img/` vers
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [répertoire] [--lang fr] [--no-typography] [--themes slugs|all]
+lightwebpres verify [répertoire] [--lang fr] [--no-typography] [--themes selectors|all]
 ```
 
 Vérifie sans modifier :
 
 `--themes` doit reprendre la sélection utilisée par le build dont `public/`
-est vérifié ; il est transmis au rendu en mémoire et ne modifie rien sur
-disque.
+est vérifié si le build l'avait explicitement fournie. Sans l'option, la même
+clé racine `series.json.themes` est relue. Dans les deux cas, la sélection est
+transmise au rendu en mémoire et ne modifie rien sur disque.
 
 1. Lance le build en mémoire (sans écrire les fichiers) ; `--no-typography`
    a le même effet que sur `build` (§11.3), sur ce build en mémoire —
@@ -5503,7 +5521,7 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [répertoire] [--serve] [--port 8000] [--open] [--themes slugs|all]
+lightwebpres watch [répertoire] [--serve] [--port 8000] [--open] [--themes selectors|all]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`,
@@ -5517,6 +5535,8 @@ stdlib — pas de dépendance externe.
 
 `--themes` est transmis à chaque build initial et à chaque reconstruction,
 afin que le mode watch ne fasse pas disparaître le sélecteur du résultat.
+Sans cette option, toute modification de `series.json`, y compris de sa liste
+`themes`, est relue au prochain build.
 
 ### 11.15 `completion`
 
@@ -6883,6 +6903,7 @@ désormais.
     "version": "v0.1",
     "intro": "« Une pâte trop travaillée devient élastique. » « Le sucre n'est pas qu'une question de goût. » ..."
   },
+  "themes": ["essential", "family:terrain"],
   "articles": [
     {
       "page_source": "tarte-aux-pommes.md"
@@ -6905,6 +6926,13 @@ extrapolés de son contenu (cover, §20.3.1). Le second illustre une
 surcharge : `card_label` prend le pas sur celui du bloc meta de
 `creme-patissiere.md` sans y toucher — les autres champs d'affichage de
 cet article restent lus depuis son propre bloc meta ou son propre contenu.
+
+La clé racine facultative `themes` configure le sélecteur runtime des pages
+produites. C'est une liste non vide de chaînes, chacune étant un slug, `all`,
+`essential` ou un sélecteur de facette `X:Y` décrit en §9.3.7. Elle n'appartient
+pas à `articles[]` ni à `series_meta`. Une série au format tableau direct reste
+valide, mais ne peut pas porter cette clé; la forme objet est nécessaire pour
+une sélection JSON.
 
 Nommage (gel v1.0) : la famille `page_*` regroupe tout ce qui concerne la
 page compilée — sa source (`page_source`), son fichier de destination
@@ -6938,6 +6966,9 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 
 - Le tableau `articles` est **ordonné** : l'ordre des entrées définit l'ordre
   des articles dans la navigation et l'index.
+- Si `themes` est présent à la racine de la forme objet, il doit être une liste
+  non vide dont chaque élément est une chaîne non vide. Une liste vide, un
+  élément non textuel ou un sélecteur inconnu est une erreur fatale nommée.
 - Les anciens noms `source`/`file`, retirés à la **v0.7.0**, produisent
   une **erreur fatale de migration explicite** (« renamed to
   page_source/page_dest in v0.7.0 — just rename the key, the value is
@@ -7062,11 +7093,14 @@ ci-dessus, ils sont rendus hors des fiches :
 ### 20.4 Métadonnées de la série (`series_meta`)
 
 Le fichier `series.json` peut contenir un objet `series_meta` (optionnel)
-qui décrit la série elle-même (pour l'index et le README) :
+qui décrit la série elle-même (pour l'index et le README), ainsi que la clé
+racine `themes` (optionnelle) qui configure les thèmes runtime (§9.3.7) :
 
-Si `series_meta` est présent, le fichier a deux clés : `series_meta` (objet) et
-`articles` (tableau). Si `series_meta` est absent, le fichier est un tableau
-direct (rétrocompatible avec un format de série déjà utilisé).
+Si la configuration objet est utilisée, `articles` est un tableau, `series_meta`
+est un objet lorsqu'il est présent, et `themes` est une liste de chaînes
+lorsqu'il est présent. Si `series_meta` et `themes` sont absents, le fichier
+peut rester un tableau direct (rétrocompatible avec un format de série déjà
+utilisé). Ce tableau direct n'a pas de place pour la sélection runtime JSON.
 
 ### 20.5 Champs de `series_meta`
 

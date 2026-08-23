@@ -169,6 +169,8 @@ description; the terms are fixed here, in English.
 | **reference** | A word used as a value, resolved at merge time and never surviving into the output (§9.2). Bare (`kicker.fg: ink-quiet`) it is looked up in its type's namespace; dotted (`title1.fg: cover.fg`) it names another property. At most 3 hops; cycles are detected and named. |
 | **layer** | One dictionary of properties in the cascade (§9.3): built-in defaults, theme, settings, article, instance — merged in that order before emission. |
 | **theme** | A named layer of properties applied over the built-in defaults. |
+| **theme facet** | One catalogue axis used to find themes: `family` is declared, `polarity` is derived from the background, and `hue` is computed from it. |
+| **theme selector** | A runtime selection token: a slug, `all`, `essential`, or `X:Y` such as `bg:light`, `fam:terrain` or `bgh:red`; several tokens add their matches. |
 | **settings** | The author's own property layer (`templates/settings.conf`), applied over the theme. Never written by the tool except on explicit request (`series theme set` rewrites only the `theme:` line). |
 | **scaffold** | The generated form of `settings.conf`: every property present, commented out, at the chosen theme's values (§9.3.1). Generated once from the registry, never rewritten on the tool's initiative; `# scaffold-for:` records the theme it was generated under. |
 | **pin** | Uncommenting a scaffold line (or writing one): the value now overrides every theme and survives theme changes and upgrades (§9.3.1). |

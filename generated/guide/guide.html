@@ -1611,6 +1611,9 @@ body.fs-noselect {
   max-width: 720px;
   margin: 0 auto;
   padding: 24px 28px;
+  /* These overlays sit outside a slide, so body ems would otherwise stay
+     flat while the page's other controls grow with the viewport. */
+  font-size: max(16px, 1.5vmin);
   border-style: solid;
   border-width: 1px;
   border-radius: 12px;
@@ -2043,7 +2046,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <h2>Three commands to a built site</h2>
   <div class="fact-box">
     <div class="fact-label">The whole loop</div>
-    <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. <code>build --themes</code> can optionally embed a theme picker without changing that standalone property.</p>
+    <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. <code>build --themes</code> can optionally embed a theme picker without changing that standalone property; the same selection can live in the root <code>series.json</code> <code>themes</code> list.</p>
   <p><code>--lang en</code> chooses the build-wide fallback. For one article to carry several languages, <code>tags:</code> selects a variant and <code>series_meta.lang_tags</code> can select a typography pack per slide.</p></div>
   </div>
   <p class="source">Source : Guide, section 2</p>
@@ -2094,7 +2097,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <div class="fact-label">Why facets rather than a list</div>
     <div class="fact-content">  <p>A list of names tells you nothing. What the theme is for, light or dark, and what hue the page carries will get you to a shortlist of three.</p>
   <p><code>theme gallery</code> renders every one of them against real slide content.</p>
-  <p><code>build --themes print-ink,print-grey</code> embeds a searchable picker: <strong>C</strong> opens it, and <strong>M</strong> opens the global presenter menu. The effective theme from <code>templates/settings.conf</code> is always the first choice, and author pins remain in force while the reader switches.</p></div>
+  <p><code>build --themes print-ink,print-grey</code> embeds a searchable picker: <strong>C</strong> opens it, and <strong>M</strong> opens the global presenter menu. The same list can be written as <code>"themes": ["essential", "family:terrain", "bgh:red"]</code> at the root of <code>series.json</code>; <code>essential</code> means Monochrome, Monochrome Night and Print Ink. The effective theme from <code>templates/settings.conf</code> is always the first choice, and an explicit CLI value overrides the JSON list. Author pins remain in force while the reader switches.</p></div>
   </div>
 </section>
 
@@ -2299,6 +2302,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
     "intro": "Series introduction.",
     "lang_tags": {"fr": "fr", "en": "en"}
   },
+  "themes": ["essential", "family:terrain"],
   "articles": [
     {"page_source": "apple-pie.md"}
   ]
@@ -2326,6 +2330,11 @@ xdg-open my-series/public/index.html         # `open` on macOS
 ./lightwebpres build my-series --themes print-ink,print-grey
 ./lightwebpres build my-series --themes all
   </code></pre>
+  <p>Or keep the selection in the root of <code>series.json</code>:</p>
+  <pre><code class="language-json">
+"themes": ["essential", "background:light", "bgh:red"]
+  </code></pre>
+  <p><code>essential</code> embeds Monochrome, Monochrome Night and Print Ink. A selector <code>X:Y</code> can use <code>background</code>/<code>bg</code>, <code>family</code>/<code>fam</code>, or <code>background hue</code>/<code>bgh</code>; each selector adds its matching themes and duplicates are removed. An explicit CLI <code>--themes</code> overrides the JSON list.</p>
   <p>The effective theme in <code>templates/settings.conf</code> is always included first, even if it is not in the list. The setting is read at build time, so an author's edit remains the source of truth. Values pinned in <code>settings.conf</code>, <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the selection lasts for the other pages of the same deck in the current browser session.</p>
   <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme, or of the effective theme after the series' pins. <code>audit</code> reads the same resolved sheet without being asked, and speaks only when something has stopped working — a navigation control you cannot see, text the colour of its own ground, a size under the readability floor. It warns; it never refuses, and no shipped theme trips it.</p>
   <h3>Change one phrase (an instance tag)</h3>

@@ -54,6 +54,12 @@ variables stay in force. On such pages, **C** opens the searchable picker and
 **M** opens the presenter menu with the other deck actions; the selection
 survives navigation between pages for the browser session.
 
+Runtime selections can also be stored as the root `themes` list in
+`series.json`. Slugs, `all`, `essential`, and `X:Y` facet selectors are
+accepted; `essential` embeds Monochrome, Monochrome Night and Print Ink, and
+the CLI value takes precedence over the JSON list. The catalogue now includes
+Monochrome Night, and the menu text keeps its viewport scale on wide screens.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a

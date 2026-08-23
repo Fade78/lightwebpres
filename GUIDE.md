@@ -288,6 +288,7 @@ blocking, while `build` rejects malformed declarations.
     "intro": "Series introduction.",
     "lang_tags": {"fr": "fr", "en": "en"}
   },
+  "themes": ["essential", "family:terrain"],
   "articles": [
     {"page_source": "apple-pie.md"}
   ]
@@ -344,6 +345,17 @@ The build can optionally carry several themes for the reader:
 ./lightwebpres build my-series --themes print-ink,print-grey
 ./lightwebpres build my-series --themes all
 ```
+
+Or keep the selection in the root of `series.json`:
+
+```json
+"themes": ["essential", "background:light", "bgh:red"]
+```
+
+`essential` embeds Monochrome, Monochrome Night and Print Ink. A selector
+`X:Y` can use `background`/`bg`, `family`/`fam`, or
+`background hue`/`bgh`; each selector adds its matching themes and duplicates
+are removed. An explicit CLI `--themes` overrides the JSON list.
 
 The effective theme in `templates/settings.conf` is always included first,
 even if it is not in the list. The setting is read at build time, so an

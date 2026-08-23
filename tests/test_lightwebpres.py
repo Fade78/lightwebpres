@@ -7898,11 +7898,190 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
         self.assertEqual(len(data['themes']), len(self.lwp.THEMES))
         self.assertEqual(data['themes'][0]['slug'], 'print-oldpress')
 
+    def test_runtime_payload_expands_essential(self):
+        data = self.lwp.build_theme_runtime('essential', None)
+        self.assertEqual(
+            [theme['slug'] for theme in data['themes']],
+            ['default', 'monochrome', 'monochrome-night', 'print-ink'])
+        self.assertEqual(data['themes'][2]['label'], 'Monochrome Night')
+
+    def test_runtime_payload_expands_facet_aliases(self):
+        cases = (
+            ('background', 'polarity', 'light'),
+            ('bg', 'polarity', 'light'),
+            ('family', 'family', 'terrain'),
+            ('fam', 'family', 'terrain'),
+            ('background hue', 'hue', 'red'),
+            ('bgh', 'hue', 'red'),
+        )
+        for alias, facet, value in cases:
+            with self.subTest(alias=alias):
+                actual = self.lwp._theme_runtime_ids(
+                    f'{alias}:{value}', None)
+                expected = ['default'] + [
+                    slug for slug, _theme, facets in self.lwp.themes_matching(
+                        {facet: value})]
+                self.assertEqual(actual, expected)
+
+    def test_runtime_payload_rejects_unknown_facets_and_empty_selectors(self):
+        for option in ('background:purple', 'unknown:light', 'family:', ''):
+            with self.subTest(option=option):
+                with self.assertRaises(self.lwp.PropertyError) as caught:
+                    self.lwp.build_theme_runtime(option, None)
+                self.assertIn('--themes', str(caught.exception))
+
+    def test_runtime_payload_combines_selectors_without_duplicates(self):
+        data = self.lwp.build_theme_runtime(
+            'all,family:terrain,essential', None)
+        self.assertEqual(
+            [theme['slug'] for theme in data['themes']],
+            ['default'] + list(self.lwp.THEMES))
+
+    def test_series_json_themes_selects_runtime_and_verify_reuses_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            series = json.loads(
+                (root / 'series.json').read_text(encoding='utf-8'))
+            series['themes'] = ['essential']
+            (root / 'series.json').write_text(
+                json.dumps(series), encoding='utf-8')
+
+            result = run('build', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for page in ('index.html', 'first.html'):
+                data = self._data(
+                    (root / 'public' / page).read_text(encoding='utf-8'))
+                self.assertEqual(
+                    [theme['slug'] for theme in data['themes']],
+                    ['default', 'monochrome', 'monochrome-night', 'print-ink'])
+            verify = run('verify', str(root))
+            self.assertEqual(verify.returncode, 0, verify.stderr)
+
+    def test_cli_themes_overrides_series_json_themes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            series = json.loads(
+                (root / 'series.json').read_text(encoding='utf-8'))
+            series['themes'] = ['essential']
+            (root / 'series.json').write_text(
+                json.dumps(series), encoding='utf-8')
+
+            result = run('build', str(root), '--themes', 'print-grey')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            data = self._data(
+                (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+            self.assertEqual(
+                [theme['slug'] for theme in data['themes']],
+                ['default', 'print-grey'])
+
+    def test_series_json_themes_requires_a_non_empty_list_of_strings(self):
+        for invalid in ('essential', [], [''], ['essential', 4]):
+            with self.subTest(invalid=invalid):
+                with tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    self.assertEqual(run('init', str(root)).returncode, 0)
+                    self.assertEqual(run('demo', str(root)).returncode, 0)
+                    series = json.loads(
+                        (root / 'series.json').read_text(encoding='utf-8'))
+                    series['themes'] = invalid
+                    (root / 'series.json').write_text(
+                        json.dumps(series), encoding='utf-8')
+                    result = run('build', str(root))
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('series.json: "themes"', result.stderr)
+
+    def test_series_json_themes_rejects_an_unknown_selector(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            series = json.loads(
+                (root / 'series.json').read_text(encoding='utf-8'))
+            series['themes'] = ['background:purple']
+            (root / 'series.json').write_text(
+                json.dumps(series), encoding='utf-8')
+            result = run('build', str(root))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('series.json: "themes"', result.stderr)
+            self.assertIn('unknown polarity value', result.stderr)
+
+    def test_invalid_series_json_themes_are_not_hidden_by_cli_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            series = json.loads(
+                (root / 'series.json').read_text(encoding='utf-8'))
+            series['themes'] = 'not-a-list'
+            (root / 'series.json').write_text(
+                json.dumps(series), encoding='utf-8')
+            result = run('build', str(root), '--themes', 'print-grey')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('series.json: "themes"', result.stderr)
+
     def test_unknown_runtime_theme_is_a_named_property_error(self):
         with self.assertRaises(self.lwp.PropertyError) as caught:
             self.lwp.build_theme_runtime('not-a-theme', 'print-ink')
         self.assertIn('--themes', str(caught.exception))
         self.assertIn('not-a-theme', str(caught.exception))
+
+    def test_watch_reloads_series_json_themes(self):
+        import signal
+        import subprocess as sp
+        import threading as _threading
+        import time as _time
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            out = root / 'public'
+            proc = sp.Popen(
+                [sys.executable, str(EXECUTABLE), 'watch', str(root),
+                 '--output', str(out)],
+                stdout=sp.PIPE, stderr=sp.PIPE, text=True,
+                env={**os.environ, 'PYTHONUNBUFFERED': '1'})
+            lines = []
+            reader = _threading.Thread(target=lambda: lines.extend(proc.stdout),
+                                       daemon=True)
+            reader.start()
+
+            def wait_for(needle, seconds=20):
+                end = _time.time() + seconds
+                while _time.time() < end:
+                    if any(needle in line for line in lines):
+                        return True
+                    if proc.poll() is not None:
+                        return False
+                    _time.sleep(0.1)
+                return False
+
+            try:
+                self.assertTrue(wait_for('[watch] polling'),
+                                'watch did not enter its polling loop')
+                series = json.loads(
+                    (root / 'series.json').read_text(encoding='utf-8'))
+                series['themes'] = ['essential']
+                (root / 'series.json').write_text(
+                    json.dumps(series), encoding='utf-8')
+                self.assertTrue(wait_for('[watch] rebuilt.'),
+                                'watch did not rebuild after series.json changed')
+                data = self._data(
+                    (out / 'index.html').read_text(encoding='utf-8'))
+                self.assertEqual(
+                    [theme['slug'] for theme in data['themes']],
+                    ['default', 'monochrome', 'monochrome-night', 'print-ink'])
+            finally:
+                proc.send_signal(signal.SIGINT)
+                try:
+                    proc.wait(timeout=10)
+                except sp.TimeoutExpired:
+                    proc.kill()
+                reader.join(timeout=2)
+                proc.stdout.close()
+                proc.stderr.close()
 
     def test_build_reads_a_modified_settings_theme_and_keeps_it(self):
         with tempfile.TemporaryDirectory() as tmp:

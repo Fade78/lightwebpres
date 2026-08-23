@@ -720,7 +720,9 @@ Any non-string value for one of these fields is fatal as well.
 series rather than to one article: `title`, `subtitle`, `version`,
 `intro`, `author`, `license`, and optional `lang_tags`. The first four drive the generated index
 page and `README.md`; the last two are the fallback for every article's
-byline and licence line.
+byline and licence line. The optional root `themes` list selects extra runtime
+themes for `build`/`verify`/`watch`; it is a list of strings, not an article
+field:
 
 ```json
 {
@@ -729,9 +731,17 @@ byline and licence line.
     "intro": "What it is about.",
     "lang_tags": {"fr": "fr", "en": "en"}
   },
+  "themes": ["essential", "family:terrain"],
   "articles": [{"page_source": "apple-pie.md"}]
 }
 ```
+
+Each item is a theme slug, `all`, `essential`, or a facet selector such as
+`background:light`, `fam:terrain`, or `bgh:red`. `essential` means Monochrome,
+Monochrome Night and Print Ink. Several items add their matches; an explicit
+CLI `--themes` value takes precedence over this list. Theme choice is described
+here only as `series.json` wiring; palette design and build procedure belong to
+the guide and specification.
 
 `comment` also works as a `series.json` entry key, or in `series_meta`
 for a note about the series as a whole — same rule: recognized, never
