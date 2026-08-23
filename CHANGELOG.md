@@ -60,6 +60,11 @@ accepted; `essential` embeds Monochrome, Monochrome Night and Print Ink, and
 the CLI value takes precedence over the JSON list. The catalogue now includes
 Monochrome Night, and the menu text keeps its viewport scale on wide screens.
 
+The `H` help overlay now always ends with `Compiled with LightWebPres vX.Y.Z`,
+with the product name bolded. When runtime alternatives are embedded, its
+shortcut list explicitly names `C` as the way to change theme during the
+presentation.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a

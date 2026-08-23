@@ -1592,6 +1592,12 @@ body.fs-noselect {
   border-top-width: 1px;
   font-size: 0.85em;
 }
+.help-stamp {
+  margin-top: 12px;
+  font-size: 0.72em;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
 
 /* Presenter action menu (key M). It is the keyboard equivalent of the
    navigation chrome: one place for actions that otherwise live behind
@@ -1945,6 +1951,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <div class="help-title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
     <div class="help-foot">H or Esc to close</div>
+    <div class="help-stamp">Compiled with <strong>LightWebPres</strong> v0.45.4</div>
   </div>
 </div>
 
@@ -3724,7 +3731,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['H', "H or Esc to close"],
     ['Mouse / Wheel', "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll"]
   ];
-  if (themeAlternatives()) helpEntries.splice(5, 0, ['C', "Choose a compiled theme"]);
+  if (themeAlternatives()) helpEntries.splice(5, 0, ['C', "Change theme during the presentation (C key)"]);
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');

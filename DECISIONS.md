@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 38 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 39 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -154,6 +154,7 @@ gets its own entry and its own state**, however small.
 - **B43** — Old Press adds a fixed-pitch print pair
 - **B44** — Runtime themes stay opt-in and preserve author pins
 - **B45** — Series JSON can choose a runtime theme catalogue
+- **B46** — Help carries permanent provenance and names the theme shortcut
 
 ### abandonné
 
@@ -2366,3 +2367,21 @@ pages with the new payload.
 the special labels, all facet aliases, invalid list shapes, invalid selectors,
 CLI precedence, watch reloads and verify reuse. The new Monochrome Night
 palette passes the existing rendered contrast and catalogue property checks.
+
+## B46 — Help carries permanent provenance and names the theme shortcut
+
+**État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+The `H` overlay always carries a small final provenance line, independent of
+the opt-in `--build-stamp` marker: `Compiled with LightWebPres vX.Y.Z`, with
+the product name bolded. This makes every generated page identify the tool
+that supplied its presenter runtime without making the page non-reproducible
+or exposing a build time.
+
+When a page carries runtime theme alternatives, the help list explicitly says
+that `C` changes the theme during the presentation. The row remains conditional
+on alternatives being embedded, because a page without a runtime catalogue has
+no theme to switch to and must not advertise a no-op control.
+
+**What is verified.** Black-box and browser tests check the permanent stamp,
+the bold product name, the version shape and the visible `C` instruction.

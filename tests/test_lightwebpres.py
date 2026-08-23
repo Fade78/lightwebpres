@@ -8125,6 +8125,23 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertIn('--color-ink', pinned)
             self.assertIn('--color-mark', pinned)
 
+    def test_help_names_runtime_theme_switching_and_carries_the_version_stamp(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            self.assertEqual(run('demo', str(root)).returncode, 0)
+            result = run('build', str(root), '--themes', 'print-ink')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            stamp = (
+                '<div class="help-stamp">Compiled with '
+                f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>')
+            self.assertIn(stamp, html)
+            self.assertLess(html.index('class="help-foot"'),
+                            html.index('class="help-stamp"'))
+            self.assertIn(
+                'Changer de thème pendant la présentation (touche C)', html)
+
     def test_no_runtime_option_keeps_the_page_without_theme_payload(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

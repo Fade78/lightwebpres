@@ -24,8 +24,8 @@ static host.
 
 **Every page is a presentation deck.** Open it in a browser and you have
 a full-screen presenter experience: keyboard (↑/↓, Home, F for
-fullscreen, B/W/T for pause screens, C for compiled themes, M for the
-presenter menu), mouse (click to advance,
+fullscreen, B/W/T for pause screens, C for compiled themes, H for keyboard
+help, M for the presenter menu), mouse (click to advance,
 right-click to go back, middle button to leave fullscreen), and touch
 (swipe) all work out of the box. Entering fullscreen with the mouse is
 a two-step gesture — middle button, then a left click (F or the ⛶
@@ -91,7 +91,7 @@ handout at Ctrl/Cmd+P.
   printed ones.
 - **Built-in presentation mode.** Every generated page is a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
-  screens, C compiled themes, M presenter menu), mouse (click advance,
+   screens, C compiled themes, H keyboard help, M presenter menu), mouse (click advance,
   right-click back, middle button
   leaves fullscreen; entering is a two-step gesture — middle button,
   then a left click), touch (swipe, double tap). Navigation

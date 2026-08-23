@@ -1251,7 +1251,7 @@ LANG_FR = r'''{
     "help_home": "Retour à l'index de la série",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
     "help_menu": "Menu du présentateur",
-    "help_theme": "Choisir un thème compilé",
+     "help_theme": "Changer de thème pendant la présentation (touche C)",
     "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
     "help_speaker": "Panneau présentateur : notes + slide suivante",
     "help_jump_keys": "0&ndash;9 + Entr&eacute;e",
@@ -1367,7 +1367,7 @@ LANG_EN = r'''{
     "help_home": "Back to the series index",
     "help_fullscreen": "Fullscreen (Esc to exit)",
     "help_menu": "Presenter menu",
-    "help_theme": "Choose a compiled theme",
+     "help_theme": "Change theme during the presentation (C key)",
     "help_pause": "Pause screen: black (B), white (W), theme (T)",
     "help_speaker": "Speaker panel: notes + next slide",
     "help_jump_keys": "0&ndash;9 + Enter",
@@ -6114,6 +6114,12 @@ body.fs-noselect {
   border-top-width: 1px;
   font-size: 0.85em;
 }
+.help-stamp {
+  margin-top: 12px;
+  font-size: 0.72em;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
 
 /* Presenter action menu (key M). It is the keyboard equivalent of the
    navigation chrome: one place for actions that otherwise live behind
@@ -8758,6 +8764,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
     <div class="help-title">{{str_help_title}}</div>
     <ul class="help-list" id="helpList"></ul>
     <div class="help-foot">{{str_help_close}}</div>
+    <div class="help-stamp">Compiled with <strong>LightWebPres</strong> v{{lightwebpres_version}}</div>
   </div>
 </div>
 
@@ -12020,6 +12027,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'content': content, 'page_footer': index_footer,
         'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
         'build_stamp': build_stamp, 'index_extra': index_extra,
+        'lightwebpres_version': VERSION,
         'theme_runtime': _theme_runtime_markup(theme_runtime, style_context),
     })
 
@@ -12585,10 +12593,11 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
         'css': css, 'body_class': '',
-        'content': slides_html, 'page_footer': page_footer,
-        'js_nav': nav_js, 'build_stamp': stamp_in_body,
-        'draft_banner': draft_banner, 'index_extra': '',
-        'theme_runtime': theme_runtime_markup,
+         'content': slides_html, 'page_footer': page_footer,
+         'js_nav': nav_js, 'build_stamp': stamp_in_body,
+         'draft_banner': draft_banner, 'index_extra': '',
+         'lightwebpres_version': VERSION,
+         'theme_runtime': theme_runtime_markup,
     })
 
     validate_html(html, current_file)

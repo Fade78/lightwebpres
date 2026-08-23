@@ -81,6 +81,24 @@ async function main() {
     fail('the primary theme did not restore cleanly: ' + JSON.stringify(restored));
   }
 
+  await page.keyboard.press('h');
+  const help = await page.evaluate(() => ({
+    open: document.getElementById('helpOverlay').classList.contains('open'),
+    themeLine: Array.prototype.some.call(
+      document.querySelectorAll('#helpList li'),
+      (li) => li.textContent.indexOf('Changer de thème pendant la présentation') !== -1
+    ),
+    stamp: document.querySelector('.help-stamp')
+      ? document.querySelector('.help-stamp').textContent.trim() : '',
+    stampNameIsBold: !!document.querySelector('.help-stamp strong'),
+  }));
+  if (!help.open || !help.themeLine
+      || !/^Compiled with LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
+      || !help.stampNameIsBold) {
+    fail('H did not expose the theme action and version stamp: ' + JSON.stringify(help));
+  }
+  await page.keyboard.press('h');
+
   await page.keyboard.press('m');
   const menu = await page.evaluate(() => ({
     open: document.getElementById('presenterMenu').classList.contains('open'),
