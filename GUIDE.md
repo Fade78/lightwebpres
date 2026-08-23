@@ -56,10 +56,10 @@ for the presenter menu), mouse (click to
 advance, right-click to go back, middle button to enter or leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
  is one article card at a time. The navigation buttons form one lower-right
-column: from bottom to top, Menu, fullscreen, previous and next. The previous
-and next arrows are grayed when they cannot move further; Home, sharing and
-tags live in the presenter menu. They fade after 3 seconds of idleness (1
-second in fullscreen) — the speaker sees only slides.
+ column: from bottom to top, Menu, down, up and fullscreen. The arrows are
+ grayed when they cannot move further; Home, sharing and tags live in the
+ presenter menu. They fade after 3 seconds of idleness (1 second in
+ fullscreen) — the speaker sees only slides.
 The cursor hides on that same clock, and
 neither comes back until the mouse has moved continuously for 250 ms — a
 brush past the sensor flashes nothing back onto the wall. The scroll bar
@@ -827,8 +827,8 @@ steps: the deck never treats a double click as anything else.
 ### Navigation buttons
 
 The round buttons in the bottom-right corner form one column: from bottom to
-top, Menu, fullscreen, previous and next. The previous and next arrows are
-grayed when they cannot move further. Home, share and the variant filter are
+top, Menu, down, up and fullscreen. The arrows are grayed when they cannot
+move further. Home, share and the variant filter are
 actions in the presenter menu, which also carries the themes, help, notes and
 pause screens. The same four sit on the index, where previous and next step
 one article card at a time.

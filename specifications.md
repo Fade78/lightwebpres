@@ -2087,8 +2087,8 @@ liaison est donc conservée sur pointeur fin et ignorée sur pointeur
 grossier.
 
 **Boutons** : une seule colonne en bas-droite, avec de bas en haut Menu,
-⛶ (plein écran), prev puis next. Les flèches prev/next sont grisées quand
-elles ne peuvent plus avancer dans leur direction. Home, partage et L (filtre
+flèche vers le bas, flèche vers le haut puis ⛶ (plein écran). Les flèches sont
+grisées quand elles ne peuvent plus avancer dans leur direction. Home, partage et L (filtre
 de tags, masqué quand la page n'a qu'un seul tag) sont dans le menu
 présentateur ; celui-ci reprend aussi les thèmes, l'aide, les notes et les
 écrans de pause. Chaque action du menu porte une icône et, quand elle existe,
@@ -6414,14 +6414,14 @@ l'exécutable.
 <nav class="nav-dots"></nav>
 
 <div class="nav-buttons">
-  <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-keyshortcuts="ArrowDown ArrowRight PageDown" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
+  <div class="nav-row nav-row-fullscreen">
+    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" aria-keyshortcuts="F" aria-label="{{str_nav_fullscreen}}" title="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-up">
     <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
   </div>
-  <div class="nav-row nav-row-fullscreen">
-    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" aria-keyshortcuts="F" aria-label="{{str_nav_fullscreen}}" title="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
+  <div class="nav-row nav-row-down">
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-keyshortcuts="ArrowDown ArrowRight PageDown" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-keyshortcuts="M" aria-haspopup="dialog" aria-expanded="false" aria-label="{{str_menu_title}}" title="{{str_menu_title}}">{{icon_menu}}</div>

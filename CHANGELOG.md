@@ -88,8 +88,8 @@ The theme picker now has the same arrow, `Home` and `End` navigation, and each
 choice paints a resolved theme preview with its background gradient and
 matching foreground ink. Presenter-menu actions carry icons and visible
 keyboard shortcuts. The lower-right navigation controls now form one column:
-from bottom to top, Menu, fullscreen, previous and next; the arrows gray out
-at their boundaries. Home, sharing and tags live in the menu.
+from bottom to top, Menu, down, up and fullscreen; the arrows gray out at
+their boundaries. Home, sharing and tags live in the menu.
 On touch screens, double tap switches between the default auto-hide mode and
 permanent navigation.
 

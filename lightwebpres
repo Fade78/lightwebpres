@@ -9053,14 +9053,14 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 </div>
 
 <div class="nav-buttons">
-  <div class="nav-row nav-row-down">
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}" aria-keyshortcuts="ArrowDown ArrowRight PageDown">{{icon_next}}</div>
+  <div class="nav-row nav-row-fullscreen">
+    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}" aria-keyshortcuts="F">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-up">
     <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">{{icon_prev}}</div>
   </div>
-  <div class="nav-row nav-row-fullscreen">
-    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}" aria-keyshortcuts="F">{{icon_fullscreen}}</div>
+  <div class="nav-row nav-row-down">
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}" aria-keyshortcuts="ArrowDown ArrowRight PageDown">{{icon_next}}</div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="{{str_menu_title}}" aria-label="{{str_menu_title}}">{{icon_menu}}</div>
