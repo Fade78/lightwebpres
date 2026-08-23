@@ -7801,7 +7801,7 @@ class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
     SURFACES = (
         'page.bg', 'cover.bg.from', 'cover.bg.to',
         'fact.bg', 'code.bg', 'note.page.bg', 'article.bg',
-        'table.head.bg', 'table.col-signal.bg', 'table.col-snap.bg',
+        'table.col-signal.bg', 'table.col-snap.bg',
         'series-nav.current.bg', 'series-nav.link.bg',
         'nav-btn.bg', 'nav-btn.bg-soft', 'share.bg', 'share.bg-hover',
         'card.bg', 'version-tag.bg',
@@ -7840,6 +7840,12 @@ class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
         self.assertEqual(boss['fact.strong.weight'], 'normal')
         self.assertEqual(boss['fact.strong.bg'], '#FFF200FF')
         self.assertEqual(self.lwp.THEMES['print-boss']['fact_highlight'], 'marker')
+
+    def test_print_ink_and_grey_keep_a_low_ink_table_header(self):
+        for slug in ('print-ink', 'print-grey'):
+            self.assertEqual(self._resolved(slug)['table.head.bg'], '#F4F4F4FF', slug)
+        for slug in ('print-color', 'print-boss'):
+            self.assertEqual(self._resolved(slug)['table.head.bg'], '#FFFFFFFF', slug)
 
 
 class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):

@@ -11,11 +11,11 @@
 //
 // Why this exists rather than "just take a screenshot": each preview is
 // an <iframe loading="lazy">, which is right for the live page and fatal
-// for a full-page capture — a headless full-page screenshot never
-// scrolls, so every iframe below the first viewport stays unloaded and
-// shoots blank. The README picked up exactly that image once. So the
-// script drops the lazy attribute, re-navigates every frame, waits for
-// every one of them to paint a real slide, and only then captures.
+// for a full-page capture — a headless full-page screenshot never paints
+// the off-screen iframe compositor tiles reliably. The README picked up
+// exactly that image once. The contact sheet is therefore assembled from a
+// blank page capture plus one row screenshot at a time, with the row
+// scrolled into view before it is captured.
 //
 // It also rearranges the page before capturing, because the gallery has
 // outgrown a straight screenshot: see CONTACT SHEET below.
@@ -83,6 +83,9 @@ const CONTACT_CSS = `
     grid-template-columns: ${PANEL}px !important;
   }
   .panel:nth-of-type(n+2) { display: none !important; }
+  /* The base page is captured with frames hidden, then each row is painted
+     and composited back into it while that row is in the viewport. */
+  .preview { visibility: hidden !important; }
 `;
 
 async function main() {
@@ -131,9 +134,7 @@ async function main() {
     throw new Error(`${handles.length} preview elements, expected ${expected}`);
   }
 
-  // A frame that attached can still be blank. Assert a real painted
-  // slide in every single one before spending a capture on it.
-  for (const handle of handles) {
+  async function frameFor(handle) {
     let frame = null;
     while (!frame) {
       frame = await handle.contentFrame();
@@ -141,18 +142,97 @@ async function main() {
       if (Date.now() > deadline) throw new Error('a preview never attached');
       await page.waitForTimeout(200);
     }
-    await frame.waitForSelector('.slide', { state: 'attached', timeout: TIMEOUT });
+    return frame;
   }
 
   await page.evaluate(() => document.fonts && document.fonts.ready);
-  await page.screenshot({ path: OUT, fullPage: true });
+
+  let outputWidth = VIEWPORT.width;
+  if (FULL) {
+    // The long-strip mode is kept for inspection, not for the README. It
+    // retains the old shape and only needs the DOM guard.
+    for (const handle of handles) {
+      const frame = await frameFor(handle);
+      await frame.waitForSelector('.slide', { state: 'attached', timeout: TIMEOUT });
+    }
+    await page.screenshot({ path: OUT, fullPage: true });
+  } else {
+    // A full-page screenshot does not retain the painted contents of
+    // off-screen iframes, even after their DOM has loaded. Capture a blank
+    // layout first, then replace each row's hidden preview with a screenshot
+    // taken while that row is in the viewport.
+    const rows = await page.$$('.theme-row');
+    if (rows.length !== expected) {
+      throw new Error(`${rows.length} theme rows, expected ${expected}`);
+    }
+    const positions = await page.evaluate(() => (
+      [...document.querySelectorAll('.theme-row')].map((row) => {
+        const rect = row.getBoundingClientRect();
+        return {
+          x: rect.left + window.scrollX,
+          y: rect.top + window.scrollY,
+          width: rect.width,
+          height: rect.height,
+        };
+      })
+    ));
+    const base = await page.screenshot({ fullPage: true });
+    const captures = [];
+
+    for (let index = 0; index < rows.length; index += 1) {
+      await page.evaluate((current) => {
+        document.querySelectorAll('.theme-row .preview').forEach((frame) => {
+          frame.style.setProperty('visibility', 'hidden', 'important');
+        });
+        document.querySelectorAll('.theme-row')[current]
+          .querySelectorAll('.preview')
+          .forEach((frame) => {
+            frame.style.setProperty('visibility', 'visible', 'important');
+          });
+      }, index);
+      await rows[index].scrollIntoViewIfNeeded();
+      const handle = await rows[index].$('iframe.preview');
+      const frame = await frameFor(handle);
+      await frame.waitForSelector('.slide', { state: 'attached', timeout: TIMEOUT });
+      await page.waitForTimeout(20);
+      captures.push({
+        ...positions[index],
+        data: (await rows[index].screenshot()).toString('base64'),
+      });
+    }
+
+    const composed = await page.evaluate(async ({ base64, captures }) => {
+      const load = (source) => new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = source;
+      });
+      const baseImage = await load(`data:image/png;base64,${base64}`);
+      const canvas = document.createElement('canvas');
+      canvas.width = baseImage.naturalWidth;
+      canvas.height = baseImage.naturalHeight;
+      const context = canvas.getContext('2d');
+      context.drawImage(baseImage, 0, 0);
+      for (const capture of captures) {
+        const image = await load(`data:image/png;base64,${capture.data}`);
+        context.drawImage(image, capture.x, capture.y);
+      }
+      return {
+        data: canvas.toDataURL('image/png'),
+        width: canvas.width,
+      };
+    }, { base64: base.toString('base64'), captures });
+    fs.writeFileSync(OUT, Buffer.from(composed.data.split(',')[1], 'base64'));
+    outputWidth = composed.width;
+  }
   await browser.close();
 
   if (errors.length) {
     console.error('page errors:\n  ' + errors.join('\n  '));
     process.exit(1);
   }
-  console.log(`wrote ${OUT} (${expected} previews, ${VIEWPORT.width}px wide, ` +
+  console.log(`wrote ${OUT} (${expected} previews, ${outputWidth}px wide, ` +
               `${(fs.statSync(OUT).size / 1024).toFixed(0)} kB)`);
 }
 

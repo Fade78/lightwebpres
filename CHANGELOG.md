@@ -33,6 +33,14 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.45.4
+
+The contact sheet now captures each preview row while it is visible, then
+composes those painted rows into the full PNG; light themes no longer turn
+into blank panels in the README image. Print Ink and Print Grey restore a
+very light `#F4F4F4` table header, a small paper-saving wash rather than a
+dark fill.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a

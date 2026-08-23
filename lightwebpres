@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.3"
+VERSION = "0.45.4"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -4139,12 +4139,14 @@ THEME_PROPERTY_OVERRIDES = {
     # of paper: each print theme pins them off.
     'print-ink': {
         **_PRINT_WHITE_SURFACES,
+        'table.head.bg': '#F4F4F4',
         'table.col-snap.rule-fg': 'call',
         'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
         'highlight.shadow.fg': 'transparent',
     },
     'print-grey': {
         **_PRINT_WHITE_SURFACES,
+        'table.head.bg': '#F4F4F4',
         'table.col-snap.rule-fg': 'ink',
         'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
         'highlight.shadow.fg': 'transparent',

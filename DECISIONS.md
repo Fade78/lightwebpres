@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 34 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 35 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -150,6 +150,7 @@ gets its own entry and its own state**, however small.
 - **B39** — The sources directory is called `sources/`, not `articles/`
 - **B40** — The print family: three themes drawn for ink and paper
 - **B41** — Print Boss adds a hand-marked newspaper to the print family
+- **B42** — Print Ink and Print Grey keep a low-ink table header
 
 ### abandonné
 
@@ -2283,3 +2284,13 @@ no coloured ground. `print-boss` is the deliberate exception: ordinary-weight
 text sits on a yellow `fact.strong.bg`, giving the fact box the look of a
 newspaper someone marked with a highlighter by hand. The existing `print-grey`
 and `print-color` treatments stay unchanged.
+
+## B42 — Print Ink and Print Grey keep a low-ink table header
+
+**État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+The print catalogue's white surfaces are not a ban on every change of tone.
+`print-ink` and `print-grey` restore a single opaque `#F4F4F4` fill on table
+header cells: it separates the column labels from the body while using only
+a very light wash of black ink. `print-color` and `print-boss` keep their
+headers white; their colour already carries the structure elsewhere.
