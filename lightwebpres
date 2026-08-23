@@ -1263,8 +1263,8 @@ LANG_FR = r'''{
     "help_mouse": "Clic : suivant · clic droit : précédent · clic pendant le défilement : saut · bouton du milieu : armer l'entrée (puis clic gauche) ou quitter le plein écran · molette : défiler",
     "help_open": "Ouvre la fenêtre d'aide",
     "help_stamp": "Compilé avec",
-    "nav_mode_permanent": "Navigation permanente",
-    "nav_mode_auto": "Navigation automatique"
+    "nav_mode_permanent": "La navigation reste visible",
+    "nav_mode_auto": "La navigation se masque après inactivité"
   }
 }'''
 
@@ -1385,8 +1385,8 @@ LANG_EN = r'''{
     "help_mouse": "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll",
     "help_open": "Opens the help window",
     "help_stamp": "Compiled with",
-    "nav_mode_permanent": "Navigation always visible",
-    "nav_mode_auto": "Navigation auto-hide"
+    "nav_mode_permanent": "Navigation stays visible",
+    "nav_mode_auto": "Navigation hides after inactivity"
   }
 }'''
 
@@ -5952,7 +5952,8 @@ body.fs-noselect {
   pointer-events: none;
   transform: translate(-50%, 8px);
   transition: visibility 0s linear 0.18s, transform 0.18s;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
 }
 .nav-mode-toast.show {
   visibility: visible;

@@ -83,7 +83,7 @@ async function main() {
     toastVisible: document.getElementById('navModeToast').classList.contains('show'),
   }));
   if (!permanentMode.permanent || !permanentMode.toastVisible
-      || permanentMode.toast !== 'Navigation permanente') {
+      || permanentMode.toast !== 'La navigation reste visible') {
     fail('mobile double tap did not announce permanent navigation: '
       + JSON.stringify(permanentMode));
   }
