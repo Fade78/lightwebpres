@@ -958,6 +958,7 @@ button.share-action:hover:not(:disabled) {
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+html.help-open, html.help-open body { overflow: hidden; }
 
 /* --- The slide frame --- */
 .slide {
@@ -1554,6 +1555,7 @@ body.fs-noselect {
   color: inherit;
   display: none;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 48px 24px;
 }
 .help-overlay.open { display: block; }
@@ -3641,7 +3643,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function openThemeMenu(returnFocus) {
     if (!themeAlternatives() || !themeMenu) return;
     themeReturnFocus = returnFocus || document.activeElement;
-    if (helpOverlay) helpOverlay.classList.remove('open');
+    closeHelp();
     closePresenterMenu(false);
     closeTagMenu();
     closeSharePopover();
@@ -3665,7 +3667,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!presenterMenu) return;
     menuReturnFocus = document.activeElement;
     closeThemeMenu(false);
-    if (helpOverlay) helpOverlay.classList.remove('open');
+    closeHelp();
     closeTagMenu();
     closeSharePopover();
     closeQrModal();
@@ -3731,7 +3733,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['H', "H or Esc to close"],
     ['Mouse / Wheel', "Click: next · right-click: back · click while gliding: jump · middle button: arm entry (then left-click) or exit fullscreen · wheel: scroll"]
   ];
-  if (themeAlternatives()) helpEntries.splice(5, 0, ['C', "Change theme during the presentation (C key)"]);
+  helpEntries.splice(5, 0, ['C', "Change theme during the presentation (C key)"]);
   if (helpList) {
     helpEntries.forEach(function (e) {
       var li = document.createElement('li');
@@ -3746,10 +3748,27 @@ document.addEventListener('DOMContentLoaded', function() {
       helpList.appendChild(li);
     });
   }
-  function toggleHelp() {
-    if (!helpOverlay) return;
-    helpOverlay.classList.toggle('open');
+  function helpIsOpen() {
+    return !!(helpOverlay && helpOverlay.classList.contains('open'));
   }
+  function setHelpOpen(open) {
+    if (!helpOverlay) return;
+    helpOverlay.classList.toggle('open', open);
+    document.documentElement.classList.toggle('help-open', open);
+  }
+  function closeHelp() {
+    setHelpOpen(false);
+  }
+  function toggleHelp() {
+    setHelpOpen(!helpIsOpen());
+  }
+
+  // Help is a modal reading surface. Its own overlay may scroll to reveal the
+  // final stamp, but no pointer gesture may advance, rewind, or fullscreen the
+  // deck behind it.
+  document.addEventListener('wheel', function (e) {
+    if (helpIsOpen() && !helpOverlay.contains(e.target)) e.preventDefault();
+  }, {capture: true, passive: false});
 
   function slideTitle(i) {
     var s = slides[i];
@@ -4299,6 +4318,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var scrollTimer = null;
   window.addEventListener('scroll', function() {
+    if (helpIsOpen()) return;
     if (scrollTimer) clearTimeout(scrollTimer);
     scrollTimer = setTimeout(detectCurrent, 80);
   }, { passive: true });
@@ -4604,6 +4624,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // business, already handled separately.
   var hadSelectionAtPress = false;
   document.addEventListener('mousedown', function (e) {
+    if (helpIsOpen()) return;
     pressX = e.clientX;
     pressY = e.clientY;
     hadSelectionAtPress = e.button === 0 && String(window.getSelection()).length > 0;
@@ -4613,6 +4634,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return Math.abs(e.clientX - pressX) > 4 || Math.abs(e.clientY - pressY) > 4;
   }
   document.addEventListener('click', function (e) {
+    if (helpIsOpen()) return;
     if (isInteractive(e)) return;
     // A click the touch side has already answered for. See
     // swallowClicksUntil.
@@ -4683,10 +4705,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // click handler wiped it (the browsers differ on when the selection
   // lands), so it is wiped again, out of reach of the copy menu.
   document.addEventListener('dblclick', function (e) {
+    if (helpIsOpen()) return;
     if (isInteractive(e)) return;
     window.getSelection().removeAllRanges();
   });
   document.addEventListener('contextmenu', function (e) {
+    if (helpIsOpen()) {
+      e.preventDefault();
+      return;
+    }
     // Right-click = go back, the exact mirror of the left button — it
     // works everywhere the left one does, including on the index cards
     // and the series-nav links: on a mouse, the right button is the
@@ -4737,6 +4764,11 @@ document.addEventListener('DOMContentLoaded', function() {
   var fsEntryPending = false;
   var FS_INTENT_MS = 900;
   document.addEventListener('mousedown', function (e) {
+    if (helpIsOpen() && e.button === 1) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (e.button === 1) {
       e.preventDefault();
       if (isFullscreen()) {
@@ -4790,12 +4822,20 @@ document.addEventListener('DOMContentLoaded', function() {
   var DOUBLE_TAP_MS = 350;
   var TAP_SLOP_PX = 20;
   document.addEventListener('touchstart', function (e) {
+    if (helpIsOpen()) {
+      touchStartX = null;
+      return;
+    }
     if (e.touches.length !== 1) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchStartT = Date.now();
   }, { passive: true });
   document.addEventListener('touchend', function (e) {
+    if (helpIsOpen()) {
+      touchStartX = null;
+      return;
+    }
     if (touchStartX === null) return;
     var dx = e.changedTouches[0].clientX - touchStartX;
     var dy = e.changedTouches[0].clientY - touchStartY;

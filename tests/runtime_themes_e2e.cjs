@@ -93,11 +93,48 @@ async function main() {
     stampNameIsBold: !!document.querySelector('.help-stamp strong'),
   }));
   if (!help.open || !help.themeLine
-      || !/^Compiled with LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
+      || !/^Compilé avec LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
       || !help.stampNameIsBold) {
     fail('H did not expose the theme action and version stamp: ' + JSON.stringify(help));
   }
+  const helpBeforeNavigation = await page.evaluate(() => ({
+    pageY: window.scrollY,
+    overlayTop: document.getElementById('helpOverlay').scrollTop,
+  }));
+  // The help itself may scroll to its final stamp, but a click or wheel must
+  // never advance the presentation behind the modal.
+  await page.mouse.click(1100, 400);
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(300);
+  const helpAfterNavigation = await page.evaluate(() => ({
+    pageY: window.scrollY,
+    overlayTop: document.getElementById('helpOverlay').scrollTop,
+    open: document.getElementById('helpOverlay').classList.contains('open'),
+  }));
+  if (helpAfterNavigation.pageY !== helpBeforeNavigation.pageY
+      || !helpAfterNavigation.open) {
+    fail('help allowed navigation behind the modal: '
+      + JSON.stringify({ helpBeforeNavigation, helpAfterNavigation }));
+  }
   await page.keyboard.press('h');
+  const closedByH = await page.evaluate(() => ({
+    open: document.getElementById('helpOverlay').classList.contains('open'),
+    lock: document.documentElement.classList.contains('help-open'),
+    overflow: getComputedStyle(document.documentElement).overflow,
+  }));
+  if (closedByH.open || closedByH.lock || closedByH.overflow === 'hidden') {
+    fail('closing help with H did not restore scrolling: ' + JSON.stringify(closedByH));
+  }
+  await page.keyboard.press('h');
+  await page.keyboard.press('Escape');
+  const closedByEscape = await page.evaluate(() => ({
+    open: document.getElementById('helpOverlay').classList.contains('open'),
+    lock: document.documentElement.classList.contains('help-open'),
+  }));
+  if (closedByEscape.open || closedByEscape.lock) {
+    fail('closing help with Escape did not restore its modal state: '
+      + JSON.stringify(closedByEscape));
+  }
 
   await page.keyboard.press('m');
   const menu = await page.evaluate(() => ({

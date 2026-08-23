@@ -62,8 +62,8 @@ Monochrome Night, and the menu text keeps its viewport scale on wide screens.
 
 The `H` help overlay now always ends with `Compiled with LightWebPres vX.Y.Z`,
 with the product name bolded. When runtime alternatives are embedded, its
-shortcut list explicitly names `C` as the way to change theme during the
-presentation.
+shortcut list always names `C` as the way to change theme during the
+presentation; the picker opens when alternatives have been embedded.
 
 ## v0.45.3
 

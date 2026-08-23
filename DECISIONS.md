@@ -2378,10 +2378,10 @@ the product name bolded. This makes every generated page identify the tool
 that supplied its presenter runtime without making the page non-reproducible
 or exposing a build time.
 
-When a page carries runtime theme alternatives, the help list explicitly says
-that `C` changes the theme during the presentation. The row remains conditional
-on alternatives being embedded, because a page without a runtime catalogue has
-no theme to switch to and must not advertise a no-op control.
+The help list always says that `C` changes the theme during the presentation,
+whether or not the current page carries alternatives. The picker opens only
+when alternatives have been embedded; on an ordinary page the line documents
+the capability without making the static page carry a runtime catalogue.
 
 **What is verified.** Black-box and browser tests check the permanent stamp,
 the bold product name, the version shape and the visible `C` instruction.

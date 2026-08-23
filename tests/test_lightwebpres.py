@@ -8134,13 +8134,20 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             stamp = (
-                '<div class="help-stamp">Compiled with '
+                '<div class="help-stamp">Compilé avec '
                 f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>')
             self.assertIn(stamp, html)
             self.assertLess(html.index('class="help-foot"'),
                             html.index('class="help-stamp"'))
             self.assertIn(
                 'Changer de thème pendant la présentation (touche C)', html)
+            result = run('build', str(root), '--lang', 'en', '--themes', 'print-ink')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            english = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn(
+                f'<div class="help-stamp">Compiled with '
+                f'<strong>LightWebPres</strong> v{self.lwp.VERSION}</div>',
+                english)
 
     def test_no_runtime_option_keeps_the_page_without_theme_payload(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -8151,6 +8158,8 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'index.html').read_text(encoding='utf-8')
             self.assertIsNone(self._data(html))
+            self.assertIn(
+                'Changer de thème pendant la présentation (touche C)', html)
 
 
 class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):
