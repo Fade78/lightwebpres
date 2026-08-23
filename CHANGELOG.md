@@ -94,6 +94,11 @@ starts on the first action, left/right follow a row and up/down follow the
 rendered grid rows, `Tab` and `Home`/`End` move through the controls, and
 `Enter`/`Space` activate the focused action.
 
+The presenter menu now calls its help action simply **Help** (`Aide` in the
+French interface), while the help window keeps its descriptive title. On
+small screens, the help panel gives the shortcut and description columns a
+2:3 split so the descriptions no longer collapse into a narrow strip.
+
 The share action is now also available directly on **S**, and the help overlay
 names that shortcut in both languages. On touch screens, the double-tap mode
 switch now gives a localized status toast, so permanent navigation and
