@@ -202,18 +202,24 @@ async function main() {
       return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
     };
     return {
-      fullscreen: rect('navFullscreen'),
-      menu: rect('navMenu'), prev: rect('navPrev'), next: rect('navNext'),
+      next: rect('navNext'), prev: rect('navPrev'),
+      fullscreen: rect('navFullscreen'), menu: rect('navMenu'),
+      prevDisabled: document.getElementById('navPrev').classList.contains('disabled'),
+      nextDisabled: document.getElementById('navNext').classList.contains('disabled'),
       visible: Array.prototype.map.call(
         document.querySelectorAll('.nav-buttons .nav-btn:not([hidden])'),
         (button) => button.id),
     };
   });
-  if (navLayout.visible.join('|') !== 'navFullscreen|navMenu|navPrev|navNext'
+  const centers = [navLayout.next, navLayout.prev, navLayout.fullscreen, navLayout.menu]
+    .map((box) => (box.left + box.right) / 2);
+  if (navLayout.visible.join('|') !== 'navNext|navPrev|navFullscreen|navMenu'
+      || navLayout.next.top >= navLayout.prev.top
+      || navLayout.prev.top >= navLayout.fullscreen.top
       || navLayout.fullscreen.top >= navLayout.menu.top
-      || navLayout.menu.top >= navLayout.prev.top
-      || navLayout.prev.top !== navLayout.next.top) {
-    fail('the navigation controls were not arranged fullscreen/menu/up/down: '
+      || centers.some((center) => Math.abs(center - centers[0]) > 0.5)
+      || !navLayout.prevDisabled || navLayout.nextDisabled) {
+    fail('the navigation controls were not one column, bottom-up menu/fullscreen/up/down: '
       + JSON.stringify(navLayout));
   }
   await navMenuButton.click();

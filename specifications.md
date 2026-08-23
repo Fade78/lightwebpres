@@ -2086,13 +2086,15 @@ pointeur, si : une souris a un second bouton, un doigt n'en a pas. La
 liaison est donc conservée sur pointeur fin et ignorée sur pointeur
 grossier.
 
-**Boutons** : ⛶ (plein écran) en haut, Menu dessous, puis prev/next en bas,
-dans la pile en bas-droite. Home, partage et L (filtre de tags, masqué quand
-la page n'a qu'un seul tag) sont dans le menu présentateur ; celui-ci reprend
-aussi les thèmes, l'aide, les notes et les écrans de pause. Chaque action du
-menu porte une icône et, quand elle existe, son raccourci dans un élément
-`kbd`. Auto-hide après 3 s d'inactivité hors plein écran, **1 s en plein
-écran** — c'est-à-dire dans le mode où l'orateur se trouve, où le chrome doit
+**Boutons** : une seule colonne en bas-droite, avec de bas en haut Menu,
+⛶ (plein écran), prev puis next. Les flèches prev/next sont grisées quand
+elles ne peuvent plus avancer dans leur direction. Home, partage et L (filtre
+de tags, masqué quand la page n'a qu'un seul tag) sont dans le menu
+présentateur ; celui-ci reprend aussi les thèmes, l'aide, les notes et les
+écrans de pause. Chaque action du menu porte une icône et, quand elle existe,
+son raccourci dans un élément `kbd`. Auto-hide après 3 s d'inactivité hors
+plein écran, **1 s en plein écran** — c'est-à-dire dans le mode où l'orateur
+se trouve, où le chrome doit
 s'effacer plus vite. Le délai est le même partout ; c'est le chemin de retour
 qui diffère selon l'appareil : mouvement de souris là où il y a un pointeur,
 double tap là où il n'y en a pas. Sur écran tactile, un toucher ou un
@@ -2772,8 +2774,8 @@ de navigation, plein écran, thèmes, présentateur, tags, partage, aide et
 écrans de pause. Chaque action porte une icône et son raccourci clavier quand
 il existe. Le focus entre sur la première action ; **Tab**, les flèches,
 **Début** et **Fin** parcourent les actions, et **Entrée**/**Espace** activent
-l'action focalisée. Le même dialogue s'ouvre par le bouton Menu de la
-navigation, dans la pile en bas à droite, sous le bouton plein écran. Les deux
+l'action focalisée. Le même dialogue s'ouvre par le bouton Menu au bas de la
+pile de navigation, sous le bouton plein écran. Les deux
 dialogues sont parcourables au clavier et ne laissent pas Tab sortir vers la
 page sous-jacente. Sans alternative, C reste inerte et l'action « thèmes » est
 absente du menu M.
@@ -6412,15 +6414,17 @@ l'exécutable.
 <nav class="nav-dots"></nav>
 
 <div class="nav-buttons">
+  <div class="nav-row nav-row-down">
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-keyshortcuts="ArrowDown ArrowRight PageDown" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
+  </div>
+  <div class="nav-row nav-row-up">
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
+  </div>
   <div class="nav-row nav-row-fullscreen">
     <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" aria-keyshortcuts="F" aria-label="{{str_nav_fullscreen}}" title="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-keyshortcuts="M" aria-haspopup="dialog" aria-expanded="false" aria-label="{{str_menu_title}}" title="{{str_menu_title}}">{{icon_menu}}</div>
-  </div>
-  <div class="nav-row nav-row-reading">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
   </div>
 </div>
 

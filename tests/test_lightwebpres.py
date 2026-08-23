@@ -186,6 +186,7 @@ class SlideTags(unittest.TestCase):
                 'id="menuTags"', 'id="navMenu"', 'id="tagMenu"',
                 'id="tagMenuList"', 'class="nav-row nav-row-fullscreen"',
                 'class="nav-row nav-row-menu"',
+                'class="nav-row nav-row-up"', 'class="nav-row nav-row-down"',
                 'var allSlides', 'var selectedTag', 'localStorage',
                 'slides = allSlides.filter', "e.key === 'l' || e.key === 'L'",
                 'data-tags="default"'):

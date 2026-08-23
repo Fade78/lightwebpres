@@ -1306,8 +1306,7 @@ body.fs-noselect {
   z-index: 200;
   transition: opacity 0.4s;
 }
-.nav-row { display: flex; gap: 8px; }
-.nav-row-fullscreen, .nav-row-menu { justify-content: flex-end; }
+.nav-row { display: flex; justify-content: flex-end; }
 /* Auto-hide in presentation: the buttons fade out after 3s of idleness
    and come back on 250ms of continuous mouse movement, the same
    condition as the cursor.
@@ -2052,15 +2051,17 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 </div>
 
 <div class="nav-buttons">
+  <div class="nav-row nav-row-down">
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" aria-label="Next slide" aria-keyshortcuts="ArrowDown ArrowRight PageDown"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
+  </div>
+  <div class="nav-row nav-row-up">
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" aria-label="Previous slide" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
+  </div>
   <div class="nav-row nav-row-fullscreen">
     <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="Fullscreen (F key)" aria-label="Fullscreen (F key)" aria-keyshortcuts="F"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
   </div>
   <div class="nav-row nav-row-menu">
     <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="Presenter menu (M key)" aria-label="Presenter menu (M key)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></div>
-  </div>
-  <div class="nav-row nav-row-reading">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="Previous slide" aria-label="Previous slide" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5 12l7-7 7 7"/></svg></div>
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="Next slide" aria-label="Next slide" aria-keyshortcuts="ArrowDown ArrowRight PageDown"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M19 12l-7 7-7-7"/></svg></div>
   </div>
 </div>
 
@@ -2224,7 +2225,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
     <li><strong>A step in a content pipeline</strong>, where the Markdown comes from somewhere else entirely — a CMS export, a database, a generator, an agent upstream — and LightWebPres is what turns it into publishable pages.</li>
   </ul>
   <p>The third is not an afterthought; the tool is shaped for it. <strong>Every command runs unattended</strong> — nothing ever blocks on an interactive prompt. <strong>Every command has a meaningful exit code</strong>: <code>verify</code> exits non-zero the moment the built output differs from the sources, which is a real gate; <code>audit --strict</code> exits non-zero on anything worth reporting — two gates, two questions. Plain <code>audit</code> never fails, whatever it finds: it reports and gets out of the way. <strong>There is nothing to install</strong>: one file, nothing beyond the Python standard library, no wheel, no lockfile, no network at build time — any image with <code>python3</code> in it can run it. And <strong>every path is an environment variable</strong> (<code>LWP_SERIES_DIR</code>, <code>LWP_SOURCES_DIR</code>, <code>LWP_OUTPUT_DIR</code>, <code>LWP_TEMPLATES_DIR</code>, <code>LWP_LANGUAGE_DIR</code>, <code>LWP_LANG</code>), so a pipeline can lay the pieces out however it likes without passing a single flag.</p>
-  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, M for the presenter menu), mouse (click to advance, right-click to go back, middle button to enter or leave fullscreen), and touch (swipe) all work out of the box — the index included, whose step  is one article card at a time. The navigation buttons form a lower-right stack with fullscreen at the top, Menu below it, and previous/next at the bottom; Home, sharing and tags live in the presenter menu. They fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
+  <p><strong>Every page is also a presentation deck.</strong> Open the generated HTML in a browser and you have a full-screen presenter experience: keyboard (↑/↓, Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, M for the presenter menu), mouse (click to advance, right-click to go back, middle button to enter or leave fullscreen), and touch (swipe) all work out of the box — the index included, whose step  is one article card at a time. The navigation buttons form one lower-right column: from bottom to top, Menu, fullscreen, previous and next. The previous and next arrows are grayed when they cannot move further; Home, sharing and tags live in the presenter menu. They fade after 3 seconds of idleness (1 second in fullscreen) — the speaker sees only slides. The cursor hides on that same clock, and neither comes back until the mouse has moved continuously for 250 ms — a brush past the sensor flashes nothing back onto the wall. The scroll bar counts as navigation and follows the same state: it fades to transparent rather than being removed, so nothing on the page moves. Entering or leaving fullscreen, and clicking in the button corner, reveal the chrome at once: those are deliberate gestures, not stray movement. The mouse becomes a remote: left-click advances, right-click goes back, two distinct buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the screen never dims mid-talk.</p>
   <p>Section 8 has the shape of a pipeline that uses all of it.</p>
   <h2>2. Set up &amp; your first build</h2>
   <pre><code class="language-bash">
@@ -2680,7 +2681,7 @@ note: Mention the 2020 study — the audience asked for it last time.
     </tbody>
   </table>
   <h3>Navigation buttons</h3>
-  <p>The round buttons in the bottom-right corner are fullscreen, Menu, previous and next. Home, share and the variant filter are actions in the presenter menu, which also carries the themes, help, notes and pause screens. The same four sit on the index, where previous and next step one article card at a time. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
+  <p>The round buttons in the bottom-right corner form one column: from bottom to top, Menu, fullscreen, previous and next. The previous and next arrows are grayed when they cannot move further. Home, share and the variant filter are actions in the presenter menu, which also carries the themes, help, notes and pause screens. The same four sit on the index, where previous and next step one article card at a time. After 3 seconds of mouse idleness they fade out, and the cursor goes with them: the speaker does not want chrome on the wall. In fullscreen both go after 1 second. Move the mouse to bring the buttons back; the cursor waits for 250ms of continuous movement, so a knock against the desk does not put it on the wall.</p>
   <p>On a phone or a tablet they fade after the same three seconds. A <strong>double tap</strong> switches to permanent navigation, or back to auto-hide with a fresh countdown. A touch or a scroll restarts the countdown while they are still up, so they never vanish under your finger; once they are gone they no longer answer a touch at all, so the corner of your own text is safe to touch. Fullscreen is the ⛶ button in that bar rather than the middle button: the middle button alone only exits fullscreen — entering is the two-step, middle button then a left click — and a gesture that meant two things depending on a state you cannot see coming would not be one.</p>
   <p>The double tap is also how a phone selects a word, and the deck does not try to take it: selection, long press and the copy menu are the browser's, untouched. Which of the two wins a given double tap is the browser's call, and if it takes one, press and hold or use the ⛶ button — nothing the deck does will have got in your way. With a mouse, clicking the corner (not a button) toggles their current visibility.</p>
   <h2>10. Shell completion (tab in the terminal)</h2>
@@ -4196,17 +4197,22 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUI();
   }
 
+  function setNavDisabled(button, disabled) {
+    if (!button) return;
+    button.classList.toggle('disabled', disabled);
+    button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+
   function updateUI() {
-    if (btnPrev) btnPrev.classList.toggle('disabled', !slides.length || current === 0);
-    if (btnNext) btnNext.classList.toggle('disabled', !slides.length || current === slides.length - 1);
+    setNavDisabled(btnPrev, !slides.length || current === 0);
+    setNavDisabled(btnNext, !slides.length || current === slides.length - 1);
     if (!slides.length) {
       // The index: the cards are the journey, and the nav buttons are
       // its on-screen twins — first card / last card, exactly as on the
       // series-nav slide of an article.
       var cards = indexCardList();
-      if (btnPrev) btnPrev.classList.toggle('disabled', focusedCard <= 0);
-      if (btnNext) btnNext.classList.toggle('disabled',
-                                            focusedCard >= cards.length - 1);
+      setNavDisabled(btnPrev, focusedCard <= 0);
+      setNavDisabled(btnNext, focusedCard >= cards.length - 1);
     } else {
       dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
     }

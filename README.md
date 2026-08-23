@@ -32,9 +32,10 @@ a two-step gesture — middle button, then a left click (F or the ⛶
 button enters directly). A click while the deck is gliding to
 the next card jumps straight to its target — two clicks in quick
 succession land two pages on, a right-click during the glide returns to
-the card you left. The lower-right navigation stack keeps fullscreen at the
-top, then Menu, then the previous/next arrows; Home, sharing and tag filters
-live in the presenter menu. Navigation buttons fade
+the card you left. The lower-right navigation controls form one column: from
+bottom to top, Menu, fullscreen, previous and next. The previous/next arrows
+are grayed when they cannot move further; Home, sharing and tag filters live
+in the presenter menu. Navigation buttons fade
 after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
 only slides. The cursor hides on the same clock, and both come back on
 the same condition: 250 ms of continuous mouse movement, so a knock
