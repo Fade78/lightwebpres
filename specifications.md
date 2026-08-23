@@ -2762,7 +2762,9 @@ Sur une page qui contient des alternatives, **C** ouvre un dialogue
 recherchable et **Échap** le ferme ; **Entrée** applique le premier résultat
 depuis le champ de recherche. **M** ouvre un dialogue global avec les actions
 de navigation, plein écran, thèmes, présentateur, tags, partage, aide et
-écrans de pause. Les deux dialogues sont parcourables au clavier et ne
+écrans de pause. Le focus entre sur la première action ; **Tab**, les flèches,
+**Début** et **Fin** parcourent les actions, et **Entrée**/**Espace** activent
+l'action focalisée. Les deux dialogues sont parcourables au clavier et ne
 laissent pas Tab sortir vers la page sous-jacente. Sans alternative, C reste
 inerte et l'action « thèmes » est absente du menu M.
 

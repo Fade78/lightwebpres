@@ -1595,7 +1595,11 @@ body.fs-noselect {
   text-align: left;
 }
 .presenter-menu-action:hover, .theme-option:hover,
-.presenter-menu-action.active, .theme-option.active { font-weight: 700; }
+.presenter-menu-action.active, .theme-option.active {
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.15em;
+}
 .presenter-menu-action:focus-visible, .theme-option:focus-visible,
 .theme-filter:focus-visible { outline-style: solid; outline-offset: 2px; }
 .theme-menu-help {
@@ -2348,7 +2352,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 "themes": ["essential", "background:light", "bgh:red"]
   </code></pre>
   <p><code>essential</code> embeds Monochrome, Monochrome Night and Print Ink. A selector <code>X:Y</code> can use <code>background</code>/<code>bg</code>, <code>family</code>/<code>fam</code>, or <code>background hue</code>/<code>bgh</code>; each selector adds its matching themes and duplicates are removed. An explicit CLI <code>--themes</code> overrides the JSON list.</p>
-  <p>The effective theme in <code>templates/settings.conf</code> is always included first, even if it is not in the list. The setting is read at build time, so an author's edit remains the source of truth. Values pinned in <code>settings.conf</code>, <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the selection lasts for the other pages of the same deck in the current browser session.</p>
+  <p>The effective theme in <code>templates/settings.conf</code> is always included first, even if it is not in the list. The setting is read at build time, so an author's edit remains the source of truth. Values pinned in <code>settings.conf</code>, <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the selection lasts for the other pages of the same deck in the current browser session. In that menu, focus starts on the first action; <code>Tab</code>, the arrow keys, <code>Home</code> and <code>End</code> move through the actions, and <code>Enter</code>/<code>Space</code> activate the focused one.</p>
   <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme, or of the effective theme after the series' pins. <code>audit</code> reads the same resolved sheet without being asked, and speaks only when something has stopped working — a navigation control you cannot see, text the colour of its own ground, a size under the readability floor. It warns; it never refuses, and no shipped theme trips it.</p>
   <h3>Why essential themes ship by default</h3>
   <p>Every build embeds the <code>essential</code> bundle on its own — Monochrome, Monochrome Night and Print Ink — so the picker is functional on any page without the author opting in. Three reasons, in order:</p>
@@ -3652,6 +3656,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  function movePresenterFocus(step) {
+    var actions = focusablesWithin(presenterMenu);
+    if (!actions.length) return;
+    var at = actions.indexOf(document.activeElement);
+    var next = (at < 0 ? 0 : at + step + actions.length) % actions.length;
+    actions[next].focus();
+  }
+
+  function focusPresenterEdge(last) {
+    var actions = focusablesWithin(presenterMenu);
+    if (actions.length) actions[last ? actions.length - 1 : 0].focus();
+  }
+
   function closeThemeMenu(restoreFocus) {
     var wasOpen = themeMenu && themeMenu.classList.contains('open');
     if (themeMenu) themeMenu.classList.remove('open');
@@ -4178,11 +4195,23 @@ document.addEventListener('DOMContentLoaded', function() {
        }
        return;
      }
-     if (presenterMenu && presenterMenu.classList.contains('open')) {
-       if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
-         e.preventDefault();
-         closePresenterMenu();
-       } else if (e.key === 'Tab') {
+      if (presenterMenu && presenterMenu.classList.contains('open')) {
+        if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          closePresenterMenu();
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          movePresenterFocus(1);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          movePresenterFocus(-1);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          focusPresenterEdge(false);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          focusPresenterEdge(true);
+        } else if (e.key === 'Tab') {
          var menuFocus = focusablesWithin(presenterMenu);
          if (menuFocus.length) {
            e.preventDefault();

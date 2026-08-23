@@ -363,7 +363,9 @@ author's edit remains the source of truth. Values pinned in `settings.conf`,
 `style.*` page properties and theme variables declared in `custom.css` are
 left alone while a reader switches. **C** opens the searchable picker and
 **M** opens the global presenter menu; the selection lasts for the other
-pages of the same deck in the current browser session.
+pages of the same deck in the current browser session. In that menu, focus
+starts on the first action; `Tab`, the arrow keys, `Home` and `End` move
+through the actions, and `Enter`/`Space` activate the focused one.
 
 These commands inspect and select existing theme values. They do not design,
 retune or repair a palette. Use `theme show` to read the measured contrast of

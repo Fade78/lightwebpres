@@ -79,6 +79,11 @@ menu's closing click dismissing it again. Pages built with
 `--no-essential-theme` no longer advertise a `C` picker they do not carry,
 and the flag appears in the command synopsis as well as the full option list.
 
+The presenter menu keeps its action boxes the same size on hover instead of
+wrapping when a label becomes bold. It is fully keyboard-navigable: focus
+starts on the first action, `Tab` and the arrow keys move through the list,
+`Home`/`End` jump to its edges, and `Enter`/`Space` activate the focused action.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a

@@ -152,7 +152,49 @@ async function main() {
   if (!menu.open || menu.visibleActions !== 11) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
-  await page.locator('[data-menu-action="help"]').click();
+  const firstMenuFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  if (firstMenuFocus !== 'prev') {
+    fail('M did not focus the first presenter action: ' + firstMenuFocus);
+  }
+  await page.keyboard.press('ArrowDown');
+  const downMenuFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  await page.keyboard.press('ArrowUp');
+  const upMenuFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  await page.keyboard.press('End');
+  const endMenuFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  await page.keyboard.press('Home');
+  const homeMenuFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  if (downMenuFocus !== 'home' || upMenuFocus !== 'prev'
+      || endMenuFocus !== 'pause-theme' || homeMenuFocus !== 'prev') {
+    fail('presenter menu arrow/home/end navigation is wrong: '
+      + JSON.stringify({ downMenuFocus, upMenuFocus, endMenuFocus, homeMenuFocus }));
+  }
+  await page.keyboard.press('Tab');
+  const tabMenuFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  await page.keyboard.press('Shift+Tab');
+  const shiftTabMenuFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  if (tabMenuFocus !== 'home' || shiftTabMenuFocus !== 'prev') {
+    fail('presenter menu Tab navigation is wrong: '
+      + JSON.stringify({ tabMenuFocus, shiftTabMenuFocus }));
+  }
+  const helpAction = page.locator('[data-menu-action="help"]');
+  const beforeHover = await helpAction.boundingBox();
+  await helpAction.hover();
+  const afterHover = await helpAction.boundingBox();
+  if (!beforeHover || !afterHover
+      || Math.abs(beforeHover.width - afterHover.width) > 0.5
+      || Math.abs(beforeHover.height - afterHover.height) > 0.5) {
+    fail('presenter menu action changed size on hover: '
+      + JSON.stringify({ beforeHover, afterHover }));
+  }
+  await helpAction.click();
   const helpFromMenu = await page.evaluate(() => ({
     helpOpen: document.getElementById('helpOverlay').classList.contains('open'),
     menuOpen: document.getElementById('presenterMenu').classList.contains('open'),
