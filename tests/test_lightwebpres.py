@@ -183,7 +183,8 @@ class SlideTags(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
 
         for fragment in (
-                'id="navTags"', 'id="tagMenu"', 'id="tagMenuList"',
+                'id="navTags"', 'id="navMenu"', 'id="tagMenu"',
+                'id="tagMenuList"', 'class="nav-row nav-row-tools"',
                 'var allSlides', 'var selectedTag', 'localStorage',
                 'slides = allSlides.filter', "e.key === 'l' || e.key === 'L'",
                 'data-tags="default"'):
@@ -10344,6 +10345,7 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
         'navShare': 'M12 15V4',
         'navFullscreen': 'M8 3H5a2 2 0 0 0-2 2v3',
         'navTags': 'M20.6 13.4l-7.2 7.2',
+        'navMenu': 'M4 6h16',
     }
 
     def test_every_navigation_button_carries_its_own_icon(self):

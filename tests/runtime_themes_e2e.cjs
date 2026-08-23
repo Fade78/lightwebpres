@@ -37,6 +37,45 @@ async function main() {
     fail('C did not open the theme picker correctly: ' + JSON.stringify(picker));
   }
 
+  await page.keyboard.press('ArrowDown');
+  const themeDownFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('ArrowUp');
+  const themeUpFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('End');
+  const themeEndFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('Home');
+  const themeHomeFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('ArrowRight');
+  const themeRightFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  await page.keyboard.press('ArrowLeft');
+  const themeLeftFocus = await page.evaluate(() =>
+    document.activeElement && document.activeElement.getAttribute('data-theme'));
+  if (themeDownFocus !== 'print-oldpress'
+      || themeUpFocus !== 'print-ink'
+      || themeEndFocus !== 'print-ink'
+      || themeHomeFocus !== 'print-oldpress'
+      || themeRightFocus !== 'print-ink'
+      || themeLeftFocus !== 'print-oldpress') {
+    fail('theme picker arrow/home/end navigation is wrong: '
+      + JSON.stringify({ themeDownFocus, themeUpFocus, themeEndFocus,
+        themeHomeFocus, themeRightFocus, themeLeftFocus }));
+  }
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('c');
+  const reopenedPicker = await page.evaluate(() => ({
+    open: document.getElementById('themeMenu').classList.contains('open'),
+    focused: document.activeElement && document.activeElement.id,
+  }));
+  if (!reopenedPicker.open || reopenedPicker.focused !== 'themeFilter') {
+    fail('C did not reopen the theme picker after arrow navigation: '
+      + JSON.stringify(reopenedPicker));
+  }
+
   // The filter is focused first; two Tab presses reach the alternate theme.
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
@@ -141,15 +180,64 @@ async function main() {
     fail('a click did not close the help overlay: ' + JSON.stringify(closedByClick));
   }
 
+  const navMenuButton = page.locator('#navMenu');
+  const navLayout = await page.evaluate(() => {
+    const rect = (id) => {
+      const box = document.getElementById(id).getBoundingClientRect();
+      return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
+    };
+    return {
+      menu: rect('navMenu'), tags: rect('navTags'), next: rect('navNext'),
+    };
+  });
+  if (navLayout.menu.left <= navLayout.tags.left
+      || navLayout.menu.top <= navLayout.next.top) {
+    fail('the presenter menu button was not arranged at the lower right: '
+      + JSON.stringify(navLayout));
+  }
+  await navMenuButton.click();
+  const openedFromNav = await page.evaluate(() => ({
+    menuOpen: document.getElementById('presenterMenu').classList.contains('open'),
+    focus: document.activeElement && document.activeElement.getAttribute('data-menu-action'),
+    expanded: document.getElementById('navMenu').getAttribute('aria-expanded'),
+  }));
+  if (!openedFromNav.menuOpen || openedFromNav.focus !== 'prev'
+      || openedFromNav.expanded !== 'true') {
+    fail('the presenter menu nav button did not open and focus the menu: '
+      + JSON.stringify(openedFromNav));
+  }
+  await page.keyboard.press('Escape');
+  const closedFromNav = await page.evaluate(() => ({
+    menuOpen: document.getElementById('presenterMenu').classList.contains('open'),
+    focus: document.activeElement && document.activeElement.id,
+    expanded: document.getElementById('navMenu').getAttribute('aria-expanded'),
+  }));
+  if (closedFromNav.menuOpen || closedFromNav.focus !== 'navMenu'
+      || closedFromNav.expanded !== 'false') {
+    fail('closing the presenter menu did not restore nav focus: '
+      + JSON.stringify(closedFromNav));
+  }
+  await page.keyboard.press('Enter');
+  const openedByNavKey = await page.evaluate(() => ({
+    menuOpen: document.getElementById('presenterMenu').classList.contains('open'),
+    focus: document.activeElement && document.activeElement.getAttribute('data-menu-action'),
+  }));
+  if (!openedByNavKey.menuOpen || openedByNavKey.focus !== 'prev') {
+    fail('Enter on the nav menu button did not open the presenter menu: '
+      + JSON.stringify(openedByNavKey));
+  }
+  await page.keyboard.press('Escape');
+
   await page.keyboard.press('m');
   const menu = await page.evaluate(() => ({
     open: document.getElementById('presenterMenu').classList.contains('open'),
+    expanded: document.getElementById('navMenu').getAttribute('aria-expanded'),
     visibleActions: Array.prototype.filter.call(
       document.querySelectorAll('.presenter-menu-action'),
       (button) => getComputedStyle(button).display !== 'none'
     ).length,
   }));
-  if (!menu.open || menu.visibleActions !== 11) {
+  if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 11) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
   const firstMenuFocus = await page.evaluate(() =>

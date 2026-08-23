@@ -2759,14 +2759,18 @@ Le choix est conservé dans la session du navigateur afin de suivre les
 pages du même deck ; il ne modifie aucun fichier source.
 
 Sur une page qui contient des alternatives, **C** ouvre un dialogue
-recherchable et **Échap** le ferme ; **Entrée** applique le premier résultat
-depuis le champ de recherche. **M** ouvre un dialogue global avec les actions
+recherchable et **Échap** le ferme ; les flèches, **Début** et **Fin** y
+parcourent les thèmes, et **Entrée** applique le premier résultat depuis le
+champ de recherche ou active le thème focalisé. **M** ouvre un dialogue global
+avec les actions
 de navigation, plein écran, thèmes, présentateur, tags, partage, aide et
 écrans de pause. Le focus entre sur la première action ; **Tab**, les flèches,
 **Début** et **Fin** parcourent les actions, et **Entrée**/**Espace** activent
-l'action focalisée. Les deux dialogues sont parcourables au clavier et ne
-laissent pas Tab sortir vers la page sous-jacente. Sans alternative, C reste
-inerte et l'action « thèmes » est absente du menu M.
+l'action focalisée. Le même dialogue s'ouvre par le bouton Menu de la
+navigation, placé en bas à droite dans la rangée des outils. Les deux
+dialogues sont parcourables au clavier et ne laissent pas Tab sortir vers la
+page sous-jacente. Sans alternative, C reste inerte et l'action « thèmes » est
+absente du menu M.
 
 ### 9.4 Les commandes
 

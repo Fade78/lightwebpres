@@ -655,8 +655,9 @@ theme variables in `custom.css` remain pinned while the reader switches. The
 payload is inline and delta-encoded, so the resulting pages remain standalone.
 On a page built with this option, **C** opens the searchable theme picker and
 **M** opens one menu for fullscreen, themes, help, speaker notes, tags,
-sharing, navigation and pause screens. The choice is kept in the browser's
-session for the other pages of the same deck.
+sharing, navigation and pause screens. The same presenter menu is available
+from the bottom-right menu button in the navigation. The choice is kept in the
+browser's session for the other pages of the same deck.
 
 A theme provides seven shared colors and four font stacks —
 `color.page`, `color.ink`, `color.ink-quiet`, `color.mark`,

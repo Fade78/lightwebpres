@@ -84,6 +84,11 @@ wrapping when a label becomes bold. It is fully keyboard-navigable: focus
 starts on the first action, `Tab` and the arrow keys move through the list,
 `Home`/`End` jump to its edges, and `Enter`/`Space` activate the focused action.
 
+The theme picker now has the same arrow, `Home` and `End` navigation, while
+the presenter menu is also reachable from a dedicated bottom-right navigation
+button. The navigation controls are arranged as a reading row and an action
+row so the new button does not extend a crowded vertical stack.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a
