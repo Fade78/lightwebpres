@@ -2109,6 +2109,33 @@ THEMES = {
                 "structured without turning it into a screen.",
         'note_good': True,
     },
+    'print-oldpress': {
+        'family': 'print', 'label': 'Print Old Press', 'source': 'lightwebpres',
+        'marker': '#1A1A1A', 'ink': '#111111', 'ink-muted': '#505050',
+        'page': '#FFFFFF', 'accent': '#111111', 'positive': '#111111',
+        'nav': '#111111',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
+        'fact_decoration': 'underline', 'fact_decoration_color': 'marker',
+        'note': "A page straight from a black-ribbon typewriter: fixed-pitch "
+                "letters everywhere, white paper, and no colour to hide a "
+                "weak hierarchy. Bold, underlines and the gaps between lines "
+                "do the work of the old press.",
+        'note_good': True,
+    },
+    'print-oldpress-red-ribbon': {
+        'family': 'print', 'label': 'Print Old Press Red Ribbon',
+        'source': 'lightwebpres',
+        'marker': '#B21E2B', 'ink': '#111111', 'ink-muted': '#505050',
+        'page': '#FFFFFF', 'accent': '#B21E2B', 'positive': '#111111',
+        'nav': '#B21E2B',
+        'fact_weight': 'bold', 'fact_style': 'normal', 'fact_highlight': None,
+        'fact_decoration': 'underline', 'fact_decoration_color': 'marker',
+        'note': "The same fixed-pitch old press, with the second ribbon loaded: "
+                "black carries the body and a restrained red marks the kicker, "
+                "rules and calls. The sheet stays white; red is an ink, never "
+                "a wash.",
+        'note_good': True,
+    },
 }
 
 
@@ -3679,6 +3706,11 @@ _ROLE_TO_COLOR = {'marker': 'mark', 'accent': 'call', 'positive': 'affirm',
 #
 # `kicker.tracking` is written `tag.tracking` in the layers, from before
 # the editorial rename of `tag:` to `kicker:`.
+_OLDPRESS_TYPEWRITER = (
+    "'Nimbus Mono PS', 'Courier New', 'Liberation Mono', "
+    "'DejaVu Sans Mono', monospace"
+)
+
 THEME_TYPOGRAPHY = {
     'blueprint-night': {
         'font.display': 'text',
@@ -3798,6 +3830,20 @@ THEME_TYPOGRAPHY = {
         'font.display': 'text',
         'font.text': "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
         'kicker.tracking': '3px',
+    },
+    'print-oldpress': {
+        'font.text': _OLDPRESS_TYPEWRITER,
+        'font.display': _OLDPRESS_TYPEWRITER,
+        'font.ui': _OLDPRESS_TYPEWRITER,
+        'font.mono': _OLDPRESS_TYPEWRITER,
+        'kicker.tracking': '1px',
+    },
+    'print-oldpress-red-ribbon': {
+        'font.text': _OLDPRESS_TYPEWRITER,
+        'font.display': _OLDPRESS_TYPEWRITER,
+        'font.ui': _OLDPRESS_TYPEWRITER,
+        'font.mono': _OLDPRESS_TYPEWRITER,
+        'kicker.tracking': '1px',
     },
     'rose-pine': {
         'font.display': 'text',
@@ -4159,6 +4205,21 @@ THEME_PROPERTY_OVERRIDES = {
     },
     'print-boss': {
         **_PRINT_WHITE_SURFACES,
+        'table.col-snap.rule-fg': 'call',
+        'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
+        'highlight.shadow.fg': 'transparent',
+    },
+    'print-oldpress': {
+        **_PRINT_WHITE_SURFACES,
+        'table.head.bg': '#F4F4F4',
+        'table.col-snap.rule-fg': 'ink',
+        'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
+        'highlight.shadow.fg': 'transparent',
+    },
+    'print-oldpress-red-ribbon': {
+        **_PRINT_WHITE_SURFACES,
+        'table.head.bg': '#F4F4F4',
+        'cover.kicker.fg': 'mark',
         'table.col-snap.rule-fg': 'call',
         'page.shadow.fg': 'transparent', 'title1.shadow.fg': 'transparent',
         'highlight.shadow.fg': 'transparent',

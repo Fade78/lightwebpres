@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 35 · **abandonné** 1 · **sans objet** 3
+**à étudier** 6 · **à faire** 1 · **en cours** 0 · **terminé** 36 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -151,6 +151,7 @@ gets its own entry and its own state**, however small.
 - **B40** — The print family: three themes drawn for ink and paper
 - **B41** — Print Boss adds a hand-marked newspaper to the print family
 - **B42** — Print Ink and Print Grey keep a low-ink table header
+- **B43** — Old Press adds a fixed-pitch print pair
 
 ### abandonné
 
@@ -2294,3 +2295,19 @@ The print catalogue's white surfaces are not a ban on every change of tone.
 header cells: it separates the column labels from the body while using only
 a very light wash of black ink. `print-color` and `print-boss` keep their
 headers white; their colour already carries the structure elsewhere.
+
+## B43 — Old Press adds a fixed-pitch print pair
+
+**État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
+
+The print family now has two typewriter variants, both on opaque white paper
+with shadows disabled. `print-oldpress` uses black ink only and lets bold,
+underlines and spacing carry the hierarchy. `print-oldpress-red-ribbon` keeps
+the same body ink and adds a restrained red second ribbon for kickers, rules
+and calls; red is ink, never a coloured wash behind text.
+
+This is a typography decision as much as a palette one: `font.text`,
+`font.display`, `font.ui` and `font.mono` all resolve to the same Courier-like
+fixed-pitch stack. A title, a slide number, a navigation control and a code
+sample therefore belong to the same old-press voice rather than mixing a
+typewriter body with modern interface furniture.

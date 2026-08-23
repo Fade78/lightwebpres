@@ -7814,11 +7814,12 @@ class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
         return self.lwp.resolve_theme_properties(
             self.lwp.theme_property_layer(slug))
 
-    def test_the_print_family_has_the_three_original_themes_and_print_boss(self):
+    def test_the_print_family_has_the_four_existing_themes_and_two_old_press_variants(self):
         self.assertEqual(
             [slug for slug, theme in self.lwp.THEMES.items()
              if theme.get('family') == 'print'],
-            ['print-ink', 'print-grey', 'print-color', 'print-boss'])
+            ['print-ink', 'print-grey', 'print-color', 'print-boss',
+             'print-oldpress', 'print-oldpress-red-ribbon'])
 
     def test_every_print_surface_is_opaque_white(self):
         for slug, theme in self.lwp.THEMES.items():
@@ -7829,7 +7830,10 @@ class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
                 self.assertEqual(resolved[prop], '#FFFFFFFF', f'{slug}: {prop}')
             self.assertEqual(resolved['cover.fg'], resolved['color.ink'], slug)
             self.assertEqual(resolved['cover.summary.fg'], resolved['color.ink'], slug)
-            self.assertEqual(resolved['cover.kicker.fg'], resolved['color.ink'], slug)
+            kicker = (resolved['color.mark']
+                      if slug == 'print-oldpress-red-ribbon'
+                      else resolved['color.ink'])
+            self.assertEqual(resolved['cover.kicker.fg'], kicker, slug)
 
     def test_print_ink_is_bold_without_a_highlight_and_print_boss_is_regular_on_yellow(self):
         ink = self._resolved('print-ink')
@@ -7841,11 +7845,31 @@ class ThePrintFamilyKeepsPaperWhiteAndNamesItsInkTreatment(unittest.TestCase):
         self.assertEqual(boss['fact.strong.bg'], '#FFF200FF')
         self.assertEqual(self.lwp.THEMES['print-boss']['fact_highlight'], 'marker')
 
-    def test_print_ink_and_grey_keep_a_low_ink_table_header(self):
-        for slug in ('print-ink', 'print-grey'):
+    def test_print_ink_grey_and_old_press_keep_a_low_ink_table_header(self):
+        for slug in ('print-ink', 'print-grey', 'print-oldpress',
+                     'print-oldpress-red-ribbon'):
             self.assertEqual(self._resolved(slug)['table.head.bg'], '#F4F4F4FF', slug)
         for slug in ('print-color', 'print-boss'):
             self.assertEqual(self._resolved(slug)['table.head.bg'], '#FFFFFFFF', slug)
+
+    def test_old_press_uses_one_typewriter_stack_for_every_theme_font(self):
+        for slug in ('print-oldpress', 'print-oldpress-red-ribbon'):
+            resolved = self._resolved(slug)
+            stack = resolved['font.text']
+            self.assertTrue(stack.endswith(', monospace'), slug)
+            for prop in ('font.display', 'font.ui', 'font.mono'):
+                self.assertEqual(resolved[prop], stack, f'{slug}: {prop}')
+
+    def test_red_ribbon_keeps_red_as_ink_and_not_as_a_fact_wash(self):
+        oldpress = self._resolved('print-oldpress')
+        red = self._resolved('print-oldpress-red-ribbon')
+
+        self.assertEqual(oldpress['fact.strong.bg'], '#00000000')
+        self.assertEqual(red['fact.strong.bg'], '#00000000')
+        self.assertEqual(red['cover.kicker.fg'], red['color.mark'])
+        self.assertEqual(red['fact.strong.decoration-color'], red['color.mark'])
+        self.assertEqual(red['table.col-snap.rule-fg'], red['color.call'])
+        self.assertNotEqual(red['color.mark'], red['color.ink'])
 
 
 class EveryNeutralVeilIsMeasuredOnEveryThemeItLandsOn(unittest.TestCase):

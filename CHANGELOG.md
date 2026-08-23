@@ -41,6 +41,12 @@ into blank panels in the README image. Print Ink and Print Grey restore a
 very light `#F4F4F4` table header, a small paper-saving wash rather than a
 dark fill.
 
+The print family now has two Old Press variants. `print-oldpress` is a
+monochrome black-ribbon typewriter on white paper; `print-oldpress-red-ribbon`
+loads a restrained red second ribbon for kickers, rules and calls. Both use
+the same fixed-pitch face for body text, display text, interface text and the
+mono register, including slides and their controls.
+
 ## v0.45.3
 
 The gallery's labels, colour swatches and theme descriptions now remain a
