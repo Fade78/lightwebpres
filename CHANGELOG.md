@@ -81,8 +81,9 @@ and the flag appears in the command synopsis as well as the full option list.
 
 The presenter menu keeps its action boxes the same size on hover instead of
 wrapping when a label becomes bold. It is fully keyboard-navigable: focus
-starts on the first action, `Tab` and the arrow keys move through the list,
-`Home`/`End` jump to its edges, and `Enter`/`Space` activate the focused action.
+starts on the first action, left/right follow a row and up/down follow the
+rendered grid rows, `Tab` and `Home`/`End` move through the controls, and
+`Enter`/`Space` activate the focused action.
 
 The theme picker now has the same arrow, `Home` and `End` navigation, and each
 choice paints a resolved theme preview with its background gradient and

@@ -2410,7 +2410,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 "themes": ["essential", "background:light", "bgh:red"]
   </code></pre>
   <p><code>essential</code> embeds Monochrome, Monochrome Night and Print Ink. A selector <code>X:Y</code> can use <code>background</code>/<code>bg</code>, <code>family</code>/<code>fam</code>, or <code>background hue</code>/<code>bgh</code>; each selector adds its matching themes and duplicates are removed. An explicit CLI <code>--themes</code> overrides the JSON list.</p>
-  <p>The effective theme in <code>templates/settings.conf</code> is always included first, even if it is not in the list. The setting is read at build time, so an author's edit remains the source of truth. Values pinned in <code>settings.conf</code>, <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the same menu is available from the bottom-right navigation button. The selection lasts for the other pages of the same deck in the current browser session. Each theme choice previews its resolved background, including its gradient, with matching foreground ink. The menu actions carry icons and their keyboard shortcuts. In the theme picker and that presenter menu, focus starts at the first useful control; <code>Tab</code>, the arrow keys, <code>Home</code> and <code>End</code> move through the controls, and <code>Enter</code>/<code>Space</code> activate the focused one.</p>
+  <p>The effective theme in <code>templates/settings.conf</code> is always included first, even if it is not in the list. The setting is read at build time, so an author's edit remains the source of truth. Values pinned in <code>settings.conf</code>, <code>style.*</code> page properties and theme variables declared in <code>custom.css</code> are left alone while a reader switches. <strong>C</strong> opens the searchable picker and <strong>M</strong> opens the global presenter menu; the same menu is available from the bottom-right navigation button. The selection lasts for the other pages of the same deck in the current browser session. Each theme choice previews its resolved background, including its gradient, with matching foreground ink. The menu actions carry icons and their keyboard shortcuts. In the theme picker and that presenter menu, focus starts at the first useful control. In the presenter menu, left/right stay on the current row while up/down move to the nearest control on the adjacent rendered row. <code>Tab</code>, <code>Home</code> and <code>End</code> still move through the controls, and <code>Enter</code>/<code>Space</code> activate the focused one.</p>
   <p>These commands inspect and select existing theme values. They do not design, retune or repair a palette. Use <code>theme show</code> to read the measured contrast of the shipped theme, or of the effective theme after the series' pins. <code>audit</code> reads the same resolved sheet without being asked, and speaks only when something has stopped working — a navigation control you cannot see, text the colour of its own ground, a size under the readability floor. It warns; it never refuses, and no shipped theme trips it.</p>
   <h3>Why essential themes ship by default</h3>
   <p>Every build embeds the <code>essential</code> bundle on its own — Monochrome, Monochrome Night and Print Ink — so the picker is functional on any page without the author opting in. Three reasons, in order:</p>
@@ -3748,12 +3748,52 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  function movePresenterFocus(step) {
+  function movePresenterFocus(direction) {
     var actions = focusablesWithin(presenterMenu);
     if (!actions.length) return;
     var at = actions.indexOf(document.activeElement);
-    var next = (at < 0 ? 0 : at + step + actions.length) % actions.length;
-    actions[next].focus();
+    if (at < 0) {
+      actions[0].focus();
+      return;
+    }
+
+    // The menu is a responsive CSS grid, so the column count changes with
+    // the viewport and hidden actions can shorten its final row. Use the
+    // rendered rectangles rather than assuming a fixed number of columns.
+    var positioned = actions.map(function (button) {
+      var rect = button.getBoundingClientRect();
+      return {button: button, rect: rect, center: (rect.left + rect.right) / 2};
+    }).sort(function (a, b) {
+      return a.rect.top - b.rect.top || a.rect.left - b.rect.left;
+    });
+    var rows = [];
+    positioned.forEach(function (item) {
+      var row = rows[rows.length - 1];
+      if (!row || Math.abs(row.top - item.rect.top) > 1) {
+        row = {top: item.rect.top, items: []};
+        rows.push(row);
+      }
+      row.items.push(item);
+    });
+    var current = positioned.find(function (item) { return item.button === actions[at]; });
+    var rowIndex = rows.findIndex(function (row) { return row.items.indexOf(current) !== -1; });
+    if (!current || rowIndex < 0) return;
+
+    if (direction === 'left' || direction === 'right') {
+      var row = rows[rowIndex].items;
+      var column = row.indexOf(current);
+      var step = direction === 'right' ? 1 : -1;
+      row[(column + step + row.length) % row.length].button.focus();
+      return;
+    }
+
+    var rowStep = direction === 'down' ? 1 : -1;
+    var targetRow = rows[(rowIndex + rowStep + rows.length) % rows.length].items.slice();
+    targetRow.sort(function (a, b) {
+      return Math.abs(a.center - current.center) - Math.abs(b.center - current.center)
+        || a.rect.left - b.rect.left;
+    });
+    targetRow[0].button.focus();
   }
 
   function focusPresenterEdge(last) {
@@ -4315,10 +4355,10 @@ document.addEventListener('DOMContentLoaded', function() {
           closePresenterMenu();
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
           e.preventDefault();
-          movePresenterFocus(1);
+          movePresenterFocus(e.key === 'ArrowDown' ? 'down' : 'right');
         } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
           e.preventDefault();
-          movePresenterFocus(-1);
+          movePresenterFocus(e.key === 'ArrowUp' ? 'up' : 'left');
         } else if (e.key === 'Home') {
           e.preventDefault();
           focusPresenterEdge(false);

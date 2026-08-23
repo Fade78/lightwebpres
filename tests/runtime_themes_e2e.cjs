@@ -272,22 +272,41 @@ async function main() {
   if (firstMenuFocus !== 'prev') {
     fail('M did not focus the first presenter action: ' + firstMenuFocus);
   }
+  const menuFocusState = async () => page.evaluate(() => {
+    const action = document.activeElement;
+    const box = action.getBoundingClientRect();
+    return {
+      id: action.getAttribute('data-menu-action'),
+      top: box.top,
+      left: box.left,
+      center: (box.left + box.right) / 2,
+    };
+  });
+  const firstMenuState = await menuFocusState();
+  await page.keyboard.press('ArrowRight');
+  const rightMenuState = await menuFocusState();
+  await page.keyboard.press('ArrowLeft');
+  const leftMenuState = await menuFocusState();
   await page.keyboard.press('ArrowDown');
-  const downMenuFocus = await page.evaluate(() =>
-    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  const downMenuState = await menuFocusState();
   await page.keyboard.press('ArrowUp');
-  const upMenuFocus = await page.evaluate(() =>
-    document.activeElement && document.activeElement.getAttribute('data-menu-action'));
+  const upMenuState = await menuFocusState();
   await page.keyboard.press('End');
   const endMenuFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-menu-action'));
   await page.keyboard.press('Home');
   const homeMenuFocus = await page.evaluate(() =>
     document.activeElement && document.activeElement.getAttribute('data-menu-action'));
-  if (downMenuFocus !== 'home' || upMenuFocus !== 'prev'
+  if (Math.abs(rightMenuState.top - firstMenuState.top) > 1
+      || rightMenuState.left <= firstMenuState.left
+      || leftMenuState.id !== 'prev'
+      || downMenuState.top <= firstMenuState.top
+      || Math.abs(downMenuState.center - firstMenuState.center) > 1
+      || upMenuState.id !== 'prev'
       || endMenuFocus !== 'pause-theme' || homeMenuFocus !== 'prev') {
-    fail('presenter menu arrow/home/end navigation is wrong: '
-      + JSON.stringify({ downMenuFocus, upMenuFocus, endMenuFocus, homeMenuFocus }));
+    fail('presenter menu grid arrows/home/end navigation is wrong: '
+      + JSON.stringify({ firstMenuState, rightMenuState, leftMenuState,
+        downMenuState, upMenuState, endMenuFocus, homeMenuFocus }));
   }
   await page.keyboard.press('Tab');
   const tabMenuFocus = await page.evaluate(() =>

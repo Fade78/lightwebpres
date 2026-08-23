@@ -3174,12 +3174,52 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  function movePresenterFocus(step) {
+  function movePresenterFocus(direction) {
     var actions = focusablesWithin(presenterMenu);
     if (!actions.length) return;
     var at = actions.indexOf(document.activeElement);
-    var next = (at < 0 ? 0 : at + step + actions.length) % actions.length;
-    actions[next].focus();
+    if (at < 0) {
+      actions[0].focus();
+      return;
+    }
+
+    // The menu is a responsive CSS grid, so the column count changes with
+    // the viewport and hidden actions can shorten its final row. Use the
+    // rendered rectangles rather than assuming a fixed number of columns.
+    var positioned = actions.map(function (button) {
+      var rect = button.getBoundingClientRect();
+      return {button: button, rect: rect, center: (rect.left + rect.right) / 2};
+    }).sort(function (a, b) {
+      return a.rect.top - b.rect.top || a.rect.left - b.rect.left;
+    });
+    var rows = [];
+    positioned.forEach(function (item) {
+      var row = rows[rows.length - 1];
+      if (!row || Math.abs(row.top - item.rect.top) > 1) {
+        row = {top: item.rect.top, items: []};
+        rows.push(row);
+      }
+      row.items.push(item);
+    });
+    var current = positioned.find(function (item) { return item.button === actions[at]; });
+    var rowIndex = rows.findIndex(function (row) { return row.items.indexOf(current) !== -1; });
+    if (!current || rowIndex < 0) return;
+
+    if (direction === 'left' || direction === 'right') {
+      var row = rows[rowIndex].items;
+      var column = row.indexOf(current);
+      var step = direction === 'right' ? 1 : -1;
+      row[(column + step + row.length) % row.length].button.focus();
+      return;
+    }
+
+    var rowStep = direction === 'down' ? 1 : -1;
+    var targetRow = rows[(rowIndex + rowStep + rows.length) % rows.length].items.slice();
+    targetRow.sort(function (a, b) {
+      return Math.abs(a.center - current.center) - Math.abs(b.center - current.center)
+        || a.rect.left - b.rect.left;
+    });
+    targetRow[0].button.focus();
   }
 
   function focusPresenterEdge(last) {
@@ -3741,10 +3781,10 @@ document.addEventListener('DOMContentLoaded', function() {
           closePresenterMenu();
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
           e.preventDefault();
-          movePresenterFocus(1);
+          movePresenterFocus(e.key === 'ArrowDown' ? 'down' : 'right');
         } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
           e.preventDefault();
-          movePresenterFocus(-1);
+          movePresenterFocus(e.key === 'ArrowUp' ? 'up' : 'left');
         } else if (e.key === 'Home') {
           e.preventDefault();
           focusPresenterEdge(false);

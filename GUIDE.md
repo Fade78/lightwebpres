@@ -370,9 +370,10 @@ bottom-right navigation button. The selection lasts for the other pages of
 the same deck in the current browser session. Each theme choice previews its
 resolved background, including its gradient, with matching foreground ink.
 The menu actions carry icons and their keyboard shortcuts. In the theme
-picker and that presenter menu, focus starts at the first useful control;
-`Tab`, the arrow keys, `Home` and `End` move through the controls, and
-`Enter`/`Space` activate the focused one.
+picker and that presenter menu, focus starts at the first useful control.
+In the presenter menu, left/right stay on the current row while up/down move
+to the nearest control on the adjacent rendered row. `Tab`, `Home` and `End`
+still move through the controls, and `Enter`/`Space` activate the focused one.
 
 These commands inspect and select existing theme values. They do not design,
 retune or repair a palette. Use `theme show` to read the measured contrast of

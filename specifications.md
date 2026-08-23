@@ -2772,9 +2772,11 @@ avec l'aperçu du thème : la couleur de fond, le dégradé compris, et une
 écriture choisie pour ce fond. **M** ouvre un dialogue global avec les actions
 de navigation, plein écran, thèmes, présentateur, tags, partage, aide et
 écrans de pause. Chaque action porte une icône et son raccourci clavier quand
-il existe. Le focus entre sur la première action ; **Tab**, les flèches,
-**Début** et **Fin** parcourent les actions, et **Entrée**/**Espace** activent
-l'action focalisée. Le même dialogue s'ouvre par le bouton Menu au bas de la
+il existe. Le focus entre sur la première action. Dans le menu présentateur,
+gauche/droite restent sur la ligne courante et haut/bas vont vers le contrôle
+le plus proche de la ligne rendue adjacente ; **Tab**, **Début** et **Fin**
+parcourent les actions, et **Entrée**/**Espace** activent l'action focalisée.
+Le même dialogue s'ouvre par le bouton Menu au bas de la
 pile de navigation, sous le bouton plein écran. Les deux
 dialogues sont parcourables au clavier et ne laissent pas Tab sortir vers la
 page sous-jacente. Sans alternative, C reste inerte et l'action « thèmes » est
