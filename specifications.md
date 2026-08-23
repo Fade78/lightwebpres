@@ -1631,7 +1631,6 @@ trois chaînes sur les quarante-quatre.
   ],
   "strings": {
     "nav_prev": "Planche précédente",
-    "nav_home": "Retour à l'index (touche Home)",
     "nav_next": "Planche suivante"
   }
 }
@@ -1678,7 +1677,6 @@ d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
 | Clé                        | Usage                                              |
 |-----------------------------|----------------------------------------------------|
 | `nav_prev`                  | Infobulle du bouton « planche précédente »          |
-| `nav_home`                  | Infobulle du bouton retour à l'index (page article) |
 | `nav_next`                  | Infobulle du bouton « planche suivante »            |
 | `nav_dot_fallback`          | Préfixe du point de navigation sans titre (« Fiche 3 ») |
 | `series_nav_title`           | Titre de la fiche `series-nav` (« Cette série »)     |
@@ -1692,8 +1690,6 @@ d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
 | `copy_link`                  | Libellé de la ligne « copier le lien » de la matrice de partage |
 | `copy_link_done`             | Retour visuel transitoire après une copie            |
 | `copy_prompt`                | Texte du repli `prompt()` (navigateurs sans presse-papiers) |
-| `share_button`               | Infobulle du bouton de partage (page article)        |
-| `share_button_aria`          | `aria-label` du bouton de partage                    |
 | `share_action_qr`            | Libellé de la ligne « afficher le QR code » de la matrice de partage |
 | `share_scope_series`         | En-tête de colonne « Série » de la matrice de partage |
 | `share_scope_article`        | En-tête de colonne « Article » de la matrice de partage |
@@ -2054,8 +2050,11 @@ la sélection au moment où il saute, et de nouveau à l'évènement
 
 **Tactile** : swipe gauche = suivant, swipe droit = précédent (seuil
 50px, < 500ms, dominante horizontale). Tap sur le contenu = suivant.
-**Double tap = interrupteur des boutons de navigation** : il les rappelle
-quand ils se sont effacés et les range immédiatement quand ils sont là.
+Le mode initial est **auto-cachant** : les boutons s'effacent après le délai
+normal. **Double tap = interrupteur de mode** : le premier rend la navigation
+permanente, sans nouveau délai, et le suivant revient au mode auto-cachant
+avec un nouveau compte à rebours ; il ne s'agit pas d'un simple réveil ou
+d'une inversion momentanée de l'opacité.
 Le geste est détecté sur les évènements tactiles eux-mêmes (deux taps de
 moins de 350 ms, à moins de 20 px), jamais sur les clics que le
 navigateur synthétise ensuite : un moteur mobile peut retenir un clic
@@ -2087,19 +2086,22 @@ pointeur, si : une souris a un second bouton, un doigt n'en a pas. La
 liaison est donc conservée sur pointeur fin et ignorée sur pointeur
 grossier.
 
-**Boutons** : prev/home/next/partage/⛶ (plein écran)/L (filtre de tags,
-masqué quand la page n'a qu'un seul tag) en bas-droite. Auto-hide après 3 s
-d'inactivité hors plein écran, **1 s en plein écran** — c'est-à-dire
-dans le mode où l'orateur se trouve, où le chrome doit s'effacer plus vite.
-Le délai est le même partout ; c'est le chemin de retour qui diffère selon
-l'appareil : mouvement de souris là où il y a un pointeur, double tap là
-où il n'y en a pas. Sur écran tactile, un toucher ou un défilement relance
-le compte à rebours **tant que les boutons sont visibles**, pour qu'ils ne
-s'effacent pas sous le doigt ; une fois effacés, ils ne répondent plus au
-toucher (`pointer-events: none` — `opacity: 0` cache sans désarmer, et
-sans survol pour les révéler d'abord, le lecteur qui touche le coin de son
-propre texte déclencherait ce qui est invisible dessous). Le bouton ⛶
-donne accès au plein écran sans clavier.
+**Boutons** : ⛶ (plein écran) en haut, Menu dessous, puis prev/next en bas,
+dans la pile en bas-droite. Home, partage et L (filtre de tags, masqué quand
+la page n'a qu'un seul tag) sont dans le menu présentateur ; celui-ci reprend
+aussi les thèmes, l'aide, les notes et les écrans de pause. Chaque action du
+menu porte une icône et, quand elle existe, son raccourci dans un élément
+`kbd`. Auto-hide après 3 s d'inactivité hors plein écran, **1 s en plein
+écran** — c'est-à-dire dans le mode où l'orateur se trouve, où le chrome doit
+s'effacer plus vite. Le délai est le même partout ; c'est le chemin de retour
+qui diffère selon l'appareil : mouvement de souris là où il y a un pointeur,
+double tap là où il n'y en a pas. Sur écran tactile, un toucher ou un
+défilement relance le compte à rebours **tant que les boutons sont visibles**,
+pour qu'ils ne s'effacent pas sous le doigt ; une fois effacés, ils ne
+répondent plus au toucher (`pointer-events: none` — `opacity: 0` cache sans
+désarmer, et sans survol pour les révéler d'abord, le lecteur qui touche le
+coin de son propre texte déclencherait ce qui est invisible dessous). Le
+bouton ⛶ donne accès au plein écran sans clavier.
 
 **Mesure et centrage.** La colonne de texte est plafonnée à
 `page.content-max` et **centrée par le rembourrage**, qui vaut
@@ -2718,7 +2720,9 @@ sélecteur de thèmes dans chaque page construite. En l'absence de cette option,
 le build lit la clé racine facultative `themes` de `series.json`. Une option CLI
 présente prend le pas sur la liste JSON. Le payload est inline, sans dépendance
 réseau : il émet l'ordre des variables une fois et, pour chaque thème demandé,
-les seules valeurs qui diffèrent du thème primaire.
+les seules valeurs qui diffèrent du thème primaire, ainsi qu'un aperçu résolu
+pour le sélecteur : fond de page, dégradé de couverture (angle et deux arrêts)
+et couleur d'écriture de couverture.
 
 Le thème primaire est toujours le thème effectif lu dans
 `templates/settings.conf`, même si la liste l'omet. Une série sans ligne
@@ -2761,13 +2765,15 @@ pages du même deck ; il ne modifie aucun fichier source.
 Sur une page qui contient des alternatives, **C** ouvre un dialogue
 recherchable et **Échap** le ferme ; les flèches, **Début** et **Fin** y
 parcourent les thèmes, et **Entrée** applique le premier résultat depuis le
-champ de recherche ou active le thème focalisé. **M** ouvre un dialogue global
-avec les actions
+champ de recherche ou active le thème focalisé. Chaque choix peint son bouton
+avec l'aperçu du thème : la couleur de fond, le dégradé compris, et une
+écriture choisie pour ce fond. **M** ouvre un dialogue global avec les actions
 de navigation, plein écran, thèmes, présentateur, tags, partage, aide et
-écrans de pause. Le focus entre sur la première action ; **Tab**, les flèches,
+écrans de pause. Chaque action porte une icône et son raccourci clavier quand
+il existe. Le focus entre sur la première action ; **Tab**, les flèches,
 **Début** et **Fin** parcourent les actions, et **Entrée**/**Espace** activent
 l'action focalisée. Le même dialogue s'ouvre par le bouton Menu de la
-navigation, placé en bas à droite dans la rangée des outils. Les deux
+navigation, dans la pile en bas à droite, sous le bouton plein écran. Les deux
 dialogues sont parcourables au clavier et ne laissent pas Tab sortir vers la
 page sous-jacente. Sans alternative, C reste inerte et l'action « thèmes » est
 absente du menu M.
@@ -6384,10 +6390,10 @@ passent encore par `str.replace`, sur le squelette, avant tout contenu.
 
 Le bloc ci-dessous est un **extrait élidé** de `TEMPLATE_PAGE`, pas le
 squelette entier : les blocs du pack présentateur (`.pause-overlay`,
-`#slideCounter`, `#presenterPanel`, `.help-overlay`, `.tag-menu`) et deux
-boutons (`#navFullscreen`, `#navTags`) en sont retirés comme le sont déjà
-la matrice de partage et la modale QR. Le squelette qui fait foi est le
-littéral dans l'exécutable.
+`#slideCounter`, `#presenterPanel`, `.help-overlay`, `#presenterMenu`,
+`#themeMenu`, `.tag-menu`) en sont retirés, comme le sont déjà la matrice de
+partage et la modale QR. Le squelette qui fait foi est le littéral dans
+l'exécutable.
 
 ```html
 <!DOCTYPE html>
@@ -6406,11 +6412,16 @@ littéral dans l'exécutable.
 <nav class="nav-dots"></nav>
 
 <div class="nav-buttons">
-  <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">&#8593;</div>
-  <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" aria-label="{{str_nav_home}}" title="{{str_nav_home}}">&#127968;</div>
-  <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">&#8595;</div>
-  <div class="nav-btn" id="navShare" role="button" tabindex="0" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></div>
-  <!-- #navFullscreen et #navTags élidés, §8.4 -->
+  <div class="nav-row nav-row-fullscreen">
+    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" aria-keyshortcuts="F" aria-label="{{str_nav_fullscreen}}" title="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
+  </div>
+  <div class="nav-row nav-row-menu">
+    <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-keyshortcuts="M" aria-haspopup="dialog" aria-expanded="false" aria-label="{{str_menu_title}}" title="{{str_menu_title}}">{{icon_menu}}</div>
+  </div>
+  <div class="nav-row nav-row-reading">
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" aria-label="{{str_nav_prev}}" title="{{str_nav_prev}}">{{icon_prev}}</div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" aria-label="{{str_nav_next}}" title="{{str_nav_next}}">{{icon_next}}</div>
+  </div>
 </div>
 
 <div class="share-popover" id="sharePopover">

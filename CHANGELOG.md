@@ -84,10 +84,13 @@ wrapping when a label becomes bold. It is fully keyboard-navigable: focus
 starts on the first action, `Tab` and the arrow keys move through the list,
 `Home`/`End` jump to its edges, and `Enter`/`Space` activate the focused action.
 
-The theme picker now has the same arrow, `Home` and `End` navigation, while
-the presenter menu is also reachable from a dedicated bottom-right navigation
-button. The navigation controls are arranged as a reading row and an action
-row so the new button does not extend a crowded vertical stack.
+The theme picker now has the same arrow, `Home` and `End` navigation, and each
+choice paints a resolved theme preview with its background gradient and
+matching foreground ink. Presenter-menu actions carry icons and visible
+keyboard shortcuts. The lower-right navigation stack keeps fullscreen at the
+top, then Menu, then previous/next; Home, sharing and tags live in the menu.
+On touch screens, double tap switches between the default auto-hide mode and
+permanent navigation.
 
 ## v0.45.3
 

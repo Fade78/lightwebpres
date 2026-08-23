@@ -32,9 +32,24 @@ async function main() {
     open: document.getElementById('themeMenu').classList.contains('open'),
     focused: document.activeElement && document.activeElement.id,
     options: document.querySelectorAll('.theme-option').length,
+    previews: Array.prototype.map.call(document.querySelectorAll('.theme-option'), (button) => {
+      const style = getComputedStyle(button);
+      return {
+        background: style.backgroundColor,
+        gradient: style.backgroundImage,
+        foreground: style.color,
+      };
+    }),
   }));
   if (!picker.open || picker.focused !== 'themeFilter' || picker.options !== 2) {
     fail('C did not open the theme picker correctly: ' + JSON.stringify(picker));
+  }
+  if (picker.previews.some((preview) =>
+      !preview.background || preview.background === 'rgba(0, 0, 0, 0)'
+      || !preview.gradient || preview.gradient === 'none'
+      || !preview.foreground || preview.foreground === 'rgba(0, 0, 0, 0)')) {
+    fail('theme picker options do not carry resolved visual previews: '
+      + JSON.stringify(picker.previews));
   }
 
   await page.keyboard.press('ArrowDown');
@@ -187,12 +202,18 @@ async function main() {
       return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
     };
     return {
-      menu: rect('navMenu'), tags: rect('navTags'), next: rect('navNext'),
+      fullscreen: rect('navFullscreen'),
+      menu: rect('navMenu'), prev: rect('navPrev'), next: rect('navNext'),
+      visible: Array.prototype.map.call(
+        document.querySelectorAll('.nav-buttons .nav-btn:not([hidden])'),
+        (button) => button.id),
     };
   });
-  if (navLayout.menu.left <= navLayout.tags.left
-      || navLayout.menu.top <= navLayout.next.top) {
-    fail('the presenter menu button was not arranged at the lower right: '
+  if (navLayout.visible.join('|') !== 'navFullscreen|navMenu|navPrev|navNext'
+      || navLayout.fullscreen.top >= navLayout.menu.top
+      || navLayout.menu.top >= navLayout.prev.top
+      || navLayout.prev.top !== navLayout.next.top) {
+    fail('the navigation controls were not arranged fullscreen/menu/up/down: '
       + JSON.stringify(navLayout));
   }
   await navMenuButton.click();

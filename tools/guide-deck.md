@@ -126,6 +126,12 @@ with a series built around one. `--no-essential-theme` (build/verify/watch) opts
 out; the page then carries no runtime picker unless `--themes` or
 `series.json["themes"]` adds one.
 
+The picker is a visual catalogue as well as a list: each choice uses the
+theme's resolved page and cover background, including its gradient, and the
+foreground ink chosen for that ground. **M** opens the presenter menu; its
+actions carry icons and their keyboard shortcuts, and the lower-right Menu
+button opens the same list.
+
 ---
 
 <!-- lwp:slide -->

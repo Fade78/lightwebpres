@@ -183,8 +183,9 @@ class SlideTags(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
 
         for fragment in (
-                'id="navTags"', 'id="navMenu"', 'id="tagMenu"',
-                'id="tagMenuList"', 'class="nav-row nav-row-tools"',
+                'id="menuTags"', 'id="navMenu"', 'id="tagMenu"',
+                'id="tagMenuList"', 'class="nav-row nav-row-fullscreen"',
+                'class="nav-row nav-row-menu"',
                 'var allSlides', 'var selectedTag', 'localStorage',
                 'slides = allSlides.filter', "e.key === 'l' || e.key === 'L'",
                 'data-tags="default"'):
@@ -1383,10 +1384,10 @@ class Axis4CommandGaps(unittest.TestCase):
             root = scaffold(tmp, _MINIMAL_MD)
             run('build', str(root), '--output', str(root / 'public'))
             index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
-            self.assertIn('id="navShare"', index)
+            self.assertIn('id="menuShare"', index)
             self.assertIn('id="sharePopover"', index)
             article = (root / 'public' / 'a.html').read_text(encoding='utf-8')
-            self.assertIn('id="navShare"', article)
+            self.assertIn('id="menuShare"', article)
 
     def test_series_nav_status_strings_reach_output(self):
         md = (
@@ -7906,6 +7907,21 @@ class RuntimeThemesStartWithTheEffectiveSeriesTheme(unittest.TestCase):
             ['default', 'monochrome', 'monochrome-night', 'print-ink'])
         self.assertEqual(data['themes'][2]['label'], 'Monochrome Night')
 
+    def test_runtime_payload_carries_the_resolved_picker_preview(self):
+        data = self.lwp.build_theme_runtime('essential', None)
+        for theme in data['themes']:
+            with self.subTest(theme=theme['slug']):
+                resolved = self.lwp._theme_runtime_resolved(theme['slug'])
+                preview = theme['preview']
+                self.assertEqual(preview['background'], resolved['page.bg'])
+                self.assertEqual(preview['foreground'], resolved['cover.fg'])
+                self.assertEqual(
+                    preview['gradient'], {
+                        'angle': resolved['cover.bg.angle'],
+                        'from': resolved['cover.bg.from'],
+                        'to': resolved['cover.bg.to'],
+                    })
+
     def test_runtime_payload_expands_facet_aliases(self):
         cases = (
             ('background', 'polarity', 'light'),
@@ -10372,7 +10388,22 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 self.assertIn('stroke="currentColor"', body,
                               f'{button}: the icon is not the theme\'s ink')
                 self.assertNotRegex(body, r'>[^<]*[A-Za-z0-9]',
-                                    f'{button} still carries text')
+                                     f'{button} still carries text')
+
+    def test_presenter_actions_carry_icons_and_keyboard_shortcuts(self):
+        lwp = load_lightwebpres_module()
+        actions = re.findall(
+            r'<button type="button" class="presenter-menu-action[^>]*" '
+            r'id="([^"]+)"[^>]*data-menu-action="([^"]+)"([^>]*)>(.*?)'
+            r'</button>', lwp.TEMPLATE_PAGE, re.S)
+        self.assertEqual(len(actions), 12)
+        for button, action, attrs, body in actions:
+            with self.subTest(action=action):
+                self.assertIn('<svg ', body, button)
+                self.assertIn('class="presenter-menu-label"', body, button)
+                if action != 'share':
+                    self.assertRegex(attrs, r'aria-keyshortcuts="[^"]+"', button)
+                    self.assertIn('<kbd>', body, button)
 
     def test_the_composed_stylesheet_is_identical_with_and_without_the_reader(self):
         """The narrower statement the sweep cannot make: measuring a

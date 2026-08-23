@@ -1204,7 +1204,6 @@ LANG_FR = r'''{
   ],
   "strings": {
     "nav_prev": "Planche précédente",
-    "nav_home": "Retour à l'index (touche Home)",
     "nav_next": "Planche suivante",
     "nav_dot_fallback": "Fiche",
     "series_nav_title": "Cette série",
@@ -1220,8 +1219,6 @@ LANG_FR = r'''{
     "copy_link": "Copier le lien",
     "copy_link_done": "Lien copié !",
     "copy_prompt": "Copie ce lien :",
-    "share_button": "Partager",
-    "share_button_aria": "Partager cette page",
     "share_action_qr": "Afficher le QR code",
     "share_scope_series": "Série",
     "share_scope_article": "Article",
@@ -1229,18 +1226,23 @@ LANG_FR = r'''{
     "qr_modal_title": "QR code du lien",
     "qr_modal_close": "Fermer",
     "nav_fullscreen": "Plein écran (touche F)",
-    "tags_button": "Filtrer par tag (touche L)",
     "tags_menu": "Filtrer les slides",
     "help_tags": "Filtrer par tag et mémoriser la sélection",
     "presenter_next": "Suivant :",
     "presenter_label": "Panneau du présentateur",
     "menu_title": "Menu du présentateur (touche M)",
-    "menu_theme": "Changer de thème (touche C)",
-    "menu_presenter": "Notes présentateur (touche N)",
-    "menu_help": "Raccourcis clavier (touche H)",
-    "menu_pause_black": "Écran noir (touche B)",
-    "menu_pause_white": "Écran blanc (touche W)",
-    "menu_pause_theme": "Écran du thème (touche T)",
+    "menu_prev": "Planche précédente",
+    "menu_home": "Retour à l'index",
+    "menu_next": "Planche suivante",
+    "menu_fullscreen": "Plein écran",
+    "menu_theme": "Changer de thème",
+    "menu_presenter": "Notes présentateur",
+    "menu_tags": "Filtrer par tag",
+    "menu_share": "Partager",
+    "menu_help": "Raccourcis clavier",
+    "menu_pause_black": "Écran noir",
+    "menu_pause_white": "Écran blanc",
+    "menu_pause_theme": "Écran du thème",
     "theme_menu_title": "Choisir un thème",
     "theme_menu_help": "Le thème principal est sélectionné par défaut.",
     "theme_menu_filter": "Rechercher un thème",
@@ -1321,7 +1323,6 @@ LANG_EN = r'''{
   ],
   "strings": {
     "nav_prev": "Previous slide",
-    "nav_home": "Back to index (Home key)",
     "nav_next": "Next slide",
     "nav_dot_fallback": "Slide",
     "series_nav_title": "This series",
@@ -1337,8 +1338,6 @@ LANG_EN = r'''{
     "copy_link": "Copy link",
     "copy_link_done": "Link copied!",
     "copy_prompt": "Copy this link:",
-    "share_button": "Share",
-    "share_button_aria": "Share this page",
     "share_action_qr": "Show QR code",
     "share_scope_series": "Series",
     "share_scope_article": "Article",
@@ -1346,18 +1345,23 @@ LANG_EN = r'''{
     "qr_modal_title": "QR code for this link",
     "qr_modal_close": "Close",
     "nav_fullscreen": "Fullscreen (F key)",
-    "tags_button": "Filter by tag (L key)",
     "tags_menu": "Filter slides",
     "help_tags": "Filter by tag and remember the selection",
     "presenter_next": "Next:",
     "presenter_label": "Presenter panel",
     "menu_title": "Presenter menu (M key)",
-    "menu_theme": "Change theme (C key)",
-    "menu_presenter": "Presenter notes (N key)",
-    "menu_help": "Keyboard shortcuts (H key)",
-    "menu_pause_black": "Black screen (B key)",
-    "menu_pause_white": "White screen (W key)",
-    "menu_pause_theme": "Theme screen (T key)",
+    "menu_prev": "Previous slide",
+    "menu_home": "Back to index",
+    "menu_next": "Next slide",
+    "menu_fullscreen": "Fullscreen",
+    "menu_theme": "Change theme",
+    "menu_presenter": "Presenter notes",
+    "menu_tags": "Filter by tag",
+    "menu_share": "Share",
+    "menu_help": "Keyboard shortcuts",
+    "menu_pause_black": "Black screen",
+    "menu_pause_white": "White screen",
+    "menu_pause_theme": "Theme screen",
     "theme_menu_title": "Choose a theme",
     "theme_menu_help": "The primary theme is selected by default.",
     "theme_menu_filter": "Search themes",
@@ -4553,8 +4557,23 @@ def build_theme_runtime(option, primary, source='--themes'):
         else:
             theme = THEMES[theme_id]
             label, family = theme['label'], theme['family']
-        themes.append({'slug': theme_id, 'label': label, 'family': family,
-                       'values': changes})
+        themes.append({
+            'slug': theme_id, 'label': label, 'family': family,
+            'values': changes,
+            # The picker is a small gallery, not a list of anonymous names.
+            # Resolve the same cover ground and ink used by the page here so
+            # the browser does not grow a second theme cascade just to paint
+            # a button preview.
+            'preview': {
+                'background': resolved['page.bg'],
+                'gradient': {
+                    'angle': resolved['cover.bg.angle'],
+                    'from': resolved['cover.bg.from'],
+                    'to': resolved['cover.bg.to'],
+                },
+                'foreground': resolved['cover.fg'],
+            },
+        })
     return {'version': 1, 'primary': ids[0], 'vars': variables,
             'themes': themes}
 
@@ -5839,7 +5858,7 @@ body.fs-noselect {
 }
 .nav-buttons {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
   right: 28px;
   display: flex;
   flex-direction: column;
@@ -5849,6 +5868,7 @@ body.fs-noselect {
   transition: opacity 0.4s;
 }
 .nav-row { display: flex; gap: 8px; }
+.nav-row-fullscreen, .nav-row-menu { justify-content: flex-end; }
 /* Auto-hide in presentation: the buttons fade out after 3s of idleness
    and come back on 250ms of continuous mouse movement, the same
    condition as the cursor.
@@ -6138,6 +6158,26 @@ body.fs-noselect {
   font: inherit;
   text-align: left;
 }
+.presenter-menu-action {
+  display: grid;
+  grid-template-columns: 1.25em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.presenter-menu-action[hidden] { display: none; }
+.presenter-menu-action > svg {
+  width: 1.25em;
+  height: 1.25em;
+}
+.presenter-menu-label { min-width: 0; }
+.presenter-menu-action kbd {
+  padding: 0.12em 0.35em;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: 0.72em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+  opacity: 0.85;
+}
 .presenter-menu-action:hover, .theme-option:hover,
 .presenter-menu-action.active, .theme-option.active {
   text-decoration-line: underline;
@@ -6169,8 +6209,13 @@ body.fs-noselect {
   max-height: 54vh;
   overflow: auto;
 }
-.theme-option { min-height: 52px; }
-.theme-option small { display: block; margin-top: 3px; opacity: 0.75; }
+.theme-option {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.theme-option small { display: block; margin-top: 3px; opacity: 0.85; }
 .theme-menu-foot {
   margin-top: 16px;
   padding-top: 12px;
@@ -6439,7 +6484,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
      goes back to being measured against a different edge than the text. */
   .slide-num { right: 24px; }
   .nav-dots { display: none; }
-  .nav-buttons { bottom: 16px; right: 16px; }
+  .nav-buttons { bottom: calc(16px + env(safe-area-inset-bottom)); right: 16px; }
 }
 
 /* Print / PDF ("Print this page", specifications.md §9.4): one slide per
@@ -7099,9 +7144,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var indexCards = slides.length ? [] : Array.prototype.slice.call(document.querySelectorAll('.article-card'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
-  var btnHome    = document.getElementById('navHome');
   var navDots    = document.querySelector('.nav-dots');
-  var btnTags    = document.getElementById('navTags');
+  var btnTags    = document.getElementById('menuTags');
   var btnMenu    = document.getElementById('navMenu');
   var tagMenu    = document.getElementById('tagMenu');
   var tagMenuList = document.getElementById('tagMenuList');
@@ -7269,17 +7313,21 @@ document.addEventListener('DOMContentLoaded', function() {
       : [];
   }
 
-  function closeTagMenu() {
+  var tagReturnFocus = null;
+  function closeTagMenu(restoreFocus) {
     var wasOpen = tagMenu && tagMenu.classList.contains('open');
     if (tagMenu) tagMenu.classList.remove('open');
     updateTagMenu();
     // Give the focus back to what opened the menu. Leaving it on a button
     // that has just been hidden strands a keyboard user at the top of the
     // document with no idea where they are.
-    if (wasOpen && btnTags) btnTags.focus();
+    if (wasOpen && restoreFocus !== false) {
+      focusIfVisible(tagReturnFocus || btnTags || btnMenu);
+    }
+    tagReturnFocus = null;
   }
 
-  function toggleTagMenu() {
+  function toggleTagMenu(returnFocus) {
     if (!tagMenu || tagList().length < 2) return;
     if (tagMenu.classList.contains('open')) {
       closeTagMenu();
@@ -7289,6 +7337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // the other. closeSharePopover() has no focus side-effect to undo.
     closeSharePopover();
     tagMenu.classList.add('open');
+    tagReturnFocus = returnFocus || btnMenu || btnTags || document.activeElement;
     updateTagMenu();
     // Move the focus IN. The menu carries role="dialog" and its options
     // are real buttons, but nothing ever focused them, and the global
@@ -7417,6 +7466,15 @@ document.addEventListener('DOMContentLoaded', function() {
       button.className = 'theme-option';
       button.setAttribute('data-theme', theme.slug);
       button.setAttribute('role', 'option');
+      var preview = theme.preview || {};
+      if (preview.background) button.style.backgroundColor = preview.background;
+      if (preview.foreground) button.style.color = preview.foreground;
+      if (preview.gradient && preview.gradient.from && preview.gradient.to) {
+        var gradient = preview.gradient;
+        var angle = gradient.angle || '180deg';
+        button.style.backgroundImage =
+          'linear-gradient(' + angle + ', ' + gradient.from + ', ' + gradient.to + ')';
+      }
       var label = document.createElement('span');
       label.textContent = themeText(theme);
       button.appendChild(label);
@@ -7537,13 +7595,13 @@ document.addEventListener('DOMContentLoaded', function() {
   function runMenuAction(action) {
     closePresenterMenu(false);
     if (action === 'prev' && btnPrev) btnPrev.click();
-    else if (action === 'home' && btnHome) btnHome.click();
+    else if (action === 'home') goHome();
     else if (action === 'next' && btnNext) btnNext.click();
     else if (action === 'fullscreen') toggleFullscreen();
     else if (action === 'theme') openThemeMenu();
     else if (action === 'presenter') togglePresenter();
-    else if (action === 'tags') toggleTagMenu();
-    else if (action === 'share' && shareBtn) shareBtn.click();
+    else if (action === 'tags') toggleTagMenu(btnMenu);
+    else if (action === 'share') toggleSharePopover();
     else if (action === 'help') toggleHelp();
     else if (action === 'pause-black') togglePause('b');
     else if (action === 'pause-white') togglePause('w');
@@ -7944,20 +8002,17 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnNext) btnNext.addEventListener('click', function() {
     if (!slides.length) { stepIndexCards(1); } else { goTo(current + 1); }
   });
-  if (btnHome) {
-    // Home is the way out of an article deck — back to the index. On
-    // the index itself there is no way out and no fiche to leave: the
-    // key and the button mean the top of the page, where the journey
-    // starts, the same meaning the old index script gave it.
-    btnHome.addEventListener('click', function() {
-      if (slides.length) {
-        window.location.href = 'index.html';
-      } else {
-        clearIndexFocus();
-        scrollToTop();
-        updateUI();
-      }
-    });
+  // Home is the way out of an article deck — back to the index. On the
+  // index itself there is no way out and no fiche to leave: the key and the
+  // menu action mean the top of the page, where the journey starts.
+  function goHome() {
+    if (slides.length) {
+      window.location.href = 'index.html';
+    } else {
+      clearIndexFocus();
+      scrollToTop();
+      updateUI();
+    }
   }
 
   // Keyboard operability for the round nav buttons (they are role=button
@@ -8149,17 +8204,11 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault(); runStepped(stepBackward);
     } else if (e.key === 'Home') {
       e.preventDefault();
-      // The same fork as the home button: on an article, Home is the way
+      // The same fork as the Home menu action: on an article, Home is the way
       // out of the deck, back to the index; on the index itself it means
       // the top of the page — where the journey starts — not a
       // navigation to itself.
-      if (slides.length) {
-        window.location.href = 'index.html';
-      } else {
-        clearIndexFocus();
-        scrollToTop();
-        updateUI();
-      }
+      goHome();
      } else if (e.key === 'f' || e.key === 'F') {
        e.preventDefault(); toggleFullscreen();
      } else if (e.key === 'c' || e.key === 'C') {
@@ -8261,7 +8310,6 @@ document.addEventListener('DOMContentLoaded', function() {
     return null;
   }
 
-  var shareBtn        = document.getElementById('navShare');
   var sharePopover     = document.getElementById('sharePopover');
   var shareHeadFiche   = document.getElementById('shareHeadFiche');
   var qrModal          = document.getElementById('shareQrModal');
@@ -8301,15 +8349,20 @@ document.addEventListener('DOMContentLoaded', function() {
       + '<g fill="#1a1a2e">' + rects + '</g></svg>';
   }
 
-  if (shareBtn && sharePopover) {
-    shareBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      updateShareFicheState();
-      // The share popover and the tag menu never stack: opening one
-      // closes the other (toggleTagMenu does the same in return).
-      closeTagMenu();
-      sharePopover.classList.toggle('open');
-    });
+  function toggleSharePopover() {
+    if (!sharePopover) return;
+    updateShareFicheState();
+    // The share popover and the tag menu never stack: opening one
+    // closes the other (toggleTagMenu does the same in return).
+    closeTagMenu(false);
+    sharePopover.classList.toggle('open');
+    if (sharePopover.classList.contains('open')) {
+      var firstShareAction = sharePopover.querySelector('.share-action:not(:disabled)');
+      if (firstShareAction) firstShareAction.focus();
+    }
+  }
+
+  if (sharePopover) {
     sharePopover.addEventListener('click', function (e) { e.stopPropagation(); });
 
     Array.prototype.slice.call(sharePopover.querySelectorAll('.share-action')).forEach(function (btn) {
@@ -8719,6 +8772,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // cost of catching one tap too many.
   var DOUBLE_TAP_MS = 350;
   var TAP_SLOP_PX = 20;
+  var navAutoHide = true;
   document.addEventListener('touchstart', function (e) {
     if (helpIsOpen()) {
       touchStartX = null;
@@ -8749,10 +8803,10 @@ document.addEventListener('DOMContentLoaded', function() {
       lastTapT = 0;
       return;
     }
-    // A double tap is the reader's switch for the navigation chrome:
-    // it puts it away when they have seen enough and brings it back when
-    // they want it, which on a touch screen nothing else can do — there
-    // is no pointer whose movement could be read as "I am still here".
+    // A double tap is the reader's switch between the default auto-hide
+    // mode and a pinned navigation chrome. It changes the mode, not just
+    // the current opacity: the reader can leave the controls available
+    // while reading, then return to the quiet default with the same gesture.
     //
     // Fullscreen keeps the button in that chrome rather than this
     // gesture. One gesture that means two things depending on a state
@@ -8770,9 +8824,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Suppress the ones that remain, or the gesture that put the
       // chrome away would also have moved the reader two cards on.
       swallowClicksUntil = now + 450;
-      var goingIdle = !navIsIdle();
-      setNavIdle(goingIdle);
-      if (!goingIdle) scheduleHide();
+      toggleNavMode();
       return;
     }
     lastTapT = now;
@@ -8802,7 +8854,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   if (navButtons) {
     navButtons.addEventListener('click', function (e) {
-      if (e.target === navButtons) {
+      if (e.target === navButtons && navAutoHide) {
         setNavIdle(!navButtons.classList.contains('idle'));
       }
     });
@@ -8821,13 +8873,28 @@ document.addEventListener('DOMContentLoaded', function() {
   // device where the buttons could never be put away.
   var idleTimer = null;
   var hasFinePointer = !!(window.matchMedia
-                          && window.matchMedia('(pointer: fine)').matches);
+                           && window.matchMedia('(pointer: fine)').matches);
   function getIdleDelay() {
     return isFullscreen() ? 1000 : 3000;
   }
+  function setNavMode(autoHide) {
+    navAutoHide = autoHide;
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = null;
+    document.documentElement.classList.toggle('nav-permanent', !autoHide);
+    setNavIdle(false);
+    if (autoHide) scheduleHide();
+  }
+  function toggleNavMode() {
+    setNavMode(!navAutoHide);
+  }
   function scheduleHide() {
     if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = null;
+    if (!navAutoHide) return;
     idleTimer = setTimeout(function () {
+      idleTimer = null;
+      if (!navAutoHide) return;
       setNavIdle(true);
       // Only where there is one to hide. Setting it on a touch device is
       // harmless but says something false about what just happened.
@@ -8845,12 +8912,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   } else {
     // Nothing here reveals anything: that is the point of asking for a
-    // double tap. What a touch does do is restart the countdown WHILE
-    // the chrome is still up, so it never fades out from under a finger
-    // that is in the middle of using it. Once it is down, touching and
-    // scrolling leave it down.
+    // double tap. What a touch does do is restart the countdown while
+    // auto-hide is active and the chrome is still up, so it never fades
+    // out from under a finger that is in the middle of using it.
     function keepAwakeOnTouch() {
-      if (!navIsIdle()) scheduleHide();
+      if (navAutoHide && !navIsIdle()) scheduleHide();
     }
     document.addEventListener('touchstart', keepAwakeOnTouch, { passive: true });
     window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
@@ -8860,7 +8926,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('webkitfullscreenchange', scheduleHide);
   scheduleHide();
 
-  if (btnTags) btnTags.addEventListener('click', toggleTagMenu);
   if (btnMenu) btnMenu.addEventListener('click', togglePresenterMenu);
   renderTagMenu();
   applyTagFilter(false);
@@ -8929,18 +8994,42 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   <div class="presenter-menu-card">
     <div class="presenter-menu-title" id="presenterMenuTitle">{{str_menu_title}}</div>
     <div class="presenter-menu-actions">
-      <button type="button" class="presenter-menu-action" data-menu-action="prev">{{str_nav_prev}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="home">{{str_nav_home}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="next">{{str_nav_next}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="fullscreen">{{str_nav_fullscreen}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="theme">{{str_menu_theme}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="presenter">{{str_menu_presenter}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="tags">{{str_tags_button}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="share">{{str_share_button}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="help">{{str_menu_help}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="pause-black">{{str_menu_pause_black}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="pause-white">{{str_menu_pause_white}}</button>
-      <button type="button" class="presenter-menu-action" data-menu-action="pause-theme">{{str_menu_pause_theme}}</button>
+      <button type="button" class="presenter-menu-action" id="menuPrev" data-menu-action="prev" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">
+        {{icon_prev}}<span class="presenter-menu-label">{{str_menu_prev}}</span><kbd>↑ / ← / PgUp / ⌫</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action nav-btn-home" id="menuHome" data-menu-action="home" aria-keyshortcuts="Home">
+        {{icon_home}}<span class="presenter-menu-label">{{str_menu_home}}</span><kbd>Home</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuNext" data-menu-action="next" aria-keyshortcuts="ArrowDown ArrowRight PageDown">
+        {{icon_next}}<span class="presenter-menu-label">{{str_menu_next}}</span><kbd>↓ / → / PgDn</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuFullscreen" data-menu-action="fullscreen" aria-keyshortcuts="F">
+        {{icon_fullscreen}}<span class="presenter-menu-label">{{str_menu_fullscreen}}</span><kbd>F</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuTheme" data-menu-action="theme" aria-keyshortcuts="C">
+        {{icon_theme}}<span class="presenter-menu-label">{{str_menu_theme}}</span><kbd>C</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuPresenter" data-menu-action="presenter" aria-keyshortcuts="N">
+        {{icon_presenter}}<span class="presenter-menu-label">{{str_menu_presenter}}</span><kbd>N</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuTags" data-menu-action="tags" aria-keyshortcuts="L">
+        {{icon_tags}}<span class="presenter-menu-label">{{str_menu_tags}}</span><kbd>L</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share">
+        {{icon_share}}<span class="presenter-menu-label">{{str_menu_share}}</span>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuHelp" data-menu-action="help" aria-keyshortcuts="H">
+        {{icon_help}}<span class="presenter-menu-label">{{str_menu_help}}</span><kbd>H</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuPauseBlack" data-menu-action="pause-black" aria-keyshortcuts="B">
+        {{icon_pause}}<span class="presenter-menu-label">{{str_menu_pause_black}}</span><kbd>B</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuPauseWhite" data-menu-action="pause-white" aria-keyshortcuts="W">
+        {{icon_pause}}<span class="presenter-menu-label">{{str_menu_pause_white}}</span><kbd>W</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuPauseTheme" data-menu-action="pause-theme" aria-keyshortcuts="T">
+        {{icon_pause}}<span class="presenter-menu-label">{{str_menu_pause_theme}}</span><kbd>T</kbd>
+      </button>
     </div>
   </div>
 </div>
@@ -8960,16 +9049,15 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 </div>
 
 <div class="nav-buttons">
-  <div class="nav-row nav-row-reading">
-    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}">{{icon_prev}}</div>
-    <div class="nav-btn nav-btn-home" id="navHome" role="button" tabindex="0" title="{{str_nav_home}}" aria-label="{{str_nav_home}}">{{icon_home}}</div>
-    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}">{{icon_next}}</div>
+  <div class="nav-row nav-row-fullscreen">
+    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}" aria-keyshortcuts="F">{{icon_fullscreen}}</div>
   </div>
-  <div class="nav-row nav-row-tools">
-    <div class="nav-btn" id="navShare" role="button" tabindex="0" title="{{str_share_button}}" aria-label="{{str_share_button_aria}}">{{icon_share}}</div>
-    <div class="nav-btn" id="navFullscreen" role="button" tabindex="0" title="{{str_nav_fullscreen}}" aria-label="{{str_nav_fullscreen}}">{{icon_fullscreen}}</div>
-    <div class="nav-btn" id="navTags" role="button" tabindex="0" aria-expanded="false" title="{{str_tags_button}}" aria-label="{{str_tags_button}}">{{icon_tags}}</div>
-    <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" title="{{str_menu_title}}" aria-label="{{str_menu_title}}">{{icon_menu}}</div>
+  <div class="nav-row nav-row-menu">
+    <div class="nav-btn" id="navMenu" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="M" title="{{str_menu_title}}" aria-label="{{str_menu_title}}">{{icon_menu}}</div>
+  </div>
+  <div class="nav-row nav-row-reading">
+    <div class="nav-btn" id="navPrev" role="button" tabindex="0" title="{{str_nav_prev}}" aria-label="{{str_nav_prev}}" aria-keyshortcuts="ArrowUp ArrowLeft PageUp Backspace">{{icon_prev}}</div>
+    <div class="nav-btn" id="navNext" role="button" tabindex="0" title="{{str_nav_next}}" aria-label="{{str_nav_next}}" aria-keyshortcuts="ArrowDown ArrowRight PageDown">{{icon_next}}</div>
   </div>
 </div>
 
@@ -9028,10 +9116,9 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 # 1.3px — reported from the field as "the arrows have got thinner", which
 # was true relatively even though the glyphs never changed.
 #
-# So: one grid (24 units), one stroke, `currentColor` so `nav-btn.fg`
-# paints all seven, and `1em` so every icon follows `nav-btn.size` exactly
-# as the circle around it already does. No new property — the knob that
-# sized the controls still sizes them.
+# So: one grid (24 units), one stroke, `currentColor` so the theme paints
+# every icon, and `1em` so every icon follows its holder exactly. No new
+# property — the knob that sized the controls still sizes them.
 #
 # The emoji goes with them, and that is the one visible loss: a house
 # nobody can theme was the only element of the page whose colour no
@@ -9061,6 +9148,14 @@ NAV_ICON_PATHS = {
             'a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/>'
             '<path d="M7.5 7.5h.01"/>',
     'menu': '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+    'theme': '<path d="M12 3a9 9 0 1 0 9 9c0-1.1-.9-2-2-2h-2a2 2 0 0 1-2-2V6a3 3 0 0 0-3-3z"/>'
+             '<path d="M7.5 11.5h.01"/><path d="M9.5 7.5h.01"/>'
+             '<path d="M14.5 7.5h.01"/>',
+    'presenter': '<path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>'
+                 '<path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/>',
+    'help': '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4.5 1.5c-.8.9-2 1.1-2 2.5"/>'
+            '<path d="M12 16h.01"/>',
+    'pause': '<path d="M8 5v14"/><path d="M16 5v14"/>',
 }
 
 

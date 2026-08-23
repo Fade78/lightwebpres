@@ -1,7 +1,7 @@
 // Playwright driver for the article-page share button (§9.3.4): a single
-// "share" icon in the nav-buttons cluster that opens a floating popover
-// with a copy-link / QR-code matrix scoped to the series index, the
-// current article, or the current fiche (slide). Invoked by
+// "share" action in the presenter menu that opens a floating popover with a
+// copy-link / QR-code matrix scoped to the series index, the current article,
+// or the current fiche (slide). Invoked by
 // tests/test_share_button.py — not a standalone entry point.
 //
 // argv: <pageUrl> <expectedArticleUrl> <expectedSeriesUrl>
@@ -33,14 +33,21 @@ async function main() {
 
   try {
     await page.goto(pageUrl);
-    await page.waitForSelector('#navShare');
+    await page.waitForSelector('#navMenu');
 
-    // 0. Keyboard operability: the share button is a role=button div with
-    // tabindex=0; focusing it and pressing Enter must open the popover
-    // (it has no other keyboard entry point). Then Escape closes it.
-    await page.focus('#navShare');
-    const shareFocused = await page.evaluate(() => document.activeElement && document.activeElement.id === 'navShare');
-    if (!shareFocused) fail('share button is not keyboard-focusable (missing tabindex?)');
+    const openShare = async () => {
+      await page.click('#navMenu');
+      await page.waitForSelector('#presenterMenu.open');
+      await page.click('#menuShare');
+      await page.waitForSelector('#sharePopover.open');
+    };
+
+    // 0. Keyboard operability: the share action is a native button in the
+    // presenter menu. Focusing it and pressing Enter must open the popover.
+    await page.click('#navMenu');
+    await page.focus('#menuShare');
+    const shareFocused = await page.evaluate(() => document.activeElement && document.activeElement.id === 'menuShare');
+    if (!shareFocused) fail('share action is not keyboard-focusable');
     await page.keyboard.press('Enter');
     const openedByKeyboard = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
     if (!openedByKeyboard) fail('Enter on the focused share button must open the popover');
@@ -51,7 +58,7 @@ async function main() {
     // its own, shareable like any other (§9.3.4). The address bar hides
     // its fragment at the top of the page (§8.4), the share matrix does
     // not.
-    await page.click('#navShare');
+    await openShare();
     const popoverOpenOnCover = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverOpenOnCover) fail('popover did not open on share button click');
 
@@ -85,7 +92,7 @@ async function main() {
       const dots = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'));
       return dots.findIndex((d) => d.classList.contains('active'));
     });
-    await page.click('#navShare');
+    await openShare();
     const popoverOpenBeforeGroundClick = await page.evaluate(() => document.getElementById('sharePopover').classList.contains('open'));
     if (!popoverOpenBeforeGroundClick) fail('popover did not open before the ground click');
     const slideBeforeGroundClick = await onFirstSlide();
@@ -116,7 +123,7 @@ async function main() {
     // 2. Move to the next slide, then the fiche column stays enabled.
     await page.click('#navNext');
     await page.waitForTimeout(800); // matches nav.js's own scroll-settle timeout
-    await page.click('#navShare');
+    await openShare();
     const ficheEnabledOnSlide2 = await page.evaluate(() =>
       Array.prototype.every.call(document.querySelectorAll('[data-scope="fiche"]'), (b) => !b.disabled));
     if (!ficheEnabledOnSlide2) fail('fiche column must be enabled once past the cover slide');
@@ -129,7 +136,7 @@ async function main() {
     }
 
     // 4. Show the QR code for the series scope and sanity-check the SVG.
-    // (The popover is still open from step 2/3 — clicking #navShare again
+    // (The popover is still open from step 2/3 — opening the menu again
     // here would toggle it closed instead.)
     await page.click('[data-action="qr"][data-scope="series"]');
     const qrOpen = await page.evaluate(() => document.getElementById('shareQrModal').classList.contains('open'));
@@ -164,7 +171,7 @@ async function main() {
       return here ? here.id : null;
     });
     if (!ficheId) fail('could not tell which card the reader is on');
-    await page.click('#navShare');
+    await openShare();
     await page.click('[data-action="copy"][data-scope="fiche"]');
     const clipboardFiche = await page.evaluate(() => navigator.clipboard.readText());
     if (clipboardFiche !== expectedArticleUrl + '#' + ficheId) {
@@ -183,7 +190,7 @@ async function main() {
       return s[s.length - 1].getBoundingClientRect().top < window.innerHeight / 2;
     });
     if (!onSeriesNav) fail('did not reach the series-nav slide after navNext');
-    await page.click('#navShare');
+    await openShare();
     const ficheDisabledOnSeriesNav = await page.evaluate(() =>
       Array.prototype.every.call(document.querySelectorAll('[data-scope="fiche"]'), (b) => b.disabled));
     if (!ficheDisabledOnSeriesNav) fail('fiche column must be disabled on the series-nav slide');

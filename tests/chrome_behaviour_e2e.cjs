@@ -218,8 +218,10 @@ async function main() {
     fail('the fixture index carries fewer than two cards, so the focus '
          + 'journey has nowhere to go: ' + cardCount);
   }
-  // 4a1. The share button opens the popover on the index.
-  await indexPage.click('#navShare');
+  // 4a1. The share action in the presenter menu opens the popover on the index.
+  await indexPage.click('#navMenu');
+  await indexPage.waitForSelector('#presenterMenu.open');
+  await indexPage.click('#menuShare');
   const indexPopoverOpen = await indexPage.evaluate(
     () => document.getElementById('sharePopover').classList.contains('open'));
   if (!indexPopoverOpen) {
@@ -513,6 +515,7 @@ async function main() {
     const style = nav ? getComputedStyle(nav) : null;
     return {
       idle: document.documentElement.classList.contains('nav-idle'),
+      permanent: document.documentElement.classList.contains('nav-permanent'),
       opacity: style ? style.opacity : null,
       pointerEvents: style ? style.pointerEvents : null,
       fullscreenAsked: window.__askedForFullscreen,
@@ -566,29 +569,42 @@ async function main() {
     fail('a single tap brought the navigation back: ' + JSON.stringify(state));
   }
 
-  // 5c. The double tap does, and it spends itself doing only that.
+  // 5c. The first double tap pins the chrome instead of merely waking it.
   await doubleTap();
   state = await chromeState();
-  if (state.idle || state.opacity !== '1') {
-    fail('a double tap did not bring the navigation back: '
-         + JSON.stringify(state));
+  if (state.idle || !state.permanent || state.opacity !== '1') {
+    fail('a double tap did not pin the navigation: '
+      + JSON.stringify(state));
   }
   if (state.fullscreenAsked !== 0) {
     fail('the double tap also asked for fullscreen, which is a second '
          + 'change the reader did not ask for: ' + JSON.stringify(state));
   }
 
-  // 5d. And it is a switch, not a wake-up: tapping twice again puts the
-  // chrome away AT ONCE, without waiting out the countdown. Asserted
-  // well inside the 3s delay, so a pass here cannot be the timer firing.
-  await doubleTap();
+  // 5d. It stays visible past the normal countdown while pinned.
+  await phone.waitForTimeout(3500);
   state = await chromeState();
-  if (!state.idle || state.opacity !== '0') {
-    fail('a double tap on visible chrome did not put it away: '
-         + JSON.stringify(state));
+  if (state.idle || !state.permanent) {
+    fail('pinned navigation auto-hid: ' + JSON.stringify(state));
   }
 
-  // 5e. The deck does not touch selection at all.
+  // 5e. The next double tap returns to auto-hide mode. It leaves the chrome
+  // visible for the normal countdown, rather than hiding it as a second
+  // visibility-only switch would have done.
+  await doubleTap();
+  state = await chromeState();
+  if (state.idle || state.permanent || state.opacity !== '1') {
+    fail('a double tap did not restore auto-hide mode: '
+      + JSON.stringify(state));
+  }
+  await phone.waitForTimeout(3500);
+  state = await chromeState();
+  if (!state.idle || state.permanent || state.opacity !== '0') {
+    fail('auto-hide mode did not hide the navigation again: '
+      + JSON.stringify(state));
+  }
+
+  // 5f. The deck does not touch selection at all.
   //
   // It did, briefly: `user-select: none` while the chrome was down, so
   // that the double tap which brings the navigation back would not lose
@@ -600,10 +616,8 @@ async function main() {
   const untouched = await phone.evaluate(() => {
     const slide = document.querySelector('section.slide');
     const root = document.documentElement;
-    // The root class is what the double-tap switch READS, so this probe
-    // has to put it back exactly as it found it. Measured the hard way:
-    // clearing it here flipped the next section's double tap into hiding
-    // the chrome instead of showing it.
+    // The idle class is the visibility flag; this probe has to put it back
+    // exactly as it found it before the selection assertion.
     const was = root.classList.contains('nav-idle');
     const before = getComputedStyle(slide).webkitUserSelect
                 || getComputedStyle(slide).userSelect;
@@ -619,7 +633,7 @@ async function main() {
          + 'copy menu — away from the reader: ' + JSON.stringify(untouched));
   }
 
-  // 5f. A long press belongs to the reader.
+  // 5g. A long press belongs to the reader.
   //
   // Reported from a phone: pressing and holding — which is how anyone
   // selects a word and reaches the copy callout — threw the reader back a
@@ -787,20 +801,28 @@ async function main() {
          + 'expected 0, got ' + backDuringGlide);
   }
 
-  // 5g. Revealed chrome still fades on its own afterwards, so the switch
-  // has not replaced the countdown with a latch.
+  // 5h. The mode switch remains a latch until the reader switches back.
   await doubleTap();
-  if ((await chromeState()).idle) {
-    fail('the chrome did not come back for the fade test');
+  state = await chromeState();
+  if (state.idle || !state.permanent) {
+    fail('the chrome did not become permanent for the latch test: '
+      + JSON.stringify(state));
   }
   await phone.waitForTimeout(4000);
   state = await chromeState();
-  if (!state.idle) {
-    fail('once revealed by a double tap the chrome never faded again: '
-         + JSON.stringify(state));
+  if (state.idle || !state.permanent) {
+    fail('permanent chrome faded again: '
+      + JSON.stringify(state));
+  }
+  await doubleTap();
+  await phone.waitForTimeout(4000);
+  state = await chromeState();
+  if (!state.idle || state.permanent) {
+    fail('returning to auto-hide did not fade the chrome: '
+      + JSON.stringify(state));
   }
 
-  // 5h. The middle BUTTON is the fullscreen gatekeeper (B37): the
+  // 5i. The middle BUTTON is the fullscreen gatekeeper (B37): the
   // browsers refuse requestFullscreen from any non-left mouse event,
   // so the button alone can only EXIT. The entry is a two-step — a
   // middle press then a LEFT click within the window (the left click

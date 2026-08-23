@@ -9,8 +9,8 @@
 //   - a click on a card follows it (the card is a link, and a click on
 //     it is interactive — the deck must not steal it);
 //   - Enter on a focused card follows it (the browser's own default);
-//   - the share button opens the popover, copies the series and article
-//     links, and keeps the fiche scope disabled — the index has no
+//   - the share action in the presenter menu opens the popover, copies the
+//     series and article links, and keeps the fiche scope disabled — the index has no
 //     fiche (§9.3.4);
 //   - middle-then-left asks for fullscreen (stubbed, like the other
 //     e2e: headless Chromium refuses the request without a gesture);
@@ -42,6 +42,12 @@ async function main() {
 
   await page.goto(indexUrl, { waitUntil: 'load' });
   await page.waitForTimeout(300);
+  const openShare = async () => {
+    await page.click('#navMenu');
+    await page.waitForSelector('#presenterMenu.open');
+    await page.click('#menuShare');
+    await page.waitForSelector('#sharePopover.open');
+  };
 
   // Non-vacuity first: the fixture must carry cards for the journey to
   // exist at all.
@@ -120,7 +126,7 @@ async function main() {
   await page.waitForTimeout(600);
 
   // --- 5. The share popover works on the index, fiche disabled --------
-  await page.click('#navShare');
+  await openShare();
   const popoverOpen = await page.evaluate(
     () => document.getElementById('sharePopover').classList.contains('open'));
   if (!popoverOpen) {

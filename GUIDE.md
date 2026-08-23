@@ -55,9 +55,11 @@ Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, M
 for the presenter menu), mouse (click to
 advance, right-click to go back, middle button to enter or leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
-is one article card at a time. The navigation
-buttons fade after 3 seconds of idleness (1 second in fullscreen) — the
-speaker sees only slides. The cursor hides on that same clock, and
+ is one article card at a time. The navigation buttons form a lower-right
+stack with fullscreen at the top, Menu below it, and previous/next at the
+bottom; Home, sharing and tags live in the presenter menu. They fade after 3
+seconds of idleness (1 second in fullscreen) — the speaker sees only slides.
+The cursor hides on that same clock, and
 neither comes back until the mouse has moved continuously for 250 ms — a
 brush past the sensor flashes nothing back onto the wall. The scroll bar
 counts as navigation and follows the same state: it fades to transparent
@@ -364,10 +366,12 @@ author's edit remains the source of truth. Values pinned in `settings.conf`,
 left alone while a reader switches. **C** opens the searchable picker and
 **M** opens the global presenter menu; the same menu is available from the
 bottom-right navigation button. The selection lasts for the other pages of
-the same deck in the current browser session. In the theme picker and that
-presenter menu, focus starts at the first useful control; `Tab`, the arrow
-keys, `Home` and `End` move through the controls, and `Enter`/`Space` activate
-the focused one.
+the same deck in the current browser session. Each theme choice previews its
+resolved background, including its gradient, with matching foreground ink.
+The menu actions carry icons and their keyboard shortcuts. In the theme
+picker and that presenter menu, focus starts at the first useful control;
+`Tab`, the arrow keys, `Home` and `End` move through the controls, and
+`Enter`/`Space` activate the focused one.
 
 These commands inspect and select existing theme values. They do not design,
 retune or repair a palette. Use `theme show` to read the measured contrast of
@@ -816,25 +820,25 @@ steps: the deck never treats a double click as anything else.
 | Swipe left | Next slide — on the index, next article card |
 | Swipe right | Previous slide — on the index, previous article card |
 | Tap on content | Next slide — on the index, next article card |
-| Double tap | Show or hide the navigation buttons |
+| Double tap | Switch between the default auto-hide mode and permanent navigation |
 | Press and hold | Select text and open the copy menu — the deck does not take it |
 
 ### Navigation buttons
 
-The round buttons in the bottom-right corner are previous, home, next,
-share, fullscreen, and a sixth button for the variant menu, which appears only
-when the article carries at least two tags. The same six sit on the
-index, where previous and next step one article card at a time and home
-means the top of the page. After 3 seconds of mouse
+The round buttons in the bottom-right corner are fullscreen, Menu, previous
+and next. Home, share and the variant filter are actions in the presenter
+menu, which also carries the themes, help, notes and pause screens. The same
+four sit on the index, where previous and next step one article card at a time.
+After 3 seconds of mouse
 idleness they fade out, and the cursor goes with them: the speaker does
 not want chrome on the wall. In fullscreen both go after 1 second. Move
 the mouse to bring the buttons back; the cursor waits for 250ms of
 continuous movement, so a knock against the desk does not put it on the
 wall.
 
-On a phone or a tablet they fade after the same three seconds and come back on a
-**double tap**, which also puts them away again at once if you have seen
-enough. A touch or a scroll restarts the countdown while they are still
+On a phone or a tablet they fade after the same three seconds. A **double tap**
+switches to permanent navigation, or back to auto-hide with a fresh countdown.
+A touch or a scroll restarts the countdown while they are still
 up, so they never vanish under your finger; once they are gone they no
 longer answer a touch at all, so the corner of your own text is safe to
 touch. Fullscreen is the ⛶ button in that bar rather than the middle
@@ -848,7 +852,7 @@ try to take it: selection, long press and the copy menu are the browser's,
 untouched. Which of the two wins a given double tap is the browser's call,
 and if it takes one, press and hold or use the ⛶ button — nothing the deck
 does will have got in your way. With a mouse, clicking the corner (not a button)
-toggles them on or off for good.
+toggles their current visibility.
 
 ## 10. Shell completion (tab in the terminal)
 

@@ -32,7 +32,9 @@ a two-step gesture — middle button, then a left click (F or the ⛶
 button enters directly). A click while the deck is gliding to
 the next card jumps straight to its target — two clicks in quick
 succession land two pages on, a right-click during the glide returns to
-the card you left. Navigation buttons fade
+the card you left. The lower-right navigation stack keeps fullscreen at the
+top, then Menu, then the previous/next arrows; Home, sharing and tag filters
+live in the presenter menu. Navigation buttons fade
 after 3 seconds of idleness (1 second in fullscreen) — the speaker sees
 only slides. The cursor hides on the same clock, and both come back on
 the same condition: 250 ms of continuous mouse movement, so a knock
@@ -97,8 +99,8 @@ handout at Ctrl/Cmd+P.
   then a left click), touch (swipe, double tap). Navigation
   chrome fades after 3s idle (1s in fullscreen) on every device; with a
   pointer the cursor hides on the same clock and both return after 250ms
-  of continuous movement, and on a touch screen a double tap is the
-  switch, both ways. The mouse becomes
+  of continuous movement, and on a touch screen a double tap switches
+  between the default auto-hide mode and permanent navigation. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
   buttons, no aiming. Fullscreen neutralizes OS power-saving so the
   screen never dims mid-talk. The index page is a deck like any other —
@@ -653,11 +655,13 @@ choice, even when it is omitted from the list. The file is read at build time,
 so an author's edit is respected; settings, `style.*` properties and declared
 theme variables in `custom.css` remain pinned while the reader switches. The
 payload is inline and delta-encoded, so the resulting pages remain standalone.
-On a page built with this option, **C** opens the searchable theme picker and
-**M** opens one menu for fullscreen, themes, help, speaker notes, tags,
-sharing, navigation and pause screens. The same presenter menu is available
-from the bottom-right menu button in the navigation. The choice is kept in the
-browser's session for the other pages of the same deck.
+On a page built with this option, **C** opens the searchable theme picker. Each
+theme choice previews its resolved page/cover background, including its
+gradient, with the matching foreground ink. **M** opens one menu for
+fullscreen, themes, help, speaker notes, tags, sharing, navigation and pause
+screens; its actions carry icons and their keyboard shortcuts. The same
+presenter menu is available from the lower-right Menu button. The choice is
+kept in the browser's session for the other pages of the same deck.
 
 A theme provides seven shared colors and four font stacks —
 `color.page`, `color.ink`, `color.ink-quiet`, `color.mark`,
