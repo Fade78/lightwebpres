@@ -33,6 +33,12 @@ link to the originals. They are at
 
 ---
 
+## v0.45.7
+
+Fullscreen entry points now share one state-aware toggle. The mouse gesture,
+the `F` key, the presenter menu and the navigation button all enter or exit
+according to the browser's current fullscreen element.
+
 ## v0.45.6
 
 The README introduction now shows real 16:9 presentation covers in the Lava,

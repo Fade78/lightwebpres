@@ -2020,7 +2020,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.45.6</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.45.7</div>
   </div>
 </div>
 
@@ -4173,13 +4173,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var pauseOverlay = document.getElementById('pauseOverlay');
 
+  function currentFullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+  // F, the presenter menu, the navigation button and the mouse gesture all
+  // come here. The browser's current fullscreen element is the state: no
+  // local flag can drift from an Esc press or another browser exit.
   function toggleFullscreen() {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    } else {
-      var el = document.documentElement;
-      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    var current = currentFullscreenElement();
+    if (current) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      return exit ? exit.call(document) : null;
     }
+    var el = document.documentElement;
+    var request = el.requestFullscreen || el.webkitRequestFullscreen;
+    return request ? request.call(el) : null;
   }
 
   // The cursor is hidden by the same clock as the navigation chrome,
@@ -4239,7 +4247,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.addEventListener('fullscreenchange', function () {
     setNavIdle(false);
-    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    var fs = currentFullscreenElement();
     if (fs) {
       window.getSelection().removeAllRanges();
       document.body.classList.add('fs-noselect');
@@ -4251,7 +4259,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.addEventListener('webkitfullscreenchange', function () {
     setNavIdle(false);
-    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    var fs = currentFullscreenElement();
     if (fs) {
       window.getSelection().removeAllRanges();
       document.body.classList.add('fs-noselect');
@@ -4301,7 +4309,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // fullscreen (native browser). Buttons, links, images, and the pause
   // overlay intercept clicks so they keep working.
   function isFullscreen() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    return !!currentFullscreenElement();
   }
   function isInteractive(e) {
     return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .nav-buttons');
@@ -4500,7 +4508,7 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       fsIntentUntil = 0;
       fsEntryPending = true;
-      if (!isFullscreen()) toggleFullscreen();
+      toggleFullscreen();
     } else if (e.button === 2) {
       // The same intent, the other way: middle then RIGHT goes Home.
       // Right-click normally steps back; inside the intent window it

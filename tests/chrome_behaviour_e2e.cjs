@@ -10,8 +10,8 @@
 //     and let it fire whether or not anything kept moving, so a knock
 //     against the desk revealed it 250ms later — a delay, not a
 //     condition.
-//   - F must enter fullscreen on the index, as it does on an article
-//     page. The index simply never bound it.
+//   - F, the presenter menu and the navigation button must all toggle
+//     fullscreen on the index, as they do on an article page.
 //
 // Invoked by tests/test_chrome_behaviour.py — not a standalone entry
 // point.
@@ -192,20 +192,100 @@ async function main() {
   await indexPage.goto(indexUrl, { waitUntil: 'load' });
   await indexPage.evaluate(() => {
     window.__askedForFullscreen = 0;
+    window.__exitedFullscreen = 0;
+    window.__inFullscreen = false;
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => window.__inFullscreen ? document.documentElement : null,
+    });
     document.documentElement.requestFullscreen = function () {
       window.__askedForFullscreen++;
+      window.__inFullscreen = true;
+      return Promise.resolve();
+    };
+    document.exitFullscreen = function () {
+      window.__exitedFullscreen++;
+      window.__inFullscreen = false;
       return Promise.resolve();
     };
   });
   await indexPage.keyboard.press('f');
   await indexPage.waitForTimeout(200);
-  const asked = await indexPage.evaluate(() => window.__askedForFullscreen);
-  if (asked !== 1) {
-    fail('F on the index did not ask for fullscreen (asked ' + asked + ' times)');
+  let fullscreenState = await indexPage.evaluate(() => ({
+    asked: window.__askedForFullscreen,
+    exited: window.__exitedFullscreen,
+    inFullscreen: !!document.fullscreenElement,
+  }));
+  if (fullscreenState.asked !== 1 || fullscreenState.exited !== 0
+      || !fullscreenState.inFullscreen) {
+    fail('F on the index did not ENTER fullscreen: ' + JSON.stringify(fullscreenState));
+  }
+  await indexPage.keyboard.press('f');
+  await indexPage.waitForTimeout(200);
+  fullscreenState = await indexPage.evaluate(() => ({
+    asked: window.__askedForFullscreen,
+    exited: window.__exitedFullscreen,
+    inFullscreen: !!document.fullscreenElement,
+  }));
+  if (fullscreenState.asked !== 1 || fullscreenState.exited !== 1
+      || fullscreenState.inFullscreen) {
+    fail('F on the index did not EXIT fullscreen: ' + JSON.stringify(fullscreenState));
   }
   const hasButton = await indexPage.locator('#navFullscreen').count();
   if (hasButton !== 1) {
     fail('the index has no fullscreen button');
+  }
+  await indexPage.click('#navFullscreen');
+  await indexPage.waitForTimeout(200);
+  fullscreenState = await indexPage.evaluate(() => ({
+    asked: window.__askedForFullscreen,
+    exited: window.__exitedFullscreen,
+    inFullscreen: !!document.fullscreenElement,
+  }));
+  if (fullscreenState.asked !== 2 || fullscreenState.exited !== 1
+      || !fullscreenState.inFullscreen) {
+    fail('the navigation fullscreen button did not ENTER fullscreen: '
+         + JSON.stringify(fullscreenState));
+  }
+  await indexPage.click('#navFullscreen');
+  await indexPage.waitForTimeout(200);
+  fullscreenState = await indexPage.evaluate(() => ({
+    asked: window.__askedForFullscreen,
+    exited: window.__exitedFullscreen,
+    inFullscreen: !!document.fullscreenElement,
+  }));
+  if (fullscreenState.asked !== 2 || fullscreenState.exited !== 2
+      || fullscreenState.inFullscreen) {
+    fail('the navigation fullscreen button did not EXIT fullscreen: '
+         + JSON.stringify(fullscreenState));
+  }
+  await indexPage.click('#navMenu');
+  await indexPage.waitForSelector('#presenterMenu.open');
+  await indexPage.click('#menuFullscreen');
+  await indexPage.waitForTimeout(200);
+  fullscreenState = await indexPage.evaluate(() => ({
+    asked: window.__askedForFullscreen,
+    exited: window.__exitedFullscreen,
+    inFullscreen: !!document.fullscreenElement,
+  }));
+  if (fullscreenState.asked !== 3 || fullscreenState.exited !== 2
+      || !fullscreenState.inFullscreen) {
+    fail('the presenter menu fullscreen action did not ENTER fullscreen: '
+         + JSON.stringify(fullscreenState));
+  }
+  await indexPage.click('#navMenu');
+  await indexPage.waitForSelector('#presenterMenu.open');
+  await indexPage.click('#menuFullscreen');
+  await indexPage.waitForTimeout(200);
+  fullscreenState = await indexPage.evaluate(() => ({
+    asked: window.__askedForFullscreen,
+    exited: window.__exitedFullscreen,
+    inFullscreen: !!document.fullscreenElement,
+  }));
+  if (fullscreenState.asked !== 3 || fullscreenState.exited !== 3
+      || fullscreenState.inFullscreen) {
+    fail('the presenter menu fullscreen action did not EXIT fullscreen: '
+         + JSON.stringify(fullscreenState));
   }
 
   // --- 4a. The index is a page of cards, and the chrome drives them ---
