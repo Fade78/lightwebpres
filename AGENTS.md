@@ -52,7 +52,7 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
   six états. Le fichier s'appelait `BACKLOG.md` ; une entrée qui
   s'avérait ne demander aucun travail n'avait alors aucun état où aller.
 - `CHANGELOG.md` — ce qui a changé d'une version à l'autre, dans les
-  mots de l'annonce. L'entrée **est** le corps de la release GitHub.
+  mots de l'annonce. L'entrée **est** le corps de la release GitLab.
 - `agent/skills/` — les skills (format LWP, méthode éditoriale) + index.
 - `AGENTS.md` — ce document.
 - `THIRD-PARTY-NOTICES.md` — licences de ce qui est embarqué.
@@ -153,13 +153,14 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
   (`test_the_version_it_announces_has_a_changelog_entry`) refuse la suite
   si le numéro annoncé n'a pas de section, donc les deux ne peuvent pas
   diverger en silence. La section se remplit au fil du travail, pas le
-  jour de la release : c'est ce texte-là, tel quel, qui est collé dans le
-  formulaire GitHub, et le titre devient `## vX.Y.Z` quand le propriétaire
-  a tagué — sans date, la date vit sur le tag. Un texte, un endroit — un
-  second récit du même changement s'écarte du premier en quelques mois.
-- **Le propriétaire seul tague et publie.** L'agent ne crée ni tag ni
-  release ; le proxy git refuse d'ailleurs les nouveaux `refs/tags/`. Ce
-  que l'agent fournit, c'est le texte, dans un bloc copiable.
+  jour de la release : c'est ce texte-là, tel quel, qui accompagne la
+  release GitLab, et le titre devient `## vX.Y.Z` quand le tag de release est
+  créé — sans date, la date vit sur le tag. Un texte, un endroit — un second
+  récit du même changement s'écarte du premier en quelques mois.
+- **Release GitLab sur demande du propriétaire.** Sans demande explicite,
+  l'agent ne crée ni tag ni release. Quand le propriétaire demande une
+  release, l'agent crée le tag `vX.Y.Z`, le pousse sur `origin`, puis crée la
+  release GitLab avec le texte de la section correspondante.
 - **Style de commit** : un sujet en phrase, qui dit ce que le changement
   fait — **aucun préfixe**, pas même pour une release. Le corps n'est pas
   replié à 72 colonnes et explique le *pourquoi*, avec les mesures quand
@@ -190,7 +191,8 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
     forme qu'elle interdit, ce qu'on découvre en essayant.
 - **Push** : `git push -u origin main`. Il n'y a qu'un remote, `origin`, et
   qu'une branche de travail, `main` — pas de branche de fonctionnalité.
-  Jamais de push forcé.
+  Une release demandée pousse aussi son tag `vX.Y.Z` sur ce remote. Jamais de
+  push forcé.
 
 ## Licence et extension
 

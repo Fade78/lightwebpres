@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.45.6
+## v0.45.6
 
 The README introduction now shows real 16:9 presentation covers in the Lava,
 Terminal and Pop Lemon themes, after explaining the mobile-first reading mode
