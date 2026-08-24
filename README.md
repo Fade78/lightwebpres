@@ -50,9 +50,20 @@ panel with the current slide's notes and the next slide's title, so you can
 read ahead unseen. And every page prints one slide per sheet — a clean PDF
 handout at Ctrl/Cmd+P.
 
+**Mobile comes first.** The same self-contained page adapts to a phone: touch
+swipes, readable measures and controls that get out of the way leave the
+content usable in portrait mode instead of shrinking a desktop slide until it
+becomes a poster stamp.
+
+**Landscape is for the room.** Turn the page sideways and it becomes a public
+presentation: a full-screen 16:9 canvas, with the left and right mouse buttons
+as a simple remote to advance and go back without aiming at a control. The
+featured previews below show that mode in the `lava`, `terminal` and
+`pop-lemon` themes.
+
 <figure>
-  <img src="generated/themes-featured.png" alt="Three large real rendered LightWebPres article surfaces in contrasting built-in themes" width="100%">
-  <figcaption><strong>One source, several visual directions.</strong> These are real article surfaces rendered by the same pipeline as a built deck, not palette swatches. The compact catalogue and full interactive gallery are below.</figcaption>
+  <img src="generated/themes-featured.png" alt="Three real 16 by 9 LightWebPres presentation covers in the Lava, Terminal and Pop Lemon themes" width="100%">
+  <figcaption><strong>One source, several visual directions.</strong> These are real landscape presentation surfaces rendered by the same pipeline as a built deck, not palette swatches. The compact catalogue and full interactive gallery are below.</figcaption>
 </figure>
 
 ## Features
@@ -715,7 +726,7 @@ or is already one of the verdict colours.
 
 Above is the compact catalogue view: every theme, one rendered cover per
 theme, with its palette and the command that starts a series on it. It is
-deliberately different from the three large article surfaces near the
+deliberately different from the three large landscape presentation surfaces near the
 introduction. [`generated/themes-gallery.html`](generated/themes-gallery.html) in
 this repository is the full thing — **one theme per row, four panels across:**
 the cover, a card carrying a note, the page-wide notes section, and the

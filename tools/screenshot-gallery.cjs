@@ -41,7 +41,7 @@ const OUT = path.resolve(args[1] || path.join(
   REPO, 'generated', FEATURED ? 'themes-featured.png' : 'themes-gallery.png',
 ));
 
-const FEATURED_SLUGS = ['pop-lemon', 'monochrome-night', 'print-ink'];
+const FEATURED_SLUGS = ['lava', 'terminal', 'pop-lemon'];
 
 // CONTACT SHEET is the default, and the page's own layout is the reason.
 // The gallery gives each theme a ROW of four panels — cover, card,
@@ -61,7 +61,8 @@ const FEATURED_SLUGS = ['pop-lemon', 'monochrome-night', 'print-ink'];
 //
 // `--full` captures the page as it stands, every panel, for anyone who
 // wants the long strip.
-const PANEL = FEATURED ? 460 : 340;
+const FEATURED_HEIGHT = 360;
+const PANEL = FEATURED ? 640 : 340;
 const COLUMNS = FEATURED ? 3 : 4;
 const GAP = FEATURED ? 24 : 18;
 const ROW = PANEL + 38;            // + .panels padding (2x18) and the row's border
@@ -69,7 +70,7 @@ const VIEWPORT = FULL
   ? { width: 1280, height: 1400 }
   : {
       width: COLUMNS * ROW + (COLUMNS - 1) * GAP + 56 + 24,
-      height: FEATURED ? 1000 : 1400,
+      height: FEATURED ? 600 : 1400,
     };
 const TIMEOUT = 120000;
 
@@ -98,10 +99,10 @@ const CONTACT_CSS = `
   .preview { visibility: hidden !important; }
 `;
 
-// FEATURED is the product-first image: three real long-form article surfaces,
-// not the gallery's swatches or its tiny cover-only contact sheet. The fixed
-// panel width is also the iframe viewport width; no transform or post-paint
-// scaling is involved.
+// FEATURED is the product-first image: three real landscape presentation
+// covers, not the gallery's swatches or its narrow contact sheet. The fixed
+// panel width and height are also the iframe viewport dimensions; no transform
+// or post-paint scaling is involved.
 const FEATURED_CSS = `
   :root { --gal-panel: ${PANEL}px !important; }
   .wrap { max-width: none !important; padding: 40px 28px 56px; }
@@ -117,7 +118,11 @@ const FEATURED_CSS = `
     overflow: visible !important;
     grid-template-columns: ${PANEL}px !important;
   }
-  .preview { visibility: hidden !important; }
+  .preview {
+    visibility: hidden !important;
+    width: ${PANEL}px !important;
+    height: ${FEATURED_HEIGHT}px !important;
+  }
 `;
 
 async function main() {
@@ -162,7 +167,7 @@ async function main() {
         });
         [].slice.call(document.querySelectorAll('.theme-row')).forEach((row) => {
           [].slice.call(row.querySelectorAll('.panel')).forEach((panel, index) => {
-            if (index !== 3) panel.remove();
+            if (index !== 0) panel.remove();
           });
         });
       } else {
@@ -260,6 +265,17 @@ async function main() {
       const handle = await rows[index].$('iframe.preview');
       const frame = await frameFor(handle);
       await frame.waitForSelector('.slide', { state: 'attached', timeout: TIMEOUT });
+      if (FEATURED) {
+        const viewport = await frame.evaluate(() => ({
+          width: window.innerWidth,
+          height: window.innerHeight,
+        }));
+        if (viewport.width !== PANEL || viewport.height !== FEATURED_HEIGHT) {
+          throw new Error(`featured preview ${index + 1} has viewport ` +
+                          `${viewport.width}x${viewport.height}, expected ` +
+                          `${PANEL}x${FEATURED_HEIGHT}`);
+        }
+      }
       await frame.evaluate(() => document.fonts && document.fonts.ready);
       await page.waitForTimeout(20);
       captures.push({

@@ -95,8 +95,8 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
 - `generated/themes-featured.png` — `NODE_PATH=/opt/node22/lib/node_modules
   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node
   tools/screenshot-gallery.cjs --featured` — aperçu produit de trois thèmes
-  réels pour l'introduction du README. Capture navigateur, sans garde
-  d'identité à l'octet.
+  réels en présentation paysage pour l'introduction du README. Capture
+  navigateur, sans garde d'identité à l'octet.
 - `generated/themes-gallery.png` — `NODE_PATH=/opt/node22/lib/node_modules
   PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node
   tools/screenshot-gallery.cjs` — planche-contact compacte du README.
