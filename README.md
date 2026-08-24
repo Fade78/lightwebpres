@@ -232,17 +232,19 @@ other articles in the series. The last slide points at a **second** file,
 `sources/apple-pie_article.md`, holding the long-form text — `build` fails if
 it isn't there. Drop either optional slide if you don't want it.
 
-### Variants in one page
+### Tags across a series
 
-Use the slide-level `tags:` field when one article must carry several
-languages, audiences, or detail levels. Tags are space-separated, normalized
-case-insensitively, and may contain Unicode letters, digits, `-`, and `_` (but
-not a leading `_`). A slide without tags belongs to `default`, which is the
-shared content shown with every selected variant.
+Use `tags:` in an article's `lwp:meta` block to gate the article itself, and
+on slide headers to select the content shown inside it. Tags are
+space-separated, normalized case-insensitively, and may contain Unicode
+letters, digits, `-`, and `_` (but not a leading `_`). An article without
+article tags has no article-level gate. A slide without tags belongs to
+`default`, which is shared with every selected non-`default` tag.
 
 ```json
 {
   "series_meta": {
+    "default_tag": "fr",
     "lang_tags": {"fr": "fr", "en": "en"}
   },
   "articles": [{"page_source": "apple-pie.md"}]
@@ -250,6 +252,10 @@ shared content shown with every selected variant.
 ```
 
 ```markdown
+<!-- lwp:meta -->
+tags: fr
+---
+
 <!-- lwp:slide:cover -->
 slug: apple-pie-fr
 kicker: Guide
@@ -272,18 +278,23 @@ summary: English version.
 slug: shared
 kicker: Common
 ## Shared slide
-summary: Visible in every variant because it has no `tags:` field.
+summary: Visible with every selected non-default tag because it has no `tags:` field.
 ```
 
-Press **L** in the generated page to choose a variant. The menu appears only
-when at least two tags exist; the choice is retained in
+Press **L** in the generated page to choose a tag. The menu appears only when
+at least two tags exist; the choice is retained in
 `localStorage['lwp-active-tag']`. Navigation, slide counts, anchors, and the
-presenter panel operate on the visible subset. `tags: excluded` removes a
+presenter panel operate on the visible subset, while an article card remains
+visible only when its article tag matches and at least one of its slides is
+available. `tags: excluded` removes a
 slide at build time and never emits it in the HTML — and, since a slide's
 anchor is the explicit `slug:` it declares rather than its rank, excluding
 one no longer repoints the anchors of the slides after it. `audit` reports malformed
 tags and language tags whose declared pack is missing without blocking the
-build.
+build. The menu identifies the active tag, counts the visible articles and
+slides, and lists their titles. `build` and `audit` warn when a selectable tag
+has no effective slide after article gates and exclusions, or when an article
+contains no non-excluded slide at all.
 
 That builds into a scrollable page: a cover slide inverted against the
 page, a fact-card slide
@@ -363,7 +374,7 @@ the series or within one article.
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` and `--no-essential-theme` decision used by the build |
-| `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — variant tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
+| `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, a differing language pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json` — on stdout. No series needed: the answer is inside the program |
 | `template write <file> [dir]` | Installs one of them where the build reads it, to be modified. The build then prefers your copy to the built-in one and warns on every run that it no longer follows the tool's fixes — at warning level, so `--quiet` keeps it. `--force` to replace an existing file |
@@ -462,7 +473,7 @@ publishing a slide of the wrong kind.
   paragraph break; the block ends at the first non-indented, non-empty line.
 
 `tag:` is not a field, and not an alias for one. Use `kicker:` for the label
-above a slide title, and `tags:` for variant filtering. A `tag:` line becomes
+above a slide title, and `tags:` for tag filtering. A `tag:` line becomes
 body text on a standard slide; on a cover, `build` reports the unknown field
 and prints the two choices.
 

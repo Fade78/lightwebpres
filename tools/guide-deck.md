@@ -36,9 +36,10 @@ source: Guide, section 2
 
 `init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. The essential runtime theme bundle is embedded by default; explicit `--themes` or root `series.json` `themes` selections add to or shape the catalogue, and `--no-essential-theme` opts out.
 
-`--lang en` chooses the build-wide fallback. For one article to carry several
-languages, `tags:` selects a variant and `series_meta.lang_tags` can select a
-typography pack per slide.
+`--lang en` chooses the build-wide fallback. An article's meta-block `tags:`
+can gate the article itself; slide-header `tags:` selects content inside it.
+`series_meta.default_tag` chooses the initial selection, and
+`series_meta.lang_tags` can select a typography pack per slide.
 
 ---
 
@@ -63,17 +64,21 @@ A note[^note] is reached the standard way, and its number is a position rather t
 ---
 
 <!-- lwp:slide -->
-slug: variantes
-kicker: Variants
-## Several versions, one HTML page
+slug: tags
+kicker: Tags
+## Several readings, one HTML page
 
-fact-label: The variant axis
+fact-label: The shared vocabulary
 
-`tags: fr` and `tags: en` put adjacent language versions in one source file.
-A slide without tags is `default`, shared by every selection; `excluded` is
-removed at build time. Press **L** to select a tag without reloading. The
-choice is stored in `localStorage['lwp-active-tag']`, and counts/navigation
-follow the visible subset.
+An article may carry `tags: fr` in its meta block, while `tags: fr` and
+`tags: en` on slides put adjacent language versions in one source file. A
+slide without tags is `default`, shared by every non-default selection;
+`excluded` is removed at build time. Press **L** to select a tag without
+reloading. The menu shows the active tag, counts the visible cards and slides,
+and lists their titles. The choice is stored in `localStorage['lwp-active-tag']`,
+cards and slides follow the same selection, and `series_meta.default_tag` sets
+the initial tag when nothing is stored. `build` and `audit` warn when a tag has
+no effective slide or an article has no non-excluded slide.
 
 Declare `series_meta.lang_tags: {"fr": "fr", "en": "en"}` when typography
 must follow the selected language. The first mapped tag on a slide wins; the

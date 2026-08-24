@@ -29,6 +29,7 @@ GALLERY_FACETS_SCRIPT = Path(__file__).resolve().parent / 'themes_gallery_facets
 GALLERY_PANELS_SCRIPT = Path(__file__).resolve().parent / 'gallery_panels_e2e.cjs'
 NOTE_PROPERTIES_SCRIPT = Path(__file__).resolve().parent / 'note_properties_e2e.cjs'
 SLIDE_TAGS_SCRIPT = Path(__file__).resolve().parent / 'slide_tags_e2e.cjs'
+ARTICLE_TAGS_SCRIPT = Path(__file__).resolve().parent / 'article_tags_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -132,7 +133,7 @@ class WebBuild(unittest.TestCase):
 
 @unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
 class SlideTagsRuntime(unittest.TestCase):
-    """The variant menu must change the visible slide subset and persist it."""
+    """The tag menu must change the visible slide subset and persist it."""
 
     @classmethod
     def setUpClass(cls):
@@ -181,6 +182,80 @@ class SlideTagsRuntime(unittest.TestCase):
     def test_menu_switches_and_persists_variant(self):
         result = subprocess.run(
             ['node', str(SLIDE_TAGS_SCRIPT),
+             'http://127.0.0.1:%d/a.html' % self.port],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+@unittest.skipUnless(AVAILABLE, 'node/playwright not available: %s' % NPM_ROOT_OR_REASON)
+class ArticleTagsRuntime(unittest.TestCase):
+    """Article gates and slide availability must agree on index and nav."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmpdir = tempfile.TemporaryDirectory()
+        root = Path(cls.tmpdir.name)
+        (root / 'sources').mkdir()
+        (root / 'series.json').write_text(json.dumps({
+            'series_meta': {'default_tag': 'fr'},
+            'articles': [
+                {'page_source': 'a.md', 'page_dest': 'a.html',
+                 'nav_title': 'A', 'nav_desc': 'French'},
+                {'page_source': 'b.md', 'page_dest': 'b.html',
+                 'nav_title': 'B', 'nav_desc': 'English'},
+                {'page_source': 'c.md', 'page_dest': 'c.html',
+                 'nav_title': 'C', 'nav_desc': 'Shared'},
+            ],
+        }), encoding='utf-8')
+        (root / 'sources' / 'a.md').write_text(
+            '<!-- lwp:meta -->\ntags: fr\npage_title: A\n'
+            'nav_title: A\nnav_desc: French\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: a-cover\ntags: fr\n# A\n'
+            'summary: French.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\nslug: a-nav\n',
+            encoding='utf-8')
+        (root / 'sources' / 'b.md').write_text(
+            '<!-- lwp:meta -->\ntags: en\npage_title: B\n'
+            'nav_title: B\nnav_desc: English\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: b-cover\ntags: en\n# B\n'
+            'summary: English.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\nslug: b-nav\n',
+            encoding='utf-8')
+        (root / 'sources' / 'c.md').write_text(
+            '<!-- lwp:meta -->\npage_title: C\nnav_title: C\nnav_desc: Shared\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: c-cover\n# C\nsummary: Shared.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\nslug: c-nav\n',
+            encoding='utf-8')
+        output_dir = root / 'public'
+        result = subprocess.run(
+            [sys.executable, str(REPO_ROOT / 'lightwebpres'), 'build',
+             str(root), '--output', str(output_dir)],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+        cls.httpd = HTTPServer(
+            ('127.0.0.1', 0),
+            lambda *a: _QuietHandler(*a, directory=str(output_dir)),
+        )
+        cls.port = cls.httpd.server_address[1]
+        cls.thread = threading.Thread(target=cls.httpd.serve_forever,
+                                      daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.thread.join(timeout=5)
+        cls.tmpdir.cleanup()
+
+    def test_article_and_slide_tags_filter_index_and_nav(self):
+        result = subprocess.run(
+            ['node', str(ARTICLE_TAGS_SCRIPT),
+             'http://127.0.0.1:%d/index.html' % self.port,
              'http://127.0.0.1:%d/a.html' % self.port],
             capture_output=True, text=True,
             env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},

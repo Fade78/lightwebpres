@@ -1240,6 +1240,11 @@ LANG_FR = r'''{
     "qr_modal_close": "Fermer",
     "nav_fullscreen": "Plein écran (touche F)",
     "tags_menu": "Filtrer les slides",
+    "tags_active": "Tag actif",
+    "tags_preview": "Contenu affiché",
+    "tags_articles": "fiches",
+    "tags_slides": "slides",
+    "tags_no_results": "Aucune fiche ou slide ne sera affichée avec ce tag.",
     "help_tags": "Filtrer par tag et mémoriser la sélection",
     "presenter_next": "Suivant :",
     "presenter_label": "Panneau du présentateur",
@@ -1362,6 +1367,11 @@ LANG_EN = r'''{
     "qr_modal_close": "Close",
     "nav_fullscreen": "Fullscreen (F key)",
     "tags_menu": "Filter slides",
+    "tags_active": "Active tag",
+    "tags_preview": "Displayed content",
+    "tags_articles": "articles",
+    "tags_slides": "slides",
+    "tags_no_results": "No article or slide will be displayed with this tag.",
     "help_tags": "Filter by tag and remember the selection",
     "presenter_next": "Next:",
     "presenter_label": "Presenter panel",
@@ -5603,12 +5613,13 @@ html.help-open, html.help-open body { overflow: hidden; }
   border-bottom-style: solid;
   position: relative;
 }
-/* The runtime variant filter hides slides (and the L button) via the
+/* The runtime tag filter hides slides (and the L button) via the
    hidden attribute. An author-origin `display` above beats the UA rule
    `[hidden] { display: none }` — the exact defeat the themes gallery once
    had for .theme-row, and the same fix. Keep this override beside every
    display on .slide/.nav-btn. */
 .slide[hidden], .nav-btn[hidden] { display: none; }
+.article-card[hidden], .series-item[hidden] { display: none; }
 /* The number sits over the COLUMN, not over the card.
 
    `right: 32px` measured it against the card edge while every line of
@@ -6011,6 +6022,9 @@ body.fs-noselect {
   z-index: 250;
   display: none;
   min-width: 180px;
+  max-height: min(72vh, 720px);
+  box-sizing: border-box;
+  overflow: auto;
   border-style: solid;
   border-width: 1px;
   background: inherit;
@@ -6024,6 +6038,15 @@ body.fs-noselect {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.tag-menu-current {
+  margin: 0 4px 5px;
+  font-size: 0.95em;
+  font-weight: 700;
+}
+.tag-menu-summary {
+  margin: 0 4px 12px;
+  font-size: 0.75em;
+}
 .tag-menu-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag-option {
   border-style: solid;
@@ -6036,8 +6059,51 @@ body.fs-noselect {
   font: inherit;
   font-size: 0.85em;
 }
-.tag-option.active { font-weight: 700; }
+.tag-option.active {
+  font-weight: 700;
+  border-width: 2px;
+}
 .tag-option:focus-visible { outline-style: solid; outline-offset: 2px; }
+.tag-menu-preview-title {
+  margin: 16px 4px 7px;
+  padding-top: 11px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tag-preview-article + .tag-preview-article { margin-top: 11px; }
+.tag-preview-article-title { font-size: 0.9em; font-weight: 700; }
+.tag-preview-slides {
+  margin: 3px 0 0;
+  padding: 0 0 0 1.1em;
+}
+.tag-preview-slide {
+  margin: 2px 0;
+  font-size: 0.8em;
+}
+.tag-preview-empty {
+  margin: 0 4px;
+  font-size: 0.8em;
+  font-style: italic;
+}
+.tag-empty-state {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 140;
+  max-width: min(520px, 80vw);
+  padding: 14px 18px;
+  border-style: solid;
+  border-width: 1px;
+  background: inherit;
+  color: inherit;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+.tag-empty-state[hidden] { display: none; }
 .nav-dots {
   position: fixed;
   bottom: 20px;
@@ -7274,9 +7340,15 @@ document.addEventListener('DOMContentLoaded', function() {
   lwpChooseInitialLanguage();
 (function(){
   var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var isIndex = document.body.classList.contains('index-page');
   var slides   = allSlides.slice();
   var current  = 0;
-  var selectedTag = 'default';
+  var defaultTag = String(document.body.getAttribute('data-lwp-default-tag') || 'default').toLowerCase();
+  var seriesTagData = document.body.getAttribute('data-lwp-series-tags');
+  var seriesTags = seriesTagData ? seriesTagData.toLowerCase().split(/\s+/).filter(Boolean) : [];
+  if (!seriesTags.length) seriesTags = ['default'];
+  if (seriesTags.indexOf(defaultTag) === -1) seriesTags.unshift(defaultTag);
+  var selectedTag = defaultTag;
   var isScrolling = false;
   // Separate from isScrolling (which only guards goTo()'s own scroll
   // animation, and only against re-targeting the SAME slide): holding
@@ -7304,7 +7376,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // the page). focus() scrolls a card into view on its own, which is
   // the same scroll the old arrows did, only aimed at something.
   var focusedCard = -1;
-  var indexCards = slides.length ? [] : Array.prototype.slice.call(document.querySelectorAll('.article-card'));
+  var allIndexCards = isIndex
+    ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
+  var indexCards = allIndexCards.slice();
+  var articleCards = Array.prototype.slice.call(
+    document.querySelectorAll('[data-lwp-article-card]'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var navDots    = document.querySelector('.nav-dots');
@@ -7313,7 +7389,21 @@ document.addEventListener('DOMContentLoaded', function() {
   var tagMenu    = document.getElementById('tagMenu');
   var tagMenuList = document.getElementById('tagMenuList');
   var tagMenuTitle = document.getElementById('tagMenuTitle');
+  var tagMenuCurrent = document.getElementById('tagMenuCurrent');
+  var tagMenuSummary = document.getElementById('tagMenuSummary');
+  var tagMenuPreview = document.getElementById('tagMenuPreview');
+  var tagEmptyState = document.getElementById('tagEmptyState');
   var tagStorageKey = 'lwp-active-tag';
+  var tagPreviewArticles = [];
+  var tagPreviewRaw = document.body.getAttribute('data-lwp-tag-preview');
+  if (tagPreviewRaw) {
+    try {
+      var parsedTagPreview = JSON.parse(tagPreviewRaw);
+      if (parsedTagPreview && Array.isArray(parsedTagPreview.articles)) {
+        tagPreviewArticles = parsedTagPreview.articles;
+      }
+    } catch (e) {}
+  }
   var dots = [];
 
   // Runtime themes are enabled by default at build time. The page's CSS already carries
@@ -7389,28 +7479,123 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (themeData) applyTheme(readStoredTheme(), false);
 
+  function tagAttribute(element, name) {
+    var raw = element ? element.getAttribute(name) : '';
+    return raw ? raw.toLowerCase().split(/\s+/).filter(Boolean) : [];
+  }
+
   function slideTags(slide) {
-    var raw = slide ? slide.getAttribute('data-tags') : '';
-    var tags = raw ? raw.toLowerCase().split(/\s+/) : [];
+    var tags = tagAttribute(slide, 'data-tags');
     return tags.length ? tags : ['default'];
+  }
+
+  function articleTags(article) {
+    return tagAttribute(article, 'data-lwp-article-tags');
+  }
+
+  function articleSlideTags(article) {
+    return tagAttribute(article, 'data-lwp-slide-tags');
+  }
+
+  function addTagList(tags, seen, values) {
+    values.forEach(function (tag) {
+      if (!seen[tag]) { seen[tag] = true; tags.push(tag); }
+    });
   }
 
   function tagList() {
     var seen = {};
     var tags = [];
+    addTagList(tags, seen, seriesTags);
+    addTagList(tags, seen, articleTags(document.body));
     allSlides.forEach(function (slide) {
-      slideTags(slide).forEach(function (tag) {
-        if (!seen[tag]) { seen[tag] = true; tags.push(tag); }
-      });
+      addTagList(tags, seen, slideTags(slide));
+    });
+    articleCards.forEach(function (article) {
+      addTagList(tags, seen, articleTags(article));
+      addTagList(tags, seen, articleSlideTags(article));
     });
     if (!seen.default) tags.unshift('default');
     return tags;
   }
 
-  function slideMatchesTag(slide, tag) {
-    var tags = slideTags(slide);
+  function previewSlidesFor(article, tag) {
+    var articleTags = Array.isArray(article.tags) ? article.tags : [];
+    if (articleTags.length && articleTags.indexOf(tag) === -1) return [];
+    return (Array.isArray(article.slides) ? article.slides : []).filter(function (slide) {
+      return tagSetMatches(Array.isArray(slide.tags) ? slide.tags : ['default'], tag);
+    });
+  }
+
+  function renderTagPreview() {
+    if (!tagMenuPreview) return;
+    tagMenuPreview.innerHTML = '';
+    var articleCount = 0;
+    var slideCount = 0;
+    tagPreviewArticles.forEach(function (article) {
+      var matching = previewSlidesFor(article, selectedTag);
+      if (!matching.length) return;
+      articleCount += 1;
+      slideCount += matching.length;
+      var group = document.createElement('div');
+      group.className = 'tag-preview-article';
+      group.setAttribute('role', 'listitem');
+      var title = document.createElement('div');
+      title.className = 'tag-preview-article-title';
+      title.textContent = article.title || lwpString('series_untitled_fallback');
+      group.appendChild(title);
+      var list = document.createElement('div');
+      list.className = 'tag-preview-slides';
+      list.setAttribute('role', 'list');
+      matching.forEach(function (slide, index) {
+        var item = document.createElement('div');
+        item.className = 'tag-preview-slide';
+        item.setAttribute('role', 'listitem');
+        item.textContent = slide.title ||
+          (slide.type === 'series-nav'
+            ? lwpString('series_nav_title')
+            : lwpString('nav_dot_fallback') + ' ' + (index + 1));
+        list.appendChild(item);
+      });
+      group.appendChild(list);
+      tagMenuPreview.appendChild(group);
+    });
+    if (!articleCount) {
+      var empty = document.createElement('div');
+      empty.className = 'tag-preview-empty';
+      empty.textContent = lwpString('tags_no_results');
+      empty.setAttribute('role', 'listitem');
+      tagMenuPreview.appendChild(empty);
+    }
+    if (tagMenuCurrent) {
+      tagMenuCurrent.textContent = lwpString('tags_active') + ': ' + selectedTag;
+    }
+    if (tagMenuSummary) {
+      tagMenuSummary.textContent = articleCount + ' ' + lwpString('tags_articles')
+        + ' · ' + slideCount + ' ' + lwpString('tags_slides');
+    }
+  }
+
+  function tagSetMatches(tags, tag) {
     if (tag === 'default') return tags.indexOf('default') !== -1;
     return tags.indexOf('default') !== -1 || tags.indexOf(tag) !== -1;
+  }
+
+  function slideMatchesTag(slide, tag) {
+    return tagSetMatches(slideTags(slide), tag);
+  }
+
+  function articleGateMatches(article, tag) {
+    var tags = articleTags(article);
+    return !tags.length || tags.indexOf(tag) !== -1;
+  }
+
+  function articleMatchesTag(article, tag) {
+    if (!articleGateMatches(article, tag)) return false;
+    // Old generated pages have no card metadata. Keep their cards visible;
+    // every page generated with this version carries the attribute.
+    if (!article.hasAttribute('data-lwp-slide-tags')) return true;
+    return tagSetMatches(articleSlideTags(article), tag);
   }
 
   function readStoredTag() {
@@ -7420,7 +7605,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return stored.toLowerCase();
       }
     } catch (e) {}
-    return 'default';
+    return defaultTag;
   }
 
   function writeStoredTag(tag) {
@@ -7468,6 +7653,7 @@ document.addEventListener('DOMContentLoaded', function() {
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     if (btnTags) btnTags.setAttribute('aria-expanded', tagMenu && tagMenu.classList.contains('open') ? 'true' : 'false');
+    renderTagPreview();
   }
 
   function tagOptions() {
@@ -7507,7 +7693,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // keydown handler preventDefault()s every key whose target is not
     // already inside .tag-menu -- including Tab, and a prevented Tab
     // cancels the focus move. Measured: five Tab presses left
-    // document.activeElement on BODY, so the whole slide-variant feature
+    // document.activeElement on BODY, so the whole slide-tag feature
     // was mouse-only and the dialog role was never announced.
     var options = tagOptions();
     var active = options.filter(function (b) {
@@ -7533,20 +7719,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function applyTagFilter(scrollToCurrent) {
     var available = tagList();
-    if (available.indexOf(selectedTag) === -1) selectedTag = 'default';
+    if (available.indexOf(selectedTag) === -1) selectedTag = defaultTag;
+    if (isIndex) {
+      var previousCard = focusedCard >= 0 ? indexCards[focusedCard] : null;
+      if (previousCard) previousCard.blur();
+      indexCards = allIndexCards.filter(function (card) {
+        return articleMatchesTag(card, selectedTag);
+      });
+      allIndexCards.forEach(function (card) {
+        var visible = indexCards.indexOf(card) !== -1;
+        card.hidden = !visible;
+        card.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      });
+      focusedCard = previousCard ? indexCards.indexOf(previousCard) : -1;
+      filterArticleCards();
+      if (tagEmptyState) {
+        tagEmptyState.hidden = indexCards.length > 0;
+        tagEmptyState.textContent = indexCards.length ? '' :
+          lwpString('tags_no_results') + ' (' + lwpString('tags_active')
+          + ': ' + selectedTag + ')';
+      }
+      updateTagMenu();
+      updateUI();
+      return;
+    }
     var previous = slides[current];
     slides = allSlides.filter(function (slide) { return slideMatchesTag(slide, selectedTag); });
+    if (!articleGateMatches(document.body, selectedTag)) slides = [];
     allSlides.forEach(function (slide) {
       var visible = slides.indexOf(slide) !== -1;
       slide.hidden = !visible;
       slide.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
+    filterArticleCards();
     var next = previous ? slides.indexOf(previous) : -1;
     current = next >= 0 ? next : 0;
     rebuildDots();
+    if (tagEmptyState) {
+      tagEmptyState.hidden = slides.length > 0;
+      tagEmptyState.textContent = slides.length ? '' :
+        lwpString('tags_no_results') + ' (' + lwpString('tags_active')
+        + ': ' + selectedTag + ')';
+    }
     updateTagMenu();
     updateUI();
     if (scrollToCurrent && slides.length) goTo(current);
+  }
+
+  function filterArticleCards() {
+    articleCards.forEach(function (card) {
+      var visible = articleMatchesTag(card, selectedTag);
+      card.hidden = !visible;
+      card.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    });
   }
 
   function selectTag(tag, scrollToCurrent) {
@@ -7557,7 +7782,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function applyHash() {
     // The index has no fiche and no fragment: nothing to follow.
-    if (!slides.length) return;
+    if (isIndex) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
@@ -7573,9 +7798,14 @@ document.addEventListener('DOMContentLoaded', function() {
       target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
     }
     if (!target) return;
-    if (!slideMatchesTag(target, selectedTag)) {
-      var candidate = slideTags(target).find(function (tag) {
-        return tag !== 'default' && tagList().indexOf(tag) !== -1;
+    if (!articleGateMatches(document.body, selectedTag)
+        || !slideMatchesTag(target, selectedTag)) {
+      var candidates = articleTags(document.body).concat(slideTags(target),
+        [defaultTag], tagList());
+      var candidate = candidates.find(function (tag) {
+        return tagList().indexOf(tag) !== -1
+          && articleGateMatches(document.body, tag)
+          && slideMatchesTag(target, tag);
       });
       if (candidate) selectTag(candidate, false);
     }
@@ -7963,7 +8193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // On the index there are no slides: the focus is the position, so
     // "what the user is looking at" is the focused card, or 0 when
     // nothing is focused (the page's own top).
-    if (!slides.length) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
+    if (isIndex) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
     var mid = window.innerHeight / 2;
     var best = current;
     slides.forEach(function(s, i) {
@@ -7993,7 +8223,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // deck — into a slow rewind of the whole article.
   function recordSlideInUrl(idx) {
     // The index has no fiche: no fragment, and nothing to record.
-    if (!slides.length) return;
+    if (isIndex || !slides.length) return;
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
@@ -8040,12 +8270,16 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function goTo(idx, instant) {
-    if (!slides.length) {
+    if (isIndex) {
       // On the index there is no slide to go to — the URL keeps no
       // fragment, the focus is the position (stepIndexCards), and the
       // disabled state of the nav buttons is the on-screen map of it.
       clearIndexFocus();
       current = 0;
+      updateUI();
+      return;
+    }
+    if (!slides.length) {
       updateUI();
       return;
     }
@@ -8131,7 +8365,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // journey. The same focus ring, the same Enter-to-follow, and the
   // nav buttons are disabled at the ends just as on an article.
   function stepForward() {
-    if (!slides.length) { stepIndexCards(1); return; }
+    if (isIndex) { stepIndexCards(1); return; }
+    if (!slides.length) return;
     var cards = slideCards(current);
     if (cards.length && focusedCard < cards.length - 1) {
       focusedCard++;
@@ -8148,7 +8383,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function stepBackward() {
-    if (!slides.length) { stepIndexCards(-1); return; }
+    if (isIndex) { stepIndexCards(-1); return; }
+    if (!slides.length) return;
     var cards = slideCards(current);
     if (focusedCard > 0) {
       focusedCard--;
@@ -8186,9 +8422,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateUI() {
-    setNavDisabled(btnPrev, !slides.length || current === 0);
-    setNavDisabled(btnNext, !slides.length || current === slides.length - 1);
-    if (!slides.length) {
+    setNavDisabled(btnPrev, isIndex || !slides.length || current === 0);
+    setNavDisabled(btnNext, isIndex || !slides.length || current === slides.length - 1);
+    if (isIndex) {
       // The index: the cards are the journey, and the nav buttons are
       // its on-screen twins — first card / last card, exactly as on the
       // series-nav slide of an article.
@@ -8206,16 +8442,16 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnPrev) btnPrev.addEventListener('click', function() {
     // On the index the buttons are the on-screen twins of the arrows:
     // one click, one card of the same journey.
-    if (!slides.length) { stepIndexCards(-1); } else { goTo(current - 1); }
+    if (isIndex) { stepIndexCards(-1); } else { goTo(current - 1); }
   });
   if (btnNext) btnNext.addEventListener('click', function() {
-    if (!slides.length) { stepIndexCards(1); } else { goTo(current + 1); }
+    if (isIndex) { stepIndexCards(1); } else { goTo(current + 1); }
   });
   // Home is the way out of an article deck — back to the index. On the
   // index itself there is no way out and no fiche to leave: the key and the
   // menu action mean the top of the page, where the journey starts.
   function goHome() {
-    if (slides.length) {
+    if (!isIndex) {
       window.location.href = 'index.html';
     } else {
       clearIndexFocus();
@@ -8397,7 +8633,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     // The presenter panel was the one overlay Escape did not reach: help,
-    // the variant dialog, the share popover and the QR modal all close on
+    // the tag dialog, the share popover and the QR modal all close on
     // it, and a speaker who hit Escape on the panel got nothing. It is not
     // modal -- the point is to navigate while it is open -- so this closes
     // it and swallows nothing else.
@@ -8852,7 +9088,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // starting one. At rest, `current` may be stale (the scroll
     // observer owns it), so the step is anchored on `currentVisible`.
     var base = isScrolling ? current : currentVisible();
-    if (!slides.length) {
+    if (isIndex) {
       // The index: the same click is the same step, card by card —
       // left advances one card's focus, and clicking a card itself is
       // the card's own link, which `isInteractive` has already let
@@ -8861,6 +9097,7 @@ document.addEventListener('DOMContentLoaded', function() {
       stepIndexCards(1);
       return;
     }
+    if (!slides.length) return;
     goTo(base + 1, isScrolling);
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
@@ -8915,12 +9152,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // back-click returns to the card the reader left. At rest it is
     // anchored on `currentVisible` (the scroll observer owns it).
     var base = isScrolling ? current : currentVisible();
-    if (!slides.length) {
+    if (isIndex) {
       // The mirror of the left button on the index: right-click steps
       // the focus back one card.
       stepIndexCards(-1);
       return;
     }
+    if (!slides.length) return;
     goTo(base - 1, isScrolling);
   });
   // The middle button is the fullscreen gatekeeper. Browsers refuse
@@ -9201,7 +9439,11 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 {{css}}
 </style>
 </head>
-<body class="{{body_class}}">
+<body class="{{body_class}}"
+      data-lwp-default-tag="{{default_tag}}"
+      data-lwp-series-tags="{{series_tags}}"
+      data-lwp-article-tags="{{article_tags}}"
+      data-lwp-tag-preview="{{tag_preview}}">
 
 {{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
@@ -9303,10 +9545,15 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   </div>
 </div>
 <div class="nav-mode-toast" id="navModeToast" role="status" aria-live="polite"></div>
+<div class="tag-empty-state" id="tagEmptyState" role="status" aria-live="polite" hidden></div>
 
-<div class="tag-menu" id="tagMenu" role="dialog" aria-label="{{str_tags_menu}}" data-lwp-i18n-aria-label="tags_menu">
+<div class="tag-menu" id="tagMenu" role="dialog" aria-label="{{str_tags_menu}}" aria-describedby="tagMenuCurrent tagMenuSummary" data-lwp-i18n-aria-label="tags_menu">
   <div class="tag-menu-title" id="tagMenuTitle" data-lwp-i18n="tags_menu">{{str_tags_menu}}</div>
+  <div class="tag-menu-current" id="tagMenuCurrent" role="status" aria-live="polite"></div>
+  <div class="tag-menu-summary" id="tagMenuSummary"></div>
   <div class="tag-menu-list" id="tagMenuList"></div>
+  <div class="tag-menu-preview-title" data-lwp-i18n="tags_preview">{{str_tags_preview}}</div>
+  <div class="tag-menu-preview" id="tagMenuPreview" role="list"></div>
 </div>
 
 <div class="share-popover" id="sharePopover">
@@ -9423,13 +9670,13 @@ if _left:  # pragma: no cover - a typo would ship a literal placeholder
     raise PropertyError('a nav icon placeholder went unfilled')
 
 # --- Template: series-nav (fragment) ---
-TEMPLATE_SERIES_NAV_ITEM_LINK = '''    <a href="{file}" class="series-item series-link">
+TEMPLATE_SERIES_NAV_ITEM_LINK = '''    <a href="{file}" class="series-item series-link"{tag_attrs}>
 {label_html}      <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
       <div class="series-status">&rarr; <span data-lwp-i18n="series_read">{read}</span></div>
     </a>'''
 
-TEMPLATE_SERIES_NAV_ITEM_CURRENT = '''    <div class="series-item series-current">
+TEMPLATE_SERIES_NAV_ITEM_CURRENT = '''    <div class="series-item series-current"{tag_attrs}>
 {label_html}      <div class="series-title">{title}</div>
       <div class="series-desc">{desc}</div>
       <div class="series-status">&#9656; <span data-lwp-i18n="series_current_status">{status}</span></div>
@@ -11975,6 +12222,101 @@ def _resolve_contained(base_dir, value):
 _TAG_TOKEN_RE = re.compile(r'^[\w-]+$', re.UNICODE)
 
 
+def _canonical_tag_tokens(raw, source, field='tags', allow_excluded=True,
+                          strict=True):
+    """Canonicalizes one space-separated tag field.
+
+    Slide and article tags deliberately share this lexical surface. The
+    caller decides whether the slide-only ``excluded`` token is allowed.
+    """
+    text = str(raw or '').strip()
+    tags = []
+    seen = set()
+    for token in text.split():
+        canonical = token.casefold()
+        if (canonical.startswith('_')
+                or not _TAG_TOKEN_RE.fullmatch(canonical)):
+            if strict:
+                log('error', f'{source}: invalid tag {token!r} in {field}: '
+                    'allowed: letters, accents, digits, "-" and "_"; a tag '
+                    'cannot start with "_".')
+                sys.exit(1)
+            continue
+        if not allow_excluded and canonical == 'excluded':
+            if strict:
+                log('error', f'{source}: {field}: "excluded" is only a slide '
+                    'omission; use status: ignored for an article.')
+                sys.exit(1)
+            continue
+        if canonical not in seen:
+            seen.add(canonical)
+            tags.append(canonical)
+    return tags
+
+
+def normalize_default_tag(raw, source):
+    """Returns the one series tag selected when no reader choice exists."""
+    tags = _canonical_tag_tokens(raw, source, field='default_tag',
+                                 allow_excluded=False)
+    if not tags:
+        return 'default'
+    if len(tags) != 1:
+        log('error', f'{source}: default_tag must contain exactly one tag.')
+        sys.exit(1)
+    return tags[0]
+
+
+def normalize_article_tags(raw, filename, strict=True):
+    """Canonicalizes the optional article gate from its meta block."""
+    return _canonical_tag_tokens(raw, filename, field='tags',
+                                 allow_excluded=False, strict=strict)
+
+
+def collect_article_slide_tags(slides, filename, strict=True):
+    """Returns ordered tags available from an article's non-excluded slides.
+
+    This pass runs while resolving the index/nav metadata, before the article
+    is rendered. It uses the same validator as the later slide render, so an
+    index can never advertise a malformed tag as a usable choice.
+    """
+    tags, _ = _collect_article_slide_details(slides, filename, strict=strict)
+    return tags
+
+
+def _slide_preview_title(slide, number):
+    """Returns the plain title the tag menu can show for one source slide."""
+    if slide.slide_type == 'series-nav':
+        return ''
+    title = slide.h1 if slide.slide_type == 'cover' else slide.h2
+    title = title or slide.h1 or slide.h2 or slide.kicker or slide.slug
+    title = strip_ws(re.sub(r'<[^<>]+>', ' ', str(title or '')))
+    return title or f'Slide {number}'
+
+
+def _collect_article_slide_details(slides, filename, strict=True):
+    """Returns the tag vocabulary and visible slide metadata for an article."""
+    tags = []
+    seen = set()
+    details = []
+    for number, slide in enumerate(slides, 1):
+        slide_tags = _canonical_tag_tokens(
+            slide.tags, f'{filename}: slide {number}', field='tags',
+            strict=strict)
+        if 'excluded' in slide_tags:
+            continue
+        visible_tags = slide_tags or ['default']
+        for tag in visible_tags:
+            if tag not in seen:
+                seen.add(tag)
+                tags.append(tag)
+        details.append({
+            'title': _slide_preview_title(slide, number),
+            'type': slide.slide_type,
+            'tags': visible_tags,
+        })
+    return tags, details
+
+
 def _slide_tag_set(slide):
     """Returns the canonical tag set before full slide validation.
 
@@ -11997,23 +12339,11 @@ def normalize_slide_tags(slide, filename, slide_number):
     makes matching and persistence independent of how the author capitalizes
     a tag. A missing or empty field is the shared `default` tag.
     """
-    raw = str(slide.tags or '').strip()
-    if not raw:
+    tags = _canonical_tag_tokens(
+        slide.tags, f'{filename}: slide {slide_number}', field='tags')
+    if not tags:
         slide.tags = ['default']
         return slide.tags
-
-    tags = []
-    seen = set()
-    for token in raw.split():
-        canonical = token.casefold()
-        if canonical.startswith('_') or not _TAG_TOKEN_RE.fullmatch(canonical):
-            log('error', f'{filename}: slide {slide_number} has invalid tag '
-                f'{token!r} in tags: (allowed: letters, accents, digits, '
-                f'"-" and "_"; a tag cannot start with "_").')
-            sys.exit(1)
-        if canonical not in seen:
-            seen.add(canonical)
-            tags.append(canonical)
     slide.tags = tags or ['default']
     return slide.tags
 
@@ -12090,7 +12420,7 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
                             f'the title uses "# Title".')
                 if field_name == 'tag':
                     message += (' Use "kicker:" for a visible label or "tags:" '
-                                'for variant filtering.')
+                                'for tag filtering.')
             log('error', message)
             sys.exit(1)
 
@@ -12395,6 +12725,144 @@ def render_slide(slide, slide_num, total_slides, typo_engine, strings,
 # SERIES NAVIGATION
 # ============================================================================
 
+def _series_entries(series_data):
+    return (series_data.get('articles', series_data)
+            if isinstance(series_data, dict) else series_data)
+
+
+def series_tags(series_data):
+    """Returns the ordered tag vocabulary available to the page runtime."""
+    meta = series_meta_of(series_data)
+    tags = ['default']
+    seen = {'default'}
+
+    def add(tag):
+        if tag and tag not in seen:
+            seen.add(tag)
+            tags.append(tag)
+
+    add(meta.get('default_tag', 'default'))
+    for entry in _series_entries(series_data):
+        for tag in entry.get('_lwp_article_tags', ()):
+            add(tag)
+        for tag in entry.get('_lwp_slide_tags', ()):
+            add(tag)
+    return tags
+
+
+def _tag_set_accepts(tags, tag):
+    """Applies the shared/default slide-tag rule to canonical tag values."""
+    return ('default' in tags if tag == 'default'
+            else 'default' in tags or tag in tags)
+
+
+def tag_visibility_counts(series_data, entries=None, skip_ignored=False):
+    """Counts effective article cards and slides for every selectable tag."""
+    entries = (_series_entries(series_data) if entries is None else entries)
+    vocabulary_entries = [entry for entry in entries
+                          if not skip_ignored or entry.get('status') != 'ignored']
+    vocabulary_data = series_data
+    if skip_ignored:
+        if isinstance(series_data, dict):
+            vocabulary_data = dict(series_data)
+            vocabulary_data['articles'] = vocabulary_entries
+        else:
+            vocabulary_data = vocabulary_entries
+    counts = {tag: {'articles': 0, 'slides': 0}
+              for tag in series_tags(vocabulary_data)}
+    for entry in entries:
+        if skip_ignored and entry.get('status') == 'ignored':
+            continue
+        article_tags = set(entry.get('_lwp_article_tags', ()))
+        for tag in counts:
+            if article_tags and tag not in article_tags:
+                continue
+            matching = [slide for slide in entry.get('_lwp_tag_slides', ())
+                        if _tag_set_accepts(slide.get('tags', ()), tag)]
+            if matching:
+                counts[tag]['articles'] += 1
+                counts[tag]['slides'] += len(matching)
+    return counts
+
+
+def warn_tag_visibility(series_data, entries=None, audit=False):
+    """Warns when a selectable tag cannot display any effective slide."""
+    try:
+        meta = series_meta_of(series_data)
+    except SystemExit:
+        # `audit` has already reported the malformed default_tag and must keep
+        # going; the normal build path reaches this helper only after the
+        # stricter validation above has succeeded.
+        if audit:
+            return 0
+        raise
+    default_tag = meta.get('default_tag', 'default')
+    counts = tag_visibility_counts(series_data, entries=entries,
+                                   skip_ignored=audit)
+    warnings = 0
+    for tag, count in counts.items():
+        if count['slides']:
+            continue
+        origin = 'audit' if audit else 'build'
+        initial = (' The initial selection will be empty.'
+                   if tag == default_tag else '')
+        log('warn', f'{origin}: tag {tag!r} selects no displayable slide '
+            f'after article gates and excluded slides are applied.{initial}')
+        warnings += 1
+    return warnings
+
+
+def validate_series_default_tag(series_data):
+    """Refuses a default tag absent from the articles being built."""
+    meta = series_meta_of(series_data)
+    default_tag = meta.get('default_tag', 'default')
+    if default_tag == 'default':
+        return
+    available = set()
+    for entry in _series_entries(series_data):
+        available.update(entry.get('_lwp_article_tags', ()))
+        available.update(entry.get('_lwp_slide_tags', ()))
+    if default_tag not in available:
+        log('error', f'series.json: series_meta.default_tag {default_tag!r} '
+            'does not occur on an article or non-excluded slide in the '
+            'articles selected for this build.')
+        sys.exit(1)
+
+
+def _entry_tag_attributes(entry):
+    """HTML data attributes for one article card in index/nav."""
+    article_tags = html_escape(
+        ' '.join(entry.get('_lwp_article_tags', ())), quote=True)
+    slide_tags = html_escape(
+        ' '.join(entry.get('_lwp_slide_tags', ())), quote=True)
+    return (' data-lwp-article-card="true"'
+            f' data-lwp-article-tags="{article_tags}"'
+            f' data-lwp-slide-tags="{slide_tags}"')
+
+
+def tag_preview_data(series_data):
+    """Serializes article and slide titles used by the runtime tag menu."""
+    articles = []
+    for number, entry in enumerate(_series_entries(series_data), 1):
+        fallback = entry.get('page_dest') or f'Article {number}'
+        title = entry.get('card_title') or entry.get('nav_title') or fallback
+        title = strip_ws(re.sub(r'<[^<>]+>', ' ', str(title))) or fallback
+        slides = []
+        for slide in entry.get('_lwp_tag_slides', ()):
+            slides.append({
+                'title': slide.get('title', ''),
+                'type': slide.get('type', 'standard'),
+                'tags': list(slide.get('tags', ())),
+            })
+        articles.append({
+            'title': title,
+            'tags': list(entry.get('_lwp_article_tags', ())),
+            'slides': slides,
+        })
+    return json.dumps({'articles': articles}, ensure_ascii=False,
+                      separators=(',', ':'))
+
+
 def build_series_nav(current_file, series_data, strings, typo_engine):
     """Generates the navigation block HTML for the current article.
 
@@ -12403,7 +12871,7 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
     scopes to X's own page content (§4.5) — X's fragments reused
     elsewhere, including every entry rendered here (even X's own), follow
     the normal build-wide rules, exactly like build_index()'s cards."""
-    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    articles = _series_entries(series_data)
     read = strings.get('series_read', 'Read the article')
     current_status = strings.get('series_current_status', 'Currently reading')
     back = strings.get('series_back_to_index', 'Back to index')
@@ -12419,6 +12887,7 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
         desc = apply_typo(typo_engine, escape_amps(entry['nav_desc']))
         if entry['page_dest'] == current_file:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_CURRENT.format(
+                tag_attrs=_entry_tag_attributes(entry),
                 label_html=label_html,
                 title=title,
                 desc=desc,
@@ -12426,6 +12895,7 @@ def build_series_nav(current_file, series_data, strings, typo_engine):
         else:
             parts.append(TEMPLATE_SERIES_NAV_ITEM_LINK.format(
                 file=html_escape(entry['page_dest'], quote=True),
+                tag_attrs=_entry_tag_attributes(entry),
                 label_html=label_html,
                 title=title,
                 desc=desc,
@@ -12468,7 +12938,8 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     TEMPLATE_PAGE, and its own body (header, intro, cards, footer) goes
     into {{content}} exactly where an article's slides go."""
     meta = series_meta_of(series_data)
-    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    articles = _series_entries(series_data)
+    series_tag_values = series_tags(series_data)
 
     title = apply_typo(typo_engine, escape_amps(
         meta.get('title', strings.get('series_untitled_fallback',
@@ -12498,7 +12969,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         # plain filename (validate_series), but it's escaped here too as
         # defense in depth against a future validation gap.
         label_html = f'\n  <div class="article-number">{label}</div>' if label else ''
-        card = f'''<a href="{html_escape(entry['page_dest'], quote=True)}" class="article-card">{label_html}
+        card = f'''<a href="{html_escape(entry['page_dest'], quote=True)}" class="article-card"{_entry_tag_attributes(entry)}>{label_html}
   <div class="article-title">{card_title}</div>
   <div class="article-desc">{card_desc}</div>
   <div class="article-cta">→ <span data-lwp-i18n="series_read">{read}</span></div>
@@ -12547,6 +13018,10 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'css': css,
         'body_class': 'index-page',
+        'default_tag': html_escape(meta.get('default_tag', 'default'), quote=True),
+        'series_tags': html_escape(' '.join(series_tag_values), quote=True),
+        'article_tags': '',
+        'tag_preview': html_escape(tag_preview_data(series_data), quote=True),
         'meta_head': '', 'draft_banner': '',
         'content': content, 'page_footer': index_footer,
         'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
@@ -12565,7 +13040,7 @@ def build_readme(series_data, sd, output_dir, strings):
     series_meta, then a numbered list of articles linking to their built
     HTML file (spec §8.3)."""
     meta = series_meta_of(series_data)
-    articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
+    articles = _series_entries(series_data)
 
     title = meta.get('title', strings.get('series_untitled_fallback', 'Article series'))
     subtitle = meta.get('subtitle', '')
@@ -12900,6 +13375,12 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # `excluded` is a source-level omission, not a runtime filter: no section,
     # anchor, note scope, or slide number is created for it.
     visible_slides = [slide for slide in slides if 'excluded' not in slide.tags]
+    own_entry = next((entry for entry in _series_entries(series_data)
+                      if entry.get('page_dest') == current_file), None)
+    if not visible_slides and (own_entry is None
+                               or own_entry.get('status') != 'ignored'):
+        log('warn', f'{source_path.name}: no non-excluded slide can be '
+            'displayed; the generated article page will contain no slide.')
     total_slides = len(visible_slides)
     show_slide_num = resolve_slide_page_numbers(
         meta, series_meta_of(series_data), source_path.name, args)
@@ -13139,10 +13620,19 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # stylesheet/other markers into the tag-stripped <title> and escaped
     # <meta> sinks, bypassing their guard (§18.4).
     html = apply_strings(TEMPLATE_PAGE, strings, html_context=True)
+    series_meta = series_meta_of(series_data)
+    series_tag_values = series_tags(series_data)
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
         'css': css, 'body_class': '',
-         'content': slides_html, 'page_footer': page_footer,
+        'default_tag': html_escape(series_meta.get('default_tag', 'default'),
+                                   quote=True),
+        'series_tags': html_escape(' '.join(series_tag_values), quote=True),
+        'article_tags': html_escape(
+            ' '.join(own_entry.get('_lwp_article_tags', ())
+                     if own_entry else ()), quote=True),
+        'tag_preview': html_escape(tag_preview_data(series_data), quote=True),
+        'content': slides_html, 'page_footer': page_footer,
          'js_nav': nav_js, 'build_stamp': stamp_in_body,
          'draft_banner': draft_banner, 'index_extra': '',
          'lightwebpres_version': VERSION,
@@ -13332,7 +13822,10 @@ _LEGACY_SERIES_FIELDS = {'source': 'page_source', 'file': 'page_dest'}
 
 
 # series_meta string leaves used by build_index / resolve_article_fields.
-_SERIES_META_STRING_FIELDS = ('title', 'subtitle', 'version', 'intro', 'author', 'license')
+_SERIES_META_STRING_FIELDS = (
+    'title', 'subtitle', 'version', 'intro', 'author', 'license',
+    'default_tag',
+)
 
 
 def series_meta_of(series_data):
@@ -13352,6 +13845,9 @@ def series_meta_of(series_data):
             log('error', f'series.json: "series_meta.{field}" must be a string '
                   f'(got {type(meta[field]).__name__}).')
             sys.exit(1)
+    if 'default_tag' in meta:
+        meta['default_tag'] = normalize_default_tag(
+            meta['default_tag'], 'series.json: series_meta.default_tag')
     lang_tags = meta.get('lang_tags', {})
     if lang_tags is None:
         lang_tags = {}
@@ -13548,7 +14044,7 @@ def _read_article_source(path):
         return None
 
 
-def resolve_article_fields(articles, sources_dir, series_meta=None):
+def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=True):
     """Resolves `page_dest` and the display/editorial fields for every
     entry, per §20.3.1. Mutates each entry in place so downstream
     renderers (build_article, build_series_nav, build_index,
@@ -13617,6 +14113,12 @@ def resolve_article_fields(articles, sources_dir, series_meta=None):
         meta, slides = {}, []
         if text is not None:
             meta, slides, _, _ = parse_markdown_extended(text)
+        entry['_lwp_article_tags'] = normalize_article_tags(
+            meta.get('tags', ''), entry['page_source'], strict=strict_tags)
+        entry['_lwp_slide_tags'], entry['_lwp_tag_slides'] = (
+            _collect_article_slide_details(
+                slides, entry['page_source'], strict=strict_tags))
+        entry['_lwp_default_tag'] = series_meta.get('default_tag', 'default')
         cover = _find_cover_slide(slides)
         cover_summary = cover.summary if cover and cover.summary else ''
         origins = {}
@@ -13748,8 +14250,16 @@ def resolve_article_fields(articles, sources_dir, series_meta=None):
 def _entry_fingerprint(entry):
     """A single hash of the fields that affect index.html/series-nav for
     this entry — content itself isn't kept, so the cache file stays small
-    regardless of how long a summary is."""
+    regardless of how long a summary is. Runtime tag metadata is included
+    because it is embedded in both card types."""
     parts = [entry.get(field, '') for field in _DISPLAY_OVERRIDE_FIELDS]
+    parts.extend([
+        ' '.join(entry.get('_lwp_article_tags', ())),
+        ' '.join(entry.get('_lwp_slide_tags', ())),
+        json.dumps(entry.get('_lwp_tag_slides', ()), ensure_ascii=False,
+                   sort_keys=True),
+        entry.get('_lwp_default_tag', 'default'),
+    ])
     return hashlib.sha256('\x00'.join(parts).encode('utf-8')).hexdigest()
 
 
@@ -13928,7 +14438,8 @@ def load_lang_tag_engines(series_meta, lang_dir, default_lang,
     return engines
 
 
-def load_build_context(series_dir, args, include_ignored=False):
+def load_build_context(series_dir, args, include_ignored=False, strict_tags=True,
+                       warn_tag_coverage=True):
     """Shared setup for build and check (§11.3/§11.4): resolves paths,
     loads the language pack/typo engine, the CSS/nav.js (built-in or
     overridden, §9.1/§9.2), and series.json (validated, display fields
@@ -14057,7 +14568,8 @@ def load_build_context(series_dir, args, include_ignored=False):
         series_meta, lang_dir, lang, typo_engine)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
-    resolve_article_fields(articles, sources_dir, series_meta)
+    resolve_article_fields(articles, sources_dir, series_meta,
+                           strict_tags=strict_tags)
 
     # Two filters, and they are not the same rule (§20.6).
     #
@@ -14108,6 +14620,12 @@ def load_build_context(series_dir, args, include_ignored=False):
                              if e['status'] != 'draft']
         for f in skipped:
             progress(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
+
+    # The selected default must exist in the output this invocation is about
+    # to write. Ignored articles and omitted drafts cannot satisfy it.
+    validate_series_default_tag(series_data)
+    if warn_tag_coverage:
+        warn_tag_visibility(series_data)
 
     # Every listed page_source must exist, checked up front and fatal
     # (§20.3): building around a missing source used to leave the entry's
@@ -15290,9 +15808,54 @@ def audit_notes(entry, meta, series_meta, slides, sources_dir):
     return warnings
 
 
+def audit_article_tags(filename, meta):
+    """Reports malformed article-level filter tags without blocking audit."""
+    warnings = 0
+    raw = str(meta.get('tags', '') or '').strip()
+    for token in raw.split():
+        canonical = token.casefold()
+        if (canonical.startswith('_')
+                or not _TAG_TOKEN_RE.fullmatch(canonical)):
+            log('warn', f'{filename}: article tags: invalid tag {token!r} '
+                '(build will reject this tags: value).')
+            warnings += 1
+        elif canonical == 'excluded':
+            log('warn', f'{filename}: article tags: "excluded" is only a '
+                'slide omission; use status: ignored for an article.')
+            warnings += 1
+    return warnings
+
+
+def audit_series_default_tag(series_data):
+    """Reports malformed ``series_meta.default_tag`` without stopping audit."""
+    meta = (series_data.get('series_meta', {})
+            if isinstance(series_data, dict) else {})
+    if not isinstance(meta, dict) or 'default_tag' not in meta:
+        return 0
+    raw = str(meta.get('default_tag') or '').strip()
+    tokens = raw.split()
+    warnings = 0
+    for token in tokens:
+        canonical = token.casefold()
+        if (canonical.startswith('_')
+                or not _TAG_TOKEN_RE.fullmatch(canonical)):
+            log('warn', f'series.json: series_meta.default_tag: invalid tag '
+                f'{token!r}.')
+            warnings += 1
+        elif canonical == 'excluded':
+            log('warn', 'series.json: series_meta.default_tag cannot be '
+                '"excluded".')
+            warnings += 1
+    if len(tokens) != 1:
+        log('warn', 'series.json: series_meta.default_tag must contain '
+            'exactly one tag.')
+        warnings += 1
+    return warnings
+
+
 def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
                      language_file=None):
-    """Audits the variant vocabulary without duplicating build validation.
+    """Audits the slide-tag vocabulary without duplicating build validation.
 
     `build` must reject malformed tags; `audit` instead reports every bad
     token and keeps going so an author can fix a whole article in one pass.
@@ -15412,7 +15975,9 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
     with collect_warnings(
             already_said=('templates/style.css is no longer read',)) as sink:
         try:
-            ctx = load_build_context(series_dir, args, include_ignored=True)
+            ctx = load_build_context(series_dir, args, include_ignored=True,
+                                     strict_tags=False,
+                                     warn_tag_coverage=False)
         except SystemExit:
             # The message is already on stderr, printed by whatever refused.
             # Saying so here is what stops the summary from contradicting it
@@ -15839,7 +16404,12 @@ def cmd_audit(series_dir, args):
     _AUDIT_UNREADABLE.clear()
     sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
-    series_meta = series_meta_of(series_data)
+    default_tag_warnings = audit_series_default_tag(series_data)
+    try:
+        series_meta = series_meta_of(series_data)
+    except SystemExit:
+        raw_meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
+        series_meta = raw_meta if isinstance(raw_meta, dict) else {}
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     if args.get('--templates'):
         # `--templates` restricts audit to the
@@ -15853,9 +16423,12 @@ def cmd_audit(series_dir, args):
     # audit is an authoring tool, and work in progress is exactly what it
     # should look at.
     validate_series(articles)
-    resolve_article_fields(articles, sources_dir, series_meta)
+    resolve_article_fields(articles, sources_dir, series_meta, strict_tags=False)
 
-    warnings = 0
+    warnings = default_tag_warnings
+    if not args.get('--templates'):
+        warnings += warn_tag_visibility(series_data, entries=articles,
+                                        audit=True)
     # Set when this pass has already named, article by article, something
     # that will also stop the render dead: a source that is missing, or one
     # that cannot be read as text. The render pass then keeps quiet about
@@ -15926,6 +16499,7 @@ def cmd_audit(series_dir, args):
                   f"author interventions that survive theme changes.")
         meta, slides, has_meta_block, _ = parse_markdown_extended(md_text)
         warnings += audit_meta_keys(entry['page_source'], meta)
+        warnings += audit_article_tags(entry['page_source'], meta)
         warnings += audit_slide_tags(
             entry['page_source'], slides, series_meta, lang_dir, lang,
             language_file)
@@ -17346,6 +17920,8 @@ _UNRESOLVABLE_NAMES = {
     'comment': ('a review note: every level parses it and no renderer '
                 'ever reads it (GLOSSARY.md), so it has no resolved '
                 'value. Search the sources for it instead.'),
+    'tags': ('a filter vocabulary shared by an article meta block and its '
+             'slide headers; ask for the article or slide source directly.'),
     'slide_title': ("not a field — a slide's own title is written `#` "
                     '(cover) or `##` (any other slide), never as a '
                     '`slide_title:` line (§22.2).'),
@@ -17371,7 +17947,8 @@ _TYPO_FIELD_NAMES = ('typo', 'typo_units', 'typo_thousands')
 _ARTICLE_LEVEL_NAMES = frozenset(
     _RESOLVED_FIELDS + _EDITORIAL_FIELDS + _TYPO_FIELD_NAMES
     + tuple(_NOTES_FIELD_DEFAULTS) + ('page_source', 'status',
-                                      'slide_page_numbers', 'slug_prefix'))
+                                      'slide_page_numbers', 'slug_prefix',
+                                      'tags'))
 
 # The complete article-level meta vocabulary, assembled from the names the
 # engine actually reads rather than restated by hand -- a second list would

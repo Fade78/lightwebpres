@@ -66,7 +66,8 @@ Once per series, in `series.json`'s `series_meta` object.
 | `intro` | `''` — omitted from the page if absent | Intro paragraph on `index.html` and `README.md` |
 | `author` | `''` — nothing shown | Series-wide default author (§20.3.1); shown in the index page's footer, and on every article that doesn't override it |
 | `license` | `''` — nothing shown | Series-wide default license; same display as `author`; raw HTML allowed (a link) |
-| `lang_tags` | `{}` — no tag selects a language pack | Object mapping a slide variant tag to a typography/UI pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
+| `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty |
+| `lang_tags` | `{}` — no tag selects a language pack | Object mapping a slide tag to a typography/UI pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 
 ## Article-level fields
 
@@ -88,6 +89,7 @@ taking priority when both are set (§20.3.1).
 | `author` | `series.json`, meta block | `series.json` > meta `author:` > `series_meta.author` > `''` (§20.3.1) | Article author; shown in the page footer byline and as `<meta name="author">` |
 | `license` | `series.json`, meta block | `series.json` > meta `license:` > `series_meta.license` > `''` (§20.3.1) | Content license; shown in the page footer; raw HTML allowed (a link) |
 | `date` | `series.json`, meta block | `series.json` > meta `date:` > `''` — never derived from file mtime (§20.3.1) | Free-text date shown verbatim in the footer byline |
+| `tags` | meta block only | No article gate | Space-separated article tags. A selected tag must match one of them and at least one non-excluded slide must accept it; an article without this field has no article-level gate |
 | `status` | `series.json`, meta block | `active` (§20.6) | What this article is worth to the series. `active`: built, carded, navigated, counted. `draft`: still an article of the series and counted as one, but kept out of the output unless `--include-drafts`, which builds it with a centered "draft" banner. `ignored`: out of the chain entirely — never built whatever the flags, never listed, never counted — so an article can be set aside without deleting the entry that carries all its settings. Case-insensitive; any other value is a fatal error naming the article |
 | `slug_prefix` | `series.json` `series_meta`, meta block | `''` — no prefix (§12.1.1) | A namespace put in front of every slide id on the page. The article's meta block wins over `series_meta`; a value outside `[A-Za-z0-9][A-Za-z0-9._-]*` is a fatal build error naming its origin |
 | `notes_placement` | `series.json` `series_meta`, meta block | `local` (§6.5.1) | Where note bodies land. `local`: at the foot of the unit that called them — that card, or the end of the long-form article; numbering restarts in each card. `page`: every body on the page collected into one notes section at the end, numbered continuously. The article's meta block wins over `series_meta`; an unknown value is a fatal build error naming the article |
@@ -106,7 +108,7 @@ after these fields is a fatal error (§22.12).
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
-| `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
+| `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
 | `slide_title` — written `# Heading`, no literal field form | None. Only the first `#` before any content sets it (§22.2) | The slide's own heading, rendered `<h1>` |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
@@ -119,7 +121,7 @@ A standard slide's own header (default, or explicit `<!-- lwp:slide -->`).
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
 | `kicker` | `''` — omitted from the render if absent | Small editorial label above the slide's own heading |
-| `tags` | `default` when absent or empty | Space-separated variant tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
+| `tags` | `default` when absent or empty | Space-separated slide tags used for runtime filtering; `excluded` removes the slide at build time (§4.3.1) |
 | `note` | `''` — nothing shown | Speaker note, multi-line; never rendered, surfaced by the presenter panel |
 | `slide_title` — written `## Heading`, no literal field form | None. Only the first `##` before any content sets it (§22.2) | The slide's own heading, rendered `<h2>` |
 | `summary` | `''` — omitted from the render if absent | One-line summary paragraph under the heading |
@@ -136,7 +138,7 @@ A `<!-- lwp:slide:full-article -->` slide's own header.
 | Field | Default | Description |
 |---|---|---|
 | `slug` | None — required on every slide; a slide without one is a fatal build error naming `series slug set` | The slide's own name in a URL, and its whole identity (§12.1.1): never its rank, never its title, so it does not move when the deck is reordered or the heading rewritten. A build error if it is not `[A-Za-z0-9][A-Za-z0-9._-]*`, since it becomes an `id`, a URL fragment and the tail of a shared QR code, and a build error if two slides on a page take the same one |
-| `tags` | `default` when absent or empty | Optional variant tags; `excluded` removes the generated slide before rendering |
+| `tags` | `default` when absent or empty | Optional slide tags; `excluded` removes the generated slide before rendering |
 | `article` | None — required on this slide type | External `.md` file included as the article's long-form body |
 
 ## Series-navigation slide fields
@@ -148,7 +150,7 @@ card. `comment` is documented above because it is accepted on every slide
 type and is never rendered.
 
 The historical `tag:` field is not an alias for either current field. Use
-`kicker:` for the visible label above a slide title, and `tags:` for variant
+`kicker:` for the visible label above a slide title, and `tags:` for tag
 filtering. On a standard slide, an old `tag:` line becomes body text; on a
 cover, `build` reports the unknown field and suggests the two current choices.
 
@@ -182,7 +184,8 @@ description; the terms are fixed here, in English.
 | **article properties** | `style.<property>: value` lines in an article's meta block — the same vocabulary, scoped to that page alone (§9.6.1). |
 | **instance tag** | A format-defined tag in free text — the instance-scoped fifth layer, same types as everywhere, enumerated by `audit` (§9.6.3). Inline (`{color:mark}…{/color}`, `{sc}…{/sc}`) or, for alignment alone, **block-level**: `{align:center}` and `{/align}` each on their own line, because `text-align` on an inline span does nothing. |
 | **variant** | A named look for a component instance (`fact-variant: warning` → class `fact--warning`), defined once per series in `custom.css` — the source carries meaning, not visual values (§9.6.2). |
-| **slide variant tag** | A normalized word from `tags:`. `default` is the implicit shared variant; a selected tag keeps shared slides plus slides carrying that tag. This is unrelated to instance tags or the version tag. |
+| **slide tag** | A normalized word from a slide's `tags:`. A missing value means `default`; a selected non-`default` tag keeps shared `default` slides plus slides carrying that tag. This is unrelated to article tags, instance tags, or the version tag. |
+| **article tag** | A normalized word from an article's meta-block `tags:`. It gates the article card/page for the exact selected tag; an article without tags has no article-level gate. |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
 | **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |
 

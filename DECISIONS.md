@@ -131,7 +131,7 @@ gets its own entry and its own state**, however small.
 - **B16** — `page_dest: index.html` loses a page in silence
 - **B17** — catppuccin's bold-on-highlight is at 3.05:1
 - **C1** — Test AST « aucune écriture nue hors helpers »
-- **C3** — Variantes filtrables par `tags:`
+- **C3** — Filtrage par `tags:`
 - **C4** — Audit 2026-08 : décisions actées et dettes restantes
 - **B19** — `audit --strict` is blind to every warning the build emits
 - **B20** — Only three components can carry a halo, and the worst-served one is a slide heading
@@ -1142,15 +1142,29 @@ décision de périmètre. Non implémenté et volontairement absent.
 
 ---
 
-## C3 — Variantes filtrables par `tags:`
+## C3 — Filtrage par `tags:`
 
 **État :** terminé
 
-Le format accepte désormais des tags de variante sur les slides : `default`
-est implicite, `excluded` est retiré au build, et les autres tags sont filtrés
-dans le navigateur avec la touche `L`. Le renommage éditorial `tag:` →
-`kicker:` est séparé de cet axe et ne doit pas être confondu avec les tags
-d'instance ou le version tag.
+Le format partage un espace de noms plat entre les tags de slide et le champ
+`tags:` du bloc meta article. `default` est implicite pour une slide sans tag,
+`excluded` est retiré au build, et les autres tags sont filtrés dans le
+navigateur avec la touche `L`. Un tag d'article est une gate exacte sur les
+cartes d'index et de navigation; l'article reste visible seulement si au
+moins une slide non exclue accepte aussi le tag sélectionné. Un article sans
+tags n'a pas cette gate. Le renommage éditorial `tag:` -> `kicker:` est séparé
+de ce mécanisme et ne doit pas être confondu avec les tags d'instance ou le
+version tag.
+
+`series_meta.default_tag` choisit le tag initial, avec `default` comme repli;
+un choix mémorisé encore présent dans la série reste prioritaire. Un
+`default_tag` absent de la sortie sélectionnée est une erreur de build. Le
+statut de l'article est appliqué avant ce filtrage et ne peut pas être
+réactivé par un tag. La présence lexicale ne suffit pas : `build` et `audit`
+avertissent lorsqu'un tag sélectionnable ne trouve aucune slide après la gate
+article et l'exclusion des slides, et un article entièrement exclu est lui
+aussi signalé comme page vide. Le menu affiche le tag actif, les compteurs et
+les titres des fiches/slides effectivement retenues.
 
 `series_meta.lang_tags` associe un tag à un pack typographique ; le premier tag
 de langue porté par une slide sélectionne son moteur, avec `--lang`/`LWP_LANG`

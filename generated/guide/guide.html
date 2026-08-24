@@ -987,12 +987,13 @@ html.help-open, html.help-open body { overflow: hidden; }
   border-bottom-style: solid;
   position: relative;
 }
-/* The runtime variant filter hides slides (and the L button) via the
+/* The runtime tag filter hides slides (and the L button) via the
    hidden attribute. An author-origin `display` above beats the UA rule
    `[hidden] { display: none }` — the exact defeat the themes gallery once
    had for .theme-row, and the same fix. Keep this override beside every
    display on .slide/.nav-btn. */
 .slide[hidden], .nav-btn[hidden] { display: none; }
+.article-card[hidden], .series-item[hidden] { display: none; }
 /* The number sits over the COLUMN, not over the card.
 
    `right: 32px` measured it against the card edge while every line of
@@ -1395,6 +1396,9 @@ body.fs-noselect {
   z-index: 250;
   display: none;
   min-width: 180px;
+  max-height: min(72vh, 720px);
+  box-sizing: border-box;
+  overflow: auto;
   border-style: solid;
   border-width: 1px;
   background: inherit;
@@ -1408,6 +1412,15 @@ body.fs-noselect {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.tag-menu-current {
+  margin: 0 4px 5px;
+  font-size: 0.95em;
+  font-weight: 700;
+}
+.tag-menu-summary {
+  margin: 0 4px 12px;
+  font-size: 0.75em;
+}
 .tag-menu-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag-option {
   border-style: solid;
@@ -1420,8 +1433,51 @@ body.fs-noselect {
   font: inherit;
   font-size: 0.85em;
 }
-.tag-option.active { font-weight: 700; }
+.tag-option.active {
+  font-weight: 700;
+  border-width: 2px;
+}
 .tag-option:focus-visible { outline-style: solid; outline-offset: 2px; }
+.tag-menu-preview-title {
+  margin: 16px 4px 7px;
+  padding-top: 11px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tag-preview-article + .tag-preview-article { margin-top: 11px; }
+.tag-preview-article-title { font-size: 0.9em; font-weight: 700; }
+.tag-preview-slides {
+  margin: 3px 0 0;
+  padding: 0 0 0 1.1em;
+}
+.tag-preview-slide {
+  margin: 2px 0;
+  font-size: 0.8em;
+}
+.tag-preview-empty {
+  margin: 0 4px;
+  font-size: 0.8em;
+  font-style: italic;
+}
+.tag-empty-state {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 140;
+  max-width: min(520px, 80vw);
+  padding: 14px 18px;
+  border-style: solid;
+  border-width: 1px;
+  background: inherit;
+  color: inherit;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+.tag-empty-state[hidden] { display: none; }
 .nav-dots {
   position: fixed;
   bottom: 20px;
@@ -2000,7 +2056,11 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 
 </style>
 </head>
-<body class="">
+<body class=""
+      data-lwp-default-tag="default"
+      data-lwp-series-tags="default"
+      data-lwp-article-tags=""
+      data-lwp-tag-preview="{&quot;articles&quot;:[{&quot;title&quot;:&quot;LightWebPres — the guide&quot;,&quot;tags&quot;:[],&quot;slides&quot;:[{&quot;title&quot;:&quot;LightWebPres&quot;,&quot;type&quot;:&quot;cover&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;What it does, and what it leaves to you&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Three commands to a built site&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;A page is slides, a slide has components&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Several readings, one HTML page&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Four value overrides, then CSS rules&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Themes, found by facet&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;A step in a content pipeline&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;Two checks, two different moments&quot;,&quot;type&quot;:&quot;standard&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;&quot;,&quot;type&quot;:&quot;series-nav&quot;,&quot;tags&quot;:[&quot;default&quot;]},{&quot;title&quot;:&quot;guide-complet&quot;,&quot;type&quot;:&quot;full-article&quot;,&quot;tags&quot;:[&quot;default&quot;]}]}]}">
 
 
 <nav class="nav-dots"></nav>
@@ -2102,10 +2162,15 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </div>
 <div class="nav-mode-toast" id="navModeToast" role="status" aria-live="polite"></div>
+<div class="tag-empty-state" id="tagEmptyState" role="status" aria-live="polite" hidden></div>
 
-<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filter slides" data-lwp-i18n-aria-label="tags_menu">
+<div class="tag-menu" id="tagMenu" role="dialog" aria-label="Filter slides" aria-describedby="tagMenuCurrent tagMenuSummary" data-lwp-i18n-aria-label="tags_menu">
   <div class="tag-menu-title" id="tagMenuTitle" data-lwp-i18n="tags_menu">Filter slides</div>
+  <div class="tag-menu-current" id="tagMenuCurrent" role="status" aria-live="polite"></div>
+  <div class="tag-menu-summary" id="tagMenuSummary"></div>
   <div class="tag-menu-list" id="tagMenuList"></div>
+  <div class="tag-menu-preview-title" data-lwp-i18n="tags_preview">Displayed content</div>
+  <div class="tag-menu-preview" id="tagMenuPreview" role="list"></div>
 </div>
 
 <div class="share-popover" id="sharePopover">
@@ -2158,7 +2223,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="fact-box">
     <div class="fact-label">The whole loop</div>
     <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. The essential runtime theme bundle is embedded by default; explicit <code>--themes</code> or root <code>series.json</code> <code>themes</code> selections add to or shape the catalogue, and <code>--no-essential-theme</code> opts out.</p>
-  <p><code>--lang en</code> chooses the build-wide fallback. For one article to carry several languages, <code>tags:</code> selects a variant and <code>series_meta.lang_tags</code> can select a typography pack per slide.</p></div>
+  <p><code>--lang en</code> chooses the build-wide fallback. An article's meta-block <code>tags:</code> can gate the article itself; slide-header <code>tags:</code> selects content inside it. <code>series_meta.default_tag</code> chooses the initial selection, and <code>series_meta.lang_tags</code> can select a typography pack per slide.</p></div>
   </div>
   <p class="source">Source : Guide, section 2</p>
 </section>
@@ -2180,12 +2245,12 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   </div>
 </section>
 
-<section class="slide" id="variantes" data-tags="default">
-  <span class="slide-kicker">Variants</span>
-  <h2>Several versions, one HTML page</h2>
+<section class="slide" id="tags" data-tags="default">
+  <span class="slide-kicker">Tags</span>
+  <h2>Several readings, one HTML page</h2>
   <div class="fact-box">
-    <div class="fact-label">The variant axis</div>
-    <div class="fact-content">  <p><code>tags: fr</code> and <code>tags: en</code> put adjacent language versions in one source file. A slide without tags is <code>default</code>, shared by every selection; <code>excluded</code> is removed at build time. Press <strong>L</strong> to select a tag without reloading. The choice is stored in <code>localStorage['lwp-active-tag']</code>, and counts/navigation follow the visible subset.</p>
+    <div class="fact-label">The shared vocabulary</div>
+    <div class="fact-content">  <p>An article may carry <code>tags: fr</code> in its meta block, while <code>tags: fr</code> and <code>tags: en</code> on slides put adjacent language versions in one source file. A slide without tags is <code>default</code>, shared by every non-default selection; <code>excluded</code> is removed at build time. Press <strong>L</strong> to select a tag without reloading. The menu shows the active tag, counts the visible cards and slides, and lists their titles. The choice is stored in <code>localStorage['lwp-active-tag']</code>, cards and slides follow the same selection, and <code>series_meta.default_tag</code> sets the initial tag when nothing is stored. <code>build</code> and <code>audit</code> warn when a tag has no effective slide or an article has no non-excluded slide.</p>
   <p>Declare <code>series_meta.lang_tags: {"fr": "fr", "en": "en"}</code> when typography must follow the selected language. The first mapped tag on a slide wins; the build's <code>--lang</code> remains the fallback.</p></div>
   </div>
 </section>
@@ -2238,7 +2303,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
 <section class="slide slide-series-nav" id="la-serie" data-tags="default">
   <h2 data-lwp-i18n="series_nav_title">This series</h2>
   <div class="series-list">
-    <div class="series-item series-current">
+    <div class="series-item series-current" data-lwp-article-card="true" data-lwp-article-tags="" data-lwp-slide-tags="default">
       <div class="series-title">Guide</div>
       <div class="series-desc">Setup, anatomy of a page, series, look, shipping</div>
       <div class="series-status">&#9656; <span data-lwp-i18n="series_current_status">Currently reading</span></div>
@@ -2789,7 +2854,7 @@ eval "$(lightwebpres completion --shell bash)"
   </table>
 </section>
 
-<script id="lwp-language-data" type="application/json">{"version":1,"default":"en","auto":false,"packs":{"fr":{"name":"Fran\u00e7ais","strings":{"nav_prev":"Planche pr\u00e9c\u00e9dente","nav_next":"Planche suivante","nav_dot_fallback":"Fiche","series_nav_title":"Cette s\u00e9rie","series_read":"Lire l'article","series_current_status":"En cours de lecture","series_back_to_index":"Retour \u00e0 l'index","series_untitled_fallback":"S\u00e9rie d'articles","draft_banner":"Brouillon","full_article_kicker":"Article complet","notes_section_title":"Notes","note_back":"Revenir au texte","source_label":"Source","copy_link":"Copier le lien","copy_link_done":"Lien copi\u00e9 !","copy_prompt":"Copie ce lien :","share_action_qr":"Afficher le QR code","share_scope_series":"S\u00e9rie","share_scope_article":"Article","share_scope_fiche":"Fiche","qr_modal_title":"QR code du lien","qr_modal_close":"Fermer","nav_fullscreen":"Plein \u00e9cran (touche F)","tags_menu":"Filtrer les slides","help_tags":"Filtrer par tag et m\u00e9moriser la s\u00e9lection","presenter_next":"Suivant :","presenter_label":"Panneau du pr\u00e9sentateur","menu_title":"Menu du pr\u00e9sentateur (touche M)","menu_prev":"Planche pr\u00e9c\u00e9dente","menu_home":"Retour \u00e0 l'index","menu_next":"Planche suivante","menu_fullscreen":"Plein \u00e9cran","menu_theme":"Changer de th\u00e8me","menu_presenter":"Notes pr\u00e9sentateur","menu_tags":"Filtrer par tag","menu_share":"Partager","menu_help":"Aide","menu_pause_black":"\u00c9cran noir","menu_pause_white":"\u00c9cran blanc","menu_pause_theme":"\u00c9cran du th\u00e8me","theme_menu_title":"Choisir un th\u00e8me","theme_menu_help":"Le th\u00e8me principal est s\u00e9lectionn\u00e9 par d\u00e9faut.","theme_menu_filter":"Rechercher un th\u00e8me","theme_menu_close":"\u00c9chap pour fermer \u00b7 Entr\u00e9e pour appliquer","help_title":"Raccourcis clavier","help_next":"Slide suivante","help_prev":"Slide pr\u00e9c\u00e9dente","help_home":"Retour \u00e0 l'index de la s\u00e9rie","help_fullscreen":"Plein \u00e9cran (\u00c9chap pour quitter)","help_menu":"Menu du pr\u00e9sentateur","help_theme":"Changer de th\u00e8me pendant la pr\u00e9sentation (touche C)","help_pause":"\u00c9cran de pause : noir (B), blanc (W), th\u00e8me (T)","help_speaker":"Panneau pr\u00e9sentateur : notes + slide suivante","help_share":"Partager le lien courant (touche S)","help_jump_keys":"0&ndash;9 + Entr&eacute;e","help_mouse_keys":"Souris / Molette","help_jump":"Aller \u00e0 la slide N (puis Entr\u00e9e)","help_mouse":"Clic : suivant \u00b7 clic droit : pr\u00e9c\u00e9dent \u00b7 clic pendant le d\u00e9filement : saut \u00b7 bouton du milieu : armer l'entr\u00e9e (puis clic gauche) ou quitter le plein \u00e9cran \u00b7 molette : d\u00e9filer","help_open":"Ouvre la fen\u00eatre d'aide","help_stamp":"Compil\u00e9 avec","nav_mode_permanent":"La navigation reste visible","nav_mode_auto":"La navigation se masque apr\u00e8s inactivit\u00e9"}},"en":{"name":"English","strings":{"nav_prev":"Previous slide","nav_next":"Next slide","nav_dot_fallback":"Slide","series_nav_title":"This series","series_read":"Read the article","series_current_status":"Currently reading","series_back_to_index":"Back to index","series_untitled_fallback":"Article series","draft_banner":"Draft","full_article_kicker":"Full article","notes_section_title":"Notes","note_back":"Back to the text","source_label":"Source","copy_link":"Copy link","copy_link_done":"Link copied!","copy_prompt":"Copy this link:","share_action_qr":"Show QR code","share_scope_series":"Series","share_scope_article":"Article","share_scope_fiche":"Slide","qr_modal_title":"QR code for this link","qr_modal_close":"Close","nav_fullscreen":"Fullscreen (F key)","tags_menu":"Filter slides","help_tags":"Filter by tag and remember the selection","presenter_next":"Next:","presenter_label":"Presenter panel","menu_title":"Presenter menu (M key)","menu_prev":"Previous slide","menu_home":"Back to index","menu_next":"Next slide","menu_fullscreen":"Fullscreen","menu_theme":"Change theme","menu_presenter":"Presenter notes","menu_tags":"Filter by tag","menu_share":"Share","menu_help":"Help","menu_pause_black":"Black screen","menu_pause_white":"White screen","menu_pause_theme":"Theme screen","theme_menu_title":"Choose a theme","theme_menu_help":"The primary theme is selected by default.","theme_menu_filter":"Search themes","theme_menu_close":"Escape to close \u00b7 Enter to apply","help_title":"Keyboard shortcuts","help_next":"Next slide","help_prev":"Previous slide","help_home":"Back to the series index","help_fullscreen":"Fullscreen (Esc to exit)","help_menu":"Presenter menu","help_theme":"Change theme during the presentation (C key)","help_pause":"Pause screen: black (B), white (W), theme (T)","help_speaker":"Speaker panel: notes + next slide","help_share":"Share the current link (S key)","help_jump_keys":"0&ndash;9 + Enter","help_mouse_keys":"Mouse / Wheel","help_jump":"Jump to slide N (then Enter)","help_mouse":"Click: next \u00b7 right-click: back \u00b7 click while gliding: jump \u00b7 middle button: arm entry (then left-click) or exit fullscreen \u00b7 wheel: scroll","help_open":"Opens the help window","help_stamp":"Compiled with","nav_mode_permanent":"Navigation stays visible","nav_mode_auto":"Navigation hides after inactivity"}}}}</script>
+<script id="lwp-language-data" type="application/json">{"version":1,"default":"en","auto":false,"packs":{"fr":{"name":"Fran\u00e7ais","strings":{"nav_prev":"Planche pr\u00e9c\u00e9dente","nav_next":"Planche suivante","nav_dot_fallback":"Fiche","series_nav_title":"Cette s\u00e9rie","series_read":"Lire l'article","series_current_status":"En cours de lecture","series_back_to_index":"Retour \u00e0 l'index","series_untitled_fallback":"S\u00e9rie d'articles","draft_banner":"Brouillon","full_article_kicker":"Article complet","notes_section_title":"Notes","note_back":"Revenir au texte","source_label":"Source","copy_link":"Copier le lien","copy_link_done":"Lien copi\u00e9 !","copy_prompt":"Copie ce lien :","share_action_qr":"Afficher le QR code","share_scope_series":"S\u00e9rie","share_scope_article":"Article","share_scope_fiche":"Fiche","qr_modal_title":"QR code du lien","qr_modal_close":"Fermer","nav_fullscreen":"Plein \u00e9cran (touche F)","tags_menu":"Filtrer les slides","tags_active":"Tag actif","tags_preview":"Contenu affich\u00e9","tags_articles":"fiches","tags_slides":"slides","tags_no_results":"Aucune fiche ou slide ne sera affich\u00e9e avec ce tag.","help_tags":"Filtrer par tag et m\u00e9moriser la s\u00e9lection","presenter_next":"Suivant :","presenter_label":"Panneau du pr\u00e9sentateur","menu_title":"Menu du pr\u00e9sentateur (touche M)","menu_prev":"Planche pr\u00e9c\u00e9dente","menu_home":"Retour \u00e0 l'index","menu_next":"Planche suivante","menu_fullscreen":"Plein \u00e9cran","menu_theme":"Changer de th\u00e8me","menu_presenter":"Notes pr\u00e9sentateur","menu_tags":"Filtrer par tag","menu_share":"Partager","menu_help":"Aide","menu_pause_black":"\u00c9cran noir","menu_pause_white":"\u00c9cran blanc","menu_pause_theme":"\u00c9cran du th\u00e8me","theme_menu_title":"Choisir un th\u00e8me","theme_menu_help":"Le th\u00e8me principal est s\u00e9lectionn\u00e9 par d\u00e9faut.","theme_menu_filter":"Rechercher un th\u00e8me","theme_menu_close":"\u00c9chap pour fermer \u00b7 Entr\u00e9e pour appliquer","help_title":"Raccourcis clavier","help_next":"Slide suivante","help_prev":"Slide pr\u00e9c\u00e9dente","help_home":"Retour \u00e0 l'index de la s\u00e9rie","help_fullscreen":"Plein \u00e9cran (\u00c9chap pour quitter)","help_menu":"Menu du pr\u00e9sentateur","help_theme":"Changer de th\u00e8me pendant la pr\u00e9sentation (touche C)","help_pause":"\u00c9cran de pause : noir (B), blanc (W), th\u00e8me (T)","help_speaker":"Panneau pr\u00e9sentateur : notes + slide suivante","help_share":"Partager le lien courant (touche S)","help_jump_keys":"0&ndash;9 + Entr&eacute;e","help_mouse_keys":"Souris / Molette","help_jump":"Aller \u00e0 la slide N (puis Entr\u00e9e)","help_mouse":"Clic : suivant \u00b7 clic droit : pr\u00e9c\u00e9dent \u00b7 clic pendant le d\u00e9filement : saut \u00b7 bouton du milieu : armer l'entr\u00e9e (puis clic gauche) ou quitter le plein \u00e9cran \u00b7 molette : d\u00e9filer","help_open":"Ouvre la fen\u00eatre d'aide","help_stamp":"Compil\u00e9 avec","nav_mode_permanent":"La navigation reste visible","nav_mode_auto":"La navigation se masque apr\u00e8s inactivit\u00e9"}},"en":{"name":"English","strings":{"nav_prev":"Previous slide","nav_next":"Next slide","nav_dot_fallback":"Slide","series_nav_title":"This series","series_read":"Read the article","series_current_status":"Currently reading","series_back_to_index":"Back to index","series_untitled_fallback":"Article series","draft_banner":"Draft","full_article_kicker":"Full article","notes_section_title":"Notes","note_back":"Back to the text","source_label":"Source","copy_link":"Copy link","copy_link_done":"Link copied!","copy_prompt":"Copy this link:","share_action_qr":"Show QR code","share_scope_series":"Series","share_scope_article":"Article","share_scope_fiche":"Slide","qr_modal_title":"QR code for this link","qr_modal_close":"Close","nav_fullscreen":"Fullscreen (F key)","tags_menu":"Filter slides","tags_active":"Active tag","tags_preview":"Displayed content","tags_articles":"articles","tags_slides":"slides","tags_no_results":"No article or slide will be displayed with this tag.","help_tags":"Filter by tag and remember the selection","presenter_next":"Next:","presenter_label":"Presenter panel","menu_title":"Presenter menu (M key)","menu_prev":"Previous slide","menu_home":"Back to index","menu_next":"Next slide","menu_fullscreen":"Fullscreen","menu_theme":"Change theme","menu_presenter":"Presenter notes","menu_tags":"Filter by tag","menu_share":"Share","menu_help":"Help","menu_pause_black":"Black screen","menu_pause_white":"White screen","menu_pause_theme":"Theme screen","theme_menu_title":"Choose a theme","theme_menu_help":"The primary theme is selected by default.","theme_menu_filter":"Search themes","theme_menu_close":"Escape to close \u00b7 Enter to apply","help_title":"Keyboard shortcuts","help_next":"Next slide","help_prev":"Previous slide","help_home":"Back to the series index","help_fullscreen":"Fullscreen (Esc to exit)","help_menu":"Presenter menu","help_theme":"Change theme during the presentation (C key)","help_pause":"Pause screen: black (B), white (W), theme (T)","help_speaker":"Speaker panel: notes + next slide","help_share":"Share the current link (S key)","help_jump_keys":"0&ndash;9 + Enter","help_mouse_keys":"Mouse / Wheel","help_jump":"Jump to slide N (then Enter)","help_mouse":"Click: next \u00b7 right-click: back \u00b7 click while gliding: jump \u00b7 middle button: arm entry (then left-click) or exit fullscreen \u00b7 wheel: scroll","help_open":"Opens the help window","help_stamp":"Compiled with","nav_mode_permanent":"Navigation stays visible","nav_mode_auto":"Navigation hides after inactivity"}}}}</script>
 <script id="lwp-theme-data" type="application/json">{"version":1,"primary":"default","vars":["--color-page","--color-ink","--color-ink-quiet","--color-mark","--color-call","--color-affirm","--color-nav","--font-text","--font-display","--font-ui","--font-mono","--page-font","--page-bg","--page-fg","--page-leading","--page-shadow-fg","--page-shadow-blur","--page-shadow-dx","--page-shadow-dy","--page-content-max","--page-block-max","--page-hyphens","--slide-rule-fg","--slide-rule-width","--slide-num-fg","--slide-num-font","--slide-num-size","--slide-num-tracking","--slide-num-shadow-fg","--slide-num-shadow-blur","--slide-num-shadow-dx","--slide-num-shadow-dy","--kicker-fg","--kicker-font","--kicker-size","--kicker-weight","--kicker-tracking","--kicker-transform","--kicker-shadow-fg","--kicker-shadow-blur","--kicker-shadow-dx","--kicker-shadow-dy","--title1-font","--title1-size","--title1-weight","--title1-leading","--title1-fg","--title1-shadow-fg","--title1-shadow-blur","--title1-shadow-dx","--title1-shadow-dy","--title1-align","--title2-font","--title2-size","--title2-weight","--title2-leading","--title2-align","--title2-shadow-fg","--title2-shadow-blur","--title2-shadow-dx","--title2-shadow-dy","--summary-fg","--summary-size","--summary-leading","--summary-align","--summary-shadow-fg","--summary-shadow-blur","--summary-shadow-dx","--summary-shadow-dy","--fact-bg","--fact-rule-fg","--fact-rule-width","--fact-fg","--fact-size","--fact-align","--fact-elevation-fg","--fact-elevation-blur","--fact-elevation-dx","--fact-elevation-dy","--fact-elevation-spread","--fact-label-fg","--fact-label-font","--fact-label-size","--fact-label-weight","--fact-label-tracking","--fact-label-transform","--fact-label-shadow-fg","--fact-label-shadow-blur","--fact-label-shadow-dx","--fact-label-shadow-dy","--fact-strong-weight","--fact-strong-style","--fact-strong-bg","--fact-strong-fg","--fact-strong-decoration","--fact-strong-decoration-color","--fact-strong-pad","--fact-strong-absorb-punct","--fact-strong-shadow-fg","--fact-strong-shadow-blur","--fact-strong-shadow-dx","--fact-strong-shadow-dy","--body-heading-fg","--body-heading-weight","--body-heading-leading","--body-heading-shadow-fg","--body-heading-shadow-blur","--body-heading-shadow-dx","--body-heading-shadow-dy","--source-fg","--source-font","--source-size","--source-shadow-fg","--source-shadow-blur","--source-shadow-dx","--source-shadow-dy","--footer-fg","--footer-font","--footer-size","--footer-rule-fg","--footer-rule-width","--cover-bg-from","--cover-bg-to","--cover-bg-angle","--cover-fg","--cover-align","--cover-summary-fg","--cover-summary-shadow-fg","--cover-summary-shadow-blur","--cover-summary-shadow-dx","--cover-summary-shadow-dy","--cover-kicker-fg","--cover-kicker-shadow-fg","--cover-kicker-shadow-blur","--cover-kicker-shadow-dx","--cover-kicker-shadow-dy","--cover-num-fg","--cover-num-shadow-fg","--cover-num-shadow-blur","--cover-num-shadow-dx","--cover-num-shadow-dy","--quote-fg","--quote-style","--quote-rule-fg","--quote-rule-width","--code-font","--code-size","--code-bg","--code-rule-fg","--code-rule-width","--code-leading","--footnote-call-fg","--footnote-call-size","--footnote-call-fg-marked","--footnote-call-fg-cover","--note-fg","--note-size","--note-leading","--note-weight","--note-style","--note-marker-fg","--note-back-fg","--note-local-size","--note-local-rule-fg","--note-local-rule-width","--note-page-bg","--note-page-rule-fg","--note-page-rule-width","--note-page-title-fg","--note-page-title-size","--note-page-title-font","--link-decoration-color","--table-size","--table-rule-fg","--table-rule-width","--table-cell-align","--table-head-bg","--table-head-fg","--table-head-rule-fg","--table-head-rule-width","--table-head-weight","--table-head-size","--table-head-tracking","--table-head-align","--table-head-shadow-fg","--table-head-shadow-blur","--table-head-shadow-dx","--table-head-shadow-dy","--verdict-yes-fg","--verdict-yes-weight","--verdict-yes-mark","--verdict-yes-shadow-fg","--verdict-yes-shadow-blur","--verdict-yes-shadow-dx","--verdict-yes-shadow-dy","--verdict-no-fg","--verdict-no-weight","--verdict-no-mark","--verdict-no-shadow-fg","--verdict-no-shadow-blur","--verdict-no-shadow-dx","--verdict-no-shadow-dy","--verdict-partial-fg","--verdict-partial-weight","--verdict-partial-mark","--verdict-partial-shadow-fg","--verdict-partial-shadow-blur","--verdict-partial-shadow-dx","--verdict-partial-shadow-dy","--table-col-signal-bg","--table-col-signal-weight","--table-col-snap-bg","--table-col-snap-rule-fg","--table-col-snap-rule-width","--caption-fg","--caption-size","--caption-align","--caption-shadow-fg","--caption-shadow-blur","--caption-shadow-dx","--caption-shadow-dy","--article-bg","--article-size","--article-leading","--article-align","--article-rule-fg","--article-rule-width","--refs-fg","--refs-size","--refs-leading","--refs-weight","--refs-style","--highlight-fg","--highlight-font","--highlight-size","--highlight-weight","--highlight-leading","--highlight-tracking","--highlight-numeric","--highlight-shadow-fg","--highlight-shadow-blur","--highlight-shadow-dx","--highlight-shadow-dy","--highlight-align","--highlight-caption-fg","--highlight-caption-size","--highlight-caption-shadow-fg","--highlight-caption-shadow-blur","--highlight-caption-shadow-dx","--highlight-caption-shadow-dy","--series-nav-current-bg","--series-nav-current-rule-fg","--series-nav-current-rule-width","--series-nav-link-bg","--series-nav-link-rule-fg","--series-nav-link-rule-width","--series-nav-link-ring","--series-nav-link-ring-width","--series-nav-link-elevation-fg","--series-nav-link-elevation-blur","--series-nav-link-elevation-dx","--series-nav-link-elevation-dy","--series-nav-link-elevation-spread","--series-nav-link-elevation-hover-fg","--series-nav-link-elevation-hover-blur","--series-nav-link-elevation-hover-dx","--series-nav-link-elevation-hover-dy","--series-nav-link-elevation-hover-spread","--series-nav-label-fg","--series-nav-label-font","--series-nav-label-size","--series-nav-label-weight","--series-nav-label-tracking","--series-nav-label-transform","--series-nav-label-shadow-fg","--series-nav-label-shadow-blur","--series-nav-label-shadow-dx","--series-nav-label-shadow-dy","--series-nav-title-size","--series-nav-title-weight","--series-nav-title-shadow-fg","--series-nav-title-shadow-blur","--series-nav-title-shadow-dx","--series-nav-title-shadow-dy","--series-nav-desc-fg","--series-nav-desc-size","--series-nav-desc-shadow-fg","--series-nav-desc-shadow-blur","--series-nav-desc-shadow-dx","--series-nav-desc-shadow-dy","--series-nav-status-size","--series-nav-status-weight","--series-nav-status-fg-current","--series-nav-status-fg-link","--series-nav-status-shadow-fg","--series-nav-status-shadow-blur","--series-nav-status-shadow-dx","--series-nav-status-shadow-dy","--nav-btn-bg","--nav-btn-bg-soft","--nav-btn-fg","--nav-btn-rule-fg","--nav-btn-rule-width","--nav-btn-size","--nav-btn-ring","--nav-btn-ring-width","--nav-btn-shadow-fg","--nav-btn-shadow-blur","--nav-btn-shadow-dx","--nav-btn-shadow-dy","--nav-btn-elevation-fg","--nav-btn-elevation-blur","--nav-btn-elevation-dx","--nav-btn-elevation-dy","--nav-btn-elevation-spread","--nav-btn-elevation-hover-fg","--nav-btn-elevation-hover-blur","--nav-btn-elevation-hover-dx","--nav-btn-elevation-hover-dy","--nav-btn-elevation-hover-spread","--nav-dot-bg","--nav-dot-bg-hover","--nav-dot-bg-active","--share-bg","--share-fg","--share-quiet-fg","--share-size","--share-rule-fg","--share-rule-width","--share-scrim","--share-rule-fg-hover","--share-bg-hover","--share-elevation-fg","--share-elevation-blur","--share-elevation-dx","--share-elevation-dy","--share-elevation-spread","--card-bg","--card-rule-fg","--card-rule-width","--card-rule-fg-hover","--card-ring","--card-ring-width","--card-elevation-fg","--card-elevation-blur","--card-elevation-dx","--card-elevation-dy","--card-elevation-spread","--card-elevation-hover-fg","--card-elevation-hover-blur","--card-elevation-hover-dx","--card-elevation-hover-dy","--card-elevation-hover-spread","--card-label-fg","--card-label-font","--card-label-size","--card-label-weight","--card-label-tracking","--card-label-transform","--card-label-shadow-fg","--card-label-shadow-blur","--card-label-shadow-dx","--card-label-shadow-dy","--card-title-size","--card-title-weight","--card-title-shadow-fg","--card-title-shadow-blur","--card-title-shadow-dx","--card-title-shadow-dy","--card-desc-fg","--card-desc-size","--card-desc-shadow-fg","--card-desc-shadow-blur","--card-desc-shadow-dx","--card-desc-shadow-dy","--card-cta-fg","--card-cta-size","--card-cta-weight","--card-cta-shadow-fg","--card-cta-shadow-blur","--card-cta-shadow-dx","--card-cta-shadow-dy","--header-rule-fg","--header-rule-width","--header-title-font","--header-title-size","--header-title-weight","--header-title-leading","--header-title-shadow-fg","--header-title-shadow-blur","--header-title-shadow-dx","--header-title-shadow-dy","--header-subtitle-fg","--header-subtitle-size","--header-subtitle-shadow-fg","--header-subtitle-shadow-blur","--header-subtitle-shadow-dx","--header-subtitle-shadow-dy","--version-tag-font","--version-tag-fg","--version-tag-bg","--version-tag-size","--version-tag-shadow-fg","--version-tag-shadow-blur","--version-tag-shadow-dx","--version-tag-shadow-dy","--intro-size","--intro-leading","--tag-menu-elevation-fg","--tag-menu-elevation-blur","--tag-menu-elevation-dx","--tag-menu-elevation-dy","--tag-menu-elevation-spread","--slide-counter-elevation-fg","--slide-counter-elevation-blur","--slide-counter-elevation-dx","--slide-counter-elevation-dy","--slide-counter-elevation-spread","--presenter-panel-elevation-fg","--presenter-panel-elevation-blur","--presenter-panel-elevation-dx","--presenter-panel-elevation-dy","--presenter-panel-elevation-spread","--help-card-elevation-fg","--help-card-elevation-blur","--help-card-elevation-dx","--help-card-elevation-dy","--help-card-elevation-spread","--share-qr-elevation-fg","--share-qr-elevation-blur","--share-qr-elevation-dx","--share-qr-elevation-dy","--share-qr-elevation-spread"],"themes":[{"slug":"default","label":"Default","family":"default","values":[],"preview":{"background":"#F8F8F5FF","gradient":{"angle":"180deg","from":"#1A1A2EFF","to":"#1A1A2EFF"},"foreground":"#F8F8F5FF"}},{"slug":"monochrome","label":"Monochrome","family":"desk","values":[[0,"#FAFAFAFF"],[1,"#111111FF"],[2,"#707070FF"],[3,"#D8D8D8FF"],[4,"#2B2B2BFF"],[5,"#000000FF"],[6,"#2B2B2BFF"],[7,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[8,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[11,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[12,"#FAFAFAFF"],[13,"#111111FF"],[24,"#707070FF"],[32,"#707070FF"],[42,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[46,"#FAFAFAFF"],[52,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[61,"#111111FF"],[70,"#D8D8D8FF"],[72,"#111111FF"],[80,"#707070FF"],[92,"#00000000"],[93,"#111111FF"],[94,"underline"],[95,"#111111FF"],[96,"0"],[102,"#111111FF"],[109,"#707070FF"],[116,"#707070FF"],[121,"#111111FF"],[122,"#111111FF"],[124,"#FAFAFAFF"],[126,"#FAFAFAC7"],[131,"#D8D8D8FF"],[141,"#707070FF"],[151,"#2B2B2BFF"],[153,"#111111FF"],[154,"#FAFAFAFF"],[155,"#656565FF"],[160,"#2B2B2BFF"],[161,"#656565FF"],[163,"#11111178"],[165,"#11111111"],[166,"#1111117B"],[168,"#111111FF"],[170,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[171,"#111111FF"],[177,"#111111FF"],[178,"#111111FF"],[188,"#000000FF"],[195,"#707070FF"],[202,"#2B2B2BFF"],[212,"#2B2B2BFF"],[214,"#707070FF"],[227,"#656565FF"],[232,"#111111FF"],[233,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[244,"#707070FF"],[254,"#2B2B2BFF"],[256,"#2B2B2BFF"],[268,"#707070FF"],[284,"#707070FF"],[292,"#707070FF"],[293,"#111111FF"],[300,"#111111FF"],[304,"#2B2B2BFF"],[321,"#707070FF"],[322,"#2B2B2BFF"],[323,"#FAFAFAFF"],[324,"#111111FF"],[325,"#707070FF"],[330,"#111111FF"],[340,"#D8D8D8FF"],[341,"#2B2B2BFF"],[353,"#707070FF"],[369,"#707070FF"],[375,"#111111FF"],[382,"#D8D8D8FF"],[384,"Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif"],[392,"#707070FF"],[399,"#707070FF"]],"preview":{"background":"#FAFAFAFF","gradient":{"angle":"180deg","from":"#111111FF","to":"#111111FF"},"foreground":"#FAFAFAFF"}},{"slug":"monochrome-night","label":"Monochrome Night","family":"desk","values":[[0,"#161616FF"],[1,"#F1F1F1FF"],[2,"#A0A0A0FF"],[3,"#C9C9C9FF"],[4,"#F1F1F1FF"],[5,"#D0D0D0FF"],[6,"#F1F1F1FF"],[12,"#161616FF"],[13,"#F1F1F1FF"],[22,"#FFFFFF24"],[24,"#A0A0A0FF"],[32,"#A0A0A0FF"],[46,"#F1F1F1FF"],[61,"#F1F1F1FF"],[69,"#FFFFFF0E"],[70,"#C9C9C9FF"],[72,"#F1F1F1FF"],[80,"#A0A0A0FF"],[92,"#00000000"],[93,"#F1F1F1FF"],[94,"underline"],[95,"#C9C9C9FF"],[96,"0"],[102,"#F1F1F1FF"],[109,"#A0A0A0FF"],[116,"#A0A0A0FF"],[119,"#FFFFFF24"],[121,"#00000073"],[122,"#00000073"],[124,"#F1F1F1FF"],[126,"#F1F1F1C7"],[131,"#C9C9C9FF"],[136,"#FFFFFF8F"],[141,"#A0A0A0FF"],[143,"#FFFFFF3D"],[147,"#0000004D"],[148,"#FFFFFF24"],[151,"#F1F1F1FF"],[153,"#F1F1F1FF"],[154,"#F1F1F1FF"],[155,"#F1F1F1FF"],[160,"#F1F1F1FF"],[161,"#F1F1F1FF"],[163,"#FFFFFF78"],[165,"#FFFFFF0E"],[166,"#FFFFFF7B"],[168,"#F1F1F1FF"],[171,"#F1F1F1FF"],[173,"#FFFFFF24"],[176,"#0000004D"],[177,"#F1F1F1FF"],[178,"#F1F1F1FF"],[188,"#D0D0D0FF"],[195,"#A0A0A0FF"],[202,"#F1F1F1FF"],[209,"#0000004D"],[211,"#0000004D"],[212,"#C9C9C9FF"],[214,"#A0A0A0FF"],[221,"#FFFFFF0E"],[225,"#FFFFFF24"],[227,"#F1F1F1FF"],[232,"#F1F1F1FF"],[244,"#A0A0A0FF"],[250,"#0000004D"],[251,"#FFFFFF3D"],[253,"#FFFFFF0E"],[254,"#F1F1F1FF"],[256,"#F1F1F1FF"],[268,"#A0A0A0FF"],[284,"#A0A0A0FF"],[292,"#A0A0A0FF"],[293,"#F1F1F1FF"],[298,"#FFFFFF21"],[299,"#FFFFFF17"],[300,"#F1F1F1FF"],[301,"#FFFFFF3D"],[304,"#F1F1F1FF"],[320,"#FFFFFF3D"],[321,"#A0A0A0FF"],[322,"#F1F1F1FF"],[323,"#161616FF"],[324,"#F1F1F1FF"],[325,"#A0A0A0FF"],[327,"#FFFFFF88"],[330,"#F1F1F1FF"],[331,"#FFFFFF21"],[337,"#FFFFFF0E"],[338,"#FFFFFF3D"],[340,"#C9C9C9FF"],[341,"#F1F1F1FF"],[353,"#A0A0A0FF"],[369,"#A0A0A0FF"],[375,"#F1F1F1FF"],[382,"#C9C9C9FF"],[392,"#A0A0A0FF"],[399,"#A0A0A0FF"],[400,"#0000004D"]],"preview":{"background":"#161616FF","gradient":{"angle":"180deg","from":"#00000073","to":"#00000073"},"foreground":"#F1F1F1FF"}},{"slug":"print-ink","label":"Print Ink","family":"print","values":[[0,"#FFFFFFFF"],[1,"#000000FF"],[2,"#4B4B4BFF"],[3,"#FFE9A8FF"],[4,"#B71D1CFF"],[5,"#1B5E20FF"],[6,"#000000FF"],[12,"#FFFFFFFF"],[13,"#000000FF"],[24,"#4B4B4BFF"],[32,"#4B4B4BFF"],[46,"#000000FF"],[61,"#000000FF"],[69,"#FFFFFFFF"],[70,"#FFE9A8FF"],[72,"#000000FF"],[80,"#4B4B4BFF"],[92,"#00000000"],[93,"#000000FF"],[95,"#000000FF"],[96,"0"],[102,"#000000FF"],[109,"#4B4B4BFF"],[116,"#4B4B4BFF"],[121,"#FFFFFFFF"],[122,"#FFFFFFFF"],[124,"#000000FF"],[126,"#000000FF"],[131,"#000000FF"],[136,"#4B4B4BFF"],[141,"#4B4B4BFF"],[147,"#FFFFFFFF"],[151,"#000000FF"],[153,"#000000FF"],[154,"#000000FF"],[155,"#4B4B4BFF"],[160,"#000000FF"],[161,"#4B4B4BFF"],[163,"#0000007D"],[165,"#FFFFFFFF"],[166,"#00000082"],[168,"#000000FF"],[171,"#000000FF"],[176,"#F4F4F4FF"],[177,"#000000FF"],[178,"#000000FF"],[188,"#1B5E20FF"],[195,"#4B4B4BFF"],[202,"#B71D1CFF"],[209,"#FFFFFFFF"],[211,"#FFFFFFFF"],[212,"#B71D1CFF"],[214,"#4B4B4BFF"],[221,"#FFFFFFFF"],[227,"#4B4B4BFF"],[232,"#000000FF"],[244,"#4B4B4BFF"],[250,"#FFFFFFFF"],[253,"#FFFFFFFF"],[254,"#000000FF"],[256,"#000000FF"],[268,"#4B4B4BFF"],[284,"#4B4B4BFF"],[292,"#4B4B4BFF"],[293,"#000000FF"],[298,"#FFFFFFFF"],[299,"#FFFFFFFF"],[300,"#000000FF"],[304,"#000000FF"],[321,"#4B4B4BFF"],[322,"#000000FF"],[323,"#FFFFFFFF"],[324,"#000000FF"],[325,"#4B4B4BFF"],[330,"#000000FF"],[331,"#FFFFFFFF"],[337,"#FFFFFFFF"],[340,"#FFE9A8FF"],[341,"#000000FF"],[353,"#4B4B4BFF"],[369,"#4B4B4BFF"],[375,"#000000FF"],[382,"#FFE9A8FF"],[392,"#4B4B4BFF"],[399,"#4B4B4BFF"],[400,"#FFFFFFFF"]],"preview":{"background":"#FFFFFFFF","gradient":{"angle":"180deg","from":"#FFFFFFFF","to":"#FFFFFFFF"},"foreground":"#000000FF"}}],"pinned":[]}</script>
 <script defer>
 /*!
@@ -3448,9 +3513,15 @@ document.addEventListener('DOMContentLoaded', function() {
   lwpChooseInitialLanguage();
 (function(){
   var allSlides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var isIndex = document.body.classList.contains('index-page');
   var slides   = allSlides.slice();
   var current  = 0;
-  var selectedTag = 'default';
+  var defaultTag = String(document.body.getAttribute('data-lwp-default-tag') || 'default').toLowerCase();
+  var seriesTagData = document.body.getAttribute('data-lwp-series-tags');
+  var seriesTags = seriesTagData ? seriesTagData.toLowerCase().split(/\s+/).filter(Boolean) : [];
+  if (!seriesTags.length) seriesTags = ['default'];
+  if (seriesTags.indexOf(defaultTag) === -1) seriesTags.unshift(defaultTag);
+  var selectedTag = defaultTag;
   var isScrolling = false;
   // Separate from isScrolling (which only guards goTo()'s own scroll
   // animation, and only against re-targeting the SAME slide): holding
@@ -3478,7 +3549,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // the page). focus() scrolls a card into view on its own, which is
   // the same scroll the old arrows did, only aimed at something.
   var focusedCard = -1;
-  var indexCards = slides.length ? [] : Array.prototype.slice.call(document.querySelectorAll('.article-card'));
+  var allIndexCards = isIndex
+    ? Array.prototype.slice.call(document.querySelectorAll('.article-card')) : [];
+  var indexCards = allIndexCards.slice();
+  var articleCards = Array.prototype.slice.call(
+    document.querySelectorAll('[data-lwp-article-card]'));
   var btnPrev    = document.getElementById('navPrev');
   var btnNext    = document.getElementById('navNext');
   var navDots    = document.querySelector('.nav-dots');
@@ -3487,7 +3562,21 @@ document.addEventListener('DOMContentLoaded', function() {
   var tagMenu    = document.getElementById('tagMenu');
   var tagMenuList = document.getElementById('tagMenuList');
   var tagMenuTitle = document.getElementById('tagMenuTitle');
+  var tagMenuCurrent = document.getElementById('tagMenuCurrent');
+  var tagMenuSummary = document.getElementById('tagMenuSummary');
+  var tagMenuPreview = document.getElementById('tagMenuPreview');
+  var tagEmptyState = document.getElementById('tagEmptyState');
   var tagStorageKey = 'lwp-active-tag';
+  var tagPreviewArticles = [];
+  var tagPreviewRaw = document.body.getAttribute('data-lwp-tag-preview');
+  if (tagPreviewRaw) {
+    try {
+      var parsedTagPreview = JSON.parse(tagPreviewRaw);
+      if (parsedTagPreview && Array.isArray(parsedTagPreview.articles)) {
+        tagPreviewArticles = parsedTagPreview.articles;
+      }
+    } catch (e) {}
+  }
   var dots = [];
 
   // Runtime themes are enabled by default at build time. The page's CSS already carries
@@ -3563,28 +3652,123 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (themeData) applyTheme(readStoredTheme(), false);
 
+  function tagAttribute(element, name) {
+    var raw = element ? element.getAttribute(name) : '';
+    return raw ? raw.toLowerCase().split(/\s+/).filter(Boolean) : [];
+  }
+
   function slideTags(slide) {
-    var raw = slide ? slide.getAttribute('data-tags') : '';
-    var tags = raw ? raw.toLowerCase().split(/\s+/) : [];
+    var tags = tagAttribute(slide, 'data-tags');
     return tags.length ? tags : ['default'];
+  }
+
+  function articleTags(article) {
+    return tagAttribute(article, 'data-lwp-article-tags');
+  }
+
+  function articleSlideTags(article) {
+    return tagAttribute(article, 'data-lwp-slide-tags');
+  }
+
+  function addTagList(tags, seen, values) {
+    values.forEach(function (tag) {
+      if (!seen[tag]) { seen[tag] = true; tags.push(tag); }
+    });
   }
 
   function tagList() {
     var seen = {};
     var tags = [];
+    addTagList(tags, seen, seriesTags);
+    addTagList(tags, seen, articleTags(document.body));
     allSlides.forEach(function (slide) {
-      slideTags(slide).forEach(function (tag) {
-        if (!seen[tag]) { seen[tag] = true; tags.push(tag); }
-      });
+      addTagList(tags, seen, slideTags(slide));
+    });
+    articleCards.forEach(function (article) {
+      addTagList(tags, seen, articleTags(article));
+      addTagList(tags, seen, articleSlideTags(article));
     });
     if (!seen.default) tags.unshift('default');
     return tags;
   }
 
-  function slideMatchesTag(slide, tag) {
-    var tags = slideTags(slide);
+  function previewSlidesFor(article, tag) {
+    var articleTags = Array.isArray(article.tags) ? article.tags : [];
+    if (articleTags.length && articleTags.indexOf(tag) === -1) return [];
+    return (Array.isArray(article.slides) ? article.slides : []).filter(function (slide) {
+      return tagSetMatches(Array.isArray(slide.tags) ? slide.tags : ['default'], tag);
+    });
+  }
+
+  function renderTagPreview() {
+    if (!tagMenuPreview) return;
+    tagMenuPreview.innerHTML = '';
+    var articleCount = 0;
+    var slideCount = 0;
+    tagPreviewArticles.forEach(function (article) {
+      var matching = previewSlidesFor(article, selectedTag);
+      if (!matching.length) return;
+      articleCount += 1;
+      slideCount += matching.length;
+      var group = document.createElement('div');
+      group.className = 'tag-preview-article';
+      group.setAttribute('role', 'listitem');
+      var title = document.createElement('div');
+      title.className = 'tag-preview-article-title';
+      title.textContent = article.title || lwpString('series_untitled_fallback');
+      group.appendChild(title);
+      var list = document.createElement('div');
+      list.className = 'tag-preview-slides';
+      list.setAttribute('role', 'list');
+      matching.forEach(function (slide, index) {
+        var item = document.createElement('div');
+        item.className = 'tag-preview-slide';
+        item.setAttribute('role', 'listitem');
+        item.textContent = slide.title ||
+          (slide.type === 'series-nav'
+            ? lwpString('series_nav_title')
+            : lwpString('nav_dot_fallback') + ' ' + (index + 1));
+        list.appendChild(item);
+      });
+      group.appendChild(list);
+      tagMenuPreview.appendChild(group);
+    });
+    if (!articleCount) {
+      var empty = document.createElement('div');
+      empty.className = 'tag-preview-empty';
+      empty.textContent = lwpString('tags_no_results');
+      empty.setAttribute('role', 'listitem');
+      tagMenuPreview.appendChild(empty);
+    }
+    if (tagMenuCurrent) {
+      tagMenuCurrent.textContent = lwpString('tags_active') + ': ' + selectedTag;
+    }
+    if (tagMenuSummary) {
+      tagMenuSummary.textContent = articleCount + ' ' + lwpString('tags_articles')
+        + ' · ' + slideCount + ' ' + lwpString('tags_slides');
+    }
+  }
+
+  function tagSetMatches(tags, tag) {
     if (tag === 'default') return tags.indexOf('default') !== -1;
     return tags.indexOf('default') !== -1 || tags.indexOf(tag) !== -1;
+  }
+
+  function slideMatchesTag(slide, tag) {
+    return tagSetMatches(slideTags(slide), tag);
+  }
+
+  function articleGateMatches(article, tag) {
+    var tags = articleTags(article);
+    return !tags.length || tags.indexOf(tag) !== -1;
+  }
+
+  function articleMatchesTag(article, tag) {
+    if (!articleGateMatches(article, tag)) return false;
+    // Old generated pages have no card metadata. Keep their cards visible;
+    // every page generated with this version carries the attribute.
+    if (!article.hasAttribute('data-lwp-slide-tags')) return true;
+    return tagSetMatches(articleSlideTags(article), tag);
   }
 
   function readStoredTag() {
@@ -3594,7 +3778,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return stored.toLowerCase();
       }
     } catch (e) {}
-    return 'default';
+    return defaultTag;
   }
 
   function writeStoredTag(tag) {
@@ -3642,6 +3826,7 @@ document.addEventListener('DOMContentLoaded', function() {
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     if (btnTags) btnTags.setAttribute('aria-expanded', tagMenu && tagMenu.classList.contains('open') ? 'true' : 'false');
+    renderTagPreview();
   }
 
   function tagOptions() {
@@ -3681,7 +3866,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // keydown handler preventDefault()s every key whose target is not
     // already inside .tag-menu -- including Tab, and a prevented Tab
     // cancels the focus move. Measured: five Tab presses left
-    // document.activeElement on BODY, so the whole slide-variant feature
+    // document.activeElement on BODY, so the whole slide-tag feature
     // was mouse-only and the dialog role was never announced.
     var options = tagOptions();
     var active = options.filter(function (b) {
@@ -3707,20 +3892,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function applyTagFilter(scrollToCurrent) {
     var available = tagList();
-    if (available.indexOf(selectedTag) === -1) selectedTag = 'default';
+    if (available.indexOf(selectedTag) === -1) selectedTag = defaultTag;
+    if (isIndex) {
+      var previousCard = focusedCard >= 0 ? indexCards[focusedCard] : null;
+      if (previousCard) previousCard.blur();
+      indexCards = allIndexCards.filter(function (card) {
+        return articleMatchesTag(card, selectedTag);
+      });
+      allIndexCards.forEach(function (card) {
+        var visible = indexCards.indexOf(card) !== -1;
+        card.hidden = !visible;
+        card.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      });
+      focusedCard = previousCard ? indexCards.indexOf(previousCard) : -1;
+      filterArticleCards();
+      if (tagEmptyState) {
+        tagEmptyState.hidden = indexCards.length > 0;
+        tagEmptyState.textContent = indexCards.length ? '' :
+          lwpString('tags_no_results') + ' (' + lwpString('tags_active')
+          + ': ' + selectedTag + ')';
+      }
+      updateTagMenu();
+      updateUI();
+      return;
+    }
     var previous = slides[current];
     slides = allSlides.filter(function (slide) { return slideMatchesTag(slide, selectedTag); });
+    if (!articleGateMatches(document.body, selectedTag)) slides = [];
     allSlides.forEach(function (slide) {
       var visible = slides.indexOf(slide) !== -1;
       slide.hidden = !visible;
       slide.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
+    filterArticleCards();
     var next = previous ? slides.indexOf(previous) : -1;
     current = next >= 0 ? next : 0;
     rebuildDots();
+    if (tagEmptyState) {
+      tagEmptyState.hidden = slides.length > 0;
+      tagEmptyState.textContent = slides.length ? '' :
+        lwpString('tags_no_results') + ' (' + lwpString('tags_active')
+        + ': ' + selectedTag + ')';
+    }
     updateTagMenu();
     updateUI();
     if (scrollToCurrent && slides.length) goTo(current);
+  }
+
+  function filterArticleCards() {
+    articleCards.forEach(function (card) {
+      var visible = articleMatchesTag(card, selectedTag);
+      card.hidden = !visible;
+      card.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    });
   }
 
   function selectTag(tag, scrollToCurrent) {
@@ -3731,7 +3955,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function applyHash() {
     // The index has no fiche and no fragment: nothing to follow.
-    if (!slides.length) return;
+    if (isIndex) return;
     var id = window.location.hash ? window.location.hash.slice(1) : '';
     if (!id) return;
     var target = allSlides.find(function (slide) { return slide.id === id; });
@@ -3747,9 +3971,14 @@ document.addEventListener('DOMContentLoaded', function() {
       target = anchor && anchor.closest ? anchor.closest('section.slide') : null;
     }
     if (!target) return;
-    if (!slideMatchesTag(target, selectedTag)) {
-      var candidate = slideTags(target).find(function (tag) {
-        return tag !== 'default' && tagList().indexOf(tag) !== -1;
+    if (!articleGateMatches(document.body, selectedTag)
+        || !slideMatchesTag(target, selectedTag)) {
+      var candidates = articleTags(document.body).concat(slideTags(target),
+        [defaultTag], tagList());
+      var candidate = candidates.find(function (tag) {
+        return tagList().indexOf(tag) !== -1
+          && articleGateMatches(document.body, tag)
+          && slideMatchesTag(target, tag);
       });
       if (candidate) selectTag(candidate, false);
     }
@@ -4137,7 +4366,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // On the index there are no slides: the focus is the position, so
     // "what the user is looking at" is the focused card, or 0 when
     // nothing is focused (the page's own top).
-    if (!slides.length) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
+    if (isIndex) return indexCardFocused() >= 0 ? indexCardFocused() : 0;
     var mid = window.innerHeight / 2;
     var best = current;
     slides.forEach(function(s, i) {
@@ -4167,7 +4396,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // deck — into a slow rewind of the whole article.
   function recordSlideInUrl(idx) {
     // The index has no fiche: no fragment, and nothing to record.
-    if (!slides.length) return;
+    if (isIndex || !slides.length) return;
     var slide = slides[idx];
     if (!slide || !slide.id) return;
     if (!window.history || !window.history.replaceState) return;
@@ -4214,12 +4443,16 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function goTo(idx, instant) {
-    if (!slides.length) {
+    if (isIndex) {
       // On the index there is no slide to go to — the URL keeps no
       // fragment, the focus is the position (stepIndexCards), and the
       // disabled state of the nav buttons is the on-screen map of it.
       clearIndexFocus();
       current = 0;
+      updateUI();
+      return;
+    }
+    if (!slides.length) {
       updateUI();
       return;
     }
@@ -4305,7 +4538,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // journey. The same focus ring, the same Enter-to-follow, and the
   // nav buttons are disabled at the ends just as on an article.
   function stepForward() {
-    if (!slides.length) { stepIndexCards(1); return; }
+    if (isIndex) { stepIndexCards(1); return; }
+    if (!slides.length) return;
     var cards = slideCards(current);
     if (cards.length && focusedCard < cards.length - 1) {
       focusedCard++;
@@ -4322,7 +4556,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function stepBackward() {
-    if (!slides.length) { stepIndexCards(-1); return; }
+    if (isIndex) { stepIndexCards(-1); return; }
+    if (!slides.length) return;
     var cards = slideCards(current);
     if (focusedCard > 0) {
       focusedCard--;
@@ -4360,9 +4595,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateUI() {
-    setNavDisabled(btnPrev, !slides.length || current === 0);
-    setNavDisabled(btnNext, !slides.length || current === slides.length - 1);
-    if (!slides.length) {
+    setNavDisabled(btnPrev, isIndex || !slides.length || current === 0);
+    setNavDisabled(btnNext, isIndex || !slides.length || current === slides.length - 1);
+    if (isIndex) {
       // The index: the cards are the journey, and the nav buttons are
       // its on-screen twins — first card / last card, exactly as on the
       // series-nav slide of an article.
@@ -4380,16 +4615,16 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnPrev) btnPrev.addEventListener('click', function() {
     // On the index the buttons are the on-screen twins of the arrows:
     // one click, one card of the same journey.
-    if (!slides.length) { stepIndexCards(-1); } else { goTo(current - 1); }
+    if (isIndex) { stepIndexCards(-1); } else { goTo(current - 1); }
   });
   if (btnNext) btnNext.addEventListener('click', function() {
-    if (!slides.length) { stepIndexCards(1); } else { goTo(current + 1); }
+    if (isIndex) { stepIndexCards(1); } else { goTo(current + 1); }
   });
   // Home is the way out of an article deck — back to the index. On the
   // index itself there is no way out and no fiche to leave: the key and the
   // menu action mean the top of the page, where the journey starts.
   function goHome() {
-    if (slides.length) {
+    if (!isIndex) {
       window.location.href = 'index.html';
     } else {
       clearIndexFocus();
@@ -4571,7 +4806,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     // The presenter panel was the one overlay Escape did not reach: help,
-    // the variant dialog, the share popover and the QR modal all close on
+    // the tag dialog, the share popover and the QR modal all close on
     // it, and a speaker who hit Escape on the panel got nothing. It is not
     // modal -- the point is to navigate while it is open -- so this closes
     // it and swallows nothing else.
@@ -5026,7 +5261,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // starting one. At rest, `current` may be stale (the scroll
     // observer owns it), so the step is anchored on `currentVisible`.
     var base = isScrolling ? current : currentVisible();
-    if (!slides.length) {
+    if (isIndex) {
       // The index: the same click is the same step, card by card —
       // left advances one card's focus, and clicking a card itself is
       // the card's own link, which `isInteractive` has already let
@@ -5035,6 +5270,7 @@ document.addEventListener('DOMContentLoaded', function() {
       stepIndexCards(1);
       return;
     }
+    if (!slides.length) return;
     goTo(base + 1, isScrolling);
     // The second click of a quick pair is also the platform's own
     // double-click, which selects the word under the pointer — on the
@@ -5089,12 +5325,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // back-click returns to the card the reader left. At rest it is
     // anchored on `currentVisible` (the scroll observer owns it).
     var base = isScrolling ? current : currentVisible();
-    if (!slides.length) {
+    if (isIndex) {
       // The mirror of the left button on the index: right-click steps
       // the focus back one card.
       stepIndexCards(-1);
       return;
     }
+    if (!slides.length) return;
     goTo(base - 1, isScrolling);
   });
   // The middle button is the fullscreen gatekeeper. Browsers refuse

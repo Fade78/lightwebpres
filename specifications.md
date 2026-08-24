@@ -75,7 +75,7 @@
 
 **§20. Schéma formel de `series.json`**
 
-20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.6 Statut d'un article (`status`)
+20.0 Nomenclature : la forme d'un nom dit son niveau · 20.1 Structure · 20.2 Champs des articles · 20.3 Règles de validation · 20.4 Métadonnées de la série (`series_meta`) · 20.5 Champs de `series_meta` · 20.5.1 Typographie par tag de langue · 20.5.2 Tag initial et persistance · 20.6 Statut d'un article (`status`)
 
 **§21. Cas de validation informel (contenu privé, hors dépôt)**
 
@@ -854,33 +854,53 @@ la règle exacte.
 Chaque champ `clé: valeur`, à l'inverse, tient toujours sur une seule ligne
 physique (§4.1).
 
-#### 4.3.1 Variantes d'une fiche (`tags:`)
+#### 4.3.1 Tags de filtrage (`tags:`)
 
-Le champ `tags:` est accepté dans l'en-tête de toute fiche. Sa valeur est une
-suite de mots séparés par des espaces. Chaque mot est normalisé avec
-`casefold()` puis doit contenir uniquement des caractères de mot Unicode ou
-`-`; le premier caractère ne peut pas être `_`. Une valeur invalide est une
-erreur fatale de build qui nomme la fiche et le tag fautif. Les tags ne sont
-pas les tags d'instance de §9.6.3, ni le `version` tag de la série.
+`tags:` est un espace de noms plat partagé par les tags d'article et les tags
+de slide. Sa valeur est une suite de mots séparés par des espaces. Chaque mot
+est normalisé avec `casefold()` puis doit contenir uniquement des caractères
+de mot Unicode ou `-`; le premier caractère ne peut pas être `_`. Une valeur
+invalide est une erreur fatale de build qui nomme sa source et le tag fautif.
+Ces tags ne sont pas les tags d'instance de §9.6.3, ni le `version` tag de la
+série.
 
-Une fiche sans `tags:` (ou avec une valeur vide) reçoit le tag `default`.
-Les doublons sont supprimés après normalisation. Le tag `excluded` est traité
-avant la validation du reste de la fiche et supprime la fiche du HTML final :
-elle n'est ni compilée, ni numérotée, ni incluse dans les ancres ou la
-navigation. C'est donc le moyen de conserver une fiche provisoirement hors de
-la publication, pas un filtre exécuté dans le navigateur.
+Dans le bloc `lwp:meta` de l'article, `tags:` est une contrainte exacte sur
+l'article. Un article sans ce champ n'a pas de contrainte propre. Pour le tag
+sélectionné `T`, une carte d'article reste visible si et seulement si son
+champ `tags:` est absent ou contient `T`, et au moins une slide non exclue de
+l'article accepte `T`. Cette règle s'applique aux cartes de l'index et de la
+navigation de série; le statut de l'article est appliqué avant elle et ne peut
+pas être réactivé par un tag. Le tag `excluded` est interdit dans les tags
+d'article : `status: ignored` est le mécanisme d'exclusion d'un article.
 
-Pour toute autre fiche, les tags normalisés sont émis sur la section :
+Dans l'en-tête d'une slide, une valeur absente ou vide reçoit le tag
+`default`. Les doublons sont supprimés après normalisation. Le tag `excluded`
+est traité avant la validation du reste de la slide et supprime la slide du
+HTML final : elle n'est ni compilée, ni numérotée, ni incluse dans les ancres
+ou la navigation. C'est donc le moyen de conserver une slide provisoirement
+hors de la publication, pas un filtre exécuté dans le navigateur.
+
+Pour toute autre slide, les tags normalisés sont émis sur la section :
 
 ```html
 <section class="slide" id="s2" data-tags="default fr">
 ```
 
-Le navigateur collecte les valeurs `data-tags`. La touche `L` ouvre le menu
-si au moins deux tags sont présents ; le tag sélectionné affiche les fiches
-qui le portent et les fiches `default`. La sélection est conservée dans
-`localStorage['lwp-active-tag']`. Le compteur, les numéros, la navigation, les
-ancres et le panneau présentateur travaillent sur le sous-ensemble visible.
+Le navigateur collecte les valeurs `data-tags` et les tags d'article des
+cartes. La touche `L` ouvre le menu si au moins deux tags sont présents. Pour
+une slide, `default` est partagé : le choix `default` affiche les slides
+`default`, un autre choix affiche ses slides et les slides `default`. La
+sélection est conservée dans `localStorage['lwp-active-tag']` lorsqu'elle
+reste disponible dans la série. Le menu expose le tag actif, le nombre de
+cartes et de slides visibles, puis les titres des articles et des slides
+retenus. Lorsqu'aucune fiche ou slide ne reste visible, la page l'annonce au
+lecteur. Le compteur, les numéros, la navigation, les ancres, le panneau
+présentateur et les cartes travaillent sur le sous-ensemble visible.
+
+La sélection initiale est `series_meta.default_tag` (§20.5), ou `default` si
+la clé est absente; un choix mémorisé encore présent dans la série reste
+prioritaire. `default_tag` doit apparaître sur un article ou une slide
+non-exclue de la sélection de build, sinon le build est fatal.
 
 Le menu se ferme par **Échap**, par la touche **L**, par la sélection d'un
 tag, et par un clic **ailleurs que dessus**. Fermer par un clic extérieur
@@ -4454,9 +4474,9 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
    bloque pas et le build reste silencieux — une clé inconnue n'empêche pas
    l'outil de fonctionner (§9.5.6), elle échoue seulement à faire ce que son
    auteur voulait
-4. Avertit sur chaque **tag de variante** malformé — `build` rejetterait la
-   valeur `tags:`, `audit` rapporte chaque jeton fautif et continue, pour
-   qu'un article se corrige en une passe (§4.3.1) — et sur chaque **pack de
+4. Avertit sur chaque **tag** malformé — `build` rejetterait la valeur
+   `tags:`, `audit` rapporte chaque jeton fautif et continue, pour qu'un
+   article se corrige en une passe (§4.3.1) — et sur chaque **pack de
    langue** que `series_meta.lang_tags` désigne sans qu'il existe : `fr` et
    `en` sont toujours là, tout autre nom veut un fichier dans `language/` ou
    un `--language-file` (§20.5.1)
@@ -7031,6 +7051,7 @@ fiche `source` (citation, §4.3) est sans rapport et n'a pas changé.
 | `author` | string | non | pied de page de l'article + `<meta name="author">` | Auteur de l'article ; surcharge le bloc meta, qui surcharge le défaut `series_meta.author` (§20.3.1) |
 | `license` | string | non | pied de page de l'article | Licence du contenu ; même cascade que `author` (défaut `series_meta.license`) ; HTML brut autorisé (lien) |
 | `date` | string | non | pied de page de l'article (signature) | Date affichée telle quelle (texte libre) ; surcharge le bloc meta ; jamais déduite du mtime (§20.3.1) |
+| `tags` | string | non | index, nav, runtime | Tags d'article dans le bloc meta ; le tag sélectionné doit correspondre à l'un d'eux et à au moins une slide disponible (§4.3.1) |
 | `status` | chaîne | non | build/verify/status | `active` (défaut) \| `draft` \| `ignored` (§20.6) |
 | `comment` | string | non | aucun — jamais lu | Note de relecture ; ignorée par le build (§4.6) |
 
@@ -7184,6 +7205,7 @@ utilisé). Ce tableau direct n'a pas de place pour la sélection runtime JSON.
 | `intro` | string | non | Paragraphe d'introduction de l'index |
 | `author` | string | non | Auteur par défaut de toute la série (§20.3.1) ; affiché en pied de la page d'index, et sur chaque article qui ne le surcharge pas |
 | `license` | string | non | Licence par défaut de toute la série (§20.3.1) ; même affichage que `author` ; HTML brut autorisé (lien) |
+| `default_tag` | string | non | Tag sélectionné au premier affichage (`default` si absent). Un tag unique de l'espace de noms partagé; il doit être présent sur un article ou une slide non exclue sélectionnée pour le build (§4.3.1) |
 | `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
 | `lang_tags` | object `{tag: pack}` | non | Déclare les tags qui sélectionnent un moteur typographique, par exemple `{"fr": "fr", "en": "en"}`. Les clés suivent la syntaxe de `tags:` ; les noms de packs sont des identifiants sûrs et désignent `language/<pack>.json` ou un pack intégré (§7.5) |
 
@@ -7204,6 +7226,27 @@ Les packs `fr` et `en` sont intégrés. Tout autre nom est recherché comme un
 fichier `language/<pack>.json`. `audit` avertit si une déclaration
 `lang_tags` pointe vers un pack absent et si une fiche utilise ce tag ; il ne
 bloque jamais le build, tandis que le build refuse une déclaration mal formée.
+
+### 20.5.2 Tag initial et persistance
+
+`series_meta.default_tag` est le choix initial du filtre runtime pour l'index,
+les cartes de navigation et les slides. Il vaut `default` lorsqu'il est
+absent. Sa valeur est un tag unique, validé avec la même grammaire que les
+tags d'article et de slide. Elle doit être publiée par au moins un article ou
+une slide non exclue de la sélection de build; sinon le build et `verify`
+échouent avant d'écrire ou de comparer une sortie. Une valeur déclarée mais
+qui ne peut afficher aucune slide après les gates d'article et les exclusions
+produit un avertissement de `build` et d'`audit`; le build reste non fatal,
+mais la sélection initiale est signalée comme vide.
+
+Le navigateur donne priorité à un choix mémorisé dans
+`localStorage['lwp-active-tag']` si ce choix existe encore dans la série;
+sinon il utilise `default_tag`, puis `default`. Une carte d'article est
+visible seulement si son statut l'autorise, si son tag d'article (lorsqu'il
+existe) correspond exactement au choix, et si une de ses slides non exclues
+est visible sous ce choix. Un article sans tag d'article est libre sur cette
+première condition. La règle spéciale de partage de `default` ne s'applique
+qu'aux slides, pas à un `tags:` explicite d'article.
 
 ### 20.6 Statut d'un article (`status`)
 
@@ -7474,7 +7517,7 @@ Si le contenu inattendu contient une ligne qui commence par un identifiant
 suivi de `:`, le diagnostic rappelle qu'il s'agit peut-être d'un champ mal
 écrit et énumère les champs reconnus par une cover (`kicker:`, `tags:`,
 `summary:`, `comment:`, `note:`). Pour l'ancien `tag:`, il précise que
-`kicker:` désigne le libellé visible et `tags:` le filtrage par variante.
+`kicker:` désigne le libellé visible et `tags:` le filtrage par tag.
 
 ### 22.13 Nombre et position des fiches `cover`
 

@@ -180,9 +180,20 @@ theme property, an underscore an article field, a hyphen a slide field.
   listed, never counted, and the entry survives with every field on it —
   which is how you set an article aside without losing its settings. Any
   other value is a fatal error. `audit` is the exception: it examines every
-  listed article, including `ignored` entries that a normal build excludes
-  and drafts that a normal build omits unless `--include-drafts`; it renders
-  what it can and reports it without writing output.
+   listed article, including `ignored` entries that a normal build excludes
+   and drafts that a normal build omits unless `--include-drafts`; it renders
+   what it can and reports it without writing output.
+- `tags:` — optional article-level filter tags in this article's `lwp:meta`
+  block. A selected tag must match one of them and at least one non-excluded
+  slide must accept it for the article's index/nav card to remain visible.
+  An article without this field has no article-level gate.
+
+At series level, `series_meta.default_tag` chooses the tag selected on a
+fresh page. It defaults to `default` and must occur on an article or a
+non-excluded slide selected for the build. `build` and `audit` warn when the
+chosen tag, or any other selectable tag, has no effective slide after article
+gates and exclusions. A valid persisted reader choice still wins over this
+initial value.
 
 **Notes fields**, settable here or in `series_meta` (the article wins):
 
@@ -226,24 +237,29 @@ the readability floor — get named, under this article's filename.
 `comment:` here works too, for an article-wide note — same rule as the
 per-slide one below: recognized, never read, never published.
 
-## Slide variants: `tags:`
+## Tags: `tags:`
 
-`tags:` is a slide-level variant field, separate from the inline instance tags
-described later. Its value is one physical line containing space-separated
-names. Names are normalized case-insensitively; Unicode word characters,
-digits, `-`, and `_` are accepted, except a name may not begin with `_`.
+On a slide header, `tags:` is a slide-level filter field, separate from the
+article-level `tags:` above and from the inline instance tags described later.
+Its value is one physical line containing space-separated names. Names are
+normalized case-insensitively; Unicode word characters, digits, `-`, and `_`
+are accepted, except a name may not begin with `_`.
 
-- No `tags:` or an empty value assigns `default`, the shared variant.
+- No slide `tags:` or an empty value assigns `default`, the shared slide tag.
 - `tags: excluded` removes the slide during build, after its slide type has
   been validated but before the rest of the slide is validated and before
   numbering or anchors are generated.
 - Other values are emitted as `data-tags="..."` on the slide section.
 - In the generated page, press **L** to choose a tag when at least two exist.
-  The selected tag keeps its own slides and `default` slides, and is persisted
-  in `localStorage['lwp-active-tag']`.
+  The selected non-`default` tag keeps its own slides and `default` slides,
+  while `default` keeps only `default` slides. The selection is persisted in
+  `localStorage['lwp-active-tag']`. The same selection gates article cards:
+  an article tag is an exact match, while a slide's `default` tag is shared.
+  The menu names the active tag, counts visible articles/slides, and lists
+  their titles; an empty selection is announced on the page.
 
 The former visible-label field `tag:` is not an alias. Use `kicker:` for the
-label above a slide title, and `tags:` for variant filtering. On a standard
+label above a slide title, and `tags:` for tag filtering. On a standard
 slide an old `tag:` line becomes body text; on a cover, `build` reports the
 unknown field and prints the two current choices.
 
@@ -659,7 +675,7 @@ non-breaking space you type yourself always passes through unchanged.
 `--lang en` has a smaller rule set of its own — the two dash rules, a
 number followed by a metric unit or a unit word, initials, and `×`/`≈` —
 it is **not** rule-free. To mix
-languages in one article, map variant tags to packs with
+languages in one article, map slide tags to packs with
 `series_meta.lang_tags`, for example `{"fr": "fr", "en": "en"}`. The first
 mapped language tag on a slide chooses that pack; a slide without one uses
 the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and `en` packs are

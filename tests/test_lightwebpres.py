@@ -123,7 +123,7 @@ class BuildGoldenPath(unittest.TestCase):
 
 
 class SlideTags(unittest.TestCase):
-    """`tags:` is the article's variant axis: validated at build time,
+    """`tags:` is the article's slide filter: validated at build time,
     compacted before numbering, and exposed to the page runtime."""
 
     def _tagged_article(self):
@@ -192,7 +192,10 @@ class SlideTags(unittest.TestCase):
                 'class="nav-row nav-row-up"', 'class="nav-row nav-row-down"',
                 'var allSlides', 'var selectedTag', 'localStorage',
                 'slides = allSlides.filter', "e.key === 'l' || e.key === 'L'",
-                'data-tags="default"'):
+                'data-tags="default"', 'data-lwp-tag-preview=',
+                'id="tagMenuCurrent"', 'id="tagMenuPreview"',
+                'tags_no_results',
+                'var isIndex = document.body.classList.contains'):
             self.assertIn(fragment, html, fragment)
 
     def test_generated_css_hides_filtered_slides_and_tag_button(self):
@@ -235,6 +238,113 @@ class SlideTags(unittest.TestCase):
 
         self.assertIn('<p class="summary">English.</p>', html)
         self.assertIn('<p class="summary">ENGLISH.</p>', html)
+
+
+class ArticleTags(unittest.TestCase):
+    """Article meta tags gate cards while sharing the slide tag vocabulary."""
+
+    def _article(self, meta_tags=''):
+        return (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Tags\n'
+            'nav_title: A\nnav_desc: A\n'
+            + (f'tags: {meta_tags}\n' if meta_tags else '')
+            + '---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: cover\ntags: fr\n'
+            '# Shared\nsummary: Shared content.\n'
+        )
+
+    def test_article_tags_reach_index_nav_payload_and_page_body(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article('FR'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'default_tag': 'FR'}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            article = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        self.assertIn('data-lwp-default-tag="fr"', index)
+        self.assertIn('data-lwp-series-tags="default fr"', index)
+        self.assertIn('data-lwp-article-tags="fr" data-lwp-slide-tags="fr"', index)
+        self.assertIn('data-lwp-article-tags="fr"', article)
+        self.assertIn('data-lwp-series-tags="default fr"', article)
+
+    def test_default_tag_must_be_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article('fr'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'default_tag': 'en'}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('default_tag', result.stderr)
+        self.assertIn('does not occur', result.stderr)
+
+    def test_build_warns_when_default_tag_has_no_effective_slide(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article('en'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'default_tag': 'fr'}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("build: tag 'fr' selects no displayable slide", result.stderr)
+        self.assertIn('initial selection will be empty', result.stderr)
+
+    def test_build_warns_when_all_slides_are_excluded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article())
+            source = root / 'sources' / 'a.md'
+            source.write_text(source.read_text(encoding='utf-8').replace(
+                'slug: cover\ntags: fr', 'slug: cover\ntags: excluded'),
+                encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('no non-excluded slide can be displayed', result.stderr)
+        self.assertIn("build: tag 'default' selects no displayable slide",
+                      result.stderr)
+
+    def test_audit_warns_when_a_tag_has_no_effective_slide(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article('en'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'default_tag': 'fr'}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('audit', str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("audit: tag 'fr' selects no displayable slide", result.stderr)
+
+    def test_excluded_is_not_an_article_tag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article('excluded'))
+            result = run('build', str(root), '--output', str(root / 'public'))
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('only a slide omission', result.stderr)
+
+    def test_audit_reports_bad_article_tag_without_blocking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article('_private'))
+            result = run('audit', str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('article tags: invalid tag', result.stderr)
+
+    def test_audit_reports_bad_default_tag_without_blocking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, self._article('fr'))
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'default_tag': '_private'}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('audit', str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('default_tag: invalid tag', result.stderr)
 
 
 class ParagraphHandling(unittest.TestCase):
@@ -5465,18 +5575,16 @@ class IncrementalBuildOnly(unittest.TestCase):
             self.assertTrue((root / 'public' / 'b.html').exists())
             self.assertTrue((root / '.lwp-cache' / 'nav.json').exists())
 
-    def test_only_with_unchanged_nav_fields_rebuilds_just_that_article(self):
+    def test_only_with_changed_slide_titles_rebuilds_tag_previews_everywhere(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
             run('build', str(root), '--output', str(root / 'public'))
             b_before = (root / 'public' / 'b.html').read_text(encoding='utf-8')
 
-            # Add a brand-new standard slide to article A's body — none of
-            # page_title/card_title/card_desc/card_label/nav_title/
-            # nav_desc (the fields the safety check watches, §11.3.1) are
-            # touched: the cover's own h1/summary — which page_title/
-            # card_desc can fall back to, §20.3.1 — stay exactly as they
-            # were.
+            # The tag menu carries the titles of every article's visible
+            # slides on every generated page. A new slide therefore changes
+            # the shared index/nav payload even though the editorial fields
+            # watched by the old fast-path check stay untouched.
             md_a2 = (
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Article A\nnav_title: Article A\n'
                 'nav_desc: Desc A\n---\n\n'
@@ -5488,10 +5596,13 @@ class IncrementalBuildOnly(unittest.TestCase):
 
             result = run('build', str(root), '--output', str(root / 'public'), '--only', 'a.html')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('Incremental build', result.stdout)
+            self.assertNotIn('Incremental build', result.stdout)
+            self.assertIn('Build complete:', result.stdout)
             self.assertIn('A brand-new slide', (root / 'public' / 'a.html').read_text(encoding='utf-8'))
-            # b.html was never touched by the incremental path.
-            self.assertEqual(b_before, (root / 'public' / 'b.html').read_text(encoding='utf-8'))
+            # b.html carries the same menu payload and must not remain stale.
+            b_after = (root / 'public' / 'b.html').read_text(encoding='utf-8')
+            self.assertNotEqual(b_before, b_after)
+            self.assertIn('A brand-new slide', b_after)
 
     def test_only_with_changed_nav_field_falls_back_and_fixes_other_pages(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -12722,7 +12833,7 @@ class H1H2FieldFormRemoved(unittest.TestCase):
             self.assertIn(
                 'kicker:, tags:, summary:, comment:, note:', result.stderr)
             self.assertIn(
-                'Use "kicker:" for a visible label or "tags:" for variant filtering.',
+                 'Use "kicker:" for a visible label or "tags:" for tag filtering.',
                 result.stderr,
             )
 
@@ -16620,8 +16731,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertIsNone(report['target']['theme'])
         self.assertEqual(set(report['series_meta']),
                          {'title', 'subtitle', 'version', 'intro', 'author',
-                          'license'})
+                          'license', 'default_tag'})
         self.assertEqual(report['series_meta']['title'], 'A series')
+        self.assertIsNone(report['series_meta']['default_tag'])
         self.assertIsNone(report['series_meta']['subtitle'])
         self.assertEqual(set(report['counts']), {'active', 'draft', 'ignored'})
 
