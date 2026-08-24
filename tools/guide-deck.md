@@ -34,7 +34,7 @@ kicker: Setup
 fact-label: The whole loop
 source: Guide, section 2
 
-`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. `build --themes` can optionally embed a theme picker without changing that standalone property; the same selection can live in the root `series.json` `themes` list.
+`init` scaffolds, `demo` fills it with something real to look at, `build` writes `public/`. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. The essential runtime theme bundle is embedded by default; explicit `--themes` or root `series.json` `themes` selections add to or shape the catalogue, and `--no-essential-theme` opts out.
 
 `--lang en` chooses the build-wide fallback. For one article to carry several
 languages, `tags:` selects a variant and `series_meta.lang_tags` can select a

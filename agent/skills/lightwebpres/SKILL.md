@@ -159,13 +159,14 @@ way to see that the line you just wrote is being beaten by a
 theme property, an underscore an article field, a hyphen a slide field.
 `--format json` if you are parsing it.
 
-**Editorial fields**, settable here or in `series.json`, both displayed
-and emitted as `<meta>` tags:
+**Editorial fields**, settable here or in `series.json`, with these outputs:
 
-- `author`, `license` — fall back to `series_meta`'s values for the whole
-  series. They render in the page footer as a byline and a licence line.
-- `date` — free text, no format imposed; it joins the author in the
-  byline.
+- `author` — falls back to `series_meta.author` for the whole series. It is
+  rendered in the page footer as a byline and emitted as `<meta name="author">`.
+- `license` — falls back to `series_meta.license` for the whole series. It is
+  rendered in the page footer as a licence line only.
+- `date` — free text, no format imposed; it joins the author in the footer
+  byline only.
 - `page_desc` — feeds `<meta name="description">`. Cascade:
   `series.json` > here > the cover slide's `summary`. It is the one field
   `audit` actively complains about when it resolves to nothing.
@@ -178,10 +179,10 @@ and emitted as `<meta>` tags:
   it out of the chain altogether: never built whatever the flags, never
   listed, never counted, and the entry survives with every field on it —
   which is how you set an article aside without losing its settings. Any
-  other value is a fatal error. `audit` is the exception to all of it: it
-  excludes nothing, drafts least of all, and renders them like the rest —
-  so keeping an article in `draft` while you work on it costs you no
-  checking.
+  other value is a fatal error. `audit` is the exception: it examines every
+  listed article, including `ignored` entries that a normal build excludes
+  and drafts that a normal build omits unless `--include-drafts`; it renders
+  what it can and reports it without writing output.
 
 **Notes fields**, settable here or in `series_meta` (the article wins):
 

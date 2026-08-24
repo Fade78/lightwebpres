@@ -2021,7 +2021,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.45.4</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.45.5</div>
   </div>
 </div>
 
@@ -2157,7 +2157,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <h2>Three commands to a built site</h2>
   <div class="fact-box">
     <div class="fact-label">The whole loop</div>
-    <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. <code>build --themes</code> can optionally embed a theme picker without changing that standalone property; the same selection can live in the root <code>series.json</code> <code>themes</code> list.</p>
+    <div class="fact-content">  <p><code>init</code> scaffolds, <code>demo</code> fills it with something real to look at, <code>build</code> writes <code>public/</code>. Every page is a single self-contained file — no server, no external runtime dependency, nothing to load. The essential runtime theme bundle is embedded by default; explicit <code>--themes</code> or root <code>series.json</code> <code>themes</code> selections add to or shape the catalogue, and <code>--no-essential-theme</code> opts out.</p>
   <p><code>--lang en</code> chooses the build-wide fallback. For one article to carry several languages, <code>tags:</code> selects a variant and <code>series_meta.lang_tags</code> can select a typography pack per slide.</p></div>
   </div>
   <p class="source">Source : Guide, section 2</p>
@@ -2255,7 +2255,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <p>This is the map of the tool: init it, see what a page is made of, wire a series, adjust the look, ship it. For what each command <em>exactly</em> does in every edge case, see <code>specifications.md</code>; for the precise article syntax, see <code>agent/skills/lightwebpres/SKILL.md</code>. This guide is the path through all of it in the order you'll actually need it.</p>
   <p><strong>What this guide does not do is teach you to write.</strong> LightWebPres is for people who already know how; it renders what you give it. Nothing here says what makes a good card, how to structure an argument or when a claim needs a source. A second skill, <code>sourced-presentation</code>, ships alongside as a courtesy for people who would like a method — an offered interface, not the core of what this does. Take it or leave it: [section 11](#11-going-further).</p>
   <h2>1. What LightWebPres is</h2>
-  <p>LightWebPres turns an extended Markdown format into self-contained, scrollable HTML articles — a cover, a handful of fact-card slides, an optional long-form piece, cross-article navigation — with no external runtime dependencies. An optional <code>--themes</code> build embeds its picker in the same self-contained page. One executable, <code>lightwebpres</code>, does the whole job: scaffold a project, generate demo content, build, verify, and keep templates current.</p>
+  <p>LightWebPres turns an extended Markdown format into self-contained, scrollable HTML articles — a cover, a handful of fact-card slides, an optional long-form piece, cross-article navigation — with no external runtime dependencies. The essential runtime theme bundle is embedded by default in the same self-contained page; explicit <code>--themes</code> or root <code>series.json</code> selections add to or shape the catalogue, and <code>--no-essential-theme</code> opts out. One executable, <code>lightwebpres</code>, does the whole job: scaffold a project, generate demo content, build, verify, and keep templates current.</p>
   <p><strong>Three ways it gets used, and the tool does not care which.</strong></p>
   <ul>
     <li><strong>A person at a terminal</strong>, which is how this guide is written.</li>
@@ -2438,7 +2438,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 ./lightwebpres series theme set my-series --theme crimson
   </code></pre>
   <p>A theme is a word in a data file: <code>series theme set</code> rewrites the one <code>theme:</code> line of <code>templates/settings.conf</code> and nothing else. No CSS is touched — the stylesheet is composed in memory at every build.</p>
-  <p>The build can optionally carry several themes for the reader:</p>
+  <p>By default, the build embeds the essential runtime theme bundle for the reader; <code>--no-essential-theme</code> opts out, while explicit selections add to or shape the catalogue:</p>
   <pre><code class="language-bash">
 ./lightwebpres build my-series --themes print-ink,print-grey
 ./lightwebpres build my-series --themes all

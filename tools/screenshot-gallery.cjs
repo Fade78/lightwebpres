@@ -1,8 +1,8 @@
-// Renders generated/themes-gallery.html to generated/themes-gallery.png,
-// the snapshot the README embeds. Maintenance script — not part of the
-// test suite, and not something a user of lightwebpres ever needs to run.
+// Renders generated/themes-gallery.html to the PNG snapshots the README
+// embeds. Maintenance script — not part of the test suite, and not something
+// a user of lightwebpres ever needs to run.
 //
-//   node tools/screenshot-gallery.cjs [in.html] [out.png] [--full]
+//   node tools/screenshot-gallery.cjs [in.html] [out.png] [--full|--featured]
 //
 // Requires Playwright. In this repo's container:
 //   NODE_PATH=/opt/node22/lib/node_modules \
@@ -18,7 +18,7 @@
 // scrolled into view before it is captured.
 //
 // It also rearranges the page before capturing, because the gallery has
-// outgrown a straight screenshot: see CONTACT SHEET below.
+// outgrown a straight screenshot: see CONTACT SHEET and FEATURED below.
 //
 // The frames are sandboxed, so the page itself cannot look inside them
 // (contentDocument is null across an opaque origin). Playwright can,
@@ -32,14 +32,20 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const REPO = path.resolve(__dirname, '..');
-const args = process.argv.slice(2).filter((a) => a !== '--full');
-const FULL = process.argv.includes('--full');
+const rawArgs = process.argv.slice(2);
+const args = rawArgs.filter((a) => a !== '--full' && a !== '--featured');
+const FULL = rawArgs.includes('--full');
+const FEATURED = rawArgs.includes('--featured');
 const IN = path.resolve(args[0] || path.join(REPO, 'generated', 'themes-gallery.html'));
-const OUT = path.resolve(args[1] || path.join(REPO, 'generated', 'themes-gallery.png'));
+const OUT = path.resolve(args[1] || path.join(
+  REPO, 'generated', FEATURED ? 'themes-featured.png' : 'themes-gallery.png',
+));
+
+const FEATURED_SLUGS = ['pop-lemon', 'monochrome-night', 'print-ink'];
 
 // CONTACT SHEET is the default, and the page's own layout is the reason.
 // The gallery gives each theme a ROW of four panels — cover, card,
-// article, notes — and a panel is a real viewport at a real rendering
+// notes, article — and a panel is a real viewport at a real rendering
 // width, 560px tall at 340 wide. Captured as the page lays itself out,
 // the whole catalogue is one column of rows: measured at 1280 wide, that
 // came to 57,197 pixels of height and 8.5 MB, which is not an image a
@@ -55,12 +61,16 @@ const OUT = path.resolve(args[1] || path.join(REPO, 'generated', 'themes-gallery
 //
 // `--full` captures the page as it stands, every panel, for anyone who
 // wants the long strip.
-const PANEL = 340;                 // the clamp's own floor
-const COLUMNS = 4;
+const PANEL = FEATURED ? 460 : 340;
+const COLUMNS = FEATURED ? 3 : 4;
+const GAP = FEATURED ? 24 : 18;
 const ROW = PANEL + 38;            // + .panels padding (2x18) and the row's border
 const VIEWPORT = FULL
   ? { width: 1280, height: 1400 }
-  : { width: COLUMNS * ROW + (COLUMNS - 1) * 18 + 56 + 24, height: 1400 };
+  : {
+      width: COLUMNS * ROW + (COLUMNS - 1) * GAP + 56 + 24,
+      height: FEATURED ? 1000 : 1400,
+    };
 const TIMEOUT = 120000;
 
 // Applied before the frames are re-navigated, so each preview renders at
@@ -88,10 +98,35 @@ const CONTACT_CSS = `
   .preview { visibility: hidden !important; }
 `;
 
+// FEATURED is the product-first image: three real long-form article surfaces,
+// not the gallery's swatches or its tiny cover-only contact sheet. The fixed
+// panel width is also the iframe viewport width; no transform or post-paint
+// scaling is involved.
+const FEATURED_CSS = `
+  :root { --gal-panel: ${PANEL}px !important; }
+  .wrap { max-width: none !important; padding: 40px 28px 56px; }
+  .masthead, .facets, .facet-count, .swatches, .fact-treatment,
+  .theme-note, .install-hint, footer { display: none !important; }
+  .grid {
+    display: grid !important;
+    grid-template-columns: repeat(${COLUMNS}, max-content) !important;
+    gap: ${GAP}px !important;
+    margin-top: 0 !important;
+  }
+  .panels {
+    overflow: visible !important;
+    grid-template-columns: ${PANEL}px !important;
+  }
+  .preview { visibility: hidden !important; }
+`;
+
 async function main() {
   if (!fs.existsSync(IN)) {
     console.error(`missing ${IN} — run ./lightwebpres theme gallery first`);
     process.exit(2);
+  }
+  if (FULL && FEATURED) {
+    throw new Error('--full and --featured are mutually exclusive');
   }
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
@@ -101,16 +136,43 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('file://' + IN, { waitUntil: 'load' });
 
-  if (!FULL) await page.addStyleTag({ content: CONTACT_CSS });
+  if (!FULL) {
+    await page.addStyleTag({ content: FEATURED ? FEATURED_CSS : CONTACT_CSS });
+  }
 
-  const expected = await page.evaluate((contact) => {
+  const expected = await page.evaluate(({ contact, featured, slugs }) => {
     if (contact) {
-      // Drop the hidden panels' frames outright rather than leaving them
-      // display:none. A hidden iframe still attaches and still has to
-      // paint before the capture is allowed to proceed, so keeping them
-      // would cost three quarters of the wait for pixels nobody sees.
-      [].slice.call(document.querySelectorAll('.panel:nth-of-type(n+2)'))
-        .forEach(function (p) { p.remove(); });
+      if (featured) {
+        // Keep only the curated rows, in the order named by the montage.
+        // A hidden iframe still attaches and still has to paint before the
+        // capture is allowed to proceed, so remove every unused frame.
+        const grid = document.querySelector('.grid');
+        const wanted = new Map();
+        [].slice.call(document.querySelectorAll('.theme-row')).forEach((row) => {
+          const slug = row.querySelector('.theme-slug');
+          if (slug && slugs.includes(slug.textContent.trim())) {
+            wanted.set(slug.textContent.trim(), row);
+          } else {
+            row.remove();
+          }
+        });
+        slugs.forEach((slug) => {
+          const row = wanted.get(slug);
+          if (row) grid.appendChild(row);
+        });
+        [].slice.call(document.querySelectorAll('.theme-row')).forEach((row) => {
+          [].slice.call(row.querySelectorAll('.panel')).forEach((panel, index) => {
+            if (index !== 3) panel.remove();
+          });
+        });
+      } else {
+        // Drop the hidden panels' frames outright rather than leaving them
+        // display:none. A hidden iframe still attaches and still has to
+        // paint before the capture is allowed to proceed, so keeping them
+        // would cost three quarters of the wait for pixels nobody sees.
+        [].slice.call(document.querySelectorAll('.panel:nth-of-type(n+2)'))
+          .forEach(function (p) { p.remove(); });
+      }
     }
     const frames = [].slice.call(document.querySelectorAll('iframe.preview'));
     frames.forEach(function (f) {
@@ -118,8 +180,12 @@ async function main() {
       f.srcdoc = f.srcdoc;   // re-assigning navigates the frame, lazy or not
     });
     return frames.length;
-  }, !FULL);
+  }, { contact: !FULL, featured: FEATURED, slugs: FEATURED_SLUGS });
   if (expected === 0) throw new Error('no iframe.preview found — is this the themes gallery?');
+  if (FEATURED && expected !== FEATURED_SLUGS.length) {
+    throw new Error(`featured montage found ${expected} previews, expected ` +
+                    `${FEATURED_SLUGS.length}`);
+  }
 
   // The frames are reached through the elements that own them, not
   // through page.frames(). Removing a panel does not take its frame out

@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.4"
+VERSION = "0.45.5"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -10616,6 +10616,7 @@ class NoteScope:
         # called it. Assistive technology is told which one it is.
         self.endnotes = endnotes
         self.bodies = {}     # label -> body HTML, as md_inline() left it
+        self.body_typography = {}  # label -> (engine, disabled rules)
         self.numbers = {}    # label -> displayed number
         self.order = []      # labels, in numbering order
         self.calls = {}      # label -> how many calls have been resolved
@@ -10626,10 +10627,13 @@ class NoteScope:
         # published page (ARCHI-NOTES §4).
         self.swallowed = []
 
-    def define(self, label, body_html):
+    def define(self, label, body_html, typography=None):
         """Records a body. The first definition of a label wins; a second
         one is an editorial slip, not a build error — `audit` names it."""
-        self.bodies.setdefault(label, body_html)
+        if label not in self.bodies:
+            self.bodies[label] = body_html
+            if typography is not None:
+                self.body_typography[label] = typography
 
     def number(self, label):
         """The displayed number for a label, assigned on first sight."""
@@ -10671,10 +10675,12 @@ class NoteScope:
         them is read. A tooltip is a plain-text attribute the engine will
         never see again — this is the only moment the two renderings of one
         body can be made to say the same thing."""
-        if typo_engine is None:
-            return
-        self.bodies = {k: apply_typo(typo_engine, v, disabled)
-                       for k, v in self.bodies.items()}
+        typed = {}
+        for label, body in self.bodies.items():
+            engine, rules = self.body_typography.get(
+                label, (typo_engine, disabled))
+            typed[label] = apply_typo(engine, body, rules)
+        self.bodies = typed
 
     def orphan_calls(self):
         return [lb for lb in self.order if lb not in self.bodies]
@@ -11388,7 +11394,12 @@ def convert_markdown(md_text, typo_engine=None, disabled=None,
             # written; it renders where its placement says (ARCHI-NOTES §2),
             # which is at the foot of this locality or in the page's notes
             # section. The scope is what carries it there.
-            scope.define(label, md_inline(txt, absorb_punct=absorb_punct, inline_images=inline_images, sources_dir=sources_dir))
+            scope.define(
+                label,
+                md_inline(txt, absorb_punct=absorb_punct,
+                          inline_images=inline_images,
+                          sources_dir=sources_dir),
+                (typo_engine, disabled))
             i += 1
             continue
 
@@ -12827,6 +12838,18 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
             pass
 
     disabled_rules = typo_disabled_rules(meta, typo_engine, source_path.name)
+    disabled_by_engine = {typo_engine: disabled_rules}
+
+    def disabled_for(engine):
+        # Each selected pack resolves the article's bundles against its own
+        # category names; the fallback result also preserves `typo: off`.
+        if engine is None:
+            return disabled_rules
+        if engine not in disabled_by_engine:
+            disabled_by_engine[engine] = typo_disabled_rules(
+                meta, engine, source_path.name)
+        return disabled_by_engine[engine]
+
     # typo: off (§4.5) is this article's own --no-typography: skip the
     # engine entirely for its page, the same `None` the CLI flag passes
     # for a whole build, not just the two rules disabled_rules can name.
@@ -12870,11 +12893,12 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         for i, slide in enumerate(visible_slides, 1):
             slide_typo_engine = typo_engine_for_slide(
                 slide, article_typo_engine, article_lang_tag_engines)
+            slide_disabled_rules = disabled_for(slide_typo_engine)
             slide_notes = (page_notes if page_notes is not None
                            else NoteScope(identities[i - 1],
                                           tooltip=notes_tooltip))
             html = render_slide(slide, i, total_slides, slide_typo_engine,
-                                strings, disabled_rules, slide_notes,
+                                strings, slide_disabled_rules, slide_notes,
                                 absorb_punct=absorb_punct,
                                 inline_images=inline_images,
                                 sources_dir=sources_dir,
@@ -12950,6 +12974,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                                    tooltip=notes_tooltip))
                 slide_typo_engine = typo_engine_for_slide(
                     slide, article_typo_engine, article_lang_tag_engines)
+                article_disabled_rules = disabled_for(slide_typo_engine)
                 # inline_images/sources_dir travel here too. Omitting them
                 # was not a missing feature but a broken promise: the images
                 # of a `full-article` include kept a relative src while
@@ -12957,7 +12982,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
                 # option whose whole contract is "this file travels alone"
                 # produced a page with a dangling reference (BACKLOG B23).
                 article_html = convert_markdown(article_md, slide_typo_engine,
-                                                disabled_rules, article_notes,
+                                                article_disabled_rules, article_notes,
                                                 strings,
                                                 inline_images=inline_images,
                                                 sources_dir=sources_dir)
@@ -13840,7 +13865,7 @@ def load_lang_tag_engines(series_meta, lang_dir, default_lang,
     return engines
 
 
-def load_build_context(series_dir, args):
+def load_build_context(series_dir, args, include_ignored=False):
     """Shared setup for build and check (§11.3/§11.4): resolves paths,
     loads the language pack/typo engine, the CSS/nav.js (built-in or
     overridden, §9.1/§9.2), and series.json (validated, display fields
@@ -13986,9 +14011,20 @@ def load_build_context(series_dir, args):
     # article's status changes the cache's key set and correctly forces a
     # full build over the --only fast path.
     ignored = [e['page_dest'] for e in articles if e['status'] == 'ignored']
-    articles[:] = [e for e in articles if e['status'] != 'ignored']
-    for f in ignored:
-        progress(f'  [ignored] {f} is not part of this series')
+    if include_ignored:
+        # Audit renders these pages, but their siblings must still see the
+        # normal series data: ignored entries stay out of index and nav.
+        build_articles = [e for e in articles if e['status'] != 'ignored']
+        if isinstance(series_data, dict):
+            series_data = dict(series_data)
+            series_data['articles'] = build_articles
+        else:
+            series_data = build_articles
+    else:
+        articles[:] = [e for e in articles if e['status'] != 'ignored']
+        build_articles = articles
+        for f in ignored:
+            progress(f'  [ignored] {f} is not part of this series')
 
     # The list as the SERIES declares it — after `ignored`, before `draft`.
     # This is what the index-name rule counts (§11.3.3): a draft is still an
@@ -13996,11 +14032,13 @@ def load_build_context(series_dir, args):
     # still has an index worth protecting, and the collision is decided the
     # same way whether or not --include-drafts is passed. An ignored article
     # is not an article of the series at all, so it does not count.
-    claim_articles = list(articles)
+    claim_articles = list(build_articles)
 
     if not args.get('--include-drafts') and not args.get('--drafts-only'):
-        skipped = [e['page_dest'] for e in articles if e['status'] == 'draft']
-        articles[:] = [e for e in articles if e['status'] != 'draft']
+        skipped = [e['page_dest'] for e in build_articles
+                   if e['status'] == 'draft']
+        build_articles[:] = [e for e in build_articles
+                             if e['status'] != 'draft']
         for f in skipped:
             progress(f'  [draft] {f} skipped (build with --include-drafts to preview it)')
 
@@ -14013,7 +14051,7 @@ def load_build_context(series_dir, args):
     # rejects `..` and separators, but a plain name that IS a symlink out of
     # sources/ passes it and gets read and published. §22.9 already promises
     # this pairing for sources/; page_source was the one field without it.
-    missing = [e['page_source'] for e in articles
+    missing = [e['page_source'] for e in build_articles
                if _resolve_contained(sources_dir, e['page_source']) is None
                or not (sources_dir / e['page_source']).exists()]
     if missing:
@@ -15178,7 +15216,7 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
     with collect_warnings(
             already_said=('templates/style.css is no longer read',)) as sink:
         try:
-            ctx = load_build_context(series_dir, args)
+            ctx = load_build_context(series_dir, args, include_ignored=True)
         except SystemExit:
             # The message is already on stderr, printed by whatever refused.
             # Saying so here is what stops the summary from contradicting it
@@ -15200,7 +15238,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
         # `build` exit 1 while audit reported "No warnings". Blinding the
         # pass to a whole page is the failure it was written to remove, so
         # the claim is resolved against what a build would actually ship.
-        shipped = [e for e in ctx.articles if e['status'] != 'draft']
+        shipped = [e for e in ctx.articles
+                   if e['status'] not in ('draft', 'ignored')]
         claimant = resolve_index_claim(ctx.claim_articles, shipped)
 
         # Per article, so a fatal names the page that carries it -- and so
@@ -15209,6 +15248,10 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
         # all, so saying "the series does not build" over it would be
         # false, and a false finding is worse than a missing one.
         for entry in ctx.articles:
+            if not (ctx.sources_dir / entry['page_source']).exists():
+                # The syntax pass already counted a missing ignored source;
+                # there is nothing for this render pass to compose.
+                continue
             try:
                 build_article(
                     ctx.sources_dir / entry['page_source'], ctx.sources_dir,
@@ -15631,9 +15674,9 @@ def cmd_audit(series_dir, args):
     # mention it again.
     for entry in articles:
         if entry['status'] == 'ignored':
-            print(f"[NOTE] {entry['page_source']}: status is `ignored` — it is "
-                  f"in series.json but out of the chain: never built, never "
-                  f"listed, never counted.")
+            progress(f"[NOTE] {entry['page_source']}: status is `ignored` — it is "
+                     f"in series.json but out of the chain: never built, never "
+                     f"listed, never counted.")
 
     for entry in articles:
         source_path = sources_dir / entry['page_source']

@@ -2736,16 +2736,19 @@ contrairement à `settings.conf`/`custom.css`/`nav.js`.
 
 #### 9.3.7 Thèmes compilés à la demande
 
-Par défaut, le choix de thème est entièrement résolu dans la feuille CSS et
-aucune donnée de sélection n'est publiée dans la page. `build`, `verify` et
-`watch` acceptent toutefois `--themes <selectors|all>` pour embarquer un
-sélecteur de thèmes dans chaque page construite. En l'absence de cette option,
-le build lit la clé racine facultative `themes` de `series.json`. Une option CLI
-présente prend le pas sur la liste JSON. Le payload est inline, sans dépendance
-réseau : il émet l'ordre des variables une fois et, pour chaque thème demandé,
-les seules valeurs qui diffèrent du thème primaire, ainsi qu'un aperçu résolu
-pour le sélecteur : fond de page, dégradé de couverture (angle et deux arrêts)
-et couleur d'écriture de couverture.
+Par défaut, `build`, `verify` et `watch` embarquent dans chaque page le lot
+`essential` — `monochrome`, `monochrome-night` et `print-ink` — comme
+alternatives runtime. `--no-essential-theme` désactive cet embarquement par
+défaut. Une sélection explicite `--themes <selectors|all>` ou la clé racine
+facultative `themes` de `series.json` est ensuite appliquée : une option CLI
+prime sur la liste JSON; sans `--no-essential-theme`, la sélection explicite
+s'ajoute au lot `essential`; avec cette option, elle constitue le catalogue
+demandé. Sans sélection explicite et avec `--no-essential-theme`, aucune
+donnée de sélection n'est publiée dans la page. Le payload est inline, sans
+dépendance réseau : il émet l'ordre des variables une fois et, pour chaque
+thème demandé, les seules valeurs qui diffèrent du thème primaire, ainsi
+qu'un aperçu résolu pour le sélecteur : fond de page, dégradé de couverture
+(angle et deux arrêts) et couleur d'écriture de couverture.
 
 Le thème primaire est toujours le thème effectif lu dans
 `templates/settings.conf`, même si la liste l'omet. Une série sans ligne

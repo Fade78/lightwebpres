@@ -2322,9 +2322,14 @@ typewriter body with modern interface furniture.
 
 **État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
 
-The ordinary build remains a static themed page. A build that opts into
-`--themes` carries an inline, indexed delta payload instead of making the
-browser reconstruct the property cascade or fetching a catalogue. The
+**Historical record — the opt-in/no-payload behavior below was superseded by
+B47.** This entry preserves the decision and measurements from before the
+essential bundle became the default.
+
+At the time of this decision, the ordinary build remained a static themed
+page. A build that opted into `--themes` carries an inline, indexed delta
+payload instead of making the browser reconstruct the property cascade or
+fetching a catalogue. The
 effective `theme:` in `templates/settings.conf` is always the first entry,
 because it is the author's actual starting point even when the requested
 list omits it. The browser may replace only unpinned variables; settings,
@@ -2332,8 +2337,9 @@ list omits it. The browser may replace only unpinned variables; settings,
 author's last word. `sessionStorage` carries the reader's choice between the
 pages of a deck without changing its sources.
 
-The picker is deliberately explicit rather than a cycling shortcut: **C**
-opens a searchable dialog, while **M** gathers fullscreen, theme, help,
+At that time, the picker was deliberately explicit rather than a cycling
+shortcut: **C** opens a searchable dialog, while **M** gathers fullscreen,
+theme, help,
 presenter, tag, share, navigation and pause actions in one keyboardable
 dialog. A build without alternatives keeps C inert and omits the theme
 action, so the default page carries no theme-switch data and its static
@@ -2375,6 +2381,9 @@ palette passes the existing rendered contrast and catalogue property checks.
 
 **État :** terminé · **Depuis :** 2026-08-23 · **Version :** 0.45.4
 
+**Historical runtime-theme note — the opt-in/no-payload behavior described
+below was superseded by B47.**
+
 The `H` overlay always carries a small final provenance line, independent of
 the opt-in `--build-stamp` marker: `Compiled with LightWebPres vX.Y.Z`, with
 the product name bolded. This makes every generated page identify the tool
@@ -2383,8 +2392,9 @@ or exposing a build time.
 
 The help list always says that `C` changes the theme during the presentation,
 whether or not the current page carries alternatives. The picker opens only
-when alternatives have been embedded; on an ordinary page the line documents
-the capability without making the static page carry a runtime catalogue.
+when alternatives have been embedded; at the time of this decision, on an
+ordinary page the line documented the capability without making the static
+page carry a runtime catalogue.
 
 **What is verified.** Black-box and browser tests check the permanent stamp,
 the bold product name, the version shape and the visible `C` instruction.

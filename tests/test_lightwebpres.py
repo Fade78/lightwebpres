@@ -6948,6 +6948,71 @@ class TypographyDisableSwitches(unittest.TestCase):
                 self.assertNotIn('\u00a0', summary,
                                  f'{lang}: a unit rule survived typo_units: off')
 
+    def test_opt_outs_follow_mixed_slide_and_full_article_language_packs(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\ntypo_units: off\n'
+            'typo_thousands: off\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: k147\n# Cover\n'
+            'summary: 170 millions and 170 000 000.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k148\ntags: EN\n## English\n'
+            'summary: 3 kW and 5 million and 170 000 000.\n\n---\n\n'
+            '<!-- lwp:slide:full-article -->\nslug: k149\n'
+            'tags: EN\narticle: long.md\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            (root / 'language' / 'en.json').write_text(json.dumps({
+                'rules': [
+                    {'name': 'en_unit',
+                     'pattern': r'(?<=\d) (?=(?:kW|million)\b)',
+                     'replacement': '\u00a0', 'category': 'unit'},
+                    {'name': 'en_thousands',
+                     'pattern': r'(?<=\d) (?=\d{3}(?!\d))',
+                     'replacement': '\u00a0', 'category': 'thousands'},
+                ],
+            }), encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'sources' / 'long.md').write_text(
+                'A long form with 3 kW and 5 million.\n', encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({
+                'series_meta': {'lang_tags': {'en': 'en'}},
+                'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
+                              'nav_title': 'A', 'nav_desc': 'A'}],
+            }), encoding='utf-8')
+            result = run('build', str(root), '--lang', 'fr',
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        for text in ('170\u00a0millions', '3\u00a0kW',
+                     '5\u00a0million', '170\u00a0000\u00a0000'):
+            self.assertNotIn(text, html, text)
+
+    def test_deferred_note_body_uses_the_language_pack_of_its_slide(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+            'nav_title: A\nnav_desc: A\nnotes_placement: page\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: k150\n# Cover\nsummary: S.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k151\ntags: EN\n## English\n'
+            'fact-label: Source\n\nA claim[^unit].\n\n'
+            '[^unit]: 3 kW and 5 million.\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            (root / 'sources' / 'a.md').write_text(md, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps({
+                'series_meta': {'lang_tags': {'en': 'en'}},
+                'articles': [{'page_dest': 'a.html', 'page_source': 'a.md',
+                              'nav_title': 'A', 'nav_desc': 'A'}],
+            }), encoding='utf-8')
+            result = run('build', str(root), '--lang', 'fr',
+                         '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        self.assertIn('3\u00a0kW and 5\u00a0million', html)
+
     def test_every_shipped_rule_says_what_it_is_for(self):
         """The category is what an opt-out names, so a rule without one
         is a rule no opt-out can reach — which is exactly the state the
@@ -17249,6 +17314,33 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
             self.assertEqual(plain.returncode, 0)
             self.assertEqual(run('audit', root, '--strict').returncode, 1)
 
+    def test_an_ignored_article_is_rendered_for_render_only_audit_findings(self):
+        """Ignored entries stay out of a build, but audit must still reach
+        faults that only exist after Markdown is composed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            entries = data.get('articles', data) if isinstance(data, dict) else data
+            ignored = entries[1]
+            ignored['status'] = 'ignored'
+            ignored_dest = ignored['page_source'].rsplit('.', 1)[0] + '.html'
+            source = Path(root) / 'sources' / ignored['page_source']
+            source.write_text(source.read_text(encoding='utf-8') + '\n<div>\n',
+                              encoding='utf-8')
+            path.write_text(json.dumps(data, indent=2), encoding='utf-8')
+            shutil.rmtree(Path(root) / 'public', ignore_errors=True)
+
+            built = run('build', root)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            self.assertFalse((Path(root) / 'public' / ignored_dest).exists())
+
+            plain = run('audit', root)
+            self.assertIn('does not build', plain.stderr)
+            self.assertIn(ignored['page_source'], plain.stderr)
+            self.assertEqual(plain.returncode, 0)
+            self.assertEqual(run('audit', root, '--strict').returncode, 1)
+
     def test_one_legacy_stylesheet_is_one_finding(self):
         """`judge_resolved_theme` keeps the one-mistake-one-finding rule
         inside a pass — "eight warnings for one typo is how a report stops
@@ -17282,11 +17374,8 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
         bare print() calls the flag could not see".
 
         On an `ignored` article rather than a draft, and mutation is why:
-        audit now renders WITH drafts, so the `[draft]` line it used to
-        leak is no longer reachable from here at all and a test written on
-        it passes whatever the print does. `ignored` stays filtered — it
-        is out of the chain by definition — so it is the case that still
-        exercises the flag."""
+        audit renders ignored pages for render-only findings, but the status
+        note itself is still progress and must remain suppressible."""
         with tempfile.TemporaryDirectory() as tmp:
             root = self._series(tmp)
             path = Path(root) / 'series.json'
@@ -17296,7 +17385,7 @@ class AuditKeepsItsPromiseWhenTheSeriesFightsBack(unittest.TestCase):
             entries[1]['status'] = 'ignored'
             path.write_text(json.dumps(data, indent=2), encoding='utf-8')
             loud = run('audit', root)
-            self.assertIn('[ignored]', loud.stdout,
+            self.assertIn('[NOTE]', loud.stdout,
                           'the premise changed: this line is what --quiet '
                           'has to be able to suppress')
             quiet = run('audit', root, '--quiet')
@@ -17644,7 +17733,7 @@ class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):
                 '## Un titre propre\nfact-label: Le fait\n\n'
                 'Le corps avec **du gras**, de l\'`inline code` et un '
                 '[lien](https://example.org).\n'))
-            self.assertNotIn('contains', run('audit', root).stdout)
+            self.assertNotIn('contains', run('audit', root).stderr)
 
     def test_an_unpaired_marker_is_not_a_lost_emphasis(self):
         """`2 ** 8` is arithmetic and `**kwargs` is Python. Warning on them
@@ -17656,7 +17745,7 @@ class AFieldSaysWhenItIsCarryingMarkupItWillNotRender(unittest.TestCase):
                 'highlight: 2 ** 8\n'
                 'highlight-caption: ce que **kwargs déballe\n'
                 'fact-label: Le fait\n\nDu corps.\n'))
-            self.assertNotIn('contains', run('audit', root).stdout)
+            self.assertNotIn('contains', run('audit', root).stderr)
 
     def test_the_delivered_demo_raises_none_of_this(self):
         """The guard that keeps the check honest: a warning on our own

@@ -19,8 +19,10 @@ interface, not the core of what this does. Take it or leave it:
 LightWebPres turns an extended Markdown format into self-contained,
 scrollable HTML articles — a cover, a handful of fact-card slides, an
 optional long-form piece, cross-article navigation — with no external runtime
-dependencies. An optional `--themes` build embeds its picker in the same
-self-contained page. One executable, `lightwebpres`, does the whole job:
+dependencies. The essential runtime theme bundle is embedded by default in
+the same self-contained page; explicit `--themes` or root `series.json`
+selections add to or shape the catalogue, and `--no-essential-theme` opts out.
+One executable, `lightwebpres`, does the whole job:
 scaffold a project, generate demo content, build, verify, and keep
 templates current.
 
@@ -346,7 +348,9 @@ A theme is a word in a data file: `series theme set` rewrites the one `theme:`
 line of `templates/settings.conf` and nothing else. No CSS is touched —
 the stylesheet is composed in memory at every build.
 
-The build can optionally carry several themes for the reader:
+By default, the build embeds the essential runtime theme bundle for the
+reader; `--no-essential-theme` opts out, while explicit selections add to or
+shape the catalogue:
 
 ```bash
 ./lightwebpres build my-series --themes print-ink,print-grey

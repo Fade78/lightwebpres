@@ -33,7 +33,22 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.45.4
+## Unreleased — 0.45.5
+
+Per-article typography opt-outs now follow the language pack selected by each
+slide, including long-form articles and deferred notes. `audit` also renders
+ignored entries for render-only faults while normal builds continue excluding
+them.
+
+The article skill now describes editorial metadata and ignored audit behavior
+accurately. Runtime-theme documentation consistently describes the essential
+bundle shipped by default.
+
+The README now opens with a featured visual montage of real rendered article
+surfaces before the feature list, while retaining the compact catalogue and
+the full interactive theme gallery.
+
+## v0.45.4
 
 The contact sheet now captures each preview row while it is visible, then
 composes those painted rows into the full PNG; light themes no longer turn

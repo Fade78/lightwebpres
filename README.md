@@ -50,6 +50,11 @@ panel with the current slide's notes and the next slide's title, so you can
 read ahead unseen. And every page prints one slide per sheet — a clean PDF
 handout at Ctrl/Cmd+P.
 
+<figure>
+  <img src="generated/themes-featured.png" alt="Three large real rendered LightWebPres article surfaces in contrasting built-in themes" width="100%">
+  <figcaption><strong>One source, several visual directions.</strong> These are real article surfaces rendered by the same pipeline as a built deck, not palette swatches. The compact catalogue and full interactive gallery are below.</figcaption>
+</figure>
+
 ## Features
 
 - **Typography handled for you.** Non-breaking spaces before punctuation,
@@ -61,8 +66,9 @@ handout at Ctrl/Cmd+P.
 - **Nothing you make here can stop opening.** The output is one
   self-contained HTML file: no external runtime, no viewer, no proprietary
   container that has to still be supported for the words to come back. The
-  optional `build --themes` picker is embedded in the same file and needs no
-  network or framework.
+  runtime theme picker and its essential alternatives are embedded in the same
+  file by default; `--no-essential-theme` opts out. It needs no network or
+  framework.
   A deck built today opens in any browser that exists now and in any
   that follows, on a machine with none of this installed — the file
   alone, without the tool that made it. The source behind it is plain
@@ -661,9 +667,9 @@ choice, even when it is omitted from the list. The file is read at build time,
 so an author's edit is respected; settings, `style.*` properties and declared
 theme variables in `custom.css` remain pinned while the reader switches. The
 payload is inline and delta-encoded, so the resulting pages remain standalone.
-On a page built with this option, **C** opens the searchable theme picker. Each
-theme choice previews its resolved page/cover background, including its
-gradient, with the matching foreground ink. **M** opens one menu for
+On a page carrying runtime alternatives, **C** opens the searchable theme
+picker. Each theme choice previews its resolved page/cover background,
+including its gradient, with the matching foreground ink. **M** opens one menu for
 fullscreen, themes, help, speaker notes, tags, sharing, navigation and pause
 screens; its actions carry icons and their keyboard shortcuts. The same
 presenter menu is available from the lower-right Menu button. The choice is
@@ -705,12 +711,13 @@ or is already one of the verdict colours.
 > it now; `template update` writes `settings.conf` and `custom.css` if
 > they are missing.
 
-![Preview of the built-in color themes](generated/themes-gallery.png)
+![Compact contact sheet showing one rendered cover for every built-in colour theme](generated/themes-gallery.png)
 
-Above is every theme in the catalogue, each with its palette and the
-command that starts a series on it. It is a contact sheet: one panel per
-theme, the cover. [`generated/themes-gallery.html`](generated/themes-gallery.html) in this
-repository is the full thing — **one theme per row, four panels across:**
+Above is the compact catalogue view: every theme, one rendered cover per
+theme, with its palette and the command that starts a series on it. It is
+deliberately different from the three large article surfaces near the
+introduction. [`generated/themes-gallery.html`](generated/themes-gallery.html) in
+this repository is the full thing — **one theme per row, four panels across:**
 the cover, a card carrying a note, the page-wide notes section, and the
 long-form article, with the facets as live filters. Open it in a browser.
 

@@ -92,8 +92,14 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
 - `generated/themes-gallery.html` — `lightwebpres theme gallery
   generated/themes-gallery.html` (garde :
   `test_the_committed_gallery_is_byte_identical_to_a_fresh_one`).
-- `generated/themes-gallery.png` — planche-contact de la précédente, pour
-  le README (`tools/`).
+- `generated/themes-featured.png` — `NODE_PATH=/opt/node22/lib/node_modules
+  PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node
+  tools/screenshot-gallery.cjs --featured` — aperçu produit de trois thèmes
+  réels pour l'introduction du README. Capture navigateur, sans garde
+  d'identité à l'octet.
+- `generated/themes-gallery.png` — `NODE_PATH=/opt/node22/lib/node_modules
+  PW_CHROMIUM_PATH=/opt/pw-browsers/chromium node
+  tools/screenshot-gallery.cjs` — planche-contact compacte du README.
 - `generated/guide/` — `python3 tools/build_guide.py` (garde :
   `test_the_committed_guide_is_the_guide_the_tool_makes`).
 - `generated/golden-demo/` — la série démo (`init --theme pop-lemon` +
