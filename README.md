@@ -5,7 +5,7 @@
 # LightWebPres
 
 A single-file, dependency-free Python tool that turns an extended Markdown
-format into self-contained, scrollable HTML "slide deck" articles — with
+format into scrollable HTML "slide deck" articles with an inline runtime — with
 series navigation, an index page, and a generated README — deployable to
 any static host.
 
@@ -19,11 +19,13 @@ any static host.
 No `pip install`, no build step beyond the tool itself, no JavaScript
 framework in the output. Python 3.8+ (standard library only); on
 Windows, run `python lightwebpres <command>`. Every generated page is a
-single `.html` file with inline CSS and JS; it opens straight from disk or any
+single `.html` file with inline CSS and JS. Markdown images stay in
+`public/img/` by default; `--inline-images` embeds them too, so pages using
+them can travel as one file. The output opens straight from disk or any
 static host.
 
 **Every page is a presentation deck.** Open it in a browser and you have
-a full-screen presenter experience: keyboard (↑/↓, Home, F for
+a presenter experience with fullscreen available: keyboard (↑/↓, Home, F for
 fullscreen, B/W/T for pause screens, C for compiled themes, H for keyboard
 help, S for sharing, M for the presenter menu), mouse (click to advance,
 right-click to go back, middle button to leave fullscreen), and touch
@@ -43,27 +45,28 @@ against the desk puts nothing back on the wall. The scroll bar goes with
 them — it is navigation too, and it fades rather than being removed, so
 the page never reflows. The mouse becomes a
 remote: left-click advances, right-click goes back, two distinct buttons,
-no aiming. Fullscreen also neutralizes OS power-saving so the screen never
-dims mid-talk. An `X / N` counter and a direct number-jump (type the slide
+no aiming. Fullscreen requests a screen wake lock where the browser supports
+it, so the screen can stay awake mid-talk. An `X / N` counter and a direct number-jump (type the slide
 number, press Enter) keep you oriented in long decks; **N** opens a speaker
 panel with the current slide's notes and the next slide's title, so you can
-read ahead unseen. And every page prints one slide per sheet — a clean PDF
-handout at Ctrl/Cmd+P.
+read ahead unseen. And every article page prints one slide per sheet — a clean
+PDF handout at Ctrl/Cmd+P; the index has no slides and prints as an index page.
 
-**Mobile comes first.** The same self-contained page adapts to a phone: touch
-swipes, readable measures and controls that get out of the way leave the
-content usable in portrait mode instead of shrinking a desktop slide until it
-becomes a poster stamp.
+**Portrait reading and landscape presentation have equal weight.** The same
+page adapts to a phone: touch swipes, readable measures and controls that get
+out of the way leave the content usable in portrait mode instead of shrinking
+a desktop slide until it becomes a poster stamp.
 
-**Landscape is for the room.** Turn the page sideways and it becomes a public
-presentation: a full-screen 16:9 canvas, with the left and right mouse buttons
-as a simple remote to advance and go back without aiming at a control. The
-featured previews below show that mode in the `lava`, `terminal` and
-`pop-lemon` themes.
+**Landscape is for the room too.** In a wide or landscape viewport the page
+becomes a public presentation surface, with the left and right mouse buttons
+as a simple remote to advance and go back without aiming at a control. Enter
+fullscreen explicitly with `F` or the fullscreen button; changing orientation
+alone does not request it. The featured previews below are real `640x360`
+renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
 
 <figure>
   <img src="generated/themes-featured.png" alt="Three real 16 by 9 LightWebPres presentation covers in the Lava, Terminal and Pop Lemon themes" width="100%">
-  <figcaption><strong>One source, several visual directions.</strong> These are real landscape presentation surfaces rendered by the same pipeline as a built deck, not palette swatches. The compact catalogue and full interactive gallery are below.</figcaption>
+  <figcaption><strong>One source, several visual directions.</strong> These are real 640x360 landscape presentation surfaces rendered by the same pipeline as a built deck, not palette swatches. The compact catalogue and full interactive gallery are below.</figcaption>
 </figure>
 
 ## Features
@@ -74,15 +77,16 @@ featured previews below show that mode in the `lava`, `terminal` and
   you don't want it. French and English ship built-in; the mechanism
   isn't French-specific, so adding a language is a matter of writing
   rules, not touching the engine.
-- **Nothing you make here can stop opening.** The output is one
-  self-contained HTML file: no external runtime, no viewer, no proprietary
-  container that has to still be supported for the words to come back. The
-  runtime theme picker and its essential alternatives are embedded in the same
-  file by default; `--no-essential-theme` opts out. It needs no network or
-  framework.
+- **The runtime travels with the page.** The output has one HTML file per page,
+  with no external runtime, viewer or proprietary container that has to still
+  be supported for the words to come back. CSS, JS, the runtime theme picker
+  and its essential alternatives are embedded in the same file by default;
+  `--no-essential-theme` opts out. Markdown images remain relative files under
+  `img/` unless `--inline-images` embeds them as data URIs. It needs no network
+  or framework.
   A deck built today opens in any browser that exists now and in any
-  that follows, on a machine with none of this installed — the file
-  alone, without the tool that made it. The source behind it is plain
+  that follows, on a machine with none of this installed — the page and its
+  copied assets, without the tool that made it. The source behind it is plain
   Markdown, so it outlives the tool as well. A presentation is often the
   only surviving record of a talk; this one cannot become unreadable
   because something stopped being maintained.
@@ -94,11 +98,11 @@ featured previews below show that mode in the `lava`, `terminal` and
   settings file that drives the whole series — the stylesheet is composed
   at build time, and a mistyped key or value is a named build error,
   never a silent no-op.
-- **Every page stands alone, yet belongs to its series.** Each article is
-  one self-contained HTML file — but it carries its own cross-article
-  navigation block, generated from the series, so a reader can always get
-  back to "the rest of the series" without a framework stitching pages
-  together at runtime.
+- **Every article has its own page, yet belongs to its series.** Each article
+  is one HTML file with its own runtime. If the source includes a
+  `series-nav` slide, that slide carries a cross-article navigation block
+  generated from the series, so a reader can get back to "the rest of the
+  series" without a framework stitching pages together at runtime.
 - **Share in one click, at whatever scope you need.** Copyable link or QR
   code, for the whole series, the current article, or the exact slide
   being read — generated entirely client-side. The share button sits on
@@ -109,7 +113,7 @@ featured previews below show that mode in the `lava`, `terminal` and
   so reordering the deck, rewriting a heading or dropping a slide does
   not repoint the links you have already given out — including the
   printed ones.
-- **Built-in presentation mode.** Every generated page is a full-screen
+- **Built-in presentation mode.** Every generated page can become a full-screen
   presenter deck: keyboard (↑/↓, Home, F fullscreen, B/W/T pause
    screens, C compiled themes, H keyboard help, S sharing, M presenter menu), mouse (click advance,
   right-click back, middle button
@@ -121,15 +125,15 @@ featured previews below show that mode in the `lava`, `terminal` and
    between the default auto-hide mode and permanent navigation, with a short
    status toast naming the selected mode. The mouse becomes
   a remote — left-click advances, right-click goes back, two distinct
-  buttons, no aiming. Fullscreen neutralizes OS power-saving so the
-  screen never dims mid-talk. The index page is a deck like any other —
+  buttons, no aiming. Fullscreen requests a screen wake lock where the browser
+  supports it. The index page is a deck like any other —
   same chrome, same controls — where a step is an article card (the
   focus walks the cards and scrolls the page along), instead of a slide.
 - **Speaker aids for long decks.** A `X / N` counter, a type-a-number
   jump (Enter to land on slide N), and a speaker panel (**N**) that shows
   the current slide's `note:` field (a speaker note withheld from the
   audience) with the next slide's title — all fighting for the speaker's
-  attention, not the audience's. Every page also prints one
+  attention, not the audience's. Every article page also prints one
   slide per sheet (Ctrl/Cmd+P → PDF) with the theme colours kept and the
   navigation chrome stripped.
 - **Comes with a companion web page, not just a CLI.** One browser-based
@@ -154,11 +158,12 @@ featured previews below show that mode in the `lava`, `terminal` and
   install: one file, the Python standard library only, no wheel, no
   lockfile, no network at build time, so any image with `python3` runs
   it. Every path is an environment variable (`LWP_SERIES_DIR`,
-  `LWP_OUTPUT_DIR`, …), and `--only file` rebuilds a single article. The
-  Markdown can come from anywhere — a CMS export, a database, a
-  generator, an agent upstream — but see the trust boundary below: raw
-  HTML in such markdown passes through, so untrusted sources must be
-  sanitized before the build.
+  `LWP_OUTPUT_DIR`, …), and `--only file` targets one article when the
+  navigation cache is safe, while refreshing derived outputs; otherwise it
+  falls back to a full build. The Markdown can come from anywhere — a CMS
+  export, a database, a generator, an agent upstream — but see the trust
+  boundary below: raw HTML in such markdown passes through, so untrusted
+  sources must be sanitized before the build.
 
 ## Quickstart
 
@@ -178,8 +183,9 @@ Each article is one Markdown file: a metadata block, then a sequence of
 "slides" separated by `---`. An article is self-describing — its own
 `page_title`/`card_title`/`card_desc`/`nav_title`/`nav_desc` all fall back
 to sensible content-derived defaults if left out, and `series.json` only
-needs `page_source` per article (see specifications.md §20.3.1); every field
-below can be omitted or overridden from `series.json` instead.
+needs `page_source` per article (see specifications.md §20.3.1). Every slide
+must still declare its durable `slug:`; other fields below can be omitted or
+overridden from `series.json` instead.
 
 ```markdown
 <!-- lwp:meta -->
@@ -189,6 +195,7 @@ nav_desc: Pastry, baking, and plating
 ---
 
 <!-- lwp:slide:cover -->
+slug: apple-pie-cover
 kicker: Recipe
 # The apple pie
 summary: Nine things that make or break a homemade apple pie, from pastry to bake.
@@ -196,6 +203,7 @@ summary: Nine things that make or break a homemade apple pie, from pastry to bak
 ---
 
 <!-- lwp:slide -->
+slug: temperature
 kicker: Baking
 ## Temperature changes everything
 summary: An oven that's too hot cooks the surface before the center is ready.
@@ -209,13 +217,20 @@ most common mistake in a homemade pie.
 
 ---
 
+<!-- lwp:slide:series-nav -->
+slug: series-links
+
+---
+
 <!-- lwp:slide:full-article -->
+slug: apple-pie-long
 article: apple-pie_article.md
 ```
 
-The last slide points at a **second** file, `sources/apple-pie_article.md`,
-holding the long-form text — `build` fails if it isn't there. Drop the
-`full-article` slide if you don't want one.
+The `series-nav` marker is optional; when present, the build fills it with the
+other articles in the series. The last slide points at a **second** file,
+`sources/apple-pie_article.md`, holding the long-form text — `build` fails if
+it isn't there. Drop either optional slide if you don't want it.
 
 ### Variants in one page
 
@@ -236,6 +251,7 @@ shared content shown with every selected variant.
 
 ```markdown
 <!-- lwp:slide:cover -->
+slug: apple-pie-fr
 kicker: Guide
 tags: fr
 # La tarte aux pommes
@@ -244,6 +260,7 @@ summary: Version française.
 ---
 
 <!-- lwp:slide:cover -->
+slug: apple-pie-en
 kicker: Guide
 tags: en
 # The apple pie
@@ -252,6 +269,7 @@ summary: English version.
 ---
 
 <!-- lwp:slide -->
+slug: shared
 kicker: Common
 ## Shared slide
 summary: Visible in every variant because it has no `tags:` field.
@@ -262,7 +280,7 @@ when at least two tags exist; the choice is retained in
 `localStorage['lwp-active-tag']`. Navigation, slide counts, anchors, and the
 presenter panel operate on the visible subset. `tags: excluded` removes a
 slide at build time and never emits it in the HTML — and, since a slide's
-anchor is derived from what it says rather than from its rank, excluding
+anchor is the explicit `slug:` it declares rather than its rank, excluding
 one no longer repoints the anchors of the slides after it. `audit` reports malformed
 tags and language tags whose declared pack is missing without blocking the
 build.
@@ -272,9 +290,10 @@ page, a fact-card slide
 with a highlighted figure, and a full long-form article appended at the
 end — plus keyboard/scroll navigation, a share button ("copy link to
 this slide", with a QR code; it sits on every page, index included,
-where the slide scope is disabled), and (if there's more than one
-article) a cross-article navigation block,
-all generated automatically.
+where the slide scope is disabled), and, when the article includes a
+`series-nav` slide and the series has more than one article, a cross-article
+navigation block. The generated index, README and navigation data are derived
+automatically.
 
 Each page is also a presentation deck: click to advance, right-click to
 go back, middle button to leave fullscreen (entering is a two-step
@@ -342,7 +361,7 @@ the series or within one article.
 |---|---|
 | `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, an empty `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script, the language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
-| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file.html` rebuilds just that one article, falling back to a full build automatically if anything that affects `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds images as base64 data URIs (self-contained pages, no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
+| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` and `--no-essential-theme` decision used by the build |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — variant tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, a differing language pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
@@ -358,7 +377,7 @@ the series or within one article.
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
-| `watch [dir]` | Polls sources, rebuilds on change, optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
+| `watch [dir]` | Polls `series.json`, sources, templates and language packs (including their current descendants), rebuilds on change, and notices files created after startup; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 | `--version` | Prints the version (`LightWebPres vX.Y.Z`) and exits |
@@ -372,7 +391,8 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | Option | Command(s) | Effect |
 |---|---|---|
 | `--slides-page-numbers on\|off` | `build`, `watch` | engraves the top-right `NN / NN` slide number — opt-in, default `off`; the article front-matter `slide_page_numbers` and `series_meta.slide_page_numbers` also enable it (see specifications.md §3.3.5) |
-| `--no-nav` | `build`, `watch` | omits the cross-article navigation block |
+| `--no-typography` | `build`, `verify`, `watch` | disables every typography rule for the run |
+| `--no-nav` | `build`, `verify`, `watch` | leaves an explicitly placed `series-nav` slide without generated navigation links |
 | `--no-index` | `build`, `watch` | skips `index.html` |
 | `--no-readme` | `build`, `watch` | skips the generated `README.md` |
 | `--drafts-only` | `build`, `watch` | builds only `status: draft` articles |
@@ -381,8 +401,12 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--strict` | `audit` | exits non-zero on any warning — the complete gate: editorial warnings and everything the render raises alike, a failed render included |
 | `--templates` | `audit` | restricts the audit to the presentation/template layer: it still judges the resolved stylesheet, but skips the per-article editorial checks and does not render, so it stays cheap |
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
-| `--only file.html` | `build` | rebuilds a single article |
-| `--inline-images` | `build` | embeds images as base64 data URIs |
+| `--only file` | `build` | targets one article when the navigation cache is safe; refreshes the derived outputs too and falls back to a full build when it is not |
+| `--inline-images` | `build` | embeds Markdown images as base64 data URIs and does not copy `img/`; relative images left in raw HTML are rejected |
+| `--language-file path` | `build`, `verify` | uses this language pack instead of `language/<lang>.json` |
+| `--nav-cache path` | `build` | reads and writes the fingerprint used to decide whether `--only` is safe |
+| `--build-stamp` | `build` | adds a version-and-time freshness marker to generated pages |
+| `--build-stamp-minimal` | `build` | adds the freshness marker without version or time; wins over `--build-stamp` |
 | `--themes selectors\|all` | `build`, `verify`, `watch` | embeds slugs, `essential` or `X:Y` facet selectors; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
 | `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
@@ -402,9 +426,9 @@ new one.
   want a reminder.
 - **`standard`** — kicker, optional `tags:`, `## Title`, summary, an optional highlighted
   figure (`highlight`/`highlight-caption`), and a Markdown fact-box.
-- **`series-nav`** — cross-article navigation, generated from
-  `series.json` (at most one per article); it accepts optional `tags:` and
-  `comment:` fields but no free body.
+- **`series-nav`** — a cross-article navigation slide; place its marker in the
+  article and the links are generated from `series.json` (at most one per
+  article). It accepts optional `tags:` and `comment:` fields but no free body.
 - **`full-article`** — includes a separate long-form Markdown file, accepts
   `article:` plus optional `tags:` and `comment:`, and has no free body. A
   page may carry several of them, each naming its own file;
@@ -512,7 +536,7 @@ two dash rules). This alters generated
 content, so it's controllable at three levels: per-article meta fields
 `typo_units: off` / `typo_thousands: off` (just those rules) or `typo:
 off` (every rule, that article's page only), and the CLI flag
-`--no-typography` on `build`/`verify` (every rule, the whole run). See
+`--no-typography` on `build`/`verify`/`watch` (every rule, the whole run). See
 `--help` or specifications.md §4.5/§7.5/§19.6 for the full list.
 
 ## Theming & customization
@@ -677,7 +701,8 @@ The effective `theme:` in `templates/settings.conf` is always the first
 choice, even when it is omitted from the list. The file is read at build time,
 so an author's edit is respected; settings, `style.*` properties and declared
 theme variables in `custom.css` remain pinned while the reader switches. The
-payload is inline and delta-encoded, so the resulting pages remain standalone.
+runtime theme payload is inline and delta-encoded, so the runtime remains
+standalone even when the page also uses relative image files.
 On a page carrying runtime alternatives, **C** opens the searchable theme
 picker. Each theme choice previews its resolved page/cover background,
 including its gradient, with the matching foreground ink. **M** opens one menu for

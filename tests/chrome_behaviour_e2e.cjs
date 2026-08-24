@@ -12,6 +12,8 @@
 //     condition.
 //   - F, the presenter menu and the navigation button must all toggle
 //     fullscreen on the index, as they do on an article page.
+//   - Clicking a presenter/theme dialog, including its backdrop and filter,
+//     must not advance the deck behind it.
 //
 // Invoked by tests/test_chrome_behaviour.py — not a standalone entry
 // point.
@@ -332,6 +334,48 @@ async function main() {
          + indexCopied + ' expected ' + indexUrl);
   }
   await indexPage.keyboard.press('Escape');
+
+  // 4a4. Dialog clicks belong to the dialog, not to the deck behind it.
+  // The global click handler is document-wide; a backdrop listener that
+  // closes a dialog must still stop the event from becoming a slide step.
+  const dialogPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  collectConsoleErrors(dialogPage, errors);
+  await dialogPage.goto(articleUrl, { waitUntil: 'load' });
+  await dialogPage.waitForTimeout(300);
+  const dialogSlide = () => currentSlide(dialogPage);
+  const dialogBefore = await dialogSlide();
+  await dialogPage.click('#navMenu');
+  await dialogPage.waitForSelector('#presenterMenu.open');
+  await dialogPage.evaluate(() => {
+    document.getElementById('presenterMenu').dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }));
+  });
+  if (await dialogSlide() !== dialogBefore) {
+    fail('clicking the presenter menu backdrop advanced the deck');
+  }
+  await dialogPage.click('#navMenu');
+  await dialogPage.waitForSelector('#presenterMenu.open');
+  const themeActionVisible = await dialogPage.evaluate(() => {
+    const action = document.getElementById('menuTheme');
+    return !!action && !action.hidden;
+  });
+  if (!themeActionVisible) {
+    fail('the fixture has no visible theme action, so the dialog test is vacuous');
+  }
+  await dialogPage.click('#menuTheme');
+  await dialogPage.waitForSelector('#themeMenu.open');
+  await dialogPage.locator('#themeFilter').click();
+  if (await dialogSlide() !== dialogBefore) {
+    fail('clicking the theme filter advanced the deck');
+  }
+  await dialogPage.evaluate(() => {
+    document.getElementById('themeMenu').dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }));
+  });
+  if (await dialogSlide() !== dialogBefore) {
+    fail('clicking the theme menu backdrop advanced the deck');
+  }
+  await dialogPage.close();
 
   const indexFocus = () => indexPage.evaluate(() => {
     const a = document.activeElement;

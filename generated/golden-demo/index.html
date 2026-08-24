@@ -2020,7 +2020,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.45.7</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.45.8</div>
   </div>
 </div>
 
@@ -4312,7 +4312,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return !!currentFullscreenElement();
   }
   function isInteractive(e) {
-    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .nav-buttons');
+    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .nav-buttons');
   }
   // A double tap is detected from the touch events themselves (see the
   // touch section below), never from the clicks a browser synthesises

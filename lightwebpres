@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.7"
+VERSION = "0.45.8"
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -8748,7 +8748,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return !!currentFullscreenElement();
   }
   function isInteractive(e) {
-    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .nav-buttons');
+    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .nav-buttons');
   }
   // A double tap is detected from the touch events themselves (see the
   // touch section below), never from the clicks a browser synthesises
@@ -12624,8 +12624,12 @@ class _HtmlBalanceChecker(HTMLParser):
         self.stack.pop()
 
 
-_RELATIVE_SRC_RE = re.compile(r'<img\b[^>]*?\bsrc="(?!data:|https?://|//)([^"]*)"',
-                              re.IGNORECASE)
+_RELATIVE_SRC_RE = re.compile(
+    r'<img\b[^>]*?\bsrc\s*=\s*'
+    r'(?:(?:"(?P<double>[^"]*)")|(?:\'(?P<single>[^\']*)\')|'
+    r'(?P<bare>[^\s"\'=`<>]+))',
+    re.IGNORECASE)
+_ABSOLUTE_SRC_RE = re.compile(r'^(?:data:|https?://|//)', re.IGNORECASE)
 
 
 def validate_self_contained(html, filename):
@@ -12642,7 +12646,13 @@ def validate_self_contained(html, filename):
     Raw HTML written by the author (§6.2) is not converted and so is not
     inlined either; it is caught here rather than silently shipped, and the
     message says what to do about it."""
-    stray = _RELATIVE_SRC_RE.findall(html)
+    stray = []
+    for match in _RELATIVE_SRC_RE.finditer(html):
+        src = next(value for value in (
+            match.group('double'), match.group('single'), match.group('bare'))
+            if value is not None)
+        if not _ABSOLUTE_SRC_RE.match(src):
+            stray.append(src)
     if not stray:
         return
     log('error', f'{filename}: --inline-images left {len(stray)} image(s) '
@@ -14151,16 +14161,33 @@ def _no_index_notice(claimant):
             f'else, so none is generated.')
 
 
+def _resolve_only_entry(ctx, only_file):
+    """Resolves `--only` after the same status filters as the build loop.
+
+    `load_build_context` removes ordinary drafts unless they were explicitly
+    included, while `--drafts-only` is applied by the full-build loop. Keeping
+    the selection here makes the cached path obey both forms instead of
+    quietly rebuilding a published article from a draft-only request.
+    """
+    if ctx.args.get('--drafts-only'):
+        eligible = [e for e in ctx.articles if e.get('status') == 'draft']
+    else:
+        eligible = ctx.articles
+    entry = next((e for e in eligible
+                  if only_file in (e['page_dest'], e['page_source'])), None)
+    if entry is None:
+        log('error', f'--only {only_file!r} matches no article (by file or source).')
+        sys.exit(1)
+    return entry
+
+
 def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
     """The fast path for `build --only`: the caller has already confirmed
     nav/index-affecting metadata is unchanged since the last build, so
     only the named article's own page needs re-converting — index.html,
     README.md, and images are cheap regardless of series size, so they're
     always redone rather than also trying to skip them."""
-    entry = next((e for e in ctx.articles if only_file in (e['page_dest'], e['page_source'])), None)
-    if entry is None:
-        log('error', f'--only {only_file!r} matches no article (by file or source).')
-        sys.exit(1)
+    entry = _resolve_only_entry(ctx, only_file)
 
     source_path = ctx.sources_dir / entry['page_source']
     if not source_path.exists():
@@ -14178,7 +14205,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     # index too, so leaving it out here would drop the index straight
     # back onto the article page it just wrote.
     claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
-    if claimant is None:
+    if claimant is None and not ctx.args.get('--no-index'):
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         progress('  index.html')
@@ -14189,11 +14216,12 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
                 % (detail,))
             sys.exit(1)
         _write_file(ctx.output_dir / 'index.html', index_html)
-    else:
+    elif claimant is not None:
         progress(_no_index_notice(claimant))
 
-    readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
-    _write_file(ctx.sd / 'README.md', readme)
+    if not ctx.args.get('--no-readme'):
+        readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
+        _write_file(ctx.sd / 'README.md', readme)
 
     # --inline-images: images are embedded as base64 data URIs, so the
     # img/ directory is not copied to the output.
@@ -14203,9 +14231,16 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
     _write_manifest(ctx.output_dir, ctx.articles,
-                    include_index=claimant is None, images=images)
-    tail = ' + index' if claimant is None else ''
+                    include_index=claimant is None and not ctx.args.get('--no-index'),
+                    images=images)
+    tail = ' + index' if claimant is None and not ctx.args.get('--no-index') else ''
     progress(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
+
+    # Keep the fast path's result-opening behavior identical to a full build.
+    if ctx.args.get('--open'):
+        import webbrowser
+        index_url = (ctx.output_dir / 'index.html').resolve().as_uri()
+        webbrowser.open(index_url)
 
 
 def cmd_completion(args):
@@ -14518,14 +14553,19 @@ def cmd_clean(series_dir, args):
         print('Run with --force to remove them.')
 
 
-def _cmd_watch_poll(sources, interval=0.5):
-    """Yields when any of `sources` (file paths) changed mtime since the
-    last call. A simple stdlib polling loop, no watchdog dependency."""
+def _cmd_watch_poll(sources, interval=0.5, refresh=None):
+    """Yields when any watched path changed, refreshing paths after changes.
+
+    A refresh lets directory creation wake the first rebuild and makes files
+    created there visible to later polling cycles. It remains a simple stdlib
+    polling loop, with no watchdog dependency.
+    """
     import time
+    paths = list(sources)
     mtimes = {}
     while True:
         changed = []
-        for path in sources:
+        for path in paths:
             try:
                 m = path.stat().st_mtime
             except OSError:
@@ -14536,8 +14576,35 @@ def _cmd_watch_poll(sources, interval=0.5):
                 mtimes[path] = m
                 changed.append(path)
         if changed:
+            if refresh is not None:
+                paths = list(refresh())
+                for path in paths:
+                    if path not in mtimes:
+                        try:
+                            mtimes[path] = path.stat().st_mtime
+                        except OSError:
+                            mtimes[path] = 0
             yield changed
         time.sleep(interval)
+
+
+def _watch_paths(series_dir, args):
+    """Returns every path whose change can alter a build watched by `watch`.
+
+    Keep this on the same resolver as `build`: a series may move its sources,
+    templates, or language packs through environment variables, and an
+    explicit language file may live outside all three directories. Directory
+    entries are included so creating/removing an input wakes the first rebuild.
+    """
+    sd, sources_dir, templates_dir, lang_dir, _, _, language_file = resolve_paths(
+        series_dir, args)
+    paths = {sd / 'series.json', sources_dir, templates_dir, lang_dir}
+    for root in (sources_dir, templates_dir, lang_dir):
+        if root.is_dir():
+            paths.update(root.rglob('*'))
+    if language_file:
+        paths.add(Path(language_file))
+    return sorted(paths, key=str)
 
 
 def cmd_watch(series_dir, args):
@@ -14579,24 +14646,14 @@ def cmd_watch(series_dir, args):
         if index.exists():
             webbrowser.open(index.resolve().as_uri())
 
-    # Gather the sources to poll.
-    sources = []
-    sources_dir = sd / 'sources'
-    if sources_dir.is_dir():
-        sources.extend(p for p in sources_dir.rglob('*.md') if p.is_file())
-    series_json = sd / 'series.json'
-    if series_json.exists():
-        sources.append(series_json)
-    settings = sd / 'templates' / SETTINGS_FILENAME
-    if settings.exists():
-        sources.append(settings)
-    custom = sd / 'templates' / CUSTOM_CSS_FILENAME
-    if custom.exists():
-        sources.append(custom)
+    # Gather the same resolved inputs that build consumes. Refreshing after a
+    # change makes files created after watch started visible to later polls.
+    refresh_watch_paths = lambda: _watch_paths(str(sd), build_args)
+    sources = refresh_watch_paths()
 
-    print(f'[watch] polling {len(sources)} source file(s). Ctrl-C to stop.')
+    print(f'[watch] polling {len(sources)} source path(s). Ctrl-C to stop.')
     try:
-        for changed in _cmd_watch_poll(sources):
+        for changed in _cmd_watch_poll(sources, refresh=refresh_watch_paths):
             names = ', '.join(p.name for p in changed)
             print(f'[watch] {names} changed — rebuilding...')
             try:
@@ -14645,6 +14702,11 @@ def cmd_build(series_dir, args):
     fresh_fingerprint = compute_nav_fingerprint(ctx.articles)
 
     only_file = args.get('--only')
+    if only_file:
+        # Validate the designation before consulting the cache. A cache miss
+        # may trigger a full build, but it must not turn an invalid --only
+        # request into an unrelated successful build.
+        _resolve_only_entry(ctx, only_file)
     if only_file:
         cached_fingerprint = load_nav_cache(nav_cache_path)
         if cached_fingerprint == fresh_fingerprint:

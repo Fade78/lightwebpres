@@ -33,6 +33,19 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.45.8
+
+The incremental build path now applies its draft and output switches
+consistently, and `watch` rescans resolved source, template and language paths
+so files created after startup remain watched. Presenter-dialog clicks no
+longer advance the deck behind them.
+
+The README now distinguishes inline runtime code from copied image assets,
+gives portrait reading and landscape presentation equal weight, and documents
+the durable slide slugs, explicit series navigation, `--only` side effects,
+watch coverage and typography controls. `--inline-images` also refuses quoted
+or unquoted relative images left in raw HTML.
+
 ## v0.45.7
 
 Fullscreen entry points now share one state-aware toggle. The mouse gesture,

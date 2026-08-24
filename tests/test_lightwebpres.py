@@ -29,6 +29,7 @@ from html import escape as html_escape
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 EXECUTABLE = Path(__file__).resolve().parent.parent / 'lightwebpres'
@@ -3388,25 +3389,38 @@ class CliVersionAndShortcuts(unittest.TestCase):
             'nav_title: A\nnav_desc: A\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: k82\nkicker: T\n# Title\nsummary: S.\n\n---\n\n'
             '<!-- lwp:slide -->\nslug: k83\nkicker: F\n## Fiche\nfact-label: L\n\n'
-            '<img src="img/raw.png" alt="raw">\n'
+            '<img src="img/raw-double.png" alt="raw">\n'
+            "<img src='img/raw-single.png' alt='raw'>\n"
+            '<img src=img/raw-bare.png alt=raw>\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(str(Path(tmp) / 'series'), md)
             (root / 'sources' / 'img').mkdir()
-            (root / 'sources' / 'img' / 'raw.png').write_bytes(b'\x89PNG\r\n\x1a\n')
+            (root / 'sources' / 'img' / 'raw-double.png').write_bytes(
+                b'\x89PNG\r\n\x1a\n')
+            (root / 'sources' / 'img' / 'raw-single.png').write_bytes(
+                b'\x89PNG\r\n\x1a\n')
+            (root / 'sources' / 'img' / 'raw-bare.png').write_bytes(
+                b'\x89PNG\r\n\x1a\n')
 
             hard = run('build', str(root), '--output', str(root / 'public'),
                        '--inline-images')
             self.assertEqual(hard.returncode, 1, hard.stdout)
-            self.assertIn('img/raw.png', hard.stderr,
-                          'the error does not name the offending src')
+            self.assertIn('img/raw-double.png', hard.stderr,
+                          'the error does not name the double-quoted src')
+            self.assertIn('img/raw-single.png', hard.stderr,
+                          'the error does not name the single-quoted src')
+            self.assertIn('img/raw-bare.png', hard.stderr,
+                          'the error does not name the unquoted src')
             self.assertIn('--inline-images', hard.stderr)
 
             # And the guard is scoped to the option: the same series builds
             # green without it, because then img/ IS copied.
             soft = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(soft.returncode, 0, soft.stderr)
-            self.assertTrue((root / 'public' / 'img' / 'raw.png').exists())
+            self.assertTrue((root / 'public' / 'img' / 'raw-double.png').exists())
+            self.assertTrue((root / 'public' / 'img' / 'raw-single.png').exists())
+            self.assertTrue((root / 'public' / 'img' / 'raw-bare.png').exists())
 
     def test_inline_images_never_reads_outside_the_article_dir(self):
         """--inline-images read ANY file the build user could open and
@@ -3765,6 +3779,29 @@ class CliVersionAndShortcuts(unittest.TestCase):
                     _time.sleep(0.1)
                 return False
 
+            def rebuild_count():
+                return sum('[watch] rebuilt.' in line for line in lines)
+
+            def wait_for_rebuild_after(previous, seconds=20):
+                end = _time.time() + seconds
+                while _time.time() < end:
+                    if rebuild_count() > previous:
+                        return True
+                    if proc.poll() is not None:
+                        return False
+                    _time.sleep(0.1)
+                return False
+
+            def wait_for_file(path, seconds=20):
+                end = _time.time() + seconds
+                while _time.time() < end:
+                    if path.exists():
+                        return True
+                    if proc.poll() is not None:
+                        return False
+                    _time.sleep(0.1)
+                return False
+
             try:
                 self.assertTrue(wait_for('[watch] polling'),
                                 'watch never reached its polling loop:\n'
@@ -3790,6 +3827,46 @@ class CliVersionAndShortcuts(unittest.TestCase):
                         f'http://127.0.0.1:{port}/a.html', timeout=10) as resp:
                     self.assertEqual(resp.status, 200)
                     self.assertIn(marker, resp.read().decode('utf-8'))
+
+                # A file created after watch started must be added to the
+                # polling set, so a later edit triggers another rebuild.
+                series_path = root / 'series.json'
+                series = json.loads(series_path.read_text(encoding='utf-8'))
+                b_source = root / 'sources' / 'b.md'
+                b_source.write_text(
+                    _MINIMAL_MD.replace('page_dest: a.html', 'page_dest: b.html')
+                    .replace('nav_title: A', 'nav_title: B')
+                    .replace('nav_desc: A', 'nav_desc: B')
+                    .replace('slug: k35', 'slug: k86')
+                    .replace('# Title', '# Added article'),
+                    encoding='utf-8')
+                series['articles'].append({
+                    'page_dest': 'b.html', 'page_source': 'b.md',
+                    'nav_title': 'B', 'nav_desc': 'B',
+                })
+                before_add = rebuild_count()
+                series_path.write_text(json.dumps(series), encoding='utf-8')
+                self.assertTrue(
+                    wait_for_rebuild_after(before_add),
+                    'watch never rebuilt after adding an article:\n'
+                    + ''.join(lines))
+                self.assertTrue(
+                    wait_for_file(out / 'b.html'),
+                    'watch rebuilt but did not publish the new article:\n'
+                    + ''.join(lines))
+
+                before_edit = rebuild_count()
+                b_source.write_text(
+                    b_source.read_text(encoding='utf-8').replace(
+                        '# Added article', '# SECOND-NEW-FILE-EDIT'),
+                    encoding='utf-8')
+                self.assertTrue(
+                    wait_for_rebuild_after(before_edit),
+                    'watch did not notice an edit to the newly created file:\n'
+                    + ''.join(lines))
+                self.assertIn(
+                    'SECOND-NEW-FILE-EDIT',
+                    (out / 'b.html').read_text(encoding='utf-8'))
             finally:
                 proc.send_signal(signal.SIGINT)
                 try:
@@ -5461,6 +5538,93 @@ class IncrementalBuildOnly(unittest.TestCase):
             for fingerprint in cache.values():
                 self.assertRegex(fingerprint, r'^[0-9a-f]{64}$')
                 self.assertNotIn('Article', fingerprint)
+
+    def test_only_honors_the_drafts_only_filter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['articles'][1]['status'] = 'draft'
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+
+            first = run('build', str(root), '--output', str(root / 'public'),
+                        '--drafts-only')
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertTrue((root / 'public' / 'b.html').exists())
+            self.assertFalse((root / 'public' / 'a.html').exists())
+
+            published = run('build', str(root), '--output', str(root / 'public'),
+                             '--drafts-only', '--only', 'a.html')
+            self.assertNotEqual(published.returncode, 0)
+            self.assertIn('matches no article', published.stderr)
+
+            draft = run('build', str(root), '--output', str(root / 'public'),
+                        '--drafts-only', '--only', 'b.html')
+            self.assertEqual(draft.returncode, 0, draft.stderr)
+            self.assertIn('Incremental build', draft.stdout)
+
+    def test_only_honors_index_readme_and_open_options(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            output = root / 'public'
+            first = run('build', str(root), '--output', str(output))
+            self.assertEqual(first.returncode, 0, first.stderr)
+            (output / 'index.html').unlink()
+            (root / 'README.md').unlink()
+
+            record = Path(tmp) / 'opened.txt'
+            fake = Path(tmp) / 'fake-browser'
+            fake.write_text(
+                f'#!/bin/sh\nprintf "%s\\n" "$@" >> {record}\n',
+                encoding='utf-8')
+            fake.chmod(0o755)
+            result = run('build', str(root), '--output', str(output),
+                         '--only', 'a.html', '--no-index', '--no-readme',
+                         '--open', env={'BROWSER': str(fake)})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((output / 'index.html').exists())
+            self.assertFalse((root / 'README.md').exists())
+            self.assertEqual(
+                record.read_text(encoding='utf-8').strip(),
+                (output / 'index.html').resolve().as_uri())
+
+
+class WatchPathCoverage(unittest.TestCase):
+    def test_watch_uses_all_resolved_build_input_paths(self):
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            sources = Path(tmp) / 'sources-elsewhere'
+            templates = Path(tmp) / 'templates-elsewhere'
+            language = Path(tmp) / 'language-elsewhere'
+            explicit = Path(tmp) / 'explicit.json'
+            for directory in (sources, templates, language):
+                directory.mkdir()
+            (sources / 'nested').mkdir()
+            watched_source = sources / 'nested' / 'asset.txt'
+            watched_source.write_text('source', encoding='utf-8')
+            watched_template = templates / 'nav.js'
+            watched_template.write_text('// nav', encoding='utf-8')
+            watched_language = language / 'fr.json'
+            watched_language.write_text('{}', encoding='utf-8')
+            explicit.write_text('{}', encoding='utf-8')
+
+            with mock.patch.dict(os.environ, {
+                    'LWP_SOURCES_DIR': str(sources),
+                    'LWP_TEMPLATES_DIR': str(templates),
+                    'LWP_LANGUAGE_DIR': str(language),
+                }, clear=False):
+                paths = set(lwp._watch_paths(
+                    str(root), {'--language-file': str(explicit)}))
+
+            self.assertIn(sources, paths)
+            self.assertIn(watched_source, paths)
+            self.assertIn(templates, paths)
+            self.assertIn(watched_template, paths)
+            self.assertIn(language, paths)
+            self.assertIn(watched_language, paths)
+            self.assertIn(root / 'series.json', paths)
+            self.assertIn(explicit, paths)
 
 
 class DemoCommand(unittest.TestCase):
