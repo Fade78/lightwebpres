@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.45.5
+## v0.45.5
 
 Per-article typography opt-outs now follow the language pack selected by each
 slide, including long-form articles and deferred notes. `audit` also renders
