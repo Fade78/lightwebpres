@@ -377,7 +377,7 @@ the series or within one article.
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
-| `watch [dir]` | Polls `series.json`, sources, templates and language packs (including their current descendants), rebuilds on change, and notices files created after startup; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
+| `watch [dir]` | Polls `series.json`, sources, templates and language packs (including their current descendants), rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 | `--version` | Prints the version (`LightWebPres vX.Y.Z`) and exits |
@@ -787,7 +787,7 @@ the contents of `web/` — the layout for a real site that serves `web/` as
 its own URL root, no extra path segment needed) or **`../lightwebpres`**
 (the repo's own layout, one level up, for a deployment that's just a
 straight copy of the repo). Local testing from the repo: `python3 -m
-http.server 8000 --directory /path/to/lightwebpres` (the folder
+ http.server 8000 --bind 127.0.0.1 --directory /path/to/lightwebpres` (the folder
 containing both `lightwebpres` and `web/`), then open
 `http://localhost:8000/web/index.html`. Self-hosting on a real web server
 (Apache/nginx) can also hit a `.mjs` MIME type issue — see

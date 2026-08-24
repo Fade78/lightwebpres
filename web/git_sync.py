@@ -29,7 +29,7 @@ import io
 import json
 import shutil
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import quote, urlencode
 
 from pyodide.http import pyfetch
@@ -40,15 +40,25 @@ PUSH_CHUNK_SIZE = 100
 
 
 def _validate_zip_members(zf):
-    """Rejects hostile member names before extraction (zip-slip), the
-    same defence-in-depth check as web/app.py: the vendored runtime's
-    zipfile already sanitizes, but the intent should not depend on one
-    layer alone."""
-    for name in zf.namelist():
-        parts = Path(name.replace('\\', '/')).parts
-        if name.startswith(('/', '\\')) or '..' in parts:
+    """Rejects hostile or ambiguous member names before extraction.
+
+    This is the same defence-in-depth rule as web/app.py. Duplicate names
+    are rejected too: otherwise the later entry silently replaces the
+    earlier one, and slash/dot variants can disagree across runtimes.
+    """
+    seen = set()
+    for info in zf.infolist():
+        name = info.filename
+        normalized = name.replace('\\', '/')
+        parts = PurePosixPath(normalized).parts
+        canonical = '/'.join(parts)
+        if (not name or '\x00' in name
+                or normalized.startswith('/')
+                or (len(normalized) >= 2 and normalized[1] == ':')
+                or '..' in parts or not canonical or canonical in seen):
             raise RuntimeError(
-                'archive contains a path outside the extraction root: %r' % name)
+                'archive contains an invalid or duplicate member name: %r' % name)
+        seen.add(canonical)
 
 
 def _api_url(base_url, path, params=None):

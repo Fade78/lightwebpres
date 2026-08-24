@@ -62,11 +62,12 @@ async function main() {
     // failing fetches/imports, so there must be zero console errors here.
     if (consoleErrors.length) {
       console.error('Browser console errors:\n' + consoleErrors.join('\n'));
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     console.log('OK');
-    process.exit(0);
+    process.exitCode = 0;
   } catch (err) {
     console.error('E2E failure: ' + err);
     if (consoleErrors.length) {
@@ -75,7 +76,7 @@ async function main() {
     try {
       console.error('Final status: ' + (await page.textContent('#status')));
     } catch (_) {}
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

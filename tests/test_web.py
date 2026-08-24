@@ -208,7 +208,7 @@ class FileProtocolGuard(unittest.TestCase):
         # the Copy button and reads the clipboard back, so this exercises
         # copyability end to end, not just that the text is present.
         file_url = 'file://' + str(REPO_ROOT / 'web' / 'index.html')
-        expected = 'python3 -m http.server 8000 --directory "%s"' % REPO_ROOT
+        expected = 'python3 -m http.server 8000 --bind 127.0.0.1 --directory "%s"' % REPO_ROOT
         result = subprocess.run(
             ['node', str(FILE_PROTOCOL_GUARD_SCRIPT), file_url, expected],
             capture_output=True, text=True,
@@ -424,6 +424,28 @@ class EveryNoteAxisLandsWhereItIsAimed(unittest.TestCase):
                 timeout=120,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+class WebSourceHardening(unittest.TestCase):
+    """Static guards for web fixes that do not require a browser run."""
+
+    def test_local_server_hint_is_loopback_only(self):
+        html = (REPO_ROOT / 'web' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('--bind 127.0.0.1 --directory', html)
+
+    def test_pyodide_proxies_are_destroyed_after_each_call(self):
+        html = (REPO_ROOT / 'web' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('function destroyPyProxy(proxy)', html)
+        for name in ('buildFn', 'pullFn', 'pushFn'):
+            self.assertIn(f'destroyPyProxy({name})', html)
+        self.assertIn('destroyPyProxy(resultProxy)', html)
+
+    def test_zip_guards_reject_ambiguous_members_in_both_glues(self):
+        for filename in ('app.py', 'git_sync.py'):
+            source = (REPO_ROOT / 'web' / filename).read_text(encoding='utf-8')
+            self.assertIn('infolist()', source)
+            self.assertIn('canonical in seen', source)
+            self.assertIn(r"'\x00' in name", source)
 
 
 if __name__ == '__main__':

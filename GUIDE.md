@@ -55,7 +55,7 @@ lay the pieces out however it likes without passing a single flag.
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
 Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, S
 for sharing, M for the presenter menu), mouse (click to
-advance, right-click to go back, middle button to enter or leave fullscreen), and
+advance, right-click to go back, middle button to leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
  is one article card at a time. The navigation buttons form one lower-right
  column: from bottom to top, Menu, down, up and fullscreen. The arrows are
@@ -70,8 +70,8 @@ rather than being removed, so nothing on the page moves. Entering or
 leaving fullscreen, and clicking in the button corner, reveal the chrome
 at once: those are deliberate gestures, not stray movement. The mouse becomes
 a remote: left-click advances, right-click goes back, two distinct
-buttons, no aiming. Fullscreen also neutralizes the OS power-saving so the
-screen never dims mid-talk.
+buttons, no aiming. Fullscreen requests a screen wake lock where the browser
+supports it; otherwise the operating system may still dim the screen.
 
 Section 8 has the shape of a pipeline that uses all of it.
 
@@ -79,7 +79,7 @@ Section 8 has the shape of a pipeline that uses all of it.
 
 ```bash
 ./lightwebpres init my-series
-./lightwebpres demo my-series --lang en      # French by default
+./lightwebpres demo my-series --lang en      # explicit English interface
 ./lightwebpres build my-series --lang en
 xdg-open my-series/public/index.html         # `open` on macOS
 ```
@@ -717,7 +717,7 @@ be **served over http(s)**, not opened as a `file://` page — browsers
 block Pyodide's asset loading under that origin. For local testing:
 
 ```bash
-python3 -m http.server 8000 --directory /path/to/lightwebpres
+python3 -m http.server 8000 --bind 127.0.0.1 --directory /path/to/lightwebpres
 # then open http://localhost:8000/web/index.html
 ```
 

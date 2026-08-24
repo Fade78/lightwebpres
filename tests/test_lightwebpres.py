@@ -33,6 +33,7 @@ from unittest import mock
 from pathlib import Path
 
 EXECUTABLE = Path(__file__).resolve().parent.parent / 'lightwebpres'
+SUBPROCESS_TIMEOUT = 120
 
 
 def run(*args, cwd=None, env=None):
@@ -41,6 +42,7 @@ def run(*args, cwd=None, env=None):
     return subprocess.run(
         [sys.executable, str(EXECUTABLE), *args],
         capture_output=True, text=True, cwd=cwd, env=full_env,
+        timeout=SUBPROCESS_TIMEOUT,
     )
 
 
@@ -1182,7 +1184,7 @@ class Axis4MarkdownGaps(unittest.TestCase):
             root = scaffold(tmp, md)
             (root / 'sources' / 'art.md').write_text(body, encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
-            assert result.returncode == 0, result.stderr
+            self.assertEqual(result.returncode, 0, result.stderr)
             return (root / 'public' / 'a.html').read_text(encoding='utf-8')
 
     def test_ordered_list(self):
@@ -3036,8 +3038,16 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertIn('_ANSI_RE', body, 'the ANSI strip left log()')
         # The strip must not sit under any test of no_color.
         for node in ast.walk(log_fn[0]):
-            if isinstance(node, ast.If) and 'no_color' in ast.dump(node.test):
-                self.fail('the ANSI strip is now conditional on --no-color')
+                if isinstance(node, ast.If) and 'no_color' in ast.dump(node.test):
+                    self.fail('the ANSI strip is now conditional on --no-color')
+
+    def test_progress_strips_terminal_controls(self):
+        lwp = load_lightwebpres_module()
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            lwp.configure_logging()
+            lwp.progress('safe\x1b[31m\nforged\x7f')
+        self.assertEqual(output.getvalue(), 'safe forged \n')
 
     def test_strict_audit_fails_on_warnings(self):
         # --strict makes audit exit 1 when warnings are emitted (DECISION §1
@@ -3673,6 +3683,25 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('manifest', result.stderr.lower())
 
+    def test_clean_rejects_manifest_paths_outside_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            public = root / 'public'
+            public.mkdir(parents=True)
+            outside = root / 'outside.txt'
+            outside.write_text('keep me', encoding='utf-8')
+            (public / '.lwp-manifest.json').write_text(json.dumps({
+                'schema': 'lightwebpres.manifest/1',
+                'files': [],
+                'previous': ['../outside.txt'],
+            }), encoding='utf-8')
+
+            result = run('clean', str(root), '--force')
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unsafe path', result.stderr)
+            self.assertTrue(outside.exists())
+
     def test_clean_with_no_orphans_says_so(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, _MINIMAL_MD)
@@ -3763,11 +3792,12 @@ class CliVersionAndShortcuts(unittest.TestCase):
             proc = sp.Popen(
                 [sys.executable, str(EXECUTABLE), 'watch', str(root),
                  '--output', str(out), '--serve', '--port', str(port)],
-                stdout=sp.PIPE, stderr=sp.PIPE, text=True,
+                stdout=sp.PIPE, stderr=sp.STDOUT, text=True,
                 env={**os.environ, 'PYTHONUNBUFFERED': '1'})
             lines = []
-            _threading.Thread(target=lambda: lines.extend(proc.stdout),
-                              daemon=True).start()
+            reader = _threading.Thread(target=lambda: lines.extend(proc.stdout),
+                                       daemon=True)
+            reader.start()
 
             def wait_for(needle, seconds=20):
                 end = _time.time() + seconds
@@ -3873,6 +3903,10 @@ class CliVersionAndShortcuts(unittest.TestCase):
                     proc.wait(timeout=10)
                 except sp.TimeoutExpired:
                     proc.kill()
+                    proc.wait(timeout=10)
+                if proc.stdout is not None:
+                    proc.stdout.close()
+                reader.join(timeout=1)
 
     def test_watch_is_a_known_command(self):
         # `watch` is recognized and builds once before polling. We can't
@@ -5590,6 +5624,21 @@ class IncrementalBuildOnly(unittest.TestCase):
 
 
 class WatchPathCoverage(unittest.TestCase):
+    def test_watch_continues_after_a_failed_rebuild(self):
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            changed = root / 'sources' / 'a.md'
+            with mock.patch.object(
+                    lwp, 'cmd_build', side_effect=[None, SystemExit(1)]) as build:
+                with mock.patch.object(
+                        lwp, '_cmd_watch_poll',
+                        return_value=iter([[changed]])):
+                    lwp.cmd_watch(str(root), {})
+
+            self.assertEqual(build.call_count, 2)
+
     def test_watch_uses_all_resolved_build_input_paths(self):
         lwp = load_lightwebpres_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -5669,6 +5718,16 @@ class InstallContent(unittest.TestCase):
             self.assertFalse((root / 'templates' / 'nav.js').exists())
             self.assertFalse((root / 'language' / 'fr.json').exists())
             self.assertFalse((root / 'language' / 'en.json').exists())
+
+    def test_install_rejects_an_invalid_ci_language_before_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            result = run('init', str(root), '--gitlab-ci',
+                         '--lang', 'en\n  - malicious: true')
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('invalid language', result.stderr)
+            self.assertFalse(root.exists())
 
 
 class ToolOwnedFilesSayWhenTheyHaveFallenBehind(unittest.TestCase):
@@ -12143,6 +12202,67 @@ class SymlinkContainment(unittest.TestCase):
                 self.assertNotIn('TOP-SECRET-CONTENTS',
                                  (root / 'public' / 'a.html').read_text(encoding='utf-8'))
 
+    def test_page_source_symlink_is_refused_before_reading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = self._secret(tmp)
+            root = Path(tmp) / 'proj'
+            (root / 'sources').mkdir(parents=True)
+            (root / 'sources' / 'a.md').symlink_to(secret)
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+
+            result = run('build', str(root), '--output', str(root / 'public'))
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Source escapes sources', result.stderr)
+            self.assertFalse((root / 'public').exists())
+
+    def test_audit_does_not_read_page_source_symlink_outside_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = self._secret(tmp)
+            root = scaffold(tmp, _MINIMAL_MD)
+            (root / 'sources' / 'a.md').unlink()
+            (root / 'sources' / 'a.md').symlink_to(secret)
+
+            result = run('audit', str(root))
+
+            self.assertEqual(result.returncode, 0)
+            self.assertIn('escapes sources', result.stderr)
+            self.assertNotIn('TOP-SECRET-CONTENTS',
+                             result.stdout + result.stderr)
+
+    def test_output_symlink_is_refused_before_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'proj'
+            root.mkdir()
+            (root / 'sources').mkdir()
+            (root / 'sources' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+            outside = Path(tmp) / 'outside'
+            outside.mkdir()
+            (root / 'public').symlink_to(outside, target_is_directory=True)
+
+            result = run('build', str(root))
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('output directory', result.stderr)
+            self.assertFalse((outside / 'a.html').exists())
+
+    def test_nav_symlink_is_refused_before_publishing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            secret = Path(tmp) / 'nav-secret.js'
+            secret.write_text('function harmless() { return true; }', encoding='utf-8')
+            (root / 'templates').mkdir()
+            (root / 'templates' / 'nav.js').symlink_to(secret)
+
+            result = run('build', str(root), '--output', str(root / 'public'))
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('nav.js resolves outside', result.stderr)
+            self.assertFalse((root / 'public').exists())
+
     def test_img_symlink_escaping_is_not_published(self):
         with tempfile.TemporaryDirectory() as tmp:
             secret = self._secret(tmp)
@@ -12198,7 +12318,7 @@ class LinkHrefEscaping(unittest.TestCase):
             root = scaffold(tmp, md)
             (root / 'sources' / 'art.md').write_text(body, encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))
-            assert result.returncode == 0, result.stderr
+            self.assertEqual(result.returncode, 0, result.stderr)
             return (root / 'public' / 'a.html').read_text(encoding='utf-8')
 
     def test_quote_in_url_cannot_break_the_attribute(self):
@@ -13081,7 +13201,7 @@ class EditorialFields(unittest.TestCase):
             data['series_meta'] = series_meta
         (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
-        assert result.returncode == 0, result.stderr
+        self.assertEqual(result.returncode, 0, result.stderr)
         return root
 
     def test_author_from_series_meta_default_reaches_footer_and_meta_tag(self):
@@ -13149,7 +13269,7 @@ class PageDescMetaDescription(unittest.TestCase):
         entry.update(entry_extra or {})
         (root / 'series.json').write_text(json.dumps({'articles': [entry]}), encoding='utf-8')
         result = run('build', str(root), '--output', str(root / 'public'))
-        assert result.returncode == 0, result.stderr
+        self.assertEqual(result.returncode, 0, result.stderr)
         return root
 
     def test_page_desc_falls_back_to_cover_summary(self):
@@ -14395,9 +14515,12 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
             self.skipTest('no build_guide.py or generated/guide in this checkout')
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'guide'
+            out.mkdir(parents=True)
+            (out / 'stale.html').write_text('stale', encoding='utf-8')
             r = subprocess.run([sys.executable, str(script), '--output', str(out)],
                                capture_output=True, text=True, timeout=180)
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertFalse((out / 'stale.html').exists())
             for name in sorted(p.name for p in out.iterdir() if p.is_file()):
                 self.assertEqual(
                     (committed / name).read_bytes(), (out / name).read_bytes(),

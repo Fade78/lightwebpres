@@ -99,20 +99,20 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 6 · **à faire** 2 · **en cours** 0 · **terminé** 41 · **abandonné** 1 · **sans objet** 3
+**à étudier** 7 · **à faire** 1 · **en cours** 0 · **terminé** 41 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
 - **B8** — `extends` for external theme files
 - **B10** — Gamut mapping for lightness-shifted inks
 - **B11** — Dichromat separability is not verified
+- **B27** — The default sheet fails the navigation floor its own test enforces
 - **B30** — Nested emphasis, and a net for whatever the checks do not name
 - **B35** — Reaching a verdict class without writing HTML
 - **B36** — The engine can halo 32 components; the catalogue haloes three
 
 ### à faire
 
-- **B27** — The default sheet fails the navigation floor its own test enforces
 - **B48** — Séparer physiquement l’interface et la typographie
 
 ### terminé
@@ -1732,7 +1732,7 @@ it quietly under cover of another is how a diff becomes unreviewable.
 
 ## B27 — The default sheet fails the navigation floor its own test enforces
 
-**État :** à faire
+**État :** à étudier
 
 Found while deriving the thresholds for the judgement pass, and it is a
 defect in the delivered defaults, not in the new guard.

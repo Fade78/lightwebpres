@@ -16,6 +16,7 @@ decorator having been removed.
 import argparse
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -26,6 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = Path(__file__).resolve().parent
+_CLASS_TIMEOUT_SECONDS = 300
 
 
 def _cache_path():
@@ -173,6 +175,20 @@ def _task_order(groups, known):
     return out
 
 
+def _terminate_process_tree(process):
+    """Stops a timed-out class and descendants such as Chromium."""
+    if os.name == 'posix':
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+            return
+        except (OSError, ProcessLookupError):
+            pass
+    try:
+        process.kill()
+    except OSError:
+        pass
+
+
 def _run_class(task):
     """Run one test class in its own Python process; the caller gives the
     next task as soon as this one returns. The class — not a batch of
@@ -182,10 +198,22 @@ def _run_class(task):
     name, count = task
     started = time.monotonic()
     clock = time.strftime('%H:%M:%S')
-    result = subprocess.run(
-        [sys.executable, '-m', 'unittest', '-q', name],
-        cwd=ROOT, capture_output=True, text=True,
+    command = [sys.executable, '-m', 'unittest', '-q', name]
+    process = subprocess.Popen(
+        command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, start_new_session=True,
     )
+    try:
+        stdout, stderr = process.communicate(timeout=_CLASS_TIMEOUT_SECONDS)
+        result = subprocess.CompletedProcess(
+            command, process.returncode, stdout, stderr)
+    except subprocess.TimeoutExpired:
+        _terminate_process_tree(process)
+        stdout, stderr = process.communicate()
+        stderr = (stderr or '') + (
+            f'\nTimed out after {_CLASS_TIMEOUT_SECONDS} seconds; '
+            f'test process and descendants were terminated.\n')
+        result = subprocess.CompletedProcess(command, 124, stdout, stderr)
     elapsed = time.monotonic() - started
     return name, count, result, elapsed, clock
 

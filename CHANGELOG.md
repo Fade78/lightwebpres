@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.45.8
+## v0.45.8
 
 The incremental build path now applies its draft and output switches
 consistently, and `watch` rescans resolved source, template and language paths
@@ -45,6 +45,19 @@ gives portrait reading and landscape presentation equal weight, and documents
 the durable slide slugs, explicit series navigation, `--only` side effects,
 watch coverage and typography controls. `--inline-images` also refuses quoted
 or unquoted relative images left in raw HTML.
+
+The CLI now validates generated manifests before `clean --force`, refuses
+symlinked output and tool-owned navigation files that escape their roots, and
+does not read a `page_source` symlink before rejecting it. `watch` reports a
+failed rebuild and keeps polling, while `init --gitlab-ci` validates the
+language value before writing YAML. The guide artefact builder removes stale
+files, and the test runner terminates timed-out class processes with their
+descendants.
+
+The browser wrapper now rejects ambiguous archive members, releases Pyodide
+proxies after each operation, limits its local-server hint to loopback, and
+exposes build status and connection errors to assistive technology. The GitLab
+tab also provides an explicit way to clear its stored connection data.
 
 ## v0.45.7
 

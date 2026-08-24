@@ -124,17 +124,18 @@ async function main() {
 
     if (consoleErrors.length) {
       console.error('Browser console errors:\n' + consoleErrors.join('\n'));
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     console.log('OK');
-    process.exit(0);
+    process.exitCode = 0;
   } catch (err) {
     console.error('E2E failure: ' + err);
     if (consoleErrors.length) {
       console.error('Browser console errors:\n' + consoleErrors.join('\n'));
     }
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

@@ -111,16 +111,29 @@ async function main() {
       console.error('E2E failure: unchecking remember must clear localStorage');
       process.exitCode = 1;
     }
-    if (process.exitCode) process.exit(process.exitCode);
+    await page.click('#clearConnectionBtn');
+    const cleared = await page.evaluate((key) => ({
+      session: sessionStorage.getItem(key),
+      local: localStorage.getItem(key),
+      baseUrl: document.getElementById('baseUrl').value,
+      token: document.getElementById('token').value,
+    }), STORE_KEY);
+    if (cleared.session !== null || cleared.local !== null
+        || cleared.baseUrl || cleared.token) {
+      console.error('E2E failure: clear connection data must clear storage and fields');
+      process.exitCode = 1;
+    }
+    if (process.exitCode) return;
 
     const unexpectedErrors = consoleErrors.filter((e) => !isExpectedLightwebpresProbe404(e));
     if (unexpectedErrors.length) {
       console.error('Browser console errors:\n' + unexpectedErrors.map((e) => e.text).join('\n'));
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     console.log('OK');
-    process.exit(0);
+    process.exitCode = 0;
   } catch (err) {
     console.error('E2E failure: ' + err);
     const unexpectedErrors = consoleErrors.filter((e) => !isExpectedLightwebpresProbe404(e));
@@ -131,7 +144,7 @@ async function main() {
       console.error('Final status: ' + (await page.textContent('#status')));
       console.error('Final log: ' + (await page.textContent('#log')));
     } catch (_) {}
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

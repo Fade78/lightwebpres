@@ -39,6 +39,16 @@ async function main() {
       () => document.getElementById('status').textContent.includes('Ready.'),
       { timeout: 60000 },
     );
+    const accessibility = await page.evaluate(() => ({
+      statusRole: document.getElementById('status').getAttribute('role'),
+      statusLive: document.getElementById('status').getAttribute('aria-live'),
+      logRole: document.getElementById('log').getAttribute('role'),
+    }));
+    if (accessibility.statusRole !== 'status'
+        || accessibility.statusLive !== 'polite'
+        || accessibility.logRole !== 'log') {
+      throw new Error('Status and log live-region attributes are incomplete');
+    }
 
     await page.setInputFiles('#zipInput', zipPath);
     await page.selectOption('#zipLangSelect', lang);
@@ -56,11 +66,12 @@ async function main() {
     const unexpectedErrors = consoleErrors.filter((e) => !isExpectedLightwebpresProbe404(e));
     if (unexpectedErrors.length) {
       console.error('Browser console errors:\n' + unexpectedErrors.map((e) => e.text).join('\n'));
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
 
     console.log('OK');
-    process.exit(0);
+    process.exitCode = 0;
   } catch (err) {
     console.error('E2E failure: ' + err);
     const unexpectedErrors = consoleErrors.filter((e) => !isExpectedLightwebpresProbe404(e));
@@ -71,7 +82,7 @@ async function main() {
       console.error('Final status: ' + (await page.textContent('#status')));
       console.error('Final log: ' + (await page.textContent('#log')));
     } catch (_) {}
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

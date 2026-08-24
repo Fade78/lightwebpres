@@ -13,23 +13,33 @@ import contextlib
 import io
 import shutil
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 ZIP_WORK_DIR = Path('/lwp_web_work')
 
 
 def _validate_zip_members(zf):
-    """Rejects hostile member names before extraction (zip-slip).
+    """Rejects hostile or ambiguous member names before extraction.
 
     The vendored runtime's zipfile already sanitizes `..` and absolute
     paths, but that is one layer; the defence-in-depth check here makes
-    the intent explicit and keeps the glue safe on any runtime.
+    the intent explicit and keeps the glue safe on any runtime. Duplicate
+    names are rejected too: otherwise the later entry silently replaces the
+    earlier one, and slash/dot variants can disagree across runtimes.
     """
-    for name in zf.namelist():
-        parts = Path(name.replace('\\', '/')).parts
-        if name.startswith(('/', '\\')) or '..' in parts:
+    seen = set()
+    for info in zf.infolist():
+        name = info.filename
+        normalized = name.replace('\\', '/')
+        parts = PurePosixPath(normalized).parts
+        canonical = '/'.join(parts)
+        if (not name or '\x00' in name
+                or normalized.startswith('/')
+                or (len(normalized) >= 2 and normalized[1] == ':')
+                or '..' in parts or not canonical or canonical in seen):
             raise RuntimeError(
-                'archive contains a path outside the extraction root: %r' % name)
+                'archive contains an invalid or duplicate member name: %r' % name)
+        seen.add(canonical)
 
 
 def _find_series_dir_in_zip(root):

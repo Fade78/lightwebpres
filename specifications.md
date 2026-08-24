@@ -482,7 +482,7 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
 lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--themes selectors|all] [--no-essential-theme]
-lightwebpres watch [répertoire] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--no-essential-theme]
+lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--no-essential-theme]
 lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes selectors|all] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
@@ -513,7 +513,7 @@ lightwebpres --help
 - `--theme` : `init`/`series theme set` — applique une palette prédéfinie (§9.5)
 - `--polarity` / `--hue` / `--family` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
-- `--no-typography` : `build`/`verify` seulement — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
+- `--no-typography` : `build`/`verify`/`watch` — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
 - `--themes` : `build`/`verify`/`watch` — embarque des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules; le thème effectif de `settings.conf` reste toujours le premier (§9.3.7)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
@@ -4097,8 +4097,8 @@ et `--only a.md` désignent le même article. Aucune correspondance →
 erreur fatale (« matches no article »), de même qu'un `page_source`
 correspondant mais dont le fichier n'existe pas. Les deux filtres de
 §20.6 s'appliquant avant celui-ci, un article `status: draft` n'est
-désignable par `--only` qu'avec `--include-drafts`, et un article
-`status: ignored` ne l'est jamais.
+désignable par `--only` qu'avec `--include-drafts` ou `--drafts-only`, et un
+article `status: ignored` ne l'est jamais.
 
 **Le piège que ça doit éviter** : `build_index()` et `build_series_nav()`
 utilisent tous les deux les champs d'affichage résolus par
@@ -4362,7 +4362,7 @@ Désactivé par défaut : le build standard copie `sources/img/` vers
 ### 11.4 `verify`
 
 ```bash
-lightwebpres verify [répertoire] [--lang fr] [--no-typography] [--themes selectors|all] [--no-essential-theme]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Vérifie sans modifier :
@@ -5566,6 +5566,11 @@ de supprimer.
 contient `series.json`, `sources/` ou `templates/` : c'est un répertoire
 de série, pas une sortie de build.
 
+Les chemins du manifeste doivent être relatifs à cette sortie, sans `..`,
+chemin absolu ni symlink qui en sorte. Un manifeste invalide est une erreur,
+y compris avec `--force` : une déclaration de build ne constitue jamais une
+autorisation de supprimer hors de la sortie.
+
 Dry-run par défaut : la commande liste les orphelins sans les supprimer.
 `--force` les supprime pour de vrai, et `--dry-run --force` n'en supprime
 aucun — il énonce ce qu'il ferait. Sans manifeste (pas de build
@@ -5575,12 +5580,15 @@ build a déclaré, et le manifeste est la déclaration.
 ### 11.14 `watch`
 
 ```
-lightwebpres watch [répertoire] [--serve] [--port 8000] [--open] [--themes selectors|all] [--no-essential-theme]
+lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Surveille les sources (articles, `series.json`, `templates/`,
-`language/`) et reconstruit à chaque changement. Un build initial est
-exécuté au démarrage.
+`language/`) et leurs descendants actuels, puis reconstruit à chaque
+changement. Les fichiers créés après le démarrage sont pris en compte au
+rebuild suivant. Un build initial est exécuté au démarrage. Une erreur de
+rebuild est affichée mais ne stoppe pas la surveillance : corriger le fichier
+relance le build suivant.
 
 `--serve` (opt-in) démarre un serveur HTTP local sur `127.0.0.1:--port`
 (servant `public/`). `--open` ouvre le navigateur sur le résultat. Ctrl-C
@@ -6213,9 +6221,10 @@ quoi l'agent s'appuie pour ne pas inventer.
 - **Présentation orale** : couverte par le deck (§8.4), avec
   navigation, notes présentateur et plein écran — le même pack sur
   toutes les pages, articles et index
-- **Langues multiples dans une même page** : une langue d'interface par build
-  ; les règles typographiques peuvent toutefois varier par slide via
-  `lang_tags` (§7.5)
+- **Langues multiples visibles simultanément** : une seule interface est
+  choisie par page, mais elle peut sélectionner `fr` ou `en` selon la langue
+  du navigateur quand `--lang`/`LWP_LANG` n'est pas explicite ; les règles
+  typographiques peuvent toutefois varier par slide via `lang_tags` (§7.5)
 - **Images inline par défaut** : les images restent en chemin relatif par
   défaut ; `--inline-images` les embarque en data URI (§8.4)
 - **Recherche full-text** : pas de moteur de recherche
@@ -6384,8 +6393,9 @@ la section, jamais en la croyant sur parole.
   servir localement, mais ne recharge pas automatiquement la page ✓
 - **Présentation orale** : deck avec mode présentateur et plein
   écran, sur toutes les pages — articles et index ✓
-- **Langues multiples dans une même page** : une langue d'interface par build,
-  avec sélection typographique par slide via `lang_tags` ✓
+- **Langues multiples visibles simultanément** : une interface `fr` ou `en`
+  est choisie par page (selon le navigateur si le build ne force pas la
+  langue), avec sélection typographique par slide via `lang_tags` ✓
 - **Images inline par défaut** : chemin relatif par défaut ; `--inline-images`
   permet l'embarquement en data URI ✓
 - **Recherche full-text** : pas de moteur de recherche ✓ (documenté)
@@ -7647,8 +7657,8 @@ la rendraient incomplète ou fausse :
 (`location.protocol === 'file:'`) et affiche un message d'erreur qui
 calcule la commande exacte à partir du chemin réel du fichier ouvert
 (`location.pathname`, dont `/web/index.html` est retranché pour obtenir
-la racine du dépôt) — `python3 -m http.server 8000 --directory
-"<racine calculée>"` — affichée dans un bloc `<code>` dédié avec son propre
+la racine du dépôt) — `python3 -m http.server 8000 --bind 127.0.0.1
+--directory "<racine calculée>"` — affichée dans un bloc `<code>` dédié avec son propre
 bouton « Copy » (presse-papier via `navigator.clipboard`, repli sur
 `prompt()` si l'API est indisponible) : une commande qu'il faut retaper à
 la main depuis un message d'erreur est une source connue de fautes de

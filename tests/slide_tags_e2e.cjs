@@ -106,10 +106,10 @@ async function main() {
       throw new Error('unexpected console errors: ' + JSON.stringify(consoleErrors));
     }
     console.log('OK');
-    process.exit(0);
+    process.exitCode = 0;
   } catch (err) {
     console.error('E2E failure: ' + err);
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }

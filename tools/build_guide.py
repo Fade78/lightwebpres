@@ -77,6 +77,17 @@ def build(output, theme=None, lang='en'):
                        check=True, capture_output=True)
 
         output.mkdir(parents=True, exist_ok=True)
+        fresh = {item.name for item in (series / 'public').iterdir()}
+        # `output` is a generated directory. Remove files from an older
+        # layout before copying the fresh build, so stale committed artefacts
+        # cannot survive while the identity guard compares only current names.
+        for item in output.iterdir():
+            if item.name in fresh:
+                continue
+            if item.is_symlink() or item.is_file():
+                item.unlink()
+            elif item.is_dir():
+                shutil.rmtree(item)
         for item in (series / 'public').iterdir():
             target = output / item.name
             if item.is_dir():

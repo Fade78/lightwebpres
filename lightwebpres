@@ -47,7 +47,7 @@ Usage:
   lightwebpres series theme set [directory] --theme name
   lightwebpres theme gallery [path]
   lightwebpres clean [directory] [--output public/] [--force]
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres watch [directory] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
   lightwebpres completion --shell bash|zsh
   lightwebpres --version | --help | -h
 
@@ -70,7 +70,7 @@ import hashlib
 import secrets
 import traceback
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from html import escape as html_escape
 from html.parser import HTMLParser
@@ -90,6 +90,8 @@ if sys.version_info < (3, 8):
 # ============================================================================
 
 VERSION = "0.45.8"
+
+_VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
 # --- Logging (the v0.24.0 CLI refonte) ------------------------------------
 # A single log() function routes progress/diagnostic messages to stderr.
@@ -244,9 +246,20 @@ def log(level, msg):
         from datetime import datetime
         ts = datetime.now().astimezone().isoformat(timespec='seconds')
         prefix = f'{ts} {prefix}'
+    # Keep the security barrier visible in this function: a static guard
+    # ensures it cannot accidentally become conditional on --no-color.
     msg = _ANSI_RE.sub('', str(msg))
-    msg = ''.join(ch for ch in msg if ch in '\n\t\r' or ord(ch) >= 32)
+    msg = _sanitize_terminal_text(msg, preserve_newlines=True)
     print(prefix + msg, file=sys.stderr)
+
+
+def _sanitize_terminal_text(msg, preserve_newlines=False):
+    """Removes terminal control sequences from author-controlled output."""
+    msg = _ANSI_RE.sub('', str(msg))
+    return ''.join(
+        ch if ch == '\t' or (preserve_newlines and ch == '\n')
+        or ch.isprintable() else ' '
+        for ch in msg)
 
 
 def progress(msg=''):
@@ -265,7 +278,7 @@ def progress(msg=''):
     chatter must never delete the value you asked the tool to compute."""
     if _LOG_STATE['quiet']:
         return
-    print(msg)
+    print(_sanitize_terminal_text(msg))
 
 
 # --- Write helpers --------------------------------------------------------
@@ -13240,6 +13253,11 @@ def copy_images(sources_dir, output_dir):
     img_dst = output_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
         return []
+    if _resolve_contained(sources_dir, 'img') is None:
+        log('warn', 'img/: skipped image directory escaping the source '
+            'directory (symlink).')
+        return []
+    _reject_symlink_components(img_dst, 'image output directory')
     src_root = img_src.resolve()
     refused = set()
 
@@ -13593,7 +13611,9 @@ def resolve_article_fields(articles, sources_dir, series_meta=None):
     series_meta = series_meta or {}
     resolution = []
     for entry in articles:
-        text = _read_article_source(sources_dir / entry['page_source'])
+        source_path = _resolve_contained(sources_dir, entry['page_source'])
+        text = (_read_article_source(source_path)
+                if source_path is not None else None)
         meta, slides = {}, []
         if text is not None:
             meta, slides, _, _ = parse_markdown_extended(text)
@@ -13762,6 +13782,30 @@ def save_nav_cache(path, fingerprint):
     _write_file(path, json.dumps(fingerprint, indent=2, sort_keys=True))
 
 
+def _reject_symlink_components(path, label):
+    """Refuses output paths that cross an existing symlink.
+
+    The output directory may be chosen outside the series, but a repository
+    must not be able to turn the default ``public/`` path into an arbitrary
+    write target through a committed symlink.
+    """
+    candidate = Path(path)
+    absolute = candidate if candidate.is_absolute() else Path.cwd() / candidate
+    current = Path(absolute.anchor)
+    for part in absolute.parts:
+        if part == absolute.anchor:
+            continue
+        current /= part
+        try:
+            escaped = current.is_symlink()
+        except OSError as exc:
+            log('error', f'{label} cannot be inspected at {current}: {exc}')
+            sys.exit(1)
+        if escaped:
+            log('error', f'{label} crosses symlink {current}; refusing to write.')
+            sys.exit(1)
+
+
 def resolve_paths(series_dir, args):
     """Resolves paths from environment variables and arguments."""
     sd = Path(series_dir).resolve()
@@ -13771,11 +13815,12 @@ def resolve_paths(series_dir, args):
     lang_dir = Path(os.environ.get('LWP_LANGUAGE_DIR', sd / 'language'))
     output_dir = Path(args.get('--output', os.environ.get('LWP_OUTPUT_DIR', sd / 'public')))
     lang = args.get('--lang', os.environ.get('LWP_LANG', 'fr'))
-    if not re.fullmatch(r'[A-Za-z0-9_-]+', str(lang)):
+    if not _VALID_LANG_RE.fullmatch(str(lang)):
         log('error', f'--lang/LWP_LANG: invalid language value {str(lang)!r} '
               f'(letters, digits, "-" and "_" only).')
         sys.exit(1)
     language_file = args.get('--language-file')
+    _reject_symlink_components(output_dir, 'output directory')
 
     return sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file
 
@@ -13946,8 +13991,12 @@ def load_build_context(series_dir, args, include_ignored=False):
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
-    nav_js_file = templates_dir / 'nav.js'
-    if nav_js_file.exists():
+    nav_js_file = _resolve_contained(templates_dir, 'nav.js')
+    if nav_js_file is None and (templates_dir / 'nav.js').exists():
+        log('error', 'templates/nav.js resolves outside templates/ '
+            '(symlink); refusing to publish its contents.')
+        sys.exit(1)
+    if nav_js_file is not None and nav_js_file.exists():
         on_disk = read_text_file(nav_js_file)
         # nav.js is tool-owned (§9.4.3), and a copy of it on disk is a
         # copy that can fall behind. The build cannot tell "stale" from
@@ -14069,9 +14118,15 @@ def load_build_context(series_dir, args, include_ignored=False):
     # rejects `..` and separators, but a plain name that IS a symlink out of
     # sources/ passes it and gets read and published. §22.9 already promises
     # this pairing for sources/; page_source was the one field without it.
-    missing = [e['page_source'] for e in build_articles
-               if _resolve_contained(sources_dir, e['page_source']) is None
-               or not (sources_dir / e['page_source']).exists()]
+    missing = []
+    for entry in build_articles:
+        source_path = _resolve_contained(sources_dir, entry['page_source'])
+        if source_path is None:
+            log('error', f'Source escapes sources/: {sources_dir / entry["page_source"]} '
+                f'(listed in series.json).')
+            sys.exit(1)
+        if not source_path.exists():
+            missing.append(entry['page_source'])
     if missing:
         for name in missing:
             log('error', f'Source not found: {sources_dir / name} '
@@ -14189,9 +14244,13 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     always redone rather than also trying to skip them."""
     entry = _resolve_only_entry(ctx, only_file)
 
-    source_path = ctx.sources_dir / entry['page_source']
+    source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
+    if source_path is None:
+        log('error', f'Source escapes sources/: {ctx.sources_dir / entry["page_source"]} '
+            f'(listed in series.json).')
+        sys.exit(1)
     if not source_path.exists():
-        log('error', f'Source not found: {source_path}')
+        log('error', f'Source not found: {ctx.sources_dir / entry["page_source"]}')
         sys.exit(1)
 
     progress(f'Incremental build: {ctx.sd} (nav/index unaffected since the last build)')
@@ -14444,6 +14503,49 @@ _lightwebpres_completion() {{
 _MANIFEST_NAME = '.lwp-manifest.json'
 
 
+def _safe_manifest_path(output_dir, value):
+    """Returns a manifest path only while it stays inside ``output_dir``.
+
+    Manifests are generated state, not an authority to delete arbitrary
+    filesystem paths. Reject absolute paths, traversal, and symlinked
+    targets before ``clean --force`` can act on them.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    normalized = value.replace('\\', '/')
+    if (normalized.startswith('/')
+            or re.match(r'^[A-Za-z]:', normalized)):
+        return None
+    parts = PurePosixPath(normalized).parts
+    if not parts or any(part in ('', '.', '..') for part in parts):
+        return None
+    candidate = Path(output_dir).joinpath(*parts)
+    try:
+        if candidate.is_symlink():
+            return None
+        root = Path(output_dir).resolve()
+        resolved = candidate.resolve()
+    except OSError:
+        return None
+    if resolved == root or root not in resolved.parents:
+        return None
+    return candidate
+
+
+def _manifest_paths(manifest, key, output_dir, manifest_path):
+    """Validates one manifest path list and returns it as a set."""
+    values = manifest.get(key, [])
+    if not isinstance(values, list):
+        log('error', f'Invalid {manifest_path}: `{key}` must be a list.')
+        sys.exit(1)
+    for value in values:
+        if _safe_manifest_path(output_dir, value) is None:
+            log('error', f'Invalid {manifest_path}: unsafe path {value!r} '
+                f'in `{key}`.')
+            sys.exit(1)
+    return set(values)
+
+
 def _write_manifest(output_dir, articles_built, include_index=True,
                     images=()):
     """Writes .lwp-manifest.json in public/ listing every file the build
@@ -14486,8 +14588,10 @@ def cmd_clean(series_dir, args):
     the last build. Dry-run by default: --force deletes for real."""
     sd = Path(series_dir).resolve() if series_dir else Path(
         os.environ.get('LWP_SERIES_DIR', '.')).resolve()
-    output_dir = Path(args.get('--output') or os.environ.get(
-        'LWP_OUTPUT_DIR', str(sd / 'public'))).resolve()
+    output_path = Path(args.get('--output') or os.environ.get(
+        'LWP_OUTPUT_DIR', str(sd / 'public')))
+    _reject_symlink_components(output_path, 'clean output directory')
+    output_dir = output_path.resolve()
     # Belt and braces behind the manifest difference above. `build --output
     # <series root>` is accepted, which puts a manifest at the root; a later
     # clean aimed there by --output or LWP_OUTPUT_DIR would be operating on
@@ -14505,9 +14609,16 @@ def cmd_clean(series_dir, args):
               f'Run `lightwebpres build` first: clean only removes what a '
               f'build has declared, and a manifest is how it declares it.')
         sys.exit(1)
-    manifest = json.loads(read_text_file(manifest_path))
-    current = set(manifest.get('files', []))
-    previous = set(manifest.get('previous', []))
+    try:
+        manifest = json.loads(read_text_file(manifest_path))
+    except (OSError, ValueError) as exc:
+        log('error', f'Invalid manifest {manifest_path}: {exc}')
+        sys.exit(1)
+    if not isinstance(manifest, dict):
+        log('error', f'Invalid manifest {manifest_path}: expected an object.')
+        sys.exit(1)
+    current = _manifest_paths(manifest, 'files', output_dir, manifest_path)
+    previous = _manifest_paths(manifest, 'previous', output_dir, manifest_path)
 
     # An orphan is a file a PREVIOUS build declared and this one no longer
     # does. Not "everything undeclared" -- that was the rule until it was
@@ -14524,8 +14635,12 @@ def cmd_clean(series_dir, args):
     # build ever made is never a candidate, which is the whole guarantee.
     orphans = []
     for rel in sorted(previous - current):
-        if (output_dir / rel).is_file():
-            orphans.append(rel)
+        path = _safe_manifest_path(output_dir, rel)
+        if path is None:
+            log('error', f'Manifest path became unsafe: {rel!r}')
+            sys.exit(1)
+        if path.is_file():
+            orphans.append((rel, path))
 
     if not orphans:
         print('No orphan files to clean.')
@@ -14540,15 +14655,15 @@ def cmd_clean(series_dir, args):
         dry = _LOG_STATE['dry_run']
         verb, summary = ('would remove', 'Would clean') if dry else (
             'removed', 'Cleaned')
-        for rel in orphans:
-            _remove(output_dir / rel)
+        for rel, path in orphans:
+            _remove(path)
             print(f'  {verb} {rel}')
         print(f'{summary} {len(orphans)} orphan file(s) from {output_dir}.')
     else:
         # Dry-run by default: list what would be removed.
         print(f'{len(orphans)} orphan file(s) would be removed from '
               f'{output_dir}:')
-        for rel in orphans:
+        for rel, _ in orphans:
             print(f'  {rel}')
         print('Run with --force to remove them.')
 
@@ -14659,6 +14774,9 @@ def cmd_watch(series_dir, args):
             try:
                 cmd_build(str(sd), build_args)
                 print('[watch] rebuilt.')
+            except SystemExit as exc:
+                log('error', f'build failed (exit code {exc.code}); '
+                    f'watching continues.')
             except Exception as exc:
                 log('error', f'build failed: {exc}')
     except KeyboardInterrupt:
@@ -14743,7 +14861,11 @@ def cmd_build(series_dir, args):
     for entry in articles_to_build:
         source_file = entry['page_source']
         output_file = entry['page_dest']
-        source_path = ctx.sources_dir / source_file
+        source_path = _resolve_contained(ctx.sources_dir, source_file)
+        if source_path is None:
+            log('error', f'Source escapes sources/: {ctx.sources_dir / source_file} '
+                f'(listed in series.json).')
+            sys.exit(1)
 
         progress(f'  {output_file} ← {source_file}')
         html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
@@ -14836,7 +14958,11 @@ def cmd_check(series_dir, args):
             diff_count += 1
 
     for entry in ctx.articles:
-        source_path = ctx.sources_dir / entry['page_source']
+        source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
+        if source_path is None:
+            log('error', f'Source escapes sources/: {ctx.sources_dir / entry["page_source"]} '
+                f'(listed in series.json).')
+            sys.exit(1)
         generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
@@ -15318,13 +15444,14 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
         # all, so saying "the series does not build" over it would be
         # false, and a false finding is worse than a missing one.
         for entry in ctx.articles:
-            if not (ctx.sources_dir / entry['page_source']).exists():
+            source_path = _resolve_contained(ctx.sources_dir, entry['page_source'])
+            if source_path is None or not source_path.exists():
                 # The syntax pass already counted a missing ignored source;
                 # there is nothing for this render pass to compose.
                 continue
             try:
                 build_article(
-                    ctx.sources_dir / entry['page_source'], ctx.sources_dir,
+                    source_path, ctx.sources_dir,
                     ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js,
                     ctx.typo_engine, ctx.strings, ctx.lang,
                     style_context=ctx.style_context,
@@ -15674,8 +15801,8 @@ def audit_resolved_theme(templates_dir, articles, sources_dir):
 
     already = {key for key, _ in series_findings}
     for entry in articles:
-        source_path = sources_dir / entry['page_source']
-        if not source_path.exists():
+        source_path = _resolve_contained(sources_dir, entry['page_source'])
+        if source_path is None or not source_path.exists():
             continue
         try:
             meta, _, _, _ = parse_markdown_extended(
@@ -15749,7 +15876,13 @@ def cmd_audit(series_dir, args):
                      f"listed, never counted.")
 
     for entry in articles:
-        source_path = sources_dir / entry['page_source']
+        source_path = _resolve_contained(sources_dir, entry['page_source'])
+        if source_path is None:
+            log('error', f'{entry["page_dest"]}: page_source escapes sources/ '
+                f'({sources_dir / entry["page_source"]})')
+            warnings += 1
+            named_the_cause = True
+            continue
         if not source_path.exists():
             log('error', f'{entry["page_dest"]}: page_source not found ({source_path})')
             # Counted, or the summary contradicts the line above it -- the
@@ -16019,6 +16152,11 @@ def cmd_install(target_dir, args):
 
     if td.exists() and any(td.iterdir()) and not force:
         log('error', f'{td} is not empty. Use an empty or new directory, or pass --force.')
+        sys.exit(1)
+
+    if not _VALID_LANG_RE.fullmatch(str(lang)):
+        log('error', f'--lang: invalid language value {str(lang)!r} '
+            f'(letters, digits, "-" and "_" only).')
         sys.exit(1)
 
     if theme_key is not None and theme_key not in THEMES:
@@ -16798,7 +16936,12 @@ def cmd_series_slug(series_dir, args):
               'target': {'kind': 'series', 'directory': str(sd)},
               'articles': []}
     for entry in articles:
-        source = sources_dir / entry['page_source']
+        source = _resolve_contained(sources_dir, entry['page_source'])
+        if source is None:
+            report['articles'].append(
+                {'page_source': entry['page_source'], 'source_read': False,
+                 'slides': []})
+            continue
         try:
             text = read_text_file(source)
         except OSError:
@@ -16858,7 +17001,10 @@ def cmd_assign_slug(series_dir, args):
     dry_run = bool(args.get('--dry-run'))
     written = 0
     for entry in articles:
-        source = sources_dir / entry['page_source']
+        source = _resolve_contained(sources_dir, entry['page_source'])
+        if source is None:
+            log('warn', f'{sources_dir / entry["page_source"]} escapes sources/ — skipped.')
+            continue
         try:
             text = read_text_file(source)
         except OSError as exc:
@@ -17445,7 +17591,9 @@ def survey_slide_field(name, articles, sources_dir, only):
         source = entry['page_source']
         if only and source != only:
             continue
-        text = _read_article_source(sources_dir / source)
+        source_path = _resolve_contained(sources_dir, source)
+        text = (_read_article_source(source_path)
+                if source_path is not None else None)
         if text is None:
             unread.append(source)
             continue
@@ -17550,7 +17698,9 @@ def cmd_resolve(series_dir, name, args):
 
     article_meta, unread = None, []
     if only is not None:
-        text = _read_article_source(sources_dir / only)
+        source_path = _resolve_contained(sources_dir, only)
+        text = (_read_article_source(source_path)
+                if source_path is not None else None)
         if text is None:
             unread.append(only)
         else:
@@ -18365,7 +18515,7 @@ OPTIONS
     build/verify: use this language pack file instead of
     language/<lang>.json (highest priority, spec §19.5)
   --no-typography
-    build/verify: disables ALL typography rules for this run
+    build/verify/watch: disables ALL typography rules for this run
   --only file
     build: rebuild just this one article, IF nothing that affects
     index.html/series-nav changed since the last build (spec §11.3.1)
