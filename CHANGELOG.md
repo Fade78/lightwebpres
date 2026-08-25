@@ -33,6 +33,12 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.46.1
+
+The format glossary and packaged skills now document the effective tag
+visibility reports, including article/slide intersections, stable vocabulary,
+status counts, default output and read-only inspection commands.
+
 ## v0.46.0
 
 `series tags` now inventories the effective tag vocabulary, article status
