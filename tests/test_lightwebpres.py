@@ -25,7 +25,7 @@ import re
 import shlex
 import shutil
 import subprocess
-from html import escape as html_escape
+from html import escape as html_escape, unescape as html_unescape
 import sys
 import tempfile
 import unittest
@@ -168,6 +168,18 @@ class SlideTags(unittest.TestCase):
             root = scaffold(tmp, self._tagged_article())
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_excluded_slide_skips_invalid_tag_tokens(self):
+        md = self._tagged_article().replace(
+            'tags: excluded\n## Removed',
+            'tags: excluded has/slash\n## Removed')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        self.assertNotIn('has/slash', html)
 
     def test_invalid_tag_is_fatal(self):
         for value in ('_internal', 'has/slash'):
@@ -5603,6 +5615,27 @@ class IncrementalBuildOnly(unittest.TestCase):
             b_after = (root / 'public' / 'b.html').read_text(encoding='utf-8')
             self.assertNotEqual(b_before, b_after)
             self.assertIn('A brand-new slide', b_after)
+
+    def test_only_with_reordered_articles_rebuilds_tag_previews_everywhere(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            run('build', str(root), '--output', str(root / 'public'))
+
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['articles'].reverse()
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--only', 'b.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('nav/index-affecting metadata changed', result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+        raw = re.search(r'data-lwp-tag-preview="([^"]+)"', html).group(1)
+        preview = json.loads(html_unescape(raw))
+        self.assertEqual([article['title'] for article in preview['articles']],
+                         ['Article B', 'Article A'])
 
     def test_only_with_changed_nav_field_falls_back_and_fixes_other_pages(self):
         with tempfile.TemporaryDirectory() as tmp:

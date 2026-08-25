@@ -2082,7 +2082,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.45.8</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.45.9</div>
   </div>
 </div>
 
@@ -4579,6 +4579,23 @@ document.addEventListener('DOMContentLoaded', function() {
   function isInteractive(e) {
     return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .nav-buttons');
   }
+  // An outside click closes an open dialog instead of activating whatever is
+  // underneath it. Capture is intentional: a nav button or link runs its own
+  // click handler before the document bubble handler would otherwise get a
+  // chance to close the tag menu.
+  document.addEventListener('click', function (e) {
+    var target = e.target;
+    var insideTagMenu = target && target.closest && target.closest('.tag-menu');
+    var insideShare = target && target.closest && target.closest('.share-popover');
+    var tagOpen = tagMenu && tagMenu.classList.contains('open');
+    var shareOpen = sharePopover && sharePopover.classList.contains('open');
+    if ((tagOpen && !insideTagMenu) || (shareOpen && !insideShare)) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (tagOpen && !insideTagMenu) closeTagMenu();
+      if (shareOpen && !insideShare) closeSharePopover();
+    }
+  }, true);
   // A double tap is detected from the touch events themselves (see the
   // touch section below), never from the clicks a browser synthesises
   // afterwards. Measured, and it is the reason this exists: a

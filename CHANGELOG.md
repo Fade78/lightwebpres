@@ -33,6 +33,14 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.45.9
+
+The tag filter now keeps incremental builds safe when articles are reordered,
+closes its menu without activating navigation underneath it, and accepts
+unfinished tag text on slides explicitly excluded from the build. The cache
+documentation now describes the runtime tag metadata and article order it
+tracks.
+
 ## v0.45.8
 
 The incremental build path now applies its draft and output switches

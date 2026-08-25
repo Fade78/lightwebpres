@@ -4131,10 +4131,11 @@ Reconstruire uniquement le fichier demandé sans vérifier ça produirait un
 site avec une navigation périmée.
 
 **Le mécanisme de sécurité** : à chaque `build` (complet ou avec `--only`),
-une empreinte est calculée pour chaque article — un hash SHA-256 des 6
-champs ci-dessus concaténés, jamais leur contenu en clair (fichier de
-cache petit et de taille constante, indépendant de la longueur des
-résumés) — et écrite dans `.lwp-cache/nav.json` (racine du répertoire de
+une empreinte est calculée pour chaque article — un hash SHA-256 de sa
+position dans `articles`, des 6 champs ci-dessus et des métadonnées de
+filtrage runtime (tags d'article, tags/slides et `default_tag`), jamais leur
+contenu en clair (fichier de cache petit et de taille constante, indépendant
+de la longueur des résumés) — et écrite dans `.lwp-cache/nav.json` (racine du répertoire de
 série, à côté de `sources/`/`templates/`/`public/`, jamais dans l'un de
 ces deux derniers pour les garder tels quels — un artefact de build de
 plus, comme `public/`, mais pas mélangé avec lui). `--nav-cache chemin`
@@ -4146,6 +4147,8 @@ construction, sans avoir besoin d'entrer aussi dans le hash. Même
 mécanisme pour `status` : l'empreinte est calculée sur la liste *après*
 les filtres de §20.6, donc changer le statut d'un article change
 l'ensemble des clés et force un build complet.
+Changer l'ordre des articles change aussi leur position dans l'empreinte et
+force un build complet : l'ordre de `series.json` est une donnée publiée.
 
 Au lancement de `build --only fichier`, l'empreinte est recalculée pour
 **tous** les articles (rien de coûteux : ne fait que reparser les blocs

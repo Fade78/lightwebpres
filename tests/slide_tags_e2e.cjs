@@ -95,6 +95,20 @@ async function main() {
     const selected = await page.evaluate(() => localStorage.getItem('lwp-active-tag'));
     if (selected !== 'en') throw new Error('tag was not persisted: ' + selected);
 
+    // Clicking a navigation control while the menu is open closes the dialog
+    // without activating the control underneath it.
+    await page.keyboard.press('l');
+    await page.waitForFunction(() => document.getElementById('tagMenu').classList.contains('open'));
+    const beforeCoveredNav = await activeSlide();
+    await page.click('#navNext');
+    await page.waitForFunction(() => !document.getElementById('tagMenu').classList.contains('open'));
+    await page.waitForTimeout(500);
+    const afterCoveredNav = await activeSlide();
+    if (afterCoveredNav !== beforeCoveredNav) {
+      throw new Error('a navigation click that closed the tag menu advanced the deck: '
+        + beforeCoveredNav + ' -> ' + afterCoveredNav);
+    }
+
     // Reopening the menu must not clear the selection: the "en" card
     // stays visible after a reload below, and the menu must still offer
     // the same three tags.

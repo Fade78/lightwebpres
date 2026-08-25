@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.8"
+VERSION = "0.45.9"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -8999,6 +8999,23 @@ document.addEventListener('DOMContentLoaded', function() {
   function isInteractive(e) {
     return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .nav-buttons');
   }
+  // An outside click closes an open dialog instead of activating whatever is
+  // underneath it. Capture is intentional: a nav button or link runs its own
+  // click handler before the document bubble handler would otherwise get a
+  // chance to close the tag menu.
+  document.addEventListener('click', function (e) {
+    var target = e.target;
+    var insideTagMenu = target && target.closest && target.closest('.tag-menu');
+    var insideShare = target && target.closest && target.closest('.share-popover');
+    var tagOpen = tagMenu && tagMenu.classList.contains('open');
+    var shareOpen = sharePopover && sharePopover.classList.contains('open');
+    if ((tagOpen && !insideTagMenu) || (shareOpen && !insideShare)) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (tagOpen && !insideTagMenu) closeTagMenu();
+      if (shareOpen && !insideShare) closeSharePopover();
+    }
+  }, true);
   // A double tap is detected from the touch events themselves (see the
   // touch section below), never from the clicks a browser synthesises
   // afterwards. Measured, and it is the reason this exists: a
@@ -12228,11 +12245,16 @@ def _canonical_tag_tokens(raw, source, field='tags', allow_excluded=True,
 
     Slide and article tags deliberately share this lexical surface. The
     caller decides whether the slide-only ``excluded`` token is allowed.
+    On a slide, ``excluded`` wins before the remaining tokens are validated:
+    an omitted card can carry unfinished tag text without entering the build.
     """
     text = str(raw or '').strip()
+    tokens = text.split()
+    if allow_excluded and any(token.casefold() == 'excluded' for token in tokens):
+        return ['excluded']
     tags = []
     seen = set()
-    for token in text.split():
+    for token in tokens:
         canonical = token.casefold()
         if (canonical.startswith('_')
                 or not _TAG_TOKEN_RE.fullmatch(canonical)):
@@ -14247,12 +14269,14 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
 # every other article's full Markdown body) but only when none of that
 # shared, cross-page data has actually changed since the last build.
 
-def _entry_fingerprint(entry):
+def _entry_fingerprint(entry, position=0):
     """A single hash of the fields that affect index.html/series-nav for
     this entry — content itself isn't kept, so the cache file stays small
-    regardless of how long a summary is. Runtime tag metadata is included
-    because it is embedded in both card types."""
-    parts = [entry.get(field, '') for field in _DISPLAY_OVERRIDE_FIELDS]
+    regardless of how long a summary is. The position is included because
+    series.json order is rendered into navigation and tag previews. Runtime
+    tag metadata is included because it is embedded in both card types."""
+    parts = [f'position:{position}']
+    parts.extend(entry.get(field, '') for field in _DISPLAY_OVERRIDE_FIELDS)
     parts.extend([
         ' '.join(entry.get('_lwp_article_tags', ())),
         ' '.join(entry.get('_lwp_slide_tags', ())),
@@ -14268,8 +14292,10 @@ def compute_nav_fingerprint(articles):
     dict (not just the entry for the one being built) also catches an
     article added/removed, or a DIFFERENT article's meta/series.json entry
     having changed since the last build, not only the one named by
-    --only."""
-    return {entry['page_dest']: _entry_fingerprint(entry) for entry in articles}
+    --only. The position is part of each value so reordering the same
+    articles cannot take the incremental path."""
+    return {entry['page_dest']: _entry_fingerprint(entry, position)
+            for position, entry in enumerate(articles)}
 
 
 def default_nav_cache_path(series_dir):
