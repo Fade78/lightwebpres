@@ -7840,7 +7840,9 @@ par un tiers. Trois actions indépendantes, déclenchées par trois boutons :
    `create` pour chaque fichier absent du dépôt distant et `update` pour
    chaque fichier déjà présent. Le commit est scindé en plusieurs appels si
    le nombre de fichiers dépasse 100 (pas de limite documentée côté GitLab,
-   mais on reste prudent).
+   mais on reste prudent). Les états dérivés du générateur — `.lwp-cache/`
+   et `.lwp-manifest.json`, même quand ce dernier se trouve dans `public/`
+   — ne sont pas du contenu à pousser.
 
 ### 23.10 CORS : condition nécessaire, hors du périmètre de cette page
 

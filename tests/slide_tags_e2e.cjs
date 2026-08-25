@@ -67,6 +67,42 @@ async function main() {
       const dots = Array.prototype.slice.call(document.querySelectorAll('.nav-dots a'));
       return dots.findIndex((d) => d.classList.contains('active'));
     });
+
+    // Overlay controls are deliberate transitions, not covered navigation:
+    // leaving the tag menu through the presenter menu must reach the menu's
+    // own handler, then share and tags must be reachable from that path.
+    await page.click('#navMenu');
+    await page.waitForFunction(() => document.getElementById('presenterMenu').classList.contains('open'));
+    await page.click('#menuShare');
+    await page.waitForFunction(() => document.getElementById('sharePopover').classList.contains('open'));
+    await page.click('#navMenu');
+    await page.waitForFunction(() =>
+      document.getElementById('presenterMenu').classList.contains('open')
+      && !document.getElementById('sharePopover').classList.contains('open'));
+    await page.click('#menuTags');
+    await page.waitForFunction(() => document.getElementById('tagMenu').classList.contains('open'));
+    await page.keyboard.press('Escape');
+
+    // The QR modal is the same modal boundary as the other share surfaces:
+    // a navigation click while it is open closes it without moving the deck.
+    await page.click('#navMenu');
+    await page.waitForFunction(() => document.getElementById('presenterMenu').classList.contains('open'));
+    await page.click('#menuShare');
+    await page.waitForFunction(() => document.getElementById('sharePopover').classList.contains('open'));
+    await page.click('[data-action="qr"][data-scope="series"]');
+    await page.waitForFunction(() => document.getElementById('shareQrModal').classList.contains('open'));
+    const beforeQrNav = await activeSlide();
+    await page.evaluate(() => document.getElementById('navNext').click());
+    await page.waitForFunction(() => !document.getElementById('shareQrModal').classList.contains('open'));
+    await page.waitForTimeout(500);
+    const afterQrNav = await activeSlide();
+    if (afterQrNav !== beforeQrNav) {
+      throw new Error('a navigation click that closed the QR modal advanced the deck: '
+        + beforeQrNav + ' -> ' + afterQrNav);
+    }
+
+    await page.keyboard.press('l');
+    await page.waitForFunction(() => document.getElementById('tagMenu').classList.contains('open'));
     const beforeGround = await activeSlide();
     await page.mouse.click(640, 300);
     await page.waitForFunction(() => !document.getElementById('tagMenu').classList.contains('open'));

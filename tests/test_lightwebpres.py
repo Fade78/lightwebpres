@@ -181,6 +181,18 @@ class SlideTags(unittest.TestCase):
 
         self.assertNotIn('has/slash', html)
 
+    def test_audit_uses_excluded_precedence_for_invalid_remaining_tokens(self):
+        md = self._tagged_article().replace(
+            'tags: excluded\n## Removed',
+            'tags: excluded has/slash\n## Removed')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            result = run('audit', str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('has/slash', result.stderr)
+        self.assertNotIn('build will reject this tags: value', result.stderr)
+
     def test_invalid_tag_is_fatal(self):
         for value in ('_internal', 'has/slash'):
             with self.subTest(value=value), tempfile.TemporaryDirectory() as tmp:
@@ -5716,6 +5728,13 @@ class IncrementalBuildOnly(unittest.TestCase):
             for fingerprint in cache.values():
                 self.assertRegex(fingerprint, r'^[0-9a-f]{64}$')
                 self.assertNotIn('Article', fingerprint)
+
+    def test_nav_fingerprint_uses_canonical_default_tag_case(self):
+        lwp = load_lightwebpres_module()
+        upper = {'page_dest': 'a.html', '_lwp_default_tag': 'FR'}
+        lower = {'page_dest': 'a.html', '_lwp_default_tag': 'fr'}
+        self.assertEqual(lwp._entry_fingerprint(upper),
+                         lwp._entry_fingerprint(lower))
 
     def test_only_honors_the_drafts_only_filter(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -16,7 +16,8 @@ Three independent steps, each callable on its own from the page:
     into the work directory.
   - build(): runs the unmodified cmd_build() against the pulled directory.
   - push(): diffs the work directory (sources + the public/ that build()
-    just produced) against the remote repository tree and commits
+    just produced, except build bookkeeping) against the remote repository
+    tree and commits
     create/update actions for changed or new files in one commit (chunked
     if large). Never deletes: a file that disappeared locally but still
     exists remotely is left untouched — deletions go through GitLab
@@ -181,6 +182,7 @@ async def _remote_paths(base_url, token, project_id, branch):
 # Mirrors default_nav_cache_path() in the generator. Declared rather than
 # imported: under Pyodide the generator is a loaded script, not a package.
 BUILD_CACHE_DIR = '.lwp-cache'
+BUILD_MANIFEST_NAME = '.lwp-manifest.json'
 
 
 async def push(base_url, token, project_id, branch, series_dir, commit_message):
@@ -196,10 +198,12 @@ async def push(base_url, token, project_id, branch, series_dir, commit_message):
         if not f.is_file():
             continue
         rel = f.relative_to(root).as_posix()
-        # rglob matches dotfiles, so the build's own cache lands here and
-        # would be committed to the user's repository. It is derived state,
-        # rebuilt on every build: never content.
-        if f.relative_to(root).parts[0] == BUILD_CACHE_DIR:
+        # rglob matches dotfiles, so the build's own cache and manifest land
+        # here and would otherwise be committed to the user's repository.
+        # They are derived state, rebuilt by the tool: never content. Match
+        # the repository's .gitignore contract for these names at any depth.
+        relative_parts = f.relative_to(root).parts
+        if BUILD_CACHE_DIR in relative_parts or f.name == BUILD_MANIFEST_NAME:
             continue
         action = 'update' if rel in remote_paths else 'create'
         actions.append({

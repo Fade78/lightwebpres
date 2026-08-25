@@ -224,6 +224,10 @@ class GitSync(unittest.TestCase):
         # public/*.html did not exist remotely -> create.
         self.assertEqual(actions_by_path['public/a.html']['action'], 'create')
         self.assertEqual(actions_by_path['public/index.html']['action'], 'create')
+        # Build bookkeeping is local state, not repository content: it is
+        # ignored by .gitignore and must stay out of the browser push too.
+        self.assertNotIn('public/.lwp-manifest.json', actions_by_path)
+        self.assertNotIn('.lwp-cache/nav.json', actions_by_path)
 
         # The pushed public/a.html must be the actually-built HTML, not the
         # source markdown -- decode it and check for build-produced content.

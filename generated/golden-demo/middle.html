@@ -4599,20 +4599,34 @@ document.addEventListener('DOMContentLoaded', function() {
     return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .nav-buttons');
   }
   // An outside click closes an open dialog instead of activating whatever is
-  // underneath it. Capture is intentional: a nav button or link runs its own
-  // click handler before the document bubble handler would otherwise get a
-  // chance to close the tag menu.
+  // underneath it. A click on another overlay opener is a deliberate
+  // transition, though: dismiss the old overlay and let the target's own
+  // handler open the new one.
+  function isOverlayTransitionTarget(target) {
+    return !!(target && target.closest && target.closest(
+      '#navMenu, [data-menu-action="theme"], [data-menu-action="tags"], '
+      + '[data-menu-action="share"], [data-menu-action="help"]'));
+  }
   document.addEventListener('click', function (e) {
     var target = e.target;
     var insideTagMenu = target && target.closest && target.closest('.tag-menu');
     var insideShare = target && target.closest && target.closest('.share-popover');
+    var insideQrModal = target && target.closest && target.closest('.share-qr-modal');
     var tagOpen = tagMenu && tagMenu.classList.contains('open');
     var shareOpen = sharePopover && sharePopover.classList.contains('open');
-    if ((tagOpen && !insideTagMenu) || (shareOpen && !insideShare)) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (tagOpen && !insideTagMenu) closeTagMenu();
-      if (shareOpen && !insideShare) closeSharePopover();
+    var qrOpen = qrModal && qrModal.classList.contains('open');
+    var outsideTag = tagOpen && !insideTagMenu;
+    var outsideShare = shareOpen && !insideShare;
+    var outsideQr = qrOpen && !insideQrModal;
+    if (outsideTag || outsideShare || outsideQr) {
+      var transition = isOverlayTransitionTarget(target);
+      if (!transition) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (outsideTag) closeTagMenu(transition ? false : true);
+      if (outsideShare) closeSharePopover();
+      if (outsideQr) closeQrModal();
     }
   }, true);
   // A double tap is detected from the touch events themselves (see the
@@ -4662,18 +4676,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // swallowClicksUntil.
     if (Date.now() < swallowClicksUntil) return;
     if (pauseOverlay && pauseOverlay.contains(e.target)) { closePause(); return; }
-    // A popover or dialog is open and the reader clicks outside it:
-    // closing it is the whole of the click. Advancing the deck here
-    // would move the reader the moment they asked for nothing — and on
-    // the way out, the same click that closed the window would change
-    // the card under the reader's nose. (A click INSIDE the window never
-    // reaches this handler: isInteractive above has already returned.)
-    if ((sharePopover && sharePopover.classList.contains('open'))
-        || (tagMenu && tagMenu.classList.contains('open'))) {
-      closeSharePopover();
-      closeTagMenu();
-      return;
-    }
+    // A popover or dialog is open and the reader clicks outside it: the
+    // capture listener above has already closed it and consumed the click.
+    // Keeping a second dismissal rule here would make the two phases
+    // disagree about which controls may transition between overlays.
     // Only the left button (0) drives navigation from here on.
     if (e.button !== 0) return;
     // A click that pressed down on an existing selection is the reader
