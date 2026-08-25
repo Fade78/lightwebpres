@@ -89,7 +89,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.9"
+VERSION = "0.45.10"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 

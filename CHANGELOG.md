@@ -33,6 +33,17 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.45.10
+
+Overlay transitions now let the presenter-menu, sharing and tag controls
+receive their intended clicks, and QR dialogs consume navigation clicks
+instead of advancing the deck underneath them.
+
+`audit` now follows build's `excluded` precedence, navigation fingerprints
+normalize the default tag, and browser GitLab sync no longer pushes derived
+`.lwp-cache` or `.lwp-manifest.json` files. Regression coverage and generated
+outputs have been refreshed.
+
 ## v0.45.9
 
 The tag filter now keeps incremental builds safe when articles are reordered,
