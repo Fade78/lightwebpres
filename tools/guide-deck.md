@@ -80,6 +80,11 @@ cards and slides follow the same selection, and `series_meta.default_tag` sets
 the initial tag when nothing is stored. `build` and `audit` warn when a tag has
 no effective slide or an article has no non-excluded slide.
 
+For the source-level inventory, `lightwebpres series tags my-series` reports
+the effective articles and slides by tag, status totals, and the default
+output; `--tag fr` narrows it. `status --format json` carries the same report
+for a consumer that already asks what the series resolves to.
+
 Declare `series_meta.lang_tags: {"fr": "fr", "en": "en"}` when typography
 must follow the selected language. The first mapped tag on a slide wins; the
 build's `--lang` remains the fallback.

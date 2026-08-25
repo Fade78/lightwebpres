@@ -30,6 +30,7 @@ GALLERY_PANELS_SCRIPT = Path(__file__).resolve().parent / 'gallery_panels_e2e.cj
 NOTE_PROPERTIES_SCRIPT = Path(__file__).resolve().parent / 'note_properties_e2e.cjs'
 SLIDE_TAGS_SCRIPT = Path(__file__).resolve().parent / 'slide_tags_e2e.cjs'
 ARTICLE_TAGS_SCRIPT = Path(__file__).resolve().parent / 'article_tags_e2e.cjs'
+TAG_REPORT_SCRIPT = Path(__file__).resolve().parent / 'tag_report_e2e.cjs'
 
 
 def _node_playwright_available():
@@ -260,6 +261,27 @@ class ArticleTagsRuntime(unittest.TestCase):
             capture_output=True, text=True,
             env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
             timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        report = subprocess.run(
+            [sys.executable, str(REPO_ROOT / 'lightwebpres'), 'series', 'tags',
+             str(Path(self.tmpdir.name)), '--format', 'json'],
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(report.returncode, 0, report.stdout + report.stderr)
+        report_json = json.loads(report.stdout)
+        article_urls = [
+            'http://127.0.0.1:%d/%s.html' % (self.port, slug)
+            for slug in ('a', 'b', 'c')
+        ]
+        result = subprocess.run(
+            ['node', str(TAG_REPORT_SCRIPT),
+             'http://127.0.0.1:%d/index.html' % self.port,
+             json.dumps(report_json['tags']), *article_urls],
+            capture_output=True, text=True,
+            env={**__import__('os').environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
+            timeout=60,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

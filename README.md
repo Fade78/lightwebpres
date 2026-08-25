@@ -319,6 +319,8 @@ ask what a series actually resolves to, without building it:
 ```bash
 ./lightwebpres status my-series
 ./lightwebpres status my-series --format json
+./lightwebpres series tags my-series --format json
+./lightwebpres series tags my-series --tag fr
 ```
 
 It lists the articles in `series.json` order — the order that fixes the
@@ -329,6 +331,13 @@ block, the article's own content, another field it was derived from, or
 the built-in default. An article whose file can't be read is still
 listed, with its fields fallen back and a warning on stderr; nothing is
 built and nothing is written.
+
+`series tags` answers the adjacent visibility question without building: it
+lists the shared vocabulary, effective articles and slides by tag, all three
+article statuses, the slides without an explicit tag, and the normal output
+under `series_meta.default_tag`. `--tag` restricts the tag rows while keeping
+the series totals. `status --format json` carries the same tag report under
+its `tags` key.
 
 When the question is about **one** name rather than the whole series —
 and especially when the answer is a surprise — `resolve` says what that
@@ -382,6 +391,7 @@ the series or within one article.
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
 | `series theme [dir]` | Same, for the *effective* theme of an installed series — after the values it pins in `templates/settings.conf` |
 | `status [dir]` | Says what is in a series without building anything: its articles in `series.json` order, every field *resolved* the way a build resolves it, and which level of the cascade each value came from. `--format json` for machines |
+| `series tags [dir]` | Inventories effective tag visibility, status totals, non-excluded slides and default-output coverage without building; `--tag` filters one tag. `--format json` for machines |
 | `series slug [dir]` | Lists every card of the series and the name it is published under — the anchor a shared link and a printed QR code point at. `status` answers by article; this answers by card. `--format json` for machines |
 | `series slug set [dir]` | Writes a `slug:` into every card that has none, and only those. The one command that edits your articles — a build never rewrites its own inputs. What it writes is random and meant to be renamed to something readable; `--dry-run` says what it would write |
 | `resolve [dir] <name>` | Says what ONE name is worth here and which level decided it, losing levels included. The shape of the name picks the cascade: dotted = theme property, `snake_case` = article/series field, `kebab-case` = slide field. `--article file.md` adds a page's own layer; `--format json` for machines |
@@ -421,7 +431,8 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--themes selectors\|all` | `build`, `verify`, `watch` | embeds slugs, `essential` or `X:Y` facet selectors; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
 | `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
-| `--format json` | `resolve`, `status`, `theme show`, `series theme` | machine-readable output |
+| `--format json` | `resolve`, `status`, `series tags`, `theme show`, `series theme` | machine-readable output |
+| `--tag name` | `series tags` | restricts the inventory to one canonical tag |
 
 The spellings this tool used before the CLI was reorganised — `install`,
 `check`, `themes`, `theme-info`, `set-theme`, `series-info`,

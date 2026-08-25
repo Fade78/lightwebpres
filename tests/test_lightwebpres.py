@@ -4630,6 +4630,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         block = re.split(r'\n[A-Z][A-Z /()]+\n', block)[0]
         canonical_names = ({lwp.canonical(v) for v in lwp._SHORTCUTS.values()}
                            | {'series theme set', 'series theme',
+                              'series tags',
                               'template update', 'theme list', 'theme show',
                               'theme gallery'})
         checked = 0
@@ -16776,7 +16777,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertEqual(report['lightwebpres_version'], version)
         self.assertEqual(set(report), {'schema', 'lightwebpres_version',
                                        'target', 'series_meta', 'counts',
-                                       'articles'})
+                                       'tags', 'articles'})
         self.assertEqual(set(report['target']), {'kind', 'directory', 'theme'})
         self.assertEqual(report['target']['kind'], 'series')
         self.assertEqual(report['target']['directory'], str(Path(root).resolve()))
@@ -16903,7 +16904,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
     # prevent, and the kind of copy that drifts silently because both
     # halves keep passing their own tests.
     SERIES_INFO_SURFACE = {'series_info_report', 'print_series_info_text',
-                           'cmd_series_info', 'series_theme'}
+                           'cmd_series_info', 'series_theme',
+                           'series_tags_report', 'cmd_series_tags',
+                           'print_tag_inventory_text'}
     RESOLUTION_PRIMITIVES = {'parse_markdown_extended', 'parse_metadata_block',
                              '_find_cover_slide', '_read_article_source'}
 
@@ -16926,13 +16929,145 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
                          'a series-info function was renamed or removed; this '
                          'guard now watches nothing')
 
-    def test_the_command_goes_through_the_build_s_own_resolver(self):
+    def test_report_commands_go_through_the_build_s_own_resolver(self):
         import ast
         tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
-        command = next(n for n in tree.body
-                       if isinstance(n, ast.FunctionDef) and n.name == 'cmd_series_info')
-        called = {sub.id for sub in ast.walk(command) if isinstance(sub, ast.Name)}
+        for name in ('cmd_series_info', 'cmd_series_tags'):
+            command = next(n for n in tree.body
+                           if isinstance(n, ast.FunctionDef) and n.name == name)
+            called = {sub.id for sub in ast.walk(command)
+                      if isinstance(sub, ast.Name)}
+            self.assertIn('_load_series_report_context', called, name)
+        loader = next(n for n in tree.body
+                      if isinstance(n, ast.FunctionDef)
+                      and n.name == '_load_series_report_context')
+        called = {sub.id for sub in ast.walk(loader) if isinstance(sub, ast.Name)}
         self.assertIn('resolve_article_fields', called)
+
+
+class SeriesTagInventory(unittest.TestCase):
+    """`series tags` and `status` report the build's effective tag view."""
+
+    def _article(self, article_tags='', slides=()):
+        lines = ['<!-- lwp:meta -->']
+        if article_tags:
+            lines.append(f'tags: {article_tags}')
+        lines.extend(['---', ''])
+        for number, (tag, title) in enumerate(slides, 1):
+            marker = '<!-- lwp:slide:cover -->' if number == 1 else '<!-- lwp:slide -->'
+            heading = '# ' if number == 1 else '## '
+            lines.extend([marker, f'slug: s{number}',])
+            if tag is not None:
+                lines.append(f'tags: {tag}')
+            lines.extend([f'{heading}{title}', f'summary: {title} summary.',
+                          '', '---', ''])
+        return '\n'.join(lines).rstrip() + '\n'
+
+    def _series(self, tmp):
+        root = Path(tmp)
+        (root / 'sources').mkdir(parents=True, exist_ok=True)
+        sources = {
+            'a.md': self._article(
+                'fr', [(None, 'A shared'), ('fr', 'A French'),
+                       ('default', 'A default'), ('excluded', 'A removed')]),
+            'b.md': self._article(
+                'en', [(None, 'B shared'), ('en', 'B English')]),
+            'c.md': self._article(
+                'en', [(None, 'C shared'), ('en', 'C English')]),
+            'd.md': self._article('fr', [('fr', 'D French')]),
+            'e.md': self._article('fr', [('en', 'E English')]),
+            'f.md': self._article('orphan', [('en', 'F English')]),
+        }
+        for name, text in sources.items():
+            (root / 'sources' / name).write_text(text, encoding='utf-8')
+        entries = [
+            {'page_source': 'a.md'},
+            {'page_source': 'b.md'},
+            {'page_source': 'c.md', 'status': 'draft'},
+            {'page_source': 'd.md', 'status': 'ignored'},
+            {'page_source': 'e.md'},
+            {'page_source': 'f.md'},
+        ]
+        (root / 'series.json').write_text(json.dumps({
+            'series_meta': {'default_tag': 'FR'},
+            'articles': entries,
+        }), encoding='utf-8')
+        return root
+
+    def _json(self, *args):
+        result = run(*args)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_series_tags_counts_effective_visibility_and_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            report = self._json('series', 'tags', str(root), '--format', 'json')
+            status = self._json('status', str(root), '--format', 'json')
+            built = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(built.returncode, 0, built.stderr)
+
+            self.assertEqual(report['schema'], 'lightwebpres.series-tags/1')
+            self.assertEqual(report['target']['directory'], str(root.resolve()))
+            self.assertEqual(report['default_tag'], 'fr')
+            self.assertEqual(report['totals']['articles'], {
+                'active': 4, 'draft': 1, 'ignored': 1, 'total': 6})
+            self.assertEqual(report['totals']['slides'], {
+                'non_excluded': 10, 'untagged': 3})
+            self.assertEqual(report['default_output'], {
+                'tag': 'fr', 'articles': 1, 'slides': 3, 'empty': False})
+
+            items = {item['tag']: item for item in report['tags']}
+            self.assertEqual(list(items), ['default', 'fr', 'en', 'orphan'])
+            self.assertEqual(items['default']['articles'], {
+                'active': 0, 'draft': 0, 'ignored': 0, 'total': 0})
+            self.assertEqual(items['default']['slides'], 0)
+            self.assertEqual(items['fr']['articles'], {
+                'active': 1, 'draft': 0, 'ignored': 1, 'total': 2})
+            self.assertEqual(items['fr']['slides'], 4)
+            self.assertEqual(items['fr']['output'], {'articles': 1, 'slides': 3})
+            self.assertEqual(items['en']['articles'], {
+                'active': 1, 'draft': 1, 'ignored': 0, 'total': 2})
+            self.assertEqual(items['en']['slides'], 4)
+            self.assertEqual(items['en']['output'], {'articles': 1, 'slides': 2})
+            self.assertEqual(items['orphan']['articles'], {
+                'active': 0, 'draft': 0, 'ignored': 0, 'total': 0})
+            self.assertEqual(items['orphan']['slides'], 0)
+            self.assertEqual(status['tags'], {
+                key: report[key] for key in (
+                    'default_tag', 'filter', 'totals', 'default_output', 'tags')})
+
+            self.assertFalse((root / 'public' / 'c.html').exists())
+            self.assertFalse((root / 'public' / 'd.html').exists())
+            article = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertNotIn('A removed', article)
+            self.assertNotIn('data-tags="excluded"', article)
+
+    def test_series_tags_can_filter_and_reject_unknown_tags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            filtered = self._json('series', 'tags', str(root), '--tag', 'FR',
+                                  '--format', 'json')
+            self.assertEqual(filtered['filter'], 'fr')
+            self.assertEqual([item['tag'] for item in filtered['tags']], ['fr'])
+
+            unknown = run('series', 'tags', str(root), '--tag', 'missing')
+            self.assertNotEqual(unknown.returncode, 0)
+            self.assertIn('Available tags', unknown.stderr)
+
+    def test_status_and_audit_expose_the_same_tag_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            status = self._json('status', str(root), '--format', 'json')
+            text = run('series', 'tags', str(root)).stdout
+            audit = run('audit', str(root))
+
+        self.assertIn('default output (fr): 1 article(s), 3 slide(s)', text)
+        self.assertIn('orphan: 0 effective article(s)', text)
+        self.assertIn('Tag visibility (audit)', audit.stdout)
+        self.assertIn('orphan: 0 effective article(s)', audit.stdout)
+        self.assertIn("tag 'orphan' selects no displayable slide", audit.stderr)
+        self.assertEqual(status['tags']['default_output']['tag'], 'fr')
 
 
 class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):

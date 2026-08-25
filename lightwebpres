@@ -41,6 +41,7 @@ Usage:
   lightwebpres theme show <slug> [--format text|json]
   lightwebpres series theme [directory] [--format text|json]
   lightwebpres status [directory] [--format text|json]
+  lightwebpres series tags [directory] [--tag name] [--format text|json]
   lightwebpres series slug [directory] [--format text|json]
   lightwebpres series slug set [directory] [--dry-run]
   lightwebpres resolve [directory] <name> [--article file.md] [--format text|json]
@@ -89,7 +90,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.45.10"
+VERSION = "0.46.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -12341,6 +12342,7 @@ def _collect_article_slide_details(slides, filename, strict=True):
             'title': _slide_preview_title(slide, number),
             'type': slide.slide_type,
             'tags': visible_tags,
+            'untagged': not slide_tags,
         })
     return tags, details
 
@@ -12784,6 +12786,15 @@ def _tag_set_accepts(tags, tag):
             else 'default' in tags or tag in tags)
 
 
+def _effective_tag_slides(entry, tag):
+    """Returns the slides an article can show for one canonical tag."""
+    article_tags = set(entry.get('_lwp_article_tags', ()))
+    if article_tags and tag not in article_tags:
+        return []
+    return [slide for slide in entry.get('_lwp_tag_slides', ())
+            if _tag_set_accepts(slide.get('tags', ()), tag)]
+
+
 def tag_visibility_counts(series_data, entries=None, skip_ignored=False):
     """Counts effective article cards and slides for every selectable tag."""
     entries = (_series_entries(series_data) if entries is None else entries)
@@ -12801,16 +12812,103 @@ def tag_visibility_counts(series_data, entries=None, skip_ignored=False):
     for entry in entries:
         if skip_ignored and entry.get('status') == 'ignored':
             continue
-        article_tags = set(entry.get('_lwp_article_tags', ()))
         for tag in counts:
-            if article_tags and tag not in article_tags:
-                continue
-            matching = [slide for slide in entry.get('_lwp_tag_slides', ())
-                        if _tag_set_accepts(slide.get('tags', ()), tag)]
+            matching = _effective_tag_slides(entry, tag)
             if matching:
                 counts[tag]['articles'] += 1
                 counts[tag]['slides'] += len(matching)
     return counts
+
+
+def tag_inventory_report(series_data, entries=None, skip_ignored=False,
+                         tag_filter=None):
+    """Returns the source inventory and effective output for every tag.
+
+    The article and slide collections have already been resolved by the
+    caller. This function only projects that collection onto each selectable
+    tag, so status, audit and the CLI cannot grow independent tag counters.
+    """
+    entries = list(_series_entries(series_data) if entries is None else entries)
+    scoped_entries = [entry for entry in entries
+                      if not skip_ignored or entry.get('status') != 'ignored']
+    vocabulary_data = series_data
+    if skip_ignored:
+        if isinstance(series_data, dict):
+            vocabulary_data = dict(series_data)
+            vocabulary_data['articles'] = scoped_entries
+        else:
+            vocabulary_data = scoped_entries
+    available = series_tags(vocabulary_data)
+    if tag_filter is not None and tag_filter not in available:
+        log('error', f'Unknown tag {tag_filter!r}. Available tags: '
+            f'{", ".join(available)}.')
+        sys.exit(1)
+
+    meta = series_meta_of(series_data)
+    default_tag = meta.get('default_tag', 'default')
+    article_totals = {
+        status: sum(1 for entry in entries
+                    if entry.get('status', DEFAULT_ARTICLE_STATUS) == status)
+        for status in ARTICLE_STATUSES
+    }
+    slide_totals = {
+        'non_excluded': sum(len(entry.get('_lwp_tag_slides', ()))
+                            for entry in entries),
+        'untagged': sum(
+            sum(1 for slide in entry.get('_lwp_tag_slides', ())
+                if slide.get('untagged', False))
+            for entry in entries),
+    }
+
+    all_tag_reports = []
+    for tag in available:
+        status_counts = {status: 0 for status in ARTICLE_STATUSES}
+        slides = 0
+        output_articles = 0
+        output_slides = 0
+        for entry in scoped_entries:
+            matching = _effective_tag_slides(entry, tag)
+            if not matching:
+                continue
+            status = entry.get('status', DEFAULT_ARTICLE_STATUS)
+            status_counts[status] += 1
+            slides += len(matching)
+            if status == 'active':
+                output_articles += 1
+                output_slides += len(matching)
+        status_counts['total'] = sum(status_counts.values())
+        all_tag_reports.append({
+            'tag': tag,
+            'articles': status_counts,
+            'slides': slides,
+            'output': {'articles': output_articles,
+                       'slides': output_slides},
+            'selected_by_default': tag == default_tag,
+        })
+
+    default_report = next(
+        (item for item in all_tag_reports if item['tag'] == default_tag),
+        {'output': {'articles': 0, 'slides': 0}},
+    )
+    selected = ([item for item in all_tag_reports if item['tag'] == tag_filter]
+                if tag_filter is not None else all_tag_reports)
+    return {
+        'default_tag': default_tag,
+        'filter': tag_filter,
+        'totals': {
+            'articles': dict(article_totals,
+                             total=sum(article_totals.values())),
+            'slides': slide_totals,
+        },
+        'default_output': {
+            'tag': default_tag,
+            'articles': default_report['output']['articles'],
+            'slides': default_report['output']['slides'],
+            'empty': (default_report['output']['articles'] == 0
+                      or default_report['output']['slides'] == 0),
+        },
+        'tags': selected,
+    }
 
 
 def warn_tag_visibility(series_data, entries=None, audit=False):
@@ -12825,12 +12923,13 @@ def warn_tag_visibility(series_data, entries=None, audit=False):
             return 0
         raise
     default_tag = meta.get('default_tag', 'default')
-    counts = tag_visibility_counts(series_data, entries=entries,
-                                   skip_ignored=audit)
+    report = tag_inventory_report(series_data, entries=entries,
+                                  skip_ignored=audit)
     warnings = 0
-    for tag, count in counts.items():
-        if count['slides']:
+    for item in report['tags']:
+        if item['slides']:
             continue
+        tag = item['tag']
         origin = 'audit' if audit else 'build'
         initial = (' The initial selection will be empty.'
                    if tag == default_tag else '')
@@ -16469,6 +16568,10 @@ def cmd_audit(series_dir, args):
 
     warnings = default_tag_warnings
     if not args.get('--templates'):
+        if not default_tag_warnings:
+            print_tag_inventory_text(
+                tag_inventory_report(series_data, entries=articles),
+                heading='Tag visibility (audit)')
         warnings += warn_tag_visibility(series_data, entries=articles,
                                         audit=True)
     # Set when this pass has already named, article by article, something
@@ -17773,6 +17876,7 @@ def cmd_set_theme(target_dir, args):
 # test the string instead of guessing an executable's age from the keys
 # it happens to find.
 SERIES_INFO_SCHEMA = 'lightwebpres.series-info/2'
+SERIES_TAGS_SCHEMA = 'lightwebpres.series-tags/1'
 
 
 def series_theme(templates_dir):
@@ -17785,6 +17889,38 @@ def series_theme(templates_dir):
     if settings_file is None or not settings_file.exists():
         return None
     return parse_settings_text(read_text_file(settings_file))[0]
+
+
+def _load_series_report_context(series_dir, args):
+    """Loads the resolved article collection shared by read-only reports."""
+    sd, sources_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
+    series_data = load_series_data(sd)
+    series_meta = series_meta_of(series_data)
+    articles = (series_data.get('articles', series_data)
+                if isinstance(series_data, dict) else series_data)
+    validate_series(articles)
+    resolution = resolve_article_fields(articles, sources_dir, series_meta)
+    return (sd, sources_dir, templates_dir, series_data, articles, resolution)
+
+
+def _warn_unreadable_report_sources(articles, resolution, sources_dir):
+    """Keeps status-like report warnings on stderr, not in JSON stdout."""
+    for entry, note in zip(articles, resolution):
+        if not note['source_read']:
+            log('warn', f'{sources_dir / entry["page_source"]} could not be '
+                f'read (absent, unreadable, or not UTF-8): its fields fall '
+                f'back to series.json and the defaults.')
+
+
+def series_tags_report(directory, series_data, articles, tag_filter=None):
+    """The public envelope around the shared tag inventory."""
+    return {
+        'schema': SERIES_TAGS_SCHEMA,
+        'lightwebpres_version': VERSION,
+        'target': {'kind': 'series', 'directory': str(directory)},
+        **tag_inventory_report(series_data, entries=articles,
+                               tag_filter=tag_filter),
+    }
 
 
 def series_info_report(directory, series_data, articles, resolution, theme):
@@ -17819,6 +17955,7 @@ def series_info_report(directory, series_data, articles, resolution, theme):
             status: sum(1 for entry in articles if entry['status'] == status)
             for status in ARTICLE_STATUSES
         },
+        'tags': tag_inventory_report(series_data, entries=articles),
         'articles': [
             {
                 'page_source': entry['page_source'],
@@ -17853,6 +17990,9 @@ def print_series_info_text(report):
         print(f"  {field:<9s} {value if value else '(unset)'}")
 
     print()
+    print_tag_inventory_text(report['tags'])
+
+    print()
     print('Articles, in series.json order — that order IS the navigation order')
     # Column width from the vocabulary itself, so a sixth provenance
     # would not silently misalign the whole listing.
@@ -17883,6 +18023,69 @@ def print_series_info_text(report):
     print('nothing was written.')
 
 
+def print_tag_inventory_text(report, heading='Tag visibility'):
+    """Prints the human form shared by status, series tags and audit."""
+    totals = report['totals']
+    article_counts = totals['articles']
+    print(heading)
+    print(f"  default tag: {report['default_tag']}")
+    print(f"  {article_counts['total']} article(s): "
+          f"{article_counts['active']} active, "
+          f"{article_counts['draft']} draft, "
+          f"{article_counts['ignored']} ignored")
+    print(f"  {totals['slides']['non_excluded']} non-excluded slide(s), "
+          f"{totals['slides']['untagged']} without tags")
+    default_output = report['default_output']
+    print(f"  default output ({default_output['tag']}): "
+          f"{default_output['articles']} article(s), "
+          f"{default_output['slides']} slide(s)"
+          + (' [empty]' if default_output['empty'] else ''))
+    if report.get('filter') is not None:
+        print(f"  filter: {report['filter']}")
+    print()
+    print('Tags')
+    for item in report['tags']:
+        counts = item['articles']
+        output = item['output']
+        mark = '  [default]' if item['selected_by_default'] else ''
+        print(f"  {item['tag']}{mark}: {counts['total']} effective article(s) "
+              f"({counts['active']} active, {counts['draft']} draft, "
+              f"{counts['ignored']} ignored), {item['slides']} slide(s); "
+              f"output {output['articles']} article(s), "
+              f"{output['slides']} slide(s)")
+
+
+def _normalize_tag_filter(raw):
+    """Canonicalizes the one tag accepted by `series tags --tag`."""
+    tags = _canonical_tag_tokens(raw, 'command line', field='--tag',
+                                 allow_excluded=False)
+    if len(tags) != 1:
+        log('error', '--tag requires exactly one valid tag.')
+        sys.exit(1)
+    return tags[0]
+
+
+def cmd_series_tags(series_dir, args):
+    """`series tags [dir]` — reports effective tag visibility."""
+    fmt = args.get('--format', 'text')
+    if fmt not in ('text', 'json'):
+        log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
+        sys.exit(1)
+    tag_filter = (_normalize_tag_filter(args['--tag'])
+                  if args.get('--tag') is not None else None)
+    sd, sources_dir, _templates_dir, series_data, articles, resolution = (
+        _load_series_report_context(series_dir, args))
+    report = series_tags_report(sd, series_data, articles, tag_filter)
+    _warn_unreadable_report_sources(articles, resolution, sources_dir)
+    if fmt == 'json':
+        print(json.dumps(report, indent=2, ensure_ascii=False,
+                         sort_keys=False))
+    else:
+        target = report['target']['directory']
+        print(f'Series tags: {target}')
+        print_tag_inventory_text(report)
+
+
 def cmd_series_info(series_dir, args):
     """series-info command (§11.11) — says what is in a series without
     building anything.
@@ -17903,16 +18106,8 @@ def cmd_series_info(series_dir, args):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
 
-    sd, sources_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
-    series_data = load_series_data(sd)
-    series_meta = series_meta_of(series_data)
-    articles = (series_data.get('articles', series_data)
-                if isinstance(series_data, dict) else series_data)
-    validate_series(articles)
-    # Drafts are NOT filtered out: an article kept out of the build is
-    # still in the series, and a consumer must be able to show it as such
-    # rather than have it vanish (§11.11).
-    resolution = resolve_article_fields(articles, sources_dir, series_meta)
+    (sd, sources_dir, templates_dir, series_data, articles, resolution) = (
+        _load_series_report_context(series_dir, args))
 
     try:
         theme = series_theme(templates_dir)
@@ -17925,11 +18120,7 @@ def cmd_series_info(series_dir, args):
     # On stderr, so `--format json` stays a single JSON document on
     # stdout. Not an error: the answer for every other article is intact,
     # and this command is not a second `check`.
-    for article in report['articles']:
-        if not article['source_read']:
-            log('warn', f'{sources_dir / article["page_source"]} could not be '
-                  f'read (absent, unreadable, or not UTF-8): its fields fall '
-                  f'back to series.json and the defaults.')
+    _warn_unreadable_report_sources(articles, resolution, sources_dir)
 
     if fmt == 'json':
         print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=False))
@@ -19035,6 +19226,9 @@ COMMANDS
     Says what is in a series without building: its articles in
     series.json order, each field RESOLVED as a build would resolve it,
     and where each value came from (see §11.11)
+  lightwebpres series tags [directory] [--tag name] [--format text|json]
+    Reports effective tag visibility, status totals and default output
+    coverage without building (see §11.11.1)
   lightwebpres series slug [directory] [--format text|json]
     Lists every card of the series and the name it is published under —
     the anchor a shared link and a printed QR code point at. `status`
@@ -19126,8 +19320,10 @@ OPTIONS
     resolve: the article whose levels to include — required for a
     per-article field, additive for a theme property
   --format text|json
-    theme show/series theme/status/resolve: output format (default:
+    theme show/series theme/status/series tags/resolve: output format (default:
     text). JSON, not YAML: this tool is standard-library only
+  --tag name
+    series tags: restrict the inventory to one canonical tag
   --gitlab-ci
     init: also write a .gitlab-ci.yml pipeline (opt-in)
   --language-file path
@@ -19387,11 +19583,11 @@ where this tool is published and can be downloaded.'''
 # out-of-place option is a fatal error instead of a silent no-op, and
 # `--opt=value` is accepted as equivalent to `--opt value`.
 _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
-                             '--theme', '--themes', '--only', '--nav-cache',
-                             '--polarity', '--hue', '--family',
-                             '--format',
-                             '--article', '--port', '--shell',
-                             '--slides-page-numbers'})
+                            '--theme', '--themes', '--only', '--nav-cache',
+                            '--polarity', '--hue', '--family',
+                            '--format',
+                            '--article', '--port', '--shell', '--tag',
+                            '--slides-page-numbers'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
@@ -19411,6 +19607,7 @@ _COMMAND_OPTIONS = {
     'themes': {'--polarity', '--hue', '--family'},
     'theme-info': {'--format', '--all'},
     'series-info': {'--format'},
+    'series-tags': {'--format', '--tag'},
     'resolve': {'--format', '--article'},
     'set-theme': {'--theme'},
     'series-slug': {'--format'},
@@ -19518,6 +19715,7 @@ _SERIES_VERBS = {
     'watch': 'watch', 'resolve': 'resolve',
     'theme': 'series-theme',
     'slug': 'series-slug',
+    'tags': 'series-tags',
 }
 _THEME_VERBS = {
     'list': 'themes', 'show': 'theme-info', 'gallery': 'themes-gallery',
@@ -19582,6 +19780,7 @@ def canonical(command):
 _MAX_POSITIONAL = {
     'install': 1, 'demo': 1, 'build': 1, 'check': 1, 'audit': 1,
     'clean': 1, 'watch': 1, 'series-info': 1, 'series-theme': 1,
+    'series-tags': 1,
     'set-theme': 1, 'refresh-templates': 1,
     'series-slug': 1, 'assign-slug': 1,
     # `template show <file>` takes the file and nothing else -- it
@@ -20018,6 +20217,8 @@ def main():
             cmd_theme_info(positional, opts)
     elif command == 'series-info':
         cmd_series_info(target, opts)
+    elif command == 'series-tags':
+        cmd_series_tags(target, opts)
     elif command == 'resolve':
         # Two positionals, and the name is the one that is never optional:
         # `resolve <name>` in the current series, `resolve <dir> <name>`

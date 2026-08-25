@@ -319,6 +319,12 @@ entry and everything you configured on it. The array order is the
 navigation and index order. The full fallback chain per field is in
 `GLOSSARY.md`.
 
+`lightwebpres status my-series --format json` also carries the tag inventory
+used by the build. For the focused view, use
+`lightwebpres series tags my-series`: it reports effective article and slide
+visibility by tag, separates `active`, `draft`, and `ignored`, and shows what
+the default selection will actually publish. Add `--tag fr` to keep one row.
+
 ## 5. Adjusting the look
 
 Four value overrides, from the smallest to the largest, followed by CSS

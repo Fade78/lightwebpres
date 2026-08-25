@@ -33,6 +33,13 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.46.0
+
+`series tags` now inventories the effective tag vocabulary, article status
+counts, non-excluded slides and the normal default output. The same resolved
+report is exposed by `status` and printed by `audit`; `--tag` narrows the
+machine or human inventory without building the series.
+
 ## v0.45.10
 
 Overlay transitions now let the presenter-menu, sharing and tag controls

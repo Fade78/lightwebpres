@@ -494,6 +494,7 @@ lightwebpres series theme [répertoire] [--format text|json]
 lightwebpres series theme set [répertoire] --theme nom
 lightwebpres theme gallery [slug… | --all] [--output chemin]
 lightwebpres status [répertoire] [--format text|json]
+lightwebpres series tags [répertoire] [--tag nom] [--format text|json]
 lightwebpres resolve [répertoire] <propriété> [--article page] [--format text|json]
 lightwebpres clean [répertoire] [--output public/] [--force]
 lightwebpres completion --shell bash|zsh
@@ -520,6 +521,10 @@ lightwebpres --help
 - `--only` : `build` seulement — ne reconstruit qu'une page (§11.3.1)
 - `--nav-cache` : `build` seulement — chemin du cache d'empreinte de navigation (§11.3.1)
 - `--build-stamp` / `--build-stamp-minimal` : `build` seulement — horodatage de build dans l'en-tête des pages (§11.3.2)
+- `--format text|json` : `status`, `series tags`, `resolve`, `theme show`,
+  `series theme` — format de sortie, texte par défaut
+- `--tag nom` : `series tags` seulement — réduit les lignes de tags au tag
+  canonique demandé, sans réduire les totaux de la série
 
 Les variables d'environnement `LWP_SERIES_DIR`/`LWP_LANG`/`LWP_OUTPUT_DIR`
 sont honorées par toute commande qui opère sur un répertoire de série —
@@ -5261,6 +5266,10 @@ c'est lui qui fixe la navigation inter-articles :
 Au niveau de la série : le `series_meta`, le thème en vigueur, et le
 décompte des articles, réparti sur les trois statuts de §20.6.
 
+Le relevé de visibilité des tags est aussi présent sous la clé `tags`. Il
+vient de la même collection d'articles et de fiches déjà résolue pour la
+commande : `status` n'effectue pas une seconde lecture des sources.
+
 **Les trois champs éditoriaux ne sont pas rapportés ici.** `author`,
 `license` et `date` se résolvent comme les autres, mais leur
 avant-dernier niveau est `series_meta` (§20.3.1) : un défaut *de série*,
@@ -5309,6 +5318,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
 | `series_meta` | objet | les six champs textuels de §20.5 — `title`, `subtitle`, `version`, `intro`, `author`, `license` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
+| `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
 
 `target` :
@@ -5378,6 +5388,52 @@ ses propres tests.
 leurs vrais titres, et pour distinguer un titre écrit d'un titre déduit.
 C'est un contrat entre les deux dépôts au sens de §1.2, exactement comme
 pour `theme show`.
+
+#### 11.11.1 `series tags`
+
+```bash
+lightwebpres series tags [répertoire] [--tag nom] [--format text|json]
+```
+
+Cette commande répond à la question complémentaire de `status` : *qu'est-ce
+qui peut effectivement être vu sous chaque tag ?* Elle ne construit rien et
+n'écrit rien. Elle utilise les articles et les fiches après
+`resolve_article_fields()`, donc les gates d'article, les fiches `default` et
+les fiches `excluded` suivent exactement les règles du build et du runtime
+(§4.3.1).
+
+Le format JSON porte le schéma `lightwebpres.series-tags/1` et les clés
+suivantes :
+
+| Clé | Type | Sens |
+|---|---|---|
+| `schema` | chaîne | le schéma de cette commande |
+| `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable |
+| `target` | objet | `kind: "series"` et le chemin absolu de la série |
+| `default_tag` | chaîne | le tag initial résolu, `default` s'il est absent |
+| `filter` | chaîne ou `null` | le tag canonique passé à `--tag`, le cas échéant |
+| `totals` | objet | tous les articles de `series.json`, répartis par `active`, `draft`, `ignored`, et toutes les fiches non exclues ; `untagged` compte seulement les fiches dont le champ `tags:` était absent ou vide |
+| `default_output` | objet | nombre d'articles actifs et de fiches visibles sous `default_tag`; `empty` vaut vrai si l'un des deux compteurs est nul |
+| `tags` | liste | une ligne par tag disponible, dans l'ordre de rencontre |
+
+Chaque élément de `tags` contient `tag`, `articles`, `slides`, `output` et
+`selected_by_default`. `articles` donne le nombre **effectif** d'articles
+`active`, `draft` et `ignored` qui ont au moins une fiche compatible ;
+`slides` compte ces fiches sans filtrer le statut ; `output` ne retient que
+les articles actifs et décrit donc la sortie normale. Un article qui porte un
+tag mais dont aucune fiche ne l'accepte vaut zéro : sa présence lexicale ne
+crée pas de visibilité.
+
+`--tag` canonicalise un tag unique et ne garde que sa ligne dans `tags`; les
+totaux de la série et `default_output` restent complets. Un tag inconnu est
+une erreur fatale. La sortie texte reprend les mêmes nombres pour la lecture
+humaine.
+
+`audit` imprime le même relevé avant ses avertissements éditoriaux et continue
+à examiner les brouillons et les articles `ignored`. Les avertissements de
+couverture, eux, suivent la collection de sortie de l'audit : un article
+`ignored` ne peut pas rendre un tag visible. `status` embarque le relevé
+interne sous `tags` pour éviter à un consommateur de lancer deux commandes.
 
 ### 11.12 `resolve`
 

@@ -2081,7 +2081,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.45.10</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.46.0</div>
   </div>
 </div>
 
@@ -2251,6 +2251,7 @@ button.share-action:disabled { opacity: 0.25; cursor: default; }
   <div class="fact-box">
     <div class="fact-label">The shared vocabulary</div>
     <div class="fact-content">  <p>An article may carry <code>tags: fr</code> in its meta block, while <code>tags: fr</code> and <code>tags: en</code> on slides put adjacent language versions in one source file. A slide without tags is <code>default</code>, shared by every non-default selection; <code>excluded</code> is removed at build time. Press <strong>L</strong> to select a tag without reloading. The menu shows the active tag, counts the visible cards and slides, and lists their titles. The choice is stored in <code>localStorage['lwp-active-tag']</code>, cards and slides follow the same selection, and <code>series_meta.default_tag</code> sets the initial tag when nothing is stored. <code>build</code> and <code>audit</code> warn when a tag has no effective slide or an article has no non-excluded slide.</p>
+  <p>For the source-level inventory, <code>lightwebpres series tags my-series</code> reports the effective articles and slides by tag, status totals, and the default output; <code>--tag fr</code> narrows it. <code>status --format json</code> carries the same report for a consumer that already asks what the series resolves to.</p>
   <p>Declare <code>series_meta.lang_tags: {"fr": "fr", "en": "en"}</code> when typography must follow the selected language. The first mapped tag on a slide wins; the build's <code>--lang</code> remains the fallback.</p></div>
   </div>
 </section>
@@ -2487,6 +2488,7 @@ xdg-open my-series/public/index.html         # `open` on macOS
 }
   </code></pre>
   <p><code>page_source</code> — a bare filename, no path — is the only field ever required here. Each article is self-described: <code>page_dest</code> (the output HTML name), <code>page_title</code>/<code>page_desc</code>, <code>card_title</code>/<code>card_desc</code>/ <code>card_label</code>, <code>nav_title</code>/<code>nav_desc</code>, and the editorial fields (<code>author</code>/<code>license</code>/<code>date</code>, defaulting series-wide from <code>series_meta</code>) all resolve from the article's own meta block and cover slide, and any of them can be overridden per entry here when you want <code>series.json</code> to have the final say. <code>status</code> says what each article is worth to the series: <code>active</code> (the default), <code>draft</code> — still an article of the series, kept out of the output until <code>--include-drafts</code> previews it with a banner — or <code>ignored</code>, which takes it out of the chain entirely without deleting the entry and everything you configured on it. The array order is the navigation and index order. The full fallback chain per field is in <code>GLOSSARY.md</code>.</p>
+  <p><code>lightwebpres status my-series --format json</code> also carries the tag inventory used by the build. For the focused view, use <code>lightwebpres series tags my-series</code>: it reports effective article and slide visibility by tag, separates <code>active</code>, <code>draft</code>, and <code>ignored</code>, and shows what the default selection will actually publish. Add <code>--tag fr</code> to keep one row.</p>
   <h2>5. Adjusting the look</h2>
   <p>Four value overrides, from the smallest to the largest, followed by CSS rules. Pick the smallest one that does the job.</p>
   <h3>Pick a theme (the whole series)</h3>
