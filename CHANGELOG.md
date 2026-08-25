@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.46.1
+## v0.46.1
 
 The format glossary and packaged skills now document the effective tag
 visibility reports, including article/slide intersections, stable vocabulary,
