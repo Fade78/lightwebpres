@@ -31,8 +31,8 @@ rules + interface strings).
 Usage:
   lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
   lightwebpres demo [directory] [--lang fr] [--output public/]
-  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--themes selectors|all] [--no-essential-theme]
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
   lightwebpres audit [directory] [--lang fr]
   lightwebpres template update [directory] [--scaffold]
   lightwebpres template show <file>
@@ -48,7 +48,7 @@ Usage:
   lightwebpres series theme set [directory] --theme name
   lightwebpres theme gallery [path]
   lightwebpres clean [directory] [--output public/] [--force]
-  lightwebpres watch [directory] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres watch [directory] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
   lightwebpres completion --shell bash|zsh
   lightwebpres --version | --help | -h
 
@@ -90,7 +90,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.46.1"
+VERSION = "0.47.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1257,6 +1257,7 @@ LANG_FR = r'''{
     "menu_theme": "Changer de thème",
     "menu_presenter": "Notes présentateur",
     "menu_tags": "Filtrer par tag",
+    "menu_scroll": "Défilement",
     "menu_share": "Partager",
     "menu_help": "Aide",
     "menu_pause_black": "Écran noir",
@@ -1384,6 +1385,7 @@ LANG_EN = r'''{
     "menu_theme": "Change theme",
     "menu_presenter": "Presenter notes",
     "menu_tags": "Filter by tag",
+    "menu_scroll": "Scroll",
     "menu_share": "Share",
     "menu_help": "Help",
     "menu_pause_black": "Black screen",
@@ -7351,6 +7353,13 @@ document.addEventListener('DOMContentLoaded', function() {
   if (seriesTags.indexOf(defaultTag) === -1) seriesTags.unshift(defaultTag);
   var selectedTag = defaultTag;
   var isScrolling = false;
+  var scrollDurationText = document.body.getAttribute('data-lwp-scroll-duration') || '';
+  var configuredScrollDuration = /^\d+$/.test(scrollDurationText)
+    ? parseInt(scrollDurationText, 10) : 200;
+  if (!isFinite(configuredScrollDuration) || configuredScrollDuration < 0) {
+    configuredScrollDuration = 200;
+  }
+  var scrollDuration = configuredScrollDuration;
   // Separate from isScrolling (which only guards goTo()'s own scroll
   // animation, and only against re-targeting the SAME slide): holding
   // an arrow key down fires native auto-repeat keydown events much
@@ -7599,6 +7608,30 @@ document.addEventListener('DOMContentLoaded', function() {
     return tagSetMatches(articleSlideTags(article), tag);
   }
 
+  function tagHasContent(tag) {
+    if (isIndex) {
+      return allIndexCards.some(function (card) {
+        return articleMatchesTag(card, tag);
+      });
+    }
+    if (!articleGateMatches(document.body, tag)) return false;
+    return allSlides.some(function (slide) {
+      return slideMatchesTag(slide, tag);
+    });
+  }
+
+  function firstPublishableTag() {
+    var candidates = [defaultTag].concat(tagList());
+    var seen = {};
+    for (var i = 0; i < candidates.length; i++) {
+      var candidate = candidates[i];
+      if (seen[candidate]) continue;
+      seen[candidate] = true;
+      if (tagHasContent(candidate)) return candidate;
+    }
+    return null;
+  }
+
   function readStoredTag() {
     try {
       var stored = window.localStorage.getItem(tagStorageKey);
@@ -7720,7 +7753,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function applyTagFilter(scrollToCurrent) {
     var available = tagList();
-    if (available.indexOf(selectedTag) === -1) selectedTag = defaultTag;
+    if (available.indexOf(selectedTag) === -1 || !tagHasContent(selectedTag)) {
+      selectedTag = firstPublishableTag() || defaultTag;
+    }
     if (isIndex) {
       var previousCard = focusedCard >= 0 ? indexCards[focusedCard] : null;
       if (previousCard) previousCard.blur();
@@ -7777,8 +7812,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function selectTag(tag, scrollToCurrent) {
     selectedTag = String(tag || 'default').toLowerCase();
-    writeStoredTag(selectedTag);
     applyTagFilter(scrollToCurrent);
+    writeStoredTag(selectedTag);
   }
 
   function applyHash() {
@@ -7829,6 +7864,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ? presenterMenu.querySelector('[data-menu-action="theme"]') : null;
   var menuTagsAction = presenterMenu
     ? presenterMenu.querySelector('[data-menu-action="tags"]') : null;
+  var menuScrollAction = presenterMenu
+    ? presenterMenu.querySelector('[data-menu-action="scroll"]') : null;
+  var menuScrollValue = document.getElementById('menuScrollValue');
   var menuReturnFocus = null;
   var themeReturnFocus = null;
   var jumpBuffer = '';
@@ -7836,6 +7874,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function themeText(theme) {
     return theme.label || theme.slug;
+  }
+
+  function updateScrollMenu() {
+    if (!menuScrollAction || !menuScrollValue) return;
+    menuScrollValue.textContent = String(scrollDuration) + ' ms';
+    menuScrollAction.setAttribute('aria-pressed', scrollDuration === 0 ? 'false' : 'true');
+  }
+
+  function toggleScroll() {
+    scrollDuration = scrollDuration === 0 ? configuredScrollDuration : 0;
+    updateScrollMenu();
   }
 
   function updateThemeOptions() {
@@ -8014,6 +8063,7 @@ document.addEventListener('DOMContentLoaded', function() {
     closeQrModal();
     if (menuThemeAction) menuThemeAction.hidden = !themeAlternatives();
     if (menuTagsAction) menuTagsAction.hidden = tagList().length < 2;
+    updateScrollMenu();
     presenterMenu.classList.add('open');
     if (btnMenu) btnMenu.setAttribute('aria-expanded', 'true');
     var actions = focusablesWithin(presenterMenu);
@@ -8035,6 +8085,7 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (action === 'theme') openThemeMenu();
     else if (action === 'presenter') togglePresenter();
     else if (action === 'tags') toggleTagMenu(btnMenu);
+    else if (action === 'scroll') toggleScroll();
     else if (action === 'share') toggleSharePopover();
     else if (action === 'help') toggleHelp();
     else if (action === 'pause-black') togglePause('b');
@@ -8240,22 +8291,21 @@ document.addEventListener('DOMContentLoaded', function() {
     window.history.replaceState(null, '', '#' + slide.id);
   }
 
-  // The step from one card to the next is a 200ms glide, in every mode
+  // The step from one card to the next uses the configured glide duration,
   // — presentation or reading, the deck moves the same way. A click
   // that lands while the deck is still gliding does not wait for the
   // animation: it jumps straight to its target, instantly (§8.4).
-  // The 200ms are our own (requestAnimationFrame, an easing on the
+  // The duration is our own (requestAnimationFrame, an easing on the
   // remaining distance), not the browser's smooth scroll, whose
   // duration varies with the distance and cannot be promised.
-  var STEP_MS = 200;
   var scrollRAF = null;
-  function animateScrollTo(targetY) {
+  function animateScrollTo(targetY, duration) {
     var startY = window.pageYOffset || document.documentElement.scrollTop;
     var startT = null;
     if (scrollRAF) cancelAnimationFrame(scrollRAF);
     function frame(ts) {
       if (startT === null) startT = ts;
-      var t = Math.min(1, (ts - startT) / STEP_MS);
+      var t = Math.min(1, (ts - startT) / duration);
       // easeOutCubic: fast at first, so the reader lands quickly and
       // the tail settles — the motion a presenter expects.
       var e = 1 - Math.pow(1 - t, 3);
@@ -8291,15 +8341,16 @@ document.addEventListener('DOMContentLoaded', function() {
     recordSlideInUrl(idx);
     var targetY = slides[idx].getBoundingClientRect().top
                   + (window.pageYOffset || document.documentElement.scrollTop);
-    if (instant) {
+    var duration = scrollDuration;
+    if (instant || duration === 0) {
       jumpScrollTo(targetY);
       isScrolling = false;
     } else {
       isScrolling = true;
-      animateScrollTo(targetY);
+      animateScrollTo(targetY, duration);
       // The safety net: a frame dropped by the compositor must not leave
       // the deck locked forever.
-      setTimeout(function(){ isScrolling = false; }, STEP_MS + 60);
+      setTimeout(function(){ isScrolling = false; }, duration + 60);
     }
     updateUI();
   }
@@ -8438,6 +8489,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateShareFicheState();
     updateCounter();
     updatePresenter();
+    updateScrollMenu();
   }
 
   if (btnPrev) btnPrev.addEventListener('click', function() {
@@ -9427,6 +9479,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnMenu) btnMenu.addEventListener('click', togglePresenterMenu);
   renderTagMenu();
   applyTagFilter(false);
+  writeStoredTag(selectedTag);
   window.addEventListener('hashchange', applyHash);
   applyHash();
   updateUI();
@@ -9467,7 +9520,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       data-lwp-default-tag="{{default_tag}}"
       data-lwp-series-tags="{{series_tags}}"
       data-lwp-article-tags="{{article_tags}}"
-      data-lwp-tag-preview="{{tag_preview}}">
+      data-lwp-tag-preview="{{tag_preview}}"
+      data-lwp-scroll-duration="{{scroll_duration}}">
 
 {{build_stamp}}{{draft_banner}}
 <nav class="nav-dots"></nav>
@@ -9517,6 +9571,9 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       </button>
       <button type="button" class="presenter-menu-action" id="menuTags" data-menu-action="tags" aria-keyshortcuts="L">
         {{icon_tags}}<span class="presenter-menu-label" data-lwp-i18n="menu_tags">{{str_menu_tags}}</span><kbd>L</kbd>
+      </button>
+      <button type="button" class="presenter-menu-action" id="menuScroll" data-menu-action="scroll" aria-pressed="false">
+        {{icon_scroll}}<span class="presenter-menu-label"><span data-lwp-i18n="menu_scroll">{{str_menu_scroll}}</span>: <span id="menuScrollValue">{{scroll_duration}} ms</span></span>
       </button>
       <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share" aria-keyshortcuts="S">
         {{icon_share}}<span class="presenter-menu-label" data-lwp-i18n="menu_share">{{str_menu_share}}</span><kbd>S</kbd>
@@ -9661,6 +9718,7 @@ NAV_ICON_PATHS = {
     'tags': '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 3 12V5'
             'a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.6z"/>'
             '<path d="M7.5 7.5h.01"/>',
+    'scroll': '<path d="M13 2L3 14h7l-1 8 10-12h-7z"/>',
     'menu': '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
     'theme': '<path d="M12 3a9 9 0 1 0 9 9c0-1.1-.9-2-2-2h-2a2 2 0 0 1-2-2V6a3 3 0 0 0-3-3z"/>'
              '<path d="M7.5 11.5h.01"/><path d="M9.5 7.5h.01"/>'
@@ -13058,13 +13116,15 @@ def _page_footer(author, license_text, date=None):
 
 def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='',
                 build_stamp='', theme_runtime=None, style_context=None,
-                language_runtime=None):
+                language_runtime=None, scroll_duration=None):
     """Generates the index page.
 
     The index is a page of the same site as the articles: it shares
     TEMPLATE_PAGE, and its own body (header, intro, cards, footer) goes
     into {{content}} exactly where an article's slides go."""
     meta = series_meta_of(series_data)
+    if scroll_duration is None:
+        scroll_duration = resolve_scroll_duration(meta)
     articles = _series_entries(series_data)
     series_tag_values = series_tags(series_data)
 
@@ -13153,6 +13213,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         'content': content, 'page_footer': index_footer,
         'js_nav': apply_strings(TEMPLATE_NAV_JS, strings),
         'build_stamp': build_stamp, 'index_extra': index_extra,
+        'scroll_duration': str(scroll_duration),
         'lightwebpres_version': VERSION,
         'language_runtime': language_runtime or '',
         'theme_runtime': _theme_runtime_markup(theme_runtime, style_context),
@@ -13436,7 +13497,7 @@ def typo_engine_for_slide(slide, fallback, lang_tag_engines=None):
     return fallback
 
 
-def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None):
+def build_article(source_path, sources_dir, series_data, current_file, css, nav_js, typo_engine, strings, lang='fr', build_stamp='', style_context=None, include_nav=True, absorb_punct=False, inline_images=False, args=None, lang_tag_engines=None, theme_runtime=None, language_runtime=None, scroll_duration=None):
     """Builds an HTML page for an article."""
     md_text = read_text_file(source_path)
     meta, slides, has_meta_block, content_before_meta = parse_markdown_extended(md_text)
@@ -13748,6 +13809,8 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     # <meta> sinks, bypassing their guard (§18.4).
     html = apply_strings(TEMPLATE_PAGE, strings, html_context=True)
     series_meta = series_meta_of(series_data)
+    if scroll_duration is None:
+        scroll_duration = resolve_scroll_duration(series_meta, args)
     series_tag_values = series_tags(series_data)
     html = fill_placeholders(html, {
         'lang': lang, 'title': title_clean, 'meta_head': meta_head,
@@ -13762,6 +13825,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
         'content': slides_html, 'page_footer': page_footer,
          'js_nav': nav_js, 'build_stamp': stamp_in_body,
          'draft_banner': draft_banner, 'index_extra': '',
+         'scroll_duration': str(scroll_duration),
          'lightwebpres_version': VERSION,
          'language_runtime': language_runtime or '',
          'theme_runtime': theme_runtime_markup,
@@ -13953,6 +14017,46 @@ _SERIES_META_STRING_FIELDS = (
     'title', 'subtitle', 'version', 'intro', 'author', 'license',
     'default_tag',
 )
+_SERIES_META_INTEGER_FIELDS = ('scroll_duration',)
+_SERIES_META_FIELDS = _SERIES_META_STRING_FIELDS + _SERIES_META_INTEGER_FIELDS
+DEFAULT_SCROLL_DURATION_MS = 200
+
+
+def _parse_scroll_duration(value, origin):
+    """Parses the non-negative millisecond count used by the deck glide.
+
+    JSON numbers must be integers, not booleans or floats; the CLI carries its
+    value as text and accepts decimal digits only. A shared parser keeps both
+    entry points on the same contract and prevents an invalid value from
+    reaching the generated JavaScript."""
+    duration = None
+    if isinstance(value, int) and not isinstance(value, bool):
+        duration = value
+    elif isinstance(value, str) and re.fullmatch(r'\d+', value.strip()):
+        duration = int(value.strip())
+    if duration is None or duration < 0:
+        log('error', f'{origin}: must be a non-negative integer number of '
+            f'milliseconds (got {value!r}).')
+        sys.exit(1)
+    return duration
+
+
+def resolve_scroll_duration(series_meta, args=None):
+    """Resolves the runtime glide duration.
+
+    The command-line override is deliberately strongest: it changes the
+    generated pages for one build without rewriting series.json. Otherwise
+    the series-wide value wins, with the historical 200 ms glide as fallback.
+    """
+    if args is not None and args.get('--scroll-duration') is not None:
+        return _parse_scroll_duration(args['--scroll-duration'],
+                                      '--scroll-duration')
+    if ('scroll_duration' in series_meta
+            and series_meta['scroll_duration'] is not None):
+        return _parse_scroll_duration(
+            series_meta['scroll_duration'],
+            'series.json: series_meta.scroll_duration')
+    return DEFAULT_SCROLL_DURATION_MS
 
 
 def series_meta_of(series_data):
@@ -13972,6 +14076,10 @@ def series_meta_of(series_data):
             log('error', f'series.json: "series_meta.{field}" must be a string '
                   f'(got {type(meta[field]).__name__}).')
             sys.exit(1)
+    for field in _SERIES_META_INTEGER_FIELDS:
+        if field in meta and meta[field] is not None:
+            meta[field] = _parse_scroll_duration(
+                meta[field], f'series.json: series_meta.{field}')
     if 'default_tag' in meta:
         meta['default_tag'] = normalize_default_tag(
             meta['default_tag'], 'series.json: series_meta.default_tag')
@@ -14636,6 +14744,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     except PropertyError as exc:
         log('error', str(exc))
         sys.exit(1)
+    scroll_duration = resolve_scroll_duration(series_meta, args)
     nav_js_file = _resolve_contained(templates_dir, 'nav.js')
     if nav_js_file is None and (templates_dir / 'nav.js').exists():
         log('error', 'templates/nav.js resolves outside templates/ '
@@ -14793,7 +14902,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
         articles=articles, claim_articles=claim_articles,
         style_context=style_context, args=args,
         lang_tag_engines=lang_tag_engines, theme_runtime=theme_runtime,
-        language_runtime=language_runtime,
+        language_runtime=language_runtime, scroll_duration=scroll_duration,
     )
 
 
@@ -14909,7 +15018,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     progress(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
+    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
@@ -14920,7 +15029,7 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime)
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
             log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
@@ -15520,7 +15629,7 @@ def cmd_build(series_dir, args):
             sys.exit(1)
 
         progress(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
+        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -15530,7 +15639,7 @@ def cmd_build(series_dir, args):
     # --no-index: skip index.html generation entirely.
     if claimant is None and not args.get('--no-index'):
         progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime)
+        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
         ok, detail = validate_page_scripts(index_html)
         if not ok:
             log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
@@ -15615,7 +15724,7 @@ def cmd_check(series_dir, args):
             log('error', f'Source escapes sources/: {ctx.sources_dir / entry["page_source"]} '
                 f'(listed in series.json).')
             sys.exit(1)
-        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime)
+        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -15628,7 +15737,7 @@ def cmd_check(series_dir, args):
         index_extra_file = ctx.templates_dir / 'index_extra.html'
         index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         compare('index.html',
-                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime),
+                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration),
                 ctx.output_dir / 'index.html')
     compare('README.md',
             build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
@@ -16164,7 +16273,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                     inline_images=ctx.args.get('--inline-images', False),
                     args=args, lang_tag_engines=ctx.lang_tag_engines,
                     theme_runtime=ctx.theme_runtime,
-                    language_runtime=ctx.language_runtime)
+                    language_runtime=ctx.language_runtime,
+                    scroll_duration=ctx.scroll_duration)
             except SystemExit:
                 if entry['status'] == 'draft':
                     log('warn', f'{entry["page_source"]}: this draft does '
@@ -16184,7 +16294,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                             read_text_file(extra) if extra.exists() else '',
                             theme_runtime=ctx.theme_runtime,
                             style_context=ctx.style_context,
-                            language_runtime=ctx.language_runtime)
+                            language_runtime=ctx.language_runtime,
+                            scroll_duration=ctx.scroll_duration)
             except SystemExit:
                 log('warn', 'the series index does not build — the error '
                     'above is fatal, and index.html would not be produced.')
@@ -17946,7 +18057,7 @@ def series_info_report(directory, series_data, articles, resolution, theme):
             'theme': theme,
         },
         'series_meta': {field: meta.get(field)
-                        for field in _SERIES_META_STRING_FIELDS},
+                        for field in _SERIES_META_FIELDS},
         # Three numbers because there are three degrees of participation
         # (§20.6), and they sum to the whole list — an `ignored` article is
         # still IN the series file, and a report that quietly left it out of
@@ -17987,7 +18098,8 @@ def print_series_info_text(report):
     print()
     print('Series metadata')
     for field, value in report['series_meta'].items():
-        print(f"  {field:<9s} {value if value else '(unset)'}")
+        display = value if value is not None and value != '' else '(unset)'
+        print(f"  {field:<9s} {display}")
 
     print()
     print_tag_inventory_text(report['tags'])
@@ -18197,8 +18309,9 @@ def _chain_link(level, value, note=None):
     """One level of a cascade, present or not. `value` is what that level
     holds AS WRITTEN — a bare reference stays a bare reference here, and
     is followed once, for the winner only."""
-    link = {'level': level, 'present': bool(value),
-            'value': value if value else None, 'winner': False}
+    present = value is not None and value != ''
+    link = {'level': level, 'present': present,
+            'value': value if present else None, 'winner': False}
     if note:
         link['note'] = note
     return link
@@ -18237,7 +18350,7 @@ def classify_resolve_name(name):
         return 'slide-field'
     if name in _SLIDE_FIELD_ATTRS:
         return 'slide-field'
-    if name in _ARTICLE_LEVEL_NAMES or name in _SERIES_META_STRING_FIELDS:
+    if name in _ARTICLE_LEVEL_NAMES or name in _SERIES_META_FIELDS:
         return 'article-field'
     return None
 
@@ -18309,10 +18422,13 @@ def resolve_theme_property(name, directory, article_meta, article_name):
 def resolve_series_field(name, series_meta):
     """A `series_meta` field (§20.5): written once for the whole series,
     or absent. One level, and saying so is the answer."""
-    chain = [_chain_link('series', series_meta.get(name, '')),
-             _chain_link('default', '')]
+    default = (DEFAULT_SCROLL_DURATION_MS
+               if name == 'scroll_duration' else '')
+    chain = [_chain_link('series', series_meta.get(name)),
+             _chain_link('default', default)]
     winner = _crown(chain)
-    return {'value': winner['value'] or '', 'source': winner['level'],
+    return {'value': winner['value'] if winner['value'] is not None else '',
+            'source': winner['level'],
             'chain': chain}
 
 
@@ -18545,7 +18661,7 @@ def cmd_resolve(series_dir, name, args):
             resolution = survey_slide_page_numbers(series_meta, article_meta)
         elif name in _TYPO_FIELD_NAMES:
             resolution = resolve_typo_field(name, article_meta)
-        elif name in _SERIES_META_STRING_FIELDS and only is None:
+        elif name in _SERIES_META_FIELDS and only is None:
             # `author` and `license` live at both levels. Asked WITHOUT an
             # article, the question is about the series' own value, and
             # the kind says so rather than letting a reader apply the
@@ -19193,9 +19309,9 @@ COMMANDS
     Creates the directory structure
   lightwebpres demo [directory] [--lang fr] [--output public/]
     Creates a demo site
-  lightwebpres build [directory] [--lang fr] [--output public/] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres build [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
     Builds the site (self-contained HTML)
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres verify [directory] [--lang fr] [--output public/] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
     Checks without building (diff)
   lightwebpres audit [directory] [--lang fr] [--strict] [--templates]
     Renders the series in memory and reports everything worth a second
@@ -19251,7 +19367,7 @@ COMMANDS
     with a note, notes section, full article (default: themes-gallery.html)
   lightwebpres clean [directory] [--force]
     Purges orphan files from public/ using the build manifest
-  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--themes selectors|all] [--no-essential-theme]
+  lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
     Polls sources, rebuilds on change, optionally serves on 127.0.0.1
   lightwebpres --version
     Prints the version and exits
@@ -19371,6 +19487,10 @@ OPTIONS
     build/watch: engrave the top-right NN / NN slide number (off by
     default; the article front-matter slide_page_numbers and
     series_meta.slide_page_numbers also enable it, spec §3.3.5)
+  --scroll-duration milliseconds
+    build/verify/watch: set the slide glide duration in milliseconds;
+    zero disables the glide for this build and series_meta.scroll_duration
+    supplies the default when the option is absent
   --serve
     watch: start a local HTTP server on 127.0.0.1 (opt-in)
   --port N
@@ -19587,7 +19707,7 @@ _VALUE_OPTIONS = frozenset({'--lang', '--output', '--language-file',
                             '--polarity', '--hue', '--family',
                             '--format',
                             '--article', '--port', '--shell', '--tag',
-                            '--slides-page-numbers'})
+                            '--slides-page-numbers', '--scroll-duration'})
 _COMMAND_OPTIONS = {
     'install': {'--lang', '--force', '--theme', '--gitlab-ci'},
     'demo': {'--lang', '--output'},
@@ -19596,10 +19716,11 @@ _COMMAND_OPTIONS = {
               '--include-drafts', '--only', '--nav-cache',
               '--build-stamp', '--build-stamp-minimal',
               '--no-nav', '--no-index', '--no-readme', '--drafts-only',
-              '--open', '--inline-images', '--slides-page-numbers'},
+              '--open', '--inline-images', '--slides-page-numbers',
+              '--scroll-duration'},
     'check': {'--lang', '--output', '--language-file', '--no-typography',
               '--themes', '--no-essential-theme',
-              '--include-drafts', '--no-nav'},
+              '--include-drafts', '--no-nav', '--scroll-duration'},
     'audit': {'--lang', '--strict', '--templates'},
     'refresh-templates': {'--scaffold'},
     'template-show': set(),
@@ -19622,7 +19743,8 @@ _COMMAND_OPTIONS = {
     'watch': {'--lang', '--output', '--serve', '--port', '--no-typography',
               '--themes', '--no-essential-theme',
               '--open', '--slides-page-numbers',
-              '--no-nav', '--no-index', '--no-readme', '--drafts-only'},
+              '--no-nav', '--no-index', '--no-readme', '--drafts-only',
+              '--scroll-duration'},
     'completion': {'--shell'},
 }
 

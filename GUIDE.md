@@ -141,7 +141,10 @@ top-right `NN / NN` slide number — **off by default** (the article
 front-matter `slide_page_numbers` and `series_meta.slide_page_numbers`
 also turn it on; see specifications.md §3.3.5). `watch` takes the same
 output switches and adds `--serve` (opt-in HTTP server on `127.0.0.1`,
-`--port 8000`).
+`--port 8000`). The slide glide is `200` ms by default; set
+`series_meta.scroll_duration` or pass `--scroll-duration milliseconds` to
+change it. `0` is an instant jump. The presenter menu's Scroll action toggles
+between the configured duration and `0` and shows the active value.
 
 ## 3. What a page is made of
 
@@ -295,6 +298,7 @@ without blocking, while `build` rejects malformed declarations.
     "title": "My article series",
     "subtitle": "Series subtitle",
     "intro": "Series introduction.",
+    "scroll_duration": 200,
     "lang_tags": {"fr": "fr", "en": "en"}
   },
   "themes": ["essential", "family:terrain"],
@@ -802,8 +806,8 @@ longer blanks a page — each sheet sizes to its own content.
 
 | Gesture | Action |
 |---|---|
-| Single click on content | Next slide (200ms glide) |
-| Right-click on content | Previous slide (200ms glide) |
+| Single click on content | Next slide (configured glide, 200ms default) |
+| Right-click on content | Previous slide (configured glide, 200ms default) |
 | Click during the glide | Jump straight to that click's target |
 | Middle button anywhere | Exit fullscreen on its own; to enter, press the middle button, then click left inside the window |
 | Click in the bottom-right corner | Toggle the navigation buttons (hide/show) |
@@ -814,7 +818,8 @@ remote-mouse use case: the speaker with a wireless mouse in hand
 left-clicks to advance, right-clicks to go back — two distinct buttons,
 no aiming. The native context menu is suppressed on slide content so
 right-click is a clean back gesture. A click lands instantly on the
-next card and glides to it over 200 ms; a click that arrives while the
+next card and glides to it over the configured duration (200 ms by default);
+a click that arrives while the
 deck is still gliding does not wait — it jumps straight to its target,
 so two clicks in quick succession land two pages on, and a right-click
 during the glide returns you to the card you left. The middle button
@@ -843,9 +848,9 @@ steps: the deck never treats a double click as anything else.
 
 The round buttons in the bottom-right corner form one column: from bottom to
 top, Menu, down, up and fullscreen. The arrows are grayed when they cannot
-move further. Home, share and the variant filter are
+move further. Home, share, Scroll and the variant filter are
 actions in the presenter menu, which also carries the themes, help, notes and
-pause screens. The same four sit on the index, where previous and next step
+pause screens. The same controls sit on the index, where previous and next step
 one article card at a time.
 After 3 seconds of mouse
 idleness they fade out, and the cursor goes with them: the speaker does

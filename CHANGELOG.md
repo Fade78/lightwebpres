@@ -33,6 +33,19 @@ link to the originals. They are at
 
 ---
 
+## v0.47.0
+
+The presenter menu now exposes a Scroll action with a lightning icon. It
+toggles between the configured slide glide and an instant `0` ms jump, and
+shows the active duration. Configure the default with
+`series_meta.scroll_duration` or override it for a build with
+`--scroll-duration`; the value is a non-negative integer number of
+milliseconds.
+
+Tag selection now rejects a tag with no content on the current page and
+falls back to the series default or the first publishable tag, including when
+a stale `localStorage['lwp-active-tag']` value is restored.
+
 ## v0.46.1
 
 The format glossary and packaged skills now document the effective tag

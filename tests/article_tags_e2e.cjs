@@ -76,6 +76,41 @@ async function main() {
     await page.waitForSelector('.series-item[data-lwp-article-card]');
     await expectVisible(page, ['A', 'c.html']);
 
+    // `en` exists in the series vocabulary but is rejected by article A's
+    // exact `fr` gate. Selecting it must use the series default instead of
+    // leaving the page with no visible slide.
+    await page.keyboard.press('l');
+    await page.waitForFunction(() => document.getElementById('tagMenu').classList.contains('open'));
+    await page.click('#tagMenuList .tag-option[data-tag="en"]');
+    const selectedFallback = await page.evaluate(() => ({
+      tag: localStorage.getItem('lwp-active-tag'),
+      visibleSlides: Array.prototype.filter.call(
+        document.querySelectorAll('section.slide'),
+        (slide) => getComputedStyle(slide).display !== 'none').length,
+    }));
+    if (selectedFallback.tag !== 'fr' || selectedFallback.visibleSlides === 0) {
+      throw new Error('selecting an unavailable tag left the article empty: '
+        + JSON.stringify(selectedFallback));
+    }
+
+    // `default` is present in the runtime vocabulary even when this article
+    // has no default slide. It must not leave the article blank: the series
+    // default `fr` is the first publishable choice here.
+    await page.evaluate(() => localStorage.setItem('lwp-active-tag', 'default'));
+    await page.reload();
+    await page.waitForSelector('section.slide', { state: 'attached' });
+    const fallback = await page.evaluate(() => ({
+      tag: localStorage.getItem('lwp-active-tag'),
+      visibleSlides: Array.prototype.filter.call(
+        document.querySelectorAll('section.slide'),
+        (slide) => getComputedStyle(slide).display !== 'none').length,
+      empty: !document.getElementById('tagEmptyState').hidden,
+    }));
+    if (fallback.tag !== 'fr' || fallback.visibleSlides === 0 || fallback.empty) {
+      throw new Error('an unavailable tag left the article empty: '
+        + JSON.stringify(fallback));
+    }
+
     if (consoleErrors.length) {
       throw new Error('unexpected console errors: ' + JSON.stringify(consoleErrors));
     }

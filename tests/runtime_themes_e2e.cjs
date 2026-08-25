@@ -30,6 +30,8 @@ async function main() {
       packs: data ? Object.keys(data.packs).sort() : [],
       helpTitle: document.getElementById('helpTitle').textContent,
       shareLabel: document.querySelector('[data-lwp-i18n="menu_share"]').textContent,
+      scrollLabel: document.querySelector('[data-lwp-i18n="menu_scroll"]').textContent,
+      scrollValue: document.getElementById('menuScrollValue').textContent,
       menuHelp: document.querySelector('[data-lwp-i18n="menu_help"]').textContent,
     };
   });
@@ -37,6 +39,8 @@ async function main() {
       || french.packs.join('|') !== 'en|fr'
       || french.helpTitle !== 'Raccourcis clavier'
       || french.shareLabel !== 'Partager'
+      || french.scrollLabel !== 'Défilement'
+      || french.scrollValue !== '350 ms'
       || french.menuHelp !== 'Aide') {
     fail('French browser locale did not select the French interface: '
       + JSON.stringify(french));
@@ -54,12 +58,16 @@ async function main() {
     htmlLang: document.documentElement.getAttribute('lang'),
     helpTitle: document.getElementById('helpTitle').textContent,
     shareLabel: document.querySelector('[data-lwp-i18n="menu_share"]').textContent,
+    scrollLabel: document.querySelector('[data-lwp-i18n="menu_scroll"]').textContent,
+    scrollValue: document.getElementById('menuScrollValue').textContent,
     readLabel: document.querySelector('[data-lwp-i18n="series_read"]').textContent,
     menuHelp: document.querySelector('[data-lwp-i18n="menu_help"]').textContent,
   }));
   if (english.htmlLang !== 'en'
       || english.helpTitle !== 'Keyboard shortcuts'
       || english.shareLabel !== 'Share'
+      || english.scrollLabel !== 'Scroll'
+      || english.scrollValue !== '350 ms'
       || english.readLabel !== 'Read the article'
       || english.menuHelp !== 'Help') {
     fail('English browser locale did not select the English interface: '
@@ -353,7 +361,7 @@ async function main() {
       (button) => getComputedStyle(button).display !== 'none'
     ).length,
   }));
-  if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 11) {
+  if (!menu.open || menu.expanded !== 'true' || menu.visibleActions !== 12) {
     fail('M did not expose the complete presenter menu: ' + JSON.stringify(menu));
   }
   const firstMenuFocus = await page.evaluate(() =>
@@ -361,6 +369,24 @@ async function main() {
   if (firstMenuFocus !== 'prev') {
     fail('M did not focus the first presenter action: ' + firstMenuFocus);
   }
+  const scrollAction = page.locator('[data-menu-action="scroll"]');
+  await scrollAction.click();
+  const scrollOff = await page.evaluate(() => ({
+    value: document.getElementById('menuScrollValue').textContent,
+    pressed: document.getElementById('menuScroll').getAttribute('aria-pressed'),
+  }));
+  await page.keyboard.press('m');
+  await page.locator('[data-menu-action="scroll"]').click();
+  const scrollOn = await page.evaluate(() => ({
+    value: document.getElementById('menuScrollValue').textContent,
+    pressed: document.getElementById('menuScroll').getAttribute('aria-pressed'),
+  }));
+  if (scrollOff.value !== '0 ms' || scrollOff.pressed !== 'false'
+      || scrollOn.value !== '350 ms' || scrollOn.pressed !== 'true') {
+    fail('Scroll menu action did not toggle the configured duration: '
+      + JSON.stringify({ scrollOff, scrollOn }));
+  }
+  await page.keyboard.press('m');
   const menuFocusState = async () => page.evaluate(() => {
     const action = document.activeElement;
     const box = action.getBoundingClientRect();

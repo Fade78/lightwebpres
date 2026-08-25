@@ -67,6 +67,7 @@ Once per series, in `series.json`'s `series_meta` object.
 | `author` | `''` — nothing shown | Series-wide default author (§20.3.1); shown in the index page's footer, and on every article that doesn't override it |
 | `license` | `''` — nothing shown | Series-wide default license; same display as `author`; raw HTML allowed (a link) |
 | `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
+| `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu toggles between this configured value and `0` |
 | `lang_tags` | `{}` — no tag selects a language pack | Object mapping a slide tag to a typography/UI pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 
 ## Article-level fields

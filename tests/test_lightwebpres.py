@@ -122,6 +122,74 @@ class BuildGoldenPath(unittest.TestCase):
             self.assertIn('question\xa0?', html)
 
 
+class ScrollDuration(unittest.TestCase):
+    """The configured slide glide reaches both the generated page and the
+    presenter menu, while an invocation override stays local to the build."""
+
+    ARTICLE = (
+        '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+        'nav_title: A\nnav_desc: A\n---\n\n'
+        '<!-- lwp:slide:cover -->\nslug: scroll\nkicker: T\n'
+        '# Title\nsummary: Summary.\n'
+    )
+
+    def _series(self, tmp, duration=None):
+        root = scaffold(tmp, self.ARTICLE)
+        data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+        if duration is not None:
+            data['series_meta'] = {'scroll_duration': duration}
+        (root / 'series.json').write_text(
+            json.dumps(data), encoding='utf-8')
+        return root
+
+    def _build_html(self, root, *options):
+        result = run('build', str(root), '--output', str(root / 'public'),
+                     *options)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return (root / 'public' / 'a.html').read_text(encoding='utf-8')
+
+    def test_series_duration_and_default_reach_the_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(self._series(tmp, 350))
+        self.assertIn('data-lwp-scroll-duration="350"', html)
+        self.assertIn('id="menuScroll"', html)
+        self.assertIn('id="menuScrollValue">350 ms</span>', html)
+        self.assertIn('data-menu-action="scroll"', html)
+        self.assertNotIn('aria-keyshortcuts="S"',
+                         html.split('id="menuScroll"', 1)[1].split(
+                             'id="menuShare"', 1)[0])
+
+    def test_cli_duration_overrides_series_and_accepts_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 350)
+            html = self._build_html(root, '--scroll-duration', '75')
+            self.assertIn('data-lwp-scroll-duration="75"', html)
+            html = self._build_html(root, '--scroll-duration=0')
+        self.assertIn('data-lwp-scroll-duration="0"', html)
+        self.assertIn('id="menuScrollValue">0 ms</span>', html)
+
+    def test_duration_defaults_to_the_historical_glide(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(self._series(tmp))
+        self.assertIn('data-lwp-scroll-duration="200"', html)
+
+    def test_negative_cli_duration_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            result = run('build', str(root), '--scroll-duration=-1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('--scroll-duration', result.stderr)
+        self.assertIn('non-negative integer', result.stderr)
+
+    def test_non_integer_series_duration_is_rejected(self):
+        for duration in (-1, 1.5, True, 'fast'):
+            with self.subTest(duration=duration), tempfile.TemporaryDirectory() as tmp:
+                root = self._series(tmp, duration)
+                result = run('build', str(root))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('series_meta.scroll_duration', result.stderr)
+
+
 class SlideTags(unittest.TestCase):
     """`tags:` is the article's slide filter: validated at build time,
     compacted before numbering, and exposed to the page runtime."""
@@ -2495,6 +2563,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         fields = (set(lwp.ARTICLE_META_KEYS) | set(lwp.SLIDE_FIELD_NAMES)
                   | set(lwp._SERIES_STRING_FIELDS)
                   | set(lwp._SERIES_META_STRING_FIELDS)
+                  | set(lwp._SERIES_META_INTEGER_FIELDS)
                   | set(lwp._SLIDE_FIELD_ATTRS))
         named = set(re.findall(r'`([a-z][a-z0-9_.-]*)`',
                                glossary.read_text(encoding='utf-8')))
@@ -10900,13 +10969,18 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
             r'<button type="button" class="presenter-menu-action[^>]*" '
             r'id="([^"]+)"[^>]*data-menu-action="([^"]+)"([^>]*)>(.*?)'
             r'</button>', lwp.TEMPLATE_PAGE, re.S)
-        self.assertEqual(len(actions), 12)
+        self.assertEqual(len(actions), 13)
         for button, action, attrs, body in actions:
             with self.subTest(action=action):
                 self.assertIn('<svg ', body, button)
                 self.assertIn('class="presenter-menu-label"', body, button)
-                self.assertRegex(attrs, r'aria-keyshortcuts="[^"]+"', button)
-                self.assertIn('<kbd>', body, button)
+                if action == 'scroll':
+                    self.assertNotRegex(attrs, r'aria-keyshortcuts=', button)
+                    self.assertNotIn('<kbd>', body, button)
+                    self.assertIn('id="menuScrollValue"', body, button)
+                else:
+                    self.assertRegex(attrs, r'aria-keyshortcuts="[^"]+"', button)
+                    self.assertIn('<kbd>', body, button)
         share = next(item for item in actions if item[1] == 'share')
         self.assertIn('aria-keyshortcuts="S"', share[2])
         self.assertIn('<kbd>S</kbd>', share[3])
@@ -16416,6 +16490,7 @@ class TestNamingConvention(unittest.TestCase):
         rename this test exists to report, and bury the real message."""
         names = set(self.lwp._ARTICLE_LEVEL_NAMES)
         names |= set(self.lwp._SERIES_META_STRING_FIELDS)
+        names |= set(self.lwp._SERIES_META_INTEGER_FIELDS)
         names |= set(self.lwp._SERIES_STRING_FIELDS)
         names |= set(re.findall(r"(?:meta|series_meta)\.get\('([^']+)'", self.source))
         names |= set(re.findall(r"\bpick\('([^']+)'", self.source))
@@ -16784,7 +16859,7 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertIsNone(report['target']['theme'])
         self.assertEqual(set(report['series_meta']),
                          {'title', 'subtitle', 'version', 'intro', 'author',
-                          'license', 'default_tag'})
+                          'license', 'default_tag', 'scroll_duration'})
         self.assertEqual(report['series_meta']['title'], 'A series')
         self.assertIsNone(report['series_meta']['default_tag'])
         self.assertIsNone(report['series_meta']['subtitle'])
@@ -17136,6 +17211,7 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
                 ('page_title', 'article-field', ('--article', 'intro.md')),
                 ('fact-label', 'slide-field', ()),
                 ('title', 'series-field', ()),
+                ('scroll_duration', 'series-field', ()),
             ):
                 with self.subTest(name):
                     report = self._resolve(root, name, *extra)
@@ -17258,7 +17334,6 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
             report = self._resolve(root, 'author', '--article', 'intro.md')
             self.assertEqual(report['resolution']['source'], 'series-default')
             self.assertEqual(report['resolution']['value'], 'The series')
-            self.assertFalse(self._levels(report)['series']['present'])
 
         with tempfile.TemporaryDirectory() as tmp:
             root = self._one_article(tmp, entry={'author': 'This article'},
@@ -17268,6 +17343,23 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
             levels = self._levels(report)
             self.assertEqual(levels['series-default']['value'], 'The series')
             self.assertFalse(levels['series-default']['winner'])
+
+    def test_scroll_duration_reports_the_series_value_and_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            configured = self._one_article(
+                tmp, series_meta={'scroll_duration': 350})
+            report = self._resolve(configured, 'scroll_duration')
+            self.assertEqual(report['query']['kind'], 'series-field')
+            self.assertEqual(report['resolution']['value'], 350)
+            self.assertEqual(report['resolution']['source'], 'series')
+            self.assertTrue(self._levels(report)['series']['winner'])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            defaulted = self._one_article(tmp)
+            report = self._resolve(defaulted, 'scroll_duration')
+            self.assertEqual(report['resolution']['value'], 200)
+            self.assertEqual(report['resolution']['source'], 'default')
+            self.assertFalse(self._levels(report)['series']['present'])
 
     def test_every_level_of_the_article_cascade_can_win(self):
         cases = [

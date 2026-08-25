@@ -34,7 +34,10 @@ a two-step gesture — middle button, then a left click (F or the ⛶
 button enters directly). A click while the deck is gliding to
 the next card jumps straight to its target — two clicks in quick
 succession land two pages on, a right-click during the glide returns to
-the card you left. The lower-right navigation controls form one column: from
+the card you left. The presenter menu's Scroll action toggles the configured
+glide duration and an instant jump; `series_meta.scroll_duration` sets the
+series default and `--scroll-duration` overrides it for a build. The
+lower-right navigation controls form one column: from
 bottom to top, Menu, down, up and fullscreen. The arrows are grayed when they
 cannot move further; Home, sharing and tag filters live in the presenter menu.
 Navigation buttons fade
@@ -412,6 +415,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | Option | Command(s) | Effect |
 |---|---|---|
 | `--slides-page-numbers on\|off` | `build`, `watch` | engraves the top-right `NN / NN` slide number — opt-in, default `off`; the article front-matter `slide_page_numbers` and `series_meta.slide_page_numbers` also enable it (see specifications.md §3.3.5) |
+| `--scroll-duration milliseconds` | `build`, `verify`, `watch` | sets the slide glide duration; `0` makes navigation instant, and the absent option falls back to `series_meta.scroll_duration` or `200` ms |
 | `--no-typography` | `build`, `verify`, `watch` | disables every typography rule for the run |
 | `--no-nav` | `build`, `verify`, `watch` | leaves an explicitly placed `series-nav` slide without generated navigation links |
 | `--no-index` | `build`, `watch` | skips `index.html` |

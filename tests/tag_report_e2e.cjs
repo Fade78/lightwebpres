@@ -70,7 +70,34 @@ async function main() {
       for (const articleUrl of articleUrls) {
         await page.goto(articleUrl);
         await page.waitForSelector('section.slide', { state: 'attached' });
-        slideCount += await visibleSlideCount(page);
+        const state = await page.evaluate((wanted) => {
+          const articleTags = (document.body.getAttribute('data-lwp-article-tags') || '')
+            .toLowerCase().split(/\s+/).filter(Boolean);
+          const matches = (slide) => {
+            const raw = slide.getAttribute('data-tags') || 'default';
+            const tags = raw.toLowerCase().split(/\s+/).filter(Boolean);
+            if (articleTags.length && articleTags.indexOf(wanted) === -1) return false;
+            return wanted === 'default'
+              ? tags.indexOf('default') !== -1
+              : tags.indexOf('default') !== -1 || tags.indexOf(wanted) !== -1;
+          };
+          const visible = Array.prototype.filter.call(
+            document.querySelectorAll('section.slide'),
+            (slide) => getComputedStyle(slide).display !== 'none');
+          return {
+            tag: localStorage.getItem('lwp-active-tag'),
+            slides: visible.length,
+            requestedSlides: visible.filter(matches).length,
+          };
+        }, row.tag);
+        if (!state.slides) {
+          throw new Error(row.tag + ': a page was left without a visible slide: '
+            + JSON.stringify(state));
+        }
+        // An article can reject the series-wide tag. The runtime falls back
+        // to its series default or first publishable tag, so count this page
+        // for the report only when it kept the requested tag.
+        slideCount += state.requestedSlides;
       }
       if (slideCount !== row.output.slides) {
         throw new Error(row.tag + ': report has ' + row.output.slides

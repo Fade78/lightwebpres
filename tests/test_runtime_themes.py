@@ -65,7 +65,8 @@ class RuntimeThemesBrowser(unittest.TestCase):
             ':root { --color-mark: #ABCDEF; }\n', encoding='utf-8')
         build = subprocess.run(
             ['python3', str(LWP), 'build', str(root),
-             '--no-essential-theme', '--themes', 'print-ink'],
+             '--no-essential-theme', '--themes', 'print-ink',
+             '--scroll-duration', '350'],
             capture_output=True, text=True, timeout=60,
         )
         assert build.returncode == 0, build.stdout + build.stderr

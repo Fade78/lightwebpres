@@ -481,9 +481,9 @@ d'une commande vont sur **stdout**. C'est ce qui permet à
 ```bash
 lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci]
 lightwebpres demo [répertoire] [--lang fr] [--output public/]
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--themes selectors|all] [--no-essential-theme]
-lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port N] [--themes selectors|all] [--no-essential-theme]
-lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--themes selectors|all] [--no-essential-theme]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--only page] [--nav-cache chemin] [--build-stamp | --build-stamp-minimal] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--inline-images] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
+lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--serve] [--port N] [--themes selectors|all] [--no-essential-theme]
+lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
 lightwebpres template show <nav.js|fr.json|en.json>
@@ -515,6 +515,7 @@ lightwebpres --help
 - `--polarity` / `--hue` / `--family` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
 - `--gitlab-ci` : `init` seulement — écrit aussi un `.gitlab-ci.yml` (opt-in, §11.1)
 - `--no-typography` : `build`/`verify`/`watch` — désactive entièrement le moteur de typographie pour ce lancement (§19.6)
+- `--scroll-duration` : `build`/`verify`/`watch` — durée entière non négative en millisecondes du glissé entre fiches ; `0` le désactive. Sans cette option, `series_meta.scroll_duration` s'applique, puis le défaut de `200` ms (§8.4, §20.5)
 - `--include-drafts` : `build`/`verify` seulement — construit aussi les articles marqués `status: draft` (§20.6), avec bandeau « Brouillon ». Sans effet sur `status: ignored`, qui n'est jamais construit
 - `--themes` : `build`/`verify`/`watch` — embarque des slugs, `all`, `essential` ou des sélecteurs de facette `X:Y`, séparés par des virgules; le thème effectif de `settings.conf` reste toujours le premier (§9.3.7)
 - `--no-essential-theme` : `build`/`verify`/`watch` seulement — ne pas embarquer le lot `essential` par défaut (§9.3.7); une sélection explicite `--themes` reste appliquée
@@ -905,7 +906,11 @@ présentateur et les cartes travaillent sur le sous-ensemble visible.
 La sélection initiale est `series_meta.default_tag` (§20.5), ou `default` si
 la clé est absente; un choix mémorisé encore présent dans la série reste
 prioritaire. `default_tag` doit apparaître sur un article ou une slide
-non-exclue de la sélection de build, sinon le build est fatal.
+non-exclue de la sélection de build, sinon le build est fatal. Sur une page
+qui ne contient rien pour le tag demandé, ce tag est refusé : le runtime
+revient au `default_tag` de la série s'il y a du contenu, sinon au premier tag
+effectivement publiable dans l'ordre du vocabulaire. Il persiste ce choix
+corrigé, et ne laisse donc pas une page vide pour un tag sans contenu.
 
 Le menu se ferme par **Échap**, par la touche **L**, par la sélection d'un
 tag, et par un clic **ailleurs que dessus**. Fermer par un clic extérieur
@@ -2000,13 +2005,18 @@ ordinaire.
 Quand le build porte un payload de thèmes (§9.3.7), **C** ouvre son
 sélecteur et **M** ouvre le menu présentateur global.
 
+Le menu présentateur contient aussi l'action **Scroll**, marquée par un
+éclair. Elle n'a pas de raccourci : **S** reste celui du partage. Le libellé
+affiche la durée active en millisecondes et l'action alterne entre la valeur
+configurée et `0`; elle ne modifie pas les sources.
+
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
 slide précédent (deux boutons distincts, sans visée) — sur l'index, un
 pas de plus ou de moins dans le parcours des cartes. Le clic gauche
 est **instantané** — il n'a jamais de latence artificielle. Le pas
-d'une fiche à l'autre est un **glissé de 200 ms** (animation propre au
-deck, jamais le `scroll-behavior` du navigateur, dont la durée varie
-avec la distance) — **sauf qu'un clic pendant le glissé saute
+d'une fiche à l'autre est un **glissé de la durée configurée** (200 ms par
+défaut ; animation propre au deck, jamais le `scroll-behavior` du navigateur,
+dont la durée varie avec la distance) — **sauf qu'un clic pendant le glissé saute
 directement à sa cible** : un clic dans le même sens pendant le
 glissé arrive sur la fiche après celle du glissé (deux pages en deux
 clics), un clic dans l'autre sens revient instantanément sur la fiche
@@ -4048,7 +4058,7 @@ série :
 ### 11.3 `build`
 
 ```bash
-lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--themes selectors|all] [--no-essential-theme]
+lightwebpres build [répertoire] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
 ```
 
 Construit le site :
@@ -4094,6 +4104,13 @@ Construit le site :
    après suppression d'un article ; à nettoyer à la main si besoin.
 6. Écrit l'empreinte de navigation (§11.3.1) dans `.lwp-cache/nav.json`
    (ou le chemin donné par `--nav-cache`)
+
+`--scroll-duration` fixe la durée, en millisecondes, du glissé propre au deck
+entre deux fiches. Il accepte un entier non négatif ; `0` rend les coups
+instantanés. Sans option, la valeur vient de `series_meta.scroll_duration`, ou
+du défaut intégré de `200` ms. La valeur est injectée dans chaque page, y
+compris `index.html`, afin que le menu présentateur puisse alterner entre elle
+et `0`.
 
 `--themes selectors|all` est optionnel. Quand il est fourni, le build ajoute à
 chaque page le payload décrit en §9.3.7. Sans l'option, la liste racine
@@ -5316,7 +5333,7 @@ La sortie texte est le défaut et vise la lecture humaine.
 | `schema` | chaîne | `lightwebpres.series-info/2` — là encore le nom porte la clé de dispatch historique. Même promesse que celle de `theme show` : le nombre change quand une clé change de sens ou disparaît, jamais parce qu'une clé s'ajoute |
 | `lightwebpres_version` | chaîne | le `VERSION` de l'exécutable qui a répondu |
 | `target` | objet | ce sur quoi la question portait (ci-dessous) |
-| `series_meta` | objet | les six champs textuels de §20.5 — `title`, `subtitle`, `version`, `intro`, `author`, `license` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
+| `series_meta` | objet | les champs de §20.5 — dont `title`, `subtitle`, `version`, `intro`, `author`, `license` et `scroll_duration` —, `null` pour un champ que l'auteur n'a pas écrit. `comment` en est absent : c'est une note de relecture que le build ignore (§4.6). Le repli « série sans titre » n'est **pas** appliqué : c'est une décision de rendu, et qui dépend de la langue (§7.3), alors que cette commande ne prend pas de `--lang` et décrit une donnée |
 | `counts` | objet | un nombre par statut de §20.6 — `active`, `draft`, `ignored` — dont la somme est la liste entière. Un article `ignored` est toujours *dans* le fichier de série : le sortir discrètement de l'arithmétique ferait paraître la série plus petite qu'elle n'est |
 | `tags` | objet | l'inventaire de visibilité défini en §11.11.1, identique à la réponse de `series tags` sans son enveloppe `schema`/`target` |
 | `articles` | liste | un objet par article, **dans l'ordre de `series.json`** (ci-dessous) |
@@ -7265,6 +7282,7 @@ utilisé). Ce tableau direct n'a pas de place pour la sélection runtime JSON.
 | `author` | string | non | Auteur par défaut de toute la série (§20.3.1) ; affiché en pied de la page d'index, et sur chaque article qui ne le surcharge pas |
 | `license` | string | non | Licence par défaut de toute la série (§20.3.1) ; même affichage que `author` ; HTML brut autorisé (lien) |
 | `default_tag` | string | non | Tag sélectionné au premier affichage (`default` si absent). Un tag unique de l'espace de noms partagé; il doit être présent sur un article ou une slide non exclue sélectionnée pour le build (§4.3.1) |
+| `scroll_duration` | integer non négatif | non | Durée en millisecondes du glissé de navigation. `200` par défaut, `0` instantané ; `--scroll-duration` la surcharge pour un build, une vérification ou une surveillance (§8.4) |
 | `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
 | `lang_tags` | object `{tag: pack}` | non | Déclare les tags qui sélectionnent un moteur typographique, par exemple `{"fr": "fr", "en": "en"}`. Les clés suivent la syntaxe de `tags:` ; les noms de packs sont des identifiants sûrs et désignent `language/<pack>.json` ou un pack intégré (§7.5) |
 

@@ -204,6 +204,13 @@ the `default_output`, per-tag status counts, slide counts and stable
 vocabulary, or `--tag fr` to keep one row. `status --format json` embeds the
 same report under `tags`.
 
+The series can also set `scroll_duration` to a non-negative integer number of
+milliseconds. It defaults to `200`; `0` makes slide navigation jump instead
+of gliding. `build`, `verify` and `watch` accept `--scroll-duration` as a
+one-run override. In the generated page, the presenter menu's Scroll action
+switches between that configured duration and `0` and displays the active
+value.
+
 **Notes fields**, settable here or in `series_meta` (the article wins):
 
 - `notes_placement: local | page` — where note bodies land. `local`
