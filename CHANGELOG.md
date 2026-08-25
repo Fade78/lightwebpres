@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.45.9
+## v0.45.9
 
 The tag filter now keeps incremental builds safe when articles are reordered,
 closes its menu without activating navigation underneath it, and accepts
