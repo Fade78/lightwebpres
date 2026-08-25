@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.46.0
+## v0.46.0
 
 `series tags` now inventories the effective tag vocabulary, article status
 counts, non-excluded slides and the normal default output. The same resolved
