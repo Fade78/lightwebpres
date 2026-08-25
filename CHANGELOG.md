@@ -33,7 +33,7 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.45.10
+## v0.45.10
 
 Overlay transitions now let the presenter-menu, sharing and tag controls
 receive their intended clicks, and QR dialogs consume navigation clicks
