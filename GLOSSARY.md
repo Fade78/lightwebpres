@@ -66,7 +66,7 @@ Once per series, in `series.json`'s `series_meta` object.
 | `intro` | `''` — omitted from the page if absent | Intro paragraph on `index.html` and `README.md` |
 | `author` | `''` — nothing shown | Series-wide default author (§20.3.1); shown in the index page's footer, and on every article that doesn't override it |
 | `license` | `''` — nothing shown | Series-wide default license; same display as `author`; raw HTML allowed (a link) |
-| `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty |
+| `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
 | `lang_tags` | `{}` — no tag selects a language pack | Object mapping a slide tag to a typography/UI pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 
 ## Article-level fields
@@ -90,7 +90,7 @@ taking priority when both are set (§20.3.1).
 | `license` | `series.json`, meta block | `series.json` > meta `license:` > `series_meta.license` > `''` (§20.3.1) | Content license; shown in the page footer; raw HTML allowed (a link) |
 | `date` | `series.json`, meta block | `series.json` > meta `date:` > `''` — never derived from file mtime (§20.3.1) | Free-text date shown verbatim in the footer byline |
 | `tags` | meta block only | No article gate | Space-separated article tags. A selected tag must match one of them and at least one non-excluded slide must accept it; an article without this field has no article-level gate |
-| `status` | `series.json`, meta block | `active` (§20.6) | What this article is worth to the series. `active`: built, carded, navigated, counted. `draft`: still an article of the series and counted as one, but kept out of the output unless `--include-drafts`, which builds it with a centered "draft" banner. `ignored`: out of the chain entirely — never built whatever the flags, never listed, never counted — so an article can be set aside without deleting the entry that carries all its settings. Case-insensitive; any other value is a fatal error naming the article |
+| `status` | `series.json`, meta block | `active` (§20.6) | What this article is worth to the series. `active`: built, carded, navigated, counted. `draft`: still an article of the series and counted as one, but kept out of the normal output unless `--include-drafts`, which builds it with a centered "draft" banner. `ignored`: out of the normal chain — never built, carded, navigated, or counted for output — so an article can be set aside without deleting the entry that carries all its settings. Read-only `status` and `series tags` inventories retain it under the `ignored` count, but it never contributes to `output`. Case-insensitive; any other value is a fatal error naming the article |
 | `slug_prefix` | `series.json` `series_meta`, meta block | `''` — no prefix (§12.1.1) | A namespace put in front of every slide id on the page. The article's meta block wins over `series_meta`; a value outside `[A-Za-z0-9][A-Za-z0-9._-]*` is a fatal build error naming its origin |
 | `notes_placement` | `series.json` `series_meta`, meta block | `local` (§6.5.1) | Where note bodies land. `local`: at the foot of the unit that called them — that card, or the end of the long-form article; numbering restarts in each card. `page`: every body on the page collected into one notes section at the end, numbered continuously. The article's meta block wins over `series_meta`; an unknown value is a fatal build error naming the article |
 | `notes_tooltip` | `series.json` `series_meta`, meta block | `off` (§6.5.3) | `on` also puts the body's text on the call as a tooltip. Composes with either placement and is never the only carrier — the body stays in the document, because a tooltip does not exist on a touch screen, in print, or in the reading order |
@@ -98,6 +98,21 @@ taking priority when both are set (§20.3.1).
 | `typo_units` | meta block only | Unset — rule stays on | `off` disables only the units/`×`/`≈` typography rule, for this article only |
 | `typo_thousands` | meta block only | Unset — rule stays on | `off` disables only the thousands-grouping typography rule, for this article only |
 | `slide_page_numbers` | meta block, `series_meta`, or `--slides-page-numbers` | `off` (§3.3.5) | Engraves the top-right `NN / NN` slide number on every slide; cascade: meta block > CLI flag > `series_meta` > `off` |
+
+## Tag visibility reports
+
+`lightwebpres series tags [directory]` and the `tags` object in
+`lightwebpres status [directory] --format json` use the same resolved article
+and slide collection as the build. The vocabulary is ordered `default`, the
+series `default_tag`, then first encounter; `--tag` filters the rows without
+changing the series totals.
+
+An article counts for a tag only when its article gate and at least one
+non-excluded slide accept that tag. Slides without `tags:` are `default` and
+are shared by non-default selections. Each row keeps `active`, `draft`, and
+`ignored` article counts, while `output` and `default_output` count active
+articles and their visible slides only. `untagged` counts the non-excluded
+slides that had no explicit slide tag. The commands are read-only.
 
 ## Cover slide fields
 

@@ -19,7 +19,8 @@ misunderstand what this tool is.
 This one is **the tool's own contract**. It describes what the parser
 accepts: the `lwp:meta` block, the four slide types and their fields, the
 one-way switch from structured fields to free text, `series.json` wiring,
-the typography rules and their opt-outs, the instance tags.
+the read-only `status`/`series tags` visibility reports, the typography rules
+and their opt-outs, and the instance tags.
 
 It is written so an agent can emit a correct article without guessing,
 and it is kept in step with the executable — the test suite asserts that

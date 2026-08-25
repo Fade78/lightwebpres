@@ -2,8 +2,9 @@
 name: lightwebpres
 description: >
   The exact LWP article syntax the lightwebpres tool parses: the lwp:meta
-  block, the four slide types and their fields, series.json wiring, and the
-  automatic non-breaking-space typography. Format mechanics, not editorial
+  block, the four slide types and their fields, series.json wiring, the
+  read-only status and series-tags visibility reports, and the automatic
+  non-breaking-space typography. Format mechanics, not editorial
   advice. Use when writing, editing or debugging a lightwebpres .md article
   or series.json entry — including when nobody names this skill, if a
   series.json and a lightwebpres executable are present, or the text
@@ -176,24 +177,32 @@ theme property, an underscore an article field, a hyphen a slide field.
   navigation entry — while it still counts as an article of the series;
   `build --include-drafts` builds it anyway, with a banner on the page so
   a preview is never mistaken for a publication. `status: ignored` takes
-  it out of the chain altogether: never built whatever the flags, never
-  listed, never counted, and the entry survives with every field on it —
-  which is how you set an article aside without losing its settings. Any
-  other value is a fatal error. `audit` is the exception: it examines every
+  it out of the normal chain altogether: never built whatever the flags,
+  never carded or navigated, and never counted for normal output. The entry
+  survives with every field on it — which is how you set an article aside
+  without losing its settings. Read-only `status` and `series tags` reports
+  still retain it in the `ignored` inventory count, but it cannot make
+  `output` visible. Any other value is a fatal error. `audit` is the exception:
+  it examines every
    listed article, including `ignored` entries that a normal build excludes
    and drafts that a normal build omits unless `--include-drafts`; it renders
    what it can and reports it without writing output.
 - `tags:` — optional article-level filter tags in this article's `lwp:meta`
   block. A selected tag must match one of them and at least one non-excluded
   slide must accept it for the article's index/nav card to remain visible.
-  An article without this field has no article-level gate.
+  An article without this field has no article-level gate. `series tags` counts
+  the article only when both gates have an effective intersection.
 
 At series level, `series_meta.default_tag` chooses the tag selected on a
 fresh page. It defaults to `default` and must occur on an article or a
 non-excluded slide selected for the build. `build` and `audit` warn when the
 chosen tag, or any other selectable tag, has no effective slide after article
 gates and exclusions. A valid persisted reader choice still wins over this
-initial value.
+initial value. To inspect the same resolved intersections without writing a
+build, run `lightwebpres series tags <series-dir>`; use `--format json` for
+the `default_output`, per-tag status counts, slide counts and stable
+vocabulary, or `--tag fr` to keep one row. `status --format json` embeds the
+same report under `tags`.
 
 **Notes fields**, settable here or in `series_meta` (the article wins):
 
@@ -257,6 +266,11 @@ are accepted, except a name may not begin with `_`.
   an article tag is an exact match, while a slide's `default` tag is shared.
   The menu names the active tag, counts visible articles/slides, and lists
   their titles; an empty selection is announced on the page.
+
+The source-side `series tags` report uses that same runtime rule: an explicit
+article gate must match, `excluded` slides are absent, and `default` slides
+are shared only with non-default selections. It is a visibility check, not a
+build command, and does not rewrite the series.
 
 The former visible-label field `tag:` is not an alias. Use `kicker:` for the
 label above a slide title, and `tags:` for tag filtering. On a standard
@@ -735,7 +749,8 @@ Any non-string value for one of these fields is fatal as well.
 
 `series_meta`, the object beside `articles`, holds what belongs to the
 series rather than to one article: `title`, `subtitle`, `version`,
-`intro`, `author`, `license`, and optional `lang_tags`. The first four drive the generated index
+`intro`, `author`, `license`, `default_tag`, and optional `lang_tags`. The
+first four drive the generated index
 page and `README.md`; the last two are the fallback for every article's
 byline and licence line. The optional root `themes` list selects extra runtime
 themes for `build`/`verify`/`watch`; it is a list of strings, not an article
@@ -746,6 +761,7 @@ field:
   "series_meta": {
     "title": "My series",
     "intro": "What it is about.",
+    "default_tag": "fr",
     "lang_tags": {"fr": "fr", "en": "en"}
   },
   "themes": ["essential", "family:terrain"],
@@ -776,6 +792,7 @@ immediately instead of leaving them for a human to discover later:
 ```bash
 lightwebpres audit <series-dir>   # renders in memory, reports everything, never fails
 lightwebpres build <series-dir>   # fatal on real structural errors
+lightwebpres series tags <series-dir> --format json  # inspect tag visibility without building
 ```
 
 `audit` renders the series the way a build does, writing nothing, so it
@@ -786,6 +803,13 @@ finds: **read its output, not its exit code**, unless you pass
 tells you the file parses, renders and ships. If the executable isn't available in this
 environment, say so explicitly rather than presenting unverified output
 as finished — don't guess at whether it would build.
+
+When an article or its slides use `tags:`, read the `series tags` report before
+calling the series finished. It names the stable vocabulary, the effective
+article/slide intersection for each tag, the `active`/`draft`/`ignored`
+counts, and the `default_output` selected on a fresh page. Its `output` count
+is intentionally active-only; drafts and ignored entries remain useful in the
+inventory without making normal output appear visible.
 
 ## Common mistakes to avoid
 
