@@ -408,6 +408,30 @@ async function main() {
     fail('Scroll menu action did not toggle the configured duration: '
       + JSON.stringify({ scrollOff, scrollOn }));
   }
+
+  // The menu state is page-local, so use an article page to test the actual
+  // slide jump. `html` carries scroll-behavior: smooth; the instant path must
+  // override it rather than merely skipping requestAnimationFrame().
+  const instantPage = await context.newPage();
+  const instantErrors = [];
+  instantPage.on('pageerror', (error) => instantErrors.push(String(error)));
+  await instantPage.goto(base + '/first.html', { waitUntil: 'load' });
+  await instantPage.waitForSelector('.nav-dots a');
+  await instantPage.keyboard.press('m');
+  await instantPage.locator('[data-menu-action="scroll"]').click();
+  const instantJump = await instantPage.evaluate(() => {
+    const slide = document.querySelectorAll('section.slide')[1];
+    const targetY = slide.getBoundingClientRect().top + window.scrollY;
+    document.getElementById('navNext').click();
+    return { targetY, scrollY: window.scrollY };
+  });
+  if (Math.abs(instantJump.scrollY - instantJump.targetY) > 1) {
+    fail('the Scroll menu action did not make the next slide instant: '
+      + JSON.stringify(instantJump));
+  }
+  await instantPage.close();
+  if (instantErrors.length) fail('Instant-scroll page errors: ' + instantErrors.join(' | '));
+
   await page.keyboard.press('m');
   const menuFocusState = async () => page.evaluate(() => {
     const action = document.activeElement;

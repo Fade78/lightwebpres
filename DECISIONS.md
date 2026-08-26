@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 7 · **à faire** 1 · **en cours** 0 · **terminé** 41 · **abandonné** 1 · **sans objet** 3
+**à étudier** 8 · **à faire** 1 · **en cours** 0 · **terminé** 41 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -110,6 +110,7 @@ gets its own entry and its own state**, however small.
 - **B30** — Nested emphasis, and a net for whatever the checks do not name
 - **B35** — Reaching a verdict class without writing HTML
 - **B36** — The engine can halo 32 components; the catalogue haloes three
+- **B50** — Soft animation of cover colours
 
 ### à faire
 
@@ -2491,3 +2492,24 @@ the help/navigation runtime after the DOM is ready.
 article CTA. Unit coverage keeps the two built-in vocabularies in parity,
 checks the runtime payload and preserves the explicit build-language path;
 `python3 tests/run_tests.py` passes with 1013 tests in 185 classes.
+
+## B50 — Soft animation of cover colours
+
+**État :** à étudier
+
+A reference cover was observed with a fixed dark-blue background gradient:
+`135deg`, `#1A1A2E` at `0%`, `#16213E` at `50%`, and `#0F3460` at `100%`.
+Its centred bold title carries a slow, symmetric warm gradient:
+`#FF5030`, `#FF8040`, `#FFB050`, `#FF8040`, `#FF5030`, with a `300%` background
+size and a `16s ease-in-out infinite` position animation. The two observed
+frames are phases of that animation, not two palettes.
+
+**Ce qui est vérifié.** `custom.css` can already express the browser effect,
+but the built-in theme registry currently exposes only two cover stops and a
+solid `title1.fg`. A first-class version would need typed title-gradient and
+animation properties, a static print/reduced-motion fallback, and deterministic
+gallery and rendered-test handling.
+
+**Ce qui reste à décider.** Decide whether this belongs in the theme contract
+as an optional effect, and if so which animation controls are safe to expose;
+existing themes should remain static by default.

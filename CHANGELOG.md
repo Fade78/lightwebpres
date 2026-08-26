@@ -33,6 +33,13 @@ link to the originals. They are at
 
 ---
 
+## v0.47.2
+
+The presenter menu's instant Scroll action now overrides the page's global
+smooth-scroll setting. Its zero-duration path, the frames of the configured
+glide, incremental movement inside an overflowing slide and the index's return
+to the top all use the selected navigation mode consistently.
+
 ## v0.47.1
 
 Builds now refuse implicit `sources/`, `templates/` and `language/` symlink

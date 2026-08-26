@@ -2099,7 +2099,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.47.1</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.47.2</div>
   </div>
 </div>
 
@@ -3934,6 +3934,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // remaining distance), not the browser's smooth scroll, whose
   // duration varies with the distance and cannot be promised.
   var scrollRAF = null;
+  function navigationScrollBehavior() {
+    return scrollDuration === 0 ? 'instant' : 'smooth';
+  }
+  function setScrollTop(targetY) {
+    // The document's scroll-behavior is smooth by default. Explicitly use
+    // instant here so it cannot delay either a jump or one frame of our own
+    // requestAnimationFrame glide.
+    window.scrollTo({ left: 0, top: targetY, behavior: 'instant' });
+  }
   function animateScrollTo(targetY, duration) {
     var startY = window.pageYOffset || document.documentElement.scrollTop;
     var startT = null;
@@ -3944,7 +3953,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // easeOutCubic: fast at first, so the reader lands quickly and
       // the tail settles — the motion a presenter expects.
       var e = 1 - Math.pow(1 - t, 3);
-      window.scrollTo(0, startY + (targetY - startY) * e);
+      setScrollTop(startY + (targetY - startY) * e);
       if (t < 1) scrollRAF = requestAnimationFrame(frame);
       else scrollRAF = null;
     }
@@ -3952,7 +3961,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   function jumpScrollTo(targetY) {
     if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
-    window.scrollTo(0, targetY);
+    setScrollTop(targetY);
   }
 
   function goTo(idx, instant) {
@@ -4029,12 +4038,13 @@ document.addEventListener('DOMContentLoaded', function() {
     return slide.getBoundingClientRect().bottom <= window.innerHeight + 1;
   }
   function scrollWithinSlide(direction) {
-    window.scrollBy({ top: direction * window.innerHeight * 0.9, behavior: 'smooth' });
+    window.scrollBy({ top: direction * window.innerHeight * 0.9,
+      behavior: navigationScrollBehavior() });
   }
   // The top of the page — the index's Home, and the beginning of the
   // card journey.
   function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: navigationScrollBehavior() });
   }
 
   // The natural keyboard journey (in this order, each one only kicking in
