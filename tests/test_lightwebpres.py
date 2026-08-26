@@ -13498,6 +13498,30 @@ class GeneratedHtmlValidation(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_script_attributes_may_contain_angle_brackets(self):
+        lwp = load_lightwebpres_module()
+        ok, detail = lwp.validate_page_scripts(
+            '<script data-x=">">var answer = 42;</script>')
+        self.assertTrue(ok, detail)
+
+    def test_image_scanner_finds_src_after_a_quoted_gt_in_another_attr(self):
+        lwp = load_lightwebpres_module()
+        self.assertEqual(
+            list(lwp._relative_image_srcs(
+                '<img alt="a > b" src="img/figure.png">')),
+            ['img/figure.png'])
+
+    def test_image_scanner_ignores_src_inside_a_quoted_attribute_value(self):
+        lwp = load_lightwebpres_module()
+        self.assertEqual(
+            list(lwp._relative_image_srcs(
+                '<img alt="voir src= note" src="https://example.com/x.png">')),
+            ['https://example.com/x.png'])
+        self.assertEqual(
+            list(lwp._relative_image_srcs(
+                '<img alt="src=note">')),
+            [])
+
 
 class CommentField(unittest.TestCase):
     """GLOSSARY.md: `comment` is a review-note field, recognized wherever

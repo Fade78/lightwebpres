@@ -13497,6 +13497,53 @@ class _HtmlBalanceChecker(HTMLParser):
 _IMG_OPEN_RE = re.compile(r'<img\b', re.IGNORECASE)
 _SECTION_OPEN_RE = re.compile(r'(<section\b[^<>]*>)')
 _ABSOLUTE_SRC_RE = re.compile(r'^(?:data:|https?://|//)', re.IGNORECASE)
+_SRC_BARE_STOP = set(" \t\n\r\f\"'`=<>")
+_SRC_VALUE_QUOTES = ('"', "'")
+
+
+def _src_in_attrs(attrs):
+    """The value of the `src` attribute in `attrs`, or None.
+
+    Quoted regions are skipped so `alt="src=x"` cannot be read as an
+    image source; the scan is one pass over the attribute span, never a
+    rescan. A `src` inside another attribute's value is text, not an
+    attribute, and reading it as one would flag a self-contained page
+    that is not actually broken."""
+    i = 0
+    n = len(attrs)
+    quote = None
+    while i < n:
+        char = attrs[i]
+        if quote:
+            if char == quote:
+                quote = None
+            i += 1
+            continue
+        if char in _SRC_VALUE_QUOTES:
+            quote = char
+            i += 1
+            continue
+        if char in 'sS' and attrs[i:i + 3].lower() == 'src':
+            if i == 0 or not (attrs[i - 1].isalnum() or attrs[i - 1] == '_'):
+                j = i + 3
+                while j < n and attrs[j] in ' \t\n\r\f':
+                    j += 1
+                if j < n and attrs[j] == '=':
+                    j += 1
+                    while j < n and attrs[j] in ' \t\n\r\f':
+                        j += 1
+                    if j < n and attrs[j] in _SRC_VALUE_QUOTES:
+                        q = attrs[j]
+                        start = j + 1
+                        end = attrs.find(q, start)
+                        return attrs[start:] if end == -1 else attrs[start:end]
+                    if j < n:
+                        start = j
+                        while j < n and attrs[j] not in _SRC_BARE_STOP:
+                            j += 1
+                        return attrs[start:j]
+        i += 1
+    return None
 
 
 def _relative_image_srcs(html):
@@ -13508,7 +13555,9 @@ def _relative_image_srcs(html):
     script validator uses, and the attributes are read once inside that
     span, so each character is part of at most one scan. A `>` inside a
     quoted attribute does not end the tag, and a quoted `src` is read
-    whole even when its value contains `>`.
+    whole even when its value contains `>`. The `src=` itself is found
+    outside quoted attribute values, so `alt="src=x"` is not mistaken
+    for the image source.
     """
     position = 0
     while True:
@@ -13518,17 +13567,9 @@ def _relative_image_srcs(html):
         opening_end = _tag_open_end(html, opening.end())
         if opening_end is None:
             return
-        attrs = html[opening.end():opening_end - 1]
-        match = re.search(
-            r'\bsrc\s*=\s*'
-            r'(?:(?:"(?P<double>[^"]*)")|(?:\'(?P<single>[^\']*)\')|'
-            r'(?P<bare>[^\s"\'=`<>]+))',
-            attrs, re.IGNORECASE)
-        if match is not None:
-            yield next(value for value in (
-                match.group('double'), match.group('single'),
-                match.group('bare'))
-                if value is not None)
+        src = _src_in_attrs(html[opening.end():opening_end - 1])
+        if src is not None:
+            yield src
         position = opening_end
 
 
