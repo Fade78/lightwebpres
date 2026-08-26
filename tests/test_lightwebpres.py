@@ -15067,6 +15067,8 @@ class TheGuideBuildsWithTheToolItDescribes(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             self.assertFalse((out / 'stale.html').exists())
             for name in sorted(p.name for p in out.iterdir() if p.is_file()):
+                if name.startswith('.lwp-'):
+                    continue
                 self.assertEqual(
                     (committed / name).read_bytes(), (out / name).read_bytes(),
                     f'generated/guide/{name} is stale: re-run '
