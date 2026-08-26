@@ -33,23 +33,43 @@ link to the originals. They are at
 
 ---
 
-## Unreleased — 0.47.1
+## v0.47.1
 
 Builds now refuse implicit `sources/`, `templates/` and `language/` symlink
 escapes, and optional index fragments and language packs are read through the
-same containment guard. The page-script, build-stamp, section and inline-image
-scans are bounded so author HTML cannot turn them into quadratic work.
+same containment guard. An implicit root that resolves to the series root
+itself, a symlinked `img/` directory, a symlinked navigation cache, and
+descendant symlinks in an existing `public/img/` are all refused before
+writing. `init --force` no longer follows pre-existing symlinks at any of its
+target paths. The page-script, build-stamp, section and inline-image scans are
+bounded so author HTML cannot turn them into quadratic work, and the image
+scanner reads `src` only outside quoted attribute values.
 
 The CLI help now answers consistently for `-h`, `template --help`, and the
 options added to `clean`, `template write` and `series slug`. Series metadata
 resolution reports the real defaults and supports language-tag and presentation
-fields; `audit` reports malformed `series_meta` once and continues as promised.
+fields; `audit` reports malformed `series_meta` once and continues as promised,
+and invalid `nav.js` or `index_extra.html` JavaScript now reaches `--strict`.
+A `page_source` that is a directory and an escaped implicit root are reported
+without blocking too.
+
+`slug_prefix` is strictly typed and resolved through the article → series
+cascade (a `null` value used to mint `Nonea-` ids, and `resolve --article`
+raised `KeyError`); `default_tag` and `lang_tags` report their real defaults;
+`series slug set` no longer overwrites an explicitly empty `slug:` line. The
+incremental fingerprint now covers `series_meta`, the runtime theme selection,
+the composed CSS, the nav script, the language strings and the render options,
+so `build --only` falls back to a full build when any shared page input
+changed.
 
 Presenter sharing and QR dialogs now expose their dialog semantics, keep focus
 inside while open, restore focus on close, announce copy completion, and handle
 QR generation errors. The inert Scroll action is hidden when its configured
 duration is zero, and watch/verify, tag fallback and generated outputs carry
 regression coverage.
+
+`AGENTS.md` now states the two-forge model: development happens privately on
+GitLab, public releases are created on GitHub with the CHANGELOG text.
 
 ## v0.47.0
 
