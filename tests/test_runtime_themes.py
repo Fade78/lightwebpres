@@ -72,6 +72,13 @@ class RuntimeThemesBrowser(unittest.TestCase):
         assert build.returncode == 0, build.stdout + build.stderr
 
         output = root / 'public'
+        zero_output = output / 'zero-duration'
+        build = subprocess.run(
+            ['python3', str(LWP), 'build', str(root),
+             '--output', str(zero_output), '--scroll-duration', '0'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert build.returncode == 0, build.stdout + build.stderr
         cls.httpd = HTTPServer(
             ('127.0.0.1', 0),
             lambda *args: _QuietHandler(*args, directory=str(output)),
@@ -119,7 +126,8 @@ class RuntimeThemesBrowser(unittest.TestCase):
         base = 'http://127.0.0.1:%d' % self.port
         result = subprocess.run(
             ['node', str(SCRIPT), base,
-             'http://127.0.0.1:%d' % self.static_port],
+             'http://127.0.0.1:%d' % self.static_port,
+             base + '/zero-duration'],
             capture_output=True, text=True, timeout=120,
             env={**os.environ, 'NODE_PATH': NPM_ROOT_OR_REASON},
         )

@@ -9,7 +9,7 @@ function fail(message) {
 }
 
 async function main() {
-  const [base, staticBase] = process.argv.slice(2);
+  const [base, staticBase, zeroDurationBase] = process.argv.slice(2);
   const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const context = await browser.newContext({
@@ -290,6 +290,28 @@ async function main() {
   }));
   if (closedByClick.open) {
     fail('a click did not close the help overlay: ' + JSON.stringify(closedByClick));
+  }
+
+  if (zeroDurationBase) {
+    const zeroPage = await context.newPage();
+    const zeroErrors = [];
+    zeroPage.on('pageerror', (error) => zeroErrors.push(String(error)));
+    await zeroPage.goto(zeroDurationBase + '/index.html', { waitUntil: 'load' });
+    await zeroPage.keyboard.press('m');
+    const zeroScroll = await zeroPage.evaluate(() => {
+      const action = document.getElementById('menuScroll');
+      return {
+        hidden: action ? action.hidden : false,
+        disabled: action ? action.disabled : false,
+        display: action ? getComputedStyle(action).display : '',
+      };
+    });
+    if (!zeroScroll.hidden || !zeroScroll.disabled || zeroScroll.display !== 'none') {
+      fail('zero-duration series exposed an inert Scroll action: '
+        + JSON.stringify(zeroScroll));
+    }
+    await zeroPage.close();
+    if (zeroErrors.length) fail('Zero-duration page errors: ' + zeroErrors.join(' | '));
   }
 
   const navMenuButton = page.locator('#navMenu');

@@ -435,7 +435,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--themes selectors\|all` | `build`, `verify`, `watch` | embeds slugs, `essential` or `X:Y` facet selectors; the effective theme in `templates/settings.conf` is always included first, and `C` opens the picker |
 | `--no-essential-theme` | `build`, `verify`, `watch` | do not embed the default `essential` bundle (Monochrome, Monochrome Night, Print Ink); an explicit `--themes` on the same command still applies |
 | `--gitlab-ci` | `init` | emits a `.gitlab-ci.yml` |
-| `--format json` | `resolve`, `status`, `series tags`, `theme show`, `series theme` | machine-readable output |
+| `--format json` | `resolve`, `status`, `series tags`, `series slug`, `theme show`, `series theme` | machine-readable output |
 | `--tag name` | `series tags` | restricts the inventory to one canonical tag |
 
 The spellings this tool used before the CLI was reorganised — `install`,

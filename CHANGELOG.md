@@ -33,6 +33,24 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.47.1
+
+Builds now refuse implicit `sources/`, `templates/` and `language/` symlink
+escapes, and optional index fragments and language packs are read through the
+same containment guard. The page-script, build-stamp, section and inline-image
+scans are bounded so author HTML cannot turn them into quadratic work.
+
+The CLI help now answers consistently for `-h`, `template --help`, and the
+options added to `clean`, `template write` and `series slug`. Series metadata
+resolution reports the real defaults and supports language-tag and presentation
+fields; `audit` reports malformed `series_meta` once and continues as promised.
+
+Presenter sharing and QR dialogs now expose their dialog semantics, keep focus
+inside while open, restore focus on close, announce copy completion, and handle
+QR generation errors. The inert Scroll action is hidden when its configured
+duration is zero, and watch/verify, tag fallback and generated outputs carry
+regression coverage.
+
 ## v0.47.0
 
 The presenter menu now exposes a Scroll action with a lightning icon. It

@@ -7285,6 +7285,10 @@ utilisé). Ce tableau direct n'a pas de place pour la sélection runtime JSON.
 | `scroll_duration` | integer non négatif | non | Durée en millisecondes du glissé de navigation. `200` par défaut, `0` instantané ; `--scroll-duration` la surcharge pour un build, une vérification ou une surveillance (§8.4) |
 | `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
 | `lang_tags` | object `{tag: pack}` | non | Déclare les tags qui sélectionnent un moteur typographique, par exemple `{"fr": "fr", "en": "en"}`. Les clés suivent la syntaxe de `tags:` ; les noms de packs sont des identifiants sûrs et désignent `language/<pack>.json` ou un pack intégré (§7.5) |
+| `notes_placement` | `local` ou `page` | non | Emplacement des corps de notes ; cascade défaut → série → bloc meta de l'article (§6.5) |
+| `notes_tooltip` | `on` ou `off` | non | Ajoute le corps de la note à l'info-bulle de l'appel ; cascade comme `notes_placement` (§6.5) |
+| `slide_page_numbers` | booléen ou chaîne (`on`/`off`) | non | Active les numéros gravés des fiches ; la valeur de série est surchargée par le bloc meta de l'article ou par l'option de build (§3.3.5) |
+| `slug_prefix` | string | non | Préfixe d'espace de noms appliqué à toutes les identités de fiche de la page (§12.1.1) |
 
 Le template d'index enveloppe `intro` dans un unique `<p>` fixe
 (`<p>{{series_intro}}</p>`) : pour plusieurs paragraphes, insérer

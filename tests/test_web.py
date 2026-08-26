@@ -216,19 +216,19 @@ class ArticleTagsRuntime(unittest.TestCase):
             'nav_title: A\nnav_desc: French\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: a-cover\ntags: fr\n# A\n'
             'summary: French.\n\n---\n\n'
-            '<!-- lwp:slide:series-nav -->\nslug: a-nav\n',
+            '<!-- lwp:slide:series-nav -->\nslug: a-nav\ntags: fr\n',
             encoding='utf-8')
         (root / 'sources' / 'b.md').write_text(
             '<!-- lwp:meta -->\ntags: en\npage_title: B\n'
             'nav_title: B\nnav_desc: English\n---\n\n'
             '<!-- lwp:slide:cover -->\nslug: b-cover\ntags: en\n# B\n'
             'summary: English.\n\n---\n\n'
-            '<!-- lwp:slide:series-nav -->\nslug: b-nav\n',
+            '<!-- lwp:slide:series-nav -->\nslug: b-nav\ntags: en\n',
             encoding='utf-8')
         (root / 'sources' / 'c.md').write_text(
             '<!-- lwp:meta -->\npage_title: C\nnav_title: C\nnav_desc: Shared\n---\n\n'
-            '<!-- lwp:slide:cover -->\nslug: c-cover\n# C\nsummary: Shared.\n\n---\n\n'
-            '<!-- lwp:slide:series-nav -->\nslug: c-nav\n',
+            '<!-- lwp:slide:cover -->\nslug: c-cover\ntags: fr\n# C\nsummary: Shared.\n\n---\n\n'
+            '<!-- lwp:slide:series-nav -->\nslug: c-nav\ntags: fr\n',
             encoding='utf-8')
         output_dir = root / 'public'
         result = subprocess.run(

@@ -30,6 +30,7 @@ async function selectTag(page, indexUrl, tag) {
     }, tag,
   );
   if (!clicked) throw new Error('tag is missing from the runtime menu: ' + tag);
+  return page.evaluate(() => localStorage.getItem('lwp-active-tag'));
 }
 
 async function main() {
@@ -59,10 +60,13 @@ async function main() {
     await page.waitForSelector('.article-card[data-lwp-article-card]');
 
     for (const row of rows) {
-      await selectTag(page, indexUrl, row.tag);
+      const effectiveTag = await selectTag(page, indexUrl, row.tag);
+      const effectiveRow = rows.find((candidate) => candidate.tag === effectiveTag);
+      if (!effectiveRow) throw new Error(row.tag + ': runtime selected unknown tag ' + effectiveTag);
       const articleCount = await visibleArticleCount(page);
-      if (articleCount !== row.output.articles) {
-        throw new Error(row.tag + ': report has ' + row.output.articles
+      if (articleCount !== effectiveRow.output.articles) {
+        throw new Error(row.tag + ' (effective ' + effectiveTag + '): report has '
+          + effectiveRow.output.articles
           + ' active article(s), browser shows ' + articleCount);
       }
 
@@ -89,7 +93,7 @@ async function main() {
             slides: visible.length,
             requestedSlides: visible.filter(matches).length,
           };
-        }, row.tag);
+        }, effectiveTag);
         if (!state.slides) {
           throw new Error(row.tag + ': a page was left without a visible slide: '
             + JSON.stringify(state));
@@ -99,8 +103,9 @@ async function main() {
         // for the report only when it kept the requested tag.
         slideCount += state.requestedSlides;
       }
-      if (slideCount !== row.output.slides) {
-        throw new Error(row.tag + ': report has ' + row.output.slides
+      if (slideCount !== effectiveRow.output.slides) {
+        throw new Error(row.tag + ' (effective ' + effectiveTag + '): report has '
+          + effectiveRow.output.slides
           + ' active slide(s), browser shows ' + slideCount);
       }
     }

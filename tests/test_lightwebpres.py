@@ -189,6 +189,42 @@ class ScrollDuration(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('series_meta.scroll_duration', result.stderr)
 
+    def test_index_carries_the_series_scroll_duration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 350)
+            self._build_html(root)
+            index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('data-lwp-scroll-duration="350"', index)
+        self.assertIn('id="menuScrollValue">350 ms</span>', index)
+
+    def test_cli_duration_is_local_to_the_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 350)
+            self._build_html(root, '--scroll-duration', '75')
+            self.assertIn(
+                'data-lwp-scroll-duration="75"',
+                (root / 'public' / 'a.html').read_text(encoding='utf-8'))
+            self._build_html(root)
+            index = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+        self.assertIn('data-lwp-scroll-duration="350"', index)
+
+    def test_verify_uses_a_local_scroll_override_without_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, 350)
+            self._build_html(root)
+            result = run('verify', str(root), '--output', str(root / 'public'),
+                         '--scroll-duration', '75')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('[DRIFT]', result.stdout)
+            result = run('verify', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_zero_duration_hides_the_inert_scroll_action(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_html(self._series(tmp), '--scroll-duration', '0')
+        self.assertIn('data-lwp-scroll-duration="0"', html)
+        self.assertIn('id="menuScroll"', html)
+
 
 class SlideTags(unittest.TestCase):
     """`tags:` is the article's slide filter: validated at build time,
@@ -937,6 +973,21 @@ class AuditCommand(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('a.html', result.stderr)
             self.assertIn('no cover slide', result.stderr)
+
+    def test_audit_reports_invalid_series_meta_without_aborting(self):
+        md = (
+            '<!-- lwp:meta -->\npage_title: Test\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: bad-meta\n# Title\nsummary: S.\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            data = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+            data['series_meta'] = {'title': 123}
+            (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
+            result = run('audit', str(root))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr.count('series_meta.title'), 1)
+        self.assertIn('warning(s)', result.stdout)
+        self.assertNotIn('Traceback', result.stderr)
 
 
 class HighlightField(unittest.TestCase):
@@ -2938,11 +2989,16 @@ class CliVersionAndShortcuts(unittest.TestCase):
             self.assertIn('GLOBAL OPTIONS', result.stdout)
         # A NODE is not a command: `theme --help` answered "Unknown theme
         # verb: `theme --help`", which reads as a typo nobody made.
-        for node in ('theme', 'series'):
+        for node in ('theme', 'series', 'template'):
             result = run(node, '--help')
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('VERBS', result.stdout)
             self.assertNotIn('Unknown', result.stderr)
+
+    def test_short_help_after_a_global_value_option(self):
+        result = run('--lang', 'fr', '-h')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('lightwebpres', result.stdout)
 
     def test_command_help_promises_the_shape_the_parser_accepts(self):
         """The synopsis is derived from the same table that enforces the
@@ -4699,7 +4755,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
         block = re.split(r'\n[A-Z][A-Z /()]+\n', block)[0]
         canonical_names = ({lwp.canonical(v) for v in lwp._SHORTCUTS.values()}
                            | {'series theme set', 'series theme',
-                              'series tags',
+                              'series tags', 'series slug',
                               'template update', 'theme list', 'theme show',
                               'theme gallery'})
         checked = 0
@@ -5745,6 +5801,29 @@ class IncrementalBuildOnly(unittest.TestCase):
             html_b = (root / 'public' / 'b.html').read_text(encoding='utf-8')
             self.assertIn('Article A Renamed', html_b)
 
+    def test_only_with_changed_shared_render_metadata_rebuilds_every_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            self.assertEqual(
+                run('build', str(root), '--output', str(root / 'public')).returncode,
+                0)
+            b_before = (root / 'public' / 'b.html').read_text(encoding='utf-8')
+            series_path = root / 'series.json'
+            series = json.loads(series_path.read_text(encoding='utf-8'))
+            series['series_meta']['slug_prefix'] = 'deck-'
+            series['series_meta']['scroll_duration'] = 450
+            series_path.write_text(json.dumps(series), encoding='utf-8')
+
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--only', 'a.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn('Incremental build', result.stdout)
+            self.assertIn('nav/index-affecting metadata changed', result.stderr)
+            b_after = (root / 'public' / 'b.html').read_text(encoding='utf-8')
+            self.assertNotEqual(b_before, b_after)
+            self.assertIn('data-lwp-scroll-duration="450"', b_after)
+            self.assertIn('id="deck-k112"', b_after)
+
     def test_only_detects_a_newly_added_article_even_if_unrelated(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
@@ -5907,6 +5986,20 @@ class WatchPathCoverage(unittest.TestCase):
             self.assertIn(watched_language, paths)
             self.assertIn(root / 'series.json', paths)
             self.assertIn(explicit, paths)
+
+    def test_watch_passes_scroll_override_to_every_build(self):
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            root.mkdir()
+            with mock.patch.object(lwp, 'cmd_build') as build:
+                with mock.patch.object(
+                        lwp, '_cmd_watch_poll', return_value=iter(())):
+                    lwp.cmd_watch(str(root), {'--scroll-duration': '75'})
+
+            self.assertEqual(build.call_count, 1)
+            build_args = build.call_args.args[1]
+            self.assertEqual(build_args['--scroll-duration'], '75')
 
 
 class DemoCommand(unittest.TestCase):
@@ -6534,6 +6627,79 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
                              'audit blocked — it must report and continue')
             self.assertEqual(strict.returncode, 1,
                              '--strict passed on a warning the build prints')
+
+    def test_invalid_series_metadata_is_reported_without_blocking_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            data['series_meta']['notes_placement'] = 'sideways'
+            path.write_text(json.dumps(data), encoding='utf-8')
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            self.assertIn('notes_placement', plain.stderr)
+            self.assertNotIn('Traceback', plain.stderr)
+
+    def test_invalid_article_notes_metadata_is_reported_without_blocking_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            source = Path(root) / 'sources' / 'first.md'
+            source.write_text(
+                source.read_text(encoding='utf-8').replace(
+                    '<!-- lwp:meta -->',
+                    '<!-- lwp:meta -->\nnotes_placement: sideways', 1),
+                encoding='utf-8')
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            self.assertIn('notes_placement', plain.stderr)
+            self.assertNotIn('Traceback', plain.stderr)
+
+    def test_non_string_status_is_reported_without_blocking_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            path = Path(root) / 'series.json'
+            data = json.loads(path.read_text(encoding='utf-8'))
+            data['articles'][0]['status'] = 1
+            path.write_text(json.dumps(data), encoding='utf-8')
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            self.assertIn('status', plain.stderr)
+            self.assertNotIn('Traceback', plain.stderr)
+
+    def test_directory_page_source_is_reported_without_blocking_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            source = Path(root) / 'sources' / 'first.md'
+            source.unlink()
+            source.mkdir()
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            self.assertIn('not a file', plain.stderr)
+            self.assertNotIn('Traceback', plain.stderr)
+
+    def test_invalid_index_extra_script_reaches_strict_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (Path(root) / 'templates' / 'index_extra.html').write_text(
+                '<script>if (</script>', encoding='utf-8')
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            self.assertIn('index does not build', plain.stderr)
+
+    def test_invalid_nav_script_reaches_strict_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp)
+            (Path(root) / 'templates' / 'nav.js').write_text(
+                'if (', encoding='utf-8')
+            plain, strict = self._audit(root)
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            self.assertIn('navigation script is invalid', plain.stderr)
 
     def test_fields_parsed_on_a_cover_reach_audit(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -10067,6 +10233,14 @@ class ACardIsCalledWhatItsAuthorDeclared(unittest.TestCase):
             html = (Path(tmp) / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('id="p1-ouverture"', html)
 
+    def test_a_non_string_prefix_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._series(tmp, self.COVER, prefix=7)
+            result = self._build(root, tmp)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('slug_prefix', result.stderr)
+            self.assertIn('must be a string', result.stderr)
+
     def test_nothing_derives_an_identity_any_more(self):
         """Structural, and it is the deletion itself: the normalisation,
         the hash and the fallbacks are gone from the module. A test that
@@ -10148,6 +10322,19 @@ class SlugSetWritesIntoTheAuthorsFiles(unittest.TestCase):
             before = first.read_text(encoding='utf-8')
             self.assertEqual(run('series', 'slug', 'set', str(root)).returncode, 0)
             self.assertEqual(first.read_text(encoding='utf-8'), before)
+
+    def test_an_explicitly_empty_slug_is_not_filled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._demo(tmp)
+            first = root / 'sources' / 'first.md'
+            text = first.read_text(encoding='utf-8')
+            first.write_text(text.replace('slug: ouverture', 'slug:'),
+                             encoding='utf-8')
+            result = run('series', 'slug', 'set', str(root))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('slug:', first.read_text(encoding='utf-8'))
+            self.assertNotRegex(first.read_text(encoding='utf-8'),
+                                r'^slug: [0-9a-f]{8}$')
 
     def test_what_it_writes_is_unique_within_the_page(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -12177,7 +12364,12 @@ class HelpListsEveryAcceptedOption(unittest.TestCase):
                 '--no-essential-theme',
                 'build/watch/verify: do not generate the series navigation',
                 'build/watch: build only status: draft articles',
-                'restrict the audit to the presentation/template layer'):
+                'restrict the audit to the presentation/template layer',
+                'lightwebpres clean [directory] [--output public/] [--force]',
+                'template write:',
+                'overwrite an existing tool-owned file',
+                'series tags/series slug/resolve: output',
+                'build/verify: use this language pack file'):
             self.assertIn(needle, result.stdout, needle)
         self.assertIn('## Title', result.stdout)
 
@@ -12539,6 +12731,97 @@ class SymlinkContainment(unittest.TestCase):
             self.assertEqual(
                 (root / 'public' / 'img' / 'alias.png').read_text(encoding='utf-8'),
                 'PNGDATA')
+
+    def test_image_root_symlink_is_not_used_as_the_image_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'proj'
+            (root / 'sources' / 'other').mkdir(parents=True)
+            (root / 'sources' / 'other' / 'not-an-image.md').write_text(
+                'not an image', encoding='utf-8')
+            try:
+                (root / 'sources' / 'img').symlink_to(
+                    root / 'sources' / 'other', target_is_directory=True)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+            (root / 'sources' / 'a.md').write_text(
+                '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
+                'nav_title: A\nnav_desc: A\n---\n\n'
+                '<!-- lwp:slide:cover -->\nslug: k183\nkicker: T\n# Title\n',
+                encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / 'public' / 'img' / 'not-an-image.md').exists())
+            self.assertIn('image directory symlink', result.stderr)
+
+    def test_existing_destination_image_symlink_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'proj'
+            (root / 'sources' / 'img').mkdir(parents=True)
+            (root / 'sources' / 'img' / 'real.png').write_text(
+                'PNGDATA', encoding='utf-8')
+            (root / 'sources' / 'a.md').write_text(_MINIMAL_MD, encoding='utf-8')
+            (root / 'series.json').write_text(json.dumps(
+                {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
+            outside = Path(tmp) / 'outside'
+            outside.mkdir()
+            (root / 'public' / 'img').mkdir(parents=True)
+            try:
+                (root / 'public' / 'img' / 'escape').symlink_to(
+                    outside, target_is_directory=True)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('image output directory', result.stderr)
+            self.assertFalse((outside / 'real.png').exists())
+
+    def test_default_root_symlink_to_series_root_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'proj'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            shutil.rmtree(root / 'sources')
+            try:
+                (root / 'sources').symlink_to(root, target_is_directory=True)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('series root', result.stderr)
+
+    def test_navigation_cache_parent_symlink_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, _MINIMAL_MD)
+            outside = Path(tmp) / 'outside-cache'
+            outside.mkdir()
+            try:
+                (root / '.lwp-cache').symlink_to(
+                    outside, target_is_directory=True)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('navigation cache', result.stderr)
+            self.assertFalse((outside / 'nav.json').exists())
+
+    def test_init_force_does_not_follow_existing_template_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'proj'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            outside = Path(tmp) / 'outside-templates'
+            outside.mkdir()
+            marker = outside / 'marker'
+            marker.write_text('untouched', encoding='utf-8')
+            shutil.rmtree(root / 'templates')
+            try:
+                (root / 'templates').symlink_to(
+                    outside, target_is_directory=True)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+            result = run('init', str(root), '--force')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(marker.read_text(encoding='utf-8'), 'untouched')
 
 
 class LinkHrefEscaping(unittest.TestCase):
@@ -15022,6 +15305,24 @@ class QuadraticInputIsNotAcceptedAsSlow(unittest.TestCase):
         self._under_budget(
             lambda: self.lwp.parse_markdown_extended(text), 'meta block')
 
+    def test_page_postprocessing_patterns_are_linear(self):
+        cases = (
+            ('script validation',
+             lambda: self.lwp.validate_page_scripts('<script' * 16000)),
+            ('build stamp stripping',
+             lambda: self.lwp.strip_build_stamp(
+                 '<div class="build-stamp"' * 1000)),
+            ('relative image discovery',
+             lambda: list(self.lwp._relative_image_srcs(
+                 '<img alt="' + 'a' * 16000))),
+            ('section stamp insertion',
+             lambda: self.lwp._SECTION_OPEN_RE.sub(
+                 lambda match: match.group(1), '<section' * 16000)),
+        )
+        for label, operation in cases:
+            with self.subTest(label=label):
+                self._under_budget(operation, label)
+
 
 class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
     """A symlink is not a path traversal, and the name-shape check does not
@@ -15067,6 +15368,69 @@ class TemplatesAndSourcesStayInsideTheSeries(unittest.TestCase):
             result = run('build', str(root), '--output', str(root / 'public'))
             self.assertEqual(result.returncode, 1)
             self.assertFalse((root / 'public' / 'leak.html').exists())
+
+    def test_a_symlinked_index_extra_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = Path(tmp) / 'hostsecret.html'
+            secret.write_text('HOSTSECRET=hunter2', encoding='utf-8')
+            run('init', tmp, '--force')
+            root = scaffold(tmp, _MINIMAL_MD)
+            (root / 'templates' / 'index_extra.html').symlink_to(secret)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('index_extra.html', result.stderr)
+            for page in (root / 'public').glob('*.html'):
+                self.assertNotIn('HOSTSECRET', page.read_text(encoding='utf-8'))
+
+    def test_a_symlinked_language_pack_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = Path(tmp) / 'hostsecret.json'
+            secret.write_text(json.dumps({'strings': {
+                'series_read': 'HOSTSECRET',
+            }}), encoding='utf-8')
+            run('init', tmp, '--force')
+            root = scaffold(tmp, _MINIMAL_MD)
+            (root / 'language' / 'fr.json').symlink_to(secret)
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('language/fr.json', result.stderr)
+
+    def test_default_input_directories_cannot_escape_the_series(self):
+        for name in ('sources', 'templates', 'language'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp) / 'series'
+                self.assertEqual(run('init', str(root)).returncode, 0)
+                scaffold(root, _MINIMAL_MD)
+                outside = Path(tmp) / (name + '-outside')
+                outside.mkdir()
+                original = root / name
+                if original.is_dir() and not original.is_symlink():
+                    shutil.rmtree(original)
+                else:
+                    original.unlink()
+                original.symlink_to(outside, target_is_directory=True)
+                result = run('build', str(root), '--output',
+                             str(root / 'public'))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(name, result.stderr)
+
+    def test_audit_reports_an_escaped_implicit_root_without_blocking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'series'
+            self.assertEqual(run('init', str(root)).returncode, 0)
+            shutil.rmtree(root / 'sources')
+            outside = Path(tmp) / 'outside-sources'
+            outside.mkdir()
+            try:
+                (root / 'sources').symlink_to(
+                    outside, target_is_directory=True)
+            except OSError:
+                self.skipTest('symlinks unavailable on this filesystem')
+            plain = run('audit', str(root))
+            strict = run('audit', str(root), '--strict')
+            self.assertEqual(plain.returncode, 0, plain.stderr)
+            self.assertEqual(strict.returncode, 1)
+            self.assertIn('sources directory', plain.stderr)
 
 
 class ANotePropertyMustReachTheNotesItNames(unittest.TestCase):
@@ -16859,7 +17223,9 @@ class SeriesInfoReportsTheCascadeTheBuildUses(unittest.TestCase):
         self.assertIsNone(report['target']['theme'])
         self.assertEqual(set(report['series_meta']),
                          {'title', 'subtitle', 'version', 'intro', 'author',
-                          'license', 'default_tag', 'scroll_duration'})
+                          'license', 'default_tag', 'scroll_duration',
+                          'lang_tags', 'notes_placement', 'notes_tooltip',
+                          'slide_page_numbers', 'slug_prefix'})
         self.assertEqual(report['series_meta']['title'], 'A series')
         self.assertIsNone(report['series_meta']['default_tag'])
         self.assertIsNone(report['series_meta']['subtitle'])
@@ -17212,10 +17578,23 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
                 ('fact-label', 'slide-field', ()),
                 ('title', 'series-field', ()),
                 ('scroll_duration', 'series-field', ()),
+                ('lang_tags', 'series-field', ()),
             ):
                 with self.subTest(name):
                     report = self._resolve(root, name, *extra)
                     self.assertEqual(report['query']['kind'], kind)
+
+    def test_slug_prefix_resolves_for_an_article(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp,
+                meta='slug_prefix: article-\n',
+                series_meta={'slug_prefix': 'series-'})
+            report = self._resolve(root, 'slug_prefix', '--article', 'intro.md')
+            self.assertEqual(report['resolution']['value'], 'article-')
+            levels = self._levels(report)
+            self.assertTrue(levels['article']['winner'])
+            self.assertEqual(levels['series-default']['value'], 'series-')
 
     # ------------------------------------------------------------------
     # Against a real build, not against an expectation written here
@@ -17360,6 +17739,21 @@ class ResolveAnswersOneNameAndShowsWhoLost(unittest.TestCase):
             self.assertEqual(report['resolution']['value'], 200)
             self.assertEqual(report['resolution']['source'], 'default')
             self.assertFalse(self._levels(report)['series']['present'])
+
+    def test_default_tag_reports_the_runtime_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(tmp)
+            report = self._resolve(root, 'default_tag')
+        self.assertEqual(report['resolution']['value'], 'default')
+        self.assertEqual(report['resolution']['source'], 'default')
+
+    def test_lang_tags_reports_the_series_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._one_article(
+                tmp, series_meta={'lang_tags': {'EN': 'en'}})
+            report = self._resolve(root, 'lang_tags')
+        self.assertEqual(report['resolution']['value'], {'en': 'en'})
+        self.assertEqual(report['resolution']['source'], 'series')
 
     def test_every_level_of_the_article_cascade_can_win(self):
         cases = [
@@ -17685,10 +18079,13 @@ class RegressionFixes(unittest.TestCase):
     def test_b5_webkit_release_wake_lock(self):
         with tempfile.TemporaryDirectory() as tmp:
             html = self._build_html(tmp)
-            i = html.find('webkitfullscreenchange')
+            i = html.find("document.addEventListener('webkitfullscreenchange'")
             self.assertNotEqual(i, -1)
-            seg = html[i:i + 850]
-            self.assertIn('releaseWakeLock', seg)
+            registration = html[i:i + 120]
+            self.assertIn('handleFullscreenChange', registration)
+            handler = html[html.find('function handleFullscreenChange'):]
+            handler = handler[:handler.find('var btnFullscreen')]
+            self.assertIn('releaseWakeLock', handler)
 
     # --- B6: releaseWakeLock() must have a .catch() ---
     def test_b6_release_wakelock_catch(self):

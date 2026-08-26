@@ -48,6 +48,22 @@ async function main() {
     const defaultTag = await page.locator('body').getAttribute('data-lwp-default-tag');
     if (defaultTag !== 'fr') throw new Error('unexpected default tag: ' + defaultTag);
 
+    // `default` remains in the vocabulary even when no index card carries
+    // it. The runtime must fall back to the first tag that publishes cards
+    // instead of showing an empty index.
+    await page.evaluate(() => localStorage.setItem('lwp-active-tag', 'default'));
+    await page.reload();
+    await page.waitForSelector('.article-card[data-lwp-article-card]');
+    await expectVisible(page, ['a.html', 'c.html']);
+    const indexFallback = await page.evaluate(() => ({
+      tag: localStorage.getItem('lwp-active-tag'),
+      empty: !document.getElementById('tagEmptyState').hidden,
+    }));
+    if (indexFallback.tag !== 'fr' || indexFallback.empty) {
+      throw new Error('an unavailable index tag was not replaced: '
+        + JSON.stringify(indexFallback));
+    }
+
     await page.keyboard.press('l');
     await page.waitForFunction(() => document.getElementById('tagMenu').classList.contains('open'));
     const activeDefault = await page.locator('#tagMenuCurrent').textContent();
@@ -57,7 +73,7 @@ async function main() {
       throw new Error('default preview does not list displayed articles: ' + defaultPreview);
     }
     await page.click('#tagMenuList .tag-option[data-tag="en"]');
-    await expectVisible(page, ['b.html', 'c.html']);
+    await expectVisible(page, ['b.html']);
     await page.keyboard.press('l');
     await page.waitForFunction(() => document.getElementById('tagMenu').classList.contains('open'));
     const activeEnglish = await page.locator('#tagMenuCurrent').textContent();

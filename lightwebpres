@@ -90,7 +90,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.47.0"
+VERSION = "0.47.1"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1239,6 +1239,7 @@ LANG_FR = r'''{
     "share_scope_fiche": "Fiche",
     "qr_modal_title": "QR code du lien",
     "qr_modal_close": "Fermer",
+    "qr_modal_error": "Impossible de générer un QR code pour ce lien.",
     "nav_fullscreen": "Plein écran (touche F)",
     "tags_menu": "Filtrer les slides",
     "tags_active": "Tag actif",
@@ -1367,6 +1368,7 @@ LANG_EN = r'''{
     "share_scope_fiche": "Slide",
     "qr_modal_title": "QR code for this link",
     "qr_modal_close": "Close",
+    "qr_modal_error": "A QR code could not be generated for this link.",
     "nav_fullscreen": "Fullscreen (F key)",
     "tags_menu": "Filter slides",
     "tags_active": "Active tag",
@@ -6128,6 +6130,7 @@ body.fs-noselect {
 }
 .nav-dots a:hover { transform: scale(1.3); }
 .nav-dots a.active { transform: scale(1.3); }
+.nav-dots a:focus-visible { outline-style: solid; outline-offset: 2px; }
 
 /* The index column, on the measure a slide uses and read from the same
    property, so the two pages of one series cannot drift apart.
@@ -6247,7 +6250,7 @@ body.fs-noselect {
   font-weight: 700;
 }
 .help-desc { flex: 1; }
-.help-card:focus { outline: none; }
+.help-card:focus:not(:focus-visible) { outline: none; }
 .help-stamp {
   margin-top: 16px;
   padding-top: 12px;
@@ -6446,6 +6449,21 @@ button.share-action {
   transition: border-color 0.15s, background 0.15s;
 }
 button.share-action:disabled { opacity: 0.25; cursor: default; }
+button.share-action:focus-visible, .share-qr-close:focus-visible {
+  outline-style: solid;
+  outline-offset: 2px;
+}
+.share-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .share-qr-modal {
   position: fixed;
   inset: 0;
@@ -7653,6 +7671,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (btnTags) {
         btnTags.hidden = true;
         btnTags.setAttribute('aria-hidden', 'true');
+        btnTags.setAttribute('aria-expanded', 'false');
       }
       if (menuTagsAction) menuTagsAction.hidden = true;
       closeTagMenu();
@@ -7717,8 +7736,9 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     // The share popover and the tag menu never stack: opening one closes
-    // the other. closeSharePopover() has no focus side-effect to undo.
-    closeSharePopover();
+    // the other. The closing overlay must not steal focus during the switch.
+    closeSharePopover(false);
+    closeQrModal(false);
     tagMenu.classList.add('open');
     tagReturnFocus = returnFocus || btnMenu || btnTags || document.activeElement;
     updateTagMenu();
@@ -7744,7 +7764,11 @@ document.addEventListener('DOMContentLoaded', function() {
       a.href = '#' + (slide.id || ('s' + (i + 1)));
       var kickerEl = slide.querySelector('.slide-kicker');
       var headEl = slide.querySelector('h2, h1');
-      a.title = kickerEl ? kickerEl.textContent : (headEl ? headEl.textContent : (lwpString('nav_dot_fallback') + ' ' + (i + 1)));
+      var label = kickerEl ? kickerEl.textContent :
+        (headEl ? headEl.textContent :
+          (lwpString('nav_dot_fallback') + ' ' + (i + 1)));
+      a.title = label;
+      a.setAttribute('aria-label', label);
       a.addEventListener('click', function(e){ e.preventDefault(); goTo(i); });
       navDots.appendChild(a);
     });
@@ -7866,6 +7890,8 @@ document.addEventListener('DOMContentLoaded', function() {
     ? presenterMenu.querySelector('[data-menu-action="tags"]') : null;
   var menuScrollAction = presenterMenu
     ? presenterMenu.querySelector('[data-menu-action="scroll"]') : null;
+  var menuShareAction = presenterMenu
+    ? presenterMenu.querySelector('[data-menu-action="share"]') : null;
   var menuScrollValue = document.getElementById('menuScrollValue');
   var menuReturnFocus = null;
   var themeReturnFocus = null;
@@ -7878,11 +7904,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updateScrollMenu() {
     if (!menuScrollAction || !menuScrollValue) return;
+    var disabled = configuredScrollDuration === 0;
+    menuScrollAction.hidden = disabled;
+    menuScrollAction.disabled = disabled;
+    if (disabled) menuScrollAction.setAttribute('aria-hidden', 'true');
+    else menuScrollAction.removeAttribute('aria-hidden');
     menuScrollValue.textContent = String(scrollDuration) + ' ms';
-    menuScrollAction.setAttribute('aria-pressed', scrollDuration === 0 ? 'false' : 'true');
+    menuScrollAction.setAttribute('aria-pressed',
+      !disabled && scrollDuration !== 0 ? 'true' : 'false');
   }
 
   function toggleScroll() {
+    if (configuredScrollDuration === 0) return;
     scrollDuration = scrollDuration === 0 ? configuredScrollDuration : 0;
     updateScrollMenu();
   }
@@ -7966,7 +7999,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function focusIfVisible(element) {
     if (element && element.isConnected && element.getClientRects().length) {
       element.focus();
+      return true;
     }
+    return false;
   }
 
   function movePresenterFocus(direction) {
@@ -8035,8 +8070,8 @@ document.addEventListener('DOMContentLoaded', function() {
     closeHelp();
     closePresenterMenu(false);
     closeTagMenu();
-    closeSharePopover();
-    closeQrModal();
+    closeSharePopover(false);
+    closeQrModal(false);
     if (themeFilter) themeFilter.value = '';
     renderThemeOptions();
     themeMenu.classList.add('open');
@@ -8059,8 +8094,8 @@ document.addEventListener('DOMContentLoaded', function() {
     closeThemeMenu(false);
     closeHelp();
     closeTagMenu();
-    closeSharePopover();
-    closeQrModal();
+    closeSharePopover(false);
+    closeQrModal(false);
     if (menuThemeAction) menuThemeAction.hidden = !themeAlternatives();
     if (menuTagsAction) menuTagsAction.hidden = tagList().length < 2;
     updateScrollMenu();
@@ -8086,7 +8121,7 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (action === 'presenter') togglePresenter();
     else if (action === 'tags') toggleTagMenu(btnMenu);
     else if (action === 'scroll') toggleScroll();
-    else if (action === 'share') toggleSharePopover();
+    else if (action === 'share') toggleSharePopover(btnMenu);
     else if (action === 'help') toggleHelp();
     else if (action === 'pause-black') togglePause('b');
     else if (action === 'pause-white') togglePause('w');
@@ -8484,7 +8519,12 @@ document.addEventListener('DOMContentLoaded', function() {
       setNavDisabled(btnPrev, focusedCard <= 0);
       setNavDisabled(btnNext, focusedCard >= cards.length - 1);
     } else {
-      dots.forEach(function(d, i){ d.classList.toggle('active', i === current); });
+      dots.forEach(function(d, i){
+        var active = i === current;
+        d.classList.toggle('active', active);
+        if (active) d.setAttribute('aria-current', 'step');
+        else d.removeAttribute('aria-current');
+      });
     }
     updateShareFicheState();
     updateCounter();
@@ -8612,8 +8652,52 @@ document.addEventListener('DOMContentLoaded', function() {
          e.preventDefault();
        }
        return;
-     }
-     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      }
+      if (qrModal && qrModal.classList.contains('open')) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeQrModal();
+        } else if (e.key === 'Tab') {
+          var qrFocus = focusablesWithin(qrModal);
+          if (qrFocus.length) {
+            e.preventDefault();
+            var qrAt = qrFocus.indexOf(document.activeElement);
+            var qrStep = e.shiftKey ? -1 : 1;
+            var qrNext = (qrAt < 0 ? 0 : qrAt + qrStep + qrFocus.length)
+              % qrFocus.length;
+            qrFocus[qrNext].focus();
+          }
+        } else if (e.target && e.target.closest
+                   && e.target.closest('.share-qr-modal')) {
+          return;
+        } else {
+          e.preventDefault();
+        }
+        return;
+      }
+      if (sharePopover && sharePopover.classList.contains('open')) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeSharePopover();
+        } else if (e.key === 'Tab') {
+          var shareFocus = focusablesWithin(sharePopover);
+          if (shareFocus.length) {
+            e.preventDefault();
+            var shareAt = shareFocus.indexOf(document.activeElement);
+            var shareStep = e.shiftKey ? -1 : 1;
+            var shareNext = (shareAt < 0 ? 0 : shareAt + shareStep + shareFocus.length)
+              % shareFocus.length;
+            shareFocus[shareNext].focus();
+          }
+        } else if (e.target && e.target.closest
+                   && e.target.closest('.share-popover')) {
+          return;
+        } else {
+          e.preventDefault();
+        }
+        return;
+      }
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
      // While the help overlay is open, any key closes it; the overlay is a
      // reading surface, not a form, so no key has work to do inside it.
      if (helpOverlay && helpOverlay.classList.contains('open')) {
@@ -8815,6 +8899,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var qrModal          = document.getElementById('shareQrModal');
   var qrModalContent   = document.getElementById('shareQrModalContent');
   var qrModalUrl       = document.getElementById('shareQrModalUrl');
+  var qrModalError     = document.getElementById('shareQrModalError');
+  var shareStatus      = document.getElementById('shareStatus');
   var shareFicheBtns   = sharePopover
     ? Array.prototype.slice.call(sharePopover.querySelectorAll('[data-scope="fiche"]'))
     : [];
@@ -8825,12 +8911,32 @@ document.addEventListener('DOMContentLoaded', function() {
     if (shareHeadFiche) shareHeadFiche.classList.toggle('share-cell-head-disabled', !enabled);
   }
 
-  function closeSharePopover() {
-    if (sharePopover) sharePopover.classList.remove('open');
+  var shareReturnFocus = null;
+  var qrReturnFocus = null;
+
+  function closeSharePopover(restoreFocus) {
+    var wasOpen = sharePopover && sharePopover.classList.contains('open');
+    if (sharePopover) {
+      sharePopover.classList.remove('open');
+      sharePopover.setAttribute('aria-hidden', 'true');
+    }
+    if (menuShareAction) menuShareAction.setAttribute('aria-expanded', 'false');
+    if (wasOpen && restoreFocus !== false) {
+      if (!focusIfVisible(shareReturnFocus)) focusIfVisible(btnMenu);
+    }
+    shareReturnFocus = null;
   }
 
-  function closeQrModal() {
-    if (qrModal) qrModal.classList.remove('open');
+  function closeQrModal(restoreFocus) {
+    var wasOpen = qrModal && qrModal.classList.contains('open');
+    if (qrModal) {
+      qrModal.classList.remove('open');
+      qrModal.setAttribute('aria-hidden', 'true');
+    }
+    if (wasOpen && restoreFocus !== false) {
+      if (!focusIfVisible(qrReturnFocus)) focusIfVisible(btnMenu);
+    }
+    qrReturnFocus = null;
   }
 
   function qrToSvg(text) {
@@ -8849,17 +8955,25 @@ document.addEventListener('DOMContentLoaded', function() {
       + '<g fill="#1a1a2e">' + rects + '</g></svg>';
   }
 
-  function toggleSharePopover() {
+  function toggleSharePopover(returnFocus) {
     if (!sharePopover) return;
+    if (sharePopover.classList.contains('open')) {
+      closeSharePopover();
+      return;
+    }
+    shareReturnFocus = returnFocus ||
+      (document.activeElement !== document.body
+       ? document.activeElement : btnMenu);
     updateShareFicheState();
     // The share popover and the tag menu never stack: opening one
     // closes the other (toggleTagMenu does the same in return).
     closeTagMenu(false);
-    sharePopover.classList.toggle('open');
-    if (sharePopover.classList.contains('open')) {
-      var firstShareAction = sharePopover.querySelector('.share-action:not(:disabled)');
-      if (firstShareAction) firstShareAction.focus();
-    }
+    closeQrModal(false);
+    sharePopover.classList.add('open');
+    sharePopover.setAttribute('aria-hidden', 'false');
+    if (menuShareAction) menuShareAction.setAttribute('aria-expanded', 'true');
+    var firstShareAction = sharePopover.querySelector('.share-action:not(:disabled)');
+    if (firstShareAction) firstShareAction.focus();
   }
 
   if (sharePopover) {
@@ -8874,21 +8988,35 @@ document.addEventListener('DOMContentLoaded', function() {
         if (action === 'copy') {
           var original = btn.textContent;
           var originalTitle = btn.title;
-          var done = function () {
-            btn.textContent = '✓';
-            btn.title = lwpString('copy_link_done');
-            setTimeout(function () { btn.textContent = original; btn.title = originalTitle; }, 1600);
-          };
+           var done = function () {
+             btn.textContent = '✓';
+             btn.title = lwpString('copy_link_done');
+             if (shareStatus) shareStatus.textContent = lwpString('copy_link_done');
+             setTimeout(function () { btn.textContent = original; btn.title = originalTitle; }, 1600);
+           };
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(url).then(done, function () { window.prompt(lwpString('copy_prompt'), url); });
           } else {
             window.prompt(lwpString('copy_prompt'), url);
           }
         } else if (action === 'qr' && qrModal && qrModalContent) {
-          qrModalContent.innerHTML = qrToSvg(url);
+          qrReturnFocus = shareReturnFocus || document.activeElement || btnMenu;
+          if (qrModalError) qrModalError.hidden = true;
+          try {
+            qrModalContent.innerHTML = qrToSvg(url);
+          } catch (error) {
+            qrModalContent.innerHTML = '';
+            if (qrModalError) {
+              qrModalError.hidden = false;
+              qrModalError.textContent = lwpString('qr_modal_error');
+            }
+          }
           if (qrModalUrl) qrModalUrl.textContent = url;
-          closeSharePopover();
+          closeSharePopover(false);
           qrModal.classList.add('open');
+          qrModal.setAttribute('aria-hidden', 'false');
+          var qrClose = qrModal.querySelector('.share-qr-close');
+          if (qrClose) qrClose.focus();
         }
       });
     });
@@ -8983,7 +9111,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (wakeLock) { wakeLock.release().catch(function(){}); wakeLock = null; }
   }
 
-  document.addEventListener('fullscreenchange', function () {
+  function handleFullscreenChange() {
     setNavIdle(false);
     var fs = currentFullscreenElement();
     if (fs) {
@@ -8994,19 +9122,10 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.classList.remove('fs-noselect');
       releaseWakeLock();
     }
-  });
-  document.addEventListener('webkitfullscreenchange', function () {
-    setNavIdle(false);
-    var fs = currentFullscreenElement();
-    if (fs) {
-      window.getSelection().removeAllRanges();
-      document.body.classList.add('fs-noselect');
-      requestWakeLock();
-    } else {
-      document.body.classList.remove('fs-noselect');
-      releaseWakeLock();
-    }
-  });
+    scheduleHide();
+  }
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
   var btnFullscreen = document.getElementById('navFullscreen');
   if (btnFullscreen) {
@@ -9050,7 +9169,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return !!currentFullscreenElement();
   }
   function isInteractive(e) {
-    return e.target.closest('.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .nav-buttons');
+    return !!(e.target && e.target.closest && e.target.closest(
+      '.nav-btn, .nav-dots, a, button, img, .share-popover, .share-qr-modal, .tag-menu, .presenter-menu, .theme-menu, .nav-buttons'));
   }
   // An outside click closes an open dialog instead of activating whatever is
   // underneath it. A click on another overlay opener is a deliberate
@@ -9471,9 +9591,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('touchstart', keepAwakeOnTouch, { passive: true });
     window.addEventListener('scroll', keepAwakeOnTouch, { passive: true });
   }
-  // Reschedule on fullscreen change to use the correct delay
-  document.addEventListener('fullscreenchange', scheduleHide);
-  document.addEventListener('webkitfullscreenchange', scheduleHide);
   scheduleHide();
 
   if (btnMenu) btnMenu.addEventListener('click', togglePresenterMenu);
@@ -9575,7 +9692,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       <button type="button" class="presenter-menu-action" id="menuScroll" data-menu-action="scroll" aria-pressed="false">
         {{icon_scroll}}<span class="presenter-menu-label"><span data-lwp-i18n="menu_scroll">{{str_menu_scroll}}</span>: <span id="menuScrollValue">{{scroll_duration}} ms</span></span>
       </button>
-      <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share" aria-keyshortcuts="S">
+       <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="S">
         {{icon_share}}<span class="presenter-menu-label" data-lwp-i18n="menu_share">{{str_menu_share}}</span><kbd>S</kbd>
       </button>
       <button type="button" class="presenter-menu-action" id="menuHelp" data-menu-action="help" aria-keyshortcuts="H">
@@ -9628,7 +9745,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
 <div class="nav-mode-toast" id="navModeToast" role="status" aria-live="polite"></div>
 <div class="tag-empty-state" id="tagEmptyState" role="status" aria-live="polite" hidden></div>
 
-<div class="tag-menu" id="tagMenu" role="dialog" aria-label="{{str_tags_menu}}" aria-describedby="tagMenuCurrent tagMenuSummary" data-lwp-i18n-aria-label="tags_menu">
+<div class="tag-menu" id="tagMenu" role="dialog" aria-modal="true" aria-label="{{str_tags_menu}}" aria-describedby="tagMenuCurrent tagMenuSummary" data-lwp-i18n-aria-label="tags_menu">
   <div class="tag-menu-title" id="tagMenuTitle" data-lwp-i18n="tags_menu">{{str_tags_menu}}</div>
   <div class="tag-menu-current" id="tagMenuCurrent" role="status" aria-live="polite"></div>
   <div class="tag-menu-summary" id="tagMenuSummary"></div>
@@ -9637,7 +9754,7 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
   <div class="tag-menu-preview" id="tagMenuPreview" role="list"></div>
 </div>
 
-<div class="share-popover" id="sharePopover">
+<div class="share-popover" id="sharePopover" role="dialog" aria-modal="true" aria-label="{{str_menu_share}}" data-lwp-i18n-aria-label="menu_share" aria-hidden="true">
   <div class="share-matrix">
     <div class="share-cell"></div>
     <div class="share-cell share-cell-head" data-lwp-i18n="share_scope_series">{{str_share_scope_series}}</div>
@@ -9652,14 +9769,16 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
     <div class="share-cell share-cell-label" data-lwp-i18n="share_action_qr">{{str_share_action_qr}}</div>
     <button type="button" class="share-action" data-action="qr" data-scope="series" title="{{str_share_action_qr}} — {{str_share_scope_series}}" data-lwp-share-title="share_action_qr" data-lwp-share-scope="share_scope_series">&#9638;</button>
     <button type="button" class="share-action" data-action="qr" data-scope="article" title="{{str_share_action_qr}} — {{str_share_scope_article}}" data-lwp-share-title="share_action_qr" data-lwp-share-scope="share_scope_article">&#9638;</button>
-    <button type="button" class="share-action" data-action="qr" data-scope="fiche" title="{{str_share_action_qr}} — {{str_share_scope_fiche}}" data-lwp-share-title="share_action_qr" data-lwp-share-scope="share_scope_fiche">&#9638;</button>
+     <button type="button" class="share-action" data-action="qr" data-scope="fiche" title="{{str_share_action_qr}} — {{str_share_scope_fiche}}" data-lwp-share-title="share_action_qr" data-lwp-share-scope="share_scope_fiche">&#9638;</button>
   </div>
+  <div class="share-status" id="shareStatus" role="status" aria-live="polite"></div>
 </div>
 
-<div class="share-qr-modal" id="shareQrModal">
+<div class="share-qr-modal" id="shareQrModal" role="dialog" aria-modal="true" aria-labelledby="shareQrModalTitle" aria-hidden="true">
   <div class="share-qr-modal-content">
-    <div class="share-qr-modal-title" data-lwp-i18n="qr_modal_title">{{str_qr_modal_title}}</div>
+    <div class="share-qr-modal-title" id="shareQrModalTitle" data-lwp-i18n="qr_modal_title">{{str_qr_modal_title}}</div>
     <div id="shareQrModalContent"></div>
+    <div class="share-qr-modal-error" id="shareQrModalError" role="alert" hidden data-lwp-i18n="qr_modal_error">{{str_qr_modal_error}}</div>
     <div class="share-qr-modal-url" id="shareQrModalUrl"></div>
     <button type="button" class="share-qr-close" data-lwp-i18n="qr_modal_close">{{str_qr_modal_close}}</button>
   </div>
@@ -10749,7 +10868,8 @@ def load_language(lang_dir, lang='fr', language_file=None):
     else:
         base = json.loads(LANG_EN)
         if lang != 'en' and not language_file and not (
-                lang_dir and (Path(lang_dir) / f'{lang}.json').exists()):
+                lang_dir and _optional_contained_file(
+                    lang_dir, f'{lang}.json', f'language/{lang}.json')):
             # The fallback above is deliberate and documented. What was
             # missing is saying so: `--lang de` with no de.json produced a
             # page carrying `lang="de"` over English strings, exit 0, in
@@ -10768,8 +10888,9 @@ def load_language(lang_dir, lang='fr', language_file=None):
         # embedded pack IS the answer, there is nothing to override with.
         return base
     else:
-        lang_file = lang_dir / f'{lang}.json'
-    if lang_file.exists():
+        lang_file = _optional_contained_file(
+            lang_dir, f'{lang}.json', f'language/{lang}.json')
+    if lang_file is not None and lang_file.exists():
         try:
             override = json.loads(read_text_file(lang_file))
         except (ValueError, RecursionError) as e:
@@ -10861,6 +10982,51 @@ def apply_strings(text, strings, html_context=False):
 
 
 _SCRIPT_VALIDITY_CACHE = {}
+_SCRIPT_START_RE = re.compile(r'<script\b', re.IGNORECASE)
+_SCRIPT_CLOSE_RE = re.compile(r'</script\s*>', re.IGNORECASE)
+
+
+def _tag_open_end(html, start):
+    """Returns the end of a tag opener, respecting quoted attributes.
+
+    A `>` inside a quoted attribute value does not close the tag; a regex
+    that cannot see quotes would split `<script data-x=">">` in the middle
+    of the opener. Scans each character once, so an unterminated quote is
+    linear rather than a rescan from every opener."""
+    quote = None
+    for position in range(start, len(html)):
+        char = html[position]
+        if quote:
+            if char == quote:
+                quote = None
+        elif char in ('"', "'"):
+            quote = char
+        elif char == '>':
+            return position + 1
+    return None
+
+
+def _page_script_blocks(html):
+    """Yields script attributes and bodies without rescanning the same text.
+
+    A lazy ``.*?`` search for each opening tag becomes quadratic when an
+    author supplies many unterminated openers. Once an opening tag is found,
+    the next closing tag owns the intervening text; advancing past it makes
+    each character part of at most one search.
+    """
+    position = 0
+    while True:
+        opening = _SCRIPT_START_RE.search(html, position)
+        if opening is None:
+            return
+        opening_end = _tag_open_end(html, opening.end())
+        if opening_end is None:
+            return
+        closing = _SCRIPT_CLOSE_RE.search(html, opening_end)
+        if closing is None:
+            return
+        yield html[opening.end():opening_end - 1], html[opening_end:closing.start()]
+        position = closing.end()
 
 
 def validate_page_scripts(html):
@@ -10876,7 +11042,7 @@ def validate_page_scripts(html):
     node = shutil.which('node')
     if not node:
         return True, 'node not available; script not validated'
-    for attrs, block in re.findall(r'<script([^>]*)>(.*?)</script>', html, re.S):
+    for attrs, block in _page_script_blocks(html):
         if re.search(r'\btype\s*=\s*["\']application/json["\']',
                      attrs, re.I):
             continue
@@ -12012,8 +12178,14 @@ def resolve_slug_prefix(meta, series_meta, source_name):
     prefix would otherwise publish a page whose anchors are not the ones
     they think they minted, and find out from a broken link."""
     for source, origin in ((meta, source_name), (series_meta, 'series.json')):
-        if 'slug_prefix' in source and str(source['slug_prefix']).strip():
-            value = str(source['slug_prefix']).strip()
+        if 'slug_prefix' not in source or source['slug_prefix'] is None:
+            continue
+        if not isinstance(source['slug_prefix'], str):
+            log('error', f'{origin}: slug_prefix must be a string '
+                f'(got {type(source["slug_prefix"]).__name__}).')
+            sys.exit(1)
+        if source['slug_prefix'].strip():
+            value = source['slug_prefix'].strip()
             if not SLUG_PREFIX_RE.match(value):
                 log('error', f'{origin}: slug_prefix: {value!r} must start '
                              f'with a letter or a digit and may then contain '
@@ -12301,6 +12473,25 @@ def _resolve_contained(base_dir, value):
     return None
 
 
+def _optional_contained_file(base_dir, name, label=None):
+    """Returns an optional file only when it stays inside ``base_dir``.
+
+    Missing files are normal for optional template fragments. An existing
+    symlink that resolves outside the directory is not: following it would
+    turn a build into a file-read primitive.
+    """
+    candidate = Path(base_dir) / name
+    contained = _resolve_contained(base_dir, name)
+    if contained is None:
+        if candidate.exists() or candidate.is_symlink():
+            label = label or str(name)
+            log('error', f'{label} resolves outside {base_dir} '
+                '(symlink); refusing to read its contents.')
+            sys.exit(1)
+        return None
+    return contained if contained.exists() else None
+
+
 _TAG_TOKEN_RE = re.compile(r'^[\w-]+$', re.UNICODE)
 
 
@@ -12564,7 +12755,7 @@ def validate_slides(slides, filename, has_meta_block=True, content_before_meta='
 # SLIDE HTML RENDERING
 # ============================================================================
 
-def resolve_notes_settings(meta, series_meta, source_name):
+def resolve_notes_settings(meta, series_meta, source_name, errors=None):
     """`notes_placement` and `notes_tooltip`: the STRUCTURAL half of the
     notes cascade (ARCHI-NOTES §5) — built-in default, then `series_meta`,
     then the article's own meta block. The same shape `author`, `license`
@@ -12588,7 +12779,10 @@ def resolve_notes_settings(meta, series_meta, source_name):
                 if value not in allowed:
                     log('error', f'{origin}: {key}: {value!r} is not a valid '
                           f'value ({" | ".join(sorted(allowed))}).')
-                    sys.exit(1)
+                    if errors is None:
+                        sys.exit(1)
+                    errors.append(key)
+                    continue
                 return value
         return default
 
@@ -13300,12 +13494,42 @@ class _HtmlBalanceChecker(HTMLParser):
         self.stack.pop()
 
 
-_RELATIVE_SRC_RE = re.compile(
-    r'<img\b[^>]*?\bsrc\s*=\s*'
-    r'(?:(?:"(?P<double>[^"]*)")|(?:\'(?P<single>[^\']*)\')|'
-    r'(?P<bare>[^\s"\'=`<>]+))',
-    re.IGNORECASE)
+_IMG_OPEN_RE = re.compile(r'<img\b', re.IGNORECASE)
+_SECTION_OPEN_RE = re.compile(r'(<section\b[^<>]*>)')
 _ABSOLUTE_SRC_RE = re.compile(r'^(?:data:|https?://|//)', re.IGNORECASE)
+
+
+def _relative_image_srcs(html):
+    """Every relative `src` on an `<img>` tag, in document order.
+
+    A regex over the whole tag is quadratic on an unterminated quote —
+    measured: `<img alt="` + `a`×N rescans from every opener. The tag
+    opener is found by regex, its end by the same quote-aware scan the
+    script validator uses, and the attributes are read once inside that
+    span, so each character is part of at most one scan. A `>` inside a
+    quoted attribute does not end the tag, and a quoted `src` is read
+    whole even when its value contains `>`.
+    """
+    position = 0
+    while True:
+        opening = _IMG_OPEN_RE.search(html, position)
+        if opening is None:
+            return
+        opening_end = _tag_open_end(html, opening.end())
+        if opening_end is None:
+            return
+        attrs = html[opening.end():opening_end - 1]
+        match = re.search(
+            r'\bsrc\s*=\s*'
+            r'(?:(?:"(?P<double>[^"]*)")|(?:\'(?P<single>[^\']*)\')|'
+            r'(?P<bare>[^\s"\'=`<>]+))',
+            attrs, re.IGNORECASE)
+        if match is not None:
+            yield next(value for value in (
+                match.group('double'), match.group('single'),
+                match.group('bare'))
+                if value is not None)
+        position = opening_end
 
 
 def validate_self_contained(html, filename):
@@ -13323,10 +13547,7 @@ def validate_self_contained(html, filename):
     inlined either; it is caught here rather than silently shipped, and the
     message says what to do about it."""
     stray = []
-    for match in _RELATIVE_SRC_RE.finditer(html):
-        src = next(value for value in (
-            match.group('double'), match.group('single'), match.group('bare'))
-            if value is not None)
+    for src in _relative_image_srcs(html):
         if not _ABSOLUTE_SRC_RE.match(src):
             stray.append(src)
     if not stray:
@@ -13789,7 +14010,7 @@ def build_article(source_path, sources_dir, series_data, current_file, css, nav_
     stamp_in_body = build_stamp
     if build_stamp:
         slides_html, moved = re.subn(
-            r'(<section\b[^>]*>)',
+            _SECTION_OPEN_RE,
             # No separator: strip_build_stamp() must restore the page
             # byte for byte, or `check` reports the whitespace it left
             # behind as drift on a series built with the flag.
@@ -13900,6 +14121,10 @@ def audit_image_symlinks(sources_dir):
     img_src = sources_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
         return 0
+    if img_src.is_symlink():
+        log('warn', 'img/: image directory is a symlink; it would not be '
+            'published.')
+        return 1
     root = img_src.resolve()
     found = 0
     for entry in sorted(img_src.rglob('*')):
@@ -13934,11 +14159,16 @@ def copy_images(sources_dir, output_dir):
     img_dst = output_dir / 'img'
     if not (img_src.exists() and img_src.is_dir()):
         return []
+    if img_src.is_symlink():
+        log('warn', 'img/: skipped image directory symlink; it would not be '
+            'published.')
+        return []
     if _resolve_contained(sources_dir, 'img') is None:
         log('warn', 'img/: skipped image directory escaping the source '
             'directory (symlink).')
         return []
     _reject_symlink_components(img_dst, 'image output directory')
+    _reject_symlinks_below(img_dst, 'image output directory')
     src_root = img_src.resolve()
     refused = set()
 
@@ -14015,10 +14245,13 @@ _LEGACY_SERIES_FIELDS = {'source': 'page_source', 'file': 'page_dest'}
 # series_meta string leaves used by build_index / resolve_article_fields.
 _SERIES_META_STRING_FIELDS = (
     'title', 'subtitle', 'version', 'intro', 'author', 'license',
-    'default_tag',
+    'default_tag', 'slug_prefix',
 )
 _SERIES_META_INTEGER_FIELDS = ('scroll_duration',)
-_SERIES_META_FIELDS = _SERIES_META_STRING_FIELDS + _SERIES_META_INTEGER_FIELDS
+_SERIES_META_FIELDS = (_SERIES_META_STRING_FIELDS
+                       + _SERIES_META_INTEGER_FIELDS
+                       + ('lang_tags', 'notes_placement', 'notes_tooltip',
+                          'slide_page_numbers', 'slug_prefix'))
 DEFAULT_SCROLL_DURATION_MS = 200
 
 
@@ -14059,61 +14292,131 @@ def resolve_scroll_duration(series_meta, args=None):
     return DEFAULT_SCROLL_DURATION_MS
 
 
-def series_meta_of(series_data):
+def series_meta_of(series_data, tolerate_invalid=False, errors=None):
     """The `series_meta` object, validated. A non-dict series_meta (or a
     non-string leaf like `title: 123`) used to crash later at a .get() or
     re.sub() with a raw traceback; reject it here with a clean error, the
-    same bar §20.5 sets for the rest of series.json."""
+    same bar §20.5 sets for the rest of series.json. ``audit`` may ask for a
+    sanitized result so it can report the defect and continue inspecting the
+    rest of the series without emitting the same error through every report
+    helper."""
     if not isinstance(series_data, dict):
         return {}
     meta = series_data.get('series_meta', {})
+
+    def invalid(message):
+        log('error', message)
+        if errors is not None:
+            errors.append(message)
+        if not tolerate_invalid:
+            sys.exit(1)
+
     if not isinstance(meta, dict):
-        log('error', f'series.json: "series_meta" must be an object '
-              f'(got {type(meta).__name__}).')
-        sys.exit(1)
+        invalid(f'series.json: "series_meta" must be an object '
+                f'(got {type(meta).__name__}).')
+        if tolerate_invalid:
+            series_data['series_meta'] = {}
+        return {}
     for field in _SERIES_META_STRING_FIELDS:
         if field in meta and meta[field] is not None and not isinstance(meta[field], str):
-            log('error', f'series.json: "series_meta.{field}" must be a string '
-                  f'(got {type(meta[field]).__name__}).')
-            sys.exit(1)
+            invalid(f'series.json: "series_meta.{field}" must be a string '
+                    f'(got {type(meta[field]).__name__}).')
+            if tolerate_invalid:
+                meta.pop(field, None)
     for field in _SERIES_META_INTEGER_FIELDS:
         if field in meta and meta[field] is not None:
-            meta[field] = _parse_scroll_duration(
-                meta[field], f'series.json: series_meta.{field}')
+            try:
+                meta[field] = _parse_scroll_duration(
+                    meta[field], f'series.json: series_meta.{field}')
+            except SystemExit:
+                if not tolerate_invalid:
+                    raise
+                if errors is not None:
+                    errors.append(field)
+                meta.pop(field, None)
     if 'default_tag' in meta:
-        meta['default_tag'] = normalize_default_tag(
-            meta['default_tag'], 'series.json: series_meta.default_tag')
+        try:
+            meta['default_tag'] = normalize_default_tag(
+                meta['default_tag'], 'series.json: series_meta.default_tag')
+        except SystemExit:
+            if not tolerate_invalid:
+                raise
+            if errors is not None:
+                errors.append('default_tag')
+            meta.pop('default_tag', None)
+
+    for field, allowed in (
+            ('notes_placement', ('local', 'page')),
+            ('notes_tooltip', ('on', 'off'))):
+        if field not in meta or meta[field] is None:
+            meta.pop(field, None)
+            continue
+        value = meta[field]
+        if not isinstance(value, str):
+            invalid(f'series.json: "series_meta.{field}" must be a string '
+                    f'(got {type(value).__name__}).')
+            if tolerate_invalid:
+                meta.pop(field, None)
+            continue
+        value = value.strip().lower()
+        if value not in allowed:
+            invalid(f'series.json: "series_meta.{field}" must be one of '
+                    f'{" | ".join(allowed)} (got {meta[field]!r}).')
+            if tolerate_invalid:
+                meta.pop(field, None)
+        else:
+            meta[field] = value
+
+    if 'slide_page_numbers' in meta:
+        value = meta['slide_page_numbers']
+        valid = (isinstance(value, bool)
+                 or (isinstance(value, int) and value in (0, 1))
+                 or (isinstance(value, str)
+                     and value.strip().lower() in
+                     ('on', 'off', 'true', 'false', 'yes', 'no', '1', '0')))
+        if value is None:
+            meta.pop('slide_page_numbers', None)
+        elif not valid:
+            invalid('series.json: "series_meta.slide_page_numbers" must be '
+                    'a boolean or one of on | off | true | false | yes | no '
+                    f'| 1 | 0 (got {value!r}).')
+            if tolerate_invalid:
+                meta.pop('slide_page_numbers', None)
+
     lang_tags = meta.get('lang_tags', {})
     if lang_tags is None:
         lang_tags = {}
     if not isinstance(lang_tags, dict):
-        log('error', f'series.json: "series_meta.lang_tags" must be an object '
-              f'(got {type(lang_tags).__name__}).')
-        sys.exit(1)
+        invalid(f'series.json: "series_meta.lang_tags" must be an object '
+                f'(got {type(lang_tags).__name__}).')
+        if tolerate_invalid:
+            meta.pop('lang_tags', None)
+        return meta
     normalized_lang_tags = {}
     for tag, pack in lang_tags.items():
         if not isinstance(tag, str) or not isinstance(pack, str):
-            log('error', 'series.json: "series_meta.lang_tags" must map '
-                  'string tags to string language pack names.')
-            sys.exit(1)
+            invalid('series.json: "series_meta.lang_tags" must map '
+                    'string tags to string language pack names.')
+            continue
         canonical = tag.strip().casefold()
         pack = pack.strip()
         if (not canonical or canonical.startswith('_')
                 or not _TAG_TOKEN_RE.fullmatch(canonical)):
-            log('error', f'series.json: series_meta.lang_tags has invalid tag '
-                  f'{tag!r}.')
-            sys.exit(1)
+            invalid(f'series.json: series_meta.lang_tags has invalid tag '
+                    f'{tag!r}.')
+            continue
         if (not pack
                 or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]*', pack)):
-            log('error', f'series.json: series_meta.lang_tags[{tag!r}] has an '
-                  f'invalid language pack name {pack!r}.')
-            sys.exit(1)
+            invalid(f'series.json: series_meta.lang_tags[{tag!r}] has an '
+                    f'invalid language pack name {pack!r}.')
+            continue
         normalized_lang_tags[canonical] = pack
-    meta['lang_tags'] = normalized_lang_tags
+    if 'lang_tags' in meta:
+        meta['lang_tags'] = normalized_lang_tags
     return meta
 
 
-def validate_series(articles):
+def validate_series(articles, tolerate_invalid=False, errors=None):
     """Rejects series.json structural errors (§20.3): `page_source` must
     be present, non-empty, a plain filename (no path separators, no "..")
     and end in .md on every entry — otherwise the build crashes on a raw
@@ -14137,53 +14440,72 @@ def validate_series(articles):
     same field in the article's own meta block, and validating them
     requires reading that meta block first, which this function
     (series.json-only) can't do; see resolve_article_fields()."""
+    valid_entries = []
+
+    def invalid(message):
+        log('error', message)
+        if errors is not None:
+            errors.append(message)
+        if not tolerate_invalid:
+            sys.exit(1)
+        return True
+
     for i, entry in enumerate(articles, 1):
         # An entry must be a JSON object; a bare string/number/list here
         # would crash at the first entry.get() or field access with a raw
         # traceback instead of the clean error §20.3 promises for a
         # semi-trusted series.json.
         if not isinstance(entry, dict):
-            log('error', f'series.json: entry {i} must be an object '
-                  f'(got {type(entry).__name__}).')
-            sys.exit(1)
+            invalid(f'series.json: entry {i} must be an object '
+                    f'(got {type(entry).__name__}).')
+            continue
         # Every known field below is text: a wrong (truthy non-string)
         # type — a number, list or object — used to sail past this
         # validation and detonate downstream at a re.sub / Path() / join
         # sink as a traceback. Reject it here with a clean message.
+        bad_entry = False
         for field in _SERIES_STRING_FIELDS:
             if field in entry and entry[field] is not None and not isinstance(entry[field], str):
-                log('error', f'series.json: entry {i} field "{field}" must be '
-                      f'a string (got {type(entry[field]).__name__}).')
-                sys.exit(1)
+                invalid(f'series.json: entry {i} field "{field}" must be '
+                        f'a string (got {type(entry[field]).__name__}).')
+                bad_entry = True
+                break
+        if bad_entry:
+            continue
         for legacy, renamed in _LEGACY_SERIES_FIELDS.items():
             if legacy in entry:
-                log('error', f'series.json: entry {i} uses "{legacy}", '
-                      f'renamed to "{renamed}" in v0.7.0 — just rename the '
-                      f'key, the value is unchanged.')
-                sys.exit(1)
+                invalid(f'series.json: entry {i} uses "{legacy}", '
+                        f'renamed to "{renamed}" in v0.7.0 — just rename the '
+                        f'key, the value is unchanged.')
+                bad_entry = True
+                break
+        if bad_entry:
+            continue
         if not entry.get('page_source'):
-            log('error', f'series.json: entry {i} is missing required '
-                  f'field "page_source".')
-            sys.exit(1)
+            invalid(f'series.json: entry {i} is missing required '
+                    f'field "page_source".')
+            continue
         if not _is_safe_relative_filename(entry['page_source']):
-            log('error', f'series.json: entry {i} has an unsafe '
-                  f'"page_source" value "{entry["page_source"]}" (must be a '
-                  f'plain filename, no path separators, no "..").')
-            sys.exit(1)
+            invalid(f'series.json: entry {i} has an unsafe '
+                    f'"page_source" value "{entry["page_source"]}" (must be a '
+                    f'plain filename, no path separators, no "..").')
+            continue
         if not entry['page_source'].lower().endswith('.md'):
-            log('error', f'series.json: entry {i} has a "page_source" value '
-                  f'"{entry["page_source"]}" that does not end in .md.')
-            sys.exit(1)
+            invalid(f'series.json: entry {i} has a "page_source" value '
+                    f'"{entry["page_source"]}" that does not end in .md.')
+            continue
         if entry.get('page_dest') is not None:
             if not _is_safe_relative_filename(entry['page_dest']):
-                log('error', f'series.json: entry {i} has an unsafe '
-                      f'"page_dest" value "{entry["page_dest"]}" (must be a '
-                      f'plain filename, no path separators, no "..").')
-                sys.exit(1)
+                invalid(f'series.json: entry {i} has an unsafe '
+                        f'"page_dest" value "{entry["page_dest"]}" (must be a '
+                        f'plain filename, no path separators, no "..").')
+                continue
             if not entry['page_dest'].lower().endswith(('.html', '.htm')):
-                log('error', f'series.json: entry {i} has a "page_dest" value '
-                      f'"{entry["page_dest"]}" that does not end in .html or .htm.')
-                sys.exit(1)
+                invalid(f'series.json: entry {i} has a "page_dest" value '
+                        f'"{entry["page_dest"]}" that does not end in .html or .htm.')
+                continue
+        valid_entries.append(entry)
+    return valid_entries
 
 
 _DISPLAY_OVERRIDE_FIELDS = ('page_title', 'card_title', 'card_desc', 'card_label', 'nav_title', 'nav_desc')
@@ -14359,7 +14681,8 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
         origins = {}
         candidates = {}
 
-        def take(field, content=None, derived=None, series_default=None):
+        def take(field, content=None, derived=None, series_default=None,
+                 include_entry=True):
             """One field's cascade, and the level the retained value came
             from. The order is §20.3.1's, and it is written once here
             rather than once per field so a level cannot be recorded as
@@ -14378,8 +14701,10 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
             nothing. Recorded HERE, from the same list the loop walks, so
             a level cannot be offered as a candidate and skipped as a
             resolver."""
-            tried = [('series', entry.get(field) or ''),
-                     ('article', meta.get(field) or '')]
+            tried = []
+            if include_entry:
+                tried.append(('series', entry.get(field) or ''))
+            tried.append(('article', meta.get(field) or ''))
             for level, value in ((_SERIES_DEFAULT_ORIGIN, series_default),
                                  ('content', content), ('derived', derived)):
                 if value is not None:
@@ -14415,6 +14740,15 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
 
         entry['nav_title'] = take('nav_title', derived=entry['card_title'])
         entry['nav_desc'] = take('nav_desc', derived=entry['card_desc'])
+
+        # `slug_prefix` has the article-meta -> series-meta cascade, but no
+        # articles[] override. Keep it in the same resolution record so the
+        # read-only `resolve` command cannot ask for a field the build knows.
+        entry['slug_prefix'] = take(
+            'slug_prefix', series_default=series_meta.get('slug_prefix', ''),
+            include_entry=False)
+        entry['slug_prefix'] = resolve_slug_prefix(
+            meta, series_meta, entry['page_source'])
 
         # The editorial three take the same path as the rest, with one
         # level the display fields do not have: `series-default`, the
@@ -14482,13 +14816,13 @@ def resolve_article_fields(articles, sources_dir, series_meta=None, strict_tags=
 # every other article's full Markdown body) but only when none of that
 # shared, cross-page data has actually changed since the last build.
 
-def _entry_fingerprint(entry, position=0):
+def _entry_fingerprint(entry, position=0, shared=''):
     """A single hash of the fields that affect index.html/series-nav for
     this entry — content itself isn't kept, so the cache file stays small
     regardless of how long a summary is. The position is included because
     series.json order is rendered into navigation and tag previews. Runtime
     tag metadata is included because it is embedded in both card types."""
-    parts = [f'position:{position}']
+    parts = [f'position:{position}', shared]
     parts.extend(entry.get(field, '') for field in _DISPLAY_OVERRIDE_FIELDS)
     parts.extend([
         ' '.join(entry.get('_lwp_article_tags', ())),
@@ -14503,14 +14837,16 @@ def _entry_fingerprint(entry, position=0):
     return hashlib.sha256('\x00'.join(parts).encode('utf-8')).hexdigest()
 
 
-def compute_nav_fingerprint(articles):
+def compute_nav_fingerprint(articles, shared=None):
     """One fingerprint per article, keyed by `file` — comparing the full
     dict (not just the entry for the one being built) also catches an
     article added/removed, or a DIFFERENT article's meta/series.json entry
     having changed since the last build, not only the one named by
     --only. The position is part of each value so reordering the same
     articles cannot take the incremental path."""
-    return {entry['page_dest']: _entry_fingerprint(entry, position)
+    shared_text = json.dumps(shared, ensure_ascii=False, sort_keys=True,
+                             separators=(',', ':')) if shared is not None else ''
+    return {entry['page_dest']: _entry_fingerprint(entry, position, shared_text)
             for position, entry in enumerate(articles)}
 
 
@@ -14530,6 +14866,7 @@ def load_nav_cache(path):
 
 def save_nav_cache(path, fingerprint):
     path = Path(path)
+    _reject_symlink_components(path, 'navigation cache')
     _mkdir(path.parent, parents=True, exist_ok=True)
     _write_file(path, json.dumps(fingerprint, indent=2, sort_keys=True))
 
@@ -14558,13 +14895,63 @@ def _reject_symlink_components(path, label):
             sys.exit(1)
 
 
+def _reject_symlinks_below(path, label):
+    """Refuses an output tree containing symlinked descendants.
+
+    Checking only the destination root is not enough for merge copies:
+    ``shutil.copytree(..., dirs_exist_ok=True)`` follows an existing child
+    directory symlink and can therefore write outside the requested tree.
+    """
+    root = Path(path)
+    if not root.exists():
+        return
+    for current, directories, files in os.walk(root, followlinks=False):
+        for name in (*directories, *files):
+            entry = Path(current) / name
+            try:
+                escaped = entry.is_symlink()
+            except OSError as exc:
+                log('error', f'{label} cannot be inspected at {entry}: {exc}')
+                sys.exit(1)
+            if escaped:
+                log('error', f'{label} contains symlink {entry}; refusing to write.')
+                sys.exit(1)
+
+
+def _default_series_directory(sd, name, label):
+    """Resolves a default input directory without following an escape.
+
+    Explicit ``LWP_*_DIR`` values are operator configuration and may
+    intentionally live elsewhere. The implicit ``series/{name}`` roots,
+    however, are part of the untrusted series tree and must not become an
+    alias for a host directory through a committed symlink.
+    """
+    resolved = _resolve_contained(sd, name)
+    if resolved is None:
+        log('error', f'{label} {sd / name} resolves outside the series '
+            f'directory (symlink); refusing to read it.')
+        sys.exit(1)
+    if resolved == sd:
+        log('error', f'{label} {sd / name} resolves to the series root '
+            f'instead of a child directory; refusing to read it.')
+        sys.exit(1)
+    return resolved
+
+
 def resolve_paths(series_dir, args):
     """Resolves paths from environment variables and arguments."""
     sd = Path(series_dir).resolve()
 
-    sources_dir = Path(os.environ.get('LWP_SOURCES_DIR', sd / 'sources'))
-    templates_dir = Path(os.environ.get('LWP_TEMPLATES_DIR', sd / 'templates'))
-    lang_dir = Path(os.environ.get('LWP_LANGUAGE_DIR', sd / 'language'))
+    sources_dir = (Path(os.environ['LWP_SOURCES_DIR'])
+                   if 'LWP_SOURCES_DIR' in os.environ else
+                   _default_series_directory(sd, 'sources', 'sources directory'))
+    templates_dir = (Path(os.environ['LWP_TEMPLATES_DIR'])
+                     if 'LWP_TEMPLATES_DIR' in os.environ else
+                     _default_series_directory(sd, 'templates',
+                                               'templates directory'))
+    lang_dir = (Path(os.environ['LWP_LANGUAGE_DIR'])
+                if 'LWP_LANGUAGE_DIR' in os.environ else
+                _default_series_directory(sd, 'language', 'language directory'))
     output_dir = Path(args.get('--output', os.environ.get('LWP_OUTPUT_DIR', sd / 'public')))
     lang = args.get('--lang', os.environ.get('LWP_LANG', 'fr'))
     if not _VALID_LANG_RE.fullmatch(str(lang)):
@@ -14589,7 +14976,8 @@ def resolve_paths(series_dir, args):
 # already produces at that spot (an empty line, not a missing one) —
 # chewing an extra \n here would under-count against that baseline and
 # cause every check to report a spurious drift.
-_BUILD_STAMP_RE = re.compile(r'<div[^>]*class="build-stamp"[^>]*>.*?</div>')
+_BUILD_STAMP_RE = re.compile(
+    r'<div\b[^<>]*\bclass="build-stamp"[^<>]*>[^<>]*</div>')
 
 
 def build_stamp_html(version, minimal=False):
@@ -14681,7 +15069,7 @@ def load_lang_tag_engines(series_meta, lang_dir, default_lang,
 
 
 def load_build_context(series_dir, args, include_ignored=False, strict_tags=True,
-                       warn_tag_coverage=True):
+                       warn_tag_coverage=True, series_data_override=None):
     """Shared setup for build and check (§11.3/§11.4): resolves paths,
     loads the language pack/typo engine, the CSS/nav.js (built-in or
     overridden, §9.1/§9.2), and series.json (validated, display fields
@@ -14713,7 +15101,8 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     except PropertyError as exc:
         log('error', f'templates/{SETTINGS_FILENAME}: {exc}')
         sys.exit(1)
-    series_data = load_series_data(sd)
+    series_data = (series_data_override if series_data_override is not None
+                   else load_series_data(sd))
     series_meta = series_meta_of(series_data)
     try:
         settings_file = _resolve_contained(templates_dir, SETTINGS_FILENAME)
@@ -14997,6 +15386,96 @@ def _resolve_only_entry(ctx, only_file):
     return entry
 
 
+def _render_article(ctx, entry, source_path, build_stamp='', include_nav=True,
+                    render_args=None):
+    """Renders one already-resolved article with the shared build context."""
+    if render_args is None:
+        render_args = ctx.args
+    return build_article(
+        source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'],
+        ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang,
+        build_stamp, style_context=ctx.style_context,
+        include_nav=include_nav,
+        inline_images=render_args.get('--inline-images', False),
+        args=render_args, lang_tag_engines=ctx.lang_tag_engines,
+        theme_runtime=ctx.theme_runtime,
+        language_runtime=ctx.language_runtime,
+        scroll_duration=ctx.scroll_duration)
+
+
+def _index_extra(ctx):
+    """Loads the optional index fragment through the containment guard."""
+    index_extra_file = _optional_contained_file(
+        ctx.templates_dir, 'index_extra.html', 'templates/index_extra.html')
+    return (read_text_file(index_extra_file)
+            if index_extra_file is not None else '')
+
+
+def _render_index(ctx, index_extra='', build_stamp='', validate_scripts=False):
+    """Renders the index and optionally applies the build JS guard."""
+    index_html = build_index(
+        ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang,
+        index_extra, build_stamp, theme_runtime=ctx.theme_runtime,
+        style_context=ctx.style_context,
+        language_runtime=ctx.language_runtime,
+        scroll_duration=ctx.scroll_duration)
+    if validate_scripts:
+        ok, detail = validate_page_scripts(index_html)
+        if not ok:
+            log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
+                % detail)
+            sys.exit(1)
+    return index_html
+
+
+def _write_index(ctx, claimant, index_extra=None, build_stamp=''):
+    """Writes the index when this series has not claimed its filename."""
+    if claimant is None and not ctx.args.get('--no-index'):
+        if index_extra is None:
+            index_extra = _index_extra(ctx)
+        progress('  index.html')
+        _write_file(
+            ctx.output_dir / 'index.html',
+            _render_index(ctx, index_extra, build_stamp, validate_scripts=True))
+    elif claimant is not None:
+        progress(_no_index_notice(claimant))
+
+
+def _finish_build(ctx, claimant, articles_to_build, nav_cache_path,
+                  fresh_fingerprint, build_stamp='', index_extra=None,
+                  incremental=False):
+    """Writes the derived outputs shared by full and incremental builds."""
+    _write_index(ctx, claimant, index_extra, build_stamp)
+
+    if not ctx.args.get('--no-readme'):
+        readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
+        _write_file(ctx.sd / 'README.md', readme)
+
+    # --inline-images: images are embedded as base64 data URIs, so the
+    # img/ directory is not copied to the output.
+    images = []
+    if not ctx.args.get('--inline-images'):
+        images = copy_images(ctx.sources_dir, ctx.output_dir)
+
+    save_nav_cache(nav_cache_path, fresh_fingerprint)
+    _write_manifest(
+        ctx.output_dir, ctx.articles,
+        include_index=claimant is None and not ctx.args.get('--no-index'),
+        images=images)
+    tail = ' + index' if claimant is None and not ctx.args.get('--no-index') else ''
+    if incremental:
+        progress(f'Incremental build complete: {articles_to_build[0]["page_dest"]}'
+                 f'{tail} -> {ctx.output_dir}')
+    else:
+        progress(f'Build complete: {len(articles_to_build)} articles{tail} '
+                 f'-> {ctx.output_dir}')
+
+    if ctx.args.get('--open'):
+        import webbrowser
+        index_url = (ctx.output_dir / 'index.html').resolve().as_uri()
+        webbrowser.open(index_url)
+
+
 def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_stamp=''):
     """The fast path for `build --only`: the caller has already confirmed
     nav/index-affecting metadata is unchanged since the last build, so
@@ -15018,49 +15497,18 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
     progress(f'  {entry["page_dest"]} ← {entry["page_source"]}')
-    html = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=not ctx.args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
+    html = _render_article(
+        ctx, entry, source_path, build_stamp,
+        include_nav=not ctx.args.get('--no-nav'))
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
     # Same §11.3.3 branch as the full build — the fast path writes the
     # index too, so leaving it out here would drop the index straight
     # back onto the article page it just wrote.
     claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
-    if claimant is None and not ctx.args.get('--no-index'):
-        index_extra_file = ctx.templates_dir / 'index_extra.html'
-        index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
-        progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
-        ok, detail = validate_page_scripts(index_html)
-        if not ok:
-            log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
-                % (detail,))
-            sys.exit(1)
-        _write_file(ctx.output_dir / 'index.html', index_html)
-    elif claimant is not None:
-        progress(_no_index_notice(claimant))
-
-    if not ctx.args.get('--no-readme'):
-        readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
-        _write_file(ctx.sd / 'README.md', readme)
-
-    # --inline-images: images are embedded as base64 data URIs, so the
-    # img/ directory is not copied to the output.
-    images = []
-    if not ctx.args.get('--inline-images'):
-        images = copy_images(ctx.sources_dir, ctx.output_dir)
-
-    save_nav_cache(nav_cache_path, fresh_fingerprint)
-    _write_manifest(ctx.output_dir, ctx.articles,
-                    include_index=claimant is None and not ctx.args.get('--no-index'),
-                    images=images)
-    tail = ' + index' if claimant is None and not ctx.args.get('--no-index') else ''
-    progress(f'Incremental build complete: {entry["page_dest"]}{tail} -> {ctx.output_dir}')
-
-    # Keep the fast path's result-opening behavior identical to a full build.
-    if ctx.args.get('--open'):
-        import webbrowser
-        index_url = (ctx.output_dir / 'index.html').resolve().as_uri()
-        webbrowser.open(index_url)
+    _finish_build(
+        ctx, claimant, [entry], nav_cache_path, fresh_fingerprint,
+        build_stamp=build_stamp, incremental=True)
 
 
 def cmd_completion(args):
@@ -15578,7 +16026,27 @@ def cmd_build(series_dir, args):
     claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
 
     nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
-    fresh_fingerprint = compute_nav_fingerprint(ctx.articles)
+    shared_fingerprint = {
+        'series_meta': ctx.series_data.get('series_meta', {})
+        if isinstance(ctx.series_data, dict) else {},
+        'themes': ctx.series_data.get('themes')
+        if isinstance(ctx.series_data, dict) else None,
+        'css': ctx.css,
+        'nav_js': ctx.nav_js,
+        'strings': ctx.strings,
+        'language_runtime': ctx.language_runtime,
+        'lang': ctx.lang,
+        'options': {
+            name: args.get(name)
+            for name in ('--no-typography', '--no-nav', '--inline-images',
+                         '--include-drafts', '--drafts-only',
+                         '--slides-page-numbers', '--scroll-duration',
+                         '--themes', '--no-essential-theme',
+                         '--lang', '--language-file')
+        },
+    }
+    fresh_fingerprint = compute_nav_fingerprint(
+        ctx.articles, shared=shared_fingerprint)
 
     only_file = args.get('--only')
     if only_file:
@@ -15602,8 +16070,7 @@ def cmd_build(series_dir, args):
     # Load the optional index page extension (raw HTML+JS, inserted as-is
     # right before </body> — the only extension point for the index page,
     # since settings.conf/nav.js don't cover site-specific index features)
-    index_extra_file = ctx.templates_dir / 'index_extra.html'
-    index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
+    index_extra = _index_extra(ctx)
 
     _mkdir(ctx.output_dir, parents=True, exist_ok=True)
 
@@ -15629,7 +16096,8 @@ def cmd_build(series_dir, args):
             sys.exit(1)
 
         progress(f'  {output_file} ← {source_file}')
-        html = build_article(source_path, ctx.sources_dir, ctx.series_data, output_file, ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, build_stamp, style_context=ctx.style_context, include_nav=include_nav, inline_images=ctx.args.get('--inline-images', False), args=ctx.args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
+        html = _render_article(
+            ctx, entry, source_path, build_stamp, include_nav=include_nav)
 
         _write_file(ctx.output_dir / output_file, html)
 
@@ -15637,44 +16105,9 @@ def cmd_build(series_dir, args):
     # (§11.3.3), in which case the page just written IS what lives there
     # and dropping an index on top of it would destroy it.
     # --no-index: skip index.html generation entirely.
-    if claimant is None and not args.get('--no-index'):
-        progress('  index.html')
-        index_html = build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, build_stamp, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
-        ok, detail = validate_page_scripts(index_html)
-        if not ok:
-            log('error', 'Build aborted: index.html contains invalid JavaScript.\n%s'
-                % (detail,))
-            sys.exit(1)
-        _write_file(ctx.output_dir / 'index.html', index_html)
-    elif claimant is not None:
-        progress(_no_index_notice(claimant))
-    # --no-readme: skip README.md generation.
-    if not args.get('--no-readme'):
-        readme = build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings)
-        _write_file(ctx.sd / 'README.md', readme)
-
-    # Copy the images (unless --inline-images: images are embedded as
-    # base64 data URIs, so the img/ directory is not copied to the output).
-    images = []
-    if not args.get('--inline-images'):
-        images = copy_images(ctx.sources_dir, ctx.output_dir)
-
-    save_nav_cache(nav_cache_path, fresh_fingerprint)
-
-    # Manifest for `clean`: lists every file this build
-    # produced in public/, so clean can purge orphans without guessing.
-    _write_manifest(ctx.output_dir, ctx.articles,
-                    include_index=claimant is None and not args.get('--no-index'),
-                    images=images)
-
-    tail = ' + index' if claimant is None and not args.get('--no-index') else ''
-    progress(f'Build complete: {len(articles_to_build)} articles{tail} -> {ctx.output_dir}')
-
-    # --open: open the result in the browser.
-    if args.get('--open'):
-        import webbrowser
-        index_url = (ctx.output_dir / 'index.html').resolve().as_uri()
-        webbrowser.open(index_url)
+    _finish_build(
+        ctx, claimant, articles_to_build, nav_cache_path, fresh_fingerprint,
+        build_stamp=build_stamp, index_extra=index_extra)
 
 
 def cmd_check(series_dir, args):
@@ -15724,7 +16157,9 @@ def cmd_check(series_dir, args):
             log('error', f'Source escapes sources/: {ctx.sources_dir / entry["page_source"]} '
                 f'(listed in series.json).')
             sys.exit(1)
-        generated = build_article(source_path, ctx.sources_dir, ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js, ctx.typo_engine, ctx.strings, ctx.lang, style_context=ctx.style_context, include_nav=not args.get('--no-nav'), inline_images=ctx.args.get('--inline-images', False), args=args, lang_tag_engines=ctx.lang_tag_engines, theme_runtime=ctx.theme_runtime, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration)
+        generated = _render_article(
+            ctx, entry, source_path,
+            include_nav=not args.get('--no-nav'), render_args=args)
         compare(entry['page_dest'], generated, ctx.output_dir / entry['page_dest'])
 
     # §11.3.3: when a lone article's page_dest IS index.html, `build`
@@ -15734,10 +16169,8 @@ def cmd_check(series_dir, args):
     # that is correctly built and that no rebuild could ever settle: the
     # CI gate would stay red for as long as the arrangement lasts.
     if claimant is None:
-        index_extra_file = ctx.templates_dir / 'index_extra.html'
-        index_extra = read_text_file(index_extra_file) if index_extra_file.exists() else ''
         compare('index.html',
-                build_index(ctx.series_data, ctx.css, ctx.typo_engine, ctx.strings, ctx.lang, index_extra, theme_runtime=ctx.theme_runtime, style_context=ctx.style_context, language_runtime=ctx.language_runtime, scroll_duration=ctx.scroll_duration),
+                _render_index(ctx, _index_extra(ctx)),
                 ctx.output_dir / 'index.html')
     compare('README.md',
             build_readme(ctx.series_data, ctx.sd, ctx.output_dir, ctx.strings),
@@ -15962,7 +16395,9 @@ def audit_notes(entry, meta, series_meta, slides, sources_dir):
     source would drift from what the build actually does — and the case
     this is most needed for, a definition swallowed by a raw HTML block,
     is precisely one only the converter can see."""
-    placement, _ = resolve_notes_settings(meta, series_meta, entry['page_source'])
+    setting_errors = []
+    placement, _ = resolve_notes_settings(
+        meta, series_meta, entry['page_source'], errors=setting_errors)
     localities = []
     if placement == 'page':
         scope = NoteScope('p', deferred=True)
@@ -16004,7 +16439,7 @@ def audit_notes(entry, meta, series_meta, slides, sources_dir):
     if placement == 'page' and localities:
         localities[0][1].resolve('\n'.join(converted))
 
-    warnings = 0
+    warnings = len(setting_errors)
     # Read before the findings that need a scope: this one is about what
     # the source says, the others about what conversion made of it. Not
     # folded into the loop below, which dedupes by scope -- under `page`
@@ -16183,12 +16618,13 @@ def audit_read(path):
         return None
     try:
         return read_text_file(path)
-    except SystemExit:
+    except (SystemExit, OSError):
         _AUDIT_UNREADABLE.add(path)
         return None
 
 
-def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
+def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
+                       series_data=None):
     """Renders the series in memory and reports what only a render can say.
 
     `verify` already renders without writing -- it builds the HTML and
@@ -16227,8 +16663,9 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
         try:
             ctx = load_build_context(series_dir, args, include_ignored=True,
                                      strict_tags=False,
-                                     warn_tag_coverage=False)
-        except SystemExit:
+                                     warn_tag_coverage=False,
+                                     series_data_override=series_data)
+        except (SystemExit, OSError):
             # The message is already on stderr, printed by whatever refused.
             # Saying so here is what stops the summary from contradicting it
             # -- unless the caller has already named the cause article by
@@ -16240,6 +16677,11 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                     'is fatal, and no page would be produced. audit does '
                     'not block, but this is not an editorial remark.')
             return len(sink.messages)
+
+        ok, detail = validate_page_scripts('<script>' + ctx.nav_js + '</script>')
+        if not ok:
+            log('warn', 'the generated navigation script is invalid; a build '
+                f'would refuse it. {detail}')
 
         # The index claim is the BUILD's decision, not this render's.
         # Rendering with drafts is right -- a draft is exactly the article
@@ -16265,17 +16707,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                 # there is nothing for this render pass to compose.
                 continue
             try:
-                build_article(
-                    source_path, ctx.sources_dir,
-                    ctx.series_data, entry['page_dest'], ctx.css, ctx.nav_js,
-                    ctx.typo_engine, ctx.strings, ctx.lang,
-                    style_context=ctx.style_context,
-                    inline_images=ctx.args.get('--inline-images', False),
-                    args=args, lang_tag_engines=ctx.lang_tag_engines,
-                    theme_runtime=ctx.theme_runtime,
-                    language_runtime=ctx.language_runtime,
-                    scroll_duration=ctx.scroll_duration)
-            except SystemExit:
+                _render_article(ctx, entry, source_path, render_args=args)
+            except (SystemExit, OSError):
                 if entry['status'] == 'draft':
                     log('warn', f'{entry["page_source"]}: this draft does '
                         f'not render — the error above is fatal. A build '
@@ -16288,15 +16721,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False):
                         f'but this is not an editorial remark.')
         if claimant is None:
             try:
-                extra = ctx.templates_dir / 'index_extra.html'
-                build_index(ctx.series_data, ctx.css, ctx.typo_engine,
-                            ctx.strings, ctx.lang,
-                            read_text_file(extra) if extra.exists() else '',
-                            theme_runtime=ctx.theme_runtime,
-                            style_context=ctx.style_context,
-                            language_runtime=ctx.language_runtime,
-                            scroll_duration=ctx.scroll_duration)
-            except SystemExit:
+                _render_index(ctx, _index_extra(ctx), validate_scripts=True)
+            except (SystemExit, OSError):
                 log('warn', 'the series index does not build — the error '
                     'above is fatal, and index.html would not be produced.')
     return len(sink.messages)
@@ -16654,14 +17080,23 @@ def cmd_audit(series_dir, args):
     responsibility.
     """
     _AUDIT_UNREADABLE.clear()
-    sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+    try:
+        sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+    except SystemExit:
+        # Path resolution is a build refusal, but `audit` is explicitly a
+        # reporting command: a symlinked implicit root is itself a finding,
+        # not a reason to skip the summary or make the plain command fail.
+        log('warn', 'audit could not resolve one of the series input '
+            'directories; the error above is a finding, not a block.')
+        print('1 warning(s). Reminder: audit never blocks the build, page layout remains the author\'s responsibility.')
+        if args.get('--strict'):
+            sys.exit(1)
+        return
     series_data = load_series_data(sd)
     default_tag_warnings = audit_series_default_tag(series_data)
-    try:
-        series_meta = series_meta_of(series_data)
-    except SystemExit:
-        raw_meta = series_data.get('series_meta', {}) if isinstance(series_data, dict) else {}
-        series_meta = raw_meta if isinstance(raw_meta, dict) else {}
+    meta_errors = []
+    series_meta = series_meta_of(series_data, tolerate_invalid=True,
+                                 errors=meta_errors)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     if args.get('--templates'):
         # `--templates` restricts audit to the
@@ -16674,10 +17109,13 @@ def cmd_audit(series_dir, args):
     # Nothing is filtered out here — not drafts, not ignored articles.
     # audit is an authoring tool, and work in progress is exactly what it
     # should look at.
-    validate_series(articles)
+    validation_errors = []
+    articles = validate_series(articles, tolerate_invalid=True,
+                               errors=validation_errors)
     resolve_article_fields(articles, sources_dir, series_meta, strict_tags=False)
 
-    warnings = default_tag_warnings
+    warnings = (default_tag_warnings + len(meta_errors)
+                + len(validation_errors))
     if not args.get('--templates'):
         if not default_tag_warnings:
             print_tag_inventory_text(
@@ -16721,6 +17159,12 @@ def cmd_audit(series_dir, args):
             # never reaches the render either, since `ignored` is out of the
             # chain: audit printed an [ERROR], then "No warnings", and
             # `--strict` exited 0.
+            warnings += 1
+            named_the_cause = True
+            continue
+        if not source_path.is_file():
+            log('error', f'{entry["page_dest"]}: page_source is not a file '
+                f'({source_path})')
             warnings += 1
             named_the_cause = True
             continue
@@ -16813,7 +17257,14 @@ def cmd_audit(series_dir, args):
     # missed audit is not cheap.
     if not args.get('--templates'):
         warnings += audit_image_symlinks(sources_dir)
-        warnings += audit_by_rendering(series_dir, args, named_the_cause)
+        render_series_data = series_data
+        if isinstance(series_data, dict):
+            render_series_data = dict(series_data)
+            render_series_data['articles'] = articles
+        elif isinstance(series_data, list):
+            render_series_data = articles
+        warnings += audit_by_rendering(series_dir, args, named_the_cause,
+                                       series_data=render_series_data)
 
     if warnings == 0:
         print('No warnings: all editorial conventions are respected.')
@@ -16974,7 +17425,11 @@ def audit_presentation(templates_dir):
 
 def cmd_install(target_dir, args):
     """init command — creates the directory structure."""
-    td = Path(target_dir).resolve()
+    requested_td = Path(target_dir)
+    if requested_td.is_symlink():
+        log('error', f'{requested_td} is a symlink; refusing to install through it.')
+        sys.exit(1)
+    td = requested_td.resolve()
     lang = args.get('--lang', 'fr')
     force = bool(args.get('--force'))
     theme_key = args.get('--theme')
@@ -16992,6 +17447,16 @@ def cmd_install(target_dir, args):
     if theme_key is not None and theme_key not in THEMES:
         log('error', f'Unknown theme: {theme_key!r}. Valid themes: {", ".join(sorted(THEMES))}')
         sys.exit(1)
+
+    # --force may replace existing files, but it must never follow an
+    # attacker- or user-created symlink into another tree while doing so.
+    for relative in (
+        'sources', 'templates', 'language', 'public',
+        f'templates/{SETTINGS_FILENAME}',
+        f'templates/{CUSTOM_CSS_FILENAME}', 'series.json',
+        '.gitlab-ci.yml', 'lightwebpres', 'COPYING', 'COPYING.EXCEPTION',
+    ):
+        _reject_symlink_components(td / relative, f'init target {relative}')
 
     # Create the directories
     _mkdir(td / 'sources', parents=True, exist_ok=True)
@@ -17728,13 +18193,18 @@ def _part_with_slug(part, value):
 
 
 def _slugs_in_article(text):
-    """Every card of one file, as (index into the part list, slug or '')."""
+    """Every card of one file, as (part index, slug or ``None``).
+
+    ``''`` is deliberately distinct from ``None``: an explicit ``slug:``
+    line is an author's unfinished decision and `series slug set` must not
+    overwrite it, while a missing line is what that command fills.
+    """
     _head, parts = _split_article_parts(text)
     out = []
     for index, part in enumerate(parts):
         if not strip_ws(part):
             continue
-        found = ''
+        found = None
         for line in part.split('\n'):
             m = re.match(r'\A\s*slug:\s*(.*)$', line)
             if m:
@@ -17847,7 +18317,7 @@ def cmd_assign_slug(series_dir, args):
         taken = set(RESERVED_SLIDE_IDS) | {s for _i, s in present if s}
         added = 0
         for index, slug in present:
-            if slug:
+            if slug is not None:
                 continue
             value = assigned_slug(taken)
             parts[index] = _part_with_slug(parts[index], value)
@@ -18422,8 +18892,14 @@ def resolve_theme_property(name, directory, article_meta, article_name):
 def resolve_series_field(name, series_meta):
     """A `series_meta` field (§20.5): written once for the whole series,
     or absent. One level, and saying so is the answer."""
-    default = (DEFAULT_SCROLL_DURATION_MS
-               if name == 'scroll_duration' else '')
+    if name == 'scroll_duration':
+        default = DEFAULT_SCROLL_DURATION_MS
+    elif name == 'default_tag':
+        default = 'default'
+    elif name == 'lang_tags':
+        default = {}
+    else:
+        default = ''
     chain = [_chain_link('series', series_meta.get(name)),
              _chain_link('default', default)]
     winner = _crown(chain)
@@ -19365,7 +19841,7 @@ COMMANDS
     Generates a self-contained HTML page documenting every built-in
     color theme — one row per theme, four panels across: cover, card
     with a note, notes section, full article (default: themes-gallery.html)
-  lightwebpres clean [directory] [--force]
+  lightwebpres clean [directory] [--output public/] [--force]
     Purges orphan files from public/ using the build manifest
   lightwebpres watch [directory] [--serve] [--port 8000] [--open] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
     Polls sources, rebuilds on change, optionally serves on 127.0.0.1
@@ -19404,11 +19880,12 @@ OPTIONS
     Print the version and exit. Head of the line only: it replaces the
     command rather than modifying one, so it is refused after a command
   --output public/
-    demo/build/verify/watch: output directory (default: public/).
+    demo/build/verify/watch/clean: output directory (default: public/).
     A relative path is resolved against the directory you run from,
     not against [directory]. For theme gallery: the output file path.
   --force
     init: proceed even if the target directory is not empty.
+    template write: overwrite an existing tool-owned file.
     clean: actually remove orphan files (dry-run by default).
   --theme name
     init/series theme set: apply a named palette (see THEMES below);
@@ -19436,7 +19913,7 @@ OPTIONS
     resolve: the article whose levels to include — required for a
     per-article field, additive for a theme property
   --format text|json
-    theme show/series theme/status/series tags/resolve: output format (default:
+    theme show/series theme/status/series tags/series slug/resolve: output format (default:
     text). JSON, not YAML: this tool is standard-library only
   --tag name
     series tags: restrict the inventory to one canonical tag
@@ -20054,6 +20531,11 @@ def _resolve_command(args):
               f"Run `lightwebpres --help` for the command list.")
         sys.exit(1)
 
+    # `template --help` describes the node, just like `series --help` and
+    # `theme --help`; it must be handled before the lone-node refusal.
+    if head == 'template' and len(args) >= 2 and args[1] in ('--help', '-h'):
+        _node_help('template', _TEMPLATE_VERBS)
+        sys.exit(0)
     # `template <verb>`: update, show, write.
     if head == 'template' and len(args) >= 2 and args[1] in _TEMPLATE_VERBS:
         return _TEMPLATE_VERBS[args[1]], args[2:]
@@ -20159,6 +20641,9 @@ def _parse_global_options(args):
     i = 0
     while i < len(args):
         arg = args[i]
+        if arg == '-h':
+            print_help()
+            sys.exit(0)
         if not arg.startswith('--'):
             break
         name, eq, inline_value = arg.partition('=')

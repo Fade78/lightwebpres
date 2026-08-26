@@ -755,11 +755,13 @@ file done:
 Any non-string value for one of these fields is fatal as well.
 
 `series_meta`, the object beside `articles`, holds what belongs to the
-series rather than to one article: `title`, `subtitle`, `version`,
-`intro`, `author`, `license`, `default_tag`, and optional `lang_tags`. The
-first four drive the generated index
-page and `README.md`; the last two are the fallback for every article's
-byline and licence line. The optional root `themes` list selects extra runtime
+series rather than to one article: `title`, `subtitle`, `version`, `intro`,
+`author`, `license`, `default_tag`, `scroll_duration`, `lang_tags`,
+`notes_placement`, `notes_tooltip`, `slide_page_numbers`, and `slug_prefix`.
+The first four drive the generated index page and `README.md`; `author` and
+`license` are the fallback for every article's byline and licence line;
+`default_tag` selects the initial tag, and `lang_tags` selects typography
+packs per slide. The optional root `themes` list selects extra runtime
 themes for `build`/`verify`/`watch`; it is a list of strings, not an article
 field:
 
