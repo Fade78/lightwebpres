@@ -543,6 +543,60 @@ class WebSourceHardening(unittest.TestCase):
             self.assertIn('infolist()', source)
             self.assertIn('canonical in seen', source)
             self.assertIn(r"'\x00' in name", source)
+            self.assertIn('ZIP_MAX_ENTRIES', source)
+            self.assertIn('ZIP_MAX_UNCOMPRESSED_BYTES', source)
+
+
+class TheZipGuardCapsWhatItExtractsIntoMemory(unittest.TestCase):
+    """web/ extracts archives into Pyodide's in-memory filesystem: without
+    limits, a hostile or oversized zip exhausts the tab instead of failing
+    with an explicit error. The caps live inside the shared guard, so the
+    upload tab and the GitLab pull get them from one rule. Exercised here
+    at reduced values: what matters is the mechanism, not the numbers."""
+
+    def _load_guard(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            'lwp_web_app_guard_under_test', REPO_ROOT / 'web' / 'app.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def _real_zip(self, names_and_payloads):
+        import io
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w') as zf:
+            for name, payload in names_and_payloads:
+                zf.writestr(name, payload)
+        return zipfile.ZipFile(io.BytesIO(buf.getvalue()))
+
+    def test_a_normal_series_zip_passes_the_guard(self):
+        guard = self._load_guard()
+        zf = self._real_zip([
+            ('series.json', '{"articles": []}'),
+            ('sources/a.md', '# A\n'),
+        ])
+        self.assertIsNone(guard._validate_zip_members(zf))
+
+    def test_an_archive_beyond_the_byte_cap_is_refused(self):
+        guard = self._load_guard()
+        guard.ZIP_MAX_UNCOMPRESSED_BYTES = 16
+        zf = self._real_zip([('sources/a.md', 'x' * 64)])
+        with self.assertRaises(RuntimeError) as raised:
+            guard._validate_zip_members(zf)
+        self.assertIn('decompresses to more than', str(raised.exception))
+
+    def test_an_archive_beyond_the_entry_cap_is_refused(self):
+        guard = self._load_guard()
+        guard.ZIP_MAX_ENTRIES = 2
+        zf = self._real_zip([
+            ('series.json', '{}'),
+            ('sources/a.md', '# A\n'),
+            ('sources/b.md', '# B\n'),
+        ])
+        with self.assertRaises(RuntimeError) as raised:
+            guard._validate_zip_members(zf)
+        self.assertIn('entry limit', str(raised.exception))
 
 
 if __name__ == '__main__':

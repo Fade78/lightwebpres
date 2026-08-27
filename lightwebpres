@@ -28,33 +28,10 @@ Single-file executable. Python 3.8+ standard library only.
 Native UTF-8. Built-in French and English language packs (typography
 rules + interface strings).
 
-Usage:
-  lightwebpres init [directory] [--lang fr] [--force] [--theme name] [--gitlab-ci]
-  lightwebpres demo [directory] [--lang fr] [--output public/]
-  lightwebpres build [directory] [--lang fr] [--output public/] [--no-typography] [--only file] [--nav-cache path] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
-  lightwebpres verify [directory] [--lang fr] [--output public/] [--no-typography] [--include-drafts] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
-  lightwebpres audit [directory] [--lang fr]
-  lightwebpres template update [directory] [--scaffold]
-  lightwebpres template show <file>
-  lightwebpres template write <file> [directory] [--force]
-  lightwebpres theme list [--polarity light|dark] [--hue name] [--family name]
-  lightwebpres theme show <slug> [--format text|json]
-  lightwebpres series theme [directory] [--format text|json]
-  lightwebpres status [directory] [--format text|json]
-  lightwebpres series tags [directory] [--tag name] [--format text|json]
-  lightwebpres series slug [directory] [--format text|json]
-  lightwebpres series slug set [directory] [--dry-run]
-  lightwebpres resolve [directory] <name> [--article file.md] [--format text|json]
-  lightwebpres series theme set [directory] --theme name
-  lightwebpres theme gallery [path]
-  lightwebpres clean [directory] [--output public/] [--force]
-  lightwebpres watch [directory] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--scroll-duration milliseconds] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
-  lightwebpres completion --shell bash|zsh
-  lightwebpres --version | --help | -h
-
-Global options, accepted before or after the command:
-  --lang, --no-color, --timestamp, --quiet, --verbose, --dry-run,
-  --version, --help
+The maintained synopsis and the option list live in the tool itself:
+run `lightwebpres --help`. A second copy here has already drifted from
+the help text once, and `__doc__` is never printed — one text, one
+place.
 """
 
 import sys
@@ -80,17 +57,19 @@ from html.parser import HTMLParser
 # an older interpreter this check runs and explains, instead of some
 # unrelated TypeError (the first 3.8-only construct is shutil.copytree's
 # dirs_exist_ok, which would otherwise only crash mid-build, and only on
-# a series that has images).
+# a series that has images). The message goes to stderr directly: log()
+# does not exist yet this early, and on exactly the interpreters this
+# guard targets, calling it raised NameError instead of explaining.
 if sys.version_info < (3, 8):
-    log('error', 'lightwebpres requires Python 3.8 or newer '
-          '(this is %d.%d).' % sys.version_info[:2])
+    sys.stderr.write('lightwebpres requires Python 3.8 or newer '
+                     '(this is %d.%d).\n' % sys.version_info[:2])
     sys.exit(1)
 
 # ============================================================================
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.47.2"
+VERSION = "0.47.3"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -13336,7 +13315,7 @@ def build_index(series_data, css, typo_engine, strings, lang='fr', index_extra='
         meta.get('title', strings.get('series_untitled_fallback',
                                       'Article series'))))
     subtitle = apply_typo(typo_engine, escape_amps(meta.get('subtitle', '')))
-    version = meta.get('version', '')
+    version = apply_typo(typo_engine, escape_amps(meta.get('version', '')))
     intro = apply_typo(typo_engine, escape_amps(meta.get('intro', '')))
 
     # <title> is RCDATA: unlike the series title (rendered inside the page
@@ -15937,28 +15916,34 @@ def _cmd_watch_poll(sources, interval=0.5, refresh=None):
     """
     import time
     paths = list(sources)
-    mtimes = {}
+    stamps = {}
     while True:
         changed = []
         for path in paths:
             try:
-                m = path.stat().st_mtime
+                st = path.stat()
+                # (mtime_ns, size) instead of the float mtime alone: on
+                # filesystems with 1-second timestamp granularity (some
+                # network mounts) two saves within the same second share a
+                # mtime, and a size change is the cheap tell that survives.
+                stamp = (st.st_mtime_ns, st.st_size)
             except OSError:
-                m = 0
-            if path not in mtimes:
-                mtimes[path] = m
-            elif m != mtimes[path]:
-                mtimes[path] = m
+                stamp = (0, 0)
+            if path not in stamps:
+                stamps[path] = stamp
+            elif stamp != stamps[path]:
+                stamps[path] = stamp
                 changed.append(path)
         if changed:
             if refresh is not None:
                 paths = list(refresh())
                 for path in paths:
-                    if path not in mtimes:
+                    if path not in stamps:
                         try:
-                            mtimes[path] = path.stat().st_mtime
+                            st = path.stat()
+                            stamps[path] = (st.st_mtime_ns, st.st_size)
                         except OSError:
-                            mtimes[path] = 0
+                            stamps[path] = (0, 0)
             yield changed
         time.sleep(interval)
 
@@ -20647,6 +20632,16 @@ def parse_cli_options(command, rest, global_opts=None):
                 sys.exit(1)
             if name in _VALUE_OPTIONS:
                 if eq:
+                    if inline_value.startswith('--'):
+                        # One rule for both value forms: `--opt --value` is
+                        # refused as a missing value, so `--opt=--value` is
+                        # refused too — the `=` sign separates, it does not
+                        # smuggle an option into the value slot. The value
+                        # was given, so the message says what is wrong with
+                        # it instead of claiming it is missing.
+                        log('error', f'Option {name} value cannot start '
+                            f"with '--' (it reads as another option).")
+                        sys.exit(1)
                     opts[name] = inline_value
                     i += 1
                 elif i + 1 < len(rest) and not rest[i + 1].startswith('--'):

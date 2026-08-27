@@ -27,7 +27,8 @@ const { chromium } = require('playwright');
 const URL = process.argv[2];
 
 (async () => {
-  const browser = await chromium.launch();
+  const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(URL);
 

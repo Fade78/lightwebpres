@@ -3,7 +3,8 @@
 const { chromium } = require('playwright');
 (async () => {
   const [indexUrl, articleUrl] = process.argv.slice(2);
-  const b = await chromium.launch();
+  const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
+  const b = await chromium.launch(executablePath ? { executablePath } : {});
   const out = [];
   for (const width of [390, 600, 900, 1440, 1920, 2560, 3840]) {
     const p = await b.newPage({ viewport: { width, height: 900 } });

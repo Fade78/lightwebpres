@@ -33,7 +33,8 @@ function contrast(fg, bg) {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const out = {};
 
   // --- keyboard: the slide-variant dialog -------------------------------

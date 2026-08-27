@@ -17,17 +17,31 @@ from pathlib import Path, PurePosixPath
 
 ZIP_WORK_DIR = Path('/lwp_web_work')
 
+# Extraction happens into Pyodide's in-memory filesystem: an unbounded
+# archive would exhaust the tab's memory instead of failing cleanly. The
+# caps are generous for a presentation series (a built site is a few MB)
+# and exist to turn a hostile or oversized zip into an explicit error.
+ZIP_MAX_ENTRIES = 4096
+ZIP_MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
+
 
 def _validate_zip_members(zf):
-    """Rejects hostile or ambiguous member names before extraction.
+    """Rejects hostile, oversized or ambiguous members before extraction.
 
     The vendored runtime's zipfile already sanitizes `..` and absolute
     paths, but that is one layer; the defence-in-depth check here makes
     the intent explicit and keeps the glue safe on any runtime. Duplicate
-    names are rejected too: otherwise the later entry silently replaces the
-    earlier one, and slash/dot variants can disagree across runtimes.
+    names are rejected too: otherwise the later entry silently replaces
+    the earlier one, and slash/dot variants can disagree across runtimes.
+    Size is capped as well: extraction goes into an in-memory filesystem,
+    so a decompression bomb would exhaust the tab instead of erroring.
     """
     seen = set()
+    total_bytes = 0
+    if len(zf.infolist()) > ZIP_MAX_ENTRIES:
+        raise RuntimeError(
+            'archive declares %d entries — more than the %d-entry limit.'
+            % (len(zf.infolist()), ZIP_MAX_ENTRIES))
     for info in zf.infolist():
         name = info.filename
         normalized = name.replace('\\', '/')
@@ -40,6 +54,11 @@ def _validate_zip_members(zf):
             raise RuntimeError(
                 'archive contains an invalid or duplicate member name: %r' % name)
         seen.add(canonical)
+        total_bytes += info.file_size
+        if total_bytes > ZIP_MAX_UNCOMPRESSED_BYTES:
+            raise RuntimeError(
+                'archive decompresses to more than %d bytes — refusing to '
+                'extract it.' % ZIP_MAX_UNCOMPRESSED_BYTES)
 
 
 def _find_series_dir_in_zip(root):

@@ -33,6 +33,40 @@ link to the originals. They are at
 
 ---
 
+## v0.47.3
+
+Corrections from the 2026-08-27 codebase audit — seven bounded defects, no
+behavior change for a well-formed series.
+
+`series_meta.version` now goes through the same `&` escaping as the other
+index header fields: a bare legacy entity like `&copy` no longer renders as
+`©` in the version pill (author tags still pass through — the body's
+raw-HTML boundary of §6.2 is unchanged).
+
+The import-time guard for Python < 3.8 no longer calls `log()`, which does
+not exist yet that early: on exactly the interpreters the guard targets it
+raised `NameError` instead of explaining. It writes to stderr directly, and
+a guard test keeps `log` out of that block.
+
+`watch` change detection now compares `(mtime_ns, size)` instead of the
+float mtime alone, so an edit landing in the same second as its predecessor
+on a coarse-grained filesystem still wakes the rebuild.
+
+The CLI parser applies one rule to both value forms: `--lang=--output` is
+now refused exactly like `--lang --output` (the `=` sign separates, it does
+not smuggle an option into the value slot). Values starting with a single
+dash are still values; `--` still ends the option list.
+
+`web/` caps what it extracts into Pyodide's in-memory filesystem (4096
+entries, 256 MiB uncompressed, inside the shared zip guard), so a hostile
+or oversized archive fails with an explicit error instead of exhausting the
+tab. Both glue copies carry the identical rule.
+
+The five browser probes that launched Chromium bare now honor
+`PW_CHROMIUM_PATH` like the other fifteen, and the module docstring no
+longer restates the command synopsis — it points at `--help`, the one text
+a guard keeps honest.
+
 ## v0.47.2
 
 The presenter menu's instant Scroll action now overrides the page's global

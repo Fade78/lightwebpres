@@ -62,7 +62,8 @@ function collect() {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const sizes = {};
   for (const [slot, viewport] of [['a', WIDE], ['b', WIDER]]) {
     const page = await browser.newPage({ viewport });

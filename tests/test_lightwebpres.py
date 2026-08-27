@@ -28,6 +28,7 @@ import subprocess
 from html import escape as html_escape, unescape as html_unescape
 import sys
 import tempfile
+import threading
 import unittest
 from unittest import mock
 from pathlib import Path
@@ -2335,6 +2336,24 @@ class CliStrictParsing(unittest.TestCase):
             result = run('build', str(root), '--include-drafts=yes')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('takes no value', result.stderr)
+
+    def test_equals_form_refuses_a_value_that_reads_as_an_option(self):
+        # One rule for both value forms: `--lang --output` was already
+        # refused as a missing value, but `--lang=--output` slipped through
+        # and carried `--output` as a language code into <html lang>.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--lang=--output')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("value cannot start with '--'", result.stderr)
+
+    def test_equals_form_keeps_accepting_a_single_dash_value(self):
+        # The refusal targets the '--' prefix only: a value that begins
+        # with one dash (a file named -draft.html) stays a value.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            result = run('build', str(root), '--lang=en')
+            self.assertEqual(result.returncode, 0, result.stderr)
 
 
 class CliVersionAndShortcuts(unittest.TestCase):
@@ -4654,22 +4673,29 @@ class CliVersionAndShortcuts(unittest.TestCase):
         self.assertIn('--version',
                       self._complete(script, ['lightwebpres', '--'], 1))
 
-    def test_the_module_docstring_lists_every_command(self):
-        """The usage block at the top of the source -- what a reader of
-        the file sees first, and what `pydoc` prints -- knew nothing
-        about `clean`, `watch` or `completion`. `print_help()` was
-        complete the whole time, so nothing noticed.
-
-        Canonical names only: the docstring is not the place to teach a
-        deprecated alias."""
+    def test_the_module_docstring_delegates_the_synopsis_to_help(self):
+        """The usage block at the top of the source used to restate the
+        command list, and `pydoc` printed it: it knew nothing about
+        `clean`, `watch` or `completion` while `print_help()` was
+        complete, then drifted again (audit 2026-08-27: `audit` without
+        `--strict/--templates`, `theme gallery` without `--all/--output`).
+        The block is gone — `--help` is the one synopsis, already locked
+        against the option tables — and the docstring only points there.
+        If a synopsis comes back, this test refuses it: a second telling
+        of the option list is where the drift lives."""
         lwp = load_lightwebpres_module()
         usage = lwp.__doc__
+        self.assertIn('lightwebpres --help', usage)
         for name in sorted({lwp.canonical(v) for v in lwp._SHORTCUTS.values()}):
-            self.assertIn(f'lightwebpres {name}', usage,
-                          f'the usage block does not mention {name!r}')
+            self.assertNotIn(f'lightwebpres {name}', usage,
+                             f'the docstring restates the {name!r} synopsis — '
+                             'the list lives in --help only')
         for opt in sorted(lwp._GLOBAL_OPTIONS):
-            self.assertIn(opt, usage,
-                          f'the usage block does not mention {opt!r}')
+            if opt == '--help':
+                continue  # the pointer itself names --help
+            self.assertNotIn(opt, usage,
+                             f'the docstring lists the {opt!r} global — '
+                             'the list lives in --help only')
 
     def test_help_names_every_command_a_user_can_type(self):
         """Structural, from the tables, because a needle list only ever
@@ -4938,6 +4964,96 @@ class NoEmptyDecorativeElements(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertNotIn('<div class="series-label">', html)
+
+
+class TheIndexVersionPillEscapesLikeItsSiblingHeaderFields(unittest.TestCase):
+    """series_meta.version is emitted in the index header next to title and
+    subtitle, and used to bypass even the & escaping every sibling gets.
+    A bare legacy entity (&copy) then misrendered in the version pill —
+    the exact defect escape_amps exists to prevent (§6.2/§13.8). The field
+    now shares its siblings' treatment; author tags still pass through,
+    because the body's raw-HTML boundary (§6.2) applies here too."""
+
+    def _build_with_version(self, tmp, version):
+        root = scaffold(tmp, _MINIMAL_MD)
+        series = json.loads((root / 'series.json').read_text(encoding='utf-8'))
+        series['series_meta'] = {'title': 'The series', 'version': version}
+        (root / 'series.json').write_text(json.dumps(series), encoding='utf-8')
+        result = run('build', str(root), '--output', str(root / 'public'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return (root / 'public' / 'index.html').read_text(encoding='utf-8')
+
+    def test_legacy_entity_in_version_is_escaped_not_rendered(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_with_version(tmp, 'v1 &copy 1999')
+            self.assertIn('<span class="version-tag">v1 &amp;copy 1999</span>', html)
+
+    def test_version_without_ampersand_reaches_the_page_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            html = self._build_with_version(tmp, 'v0.1')
+            self.assertIn('<span class="version-tag">v0.1</span>', html)
+
+
+class TheVersionGuardExplainsWithoutLog(unittest.TestCase):
+    """The import-time guard for Python < 3.8 must not call log(): the
+    function does not exist yet that early, and on exactly the
+    interpreters the guard targets, the call raised NameError instead of
+    the explanation the comment promises. It writes to stderr directly."""
+
+    def test_the_old_interpreter_guard_writes_stderr_and_exits(self):
+        import ast
+        tree = ast.parse(EXECUTABLE.read_text(encoding='utf-8'))
+        guard_body = None
+        for node in tree.body:
+            if isinstance(node, ast.If) and 'version_info' in ast.dump(node.test):
+                guard_body = node.body
+                break
+        self.assertIsNotNone(guard_body, 'no import-time version guard found')
+        block = ast.Module(body=guard_body, type_ignores=[])
+        called = set()
+        for sub in ast.walk(block):
+            if not isinstance(sub, ast.Call):
+                continue
+            if isinstance(sub.func, ast.Name):
+                called.add(sub.func.id)
+            elif isinstance(sub.func, ast.Attribute):
+                called.add(sub.func.attr)
+        self.assertNotIn('log', called)
+        self.assertIn('exit', called)
+        self.assertIn('write', called)
+
+
+class WatchDetectsAnEditWhoseMtimeWasRestored(unittest.TestCase):
+    """§11 watch: change detection compares (mtime_ns, size), not the float
+    mtime alone. On filesystems with 1-second timestamp granularity, two
+    saves inside the same second share a mtime; the size is the cheap tell
+    that still wakes the rebuild."""
+
+    def test_a_size_change_wakes_the_poller_even_with_a_restored_mtime(self):
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / 'a.md'
+            p.write_text('hello', encoding='utf-8')
+            original_ns = p.stat().st_mtime_ns
+            poll = lwp._cmd_watch_poll([p], interval=0.05)
+            outcome = {}
+
+            def watch():
+                outcome['changed'] = next(poll)
+
+            watcher = threading.Thread(target=watch, daemon=True)
+            watcher.start()
+            try:
+                # Let the poller record the initial stamp before editing.
+                time.sleep(0.3)
+                p.write_text('hello!', encoding='utf-8')
+                os.utime(p, ns=(original_ns, original_ns))
+                watcher.join(timeout=5)
+            finally:
+                poll.close()
+            self.assertFalse(watcher.is_alive(),
+                             'the poller never woke on the restored-mtime edit')
+            self.assertIn(p, outcome['changed'])
 
 
 class ImageFiguresAndCaptions(unittest.TestCase):
