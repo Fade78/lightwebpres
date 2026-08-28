@@ -2098,7 +2098,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.47.3</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.47.4</div>
   </div>
 </div>
 
@@ -2662,7 +2662,7 @@ build:
   <p><code>web/index.html</code>, one page with two tabs, runs the exact same engine as the CLI — unmodified — inside Pyodide (CPython compiled to WebAssembly), so the output is identical either way:</p>
   <ul>
     <li><strong>Upload a zip</strong> — drop a zip of your series, get back a zip of <code>public/</code>. Nothing leaves the browser tab.</li>
-    <li><strong>Sync with GitLab</strong> — pull a series straight from a GitLab repository, build it, and push the result back as a single commit.</li>
+    <li><strong>Sync with GitLab</strong> — pull a series straight from a GitLab repository, build it, and push the result back. Up to 100 file actions go into each commit, so a larger push creates several successive commits. The <code>100</code> is a local batching precaution, not a GitLab file-count limit. The browser calls GitLab's REST API directly, without a GitLab client library providing automatic throttling or retries; request-size and rate limits still depend on the GitLab version and instance configuration.</li>
   </ul>
   <p>Both tabs share one Pyodide load, so switching is instant. The page must be <strong>served over http(s)</strong>, not opened as a <code>file://</code> page — browsers block Pyodide's asset loading under that origin. For local testing:</p>
   <pre><code class="language-bash">

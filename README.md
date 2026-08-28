@@ -824,9 +824,14 @@ automatically on Apache where allowed).
   `public/`. Nothing ever leaves the browser tab; Pyodide runs vendored
   locally, not from a CDN.
 - **Sync with GitLab** — pull a series straight from a GitLab repository,
-  build it, push the result back as a single commit. Talks directly to
-  the GitLab instance you configure (no third-party proxy in the request
-  path); never deletes a file on push, only creates/updates.
+  build it, and push the result back. Up to 100 file actions go into each
+  commit, so a larger push creates several successive commits. The `100`
+  is a local batching precaution, not a GitLab file-count limit. Talks
+  directly to the GitLab instance you configure (no third-party proxy in
+  the request path); the browser uses the REST API directly, without a
+  GitLab client library providing automatic throttling or retries. GitLab's
+  request-size and rate limits still depend on the GitLab version and
+  instance configuration. Push never deletes a file, only creates/updates.
 
 Both tabs share one Pyodide/`lightwebpres` load at page start, so
 switching between them is instant — no separate page, no reload.

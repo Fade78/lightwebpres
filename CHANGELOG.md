@@ -33,6 +33,15 @@ link to the originals. They are at
 
 ---
 
+## v0.47.4
+
+The browser GitLab sync documentation now distinguishes the local 100-action
+batching precaution from GitLab's pagination and server-side request-size and
+rate limits. It also states that the browser calls the REST API directly,
+without a GitLab client library providing automatic throttling or retries, and
+that a failure after an accepted batch can leave several successive commits
+partially published.
+
 ## v0.47.3
 
 Corrections from the 2026-08-27 codebase audit — seven bounded defects, no

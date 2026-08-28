@@ -7913,14 +7913,23 @@ par un tiers. Trois actions indépendantes, déclenchées par trois boutons :
    comme l'onglet « Upload a zip ».
 3. **Push** — compare le contenu local (sources **et** `public/` généré à
    l'étape précédente) à l'arborescence distante
-   (`GET /projects/:id/repository/tree?recursive=true`), et pousse un seul
-   commit (`POST /projects/:id/repository/commits`) avec une action
+   (`GET /projects/:id/repository/tree?recursive=true`), et pousse un ou
+   plusieurs commits (`POST /projects/:id/repository/commits`) avec une action
    `create` pour chaque fichier absent du dépôt distant et `update` pour
-   chaque fichier déjà présent. Le commit est scindé en plusieurs appels si
-   le nombre de fichiers dépasse 100 (pas de limite documentée côté GitLab,
-   mais on reste prudent). Les états dérivés du générateur — `.lwp-cache/`
-   et `.lwp-manifest.json`, même quand ce dernier se trouve dans `public/`
-   — ne sont pas du contenu à pousser.
+   chaque fichier déjà présent. Jusqu'à 100 actions sont envoyées dans
+   chaque commit ; au-delà, le push crée plusieurs commits successifs. Cette
+   valeur de 100 est une précaution locale de taille de lot, pas une limite
+   GitLab sur le nombre de fichiers. Elle ne doit pas être confondue avec le
+   `per_page=100` de la pagination de l'arborescence distante. GitLab peut
+   appliquer des limites de taille de requête et de débit, selon sa version
+   et la configuration de l'instance ; `pyfetch` appelle directement l'API
+   REST depuis le navigateur, sans bibliothèque GitLab fournissant un
+   throttling ou des retries automatiques. Une réponse HTTP non réussie est
+   signalée comme une erreur et les commits déjà acceptés ne sont pas
+   annulés : un échec après un premier lot peut donc laisser un état distant
+   partiel. Les états dérivés du générateur — `.lwp-cache/` et
+   `.lwp-manifest.json`, même quand ce dernier se trouve dans `public/` — ne
+   sont pas du contenu à pousser.
 
 ### 23.10 CORS : condition nécessaire, hors du périmètre de cette page
 

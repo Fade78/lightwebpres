@@ -720,7 +720,12 @@ so the output is identical either way:
 - **Upload a zip** — drop a zip of your series, get back a zip of
   `public/`. Nothing leaves the browser tab.
 - **Sync with GitLab** — pull a series straight from a GitLab repository,
-  build it, and push the result back as a single commit.
+  build it, and push the result back. Up to 100 file actions go into each
+  commit, so a larger push creates several successive commits. The `100`
+  is a local batching precaution, not a GitLab file-count limit. The browser
+  calls GitLab's REST API directly, without a GitLab client library providing
+  automatic throttling or retries; request-size and rate limits still depend
+  on the GitLab version and instance configuration.
 
 Both tabs share one Pyodide load, so switching is instant. The page must
 be **served over http(s)**, not opened as a `file://` page — browsers
