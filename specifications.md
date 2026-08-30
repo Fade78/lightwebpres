@@ -2002,6 +2002,13 @@ présentateur. Le vocabulaire de ces touches vit dans le pack de langue
 saut par numéro n'a rien à viser : les chiffres y gardent leur sens
 ordinaire.
 
+Lorsqu'une surface de lecture au premier plan est focalisée et défilable,
+les touches de défilement lui appartiennent avant la navigation de la fiche :
+l'aide ouverte défile avec les flèches, PageUp/PageDown, Home/End et Espace ;
+le panneau présentateur défile avec ces mêmes touches lorsqu'il porte le
+focus. Le panneau reste non modal lorsqu'il n'est pas focalisé : les flèches
+continuent alors de naviguer le deck.
+
 Quand le build porte un payload de thèmes (§9.3.7), **C** ouvre son
 sélecteur et **M** ouvre le menu présentateur global.
 

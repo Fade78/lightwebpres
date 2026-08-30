@@ -2099,7 +2099,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Raccourcis clavier</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.47.4</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compilé avec</span> <strong>LightWebPres</strong> v0.47.5</div>
   </div>
 </div>
 
@@ -4176,15 +4176,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  function runStepped(fn) {
-    if (stepCooldownActive) return;
-    stepCooldownActive = true;
-    fn();
-    setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
-  }
+   function runStepped(fn) {
+     if (stepCooldownActive) return;
+     stepCooldownActive = true;
+     fn();
+     setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
+   }
+
+   function isForegroundScrollKey(key) {
+     return key === 'ArrowDown' || key === 'ArrowUp'
+       || key === 'ArrowRight' || key === 'ArrowLeft'
+       || key === 'PageDown' || key === 'PageUp'
+       || key === 'Home' || key === 'End'
+       || key === ' ' || key === 'Spacebar';
+   }
+
+   function scrollForeground(container, key, reverse) {
+     var vertical = key === 'ArrowDown' || key === 'ArrowUp'
+       || key === 'PageDown' || key === 'PageUp'
+       || key === 'Home' || key === 'End'
+       || key === ' ' || key === 'Spacebar';
+     var horizontal = key === 'ArrowRight' || key === 'ArrowLeft';
+     var amount = Math.max(40, (vertical ? container.clientHeight
+       : container.clientWidth) * 0.9);
+     if (vertical && container.scrollHeight > container.clientHeight) {
+       if (key === 'Home') container.scrollTop = 0;
+       else if (key === 'End') container.scrollTop = container.scrollHeight;
+       else if (key === 'ArrowUp' || key === 'PageUp'
+                || ((key === ' ' || key === 'Spacebar') && reverse)) {
+         container.scrollTop -= amount;
+       } else {
+         container.scrollTop += amount;
+       }
+       return true;
+     }
+     if (horizontal && container.scrollWidth > container.clientWidth) {
+       container.scrollLeft += key === 'ArrowLeft' ? -amount : amount;
+       return true;
+     }
+     return false;
+   }
 
    document.addEventListener('keydown', function(e) {
-      if (themeMenu && themeMenu.classList.contains('open')) {
+     // Presentation shortcuts are unmodified keys. Let browser and OS
+     // commands such as Ctrl/Cmd-C reach their native handlers, especially
+     // when the reader has selected text to copy.
+     if (e.ctrlKey || e.metaKey || e.altKey) return;
+       if (themeMenu && themeMenu.classList.contains('open')) {
         if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
           e.preventDefault();
           closeThemeMenu();
@@ -4308,14 +4346,28 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-     // While the help overlay is open, any key closes it; the overlay is a
-     // reading surface, not a form, so no key has work to do inside it.
+     // While the help overlay is open, route scroll keys to the foreground
+     // reading surface. Other keys dismiss it as before.
      if (helpOverlay && helpOverlay.classList.contains('open')) {
+       if (isForegroundScrollKey(e.key)) {
+         e.preventDefault();
+         scrollForeground(helpOverlay, e.key, e.shiftKey);
+         return;
+       }
        e.preventDefault();
        closeHelp();
        return;
      }
-    if (tagMenu && tagMenu.classList.contains('open')) {
+     // The presenter panel is not modal: when it has focus, its own scroll
+     // keys belong to the notes rather than to the deck behind them.
+     if (presenterPanel && presenterPanel.classList.contains('open')
+         && presenterPanel.contains(document.activeElement)
+         && isForegroundScrollKey(e.key)
+         && scrollForeground(presenterPanel, e.key, e.shiftKey)) {
+       e.preventDefault();
+       return;
+     }
+     if (tagMenu && tagMenu.classList.contains('open')) {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
         closeTagMenu();

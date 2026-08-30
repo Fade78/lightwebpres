@@ -760,6 +760,11 @@ speaker drive the deck without looking at the screen.
 | H | Open the help overlay, which lists every key on this table |
 | Esc | Leave fullscreen; also closes the speaker panel |
 
+When the help overlay is open, its scrollable foreground owns the arrow,
+PageUp/PageDown, Home/End and Space keys. The same is true of the speaker
+panel when it has focus; while that panel is merely open and unfocused, the
+arrows keep navigating the deck.
+
 The B/W/T pause screens hide the slide so the audience's eye comes back
 to the speaker — the same feature PowerPoint and Keynote call "blank".
 T uses the theme's own background colour, so a dark theme pauses on a

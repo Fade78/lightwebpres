@@ -17,6 +17,11 @@ const { chromium } = require('playwright');
 
 const URL = process.argv[2];
 
+function fail(message) {
+  console.error('E2E failure: ' + message);
+  process.exitCode = 1;
+}
+
 function relativeLuminance([r, g, b]) {
   const f = (v) => {
     v /= 255;
@@ -95,6 +100,34 @@ function contrast(fg, bg) {
       live: notes ? notes.getAttribute('aria-live') : null,
     };
   });
+  const notesScrollBefore = await page.evaluate(() => {
+    const panel = document.getElementById('presenterPanel');
+    panel.focus();
+    panel.scrollTop = 0;
+    return {
+      top: panel.scrollTop,
+      max: panel.scrollHeight - panel.clientHeight,
+    };
+  });
+  if (notesScrollBefore.max <= 0) {
+    fail('the presenter notes probe did not create a scrollable foreground surface: '
+      + JSON.stringify(notesScrollBefore));
+  }
+  await page.keyboard.press('ArrowDown');
+  const notesScrollAfter = await page.evaluate(() => {
+    const panel = document.getElementById('presenterPanel');
+    return {
+      top: panel.scrollTop,
+      open: panel.classList.contains('open'),
+    };
+  });
+  out.presenter.scrollsOnArrow = notesScrollAfter.open
+    && notesScrollAfter.top > notesScrollBefore.top;
+  if (!out.presenter.scrollsOnArrow) {
+    fail('ArrowDown did not scroll the focused presenter notes panel: '
+      + JSON.stringify({ notesScrollBefore, notesScrollAfter }));
+  }
+
   // Escape reached every other overlay -- help, the variant dialog, the
   // share popover, the QR modal -- and not this one.
   await page.keyboard.press('Escape');

@@ -842,6 +842,56 @@ async function main() {
     fail('right-click on a selection moved the deck: ' + deskAfter
          + ' -> ' + selectionKeptPlace);
   }
+  // 5f2b. Ctrl-C on a selection belongs to the browser. The theme shortcut
+  // is the unmodified C key; treating the command modifier as decoration
+  // both opens the theme menu and prevents the selected text from copying.
+  await page.evaluate(() => {
+    const slide = document.querySelectorAll('section.slide')[1];
+    const target = slide.querySelector('h2, p') || slide;
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    window.__ctrlCDefaultPrevented = null;
+    window.__copyFired = false;
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+        window.__ctrlCDefaultPrevented = e.defaultPrevented;
+      }
+    });
+    document.addEventListener('copy', function () {
+      window.__copyFired = true;
+    });
+  });
+  const ctrlCSelected = await page.evaluate(
+    () => String(window.getSelection()).length);
+  if (!ctrlCSelected) fail('nothing was selected for the Ctrl-C test');
+  await page.keyboard.press('Control+c');
+  await page.waitForTimeout(200);
+  const ctrlCState = await page.evaluate(() => ({
+    copyFired: window.__copyFired,
+    themeOpen: document.getElementById('themeMenu').classList.contains('open'),
+    defaultPrevented: window.__ctrlCDefaultPrevented,
+  }));
+  if (!ctrlCState.copyFired) {
+    fail('Ctrl-C did not reach the browser copy event');
+  }
+  if (ctrlCState.themeOpen) {
+    fail('Ctrl-C opened the theme menu like the unmodified C shortcut');
+    await page.keyboard.press('Escape');
+  }
+  if (ctrlCState.defaultPrevented) {
+    fail('Ctrl-C was prevented by the deck instead of reaching the browser');
+  }
+  await page.evaluate(() => window.getSelection().removeAllRanges());
+  await page.keyboard.press('c');
+  await page.waitForTimeout(200);
+  const plainCOpensTheme = await page.evaluate(
+    () => document.getElementById('themeMenu').classList.contains('open'));
+  if (!plainCOpensTheme) fail('the unmodified C shortcut no longer opens themes');
+  await page.keyboard.press('Escape');
+
   await page.evaluate(() => window.getSelection().removeAllRanges());
 
   // 5f3. A left-click on a SELECTION dismisses it, and only that. The

@@ -33,6 +33,14 @@ link to the originals. They are at
 
 ---
 
+## v0.47.5
+
+Les raccourcis clavier avec `Ctrl`/`Cmd` conservent désormais leur sens
+natif : `Ctrl-C` copie une sélection au lieu d'ouvrir le sélecteur de thèmes.
+Quand l'aide ou le panneau présentateur est au premier plan, les touches de
+défilement font défiler cette surface lorsqu'elle porte le focus, sans
+déplacer le deck par-dessous.
+
 ## v0.47.4
 
 The browser GitLab sync documentation now distinguishes the local 100-action

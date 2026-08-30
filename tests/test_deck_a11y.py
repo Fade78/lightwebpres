@@ -75,6 +75,27 @@ kicker: PROBE
 # Deck probe
 summary: A cover, whose gradient is what the counter sits on.
 note: THE-SPEAKER-NOTE-MARKER, which only the presenter panel may show.
+  This continuation makes the notes surface genuinely scrollable for the keyboard probe.
+  The speaker needs to reach the lower part of a long note without moving the deck.
+  A second line keeps the panel occupied on an ordinary desktop viewport.
+  A third line keeps the panel occupied on an ordinary desktop viewport.
+  A fourth line keeps the panel occupied on an ordinary desktop viewport.
+  A fifth line keeps the panel occupied on an ordinary desktop viewport.
+  A sixth line keeps the panel occupied on an ordinary desktop viewport.
+  A seventh line keeps the panel occupied on an ordinary desktop viewport.
+  An eighth line keeps the panel occupied on an ordinary desktop viewport.
+  A ninth line keeps the panel occupied on an ordinary desktop viewport.
+  A tenth line keeps the panel occupied on an ordinary desktop viewport.
+  An eleventh line keeps the panel occupied on an ordinary desktop viewport.
+  A twelfth line keeps the panel occupied on an ordinary desktop viewport.
+  A thirteenth line keeps the panel occupied on an ordinary desktop viewport.
+  A fourteenth line keeps the panel occupied on an ordinary desktop viewport.
+  A fifteenth line keeps the panel occupied on an ordinary desktop viewport.
+  A sixteenth line keeps the panel occupied on an ordinary desktop viewport.
+  A seventeenth line keeps the panel occupied on an ordinary desktop viewport.
+  An eighteenth line keeps the panel occupied on an ordinary desktop viewport.
+  A nineteenth line keeps the panel occupied on an ordinary desktop viewport.
+  A twentieth line keeps the panel occupied on an ordinary desktop viewport.
 
 ---
 

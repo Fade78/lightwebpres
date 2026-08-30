@@ -259,6 +259,32 @@ async function main() {
       || !help.stampNameIsBold) {
     fail('H did not expose a proper modal with theme action and version stamp: ' + JSON.stringify(help));
   }
+  const helpScrollBefore = await page.evaluate(() => {
+    const overlay = document.getElementById('helpOverlay');
+    const card = document.querySelector('.help-card');
+    // Force overflow so this test remains about keyboard ownership rather
+    // than the fixture's current amount of translated help text.
+    card.style.minHeight = Math.max(window.innerHeight * 2, 1200) + 'px';
+    overlay.scrollTop = 0;
+    card.focus();
+    return {
+      top: overlay.scrollTop,
+      max: overlay.scrollHeight - overlay.clientHeight,
+    };
+  });
+  if (helpScrollBefore.max <= 0) {
+    fail('the help probe did not create a scrollable foreground surface: '
+      + JSON.stringify(helpScrollBefore));
+  }
+  await page.keyboard.press('ArrowDown');
+  const helpScrollAfter = await page.evaluate(() => ({
+    top: document.getElementById('helpOverlay').scrollTop,
+    open: document.getElementById('helpOverlay').classList.contains('open'),
+  }));
+  if (!helpScrollAfter.open || helpScrollAfter.top <= helpScrollBefore.top) {
+    fail('ArrowDown did not scroll the open help overlay: '
+      + JSON.stringify({ helpScrollBefore, helpScrollAfter }));
+  }
   const helpBeforeNav = await page.evaluate(() => ({ pageY: window.scrollY }));
   // A wheel during help must not scroll the page behind the modal.
   await page.mouse.wheel(0, 600);

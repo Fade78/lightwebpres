@@ -2098,7 +2098,7 @@ button.share-action:focus-visible, .share-qr-close:focus-visible {
   <div class="help-card" tabindex="0">
     <div class="help-title" id="helpTitle" data-lwp-i18n="help_title">Keyboard shortcuts</div>
     <ul class="help-list" id="helpList"></ul>
-    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.47.4</div>
+    <div class="help-stamp"><span data-lwp-i18n="help_stamp">Compiled with</span> <strong>LightWebPres</strong> v0.47.5</div>
   </div>
 </div>
 
@@ -2730,6 +2730,7 @@ python3 -m http.server 8000 --bind 127.0.0.1 --directory /path/to/lightwebpres
       </tr>
     </tbody>
   </table>
+  <p>When the help overlay is open, its scrollable foreground owns the arrow, PageUp/PageDown, Home/End and Space keys. The same is true of the speaker panel when it has focus; while that panel is merely open and unfocused, the arrows keep navigating the deck.</p>
   <p>The B/W/T pause screens hide the slide so the audience's eye comes back to the speaker — the same feature PowerPoint and Keynote call "blank". T uses the theme's own background colour, so a dark theme pauses on a dark screen rather than flashing white.</p>
   <h3>Speaker panel and slide counter</h3>
   <p>A small <code>X / N</code> counter sits in the bottom-left corner and fades out with the other chrome when the mouse is idle. Type a slide number and press <strong>Enter</strong> to jump there — handy once a deck passes ten slides and the arrow-key walk becomes a slog. That live counter is <strong>always</strong> shown — except on the index, where there is nothing to count — and is independent of the engraved top-right <code>NN / NN</code> slide number, which is opt-in (off by default) and turned on only by <code>--slides-page-numbers on</code>, the article front-matter <code>slide_page_numbers</code>, or <code>series_meta.slide_page_numbers</code> (see specifications.md §3.3.5). Press <strong>N</strong> to open the speaker panel: it shows the current slide's <code>note:</code> field (the speaker note you wrote for that slide — see below) and the title of the next slide, so you can read ahead without the audience seeing it. The panel rides along as you navigate; press <strong>N</strong> again to close it.</p>
@@ -4753,15 +4754,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  function runStepped(fn) {
-    if (stepCooldownActive) return;
-    stepCooldownActive = true;
-    fn();
-    setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
-  }
+   function runStepped(fn) {
+     if (stepCooldownActive) return;
+     stepCooldownActive = true;
+     fn();
+     setTimeout(function () { stepCooldownActive = false; }, STEP_COOLDOWN_MS);
+   }
+
+   function isForegroundScrollKey(key) {
+     return key === 'ArrowDown' || key === 'ArrowUp'
+       || key === 'ArrowRight' || key === 'ArrowLeft'
+       || key === 'PageDown' || key === 'PageUp'
+       || key === 'Home' || key === 'End'
+       || key === ' ' || key === 'Spacebar';
+   }
+
+   function scrollForeground(container, key, reverse) {
+     var vertical = key === 'ArrowDown' || key === 'ArrowUp'
+       || key === 'PageDown' || key === 'PageUp'
+       || key === 'Home' || key === 'End'
+       || key === ' ' || key === 'Spacebar';
+     var horizontal = key === 'ArrowRight' || key === 'ArrowLeft';
+     var amount = Math.max(40, (vertical ? container.clientHeight
+       : container.clientWidth) * 0.9);
+     if (vertical && container.scrollHeight > container.clientHeight) {
+       if (key === 'Home') container.scrollTop = 0;
+       else if (key === 'End') container.scrollTop = container.scrollHeight;
+       else if (key === 'ArrowUp' || key === 'PageUp'
+                || ((key === ' ' || key === 'Spacebar') && reverse)) {
+         container.scrollTop -= amount;
+       } else {
+         container.scrollTop += amount;
+       }
+       return true;
+     }
+     if (horizontal && container.scrollWidth > container.clientWidth) {
+       container.scrollLeft += key === 'ArrowLeft' ? -amount : amount;
+       return true;
+     }
+     return false;
+   }
 
    document.addEventListener('keydown', function(e) {
-      if (themeMenu && themeMenu.classList.contains('open')) {
+     // Presentation shortcuts are unmodified keys. Let browser and OS
+     // commands such as Ctrl/Cmd-C reach their native handlers, especially
+     // when the reader has selected text to copy.
+     if (e.ctrlKey || e.metaKey || e.altKey) return;
+       if (themeMenu && themeMenu.classList.contains('open')) {
         if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
           e.preventDefault();
           closeThemeMenu();
@@ -4885,14 +4924,28 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-     // While the help overlay is open, any key closes it; the overlay is a
-     // reading surface, not a form, so no key has work to do inside it.
+     // While the help overlay is open, route scroll keys to the foreground
+     // reading surface. Other keys dismiss it as before.
      if (helpOverlay && helpOverlay.classList.contains('open')) {
+       if (isForegroundScrollKey(e.key)) {
+         e.preventDefault();
+         scrollForeground(helpOverlay, e.key, e.shiftKey);
+         return;
+       }
        e.preventDefault();
        closeHelp();
        return;
      }
-    if (tagMenu && tagMenu.classList.contains('open')) {
+     // The presenter panel is not modal: when it has focus, its own scroll
+     // keys belong to the notes rather than to the deck behind them.
+     if (presenterPanel && presenterPanel.classList.contains('open')
+         && presenterPanel.contains(document.activeElement)
+         && isForegroundScrollKey(e.key)
+         && scrollForeground(presenterPanel, e.key, e.shiftKey)) {
+       e.preventDefault();
+       return;
+     }
+     if (tagMenu && tagMenu.classList.contains('open')) {
       if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
         closeTagMenu();
