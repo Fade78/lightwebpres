@@ -33,6 +33,16 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.48.0
+
+Language packs are now physically split by responsibility: interface strings
+live in `interface/{lang}.json`, while build-time typography rules live in
+`typography/{lang}.json`. Existing unified `language/{lang}.json` files and
+`--language-file` remain supported, with split domains taking precedence
+independently. Domain environment variables, installed FHS resources,
+template commands, watch paths and incremental-build fingerprints follow the
+same resolution. Browser payloads continue to carry interface strings only.
+
 ## v0.47.5
 
 Les raccourcis clavier avec `Ctrl`/`Cmd` conservent désormais leur sens

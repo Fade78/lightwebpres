@@ -69,7 +69,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.47.5"
+VERSION = "0.48.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1121,8 +1121,8 @@ PALETTE_ROLE_LABELS = {
 }
 
 
-# --- Language pack: fr.json ---
-# A language pack has two independent parts:
+# --- Built-in language pack: fr ---
+# The compatibility object has two independent parts:
 #   - "rules": typography regex rules, applied to generated HTML (§7)
 #   - "strings": interface vocabulary used by the default templates (nav
 #     button tooltips, "copy link" button, series navigation labels...)
@@ -1268,9 +1268,9 @@ LANG_FR = r'''{
   }
 }'''
 
-# --- Language pack: en.json ---
+# --- Built-in language pack: en ---
 # English also serves as the built-in fallback for any --lang value that
-# has neither a built-in pack nor a language/{lang}.json override file.
+# has neither a built-in pack nor a split/legacy override file.
 LANG_EN = r'''{
   "lang": "en",
   "name": "English",
@@ -4632,7 +4632,9 @@ def _theme_runtime_markup(runtime, style_context=None, page_props=None):
 
 
 def _language_runtime_markup(lang_dir, default_lang, default_pack,
-                            language_file=None, auto=False):
+                            language_file=None, auto=False,
+                            interface_dir=None, typography_dir=None,
+                            series_dir=None):
     """Embeds the interface strings needed by the browser.
 
     Typography rules stay build-time data. The browser only needs the two
@@ -4644,7 +4646,9 @@ def _language_runtime_markup(lang_dir, default_lang, default_pack,
     packs = {}
     for code in ('fr', 'en'):
         override = language_file if code.casefold() == str(default_lang).casefold() else None
-        pack = load_language(lang_dir, code, override)
+        pack = load_language(
+            lang_dir, code, override, interface_dir, typography_dir,
+            series_dir)
         packs[code] = {
             'name': pack.get('name', code),
             'strings': pack.get('strings', {}),
@@ -10739,7 +10743,7 @@ TEMPLATE_THEMES_GALLERY_FOOT = '''
 '''
 
 # ============================================================================
-# LANGUAGE (typography rules + interface strings)
+# LANGUAGE (compatibility boundary for typography rules + interface strings)
 # ============================================================================
 
 def strip_ws(text):
@@ -10767,9 +10771,12 @@ class TypoEngine:
 
     def __init__(self, rules_data):
         self.rules = []
+        # Keep the source rules available to the incremental-build fingerprint
+        # without trying to serialize compiled ``re.Pattern`` objects.
+        self.rules_data = list(rules_data.get('rules', []))
         # category -> the names of the rules that carry it
         self.categories = {}
-        for i, rule in enumerate(rules_data.get('rules', []), 1):
+        for i, rule in enumerate(self.rules_data, 1):
             if not isinstance(rule, dict) or 'pattern' not in rule or 'replacement' not in rule:
                 log('error', f'language rule {i}: must be an object with '
                       f'"pattern" and "replacement".')
@@ -10893,81 +10900,234 @@ def read_text_file(path):
         sys.exit(1)
 
 
-def load_language(lang_dir, lang='fr', language_file=None):
-    """Loads the language pack (typography rules + interface strings) for `lang`.
+def _installed_language_root():
+    """Returns the optional FHS resource root for an installed executable.
 
-    The built-in pack for `lang` is used as a base (English if `lang` is
-    neither 'fr' nor 'en'). An override file's "rules" replace the base
-    rules wholesale, but its "strings" are merged key by key on top of the
-    base strings — a partial override file only needs to define the keys
-    it wants to change. `language_file`, when given (--language-file,
-    spec §19.5 priority 1), is used as that override file instead of the
-    conventional `{lang_dir}/{lang}.json` — same merge semantics either way.
+    The project is intentionally also a single standalone file. Looking next
+    to every copy would make a series depend on an accidental sibling tree,
+    so the automatic extension is limited to the conventional FHS shape:
+    ``<prefix>/bin/lightwebpres`` beside
+    ``<prefix>/share/lightwebpres``. ``__file__`` is absent when Pyodide
+    evaluates this source, which deliberately keeps the browser embedded-only.
     """
-    if lang == 'fr':
-        base = json.loads(LANG_FR)
-    else:
-        base = json.loads(LANG_EN)
-        if lang != 'en' and not language_file and not (
-                lang_dir and _optional_contained_file(
-                    lang_dir, f'{lang}.json', f'language/{lang}.json')):
-            # The fallback above is deliberate and documented. What was
-            # missing is saying so: `--lang de` with no de.json produced a
-            # page carrying `lang="de"` over English strings, exit 0, in
-            # silence. A pipeline cannot see that; a reader's screen reader
-            # can. Not fatal -- a custom pack is a real use, supplied by
-            # --language-file or LWP_LANGUAGE_DIR -- but never silent.
-            log('warn', f'no language pack for {lang!r}: the page will '
-                f'carry lang="{lang}" over the built-in English strings. '
-                f'Provide {lang}.json in the language directory, or pass '
-                f'--language-file.')
+    source = globals().get('__file__')
+    if not source:
+        return None
+    try:
+        executable = Path(source).resolve()
+    except (OSError, RuntimeError):
+        return None
+    if executable.name != 'lightwebpres' or executable.parent.name != 'bin':
+        return None
+    return executable.parent.parent / 'share' / 'lightwebpres'
+
+
+def _first_language_file(directories, lang, label):
+    """Returns the first contained ``<lang>.json`` in ``directories``."""
+    seen = set()
+    for directory in directories:
+        if directory is None:
+            continue
+        directory = Path(directory)
+        key = str(directory)
+        if key in seen:
+            continue
+        seen.add(key)
+        path = _optional_contained_file(
+            directory, f'{lang}.json', f'{label}/{lang}.json')
+        if path is not None:
+            return path
+    return None
+
+
+def _language_source_paths(lang, lang_dir, interface_dir=None,
+                           typography_dir=None, series_dir=None):
+    """Resolves split, legacy and installed sources without reading them.
+
+    ``lang_dir`` remains the legacy directory selected by
+    ``LWP_LANGUAGE_DIR``/the series default. The separate directory arguments
+    are the same resolved paths returned by ``resolve_paths``. The series
+    paths are kept independently so an explicit ``LWP_INTERFACE_DIR`` or
+    ``LWP_TYPOGRAPHY_DIR`` augments rather than hides a local B48 directory.
+    """
+    local_interface = (Path(series_dir) / 'interface'
+                       if series_dir is not None else None)
+    local_typography = (Path(series_dir) / 'typography'
+                        if series_dir is not None else None)
+
+    interface_dirs = []
+    if 'LWP_INTERFACE_DIR' in os.environ:
+        interface_dirs.append(Path(os.environ['LWP_INTERFACE_DIR']))
+    if local_interface is not None:
+        interface_dirs.append(local_interface)
+    elif interface_dir is not None:
+        interface_dirs.append(interface_dir)
+
+    typography_dirs = []
+    if 'LWP_TYPOGRAPHY_DIR' in os.environ:
+        typography_dirs.append(Path(os.environ['LWP_TYPOGRAPHY_DIR']))
+    if local_typography is not None:
+        typography_dirs.append(local_typography)
+    elif typography_dir is not None:
+        typography_dirs.append(typography_dir)
+
+    split_interface = _first_language_file(
+        interface_dirs, lang, 'interface')
+    split_typography = _first_language_file(
+        typography_dirs, lang, 'typography')
+    legacy = None
+    if lang_dir is not None:
+        legacy = _optional_contained_file(
+            lang_dir, f'{lang}.json', f'language/{lang}.json')
+
+    installed = _installed_language_root()
+    installed_interface = None
+    installed_typography = None
+    # A command with no series (the theme gallery and template show) must
+    # remain independent of an installation's mutable resource directory.
+    if installed is not None and (lang_dir is not None or series_dir is not None):
+        installed_interface = _first_language_file(
+            [installed / 'interface'], lang, 'installed interface')
+        installed_typography = _first_language_file(
+            [installed / 'typography'], lang, 'installed typography')
+
+    interface = split_interface or legacy or installed_interface
+    typography = split_typography or legacy or installed_typography
+    return SimpleNamespace(
+        split_interface=split_interface,
+        split_typography=split_typography,
+        legacy=legacy,
+        installed_interface=installed_interface,
+        installed_typography=installed_typography,
+        interface=interface,
+        typography=typography,
+    )
+
+
+def _read_language_object(path):
+    """Reads one language JSON object and turns malformed input into a CLI error."""
+    try:
+        raw = read_text_file(path)
+        value = json.loads(raw)
+    except (ValueError, RecursionError) as e:
+        # ValueError covers json.JSONDecodeError; RecursionError guards a
+        # deeply nested object from escaping as an interpreter traceback.
+        log('error', f'{path}: invalid JSON ({e}).')
+        sys.exit(1)
+    except OSError as e:
+        log('error', f'{path}: cannot read language file ({e}).')
+        sys.exit(1)
+    if not isinstance(value, dict):
+        log('error', f'{path}: must be a JSON object.')
+        sys.exit(1)
+    return value
+
+
+def _language_domain(value, path, domain, split=False):
+    """Validates and returns one domain from a unified or split object."""
+    if split:
+        forbidden = 'rules' if domain == 'interface' else 'strings'
+        if forbidden in value:
+            log('error', f'{path}: {domain} pack must not contain '
+                f'"{forbidden}".')
+            sys.exit(1)
+    key = 'strings' if domain == 'interface' else 'rules'
+    default = {} if domain == 'interface' else []
+    result = value.get(key, default)
+    expected = 'an object' if domain == 'interface' else 'a list'
+    if (not isinstance(result, dict) if domain == 'interface'
+            else not isinstance(result, list)):
+        log('error', f'{path}: "{key}" must be {expected}.')
+        sys.exit(1)
+    if domain == 'interface':
+        # Every interface string must be a string: a non-string value crashes
+        # apply_strings' str.replace with a raw TypeError.
+        for item, val in result.items():
+            if not isinstance(val, str):
+                log('error', f'{path}: strings["{item}"] must be a string '
+                      f'(got {type(val).__name__}).')
+                sys.exit(1)
+    return result
+
+
+def load_language(lang_dir, lang='fr', language_file=None,
+                  interface_dir=None, typography_dir=None, series_dir=None):
+    """Loads the compatibility view of separate interface/typography packs.
+
+    The return shape intentionally stays ``{lang, name, rules, strings}`` so
+    the renderer and existing callers keep one boundary. New B48 files win
+    independently by domain; a legacy unified file fills whichever domain has
+    no split file. ``--language-file`` remains the highest-priority unified
+    compatibility input and therefore overrides both domains together.
+    """
+    requested = str(lang)
+    base = json.loads(LANG_FR if requested == 'fr' else LANG_EN)
 
     if language_file:
         lang_file = Path(language_file)
-    elif lang_dir is None:
-        # No series directory in play (themes-gallery, §11.7): the
-        # embedded pack IS the answer, there is nothing to override with.
-        return base
-    else:
-        lang_file = _optional_contained_file(
-            lang_dir, f'{lang}.json', f'language/{lang}.json')
-    if lang_file is not None and lang_file.exists():
-        try:
-            override = json.loads(read_text_file(lang_file))
-        except (ValueError, RecursionError) as e:
-            # ValueError covers json.JSONDecodeError; RecursionError guards
-            # a deeply-nested array/object from crashing the parser itself.
-            log('error', f'{lang_file}: invalid JSON ({e}).')
+        if not lang_file.exists():
+            log('error', f'--language-file {language_file}: file not found.')
             sys.exit(1)
-        if not isinstance(override, dict):
-            log('error', f'{lang_file}: must be a JSON object.')
-            sys.exit(1)
-        rules = override.get('rules', base.get('rules', []))
-        strings = override.get('strings', {})
-        if not isinstance(rules, list):
-            log('error', f'{lang_file}: "rules" must be a list.')
-            sys.exit(1)
-        if not isinstance(strings, dict):
-            log('error', f'{lang_file}: "strings" must be an object.')
-            sys.exit(1)
-        # Every interface string must be a string: a non-string value
-        # crashes apply_strings' str.replace with a raw TypeError.
-        for key, val in strings.items():
-            if not isinstance(val, str):
-                log('error', f'{lang_file}: strings["{key}"] must be a string '
-                      f'(got {type(val).__name__}).')
-                sys.exit(1)
+        override = _read_language_object(lang_file)
+        rules = _language_domain(override, lang_file, 'typography')
+        if 'rules' not in override:
+            rules = base.get('rules', [])
+        strings = _language_domain(override, lang_file, 'interface')
         return {
-            'lang': override.get('lang', base.get('lang', lang)),
-            'name': override.get('name', base.get('name', lang)),
+            'lang': override.get('lang', base.get('lang', requested)),
+            'name': override.get('name', base.get('name', requested)),
             'rules': rules,
             'strings': {**base.get('strings', {}), **strings},
         }
-    elif language_file:
-        log('error', f'--language-file {language_file}: file not found.')
-        sys.exit(1)
 
-    return base
+    sources = _language_source_paths(
+        requested, lang_dir, interface_dir, typography_dir, series_dir)
+    objects = {}
+
+    def source_object(path):
+        if path is None:
+            return {}
+        key = str(path)
+        if key not in objects:
+            objects[key] = _read_language_object(path)
+        return objects[key]
+
+    def domain_value(path, domain):
+        value = source_object(path)
+        split = path != sources.legacy
+        return _language_domain(value, path, domain, split=split)
+
+    if requested not in ('fr', 'en') and not sources.interface and not sources.typography:
+        # English fallback is deliberate and documented. What must not be
+        # silent is a page carrying an unsupported lang attribute with no
+        # supplied pack at all.
+        log('warn', f'no language pack for {requested!r}: the page will '
+            f'carry lang="{requested}" over the built-in English strings. '
+            f'Provide interface/{requested}.json and/or '
+            f'typography/{requested}.json, or pass --language-file.')
+
+    rules = base.get('rules', [])
+    if sources.typography:
+        typography_value = domain_value(sources.typography, 'typography')
+        if 'rules' in source_object(sources.typography):
+            rules = typography_value
+
+    strings = dict(base.get('strings', {}))
+    if sources.interface:
+        strings.update(domain_value(sources.interface, 'interface'))
+
+    metadata = None
+    for candidate in (sources.interface, sources.typography):
+        if candidate is not None:
+            metadata = source_object(candidate)
+            break
+    metadata = metadata or {}
+    return {
+        'lang': metadata.get('lang', base.get('lang', requested)),
+        'name': metadata.get('name', base.get('name', requested)),
+        'rules': rules,
+        'strings': strings,
+    }
 
 
 _PLACEHOLDER_RE = re.compile(r'\{\{(\w+)\}\}')
@@ -15021,7 +15181,7 @@ def _default_series_directory(sd, name, label):
 
 
 def resolve_paths(series_dir, args):
-    """Resolves paths from environment variables and arguments."""
+    """Resolves series paths and the optional language domains."""
     sd = Path(series_dir).resolve()
 
     sources_dir = (Path(os.environ['LWP_SOURCES_DIR'])
@@ -15034,6 +15194,14 @@ def resolve_paths(series_dir, args):
     lang_dir = (Path(os.environ['LWP_LANGUAGE_DIR'])
                 if 'LWP_LANGUAGE_DIR' in os.environ else
                 _default_series_directory(sd, 'language', 'language directory'))
+    interface_dir = (Path(os.environ['LWP_INTERFACE_DIR'])
+                     if 'LWP_INTERFACE_DIR' in os.environ else
+                     _default_series_directory(sd, 'interface',
+                                               'interface directory'))
+    typography_dir = (Path(os.environ['LWP_TYPOGRAPHY_DIR'])
+                      if 'LWP_TYPOGRAPHY_DIR' in os.environ else
+                      _default_series_directory(sd, 'typography',
+                                                'typography directory'))
     output_dir = Path(args.get('--output', os.environ.get('LWP_OUTPUT_DIR', sd / 'public')))
     lang = args.get('--lang', os.environ.get('LWP_LANG', 'fr'))
     if not _VALID_LANG_RE.fullmatch(str(lang)):
@@ -15043,7 +15211,8 @@ def resolve_paths(series_dir, args):
     language_file = args.get('--language-file')
     _reject_symlink_components(output_dir, 'output directory')
 
-    return sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file
+    return (sd, sources_dir, templates_dir, lang_dir, interface_dir,
+            typography_dir, output_dir, lang, language_file)
 
 
 # Matches build_stamp_html()'s own output exactly (a single, entirely
@@ -15130,7 +15299,8 @@ def strip_build_stamp(html):
 
 
 def load_lang_tag_engines(series_meta, lang_dir, default_lang,
-                          default_engine):
+                          default_engine, interface_dir=None,
+                          typography_dir=None, series_dir=None):
     """Loads the optional per-slide typography packs from `lang_tags`.
 
     The build's `--lang` pack remains the fallback. A mapping value is the
@@ -15146,7 +15316,9 @@ def load_lang_tag_engines(series_meta, lang_dir, default_lang,
         elif pack.casefold() == str(default_lang).casefold():
             engines[tag] = default_engine
         else:
-            engines[tag] = TypoEngine(load_language(lang_dir, pack))
+            engines[tag] = TypoEngine(load_language(
+                lang_dir, pack, interface_dir=interface_dir,
+                typography_dir=typography_dir, series_dir=series_dir))
     return engines
 
 
@@ -15166,16 +15338,20 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     guarantee that a source's existing spacing (including any
     non-breaking space already in it) reaches the output completely
     unchanged, not just that the new rules stay quiet."""
-    sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+    (sd, sources_dir, templates_dir, lang_dir, interface_dir,
+     typography_dir, output_dir, lang, language_file) = resolve_paths(
+         series_dir, args)
 
-    language_pack = load_language(lang_dir, lang, language_file)
+    language_pack = load_language(
+        lang_dir, lang, language_file, interface_dir, typography_dir, sd)
     typo_engine = None if args.get('--no-typography') else TypoEngine(language_pack)
     strings = language_pack.get('strings', {})
     explicit_lang = (args.get('--lang') is not None
                      or os.environ.get('LWP_LANG') is not None)
     language_runtime = _language_runtime_markup(
         lang_dir, lang, language_pack, language_file,
-        auto=not explicit_lang)
+        auto=not explicit_lang, interface_dir=interface_dir,
+        typography_dir=typography_dir, series_dir=sd)
 
     try:
         style_context = series_style_context(templates_dir)
@@ -15246,40 +15422,43 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     else:
         nav_js = TEMPLATE_NAV_JS
 
-    # The same for the language packs, which said NOTHING at all. They
-    # are the same shape as nav.js -- shipped by the tool, copied whole
-    # into the series by `init`, used from disk if present -- and they
-    # carry rules and interface strings, so a stale one silently keeps
-    # an old typography and an old vocabulary. `typo_units: off` learning
-    # to reach any pack (§19.2) is exactly the kind of repair that never
-    # arrives while nobody is told.
-    shipped_packs = {'fr.json': LANG_FR, 'en.json': LANG_EN}
-    on_disk_packs = sorted(lang_dir.glob('*.json')) if lang_dir.is_dir() else []
-    for pack in on_disk_packs:
-        pack_name = pack.name
-        builtin = shipped_packs.get(pack_name)
-        if builtin is None:
-            continue      # a pack the tool does not ship is the author's
-        if read_text_file(pack) != builtin:
-            # Naming the commands, because the previous wording told the
-            # reader WHAT to do ("copy the built-in one over it") and not
-            # WITH WHAT, at a moment when three commands could do it. The
-            # deletion comes first: it is the state this tool now wants a
-            # series to be in, and it is what the one person who hit this
-            # worked out for himself, by hand, from a message that did not
-            # say it.
-            log('warn', f'language/{pack_name} differs from this '
-                f'executable\'s built-in pack, and the build is using '
-                f'yours. If you did not change it on purpose, delete it — '
-                f'the built-in pack is used when the file is absent, and '
-                f'`lightwebpres template update .` removes it for you when '
-                f'the two are identical. To compare first: `lightwebpres '
-                f'template show {pack_name}`. To take the built-in one: '
-                f'`lightwebpres template write {pack_name} . --force`.')
+    # Keep the old warning for legacy unified copies, and apply the same
+    # discoverability rule to the new domain copies. Installed FHS resources
+    # are not inspected here: they are the source of the executable's
+    # installation, not a frozen copy inside the series.
+    owned = tool_owned_files()
+    stale_files = (
+        (lang_dir, 'language', ('fr.json', 'en.json')),
+        (interface_dir, 'interface', ('fr.json', 'en.json')),
+        (typography_dir, 'typography', ('fr.json', 'en.json')),
+    )
+    for directory, home, names in stale_files:
+        if not directory.is_dir():
+            continue
+        for pack_name in names:
+            pack = _optional_contained_file(
+                directory, pack_name, f'{home}/{pack_name}')
+            if pack is None:
+                continue
+            canonical_name = (pack_name if home == 'language'
+                              else f'{home}/{pack_name}')
+            builtin = owned[canonical_name][0]
+            if read_text_file(pack) == builtin:
+                continue
+            log('warn', f'{home}/{pack_name} differs from this executable\'s '
+                f'built-in pack, and the build is using yours. If you did not '
+                f'change it on purpose, delete it — the built-in pack is used '
+                f'when the file is absent, and `lightwebpres template update .` '
+                f'removes it for you when the two are identical. To compare '
+                f'first: `lightwebpres template show {canonical_name}`. To take '
+                f'the built-in one: `lightwebpres template write '
+                f'{canonical_name} . --force`.')
     nav_js = apply_strings(nav_js, strings)
 
     lang_tag_engines = load_lang_tag_engines(
-        series_meta, lang_dir, lang, typo_engine)
+        series_meta, lang_dir, lang, typo_engine,
+        interface_dir=interface_dir, typography_dir=typography_dir,
+        series_dir=sd)
     articles = series_data.get('articles', series_data) if isinstance(series_data, dict) else series_data
     validate_series(articles)
     resolve_article_fields(articles, sources_dir, series_meta,
@@ -15368,7 +15547,9 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     return SimpleNamespace(
         sd=sd, sources_dir=sources_dir, templates_dir=templates_dir,
         lang_dir=lang_dir, output_dir=output_dir, lang=lang,
-        language_file=language_file, typo_engine=typo_engine,
+        interface_dir=interface_dir, typography_dir=typography_dir,
+        language_file=language_file, language_pack=language_pack,
+        typo_engine=typo_engine,
         strings=strings, css=css, nav_js=nav_js, series_data=series_data,
         articles=articles, claim_articles=claim_articles,
         style_context=style_context, args=args,
@@ -16008,12 +16189,20 @@ def _watch_paths(series_dir, args):
     explicit language file may live outside all three directories. Directory
     entries are included so creating/removing an input wakes the first rebuild.
     """
-    sd, sources_dir, templates_dir, lang_dir, _, _, language_file = resolve_paths(
-        series_dir, args)
-    paths = {sd / 'series.json', sources_dir, templates_dir, lang_dir}
-    for root in (sources_dir, templates_dir, lang_dir):
+    (sd, sources_dir, templates_dir, lang_dir, interface_dir,
+     typography_dir, _, _, language_file) = resolve_paths(series_dir, args)
+    paths = {sd / 'series.json', sources_dir, templates_dir, lang_dir,
+             interface_dir, typography_dir}
+    for root in (sources_dir, templates_dir, lang_dir, interface_dir,
+                 typography_dir):
         if root.is_dir():
             paths.update(root.rglob('*'))
+    installed = _installed_language_root()
+    if installed is not None:
+        for root in (installed / 'interface', installed / 'typography'):
+            if root.is_dir():
+                paths.add(root)
+                paths.update(root.rglob('*'))
     if language_file:
         paths.add(Path(language_file))
     return sorted(paths, key=str)
@@ -16123,6 +16312,14 @@ def cmd_build(series_dir, args):
         'nav_js': ctx.nav_js,
         'strings': ctx.strings,
         'language_runtime': ctx.language_runtime,
+        'typography_rules': {
+            'default': ctx.language_pack.get('rules', []),
+            'tags': {
+                str(tag): (getattr(engine, 'rules_data', None)
+                           if engine is not None else None)
+                for tag, engine in sorted(ctx.lang_tag_engines.items())
+            },
+        },
         'lang': ctx.lang,
         'options': {
             name: args.get(name)
@@ -16620,13 +16817,15 @@ def audit_series_default_tag(series_data):
 
 
 def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
-                     language_file=None):
+                     language_file=None, interface_dir=None,
+                     typography_dir=None, series_dir=None):
     """Audits the slide-tag vocabulary without duplicating build validation.
 
     `build` must reject malformed tags; `audit` instead reports every bad
     token and keeps going so an author can fix a whole article in one pass.
     Language-pack references are similarly advisory here: built-in French and
-    English packs always exist, while other names need a file in `language/`.
+    English packs always exist, while other names need a typography source in
+    `typography/` or the legacy `language/` directory.
     """
     warnings = 0
     lang_tags = series_meta.get('lang_tags', {}) if series_meta else {}
@@ -16636,7 +16835,9 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
             return True
         if language_file and pack.casefold() == str(default_lang).casefold():
             return Path(language_file).exists()
-        return bool(lang_dir and (Path(lang_dir) / f'{pack}.json').exists())
+        sources = _language_source_paths(
+            pack, lang_dir, interface_dir, typography_dir, series_dir)
+        return sources.typography is not None
 
     missing_packs = {}
     for tag, pack in lang_tags.items():
@@ -16644,7 +16845,7 @@ def audit_slide_tags(filename, slides, series_meta, lang_dir, default_lang,
             missing_packs[tag] = pack
             log('warn', f'{filename}: series_meta.lang_tags tag '
                         f'{tag!r} points to missing language pack {pack!r} in '
-                  f'language/.')
+                  f'typography/ (or legacy language/).')
             warnings += 1
 
     for number, slide in enumerate(slides, 1):
@@ -17169,7 +17370,9 @@ def cmd_audit(series_dir, args):
     """
     _AUDIT_UNREADABLE.clear()
     try:
-        sd, sources_dir, templates_dir, lang_dir, output_dir, lang, language_file = resolve_paths(series_dir, args)
+        (sd, sources_dir, templates_dir, lang_dir, interface_dir,
+         typography_dir, output_dir, lang, language_file) = resolve_paths(
+             series_dir, args)
     except SystemExit:
         # Path resolution is a build refusal, but `audit` is explicitly a
         # reporting command: a symlinked implicit root is itself a finding,
@@ -17290,7 +17493,8 @@ def cmd_audit(series_dir, args):
         warnings += audit_article_tags(entry['page_source'], meta)
         warnings += audit_slide_tags(
             entry['page_source'], slides, series_meta, lang_dir, lang,
-            language_file)
+            language_file, interface_dir=interface_dir,
+            typography_dir=typography_dir, series_dir=sd)
 
         has_cover = any(s.slide_type == 'cover' for s in slides)
         if not has_cover:
@@ -17539,7 +17743,7 @@ def cmd_install(target_dir, args):
     # --force may replace existing files, but it must never follow an
     # attacker- or user-created symlink into another tree while doing so.
     for relative in (
-        'sources', 'templates', 'language', 'public',
+        'sources', 'templates', 'language', 'interface', 'typography', 'public',
         f'templates/{SETTINGS_FILENAME}',
         f'templates/{CUSTOM_CSS_FILENAME}', 'series.json',
         '.gitlab-ci.yml', 'lightwebpres', 'COPYING', 'COPYING.EXCEPTION',
@@ -17550,6 +17754,8 @@ def cmd_install(target_dir, args):
     _mkdir(td / 'sources', parents=True, exist_ok=True)
     _mkdir(td / 'templates', exist_ok=True)
     _mkdir(td / 'language', exist_ok=True)
+    _mkdir(td / 'interface', exist_ok=True)
+    _mkdir(td / 'typography', exist_ok=True)
     _mkdir(td / 'public', exist_ok=True)
 
     # The author's surface (§9 rewrite), and ONLY the author's surface:
@@ -17625,8 +17831,9 @@ def cmd_install(target_dir, args):
     progress(f'  sources/   — your .md files')
     progress(f'  templates/  — {SETTINGS_FILENAME} (uncomment a value to pin it),')
     progress(f'              {CUSTOM_CSS_FILENAME} (your own rules)')
-    progress(f'  language/   — empty: the typography rules and interface '
-             f'strings come from the executable')
+    progress(f'  interface/  — empty: UI strings come from the executable')
+    progress(f'  typography/ — empty: typography rules come from the executable')
+    progress(f'  language/   — empty legacy override directory')
     progress(f'  public/     — generated HTML (build output)')
     progress(f'  series.json — article list')
     if gitlab_ci:
@@ -17659,8 +17866,9 @@ def cmd_install(target_dir, args):
 # TEMPLATE SHOW / WRITE — the files the tool keeps
 # ============================================================================
 
-# The three files the executable owns, and no longer hands out. `init`
-# used to write all three into every series, byte for byte identical to
+# The executable-owned files, and no longer hands them out. `init`
+# used to write the navigation script and two unified packs into every series,
+# byte for byte identical to
 # what the executable already contained -- so the copy was never a
 # customisation, only a snapshot, and from then on the build used the
 # snapshot. A behaviour the tool fixed reached nobody who already had a
@@ -17677,21 +17885,40 @@ def cmd_install(target_dir, args):
 # commoner need -- what does the B key do -- and `show` serves it with no
 # series in play at all. Writing needs the LAYOUT, which is knowledge
 # this program has and its user does not: nav.js goes under templates/,
-# a pack under language/, and LWP_TEMPLATES_DIR / LWP_LANGUAGE_DIR can
-# move either. `show > file` would leave the path to the author, and a
+# split packs under their domain directories, and the corresponding LWP_*
+# variables can move either. `show > file` would leave the path to the author, and a
 # path one directory off is a file that sits there doing nothing, with
 # no error -- the silent no-op this codebase spends its time killing.
 # `write` makes the ACT explicit and the PATH the tool's business.
+def _split_language_template(raw, domain):
+    """Projects one embedded legacy pack into a B48 domain file."""
+    pack = json.loads(raw)
+    return json.dumps({
+        'lang': pack.get('lang'),
+        'name': pack.get('name'),
+        domain: pack.get(domain, {} if domain == 'strings' else []),
+    }, ensure_ascii=True, indent=2) + '\n'
+
+
 def tool_owned_files():
     """{filename: (contents, which directory it belongs in)}.
 
-    A closed set of three. `settings.conf` and `custom.css` are not in it
-    and must not be: they belong to the author, and `template update`
-    already creates them when they are missing."""
+    The legacy ``fr.json``/``en.json`` aliases remain available for existing
+    series. The split names are canonical for new work; ``settings.conf`` and
+    ``custom.css`` are not tool-owned because they belong to the author.
+    """
     return {
         'nav.js': (TEMPLATE_NAV_JS, 'templates'),
         'fr.json': (LANG_FR, 'language'),
         'en.json': (LANG_EN, 'language'),
+        'interface/fr.json': (_split_language_template(LANG_FR, 'strings'),
+                              'interface'),
+        'interface/en.json': (_split_language_template(LANG_EN, 'strings'),
+                              'interface'),
+        'typography/fr.json': (_split_language_template(LANG_FR, 'rules'),
+                              'typography'),
+        'typography/en.json': (_split_language_template(LANG_EN, 'rules'),
+                               'typography'),
     }
 
 
@@ -17722,7 +17949,7 @@ def cmd_template_show(name, args):
 def cmd_template_write(name, args, target_dir):
     """`template write <file> [dir]` — installs one tool-owned file where
     the build reads it, through the same path resolution the build uses
-    (LWP_TEMPLATES_DIR / LWP_LANGUAGE_DIR included), so what it writes
+    (LWP_TEMPLATES_DIR / the language-domain variables included), so what it writes
     cannot land somewhere the build ignores.
 
     It refuses to overwrite without --force, because an existing file at
@@ -17731,8 +17958,8 @@ def cmd_template_write(name, args, target_dir):
     B32: the trap was never the copy, it was that nobody knew they had
     one. Asked for by name and told the price, it is a choice."""
     contents, home = _tool_owned_or_die(name)
-    _sd, _articles, templates_dir, lang_dir, _out, _lang, _lf = resolve_paths(
-        target_dir, args)
+    (_sd, _articles, templates_dir, lang_dir, interface_dir,
+     typography_dir, _out, _lang, _lf) = resolve_paths(target_dir, args)
     # An existing series, or nothing. Without this the command cheerfully
     # scaffolds a lone templates/nav.js in an empty directory and then
     # announces that the build will use it -- a promise about a build
@@ -17744,8 +17971,15 @@ def cmd_template_write(name, args, target_dir):
             f'`lightwebpres init` there first, or `template show {name}` '
             f'if you only want to read the file.')
         sys.exit(1)
-    dest_dir = templates_dir if home == 'templates' else lang_dir
-    dest = dest_dir / name
+    if home == 'templates':
+        dest_dir = templates_dir
+    elif home == 'language':
+        dest_dir = lang_dir
+    elif home == 'interface':
+        dest_dir = interface_dir
+    else:
+        dest_dir = typography_dir
+    dest = dest_dir / Path(name).name
     if dest.exists() and not args.get('--force'):
         log('error', f'{dest} already exists. Pass --force to replace it '
             f'(there is no backup: use `template show {name}` to compare '
@@ -17794,8 +18028,8 @@ def cmd_refresh_templates(target_dir, args):
     # LWP_LANGUAGE_DIR -- one function reading one of the two variables,
     # which is worse than reading neither: it works until the day someone
     # moves the other directory.
-    _sd, _articles, templates_dir, lang_dir, _out, _lang, _lf = resolve_paths(
-        target_dir, args)
+    (_sd, _articles, templates_dir, lang_dir, interface_dir,
+     typography_dir, _out, _lang, _lf) = resolve_paths(target_dir, args)
     if not templates_dir.is_dir():
         log('error', f'{templates_dir} not found. Run init first.')
         sys.exit(1)
@@ -17873,7 +18107,8 @@ def cmd_refresh_templates(target_dir, args):
     # the author added.
     removed, kept = [], []
     nav_path = templates_dir / 'nav.js'
-    if nav_path.exists():
+    if _optional_contained_file(templates_dir, 'nav.js',
+                                'templates/nav.js') is not None:
         old_nav = read_text_file(nav_path)
         if old_nav == TEMPLATE_NAV_JS:
             _remove(nav_path)
@@ -17891,20 +18126,29 @@ def cmd_refresh_templates(target_dir, args):
                            'templates/nav.js.bak)')
             _remove(nav_path)
 
-    for pack_name, builtin in sorted({'fr.json': LANG_FR,
-                                      'en.json': LANG_EN}.items()):
-        pack_path = lang_dir / pack_name
-        if not pack_path.exists():
-            continue
-        if read_text_file(pack_path) == builtin:
-            _remove(pack_path)
-            removed.append(f'language/{pack_name} (was identical to the '
-                           f'built-in pack)')
-        else:
-            kept.append(f'language/{pack_name} — differs from the built-in '
-                        f'pack, so it may be yours. Compare with '
-                        f'`lightwebpres template show {pack_name}`, then '
-                        f'delete it to follow the tool again.')
+    owned = tool_owned_files()
+    for home, directory in (
+        ('language', lang_dir),
+        ('interface', interface_dir),
+        ('typography', typography_dir),
+    ):
+        for pack_name in ('fr.json', 'en.json'):
+            canonical_name = (pack_name if home == 'language'
+                              else f'{home}/{pack_name}')
+            pack_path = directory / pack_name
+            if _optional_contained_file(directory, pack_name,
+                                        canonical_name) is None:
+                continue
+            builtin = owned[canonical_name][0]
+            if read_text_file(pack_path) == builtin:
+                _remove(pack_path)
+                removed.append(f'{canonical_name} (was identical to the '
+                               f'built-in pack)')
+            else:
+                kept.append(f'{canonical_name} — differs from the built-in '
+                            f'pack, so it may be yours. Compare with '
+                            f'`lightwebpres template show {canonical_name}`, '
+                            f'then delete it to follow the tool again.')
 
     # Past tense only when it happened. --dry-run journals every write
     # and removal through the helpers, and a summary saying "Removed"
@@ -18314,7 +18558,8 @@ def cmd_series_slug(series_dir, args):
     if fmt not in ('text', 'json'):
         log('error', f'Unknown --format: {fmt!r}. Valid values: text, json')
         sys.exit(1)
-    sd, sources_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
+    sd, sources_dir, _t, _legacy, _interface, _typography, _o, _l, _lf = resolve_paths(
+        series_dir, args)
     series_data = load_series_data(sd)
     articles = (series_data.get('articles', series_data)
                 if isinstance(series_data, dict) else series_data)
@@ -18381,7 +18626,8 @@ def cmd_assign_slug(series_dir, args):
     Never touches a card that already has one — including a `slug:` line
     the author left empty, which is a decision in progress, not an
     absence. `--dry-run` says what it would write and writes nothing."""
-    sd, sources_dir, _t, _o, _l, _lf, _n = resolve_paths(series_dir, args)
+    sd, sources_dir, _t, _legacy, _interface, _typography, _o, _l, _lf = resolve_paths(
+        series_dir, args)
     series_data = load_series_data(sd)
     articles = (series_data.get('articles', series_data)
                 if isinstance(series_data, dict) else series_data)
@@ -18562,7 +18808,8 @@ def series_theme(templates_dir):
 
 def _load_series_report_context(series_dir, args):
     """Loads the resolved article collection shared by read-only reports."""
-    sd, sources_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
+    (sd, sources_dir, templates_dir, _legacy, _interface, _typography,
+     _, _, _) = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     articles = (series_data.get('articles', series_data)
@@ -19169,7 +19416,8 @@ def cmd_resolve(series_dir, name, args):
               f'field, one with a hyphen a slide field (§20.0).')
         sys.exit(1)
 
-    sd, sources_dir, templates_dir, _, _, _, _ = resolve_paths(series_dir, args)
+    (sd, sources_dir, templates_dir, _legacy, _interface, _typography,
+     _, _, _) = resolve_paths(series_dir, args)
     series_data = load_series_data(sd)
     series_meta = series_meta_of(series_data)
     articles = (series_data.get('articles', series_data)
@@ -19881,13 +20129,13 @@ COMMANDS
     Renders the series in memory and reports everything worth a second
     look (never blocking unless --strict)
   lightwebpres template update [directory] [--scaffold]
-    Removes the tool's own files from the series — nav.js and the language
-    packs live in this executable and are used from it — and creates a
-    missing settings.conf or custom.css (see §9.4.3)
-  lightwebpres template show <nav.js|fr.json|en.json>
+    Removes the tool's own files from the series — nav.js, interface packs
+    and typography packs live in this executable and are used from it — and
+    creates a missing settings.conf or custom.css (see §9.4.3)
+  lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
     Prints one of the files this executable owns, on stdout. Needs no
     series: the answer is inside the program (see §9.4.5)
-  lightwebpres template write <nav.js|fr.json|en.json> [directory] [--force]
+  lightwebpres template write <nav.js|fr.json|en.json|interface/...|typography/...> [directory] [--force]
     Installs one of them where the build reads it, to be modified. The
     build then uses your copy and stops following the tool's fixes, and
     says so on every run (see §9.4.5)
@@ -20008,8 +20256,8 @@ OPTIONS
   --gitlab-ci
     init: also write a .gitlab-ci.yml pipeline (opt-in)
   --language-file path
-    build/verify: use this language pack file instead of
-    language/<lang>.json (highest priority, spec §19.5)
+    build/verify: use this unified language pack instead of split or legacy
+    files (highest priority, spec §19.5)
   --no-typography
     build/verify/watch: disables ALL typography rules for this run
   --only file
@@ -20126,11 +20374,13 @@ SETTINGS (templates/settings.conf, see specifications.md §9)
 ENVIRONMENT VARIABLES
   LWP_SOURCES_DIR    Articles directory (default: $LWP_SERIES_DIR/sources)
   LWP_TEMPLATES_DIR   Templates directory (default: $LWP_SERIES_DIR/templates)
+  LWP_INTERFACE_DIR   Interface packs (default: $LWP_SERIES_DIR/interface)
+  LWP_TYPOGRAPHY_DIR  Typography packs (default: $LWP_SERIES_DIR/typography)
   LWP_OUTPUT_DIR      Output directory (default: $LWP_SERIES_DIR/public)
   LWP_LANG            Language (default: fr)
   LWP_SERIES_DIR      Series directory (default: .) — used when no
-                      [directory] argument is given
-  LWP_LANGUAGE_DIR    Language directory (default: $LWP_SERIES_DIR/language)
+                       [directory] argument is given
+  LWP_LANGUAGE_DIR    Legacy unified packs (default: $LWP_SERIES_DIR/language)
 
 SERIES DIRECTORY
   Written by `init`:
@@ -20139,14 +20389,17 @@ SERIES DIRECTORY
                         article); put images in sources/img/ and the build
                         copies them to public/img/
   templates/            settings.conf (your pinned values) and custom.css
-                        (your rules) — those two are yours, and nothing but
-                        you ever writes them
-  language/             Created empty. The typography rules and the interface
-                        strings live in this executable and are read from it;
-                        a pack you put here overrides it for that language,
-                        partially (missing keys fall back to the built-in
-                        pack). `template write fr.json .` puts the built-in
-                        one here to start from
+                         (your rules) — those two are yours, and nothing but
+                         you ever writes them
+  interface/            Created empty. Interface strings live in this
+                         executable; `template write interface/fr.json .`
+                         puts a split copy here to start from
+  typography/           Created empty. Typography rules live in this
+                         executable; `template write typography/fr.json .`
+                         puts a split copy here to start from
+  language/             Created empty for legacy unified overrides. A
+                         `language/fr.json` file remains supported, but split
+                         files win in their own domain
   public/               Where the build writes (do not edit by hand)
   lightwebpres          Copy of the executable itself, for standalone use
   COPYING               GPLv3, and COPYING.EXCEPTION beside it — the copy
@@ -20233,7 +20486,7 @@ NOTES (specifications.md §6.5)
   so it ships as literal text).
 
 TYPOGRAPHY (non-breaking spaces) — this alters generated content, see specifications.md §7/§19
-  The built-in French pack (language/fr.json) inserts a non-breaking space
+  The built-in French typography pack inserts a non-breaking space
   automatically in generated HTML: before ; : ! ? and %, after an opening «,
   between groups of 3 digits in a number the source already spaces out
   (e.g. "170 000"), between a number and million(s)/milliard(s)/dollar(s)/$,

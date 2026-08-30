@@ -48,7 +48,8 @@ install**: one file, nothing beyond the Python standard library,
 no wheel, no lockfile, no network at build time — any image with
 `python3` in it can run it. And **every path is an environment
 variable** (`LWP_SERIES_DIR`, `LWP_SOURCES_DIR`, `LWP_OUTPUT_DIR`,
-`LWP_TEMPLATES_DIR`, `LWP_LANGUAGE_DIR`, `LWP_LANG`), so a pipeline can
+`LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`,
+`LWP_LANGUAGE_DIR`, `LWP_LANG`), so a pipeline can
 lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
@@ -86,7 +87,8 @@ xdg-open my-series/public/index.html         # `open` on macOS
 
 `init` scaffolds a working project — `sources/` (empty, for your `.md`
 files), `templates/` (your customization surface: `settings.conf` and
-`custom.css`, see section 5), an empty `language/`, an empty `public/`
+`custom.css`, see section 5), empty `interface/`, `typography/` and legacy
+`language/` directories, an empty `public/`
 for the build to write into, a starter `series.json`, and a copy of the
 `lightwebpres` executable itself with its `COPYING` and
 `COPYING.EXCEPTION` beside it, so the project directory is self-sufficient
@@ -96,8 +98,10 @@ What it does *not* scaffold is the tool's own files — the navigation
 script and the typography/interface language packs. Those live inside the
 executable and are read from there, so a fix in a new version reaches
 your series the moment you upgrade. You can still have them: `template
-show nav.js` prints one, `template write nav.js` installs one to modify
-(section 7).
+show nav.js` prints the script, while `template show interface/fr.json` and
+`template show typography/fr.json` print the canonical language domains;
+the corresponding `template write` commands install copies to modify
+(section 7). `fr.json` and `en.json` remain available as legacy unified names.
 
 **Language has two layers.** Both packs are always inside the executable.
 Without an explicit `--lang` or `LWP_LANG`, the built page lets the browser
@@ -284,7 +288,8 @@ For language-specific typography, map tags to packs in `series_meta`:
 The first mapped language tag on a slide selects its typography pack. A slide
 without a mapped language tag uses the build's `--lang`/`LWP_LANG` fallback.
 The built-in `fr` and `en` packs come from the executable; another pack name
-refers to `language/<name>.json` in your series. The browser locale does not
+refers to `typography/<name>.json`, or to the legacy
+`language/<name>.json`, in your series. The browser locale does not
 change this typography choice. `audit` reports invalid tags and missing packs
 without blocking, while `build` rejects malformed declarations.
 
@@ -568,7 +573,8 @@ mention them again. A build's `--include-drafts` has no counterpart here
 and needs none: work in progress is exactly what an authoring tool should
 be looking at, and a fault that only shows once a page is composed is no
 less real on a draft. And what only **composing** can say: a missing
-language pack, fields you wrote on a cover that a cover never renders —
+language pack (looked up in `typography/` or legacy `language/`), fields you
+wrote on a cover that a cover never renders —
 and, when the render cannot finish at all, the fact that no page would be
 produced. It still never fails on its own: exit 0 every time, even then.
 Pass `--strict` and every one of those becomes a non-zero exit; that is
@@ -629,15 +635,15 @@ into the chain.
 
 `lightwebpres` is a single file you copy into each project (`init` does
 this). Dropping in a newer copy is the whole upgrade: the stylesheet is
-composed in memory at every build, the navigation script and the language
-packs are read out of the executable, and your `settings.conf` and
+composed in memory at every build, the navigation script and the split
+language packs are read out of the executable, and your `settings.conf` and
 `custom.css` are yours — never touched. Your theme choice needs no
 reapplying either: it's the `theme:` line of `settings.conf`, which an
 upgrade cannot revert.
 
 That leaves one thing an upgrade cannot reach: a copy of a tool-owned
 file sitting in your series. `template write` puts one there, and a
-series scaffolded before v0.40.0 was given three without being asked.
+series scaffolded before v0.40.0 was given tool-owned copies without being asked.
 Such a copy is used in preference to the executable's own, so it keeps
 whatever behaviour it was frozen with — and a build warns when it differs
 from the built-in version, at warning level, so `--quiet` doesn't silence
@@ -651,12 +657,13 @@ says `differs` and uses your file either way.
 That is the command that clears them. A copy identical to the built-in
 one is removed — it was doing nothing but freezing you. A `nav.js` that
 differs is saved as `nav.js.bak` and removed, so you keep your version
-and the build follows the tool again. A language pack that differs is
-left alone and reported: its `rules` replace the base set wholesale, so
-overwriting it would erase whatever you added — compare with `template
-show fr.json` and delete it when you're ready. A pack for a language the
-tool doesn't ship — `de.json`, say — is your work, and nothing is said
-about it.
+and the build follows the tool again. A split pack that differs is left
+alone and reported: typography `rules` replace the base set wholesale while
+interface `strings` are merged key by key, so compare with `template show
+interface/fr.json` or `template show typography/fr.json` before deleting it.
+The legacy unified `fr.json`/`en.json` names remain supported. A pack for a
+language the tool doesn't ship — `de.json`, say — is your work, and nothing
+is said about it.
 
 `--scaffold` additionally regenerates `settings.conf`'s commented block
 against the current theme and the current property registry, keeping

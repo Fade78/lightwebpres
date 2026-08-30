@@ -69,9 +69,9 @@
 
 18.1 Template `page.html` · 18.2 Template `index.html` · 18.3 Fragments de la slide series-nav · 18.4 Règles de remplacement
 
-**§19. Schéma du fichier de langue (`fr.json`)**
+**§19. Schémas des packs de langue**
 
-19.1 Structure du fichier · 19.2 Champs · 19.3 Règles d'application · 19.4 Fichier `en.json` (anglais) · 19.5 Packs par défaut embarqués dans l'exécutable · 19.6 Désactivation complète (`--no-typography`)
+19.1 Structure des fichiers · 19.2 Champs · 19.3 Règles d'application · 19.4 Pack `en` (anglais) · 19.5 Packs par défaut embarqués dans l'exécutable · 19.6 Désactivation complète (`--no-typography`)
 
 **§20. Schéma formel de `series.json`**
 
@@ -387,10 +387,16 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   └── nav.js                     # ABSENT par défaut — le JS de navigation vient de
 │                                  # l'exécutable ; `template write nav.js` en pose une
 │                                  # copie pour qui veut le modifier (§9.4.5)
-├── language/                       # VIDE par défaut — les règles typographiques et le
-│   │                               # vocabulaire d'interface viennent de l'exécutable
-│   ├── fr.json                    # posé par `template write fr.json` seulement
-│   └── en.json                    # (ou un pack de langue que l'outil ne livre pas)
+├── interface/                      # VIDE par défaut — les chaînes d'interface
+│   │                               # viennent de l'exécutable
+│   ├── fr.json                    # posé par `template write interface/fr.json`
+│   └── en.json
+├── typography/                     # VIDE par défaut — les règles typographiques
+│   │                               # viennent de l'exécutable
+│   ├── fr.json                    # posé par `template write typography/fr.json`
+│   └── en.json
+├── language/                       # VIDE par défaut — compatibilité avec les
+│                                   # anciens packs unifiés
 ├── public/                        # Le HTML généré (output du build)
 │   ├── index.html
 │   ├── avant_propos.html
@@ -417,9 +423,18 @@ série.
 | `LWP_SERIES_DIR`      | `.` (le répertoire courant) | Le répertoire de la série           |
 | `LWP_SOURCES_DIR`     | `$LWP_SERIES_DIR/sources` | Les fichiers `.md` des articles     |
 | `LWP_TEMPLATES_DIR`   | `$LWP_SERIES_DIR/templates` | Les templates HTML/CSS/JS           |
-| `LWP_LANGUAGE_DIR`    | `$LWP_SERIES_DIR/language`  | Règles typographiques + chaînes d'interface (.json) |
+| `LWP_INTERFACE_DIR`   | `$LWP_SERIES_DIR/interface` | Packs de chaînes d'interface (`{lang}.json`) |
+| `LWP_TYPOGRAPHY_DIR`  | `$LWP_SERIES_DIR/typography` | Packs de règles typographiques (`{lang}.json`) |
+| `LWP_LANGUAGE_DIR`    | `$LWP_SERIES_DIR/language`  | Anciens packs unifiés (`{lang}.json`), compatibilité |
 | `LWP_OUTPUT_DIR`      | `$LWP_SERIES_DIR/public`    | Le répertoire de sortie du build    |
-| `LWP_LANG`            | `fr`                        | La langue (`fr`, `en`, ou toute autre avec un fichier `language/{lang}.json`) |
+| `LWP_LANG`            | `fr`                        | La langue (`fr`, `en`, ou toute autre avec un pack split ou legacy) |
+
+En complément des chemins de série, un exécutable installé sous la forme
+réelle `<préfixe>/bin/lightwebpres` peut lire les ressources partagées
+`<préfixe>/share/lightwebpres/interface/{lang}.json` et
+`<préfixe>/share/lightwebpres/typography/{lang}.json`. Cette recherche FHS ne
+s'applique ni à une copie autonome posée dans une série, ni au runtime
+Pyodide : dans ces deux cas, les packs intégrés restent la base ultime.
 
 ### 2.4 Options en ligne de commande
 
@@ -486,8 +501,8 @@ lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography
 lightwebpres verify [répertoire] [--lang fr] [--output public/] [--language-file chemin.json] [--no-typography] [--include-drafts] [--no-nav] [--scroll-duration milliseconds] [--themes selectors|all] [--no-essential-theme]
 lightwebpres audit [répertoire] [--lang fr] [--strict] [--templates]
 lightwebpres template update [répertoire] [--scaffold]
-lightwebpres template show <nav.js|fr.json|en.json>
-lightwebpres template write <nav.js|fr.json|en.json> [répertoire] [--force]
+lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
+lightwebpres template write <nav.js|fr.json|en.json|interface/...|typography/...> [répertoire] [--force]
 lightwebpres theme list [--polarity light|dark] [--hue teinte] [--family nom]
 lightwebpres theme show [slug… | --all | répertoire] [--format text|json]   # sans cible : la série courante
 lightwebpres series theme [répertoire] [--format text|json]
@@ -509,7 +524,7 @@ lightwebpres --help
 - `--scaffold` : `template update` seulement — régénère la surface
   commentée de `settings.conf` aux valeurs du thème courant, en
   conservant les lignes épinglées (§9.4.3)
-- `--language-file` : fichier de langue explicite, priorité max sur toute autre source (§19.5)
+- `--language-file` : fichier de langue unifié explicite, priorité max sur les sources split et legacy (§19.5)
 - `--force` : `init` seulement — procède même si le répertoire cible n'est pas vide (`series theme set` n'a plus de `--force` : il ne réécrit que la ligne `theme:` de `settings.conf`, il n'y a plus rien à forcer — §11.10)
 - `--theme` : `init`/`series theme set` — applique une palette prédéfinie (§9.5)
 - `--polarity` / `--hue` / `--family` : `theme list` seulement — restreint la liste par facette (§9.5.2, §11.9)
@@ -1622,22 +1637,34 @@ sous `local` et parfaitement correct sous `page`) :
 
 ## 7. Langue (typographie et interface)
 
-Un **fichier de langue** (`language/{lang}.json`) regroupe tout ce qui dépend
-de la langue choisie (`--lang`) : les règles typographiques (§7.2) et le
-vocabulaire de l'interface (§7.3) — plutôt que deux mécanismes séparés, un
-seul fichier par langue.
+La langue choisie (`--lang`) a deux domaines physiques indépendants :
+`interface/{lang}.json` porte le vocabulaire de l'interface (§7.3), et
+`typography/{lang}.json` porte les règles typographiques (§7.2). Un ancien
+`language/{lang}.json` peut encore porter les deux domaines à la fois ; il
+reste une forme de compatibilité, pas la forme canonique.
 
 ### 7.1 Fichier de langue
 
-Les fichiers de langue sont des fichiers JSON séparés, un par langue.
-L'exécutable contient par défaut les packs pour le français (`fr`) et
-l'anglais (`en`) — l'anglais sert aussi de **repli ultime** pour toute
-langue demandée via `--lang` qui n'a ni pack intégré ni fichier
-`language/{lang}.json`.
+Les fichiers split sont des fichiers JSON séparés, un par domaine et par
+langue. L'exécutable contient par défaut les packs pour le français (`fr`) et
+l'anglais (`en`) — l'anglais sert aussi de **repli ultime** pour toute langue
+demandée via `--lang` qui n'a ni pack intégré ni source split ou legacy.
 
-Fichier `language/fr.json` — extrait du pack intégré, tel que
-`template write fr.json` le poserait (§9.4.5) : deux règles sur huit et
-trois chaînes sur les quarante-quatre.
+Fichier `interface/fr.json`, tel que `template write interface/fr.json` le
+poserait (§9.4.5) :
+
+```json
+{
+  "lang": "fr",
+  "name": "Français",
+  "strings": {
+    "nav_prev": "Planche précédente",
+    "nav_next": "Planche suivante"
+  }
+}
+```
+
+Fichier `typography/fr.json` :
 
 ```json
 {
@@ -1650,19 +1677,8 @@ trois chaînes sur les quarante-quatre.
       "pattern": " ([!?;:»])",
       "replacement": "\u00a0$1",
       "flags": "g"
-    },
-    {
-      "name": "nbsp_after_opening_quote",
-      "description": "Non-breaking space after «",
-      "pattern": "(«) ",
-      "replacement": "$1\u00a0",
-      "flags": "g"
     }
-  ],
-  "strings": {
-    "nav_prev": "Planche précédente",
-    "nav_next": "Planche suivante"
-  }
+  ]
 }
 ```
 
@@ -1683,7 +1699,8 @@ sont appliquées après la conversion Markdown → HTML.
 **Frontière de confiance.** `pattern` est compilé tel quel par le moteur
 d'expressions régulières Python (`re`), qui n'a pas de protection contre le
 temps d'exécution catastrophique d'un motif pathologique (ReDoS). Un fichier
-de langue (`language/*.json` ou `--language-file`) est donc une donnée
+de langue (`typography/*.json`, `language/*.json` ou `--language-file`) est
+donc une donnée
 **de confiance**, du même niveau que le code de l'exécutable lui-même ou
 qu'un fichier de configuration qu'on merge dans son propre dépôt — pas une
 donnée à traiter comme du contenu arbitraire non fiable. Une revue de code
@@ -1729,24 +1746,32 @@ d'aide (`help_*`), panneau présentateur (`presenter_*`), menu de tags
 
 ### 7.4 Override et repli
 
-L'utilisateur peut créer `language/fr.json`, `language/en.json`, ou tout
-autre `language/{lang}.json`, dans son répertoire de série pour override le
-pack par défaut — à la main, ou en partant d'une copie de l'intégré posée
-par `template write` (§9.4.5). Le comportement diffère entre les deux
-blocs :
+L'utilisateur peut créer `interface/fr.json` et `typography/fr.json`, ou
+leurs équivalents pour toute autre langue, dans son répertoire de série — à
+la main, ou en partant d'une copie de l'intégré posée par `template write`
+(§9.4.5). Les fichiers split ne doivent contenir que leur domaine : un
+fichier d'interface qui contient `rules`, ou un fichier de typographie qui
+contient `strings`, est une erreur fatale.
 
-- **`rules`** : remplacement total. Si le fichier **définit** `rules`, elles
-  remplacent entièrement les règles intégrées (l'ordre et les interactions
-  entre règles comptent, un remplacement partiel n'aurait pas de sens). La
-  condition porte sur la clé, pas sur le fichier : un `language/fr.json` qui
-  ne contient qu'un bloc `strings` conserve les huit règles intégrées, et
-  `"rules": []` les supprime toutes.
-- **`strings`** : repli clé par clé. Les clés absentes du fichier retombent
-  sur le pack intégré de la **même langue** — un override peut ne redéfinir
-  qu'une seule clé sans avoir à recopier tout le vocabulaire.
-- Si `--lang` désigne une langue sans pack intégré (ni `fr` ni `en`) et sans
-  fichier `language/{lang}.json`, le pack **anglais** intégré est utilisé
-  comme base.
+La résolution d'un domaine suit cette priorité, du plus fort au plus faible :
+
+1. `--language-file`, qui est un fichier unifié et surcharge les deux domaines
+2. la variable du domaine (`LWP_INTERFACE_DIR` ou `LWP_TYPOGRAPHY_DIR`)
+3. le répertoire split correspondant de la série
+4. `LWP_LANGUAGE_DIR` et le répertoire `language/` legacy
+5. les ressources FHS de l'installation, si l'exécutable réel est sous
+   `<préfixe>/bin/lightwebpres`
+6. le pack intégré, français ou anglais selon `--lang`
+
+La priorité est indépendante pour chaque domaine : un fichier
+`interface/fr.json` peut donc coexister avec les `rules` d'un ancien
+`language/fr.json`, et un `typography/fr.json` gagne seulement pour la
+typographie. Les **`rules`** du domaine retenu remplacent le tableau de base
+en bloc (l'ordre et les interactions comptent) ; l'absence de `rules` dans
+un fichier legacy conserve les règles de base. Les **`strings`** du domaine
+retenu sont fusionnées clé par clé sur les chaînes de base. Si `--lang`
+désigne une langue sans source pour l'un ou l'autre domaine, le pack anglais
+intégré sert de base pour ce domaine.
 
 ### 7.5 Règles insécables par défaut (`fr`)
 
@@ -1796,7 +1821,7 @@ suivant un nombre : un mot ordinaire comme « likes » dans « 68 likes »
 n'est pas une unité typographique reconnue — l'ajouter à la liste
 casserait la distinction avec un nombre suivi d'un nom commun ordinaire
 (« 5 personnes »). Cette liste, comme les autres règles, reste
-éditable dans `language/fr.json` (§7.4, §19.2) pour qui veut l'étendre.
+éditable dans `typography/fr.json` (§7.4, §19.2) pour qui veut l'étendre.
 
 Ces règles ne font **jamais** que remplacer une espace normale (U+0020)
 déjà présente par une espace insécable (U+00A0) : elles n'insèrent ni
@@ -2521,14 +2546,14 @@ feuille composée. Rien de tout cela n'atteint le disque : la feuille
 peut n'exister qu'en mémoire et reste intégralement consultable — elle
 est inlinée dans chaque page, il suffit d'en afficher la source.
 
-**Les trois fichiers, un propriétaire chacun :**
+**Les fichiers, un propriétaire chacun :**
 
 | Fichier | Propriétaire | Écrit par le système |
 |---|---|---|
 | feuille émise | le système | régénérée à chaque build, jamais sur disque |
 | `templates/settings.conf` | l'auteur | **jamais**, sauf demande explicite (`series theme set` réécrit la seule ligne `theme:`, §9.4.2) |
 | `templates/custom.css` | l'auteur | **jamais** (créé vide à l'init) |
-| `nav.js`, `language/*.json` | l'outil | **absents par défaut** — l'outil les garde en interne. `template write` en pose une copie sur demande, `template update` retire une copie identique à l'intégrée (§9.4.5) |
+| `nav.js`, `interface/*.json`, `typography/*.json`, `language/*.json` | l'outil | **absents par défaut** — l'outil les garde en interne. `template write` en pose une copie sur demande, `template update` retire une copie identique à l'intégrée (§9.4.5) |
 
 **C'est ce partage qui supprime l'appareillage.** Le marqueur de
 personnalisation, sa variante héritée, la recherche de sa première
@@ -2851,7 +2876,8 @@ absente du menu M.
 ### 9.4 Les commandes
 
 Le détail CLI (options, codes de sortie) est en §11 ; cette section fixe
-le **comportement** de chaque commande vis-à-vis des trois fichiers.
+le **comportement** de chaque commande vis-à-vis des fichiers appartenant à
+l'outil.
 `build` lui-même n'a pas de sous-section : il lit `settings.conf` (et
 avertit si un `templates/style.css` hérité traîne encore, §9.8), compose
 la feuille (§9.3), la recompose pour toute page portant des propriétés
@@ -2860,11 +2886,11 @@ propriété invalide.
 
 #### 9.4.1 `init --theme`
 
-`init` écrit les trois fichiers : `settings.conf` — le scaffold
+`init` écrit la surface de personnalisation : `settings.conf` — le scaffold
 complet du thème choisi, avec sa ligne `theme: <slug>` et son
 `# scaffold-for: <slug>` (sans `--theme` : pas de ligne `theme:` active,
 scaffold aux défauts intégrés) —, et `custom.css` (vide, §9.3.2). Il ne pose ni `nav.js`
-ni pack de langue : ceux-là appartiennent à l'outil et y restent
+ni pack de langue split ou unifié : ceux-là appartiennent à l'outil et y restent
 (§9.4.5). Aucune substitution dans du CSS : choisir
 un thème à l'init, c'est écrire un mot dans un fichier de données. Un
 slug inconnu est une erreur fatale qui liste les slugs valides.
@@ -2905,7 +2931,8 @@ marqueur, plus de `[SKIP]`.
 
 **Ce que la commande fait des fichiers de l'outil.** Depuis que l'outil
 les garde en interne (§9.4.5), `template update` **retire** de la série
-la copie de `nav.js` ou d'un pack de langue qui est identique à
+la copie de `nav.js`, d'un pack d'interface ou d'un pack de typographie qui
+est identique à
 l'intégrée. Le retrait est sans perte par construction : identique, la
 copie ne change rien au build sinon le côté d'où viennent les octets, et
 son seul effet restant est de figer la série le jour où l'exécutable
@@ -2919,10 +2946,11 @@ et celle qui se trompe détruit du travail. `nav.js` garde sa voie
 historique — sauvegardé en `templates/nav.js.bak`, puis retiré, ce qui
 donne le résultat que cette commande a toujours produit (le build fait
 tourner la navigation de l'outil, la version de l'auteur est conservée à
-côté) en n'ayant plus de copie qui repérimera. Un pack de langue est
-seulement **rapporté** : ses `rules` remplacent le jeu de base en bloc
-(§19.2), donc l'écraser effacerait ce que l'auteur y a ajouté ; le
-message nomme `template show <pack>` pour comparer.
+côté) en n'ayant plus de copie qui repérimera. Un pack d'interface ou de
+typographie est seulement **rapporté** s'il diffère : les chaînes sont un
+override clé par clé, mais les `rules` remplacent le jeu de base en bloc
+(§19.2), donc l'écraser effacerait ce que l'auteur y a ajouté ; le message
+nomme `template show <pack>` pour comparer.
 
 Quand il n'y a rien à faire — l'état normal d'une série saine — la
 commande le dit. Une commande qui n'imprimerait que « run build again »
@@ -2950,8 +2978,9 @@ fichier — préservée d'une régénération à la suivante, jamais
 silencieusement supprimée — avec un avertissement, car un build la
 rejetterait.
 
-**Ce que le build dit d'une copie périmée.** Deux fichiers de l'outil
-vivent dans la série et sont lus depuis le disque : `templates/nav.js` et
+**Ce que le build dit d'une copie périmée.** Les fichiers de l'outil qui
+vivent dans la série et sont lus depuis le disque sont `templates/nav.js`,
+`interface/*.json`, `typography/*.json` et, pour compatibilité,
 `language/*.json`. Le build les utilise tels qu'il les trouve — une
 personnalisation est respectée — et **avertit** (`[WARNING]`, donc jamais
 silencié par `--quiet`) quand l'un diffère de la version intégrée. Il ne
@@ -2959,17 +2988,17 @@ sait pas distinguer « périmé » de « personnalisé » : il ne connaît que
 « diffère », et c'est ce qu'il dit. L'avertissement sur `nav.js` nomme
 `template update` comme remède ; celui sur un pack de langue laisse le
 choix à l'auteur, parce que `rules` remplace le jeu de base en bloc
-(§19.2) et qu'écraser son pack effacerait ses règles.
+(§19.2) et qu'écraser son pack effacerait ses règles. Pour un pack
+d'interface, les chaînes sont fusionnées clé par clé.
 
 Le niveau est le fond de l'affaire. Un `[INFO]` disparaît sous `--quiet`,
 qui est exactement ce que lance une chaîne d'intégration : trois
 corrections de comportement livrées en v0.39.0 — le curseur, la sélection
 à la souris, la touche F sur l'index — n'ont atteint aucune série
 existante, et la seule ligne qui l'expliquait était celle que personne ne
-voyait. Un pack de langue, lui, ne disait rien du tout, sur aucune
-commande, alors qu'il porte les règles typographiques **et** les chaînes
-d'interface : un pack périmé garde en silence une vieille typographie et
-un vieux vocabulaire.
+voyait. Un pack de langue, lui, ne disait rien du tout, sur aucune commande,
+alors qu'il porte les règles typographiques **et** les chaînes d'interface :
+un pack périmé garde en silence une vieille typographie et un vieux vocabulaire.
 
 Un pack que l'outil ne livre pas (`de.json`) n'est pas périmé : c'est le
 travail de quelqu'un, et le build n'en dit rien.
@@ -3011,9 +3040,11 @@ cette visibilité est ce qui rend les littéraux dans le texte acceptables.
 
 #### 9.4.5 `template show` et `template write` : les fichiers que l'outil garde
 
-Trois fichiers appartiennent à l'exécutable : `nav.js`, `fr.json`,
-`en.json`. Ils vivent **dedans** et sont lus de là. La série n'en reçoit
-aucun.
+Les fichiers tool-owned appartiennent à l'exécutable : `nav.js`, les packs
+`interface/fr.json` et `interface/en.json`, et les packs
+`typography/fr.json` et `typography/en.json`. Les alias legacy
+`fr.json`/`en.json` restent disponibles pour les anciens projets. Tous vivent
+**dedans** et sont lus de là. La série n'en reçoit aucun par défaut.
 
 **Pourquoi ils n'y sont plus.** `init` les écrivait dans chaque série,
 octet pour octet identiques à ce que l'exécutable contenait déjà. La
@@ -3022,7 +3053,7 @@ que le build préférait ensuite à celui de l'exécutable. Une correction de
 l'outil n'atteignait personne qui avait déjà une série : trois
 corrections livrées en v0.39.0 n'ont touché aucune série existante
 (B32). L'autonomie n'en pâtit pas : `init` copie l'exécutable lui-même
-dans le répertoire (§11.1), et l'exécutable contient les trois fichiers.
+dans le répertoire (§11.1), et l'exécutable contient ces packs.
 L'archive, c'est l'exécutable ; les copies séparées n'y ajoutaient rien
 et retiraient de la justesse.
 
@@ -3035,8 +3066,9 @@ posé la question.
 
 **`template write <fichier> [répertoire]`** installe l'un d'eux là où le
 build le lit, par la **même résolution de chemins que le build**
-(`LWP_TEMPLATES_DIR` et `LWP_LANGUAGE_DIR` compris), pour que ce qu'il
-écrit ne puisse pas atterrir là où le build ne regarde pas. Les deux
+(`LWP_TEMPLATES_DIR`, `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR` et
+`LWP_LANGUAGE_DIR` compris), pour que ce qu'il écrit ne puisse pas atterrir
+là où le build ne regarde pas. Les deux
 commandes existent, et pas par symétrie : `show > fichier` laisserait le
 **chemin** à l'auteur, et un chemin à un répertoire près est un fichier
 posé là qui ne fait rien, sans erreur — le no-op silencieux que ce
@@ -3056,7 +3088,8 @@ Trois règles le distinguent de l'ancien `init` :
 3. **Il exige un nom de fichier.** Un `write` nu qui écrirait tout serait
    le comportement d'`init` restauré sous un autre nom.
 
-L'ensemble est **fermé et connu** : trois fichiers. `settings.conf` et
+L'ensemble est **fermé et connu** : `nav.js`, les deux alias legacy et les
+quatre noms split. `settings.conf` et
 `custom.css` n'en font pas partie et ne doivent pas en faire partie — ils
 sont à l'auteur, et `template update` les crée déjà s'ils manquent.
 Nommer autre chose est une erreur fatale qui énumère l'ensemble.
@@ -3980,8 +4013,8 @@ lightwebpres init [répertoire] [--lang fr] [--force] [--theme nom] [--gitlab-ci
 Crée la structure de travail dans `[répertoire]` :
 
 1. Crée le répertoire s'il n'existe pas
-2. Crée les sous-répertoires : `sources/`, `templates/`, `language/`,
-   `public/`
+2. Crée les sous-répertoires : `sources/`, `templates/`, `interface/`,
+   `typography/`, `language/`, `public/`
 3. Écrit la surface de personnalisation (§9.3, §9.4.1) :
    - `templates/settings.conf` — le scaffold complet : toutes les
      propriétés en commentaire à la valeur du thème choisi, avec la ligne
@@ -4510,8 +4543,8 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
    `tags:`, `audit` rapporte chaque jeton fautif et continue, pour qu'un
    article se corrige en une passe (§4.3.1) — et sur chaque **pack de
    langue** que `series_meta.lang_tags` désigne sans qu'il existe : `fr` et
-   `en` sont toujours là, tout autre nom veut un fichier dans `language/` ou
-   un `--language-file` (§20.5.1)
+    `en` sont toujours là, tout autre nom veut une source dans `typography/`
+    ou `language/`, ou un `--language-file` (§20.5.1)
 5. Avertit si l'article ne contient **aucune** fiche `cover`
 6. Avertit si la **première** fiche de l'article n'est pas une `cover`
 7. Avertit pour chaque **champ structurel portant du balisage Markdown**
@@ -4605,17 +4638,19 @@ Remet la série dans l'état où les fichiers de l'outil sont chez l'outil —
 voir §9.4.3 pour le raisonnement. Sous le modèle de feuille composée, la
 feuille est toujours fraîche par construction (elle vient de l'exécutable
 courant à chaque build) ; ce qui peut rester sur disque, c'est une copie
-de `nav.js` ou d'un pack de langue, prise à l'`init` d'une version
-antérieure ou par `template write` (§9.4.5).
+de `nav.js`, d'un pack d'interface, d'un pack de typographie ou d'un ancien
+pack unifié, prise par `template write` (§9.4.5).
 
 1. Erreur fatale si `templates/` n'existe pas (`init` pas encore fait)
-2. Une copie **identique** à celle de l'exécutable — `templates/nav.js`
-   comme `language/fr.json` ou `language/en.json` — est **retirée** :
+2. Une copie **identique** à celle de l'exécutable — `templates/nav.js`,
+   `interface/fr.json`, `typography/fr.json`, ou les anciens
+   `language/fr.json`/`language/en.json` — est **retirée** :
    sans perte, puisqu'elle ne change rien au build, et son seul effet
    restant serait de figer la série
 3. Une copie qui **diffère** : `templates/nav.js` est sauvegardé en
-   `templates/nav.js.bak` puis retiré ; un pack de langue est seulement
-   rapporté, ses `rules` remplaçant le jeu de base en bloc (§19.2)
+   `templates/nav.js.bak` puis retiré ; un pack d'interface ou de typographie
+   est seulement rapporté, les chaînes étant fusionnées clé par clé et ses
+   `rules` remplaçant le jeu de base en bloc (§19.2)
 4. S'il n'y a rien à faire — l'état normal — la commande le dit
 5. Crée les fichiers de la surface auteur s'ils **manquent** (série
    installée avant la refonte §9) : `templates/settings.conf` (scaffold
@@ -4645,8 +4680,8 @@ main.
 #### 11.6.1 `template show` et `template write`
 
 ```bash
-lightwebpres template show <nav.js|fr.json|en.json>
-lightwebpres template write <nav.js|fr.json|en.json> [répertoire] [--force]
+lightwebpres template show <nav.js|fr.json|en.json|interface/...|typography/...>
+lightwebpres template write <nav.js|fr.json|en.json|interface/...|typography/...> [répertoire] [--force]
 ```
 
 Les deux portes vers les fichiers que l'outil garde en interne. Le
@@ -4660,13 +4695,14 @@ Redirigeable (`> templates/nav.js`), mais c'est alors l'auteur qui répond
 du chemin, ce que `write` évite.
 
 **`write`** installe le fichier là où le build le lit, par
-`resolve_paths` — la fonction même du build, donc `LWP_TEMPLATES_DIR` et
-`LWP_LANGUAGE_DIR` sont honorés : `nav.js` sous `templates/`, un pack
-sous `language/`. Deux positionnels : le nom du fichier d'abord, le
+`resolve_paths` — la fonction même du build, donc `LWP_TEMPLATES_DIR`,
+`LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR` et `LWP_LANGUAGE_DIR` sont honorés :
+`nav.js` sous `templates/`, un pack sous son répertoire de domaine. Deux
+positionnels : le nom du fichier d'abord, le
 répertoire de série ensuite (par défaut `$LWP_SERIES_DIR`, sinon `.`).
 L'ordre est sans ambiguïté, l'ensemble des noms étant fermé.
 
-1. Nom absent ou hors de l'ensemble : erreur fatale qui énumère les trois
+1. Nom absent ou hors de l'ensemble : erreur fatale qui énumère les sept
 2. Répertoire qui n'est pas une série (pas de `templates/`) : erreur
    fatale. `write` pose un fichier dans une série existante, il n'en crée
    pas — sans ce refus, la commande fabriquait un `templates/nav.js`
@@ -5686,8 +5722,8 @@ build a déclaré, et le manifeste est la déclaration.
 lightwebpres watch [répertoire] [--lang fr] [--output public/] [--no-typography] [--no-nav] [--no-index] [--no-readme] [--drafts-only] [--open] [--slides-page-numbers on|off] [--serve] [--port 8000] [--themes selectors|all] [--no-essential-theme]
 ```
 
-Surveille les sources (articles, `series.json`, `templates/`,
-`language/`) et leurs descendants actuels, puis reconstruit à chaque
+Surveille les sources (articles, `series.json`, `templates/`, `interface/`,
+`typography/`, `language/`) et leurs descendants actuels, puis reconstruit à chaque
 changement. Les fichiers créés après le démarrage sont pris en compte au
 rebuild suivant. Un build initial est exécuté au démarrage. Une erreur de
 rebuild est affichée mais ne stoppe pas la surveillance : corriger le fichier
@@ -5795,7 +5831,7 @@ en le lançant, ce qu'aucune orthographe retirée ne survit.
 build(répertoire):
   1. series = read_json(répertoire/series.json)
   2. lang = --lang OU $LWP_LANG OU "fr" (défaut)
-  3. language = load_language(lang, --language-file)  # rules + strings, §19.5 pour l'ordre de priorité complet
+   3. language = load_language(lang, --language-file)  # vue de compatibilité rules + strings ; sources split/legacy/FHS, §19.5
   4. settings = parse_settings(répertoire/templates/settings.conf)  # §9.3.1 ; absent = couche vide
      css = compose_stylesheet(défauts ← thème(settings.theme) ← settings)  # §9.3 — en mémoire, jamais sur disque
            + read_file(répertoire/templates/custom.css)  # ajouté en dernier (§9.3.2)
@@ -6463,7 +6499,8 @@ la section, jamais en la croyant sur parole.
 - **`.css`** : `templates/custom.css` ajouté après la feuille composée
   (§9.3.2), le tout inliné dans `<style>` ✓
 - **`.js`** : inclus dans `<script>` ✓
-- **`.json`** : `series.json` et `language/*.json` lus et parsés ✓
+- **`.json`** : `series.json`, les packs `interface/*.json` et
+  `typography/*.json`, et les anciens `language/*.json` lus et parsés ✓
 
 ### 17.4 Toutes les pages calculées sont couvertes
 
@@ -6477,8 +6514,9 @@ la section, jamais en la croyant sur parole.
 - **HTML autonome** : CSS inline, JS inline ✓
 - **Idempotence** : pas de variable non déterministe ✓ (hors `--build-stamp`, opt-in et volontairement horodaté, §11.3.2)
 - **Pipeline GitLab CI** : Python 3.12, pas de dépendance externe ✓
-- **Langue** : typographie + chaînes d'interface dans des fichiers JSON
-  séparés par langue, `fr` et `en` intégrés par défaut, `en` en repli ultime ✓
+- **Langue** : typographie et chaînes d'interface dans des fichiers JSON
+  séparés par domaine et par langue, avec compatibilité des packs unifiés ;
+  `fr` et `en` intégrés par défaut, `en` en repli ultime ✓
 - **Édition par LLM** : format Markdown lisible et modifiable ✓
 - **Exécutable unique** : un seul fichier Python, pas de dépendance externe ✓
 - **Commandes séparées** ✓ — les noms se lisent à `--help`, qui les dérive
@@ -6598,7 +6636,7 @@ Placeholders :
 | `{{content}}` | Généré par le build | Sur un article : toutes les `<section class="slide">`. Sur l'index, le contenu est l'en-tête, l'intro et les cartes d'articles (§18.2) |
 | `{{body_class}}` | `index-page` pour l'index, vide pour les articles | Classe du `<body>` |
 | `{{js_nav}}` | `templates/nav.js` | Le JS de navigation (scroll, boutons, bouton de partage, encodeur QR) |
-| `{{str_KEY}}` | `language/{lang}.json` → `strings` | Chaîne d'interface (voir §7.3), remplacée dans `page.html` **et** dans `js_nav` une fois celui-ci chargé |
+| `{{str_KEY}}` | `interface/{lang}.json` → `strings` (ou `language/{lang}.json` legacy) | Chaîne d'interface (voir §7.3), remplacée dans `page.html` **et** dans `js_nav` une fois celui-ci chargé |
 | `{{meta_head}}` | `author`/`page_desc` résolus (§20.3.1) | Balises `<meta name="author">` et `<meta name="description">` (débalisées, échappées) — vides toutes deux = rien d'émis |
 | `{{page_footer}}` | `author`/`date`/`license` résolus (§20.3.1) | Pied de page éditorial (`<footer class="page-footer">`) — tout absent = rien d'émis |
 | `{{build_stamp}}` | `--build-stamp`/`--build-stamp-minimal` (§11.3.2) | Marqueur de fraîcheur du build, vide par défaut |
@@ -6718,14 +6756,49 @@ utilise la chaîne `series_nav_title`.
 
 ---
 
-## 19. Schéma du fichier de langue (`fr.json`)
+## 19. Schémas des packs de langue
 
-Le fichier de langue décrit deux choses indépendantes pour une langue donnée
-(§7) : les règles de remplacement de caractères à appliquer sur tout le
-texte généré (`rules`, des **expressions régulières** Python), et le
-vocabulaire fixe des templates par défaut (`strings`).
+Les packs décrivent deux choses indépendantes pour une langue donnée (§7) :
+les règles de remplacement de caractères à appliquer sur tout le texte
+généré (`rules`, des **expressions régulières** Python), et le vocabulaire fixe
+des templates par défaut (`strings`). La forme canonique les sépare dans
+`interface/{lang}.json` et `typography/{lang}.json`. La forme unifiée
+`language/{lang}.json`, ainsi que le fichier désigné par `--language-file`,
+reste acceptée comme frontière de compatibilité.
 
-### 19.1 Structure du fichier
+### 19.1 Structure des fichiers
+
+Les deux fichiers canoniques partagent seulement les métadonnées facultatives
+`lang` et `name` :
+
+```json
+{
+  "lang": "fr",
+  "name": "Français",
+  "strings": {
+    "nav_prev": "Planche précédente",
+    "copy_link": "Copier le lien"
+  }
+}
+```
+
+```json
+{
+  "lang": "fr",
+  "name": "Français",
+  "rules": [
+    {
+      "name": "nbsp_before_double_punctuation",
+      "pattern": " ([!?;:»])",
+      "replacement": "\u00a0$1",
+      "flags": "g"
+    }
+  ]
+}
+```
+
+Le bloc suivant est la forme **unifiée legacy** (`language/fr.json`) et reste
+documenté pour les projets existants et pour `--language-file` :
 
 ```json
 {
@@ -6804,27 +6877,34 @@ contenu réel embarqué dans l'exécutable.
 
 | Champ | Type | Obligatoire | Description |
 |-------|------|-------------|-------------|
-| `lang` | string | non* | Code de langue (ex. `fr`, `en`) |
-| `name` | string | non | Nom affichable (ex. « Français ») |
-| `rules` | array | non* | Liste des règles à appliquer, dans l'ordre |
+| `lang` | string | non* | Code de langue (ex. `fr`, `en`), commun aux deux domaines |
+| `name` | string | non | Nom affichable (ex. « Français »), commun aux deux domaines |
+| `rules` | array | non* | Liste des règles à appliquer, dans l'ordre ; autorisé dans `typography/{lang}.json` et les formes unifiées |
 | `rules[].name` | string | non | Nom court de la règle (pour le debug) |
 | `rules[].description` | string | non | Description humaine |
 | `rules[].pattern` | string | oui | Regex Python (sans délimiteurs) |
 | `rules[].replacement` | string | oui | Remplacement (avec `$1`, `$2` pour les groupes) |
 | `rules[].category` | string | non | Ce que la règle règle : `punctuation`, `dash`, `unit`, `thousands`, `operator`. C'est **ce qu'une désactivation nomme** (§4.5) — une règle sans catégorie n'appartient à aucun lot et n'est jamais éteinte par un `typo_*: off`, ce qui laisse valide un pack écrit avant ce champ |
 | `rules[].flags` | string | non | Flags regex, défaut `g`. Supportés : `g` (toutes les occurrences ; sans lui, seule la **première** occurrence par segment de texte est remplacée) et `i` (insensible à la casse). Tout autre caractère : erreur fatale |
-| `strings` | object | non | Chaînes d'interface, clé → valeur (voir §7.3 pour la liste des clés) |
+| `strings` | object | non | Chaînes d'interface, clé → valeur ; autorisé dans `interface/{lang}.json` et les formes unifiées (voir §7.3 pour la liste des clés) |
 
-\* Aucun champ n'est exigé d'un fichier de **surcharge** : un fichier
-chargé via `--language-file` ou `language/<lang>.json` est **fusionné**
-avec le pack embarqué de base (sélectionné par `--lang`, anglais si la
-langue n'est ni `fr` ni `en`). Sémantique : `rules` présent remplace les
-règles de base **en bloc** (absent = règles de base) ; `strings` est
-fusionné **clé par clé** par-dessus les chaînes de base (un fichier
-partiel ne définit que ce qu'il change) ; `lang`/`name` absents
-retombent sur le pack de base. Erreurs fatales : JSON invalide, racine
-non-objet, `rules` non-liste, `strings` non-objet, `--language-file`
-introuvable. Les packs embarqués, eux, portent évidemment tout.
+\* Aucun champ n'est exigé d'un fichier de **surcharge**. Un fichier
+`interface/{lang}.json` ne peut contenir que `strings` (avec `lang`/`name`
+facultatifs) ; un fichier `typography/{lang}.json` ne peut contenir que
+`rules` (avec `lang`/`name` facultatifs). `rules` dans un fichier d'interface,
+ou `strings` dans un fichier de typographie, est une erreur fatale. Les
+formes unifiées chargées via `--language-file` ou `language/<lang>.json` sont
+les seules à pouvoir porter les deux domaines.
+
+Chaque domaine est fusionné avec le pack embarqué de base (sélectionné par
+`--lang`, anglais si la langue n'est ni `fr` ni `en`). `rules` présent dans le
+fichier typographique retenu remplace les règles de base **en bloc** (absent =
+règles de base) ; `strings` est fusionné **clé par clé** par-dessus les
+chaînes de base (un fichier partiel ne définit que ce qu'il change) ;
+`lang`/`name` absents retombent sur le pack de base. Erreurs fatales : JSON
+invalide, racine non-objet, `rules` non-liste, `strings` non-objet, domaine
+interdit dans un fichier split, `--language-file` introuvable. Les packs
+embarqués, eux, portent évidemment tout.
 
 ### 19.3 Règles d'application
 
@@ -6890,7 +6970,7 @@ en cadratin, ne redresse une apostrophe droite, ne convertit `"` en
 guillemets. Ce sont des transformations de **contenu**, pas de mise en
 page : elles réécrivent ce que l'auteur a tapé, et un article déjà publié
 verrait son texte muter au build suivant. Un auteur qui les veut les
-ajoute dans son propre `language/<lang>.json` — le mécanisme de surcharge
+ ajoute dans son propre `typography/<lang>.json` — le mécanisme de surcharge
 (§19.2) est fait pour ça. À titre d'exemple, la promotion d'un trait
 d'union espacé, qui n'existe pas en français, en tiret d'incise :
 
@@ -6938,7 +7018,7 @@ d'union espacé, qui n'existe pas en français, en tiret d'incise :
    les articles : une classe négative bornée (`[^—–]*?`) est linéaire, un
    `.*` sous `DOTALL` ne l'est pas.
 
-### 19.4 Fichier `en.json` (anglais)
+### 19.4 Pack `en` (anglais)
 
 L'anglais porte les **deux règles de mise en page** sur les tirets
 (§19.3.1) et, en plus, **trois règles de langue** propres à l'anglais
@@ -6948,9 +7028,10 @@ L'anglais porte les **deux règles de mise en page** sur les tirets
 il n'a en revanche
 **pas** d'insécable avant `; : ! ? »`, pas de guillemets français `«`, pas
 de `%` espacé (l'anglais écrit `50%`), pas de séparateur de milliers par
-espace (l'anglais groupe par virgules). Il porte un bloc `strings` aussi
-complet que le français, puisque c'est lui qui sert de repli ultime
-(§7.1, §7.4) :
+espace (l'anglais groupe par virgules). Le domaine `interface/en.json` porte
+un bloc `strings` aussi complet que le français, puisque l'anglais sert de
+repli ultime (§7.1, §7.4). La forme unifiée ci-dessous montre la vue de
+compatibilité équivalente à `language/en.json` ou `--language-file` :
 
 ```json
 {
@@ -6987,23 +7068,32 @@ mise en page du §19.3.1 reste celle qu'un auteur de pack doit suivre.
 L'exécutable contient en interne les packs `fr` et `en` (règles + chaînes)
 sous forme de strings JSON, et **c'est de là qu'ils sont lus**. `init` ne
 les extrait pas : une copie dans la série serait identique à l'intégrée
-et ne saurait que figer la série (§9.4.5, B32).
+et ne saurait que figer la série (§9.4.5, B32). Les copies canoniques se
+demandent séparément — `template write interface/fr.json` ou
+`template write typography/fr.json` — tandis que `template write fr.json`
+reste la voie legacy unifiée.
 
-Qui veut les modifier les obtient en le demandant — `template write
-fr.json` pose la copie où le build la lira, ou `--language-file` désigne
-un fichier ailleurs. Un pack posé dans la série est un **override** : ses
-`rules` remplacent le jeu de base en bloc, ses `strings` sont fusionnées
-clé à clé (§7.4), et le build signale qu'il diffère de l'intégré à chaque
-exécution (§9.4.3).
+Au moment du build, chaque domaine est recherché indépendamment, dans cet
+ordre :
+1. `--language-file chemin/vers/fichier.json` (option CLI, priorité max pour
+   les deux domaines) — erreur fatale si le fichier n'existe pas
+2. `$LWP_INTERFACE_DIR/$LWP_LANG.json` pour les chaînes, ou
+   `$LWP_TYPOGRAPHY_DIR/$LWP_LANG.json` pour les règles
+3. `$LWP_SERIES_DIR/interface/$LWP_LANG.json` ou
+   `$LWP_SERIES_DIR/typography/$LWP_LANG.json`
+4. `$LWP_LANGUAGE_DIR/$LWP_LANG.json`, puis le fichier équivalent sous
+   `$LWP_SERIES_DIR/language/`, pour le domaine absent
+5. `<préfixe>/share/lightwebpres/interface/$LWP_LANG.json` ou
+   `typography/$LWP_LANG.json` si l'exécutable réel est
+   `<préfixe>/bin/lightwebpres`
+6. Le domaine du pack intégré à l'exécutable pour `$LWP_LANG` (`fr` ou `en`),
+   ou le domaine anglais si `$LWP_LANG` ne correspond à aucun pack connu
+   (repli ultime, §7.1)
 
-Au moment du build, le moteur charge le pack de langue depuis :
-1. `--language-file chemin/vers/fichier.json` (option CLI, priorité max) —
-   erreur fatale si le fichier n'existe pas
-2. `$LWP_LANGUAGE_DIR/$LWP_LANG.json` (variables d'environnement)
-3. `$LWP_SERIES_DIR/language/$LWP_LANG.json` (défaut)
-4. Le pack intégré à l'exécutable pour `$LWP_LANG` (`fr` ou `en`), ou le pack
-   anglais intégré si `$LWP_LANG` ne correspond à aucun pack connu (repli
-   ultime, §7.1)
+Un fichier posé dans la série est un **override** : ses `rules` remplacent le
+jeu de base en bloc, ses `strings` sont fusionnées clé à clé (§7.4), et le
+build signale à chaque exécution une copie tool-owned qui diffère de
+l'intégré (§9.4.3).
 
 ### 19.6 Désactivation complète (`--no-typography`)
 
@@ -7291,7 +7381,7 @@ utilisé). Ce tableau direct n'a pas de place pour la sélection runtime JSON.
 | `default_tag` | string | non | Tag sélectionné au premier affichage (`default` si absent). Un tag unique de l'espace de noms partagé; il doit être présent sur un article ou une slide non exclue sélectionnée pour le build (§4.3.1) |
 | `scroll_duration` | integer non négatif | non | Durée en millisecondes du glissé de navigation. `200` par défaut, `0` instantané ; `--scroll-duration` la surcharge pour un build, une vérification ou une surveillance (§8.4) |
 | `comment` | string | non | Note de relecture sur la série entière ; ignorée par le build (§4.6) |
-| `lang_tags` | object `{tag: pack}` | non | Déclare les tags qui sélectionnent un moteur typographique, par exemple `{"fr": "fr", "en": "en"}`. Les clés suivent la syntaxe de `tags:` ; les noms de packs sont des identifiants sûrs et désignent `language/<pack>.json` ou un pack intégré (§7.5) |
+| `lang_tags` | object `{tag: pack}` | non | Déclare les tags qui sélectionnent un moteur typographique, par exemple `{"fr": "fr", "en": "en"}`. Les clés suivent la syntaxe de `tags:` ; les noms de packs sont des identifiants sûrs et désignent `typography/<pack>.json`, un ancien `language/<pack>.json` ou un pack intégré (§7.5) |
 | `notes_placement` | `local` ou `page` | non | Emplacement des corps de notes ; cascade défaut → série → bloc meta de l'article (§6.5) |
 | `notes_tooltip` | `on` ou `off` | non | Ajoute le corps de la note à l'info-bulle de l'appel ; cascade comme `notes_placement` (§6.5) |
 | `slide_page_numbers` | booléen ou chaîne (`on`/`off`) | non | Active les numéros gravés des fiches ; la valeur de série est surchargée par le bloc meta de l'article ou par l'option de build (§3.3.5) |
@@ -7311,7 +7401,8 @@ langue utilise la langue par défaut du build (`--lang`, ou `LWP_LANG`) et les
 options `typo`, `typo_units` et `typo_thousands` restent prioritaires.
 
 Les packs `fr` et `en` sont intégrés. Tout autre nom est recherché comme un
-fichier `language/<pack>.json`. `audit` avertit si une déclaration
+fichier `typography/<pack>.json`, puis dans les packs legacy
+`language/<pack>.json`. `audit` avertit si une déclaration
 `lang_tags` pointe vers un pack absent et si une fiche utilise ce tag ; il ne
 bloque jamais le build, tandis que le build refuse une déclaration mal formée.
 

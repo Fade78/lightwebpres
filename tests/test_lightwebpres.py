@@ -355,8 +355,8 @@ class SlideTags(unittest.TestCase):
             data = {'series_meta': {'lang_tags': {'EN': 'en'}},
                     'articles': data['articles']}
             (root / 'series.json').write_text(json.dumps(data), encoding='utf-8')
-            (root / 'language').mkdir()
-            (root / 'language' / 'en.json').write_text(json.dumps({
+            (root / 'typography').mkdir()
+            (root / 'typography' / 'en.json').write_text(json.dumps({
                 'rules': [{'name': 'marker', 'pattern': 'English',
                            'replacement': 'ENGLISH'}],
             }), encoding='utf-8')
@@ -1378,6 +1378,231 @@ class LanguagePackMergeSemantics(unittest.TestCase):
             html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
             self.assertIn('Magnifique !', html)
             self.assertIn('Custom prev', html)
+
+
+class SplitLanguagePacks(unittest.TestCase):
+    """B48 keeps interface strings and typography rules independent."""
+
+    ARTICLE = (
+        '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+        'nav_title: A\nnav_desc: A\n---\n\n'
+        '<!-- lwp:slide:cover -->\nslug: b48\nkicker: T\n# Title\n'
+        'summary: Magnifique !\n'
+    )
+
+    def _build(self, tmp, interface=None, typography=None, legacy=None,
+               language_file=None):
+        root = scaffold(tmp, self.ARTICLE)
+        for directory, value in (
+                ('interface', interface), ('typography', typography),
+                ('language', legacy)):
+            if value is not None:
+                path = root / directory
+                path.mkdir(exist_ok=True)
+                (path / 'fr.json').write_text(json.dumps(value),
+                                               encoding='utf-8')
+        args = ['build', str(root), '--lang', 'fr',
+                '--output', str(root / 'public')]
+        if language_file is not None:
+            args.extend(['--language-file', str(language_file)])
+        result = run(*args)
+        return root, result
+
+    def test_interface_only_override_keeps_builtin_typography(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build(
+                tmp, interface={'strings': {'nav_prev': 'SPLIT-PREV'}})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="SPLIT-PREV"', html)
+            self.assertIn('Magnifique\xa0!', html)
+
+    def test_typography_only_override_keeps_builtin_interface(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build(tmp, typography={'rules': []})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="Planche précédente"', html)
+            self.assertIn('Magnifique !', html)
+            self.assertNotIn('Magnifique\xa0!', html)
+
+    def test_split_sources_win_independently_over_legacy_pack(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build(
+                tmp,
+                interface={'strings': {'nav_prev': 'SPLIT-PREV'}},
+                typography={'rules': []},
+                legacy={
+                    'strings': {'nav_prev': 'LEGACY-PREV'},
+                    'rules': [{'pattern': 'Magnifique !',
+                               'replacement': 'LEGACY-TYPO'}],
+                })
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="SPLIT-PREV"', html)
+            self.assertNotIn('LEGACY-PREV', html)
+            self.assertIn('Magnifique !', html)
+            self.assertNotIn('LEGACY-TYPO', html)
+
+    def test_legacy_pack_fills_the_domain_without_a_split_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build(
+                tmp,
+                interface={'strings': {'nav_prev': 'SPLIT-PREV'}},
+                legacy={'strings': {'nav_prev': 'LEGACY-PREV'},
+                        'rules': []})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="SPLIT-PREV"', html)
+            self.assertIn('Magnifique !', html)
+
+    def test_explicit_unified_file_wins_over_both_split_domains(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            explicit = Path(tmp) / 'explicit.json'
+            explicit.write_text(json.dumps({
+                'strings': {'nav_prev': 'EXPLICIT-PREV'}, 'rules': [],
+            }), encoding='utf-8')
+            root, result = self._build(
+                tmp,
+                interface={'strings': {'nav_prev': 'SPLIT-PREV'}},
+                typography={'rules': [{'pattern': 'Magnifique !',
+                                        'replacement': 'SPLIT-TYPO'}]},
+                language_file=explicit)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="EXPLICIT-PREV"', html)
+            self.assertIn('Magnifique !', html)
+            self.assertNotIn('SPLIT-TYPO', html)
+
+    def test_split_files_reject_the_other_domain(self):
+        for directory, value, forbidden in (
+                ('interface', {'strings': {}, 'rules': []}, 'rules'),
+                ('typography', {'rules': [], 'strings': {}}, 'strings')):
+            with self.subTest(directory=directory), tempfile.TemporaryDirectory() as tmp:
+                root = scaffold(tmp, self.ARTICLE)
+                path = root / directory
+                path.mkdir()
+                (path / 'fr.json').write_text(json.dumps(value),
+                                               encoding='utf-8')
+                result = run('build', str(root), '--lang', 'fr',
+                             '--output', str(root / 'public'))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f'{directory} pack', result.stderr)
+                self.assertIn(f'"{forbidden}"', result.stderr)
+
+    def test_domain_environment_directories_override_local_split_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build(
+                tmp,
+                interface={'strings': {'nav_prev': 'LOCAL-PREV'}},
+                typography={'rules': []})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            external_interface = Path(tmp) / 'external-interface'
+            external_typography = Path(tmp) / 'external-typography'
+            external_interface.mkdir()
+            external_typography.mkdir()
+            (external_interface / 'fr.json').write_text(json.dumps({
+                'strings': {'nav_prev': 'ENV-PREV'},
+            }), encoding='utf-8')
+            (external_typography / 'fr.json').write_text(json.dumps({
+                'rules': [{'pattern': 'Magnifique !',
+                           'replacement': 'ENV-TYPO'}],
+            }), encoding='utf-8')
+            result = run(
+                'build', str(root), '--lang', 'fr',
+                '--output', str(root / 'public'),
+                env={'LWP_INTERFACE_DIR': str(external_interface),
+                     'LWP_TYPOGRAPHY_DIR': str(external_typography)})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="ENV-PREV"', html)
+            self.assertNotIn('LOCAL-PREV', html)
+            self.assertIn('ENV-TYPO', html)
+
+    def test_fhs_and_split_files_keep_the_browser_payload_string_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, result = self._build(
+                tmp, interface={'strings': {'nav_prev': 'SPLIT-PREV'}},
+                typography={'rules': []})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            payload = re.search(
+                r'<script id="lwp-language-data" type="application/json">'
+                r'(.*?)</script>', html, re.S)
+            self.assertIsNotNone(payload)
+            data = json.loads(payload.group(1))
+            self.assertNotIn('rules', data['packs']['fr'])
+            self.assertEqual(data['packs']['fr']['strings']['nav_prev'],
+                             'SPLIT-PREV')
+
+
+class InstalledLanguagePacks(unittest.TestCase):
+    """An installed ``bin/lightwebpres`` may read its FHS data files."""
+
+    def test_fhs_packs_are_used_by_an_installed_executable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            prefix = root / 'prefix'
+            executable = prefix / 'bin' / 'lightwebpres'
+            interface = prefix / 'share' / 'lightwebpres' / 'interface'
+            typography = prefix / 'share' / 'lightwebpres' / 'typography'
+            executable.parent.mkdir(parents=True)
+            interface.mkdir(parents=True)
+            typography.mkdir(parents=True)
+            shutil.copy2(EXECUTABLE, executable)
+            executable.chmod(executable.stat().st_mode | 0o111)
+            (interface / 'fr.json').write_text(json.dumps({
+                'lang': 'fr', 'strings': {'nav_prev': 'FHS-PREV'},
+            }), encoding='utf-8')
+            (typography / 'fr.json').write_text(json.dumps({
+                'lang': 'fr', 'rules': [],
+            }), encoding='utf-8')
+            series = scaffold(
+                root / 'series', SplitLanguagePacks.ARTICLE)
+            result = subprocess.run(
+                [sys.executable, str(executable), 'build', str(series),
+                 '--lang', 'fr', '--output', str(series / 'public')],
+                capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT)
+            self.assertEqual(result.returncode, 0,
+                             result.stdout + result.stderr)
+            html = (series / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('title="FHS-PREV"', html)
+            self.assertIn('Magnifique !', html)
+            self.assertNotIn('Magnifique\xa0!', html)
+
+    def test_a_renamed_bin_executable_does_not_load_fhs_resources(self):
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            executable = root / 'prefix' / 'bin' / 'not-lightwebpres'
+            executable.parent.mkdir(parents=True)
+            (root / 'prefix' / 'share' / 'lightwebpres' /
+             'interface').mkdir(parents=True)
+            with mock.patch.object(lwp, '__file__', str(executable)):
+                self.assertIsNone(lwp._installed_language_root())
+
+    def test_watch_includes_installed_fhs_domain_files(self):
+        lwp = load_lightwebpres_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            executable = root / 'prefix' / 'bin' / 'lightwebpres'
+            executable.parent.mkdir(parents=True)
+            for domain in ('interface', 'typography'):
+                directory = (root / 'prefix' / 'share' / 'lightwebpres' /
+                             domain)
+                directory.mkdir(parents=True)
+                (directory / 'fr.json').write_text('{}', encoding='utf-8')
+            series = root / 'series'
+            series.mkdir()
+            with mock.patch.object(lwp, '__file__', str(executable)):
+                with mock.patch.dict(os.environ, {}, clear=True):
+                    paths = set(lwp._watch_paths(str(series), {}))
+            self.assertIn(root / 'prefix' / 'share' / 'lightwebpres' /
+                          'interface', paths)
+            self.assertIn(root / 'prefix' / 'share' / 'lightwebpres' /
+                          'interface' / 'fr.json', paths)
+            self.assertIn(root / 'prefix' / 'share' / 'lightwebpres' /
+                          'typography' / 'fr.json', paths)
 
 
 class EnglishTypographyPack(unittest.TestCase):
@@ -5940,6 +6165,24 @@ class IncrementalBuildOnly(unittest.TestCase):
             self.assertIn('data-lwp-scroll-duration="450"', b_after)
             self.assertIn('id="deck-k112"', b_after)
 
+    def test_only_with_changed_split_typography_rules_falls_back_to_full_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._build_series(tmp)
+            first = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(first.returncode, 0, first.stderr)
+            typography = root / 'typography'
+            typography.mkdir()
+            (typography / 'fr.json').write_text(json.dumps({
+                'rules': [],
+            }), encoding='utf-8')
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--only', 'a.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('nav/index-affecting metadata changed', result.stderr)
+            self.assertNotIn('Incremental build', result.stdout)
+            html = (root / 'public' / 'a.html').read_text(encoding='utf-8')
+            self.assertIn('Summary A.', html)
+
     def test_only_detects_a_newly_added_article_even_if_unrelated(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = self._build_series(tmp)
@@ -6147,6 +6390,8 @@ class InstallContent(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((root / 'series.json').exists())
             self.assertTrue((root / 'sources').is_dir())
+            self.assertTrue((root / 'interface').is_dir())
+            self.assertTrue((root / 'typography').is_dir())
             # The author surface, and ONLY the author surface: values and
             # rules. No style.css — the stylesheet is composed at build
             # time and owns no file. No nav.js and no language pack
@@ -6324,7 +6569,11 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
     doing nothing, silently. `write` makes the act explicit and the path
     the tool's business."""
 
-    OWNED = ('nav.js', 'fr.json', 'en.json')
+    OWNED = (
+        'nav.js', 'fr.json', 'en.json',
+        'interface/fr.json', 'interface/en.json',
+        'typography/fr.json', 'typography/en.json',
+    )
 
     def _series(self, tmp, *extra):
         root = Path(tmp) / 'series'
@@ -6405,8 +6654,10 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
                 self.assertEqual(r.returncode, 0, r.stderr)
                 self.assertEqual(
                     run('template', 'write', name, str(root)).returncode, 0)
-                written = (root / ('templates' if name.endswith('.js')
-                                   else 'language') / name)
+                home = ('templates' if name.endswith('.js')
+                        else ('language' if '/' not in name
+                              else name.split('/', 1)[0]))
+                written = root / home / Path(name).name
                 self.assertEqual(r.stdout,
                                  written.read_text(encoding='utf-8'), name)
             # And it wrote nothing of its own: the series above is the
@@ -6435,6 +6686,10 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
             self.assertTrue((root / 'templates' / 'nav.js').exists())
             self.assertTrue((root / 'language' / 'fr.json').exists())
             self.assertTrue((root / 'language' / 'en.json').exists())
+            self.assertTrue((root / 'interface' / 'fr.json').exists())
+            self.assertTrue((root / 'interface' / 'en.json').exists())
+            self.assertTrue((root / 'typography' / 'fr.json').exists())
+            self.assertTrue((root / 'typography' / 'en.json').exists())
             # And what it wrote is what the executable holds, so a fresh
             # copy raises no staleness warning.
             r = run('build', str(root), '--output', str(root / 'public'))
@@ -6570,6 +6825,10 @@ class TheToolKeepsItsOwnFilesAndHandsThemOverOnRequest(unittest.TestCase):
             self.assertFalse((root / 'templates' / 'nav.js').exists())
             self.assertFalse((root / 'language' / 'fr.json').exists())
             self.assertFalse((root / 'language' / 'en.json').exists())
+            self.assertFalse((root / 'interface' / 'fr.json').exists())
+            self.assertFalse((root / 'interface' / 'en.json').exists())
+            self.assertFalse((root / 'typography' / 'fr.json').exists())
+            self.assertFalse((root / 'typography' / 'en.json').exists())
             self.assertNotIn('nav.js.bak',
                              [p.name for p in (root / 'templates').iterdir()])
 
@@ -12485,7 +12744,7 @@ class HelpListsEveryAcceptedOption(unittest.TestCase):
                 'template write:',
                 'overwrite an existing tool-owned file',
                 'series tags/series slug/resolve: output',
-                'build/verify: use this language pack file'):
+                 'build/verify: use this unified language pack'):
             self.assertIn(needle, result.stdout, needle)
         self.assertIn('## Title', result.stdout)
 

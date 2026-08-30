@@ -160,8 +160,9 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
   Nothing to
   install: one file, the Python standard library only, no wheel, no
   lockfile, no network at build time, so any image with `python3` runs
-  it. Every path is an environment variable (`LWP_SERIES_DIR`,
-  `LWP_OUTPUT_DIR`, …), and `--only file` targets one article when the
+   it. Every path is an environment variable (`LWP_SERIES_DIR`,
+   `LWP_INTERFACE_DIR`, `LWP_TYPOGRAPHY_DIR`, `LWP_OUTPUT_DIR`, …), and
+   `--only file` targets one article when the
   navigation cache is safe, while refreshing derived outputs; otherwise it
   falls back to a full build. The Markdown can come from anywhere — a CMS
   export, a database, a generator, an agent upstream — but see the trust
@@ -382,13 +383,13 @@ the series or within one article.
 
 | Command | What it does |
 |---|---|
-| `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, an empty `language/`, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script, the language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
+| `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, empty `interface/`, `typography/` and legacy `language/` directories, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script and language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field |
 | `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` and `--no-essential-theme` decision used by the build |
 | `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
-| `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, a differing language pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
-| `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json` — on stdout. No series needed: the answer is inside the program |
+| `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, and a differing interface or typography pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
+| `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json`, `interface/fr.json`, `interface/en.json`, `typography/fr.json`, `typography/en.json` — on stdout. No series needed: the answer is inside the program |
 | `template write <file> [dir]` | Installs one of them where the build reads it, to be modified. The build then prefers your copy to the built-in one and warns on every run that it no longer follows the tool's fixes — at warning level, so `--quiet` keeps it. `--force` to replace an existing file |
 | `theme list` | Lists the built-in color themes with their facets; `--family`/`--polarity`/`--hue` narrow the list |
 | `theme show <slug>` | Describes one theme — palette, fonts, facets, and the WCAG contrast level it actually reaches, measured, per category. `--format json` for machines |
@@ -401,7 +402,7 @@ the series or within one article.
 | `series theme set [dir] --theme X` | Changes an existing series' theme by rewriting the one `theme:` line of `templates/settings.conf`; your pinned values stay and apply on top |
 | `theme gallery [path]` | Generates a self-contained HTML page previewing every built-in color theme — one row per theme, four panels across (cover, card with a note, notes section, full article) — with facet filters (default: `themes-gallery.html`) |
 | `clean [dir]` | Purges orphan files from `public/` using the build manifest (dry-run by default, `--force` to actually remove) |
-| `watch [dir]` | Polls `series.json`, sources, templates and language packs (including their current descendants), rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
+| `watch [dir]` | Polls `series.json`, sources, templates, split interface/typography packs and legacy language packs (including their current descendants), rebuilds on change, notices files created after startup, and keeps watching after a failed rebuild; optionally serves on `127.0.0.1` (`--serve`, `--port 8000`) |
 | `completion --shell bash\|zsh` | Prints a shell completion script — install with `eval "$(lightwebpres completion --shell bash)"` (or `zsh`) to get tab-completion for commands, subcommands, and options |
 | `--help` | Full reference: options, environment variables, slide types, recognized fields |
 | `--version` | Prints the version (`LightWebPres vX.Y.Z`) and exits |
@@ -428,7 +429,7 @@ Global options (accepted before the command, like `git`): `--lang fr|en`,
 | `--serve` / `--port N` | `watch` | serves on `127.0.0.1` (opt-in), port `N` (default 8000) |
 | `--only file` | `build` | targets one article when the navigation cache is safe; refreshes the derived outputs too and falls back to a full build when it is not |
 | `--inline-images` | `build` | embeds Markdown images as base64 data URIs and does not copy `img/`; relative images left in raw HTML are rejected |
-| `--language-file path` | `build`, `verify` | uses this language pack instead of `language/<lang>.json` |
+| `--language-file path` | `build`, `verify` | uses this unified language pack instead of split or legacy sources; highest priority |
 | `--nav-cache path` | `build` | reads and writes the fingerprint used to decide whether `--only` is safe |
 | `--build-stamp` | `build` | adds a version-and-time freshness marker to generated pages |
 | `--build-stamp-minimal` | `build` | adds the freshness marker without version or time; wins over `--build-stamp` |
@@ -533,21 +534,25 @@ long argument the reader takes in as a whole.
 
 ## Language & typography
 
-Built-in French and English packs (typography rules — non-breaking
-spaces, etc. — plus every UI string: nav button tooltips, "copy link",
-series navigation labels). Both live in the executable and
-are read from there. Without an explicit `--lang` or `LWP_LANG`, the generated
-page embeds both interface vocabularies and the browser chooses French for a
-`fr-*` locale and English for every other locale. An explicit language locks
-that choice for the page. Typography rules are always applied at build time;
-changing the browser locale never re-runs them. `--lang fr|en` picks the build-wide fallback; a
-`language/{lang}.json` file in your series overrides just the keys you
-care about, falling back to the built-in pack for the rest —
-`template write fr.json` gives you the built-in one to start from. `series_meta.lang_tags`
-maps slide tags to packs so typography can change per slide, for example
-`{"fr": "fr", "en": "en"}`. The first mapped language tag on a slide wins;
-slides with no mapped language tag use `--lang`. English is the ultimate
-fallback for any language without a pack.
+Built-in French and English packs contain typography rules (non-breaking
+spaces, etc.) and every UI string (navigation tooltips, "copy link", series
+labels). Both live in the executable and are read from there. The canonical
+override files are independent: `interface/{lang}.json` contains UI strings,
+while `typography/{lang}.json` contains rules. An old unified
+`language/{lang}.json` remains supported, as does `--language-file` for an
+explicit unified override.
+
+Without an explicit `--lang` or `LWP_LANG`, the generated page embeds both
+interface vocabularies and the browser chooses French for a `fr-*` locale and
+English for every other locale. An explicit language locks that choice for the
+page. Typography rules are always applied at build time; changing the browser
+locale never re-runs them. `--lang fr|en` picks the build-wide fallback.
+`template write interface/fr.json` and `template write typography/fr.json`
+give you the built-in domains to start from; `template write fr.json` remains
+the legacy unified form. Domain environment variables and FHS installations
+are documented in `specifications.md` §2.3. `series_meta.lang_tags` maps slide
+tags to typography packs, for example `{"fr": "fr", "en": "en"}`. English is
+the ultimate fallback for any language without a pack.
 
 The French pack automatically upgrades an existing space to a
 non-breaking one before `; : ! ?` and a closing `»`, after an opening

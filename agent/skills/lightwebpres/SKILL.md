@@ -296,9 +296,12 @@ If tags select different languages, declare their typography packs in
 }
 ```
 
-The first mapped language tag on a slide selects its pack. Slides without one
-use the build-wide `--lang`/`LWP_LANG` fallback. `audit` warns about malformed
-slide tags and missing mapped packs; it does not block the build.
+The first mapped language tag on a slide selects its typography pack. Slides
+without one use the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and
+`en` packs are always available; another name resolves to
+`typography/<name>.json`, then the legacy `language/<name>.json`. `audit`
+warns about malformed slide tags and missing mapped packs; it does not block
+the build.
 
 ## Slide types
 
@@ -698,9 +701,10 @@ number followed by a metric unit or a unit word, initials, and `×`/`≈` —
 it is **not** rule-free. To mix
 languages in one article, map slide tags to packs with
 `series_meta.lang_tags`, for example `{"fr": "fr", "en": "en"}`. The first
-mapped language tag on a slide chooses that pack; a slide without one uses
-the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and `en` packs are
-available, and another pack name refers to `language/<name>.json`.
+mapped language tag on a slide chooses that typography pack; a slide without
+one uses the build-wide `--lang`/`LWP_LANG` fallback. Built-in `fr` and `en`
+packs are available, and another pack name refers to
+`typography/<name>.json`, or the legacy `language/<name>.json`.
 
 This alters generated content, so it can be turned off per article, in
 that article's meta block: `typo_units: off` (the unit and operator

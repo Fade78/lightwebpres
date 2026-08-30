@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 8 · **à faire** 1 · **en cours** 0 · **terminé** 41 · **abandonné** 1 · **sans objet** 3
+**à étudier** 8 · **à faire** 0 · **en cours** 0 · **terminé** 42 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -111,10 +111,6 @@ gets its own entry and its own state**, however small.
 - **B35** — Reaching a verdict class without writing HTML
 - **B36** — The engine can halo 32 components; the catalogue haloes three
 - **B50** — Soft animation of cover colours
-
-### à faire
-
-- **B48** — Séparer physiquement l’interface et la typographie
 
 ### terminé
 
@@ -158,6 +154,7 @@ gets its own entry and its own state**, however small.
 - **B45** — Series JSON can choose a runtime theme catalogue
 - **B46** — Help carries permanent provenance and names the theme shortcut
 - **B47** — Essential themes ship by default
+- **B48** — Séparer physiquement l’interface et la typographie
 - **B49** — La locale du navigateur choisit seulement l’interface
 
 ### abandonné
@@ -2449,26 +2446,32 @@ reader opens, not a state the deck enters.
 
 ## B48 — Séparer physiquement l’interface et la typographie
 
-**État :** à faire
+**État :** terminé · **Depuis :** 2026-08-30
 
-The language packs currently travel as one object: `rules` are the build-time
-typography engine and `strings` are the interface vocabulary. That is useful
-for the executable's built-in fallback and for the existing
-`language/{lang}.json` override, but it makes the two lifecycles look like one
-thing when a series wants to distribute or replace only its interface.
+The executable still keeps one compatibility object internally: `rules` are
+the build-time typography engine and `strings` are the interface vocabulary.
+Series files now separate those lifecycles physically, so a series can
+distribute or replace only its interface without carrying typography rules.
 
 The chosen direction is physical separation, not a second conceptual layer in
 the same JSON file: `interface/{lang}.json` for UI strings and
 `typography/{lang}.json` for rules. The built-in French and English packs stay
-available, and the loader remains the single compatibility boundary. The
-migration must cover local overrides, `--language-file`, `LWP_LANGUAGE_DIR`,
-`init`/template write, `--lang`, `series_meta.lang_tags`, runtime payloads,
-documentation and the guards that prove a split pack cannot silently change
-the typography selected for a slide.
+available, and the loader remains the single compatibility boundary.
+Resolution is independent per domain: `--language-file` is the explicit
+unified override, then domain environment/directories, legacy unified files,
+FHS resources for a real installed `bin/lightwebpres`, and finally the
+embedded pack. `series_meta.lang_tags` selects typography only; browser
+runtime data carries interface strings only.
 
-No file layout has changed in this lot. This entry is the recorded task, so a
-future implementation does not mistake the browser payload for the physical
-separation that was chosen.
+`init`, `template show/write/update`, `watch`, incremental fingerprints and
+the audit path all follow the split layout. Legacy `language/{lang}.json` and
+the embedded compatibility shape remain supported, while split files reject
+the opposite domain so a partial override cannot silently alter typography or
+interface behavior.
+
+The guards cover split precedence and validation, FHS discovery and its
+standalone boundary, runtime payloads, watch paths and `build --only`
+invalidations. The full suite passes with 1105 tests in 197 classes.
 
 ## B49 — La locale du navigateur choisit seulement l’interface
 
