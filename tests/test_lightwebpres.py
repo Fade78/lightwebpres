@@ -2849,7 +2849,7 @@ class CliVersionAndShortcuts(unittest.TestCase):
             retired.setdefault(legacy, lwp.canonical(legacy))
         pattern = re.compile(r'(?:\./)?(?:python3 )?`?lightwebpres`? '
                              r'([a-z][a-z-]+)')
-        skip = ('delete-before-1.0/', 'docs/AUDIT', 'generated/')
+        skip = ('delete-before-1.0/', 'generated/')
         listed = subprocess.run(['git', '-C', str(root), 'ls-files'],
                                 capture_output=True, text=True, timeout=30)
         bad = []

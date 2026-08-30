@@ -166,14 +166,10 @@ contrat, et se répartissent dans les familles suivantes :
   et les relire comme des affirmations présentes est l'erreur à ne pas
   commettre.
 
-  Deux emplacements, pour deux usages :
+  Les relevés ne font pas partie de l'arborescence active et ne sont pas
+  distribués. Ceux qu'on conserve restent hors dépôt ; les mesures qu'ils
+  portent restent datées et ne valent pas comme affirmations présentes.
 
-  - `docs/` — les relevés qu'on consulte encore : les audits datés
-    (`AUDIT-*.md`). Ils restent dans l'arborescence active parce qu'on y
-    revient, et le backlog y renvoie. Le répertoire ne porte que cette
-    famille. Il a longtemps porté aussi une entrée de build et une sortie
-    de build, si bien que la phrase ci-dessus était le seul endroit du
-    dépôt où l'on pouvait apprendre laquelle était laquelle.
   - `delete-before-1.0/` — les relevés dont le raisonnement est versé
     ailleurs, et les plans dont le travail est fait. Le répertoire n'est
     pas énuméré ici : ce serait reproduire le défaut que cette section

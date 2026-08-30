@@ -1182,7 +1182,7 @@ Playwright.
 
 **État :** terminé · **Version :** v0.33.0
 
-L'audit `docs/AUDIT-2026-08.md` (14/08/2026) a été dépouillé. Ce qui a été
+L'audit de cohérence du 14/08/2026 a été dépouillé. Ce qui a été
 corrigé dans la release `v0.33.0` :
 
 - **D-1 (bloquant)** : le filtre de variantes ne masquait pas visuellement

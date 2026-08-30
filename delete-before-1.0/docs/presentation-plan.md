@@ -261,7 +261,7 @@ livrable 11 est terminé : les contrats permanents, le guide source,
 
 ### Statut au 15 août 2026 (post-audit)
 
-L'audit `docs/AUDIT-2026-08.md` a trouvé un défaut bloquant sur le filtrage
+L'audit de cohérence d'août 2026 a trouvé un défaut bloquant sur le filtrage
 visuel des variantes (règle CSS `[hidden]` battue par `display: flex`) et
 un lot de dérives docs/code. La release `v0.33.0` corrige l'ensemble :
 règle `.slide[hidden], .nav-btn[hidden]`, échappement HTML des chaînes de

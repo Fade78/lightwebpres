@@ -57,16 +57,11 @@ eval "$(python3 lightwebpres completion --shell bash)" # completion tab (optionn
 - `AGENTS.md` — ce document.
 - `THIRD-PARTY-NOTICES.md` — licences de ce qui est embarqué.
 
-### Relevés datés (consultables, non normatifs)
-- `docs/` — les audits datés (`AUDIT-*.md`), avec leurs mesures et leurs
-  conditions. Les nombres qu'ils portent disent l'état du jour de la
-  mesure : ils ne se périment pas, et ne se lisent pas comme des
-  affirmations présentes.
-
-  **Le répertoire ne porte que cette famille**, et c'est ce que
-  `specifications.md` §1.1 en dit depuis toujours. Il a longtemps porté
-  aussi une entrée de build et une sortie de build ; il fallait alors la
-  prose de ce document pour savoir laquelle était laquelle.
+### Relevés datés (hors arborescence active)
+- Les audits datés et autres relevés sont conservés localement, hors de
+  l'arborescence active et de la repo publique, avec leurs mesures et leurs
+  conditions. Les nombres qu'ils portent disent l'état du jour de la mesure :
+  ils ne se périment pas, et ne se lisent pas comme des affirmations présentes.
 
 ### Outillage
 - `tools/guide-deck.md` — deck source du guide, à côté du script qui le
@@ -115,7 +110,7 @@ pas reproductible à l'octet, à refaire à la main quand la galerie change.
   consultable mais quitte l'arborescence active : mémoire de travail,
   relevés dont le raisonnement est versé ailleurs, et documents de
   conception absorbés (sous `delete-before-1.0/docs/`, à ne pas confondre
-  avec le `docs/` de la racine). git en conserve l'historique ; la
+  avec les relevés conservés hors dépôt). git en conserve l'historique ; la
   suppression effective se fera avant la 1.0, ce que son nom dit.
 
   **Avant d'y envoyer un document, vérifier ce qu'il porte encore.** Un

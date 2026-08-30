@@ -45,10 +45,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SPEC = ROOT / 'specifications.md'
 
-# Files whose references are not ours to keep: dated records say the state
-# of their day (§1.1), the doomed tree is not maintained, and generated
-# artefacts are rebuilt from sources that are checked.
-SKIP_PREFIX = ('delete-before-1.0/', 'docs/AUDIT', 'generated/')
+# Files whose references are not ours to keep: the doomed tree is not
+# maintained, and generated artefacts are rebuilt from sources that are
+# checked. Local artefacts are not in git's file list at all.
+SKIP_PREFIX = ('delete-before-1.0/', 'generated/')
 
 # A reference qualified by a document name belongs to that document, not
 # to the specification. Only `lightwebpres-gui` is legitimate here: it is
