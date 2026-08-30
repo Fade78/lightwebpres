@@ -19,24 +19,26 @@ any static host.
 No `pip install`, no build step beyond the tool itself, no JavaScript
 framework in the output. Python 3.8+ (standard library only); on
 Windows, run `python lightwebpres <command>`. Every generated page is a
-single `.html` file with inline CSS and JS. Markdown images stay in
-`public/img/` by default; `--inline-images` embeds them too, so pages using
-them can travel as one file. The output opens straight from disk or any
-static host.
+single `.html` file with inline CSS and JS. Images referenced by the rendered
+pages are copied to `public/img/` by default; unused files in `sources/img/`
+are not published, while existing output assets are left in place.
+`--inline-images` embeds Markdown images instead, so pages using them can
+travel as one file. The output opens straight from disk or any static host.
 
 **Every page is a presentation deck.** Open it in a browser and you have
 a presenter experience with fullscreen available: keyboard (↑/↓, Home, F for
-fullscreen, B/W/T for pause screens, C for compiled themes, H for keyboard
-help, S for sharing, M for the presenter menu), mouse (click to advance,
+fullscreen, I for smooth or instant scrolling, B/W/T for pause screens, C for
+compiled themes, H for keyboard help, S for sharing, M for the presenter
+menu), mouse (click to advance,
 right-click to go back, middle button to leave fullscreen), and touch
 (swipe) all work out of the box. Entering fullscreen with the mouse is
 a two-step gesture — middle button, then a left click (F or the ⛶
 button enters directly). A click while the deck is gliding to
 the next card jumps straight to its target — two clicks in quick
 succession land two pages on, a right-click during the glide returns to
-the card you left. The presenter menu's Scroll action toggles the configured
-glide duration and an instant jump; `series_meta.scroll_duration` sets the
-series default and `--scroll-duration` overrides it for a build. The
+the card you left. The presenter menu's Scroll action, or **I**, toggles the
+configured glide duration and an instant jump; `series_meta.scroll_duration`
+sets the series default and `--scroll-duration` overrides it for a build. The
 lower-right navigation controls form one column: from
 bottom to top, Menu, down, up and fullscreen. The arrows are grayed when they
 cannot move further; Home, sharing and tag filters live in the presenter menu.
@@ -84,9 +86,10 @@ renders of that mode in the `lava`, `terminal` and `pop-lemon` themes.
   with no external runtime, viewer or proprietary container that has to still
   be supported for the words to come back. CSS, JS, the runtime theme picker
   and its essential alternatives are embedded in the same file by default;
-  `--no-essential-theme` opts out. Markdown images remain relative files under
-  `img/` unless `--inline-images` embeds them as data URIs. It needs no network
-  or framework.
+  `--no-essential-theme` opts out. Images referenced by the rendered pages remain
+  relative files under `img/`; unused source images are not copied.
+  `--inline-images` embeds Markdown images as data URIs. It needs no network or
+  framework.
   A deck built today opens in any browser that exists now and in any
   that follows, on a machine with none of this installed — the page and its
   copied assets, without the tool that made it. The source behind it is plain
@@ -388,9 +391,9 @@ the series or within one article.
 |---|---|
 | `init [dir]` | Scaffolds a series directory (`sources/`, `templates/` with your `settings.conf` and `custom.css`, empty `interface/`, `typography/` and legacy `language/` directories, `series.json`, a copy of the executable, and `.gitlab-ci.yml` if `--gitlab-ci` is passed — opt-in, never assumed). The tool's own files — the navigation script and language packs — stay in the executable and are read from there, so upgrading it is the whole upgrade |
 | `demo [dir]` | Generates and builds 3 example articles, exercising every slide type and field; `--dry-run` journals the files and reports the build plan without touching the series |
-| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1); `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
+| `build [dir]` | Builds `public/` from `series.json` + `sources/*.md`; `--only file` targets one article when the navigation cache is safe but still refreshes derived outputs (article, index/README/images according to the options, manifest and cache), falling back to a full build if anything affecting `index.html`/navigation changed (see specifications.md §11.3.1). Standard builds copy only images referenced by their rendered pages; `--inline-images` embeds Markdown images as base64 data URIs (no `img/` directory); the essential runtime theme bundle is embedded by default, with `--themes selectors|all` adding more |
 | `verify [dir]` | Rebuilds in memory and diffs against `public/` — non-zero exit on drift, usable as a CI gate; pass the same `--themes` and `--no-essential-theme` decision used by the build |
-| `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), and renders the series in memory to report what only composing it can say. Exit 0 whatever it finds, unless `--strict` is passed |
+| `audit [dir]` | Non-blocking warnings. It reads the sources (editorial — e.g. "no cover slide" — tags and language packs), judges the *resolved* stylesheet (a navigation control nobody can see, text painted the colour of its own ground, a size under the readability floor), checks the presentation layer (a legacy `style.css`, a retired CSS variable named with its replacement, a settings scaffold out of step with the theme), renders the series in memory to report what only composing it can say, and prints a rendered image inventory with inline/figure counts plus unused or missing local assets. Exit 0 whatever it finds, unless `--strict` is passed |
 | `template update [dir]` | Clears the tool's own files out of a series: a copy identical to the built-in one is removed (it did nothing but freeze you), a differing `nav.js` is saved as `.bak` and removed, and a differing interface or typography pack is reported and kept. Also creates a missing `settings.conf`/`custom.css`; never touches a file you own |
 | `template show <file>` | Prints one of the files the executable owns — `nav.js`, `fr.json`, `en.json`, `interface/fr.json`, `interface/en.json`, `typography/fr.json`, `typography/en.json` — on stdout. No series needed: the answer is inside the program |
 | `template write <file> [dir]` | Installs one of them where the build reads it, to be modified. The build then prefers your copy to the built-in one and warns on every run that it no longer follows the tool's fixes — at warning level, so `--quiet` keeps it. `--force` to replace an existing file |
@@ -853,11 +856,13 @@ switching between them is instant — no separate page, no reload.
   malformed JSON.
 - No page is ever written over another. Two articles resolving to the
   same output name is fatal, and so is an article named `index.html` in a
-  series of several articles — that name belongs to the series index,
-  which carries the article list. A series of **exactly one** article may
-  take it: the article becomes the page the directory serves, no series
-  index is generated (a list of one adds nothing), and `build` says so on
-  a `[no index]` line.
+  series of several articles when the series index is generated — that name
+  belongs to the series index, which carries the article list. With
+  `--no-index`, the article may take the name because there is no index to
+  collide with. Otherwise, a series of **exactly one** article may take it:
+  the article becomes the page the directory serves, no series index is
+  generated (a list of one adds nothing), and `build` says so on a `[no index]`
+  line.
 - Typography rules are applied to already-assembled HTML but can never
   touch tag syntax — text and markup are split before any rule runs.
 - Every generated page is checked for HTML tag balance before being

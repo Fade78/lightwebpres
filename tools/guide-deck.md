@@ -136,7 +136,9 @@ with a series built around one. `--no-essential-theme` (build/verify/watch) opts
 out; the page then carries no runtime picker unless `--themes` or
 `series.json["themes"]` adds one.
 
-The picker is a visual catalogue as well as a list: each choice uses the
+The presenter menu's Scroll action, or **I**, toggles between the configured
+slide glide and an instant jump. The picker is a visual catalogue as well as a
+list: each choice uses the
 theme's resolved page and cover background, including its gradient, and the
 foreground ink chosen for that ground. **M** opens the presenter menu; its
 actions carry icons and their keyboard shortcuts, which remain active while
@@ -167,7 +169,7 @@ kicker: Shipping
 
 fact-label: A nudge and a gate
 
-`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. It also **renders the whole series in memory**, throws the HTML away, and keeps what composing it had to say — including that the series does not build at all. Nothing is left out: drafts and `ignored` articles are looked at too, because work in progress is what an authoring tool is for. Pass `--strict` when those warnings must fail CI.
+`audit` flags what is worth a second look and **normally does not fail** — a missing cover, a stale scaffold comment, a retired variable still referenced, a composed stylesheet whose navigation control or body text has gone invisible. It also **renders the whole series in memory**, throws the HTML away, prints the rendered image inventory, and keeps what composing it had to say — including that the series does not build at all. Nothing is left out: drafts and `ignored` articles are looked at too, because work in progress is what an authoring tool is for. Pass `--strict` when those warnings must fail CI.
 
 `verify` rebuilds in memory and diffs against `public/`, exiting non-zero on any difference. That exit code is what makes it a CI gate.
 

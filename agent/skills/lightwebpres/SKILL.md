@@ -207,9 +207,9 @@ same report under `tags`.
 The series can also set `scroll_duration` to a non-negative integer number of
 milliseconds. It defaults to `200`; `0` makes slide navigation jump instead
 of gliding. `build`, `verify` and `watch` accept `--scroll-duration` as a
-one-run override. In the generated page, the presenter menu's Scroll action
-switches between that configured duration and `0` and displays the active
-value.
+one-run override. In the generated page, the presenter menu's Scroll action,
+or the **I** key, switches between that configured duration and `0` and
+displays the active value.
 
 **Notes fields**, settable here or in `series_meta` (the article wins):
 
@@ -428,8 +428,8 @@ in a Markdown link, `[![alt](src "Caption")](https://…)`, and the picture
 becomes clickable while the caption stays outside the link — so the link's
 accessible name is the alt text alone, not alt plus caption;
 mid-paragraph it's a plain inline `<img>`, no caption; the path is
-relative — images live in `sources/img/`, copied to `public/img/` at
-build), inline code
+relative — images live in `sources/img/`, and only images referenced by
+rendered pages are copied to `public/img/` at build), inline code
 (`` `code` ``), fenced code blocks (` ```lang ` ... ` ``` `, the
 language optional and purely informational — no syntax highlighting),
 and raw HTML passed through as-is (so an author can drop in a
@@ -814,7 +814,8 @@ lightwebpres series tags <series-dir> --format json  # inspect tag visibility wi
 
 `audit` renders the series the way a build does, writing nothing, so it
 sees what only a render can say — including a series that cannot be built
-at all, which it reports without stopping. It still exits 0 whatever it
+at all, which it reports without stopping. It also prints the rendered image
+inventory and warns about unused or missing local assets. It still exits 0 whatever it
 finds: **read its output, not its exit code**, unless you pass
 `--strict`. A clean `build` (exit code 0) with no `[ERROR]` lines is what
 tells you the file parses, renders and ships. If the executable isn't available in this

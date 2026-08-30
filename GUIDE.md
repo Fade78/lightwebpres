@@ -54,8 +54,8 @@ lay the pieces out however it likes without passing a single flag.
 
 **Every page is also a presentation deck.** Open the generated HTML in a
 browser and you have a full-screen presenter experience: keyboard (↑/↓,
-Home, F for fullscreen, B/W/T for pause screens, C for compiled themes, S
-for sharing, M for the presenter menu), mouse (click to
+Home, F for fullscreen, I for smooth or instant scrolling, B/W/T for pause
+screens, C for compiled themes, S for sharing, M for the presenter menu), mouse (click to
 advance, right-click to go back, middle button to leave fullscreen), and
 touch (swipe) all work out of the box — the index included, whose step
  is one article card at a time. The navigation buttons form one lower-right
@@ -129,11 +129,13 @@ whoever visits the site.
 Open `public/index.html` in a browser — no server needed, every page is a
 single self-contained file.
 
-`--inline-images` embeds images as base64 data URIs so the HTML needs
-no `img/` directory at all — useful for emailing a single file or
-hosting where only static HTML is served. The HTML grows about a third
-per image; a serving gzip recovers the overhead. It covers images in a
-card and images in a file a `full-article` card pulls in, alike.
+By default, only images referenced by the rendered pages are copied under
+`public/img/`; unused files in `sources/img/` are not published, and an
+existing output asset is left in place. `--inline-images` embeds images as
+base64 data URIs so the HTML needs no `img/` directory at all — useful for
+emailing a single file or hosting where only static HTML is served. The HTML
+grows about a third per image; a serving gzip recovers the overhead. It covers
+images in a card and images in a file a `full-article` card pulls in, alike.
 
 One thing it cannot inline: an `<img>` you write as raw HTML rather than
 in Markdown. The converter passes raw HTML through untouched by design,
@@ -152,8 +154,8 @@ also turn it on; see specifications.md §3.3.5). `watch` takes the same
 output switches and adds `--serve` (opt-in HTTP server on `127.0.0.1`,
 `--port 8000`). The slide glide is `200` ms by default; set
 `series_meta.scroll_duration` or pass `--scroll-duration milliseconds` to
-change it. `0` is an instant jump. The presenter menu's Scroll action toggles
-between the configured duration and `0` and shows the active value.
+change it. `0` is an instant jump. The presenter menu's Scroll action, or **I**,
+toggles between the configured duration and `0` and shows the active value.
 
 ## 3. What a page is made of
 
@@ -397,7 +399,8 @@ left alone while a reader switches. **C** opens the searchable picker and
 bottom-right navigation button. The selection lasts for the other pages of
 the same deck in the current browser session. Each theme choice previews its
 resolved background, including its gradient, with matching foreground ink.
-The menu actions carry icons and their keyboard shortcuts. In the theme
+The menu actions carry icons and their keyboard shortcuts, including **I** on
+Scroll. In the theme
 picker and that presenter menu, focus starts at the first useful control.
 In the presenter menu, left/right stay on the current row while up/down move
 to the nearest control on the adjacent rendered row. `Tab`, `Home` and `End`
@@ -562,7 +565,10 @@ writing nothing — and reports three different kinds of thing. What the
 **sources** say: no cover slide, the instance tags in each article, a
 scaffold whose comments predate your current theme, a retired CSS
 variable still referenced in `custom.css`, an image symlink that would
-not be published. What the **resolved stylesheet** says once the theme,
+not be published. It also prints an image inventory: each local file under
+`sources/img/` is marked with its inline/figure reference counts, or warned
+about when it is unused; a rendered reference whose source file is absent is
+warned about too. What the **resolved stylesheet** says once the theme,
 your `settings.conf` and a page's own `style.*` lines are merged — a
 navigation control nobody can see against its own rail, text painted the
 colour of the ground it sits on, a size under the readability floor. That
@@ -586,7 +592,10 @@ Pass `--strict` and every one of those becomes a non-zero exit; that is
 the CI gate. Because it renders, it costs about what a build costs — the
 deliberate trade: a build is fast on a human scale, a missed audit is
 not. `--templates` skips the render and the per-article checks when you
-only want the presentation layer; the stylesheet is still judged.
+only want the presentation layer; the stylesheet is still judged. If any
+article cannot render, the inventory reports source files whose usage is
+unavailable instead of falsely calling them unused; the render failure is
+reported separately.
 
 `verify` asks the other question: it rebuilds every article in memory and
 compares it byte-for-byte against `public/`, exiting non-zero the moment
@@ -763,6 +772,7 @@ speaker drive the deck without looking at the screen.
 | ↑ / PageUp / ← / Backspace | Previous slide — on the index, previous article card |
 | Home | On an article: back to the index. On the index: top of the page |
 | F | Fullscreen (Esc to exit) |
+| I | Toggle between the configured smooth slide glide and an instant jump |
 | B | Black pause screen (press again to dismiss) |
 | W | White pause screen (press again to dismiss) |
 | T | Theme-background pause screen (press again to dismiss) |
@@ -870,7 +880,7 @@ steps: the deck never treats a double click as anything else.
 
 The round buttons in the bottom-right corner form one column: from bottom to
 top, Menu, down, up and fullscreen. The arrows are grayed when they cannot
-move further. Home, share, Scroll and the variant filter are
+move further. Home, share, Scroll (also **I**) and the variant filter are
 actions in the presenter menu, which also carries the themes, help, notes and
 pause screens. The same controls sit on the index, where previous and next step
 one article card at a time.

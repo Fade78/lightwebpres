@@ -68,7 +68,7 @@ if sys.version_info < (3, 8):
 # EMBEDDED CONSTANTS AND TEMPLATES
 # ============================================================================
 
-VERSION = "0.48.0"
+VERSION = "0.49.0"
 
 _VALID_LANG_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
@@ -1253,6 +1253,7 @@ LANG_FR = r'''{
     "help_prev": "Slide précédente",
     "help_home": "Retour à l'index de la série",
     "help_fullscreen": "Plein écran (Échap pour quitter)",
+    "help_scroll": "Basculer entre défilement fluide et instantané (touche I)",
     "help_menu": "Menu du présentateur",
     "help_theme": "Changer de thème pendant la présentation (touche C)",
     "help_pause": "Écran de pause : noir (B), blanc (W), thème (T)",
@@ -1384,6 +1385,7 @@ LANG_EN = r'''{
     "help_prev": "Previous slide",
     "help_home": "Back to the series index",
     "help_fullscreen": "Fullscreen (Esc to exit)",
+    "help_scroll": "Toggle smooth and instant scrolling (I key)",
     "help_menu": "Presenter menu",
     "help_theme": "Change theme during the presentation (C key)",
     "help_pause": "Pause screen: black (B), white (W), theme (T)",
@@ -8139,7 +8141,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function runMenuShortcut(key) {
     var actions = {
-      f: 'fullscreen', c: 'theme', n: 'presenter', l: 'tags',
+      f: 'fullscreen', i: 'scroll', c: 'theme', n: 'presenter', l: 'tags',
       s: 'share', h: 'help', b: 'pause-black', w: 'pause-white',
       t: 'pause-theme'
     };
@@ -8179,6 +8181,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ['&uarr; / PageUp / &larr; / Backspace', lwpString('help_prev')],
     ['Home', lwpString('help_home')],
     ['F', lwpString('help_fullscreen')],
+    ['I', lwpString('help_scroll')],
     ['M', lwpString('help_menu')],
     ['B / W / T', lwpString('help_pause')],
     ['N', lwpString('help_speaker')],
@@ -8893,15 +8896,17 @@ document.addEventListener('DOMContentLoaded', function() {
       // the top of the page — where the journey starts — not a
       // navigation to itself.
       goHome();
-     } else if (e.key === 'f' || e.key === 'F') {
-       e.preventDefault(); toggleFullscreen();
-     } else if (e.key === 'c' || e.key === 'C') {
-       if (themeAlternatives()) {
-         e.preventDefault(); openThemeMenu();
-       }
-     } else if (e.key === 'm' || e.key === 'M') {
-       e.preventDefault(); togglePresenterMenu();
-     } else if (e.key === 'b' || e.key === 'B') {
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault(); toggleFullscreen();
+    } else if (e.key === 'c' || e.key === 'C') {
+      if (themeAlternatives()) {
+        e.preventDefault(); openThemeMenu();
+      }
+    } else if (e.key === 'm' || e.key === 'M') {
+      e.preventDefault(); togglePresenterMenu();
+    } else if (e.key === 'i' || e.key === 'I') {
+      e.preventDefault(); toggleScroll();
+    } else if (e.key === 'b' || e.key === 'B') {
       e.preventDefault(); togglePause('b');
     } else if (e.key === 'w' || e.key === 'W') {
       e.preventDefault(); togglePause('w');
@@ -9844,8 +9849,8 @@ TEMPLATE_PAGE = '''<!DOCTYPE html>
       <button type="button" class="presenter-menu-action" id="menuTags" data-menu-action="tags" aria-keyshortcuts="L">
         {{icon_tags}}<span class="presenter-menu-label" data-lwp-i18n="menu_tags">{{str_menu_tags}}</span><kbd>L</kbd>
       </button>
-      <button type="button" class="presenter-menu-action" id="menuScroll" data-menu-action="scroll" aria-pressed="false">
-        {{icon_scroll}}<span class="presenter-menu-label"><span data-lwp-i18n="menu_scroll">{{str_menu_scroll}}</span>: <span id="menuScrollValue">{{scroll_duration}} ms</span></span>
+      <button type="button" class="presenter-menu-action" id="menuScroll" data-menu-action="scroll" aria-pressed="false" aria-keyshortcuts="I">
+        {{icon_scroll}}<span class="presenter-menu-label"><span data-lwp-i18n="menu_scroll">{{str_menu_scroll}}</span>: <span id="menuScrollValue">{{scroll_duration}} ms</span></span><kbd>I</kbd>
       </button>
        <button type="button" class="presenter-menu-action" id="menuShare" data-menu-action="share" aria-haspopup="dialog" aria-expanded="false" aria-keyshortcuts="S">
         {{icon_share}}<span class="presenter-menu-label" data-lwp-i18n="menu_share">{{str_menu_share}}</span><kbd>S</kbd>
@@ -13879,6 +13884,145 @@ def _relative_image_srcs(html):
         position = opening_end
 
 
+class _ImageReferenceParser(HTMLParser):
+    """Collects rendered image sources and whether each is a figure.
+
+    Looking at rendered HTML keeps this inventory aligned with the one image
+    pipeline: Markdown images, included long-form Markdown, and raw HTML
+    ``<img>`` tags all arrive here after the renderer has decided what will
+    actually reach the page.
+    """
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.references = []
+        self._open = []
+        self._figure_depth = 0
+
+    def _record_image(self, attrs):
+        src = dict(attrs).get('src')
+        if src:
+            kind = 'figure' if self._figure_depth else 'inline'
+            self.references.append((src, kind))
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag == 'img':
+            self._record_image(attrs)
+        if tag not in VOID_ELEMENTS:
+            is_figure = tag == 'figure'
+            if is_figure:
+                self._figure_depth += 1
+            self._open.append((tag, is_figure))
+
+    def handle_startendtag(self, tag, attrs):
+        if tag.lower() == 'img':
+            self._record_image(attrs)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        for index in range(len(self._open) - 1, -1, -1):
+            if self._open[index][0] != tag:
+                continue
+            for _, is_figure in self._open[index:]:
+                if is_figure:
+                    self._figure_depth = max(0, self._figure_depth - 1)
+            del self._open[index:]
+            break
+
+
+def _local_image_path(src):
+    """Returns a safe ``sources/``-relative image path, or ``None``.
+
+    Generated pages use ``img/...`` for local assets. Query strings and
+    fragments are URL decoration, not filesystem names; traversal, absolute
+    paths, and external URLs are deliberately excluded from the copy list.
+    """
+    if not src or _ABSOLUTE_SRC_RE.match(src):
+        return None
+    path = src.split('?', 1)[0].split('#', 1)[0]
+    while path.startswith('./'):
+        path = path[2:]
+    parts = path.split('/')
+    if (not parts or parts[0] != 'img'
+            or any(part in ('', '.', '..') for part in parts)):
+        return None
+    return '/'.join(parts)
+
+
+def image_inventory_from_html(html_pages):
+    """Returns local image usage keyed by ``img/...``.
+
+    Each value contains occurrence counts for the two rendered forms. The
+    same inventory drives both selective copying and the audit report.
+    """
+    inventory = {}
+    for html in html_pages:
+        parser = _ImageReferenceParser()
+        parser.feed(html)
+        parser.close()
+        for src, kind in parser.references:
+            path = _local_image_path(src)
+            if path is None:
+                continue
+            counts = inventory.setdefault(path, {'inline': 0, 'figure': 0})
+            counts[kind] += 1
+    return inventory
+
+
+def _source_image_files(sources_dir):
+    """Returns regular files present below ``sources/img/``."""
+    img_src = Path(sources_dir) / 'img'
+    if img_src.is_symlink() or not (img_src.exists() and img_src.is_dir()):
+        return set()
+    try:
+        return {
+            str(Path('img') / path.relative_to(img_src)).replace(os.sep, '/')
+            for path in img_src.rglob('*')
+            if path.is_file()
+        }
+    except OSError:
+        return set()
+
+
+def audit_image_inventory(sources_dir, html_pages, render_complete=True):
+    """Prints local image usage and warns about unused or missing assets.
+
+    A failed page render means its image references are unknowable from the
+    rendered inventory. Such files are reported as indeterminate rather than
+    falsely called unused; the render failure already has its own warning.
+    """
+    present = _source_image_files(sources_dir)
+    referenced = image_inventory_from_html(html_pages)
+    print('Image inventory (audit)')
+    print(f'  {len(present)} image(s) in sources/img/')
+
+    warnings = 0
+    for path in sorted(present):
+        counts = referenced.get(path)
+        if counts and (counts['inline'] or counts['figure']):
+            kinds = ', '.join(
+                f'{kind}: {counts[kind]}'
+                for kind in ('inline', 'figure') if counts[kind])
+            print(f'  {path}: referenced ({kinds})')
+        elif render_complete:
+            print(f'  {path}: NEVER referenced')
+            log('warn', f'{path}: image is never referenced by a generated page.')
+            warnings += 1
+        else:
+            print(f'  {path}: usage unavailable (render incomplete)')
+
+    for path in sorted(set(referenced) - present):
+        counts = referenced[path]
+        kinds = ', '.join(
+            f'{kind}: {counts[kind]}'
+            for kind in ('inline', 'figure') if counts[kind])
+        print(f'  {path}: referenced ({kinds}), missing from sources/img/')
+        log('warn', f'{path}: referenced image is missing from sources/img/.')
+        warnings += 1
+    return warnings
+
+
 def validate_self_contained(html, filename):
     """Fatal if a page built with --inline-images still points outside itself.
 
@@ -14482,12 +14626,17 @@ def audit_image_symlinks(sources_dir):
     return found
 
 
-def copy_images(sources_dir, output_dir):
-    """Copies the img/ directory if it exists.
+def copy_images(sources_dir, output_dir, referenced_images=None):
+    """Copies referenced files from the img/ directory if it exists.
 
     Merges into an existing img_dst (dirs_exist_ok) instead of wiping it
     first: a mistyped --output pointing at an unrelated existing directory
     must never delete a pre-existing img/ there.
+
+    ``referenced_images`` contains normalized ``img/...`` paths from
+    ``image_inventory_from_html``. ``None`` retains the helper's historical
+    unrestricted behavior for direct callers; builds always pass the
+    rendered inventory.
 
     Symlinks that escape img/ are refused, not followed: copytree's
     default (symlinks=False) copies a link's *referent content*, so a
@@ -14517,7 +14666,20 @@ def copy_images(sources_dir, output_dir):
     _reject_symlink_components(img_dst, 'image output directory')
     _reject_symlinks_below(img_dst, 'image output directory')
     src_root = img_src.resolve()
-    refused = set()
+    needed = None
+    if referenced_images is not None:
+        needed = set()
+        for value in referenced_images:
+            path = _local_image_path(value)
+            if path is None:
+                continue
+            relative = PurePosixPath(path).parts[1:]
+            if not relative:
+                continue
+            needed.add('/'.join(relative))
+            for index in range(1, len(relative)):
+                needed.add('/'.join(relative[:index]))
+    skipped = set()
 
     def _refuse_escaping_symlinks(dir_path, names):
         ignored = set()
@@ -14527,21 +14689,33 @@ def copy_images(sources_dir, output_dir):
                 log('warn', f'img/: skipped symlink escaping the '
                       f'image directory: {entry.relative_to(img_src)}')
                 ignored.add(name)
-                refused.add(entry)
+                skipped.add(entry)
+                continue
+            if needed is not None:
+                relative = entry.relative_to(img_src).as_posix()
+                if relative not in needed:
+                    ignored.add(name)
+                    skipped.add(entry)
         return ignored
 
     _copytree(img_src, img_dst, dirs_exist_ok=True,
               ignore=_refuse_escaping_symlinks)
-    progress(f'  Images copied: {img_dst}')
-    # What was published: the source tree minus what the guard refused. A
-    # refused entry is checked against the path AND its parents, because a
-    # refused directory symlink takes everything under it with it.
+    # What was published: the source tree minus what the guard or the
+    # reference filter skipped. A skipped entry is checked against the path
+    # AND its parents, because a skipped directory takes everything under it
+    # with it.
     published = []
     for p in sorted(img_src.rglob('*')):
-        if refused.intersection({p, *p.parents}):
+        if skipped.intersection({p, *p.parents}):
             continue
+        if needed is not None:
+            relative = p.relative_to(img_src).as_posix()
+            if relative not in needed:
+                continue
         if p.is_file():
             published.append(str(Path('img') / p.relative_to(img_src)))
+    if published:
+        progress(f'  Images copied: {img_dst}')
     return published
 
 
@@ -15663,7 +15837,7 @@ def load_build_context(series_dir, args, include_ignored=False, strict_tags=True
     )
 
 
-def resolve_index_claim(claim_articles, built_articles=None):
+def resolve_index_claim(claim_articles, built_articles=None, index_enabled=True):
     """§11.3.3 — the article, if any, whose resolved page_dest is the very
     name `build` writes the series index to. Returns that entry, or None.
 
@@ -15708,7 +15882,10 @@ def resolve_index_claim(claim_articles, built_articles=None):
     from disagreeing about whether a series.json is legal at all.
     `built_articles` is what will actually be written; a claimant that is a
     draft left out of this build claims nothing today, and the index gets
-    generated as usual."""
+    generated as usual. When the caller disabled index generation, there is
+    no index filename to collide with, so the claim is irrelevant."""
+    if not index_enabled:
+        return None
     if built_articles is None:
         built_articles = claim_articles
     claimant = next((e for e in claim_articles
@@ -15809,6 +15986,37 @@ def _write_index(ctx, claimant, index_extra=None, build_stamp=''):
         progress(_no_index_notice(claimant))
 
 
+def _build_image_pages(ctx, articles_to_build, claimant, incremental):
+    """Reads the pages whose rendered images this build is responsible for.
+
+    Incremental and ``--drafts-only`` builds keep other current article pages
+    in place, so they include those existing pages when deciding which assets
+    must remain available. A normal full build only considers the pages it
+    just rebuilt (plus the index), preserving the additive output contract for
+    stale pages.
+    """
+    keep_existing = incremental or ctx.args.get('--drafts-only')
+    entries = ctx.articles if keep_existing else articles_to_build
+    names = [entry['page_dest'] for entry in entries]
+    if claimant is None and not ctx.args.get('--no-index'):
+        names.append('index.html')
+
+    pages = []
+    seen = set()
+    for name in names:
+        if name in seen:
+            continue
+        seen.add(name)
+        path = _resolve_contained(ctx.output_dir, name)
+        if path is None or not path.is_file():
+            continue
+        try:
+            pages.append(path.read_text(encoding='utf-8'))
+        except (OSError, UnicodeDecodeError):
+            continue
+    return pages
+
+
 def _finish_build(ctx, claimant, articles_to_build, nav_cache_path,
                   fresh_fingerprint, build_stamp='', index_extra=None,
                   incremental=False):
@@ -15823,7 +16031,11 @@ def _finish_build(ctx, claimant, articles_to_build, nav_cache_path,
     # img/ directory is not copied to the output.
     images = []
     if not ctx.args.get('--inline-images'):
-        images = copy_images(ctx.sources_dir, ctx.output_dir)
+        inventory = image_inventory_from_html(
+            _build_image_pages(ctx, articles_to_build, claimant, incremental))
+        images = copy_images(
+            ctx.sources_dir, ctx.output_dir,
+            referenced_images=set(inventory))
 
     save_nav_cache(nav_cache_path, fresh_fingerprint)
     _write_manifest(
@@ -15870,10 +16082,12 @@ def _cmd_build_only(ctx, only_file, nav_cache_path, fresh_fingerprint, build_sta
         include_nav=not ctx.args.get('--no-nav'))
     _write_file(ctx.output_dir / entry['page_dest'], html)
 
-    # Same §11.3.3 branch as the full build — the fast path writes the
-    # index too, so leaving it out here would drop the index straight
-    # back onto the article page it just wrote.
-    claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
+    # Same §11.3.3 branch as the full build when an index is requested — the
+    # fast path writes the index too, so leaving the claim out there would
+    # drop the index straight back onto the article page it just wrote.
+    claimant = resolve_index_claim(
+        ctx.claim_articles, ctx.articles,
+        index_enabled=not ctx.args.get('--no-index'))
     _finish_build(
         ctx, claimant, [entry], nav_cache_path, fresh_fingerprint,
         build_stamp=build_stamp, incremental=True)
@@ -16402,10 +16616,13 @@ def cmd_build(series_dir, args):
         build_stamp = ''
 
     # §11.3.3, decided before anything is written and before the --only
-    # fast path (which writes the index too): more than one article
-    # claiming index.html is fatal in there, exactly one gets the name and
-    # no series index is produced.
-    claimant = resolve_index_claim(ctx.claim_articles, ctx.articles)
+    # fast path (which writes the index too): when an index is requested, more
+    # than one article claiming index.html is fatal in there, exactly one gets
+    # the name and no series index is produced. --no-index removes the
+    # collision entirely.
+    claimant = resolve_index_claim(
+        ctx.claim_articles, ctx.articles,
+        index_enabled=not ctx.args.get('--no-index'))
 
     nav_cache_path = args.get('--nav-cache') or default_nav_cache_path(ctx.sd)
     shared_fingerprint = {
@@ -17018,7 +17235,7 @@ def audit_read(path):
 
 
 def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
-                       series_data=None):
+                       series_data=None, image_pages=None, image_state=None):
     """Renders the series in memory and reports what only a render can say.
 
     `verify` already renders without writing -- it builds the HTML and
@@ -17043,6 +17260,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
     # see -- measured, the same cover fault warned on an active article and
     # was silent on a draft, with `--strict` green either way and no
     # `--include-drafts` on audit to reach it.
+    if image_state is not None:
+        image_state['complete'] = True
     args = dict(args)
     args['--include-drafts'] = True
     args.pop('--drafts-only', None)
@@ -17070,6 +17289,8 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
                 log('warn', 'the series does not build: the error above '
                     'is fatal, and no page would be produced. audit does '
                     'not block, but this is not an editorial remark.')
+            if image_state is not None:
+                image_state['complete'] = False
             return len(sink.messages)
 
         ok, detail = validate_page_scripts('<script>' + ctx.nav_js + '</script>')
@@ -17101,8 +17322,13 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
                 # there is nothing for this render pass to compose.
                 continue
             try:
-                _render_article(ctx, entry, source_path, render_args=args)
+                rendered = _render_article(ctx, entry, source_path,
+                                           render_args=args)
+                if image_pages is not None:
+                    image_pages.append(rendered)
             except (SystemExit, OSError):
+                if image_state is not None:
+                    image_state['complete'] = False
                 if entry['status'] == 'draft':
                     log('warn', f'{entry["page_source"]}: this draft does '
                         f'not render — the error above is fatal. A build '
@@ -17115,8 +17341,13 @@ def audit_by_rendering(series_dir, args, caller_named_the_cause=False,
                         f'but this is not an editorial remark.')
         if claimant is None:
             try:
-                _render_index(ctx, _index_extra(ctx), validate_scripts=True)
+                rendered = _render_index(ctx, _index_extra(ctx),
+                                         validate_scripts=True)
+                if image_pages is not None:
+                    image_pages.append(rendered)
             except (SystemExit, OSError):
+                if image_state is not None:
+                    image_state['complete'] = False
                 log('warn', 'the series index does not build — the error '
                     'above is fatal, and index.html would not be produced.')
     return len(sink.messages)
@@ -17663,14 +17894,21 @@ def cmd_audit(series_dir, args):
     # missed audit is not cheap.
     if not args.get('--templates'):
         warnings += audit_image_symlinks(sources_dir)
+        rendered_pages = []
+        image_state = {'complete': True}
         render_series_data = series_data
         if isinstance(series_data, dict):
             render_series_data = dict(series_data)
             render_series_data['articles'] = articles
         elif isinstance(series_data, list):
             render_series_data = articles
-        warnings += audit_by_rendering(series_dir, args, named_the_cause,
-                                       series_data=render_series_data)
+        warnings += audit_by_rendering(
+            series_dir, args, named_the_cause,
+            series_data=render_series_data, image_pages=rendered_pages,
+            image_state=image_state)
+        warnings += audit_image_inventory(
+            sources_dir, rendered_pages,
+            render_complete=image_state['complete'])
 
     if warnings == 0:
         print('No warnings: all editorial conventions are respected.')

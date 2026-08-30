@@ -4314,7 +4314,11 @@ class CliVersionAndShortcuts(unittest.TestCase):
         purpose stayed on the published site for as long as the site
         lived. Measured, then fixed."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = scaffold(tmp, _MINIMAL_MD)
+            md = _MINIMAL_MD + (
+                '\n---\n\n<!-- lwp:slide -->\nslug: image-k1\n'
+                '## Images\n![doomed](img/doomed.png)\n\n'
+                '![kept](img/kept.png)\n')
+            root = scaffold(tmp, md)
             (root / 'sources' / 'img').mkdir()
             png = base64.b64decode(
                 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8'
@@ -5908,6 +5912,33 @@ class AnArticleThatClaimsTheIndexName(unittest.TestCase):
             # error of this class — no half-built output to clean up.
             self.assertFalse((root / 'public').exists())
 
+    def test_no_index_allows_multiple_articles_to_use_index_name(self):
+        """With no series index requested, index.html is an article page,
+        not a colliding output, even when the series has several articles."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html'), ('b.md', 'b.html')])
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--no-index')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            written = (root / 'public' / 'index.html').read_text(encoding='utf-8')
+            self.assertIn('Summary of A.', written)
+            self.assertNotIn('The series title', written)
+            self.assertTrue((root / 'public' / 'b.html').exists())
+
+    def test_no_index_allows_the_incremental_path_to_use_index_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.series(tmp, [('a.md', 'index.html'), ('b.md', 'b.html')])
+            first = run('build', str(root), '--output', str(root / 'public'),
+                        '--no-index')
+            self.assertEqual(first.returncode, 0, first.stderr)
+            result = run('build', str(root), '--output', str(root / 'public'),
+                         '--no-index', '--only', 'index.html')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+            self.assertIn(
+                'Summary of A.',
+                (root / 'public' / 'index.html').read_text(encoding='utf-8'))
+
     def test_the_fatal_case_is_decided_on_the_name_not_the_filesystem(self):
         """'Index.html' and 'index.html' are two URLs but one file on
         Windows and default macOS — same reasoning as the duplicate
@@ -7319,6 +7350,7 @@ class AuditSeesWhatABuildSees(unittest.TestCase):
                              'the premise changed: this fatal now warns too, '
                              'so it no longer pins the count:\n' + plain.stderr)
             self.assertIn('does not build', plain.stderr)
+            self.assertIn('usage unavailable (render incomplete)', plain.stdout)
             self.assertEqual(strict.returncode, 1,
                              '--strict passed on a series that cannot build '
                              'and warned about nothing else')
@@ -11677,8 +11709,8 @@ class NothingAboutContrastReachesABuiltPage(unittest.TestCase):
                 self.assertIn('<svg ', body, button)
                 self.assertIn('class="presenter-menu-label"', body, button)
                 if action == 'scroll':
-                    self.assertNotRegex(attrs, r'aria-keyshortcuts=', button)
-                    self.assertNotIn('<kbd>', body, button)
+                    self.assertIn('aria-keyshortcuts="I"', attrs, button)
+                    self.assertIn('<kbd>I</kbd>', body, button)
                     self.assertIn('id="menuScrollValue"', body, button)
                 else:
                     self.assertRegex(attrs, r'aria-keyshortcuts="[^"]+"', button)
@@ -12812,14 +12844,17 @@ class DisplayFieldOverrides(unittest.TestCase):
 
 
 class ImageCopySafety(unittest.TestCase):
-    """§P2: copy_images must merge into an existing public/img/, never wipe
-    it — a mistyped --output pointing at an unrelated directory must not
-    delete content that build didn't put there."""
+    """§P2: image publishing is selective but still additive.
+
+    Only assets referenced by rendered pages are copied; an existing output
+    asset is never deleted just because this build did not produce it.
+    """
 
     def test_existing_unrelated_file_in_output_img_survives_build(self):
         md = (
             '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
-            '<!-- lwp:slide:cover -->\nslug: k170\nkicker: T\n# Title\nsummary: Summary.\n'
+            '<!-- lwp:slide:cover -->\nslug: k170\nkicker: T\n# Title\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k171\n## Image\n![photo](img/photo.jpg)\n'
         )
         with tempfile.TemporaryDirectory() as tmp:
             root = scaffold(tmp, md)
@@ -12833,6 +12868,148 @@ class ImageCopySafety(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((output_dir / 'img' / 'unrelated.png').exists())
             self.assertTrue((output_dir / 'img' / 'photo.jpg').exists())
+
+    def test_unused_source_image_is_not_copied(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\nnav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: k172\nkicker: T\n# Title\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k173\n## Image\n![used](img/used.png)\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            img = root / 'sources' / 'img'
+            img.mkdir()
+            (img / 'used.png').write_bytes(b'used')
+            (img / 'unused.png').write_bytes(b'unused')
+
+            result = run('build', str(root), '--output', str(root / 'public'))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / 'public' / 'img' / 'used.png').exists())
+            self.assertFalse((root / 'public' / 'img' / 'unused.png').exists())
+            manifest = json.loads(
+                (root / 'public' / '.lwp-manifest.json').read_text(encoding='utf-8'))
+            self.assertIn('img/used.png', manifest['files'])
+            self.assertNotIn('img/unused.png', manifest['files'])
+
+    def test_drafts_only_keeps_images_used_by_retained_published_pages(self):
+        first = (
+            '<!-- lwp:meta -->\npage_dest: first.html\npage_title: First\n'
+            'nav_title: First\nnav_desc: First\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: draft-k1\nkicker: T\n'
+            '# First\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: draft-k2\n![published](img/published.png)\n')
+        second = (
+            '<!-- lwp:meta -->\npage_dest: second.html\npage_title: Second\n'
+            'nav_title: Second\nnav_desc: Second\nstatus: draft\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: draft-k3\nkicker: T\n'
+            '# Second\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: draft-k4\n![draft](img/draft.png)\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'sources').mkdir(parents=True)
+            (root / 'sources' / 'first.md').write_text(first, encoding='utf-8')
+            (root / 'sources' / 'second.md').write_text(second, encoding='utf-8')
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'published.png').write_bytes(b'published')
+            (root / 'sources' / 'img' / 'draft.png').write_bytes(b'draft')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_source': 'first.md'},
+                {'page_source': 'second.md', 'status': 'draft'},
+            ]}), encoding='utf-8')
+            public = root / 'public'
+
+            initial = run('build', str(root), '--include-drafts',
+                          '--output', str(public))
+            self.assertEqual(initial.returncode, 0, initial.stderr)
+            result = run('build', str(root), '--drafts-only',
+                         '--output', str(public))
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((public / 'img' / 'published.png').exists())
+            self.assertTrue((public / 'img' / 'draft.png').exists())
+            manifest = json.loads(
+                (public / '.lwp-manifest.json').read_text(encoding='utf-8'))
+            self.assertIn('img/published.png', manifest['files'])
+            self.assertIn('img/draft.png', manifest['files'])
+
+    def test_only_rebuild_keeps_images_used_by_the_other_current_page(self):
+        first = (
+            '<!-- lwp:meta -->\npage_dest: first.html\npage_title: First\n'
+            'nav_title: First\nnav_desc: First\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: only-k1\nkicker: T\n'
+            '# First\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: only-k2\n![first](img/first.png)\n')
+        second = (
+            '<!-- lwp:meta -->\npage_dest: second.html\npage_title: Second\n'
+            'nav_title: Second\nnav_desc: Second\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: only-k3\nkicker: T\n'
+            '# Second\nsummary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: only-k4\n![second](img/second.png)\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'sources').mkdir(parents=True)
+            (root / 'sources' / 'first.md').write_text(first, encoding='utf-8')
+            (root / 'sources' / 'second.md').write_text(second, encoding='utf-8')
+            (root / 'sources' / 'img').mkdir()
+            (root / 'sources' / 'img' / 'first.png').write_bytes(b'first')
+            (root / 'sources' / 'img' / 'second.png').write_bytes(b'second')
+            (root / 'series.json').write_text(json.dumps({'articles': [
+                {'page_source': 'first.md'},
+                {'page_source': 'second.md'},
+            ]}), encoding='utf-8')
+            public = root / 'public'
+            initial = run('build', str(root), '--output', str(public))
+            self.assertEqual(initial.returncode, 0, initial.stderr)
+
+            result = run('build', str(root), '--output', str(public),
+                         '--only', 'first.html')
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('Incremental build', result.stdout)
+            self.assertTrue((public / 'img' / 'first.png').exists())
+            self.assertTrue((public / 'img' / 'second.png').exists())
+            manifest = json.loads(
+                (public / '.lwp-manifest.json').read_text(encoding='utf-8'))
+            self.assertIn('img/second.png', manifest['files'])
+
+
+class ImageInventoryAudit(unittest.TestCase):
+    """The build and audit share the rendered image inventory: local files
+    are copied only when a page refers to them, and the report keeps the
+    distinction between inline images and standalone figures."""
+
+    def test_audit_lists_image_usage_and_warns_about_unused_files(self):
+        md = (
+            '<!-- lwp:meta -->\npage_dest: a.html\npage_title: Test\n'
+            'nav_title: A\nnav_desc: A\n---\n\n'
+            '<!-- lwp:slide:cover -->\nslug: k174\nkicker: T\n# Title\n'
+            'summary: Summary.\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k175\n## Images\n'
+            'Inline ![inline](img/inline.png) here.\n\n'
+            '![figure](img/figure.svg "Caption")\n\n---\n\n'
+            '<!-- lwp:slide -->\nslug: k176\n<div><img src="img/raw.png?rev=1#cover" alt="Raw"></div>\n\n---\n\n'
+            '<!-- lwp:slide:full-article -->\nslug: k177\narticle: long.md\n'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = scaffold(tmp, md)
+            (root / 'sources' / 'long.md').write_text(
+                'Included ![long](img/long.png) image.\n', encoding='utf-8')
+            img = root / 'sources' / 'img'
+            img.mkdir()
+            for name in ('inline.png', 'figure.svg', 'raw.png', 'long.png',
+                         'unused.gif'):
+                (img / name).write_bytes(name.encode('ascii'))
+
+            result = run('audit', str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Image inventory (audit)', result.stdout)
+        self.assertIn('img/inline.png: referenced (inline: 1)', result.stdout)
+        self.assertIn('img/figure.svg: referenced (figure: 1)', result.stdout)
+        self.assertIn('img/raw.png: referenced (inline: 1)', result.stdout)
+        self.assertIn('img/long.png: referenced (inline: 1)', result.stdout)
+        self.assertIn('img/unused.gif: NEVER referenced', result.stdout)
+        self.assertIn('never referenced', result.stderr.lower())
 
 
 class DemoOverwriteProtection(unittest.TestCase):
@@ -13248,7 +13425,9 @@ class SymlinkContainment(unittest.TestCase):
             (root / 'sources' / 'a.md').write_text(
                 '<!-- lwp:meta -->\npage_dest: a.html\npage_title: T\n'
                 'nav_title: A\nnav_desc: A\n---\n\n'
-                '<!-- lwp:slide:cover -->\nslug: k182\nkicker: T\n# Title\n', encoding='utf-8')
+                '<!-- lwp:slide:cover -->\nslug: k182\nkicker: T\n# Title\n\n'
+                '---\n\n<!-- lwp:slide -->\nslug: k184\n'
+                '![alias](img/alias.png)\n', encoding='utf-8')
             (root / 'series.json').write_text(json.dumps(
                 {'articles': [{'page_source': 'a.md'}]}), encoding='utf-8')
             result = run('build', str(root), '--output', str(root / 'public'))

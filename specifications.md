@@ -401,7 +401,7 @@ ma-serie/                          # Le répertoire de la série (l'unité de tr
 │   ├── index.html
 │   ├── avant_propos.html
 │   ├── snapchat.html
-│   ├── img/                       # Images copiées depuis sources/
+│   ├── img/                       # Images référencées, copiées depuis sources/img/
 │   │   └── ...
 │   └── .lwp-manifest.json         # Ce que ce build a écrit — base de clean (§11.13)
 ├── README.md                      # Généré par build depuis series.json (§8.3)
@@ -2020,11 +2020,12 @@ noir, W = écran blanc, T = écran de la couleur de fond du thème. Les
 l'orateur ; appuyer de nouveau sur la même touche ou n'importe quelle
 touche de navigation les lève.
 
-Quatre touches de plus, arrivées avec l'aide, le panneau présentateur et
-le filtre de tags : **H** ouvre et ferme l'overlay de raccourcis, **N** le
-panneau présentateur (notes de la fiche courante + fiche suivante), **L**
-le menu de filtre par tag (§4.3.1), et **une suite de chiffres suivie
-d'Entrée** saute à la planche de ce numéro — tampon de trois chiffres,
+Quatre touches de plus, arrivées avec l'aide, le panneau présentateur, le
+filtre de tags et le défilement : **H** ouvre et ferme l'overlay de raccourcis,
+**N** le panneau présentateur (notes de la fiche courante + fiche suivante),
+**L** le menu de filtre par tag (§4.3.1), **I** alterne entre le glissé
+configuré et le saut instantané, et **une suite de chiffres suivie d'Entrée**
+saute à la planche de ce numéro — tampon de trois chiffres,
 expiré après 2,5 s, annulé par Échap. Échap ferme aussi le panneau
 présentateur. Le vocabulaire de ces touches vit dans le pack de langue
 (`help_*`, `presenter_*`, `tags_*`, §7.3). Sur l'index, sans fiches, le
@@ -2047,9 +2048,10 @@ actives : elles déclenchent directement l'action correspondante, notamment
 réservées au parcours des contrôles du menu.
 
 Le menu présentateur contient aussi l'action **Scroll**, marquée par un
-éclair. Elle n'a pas de raccourci : **S** reste celui du partage. Le libellé
+éclair et portant le raccourci **I**. **S** reste celui du partage. Le libellé
 affiche la durée active en millisecondes et l'action alterne entre la valeur
-configurée et `0`; elle ne modifie pas les sources.
+configurée et `0`; elle ne modifie pas les sources. La touche reste active
+quand le menu est ouvert, comme les autres actions qu'il affiche.
 
 **Souris** : clic gauche sur le contenu = slide suivant, clic droit =
 slide précédent (deux boutons distincts, sans visée) — sur l'index, un
@@ -4158,15 +4160,19 @@ Construit le site :
    f. Écrit le fichier HTML dans `public/`
 3. Génère la page d'index (`public/index.html`)
 4. Génère le `README.md` à la racine du répertoire de série (§8.3)
-5. Copie les images de `sources/img/` vers `public/img/` : fusionne avec
-   l'existant, ne supprime **jamais** un fichier présent dans `public/img/`
-   même s'il n'existe plus dans `sources/img/` — comme pour les pages HTML
-   d'articles retirés de `series.json` (qui restent elles aussi dans
-   `public/` sans être nettoyées), `build` est additif/à jour, jamais un
-   miroir exact qui purge ce qui n'est plus source. Un `--output` mal typé
-   ne peut donc jamais faire disparaître du contenu qui n'a pas été mis là
-   par `build` lui-même. Un résidu (image ou page orpheline) reste possible
-   après suppression d'un article ; à nettoyer à la main si besoin.
+5. Inventorie les `src` locaux des pages rendues, puis copie de
+   `sources/img/` vers `public/img/` les seuls fichiers référencés par ces
+   pages. Les images absentes de la source sont ignorées par la copie et
+   signalées par `audit`; les fichiers source non référencés ne sont pas
+   publiés. La copie fusionne avec l'existant et ne supprime **jamais** un
+   fichier présent dans `public/img/` même si ce build ne le référence pas —
+   comme pour les pages HTML d'articles retirés de `series.json` (qui restent
+   elles aussi dans `public/` sans être nettoyées), `build` est additif/à jour,
+   jamais un miroir exact qui purge ce qui n'est plus source. Un `--output`
+   mal typé ne peut donc jamais faire disparaître du contenu qui n'a pas été
+   mis là par `build` lui-même. Un résidu (image ou page orpheline) reste
+   possible après suppression d'un article ; `clean` peut le retirer si le
+   manifeste l'avait déjà déclaré.
 6. Écrit l'empreinte de navigation (§11.3.1) dans `.lwp-cache/nav.json`
    (ou le chemin donné par `--nav-cache`)
 
@@ -4244,9 +4250,10 @@ meta, jamais convertir un corps entier) et comparée à celle du cache :
 - **Identique pour tous les articles** (y compris ceux autres que
   `fichier` — un article ajouté/retiré, ou les champs d'un autre article
   changés entre-temps, sont détectés de la même façon) → reconstruction
-  du seul fichier demandé, plus `index.html`/`README.md`/images (bon
-  marché, refaits systématiquement) — l'étape évitée est la seule
-  vraiment coûteuse : reconvertir le corps Markdown de chaque *autre*
+  du seul fichier demandé, plus `index.html`/`README.md`/l'inventaire et la
+  copie des images (bon marché, refaits systématiquement) — l'étape évitée
+  est la seule vraiment coûteuse : reconvertir le corps Markdown de chaque
+  *autre*
   article.
 - **Cache absent, illisible, ou différent** → bascule silencieuse sur un
   `build` complet, jamais une erreur ni une page obsolète silencieuse ;
@@ -4417,7 +4424,10 @@ Trois drapeaux qui suppriment des sorties générées :
   (`<h2>` + `<div class="series-list">`) reste vide — la structure HTML
   est préservée, le contenu est omis.
 - `--no-index` : `public/index.html` n'est pas écrit. Les pages d'article
-  sont construites normalement.
+  sont construites normalement. Comme l'index n'est pas produit, un article
+  peut alors prendre `page_dest: index.html` même dans une série de plusieurs
+  articles : la règle de collision de §11.3.3 ne s'applique que lorsqu'un
+  index de série doit être écrit.
 - `--no-readme` : `README.md` n'est pas (re)généré. Un `README.md` existant
   n'est pas touché non plus.
 
@@ -4466,8 +4476,11 @@ octets pour 3). Un gzip de servage récupère ce surcoût sur le wire
 (l'alphabet de 64 caractères compresse bien). En ouverture locale
 (`file://`), le coût plein est payé sur disque.
 
-Désactivé par défaut : le build standard copie `sources/img/` vers
-`public/img/` et référence les images par chemin relatif.
+Désactivé par défaut : le build standard référence les images par chemin
+relatif et copie uniquement les fichiers correspondants présents sous
+`sources/img/` vers `public/img/`. Un fichier source non référencé n'est pas
+publié; un fichier déjà présent dans `public/img/` n'est pas supprimé par le
+build, mais peut devenir orphelin pour `clean` (§11.13).
 
 ### 11.4 `verify`
 
@@ -4619,7 +4632,17 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     répertoire d'images : il ne serait pas publié (§13.7). C'est un contrôle
     des *sources* commises, pas de la copie — la règle est celle que
     `copy_images` applique, partagée et non réécrite
-13. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
+13. **Dresse l'inventaire des images** après le rendu : pour chaque fichier
+    régulier présent sous `sources/img/`, indique les références locales
+    rencontrées dans les pages rendues, séparées entre images inline et
+    figures autonomes ; avertit si le fichier n'est référencé par aucune
+    page, et si une page référence un fichier absent. Les références
+    externes, `data:`, absolues ou hors de `img/` ne font pas partie de cet
+    inventaire. Si le rendu d'une page échoue, les fichiers dont l'usage ne
+    peut plus être observé sont indiqués comme indéterminés, sans faux
+    avertissement d'image inutilisée : l'échec du rendu est déjà compté
+    séparément
+14. **Rend la série en mémoire** — HTML jeté, rien d'écrit — et compte
     chaque avertissement que la composition émet, au mot près les mêmes
     qu'un `build` puisque c'est le même chemin : pack de langue absent,
     champs analysés sur une `cover` et jamais rendus (§22.12), et tout ce
@@ -4628,7 +4651,7 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     avertissement ajouté demain remonte demain sans que rien ne soit à
     mettre à jour. Une liste de sites est une liste qui dérive, ce dont le
     registre lui-même a fait la démonstration
-14. Si le rendu **échoue fatalement** — une propriété épinglée que le
+15. Si le rendu **échoue fatalement** — une propriété épinglée que le
     registre ne connaît plus, une balise déséquilibrée, une inclusion
     illisible —, l'erreur est déjà sur stderr ; `audit` ajoute un
     avertissement disant que la série ne construit pas et qu'aucune page ne
@@ -4636,12 +4659,12 @@ humaine, un audit raté ne l'est pas (BACKLOG B19/B24).
     remarque éditoriale, et `--strict` en fait un échec. Sans ce point,
     `audit` concluait « No warnings » sur une série qu'aucun build ne peut
     produire — un résumé contredisant un message trois lignes plus haut
-15. Affiche un résumé (en anglais, non localisé) : « No warnings: all
+16. Affiche un résumé (en anglais, non localisé) : « No warnings: all
     editorial conventions are respected. » ou « N warning(s). Reminder:
     audit never blocks... »
 
-`--templates` garde les points 10, 11 et 15, et rien d'autre : les points 1
-à 9 tombent parce que la liste d'articles est vidée, les points 12 à 14
+`--templates` garde les points 10, 11 et 16, et rien d'autre : les points 1
+à 9 tombent parce que la liste d'articles est vidée, les points 12 à 15
 parce qu'ils sont explicitement écartés. Le point 11 **reste** — l'option
 le réduit à la feuille de la série, faute d'article à recomposer, mais ne
 l'éteint pas : c'est un contrôle de la surface de présentation, qui est
@@ -5718,12 +5741,13 @@ jamais candidat — `CNAME`, `.nojekyll`, `robots.txt`, `404.html`, le
 `.git/` d'un worktree de publication et toute autre pièce rapportée du
 déploiement restent en place.
 
-`files` se construit à partir des **sources** : les pages déclarées par
-`series.json` et les images présentes dans `sources/img/` au moment du
-build. Il ne se déduit jamais d'un balayage du répertoire de sortie, qui
-répond « ce qui s'y trouve » là où la question est « ce que ce build a
-fabriqué » — les deux diffèrent exactement du fichier que l'auteur vient
-de supprimer.
+`files` se construit à partir des **sources et des pages rendues** : les
+pages déclarées par `series.json` et les fichiers de `sources/img/` référencés
+par les pages produites par ce build. Un fichier source non référencé n'est
+pas déclaré, même s'il existe. Il ne se déduit jamais d'un balayage du
+répertoire de sortie, qui répond « ce qui s'y trouve » là où la question est
+« ce que ce build a fabriqué » — les deux diffèrent exactement du fichier que
+l'auteur vient de supprimer ou du fichier jamais utilisé.
 
 `--output` désigne le répertoire de sortie, comme pour `build` ; à défaut,
 `LWP_OUTPUT_DIR`, puis `public/`. La commande refuse un répertoire qui
@@ -5902,17 +5926,20 @@ build(répertoire):
         })  # fill_page_template uses the fixed, built-in page structure (§18.1)
      i. write_file(répertoire/public/{article.page_dest}, html)
 
-  7. index_html = build_index(series, css, js)  # le même squelette que les articles (§18.1), contenu d'index (§18.2)
-  8. write_file(répertoire/public/index.html, index_html)
+   7. IF NOT --no-index:
+        index_html = build_index(series, css, js)  # le même squelette que les articles (§18.1), contenu d'index (§18.2)
+        write_file(répertoire/public/index.html, index_html)
 
-  9. generate_readme(series, répertoire/README.md)
-  10. copy_images(répertoire/sources/img/, répertoire/public/img/)  # merge, never wipe
-  11. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
-      write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
-      # Les deux sont écrits à chaque build, pas seulement avec `--only`.
+   8. generate_readme(series, répertoire/README.md)
+   9. image_inventory = images_in_rendered_pages()
+       copy_images(répertoire/sources/img/, répertoire/public/img/,
+                   image_inventory)  # referenced files only, merge, never wipe
+   10. write_file(répertoire/public/.lwp-manifest.json)  # ce que ce build a écrit — base de `clean` (§11.13)
+       write_file(répertoire/.lwp-cache/nav.json)        # empreinte de navigation — base de `--only` (§11.3.1)
+       # Les deux sont écrits à chaque build, pas seulement avec `--only`.
 
-  # Sorties optionnelles (commandes build / watch) : `--no-index` saute
-  # l'étape 7-8, `--no-readme` saute l'étape 9, `--no-nav` vide le
+   # Sorties optionnelles (commandes build / watch) : `--no-index` saute
+   # l'étape 7, `--no-readme` saute l'étape 8, `--no-nav` vide le
   # placeholder de navigation inter-articles (§11.3.3). `--drafts-only`
   # ne construit que les articles `status: draft`.
 ```

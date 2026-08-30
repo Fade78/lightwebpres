@@ -67,7 +67,7 @@ Once per series, in `series.json`'s `series_meta` object.
 | `author` | `''` — nothing shown | Series-wide default author (§20.3.1); shown in the index page's footer, and on every article that doesn't override it |
 | `license` | `''` — nothing shown | Series-wide default license; same display as `author`; raw HTML allowed (a link) |
 | `default_tag` | `default` | Tag selected when a page has no valid persisted reader choice; must occur on an article or non-excluded slide selected for the build, and warns when the effective article/slide intersection is empty. `series tags` and `status --format json` expose the resulting `default_output` too |
-| `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu toggles between this configured value and `0` |
+| `scroll_duration` | `200` ms | Duration of the deck's own slide glide. It must be a non-negative integer; `0` jumps instantly. `--scroll-duration` overrides it for one `build`, `verify` or `watch` invocation, and the presenter menu or **I** toggles between this configured value and `0` |
 | `lang_tags` | `{}` — no tag selects a typography pack | Object mapping a slide tag to a typography pack name, e.g. `{"fr": "fr", "en": "en"}`; the first mapped tag on a slide selects its engine (§20.5) |
 
 ## Language pack files
@@ -220,6 +220,8 @@ description; the terms are fixed here, in English.
 | **variant** | A named look for a component instance (`fact-variant: warning` → class `fact--warning`), defined once per series in `custom.css` — the source carries meaning, not visual values (§9.6.2). |
 | **slide tag** | A normalized word from a slide's `tags:`. A missing value means `default`; a selected non-`default` tag keeps shared `default` slides plus slides carrying that tag. This is unrelated to article tags, instance tags, or the version tag. |
 | **article tag** | A normalized word from an article's meta-block `tags:`. It gates the article card/page for the exact selected tag; an article without tags has no article-level gate. |
+| **image asset** | A regular file below `sources/img/`. A standard build publishes it under `public/img/` only when a rendered page references its local `img/...` path; an existing output file is not removed by the build (§11.3). |
+| **image inventory** | The audit's count of local image references in rendered pages, separated into inline images and standalone figures. It warns about unused source files and references whose source file is missing (§11.5). |
 | **furniture** | Descriptive family, not a mechanism: the properties painting the page's apparatus rather than its content or signals — rules, surface veils, sunken and control grounds, the modal scrim. Ordinary properties; the word only lets one speak of them collectively. |
 | **skeleton** | The static, layout-only CSS no property drives: flex, grid, spacing, media queries. Not an editable surface. |
 

@@ -99,7 +99,7 @@ gets its own entry and its own state**, however small.
 <!-- INDEX: généré par `python3 tools/decisions_index.py`. Ne pas éditer à
      la main : la source est la ligne de champs de chaque entrée. -->
 
-**à étudier** 8 · **à faire** 0 · **en cours** 0 · **terminé** 42 · **abandonné** 1 · **sans objet** 3
+**à étudier** 8 · **à faire** 0 · **en cours** 0 · **terminé** 44 · **abandonné** 1 · **sans objet** 3
 
 ### à étudier
 
@@ -156,6 +156,8 @@ gets its own entry and its own state**, however small.
 - **B47** — Essential themes ship by default
 - **B48** — Séparer physiquement l’interface et la typographie
 - **B49** — La locale du navigateur choisit seulement l’interface
+- **B51** — L’inventaire rendu décide quelles images sont publiées
+- **B52** — Le défilement instantané a sa propre touche
 
 ### abandonné
 
@@ -2516,3 +2518,48 @@ gallery and rendered-test handling.
 **Ce qui reste à décider.** Decide whether this belongs in the theme contract
 as an optional effect, and if so which animation controls are safe to expose;
 existing themes should remain static by default.
+
+## B51 — L’inventaire rendu décide quelles images sont publiées
+
+**État :** terminé · **Depuis :** 2026-08-30
+
+Le build ne publie plus automatiquement chaque fichier de `sources/img/`.
+Après avoir composé les pages qu’il écrit ou qu’il conserve dans une
+reconstruction incrémentale, il relève leurs `src` locaux et ne copie que les
+fichiers référencés qui existent réellement. Cette même représentation rendue
+couvre les images Markdown, les figures, le contenu `full-article`, le HTML
+brut et les pages qui restent en place pour `--only` ou `--drafts-only`.
+
+La copie reste additive : elle fusionne dans `public/img/` et ne supprime pas
+un fichier déjà présent. Le manifeste, lui, ne déclare que les fichiers que
+ce build a effectivement publiés, afin que `clean` puisse suivre une image
+devenue orpheline sans re-bénir tout ce qui traîne dans la sortie.
+
+`audit` utilise le même inventaire après son rendu en mémoire. Il distingue
+les occurrences inline et figure, avertit les fichiers source inutilisés et
+les références locales manquantes. Si un rendu échoue, il n’invente pas une
+absence de référence pour une page qu’il n’a pas pu observer : l’usage est
+indiqué comme indéterminé et l’échec du rendu est compté séparément. Les
+références externes, `data:`, absolues ou hors de `img/` restent hors de cet
+inventaire.
+
+**Ce qui est vérifié.** Les tests couvrent les images inline, figures et
+inclusions, les fichiers inutilisés, les sorties additives, les builds
+`--only` et `--drafts-only`, le manifeste et les symlinks d’images. L’audit
+conserve son comportement non bloquant, tandis que `--strict` compte ses
+nouveaux avertissements.
+
+## B52 — Le défilement instantané a sa propre touche
+
+**État :** terminé · **Depuis :** 2026-08-30
+
+L’action **Scroll** du menu présentateur est accessible par **I**, en plus de
+son bouton. La touche alterne entre la durée configurée et `0` sans toucher
+aux sources; elle reste active lorsque le menu est ouvert, comme les autres
+actions. Le raccourci est exposé dans l’aide et dans
+`aria-keyshortcuts`/`kbd`, afin que le geste, le clavier et l’interface
+assistive donnent la même réponse.
+
+**Ce qui est vérifié.** Les tests unitaires et le probe navigateur vérifient
+la présence de la ligne d’aide, la sémantique du bouton et les deux états de
+l’action, avec le menu ouvert ou fermé.

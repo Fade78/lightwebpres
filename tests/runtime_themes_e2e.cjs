@@ -247,6 +247,12 @@ async function main() {
       document.querySelectorAll('#helpList li'),
       (li) => li.textContent.indexOf('Ouvre la fenêtre d\'aide') !== -1
     ),
+    scrollLine: Array.prototype.some.call(
+      document.querySelectorAll('#helpList li'),
+      (li) => li.querySelector('.help-keys')
+        && li.querySelector('.help-keys').textContent === 'I'
+        && li.textContent.indexOf('défilement') !== -1
+    ),
     stamp: document.querySelector('.help-stamp')
       ? document.querySelector('.help-stamp').textContent.trim() : '',
     stampNameIsBold: !!document.querySelector('.help-stamp strong'),
@@ -254,7 +260,7 @@ async function main() {
   }));
   if (!help.open || help.role !== 'dialog' || !help.titleId
       || help.labelledby !== 'helpTitle' || help.cardTabindex !== '0'
-      || !help.themeLine || !help.helpOpenLine || !help.noHelpFoot
+      || !help.themeLine || !help.helpOpenLine || !help.scrollLine || !help.noHelpFoot
       || !/^Compilé avec LightWebPres v\d+\.\d+\.\d+$/.test(help.stamp)
       || !help.stampNameIsBold) {
     fail('H did not expose a proper modal with theme action and version stamp: ' + JSON.stringify(help));
@@ -433,6 +439,25 @@ async function main() {
       || scrollOn.value !== '350 ms' || scrollOn.pressed !== 'true') {
     fail('Scroll menu action did not toggle the configured duration: '
       + JSON.stringify({ scrollOff, scrollOn }));
+  }
+
+  await page.keyboard.press('m');
+  await page.keyboard.press('i');
+  const shortcutOff = await page.evaluate(() => ({
+    menuOpen: document.getElementById('presenterMenu').classList.contains('open'),
+    value: document.getElementById('menuScrollValue').textContent,
+    pressed: document.getElementById('menuScroll').getAttribute('aria-pressed'),
+  }));
+  await page.keyboard.press('i');
+  const shortcutOn = await page.evaluate(() => ({
+    value: document.getElementById('menuScrollValue').textContent,
+    pressed: document.getElementById('menuScroll').getAttribute('aria-pressed'),
+  }));
+  if (shortcutOff.menuOpen || shortcutOff.value !== '0 ms'
+      || shortcutOff.pressed !== 'false' || shortcutOn.value !== '350 ms'
+      || shortcutOn.pressed !== 'true') {
+    fail('I did not toggle the configured scroll duration: '
+      + JSON.stringify({ shortcutOff, shortcutOn }));
   }
 
   // The menu state is page-local, so use an article page to test the actual

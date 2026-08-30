@@ -33,6 +33,22 @@ link to the originals. They are at
 
 ---
 
+## Unreleased — 0.49.0
+
+Standard builds now publish only local image files referenced by the rendered
+pages, including images in figures, raw HTML, `full-article` inclusions and
+pages retained by `--only` or `--drafts-only`. The additive output contract is
+unchanged: existing files are never removed, while the manifest records only
+what this build actually published so `clean` can remove stale assets.
+
+`audit` now prints that rendered image inventory, separates inline and figure
+occurrences, and warns about unused source files or missing local references.
+An incomplete render reports unknown usage rather than falsely calling an
+image unused. The presenter menu's Scroll action is also available from the
+new **I** keyboard shortcut and names it in the help and accessible markup.
+`--no-index` now lets a multi-article series use `index.html` for an article,
+because no series index is written in that mode.
+
 ## v0.48.0
 
 Language packs are now physically split by responsibility: interface strings
